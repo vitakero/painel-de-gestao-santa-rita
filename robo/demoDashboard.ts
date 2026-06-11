@@ -233,7 +233,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .px-aut { display:inline-flex; align-items:center; padding:3px 11px; background:#157a35; color:#fff; border:0; border-radius:6px; font-size:11.5px; font-weight:700; cursor:pointer; margin-left:5px; }
   .px-aut:hover { background:#0c5a26; }
   .px-rec { display:inline-flex; align-items:center; padding:3px 8px; background:#fff; color:#c0392b; border:1px solid #e3b4ad; border-radius:6px; font-size:11.5px; font-weight:700; cursor:pointer; margin-left:4px; }
-  .px-inad { background:#fff5f4; border:1px solid #f3c9c2; border-radius:12px; padding:14px 18px; margin:6px 0 18px; }
+  .px-inad { background:#fff5f4; border:1px solid #f3c9c2; border-radius:12px; padding:14px 18px; margin:0; }
   .px-inad-top { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
   .px-inad-tit { font-size:15px; font-weight:800; color:#b8362a; }
   .px-inad-tot { font-size:13px; font-weight:700; color:#b8362a; background:#fff; border:1px solid #f0c0b8; padding:4px 12px; border-radius:20px; }
