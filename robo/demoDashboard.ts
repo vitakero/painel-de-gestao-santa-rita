@@ -387,6 +387,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="organograma"><span class="ico">🏢</span> Organograma</button>
     <button class="nav-item" data-page="fluxograma"><span class="ico">🔀</span> Fluxograma</button>
     <button class="nav-item" data-page="perdas"><span class="ico">⚠️</span> Perdas/Quebras</button>
+    <button class="nav-item" data-page="negociar"><span class="ico">🤝</span> Negociar<span class="nav-badge" id="negNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="metas"><span class="ico">🎯</span> Metas <span class="soon">em breve</span></button>
     <button class="nav-item" data-page="entregas"><span class="ico">🚚</span> Entregas</button>
   </nav>
@@ -1053,6 +1054,45 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       <div class="card">
         <h2>Férias cadastradas</h2>
         <div id="ferTabela"></div>
+      </div>
+    </section>
+
+    <section id="page-negociar" class="page">
+      <style>
+        .neg-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11.5px;font-weight:700;letter-spacing:.2px;}
+        .neg-b-pendente{background:#fff4d6;color:#9a6b00;}
+        .neg-b-lancado{background:#e8f5ec;color:#1b9e4b;}
+        .neg-vazio{padding:18px 4px;color:#8a97a8;font-size:14px;}
+        #negTabela table{width:100%;border-collapse:collapse;font-size:14px;}
+        #negTabela th,#negTabela td{text-align:left;padding:10px 12px;border-bottom:1px solid #eef2f6;vertical-align:top;}
+        #negTabela th{font-size:11.5px;text-transform:uppercase;letter-spacing:.3px;color:#6b7787;font-weight:700;background:#f7f9fc;}
+        #negTabela td.acoes{white-space:nowrap;}
+        .neg-del{color:#c0392b;cursor:pointer;font-weight:700;}
+        .neg-del:hover{text-decoration:underline;}
+        .neg-mark{border:1px solid #cfe0d6;background:#fff;color:#157a35;border-radius:7px;padding:4px 11px;font-size:12px;font-weight:700;cursor:pointer;}
+        .neg-mark:hover{background:#e3f0e8;}
+        .neg-reabrir{border:1px solid #e3d3a3;background:#fffdf6;color:#9a6b00;border-radius:7px;padding:4px 11px;font-size:12px;font-weight:700;cursor:pointer;}
+      </style>
+      <div class="kpis" id="negKpis" style="grid-template-columns:repeat(3,1fr);"></div>
+
+      <div class="card">
+        <h2>Anotar negociação</h2>
+        <p style="margin:0 0 6px;color:#6b7787;font-size:13.5px;">Anote aqui o que você negociou direto com o fornecedor. O comprador vê a lista e lança no sistema do VR.</p>
+        <div class="filtros" style="box-shadow:none;padding:0;flex-wrap:wrap;align-items:flex-start;">
+          <div class="campo" style="flex:1;min-width:180px;"><label for="negProd">Produto</label><input type="text" id="negProd" placeholder="ex: Arroz 5kg Tio João"></div>
+          <div class="campo" style="flex:1;min-width:160px;"><label for="negForn">Fornecedor</label><input type="text" id="negForn" placeholder="ex: Distribuidora Seridó"></div>
+          <div class="campo"><label for="negPreco">Preço / condição</label><input type="text" id="negPreco" placeholder="ex: R$ 22,00 a unid."></div>
+          <div class="campo"><label for="negQtd">Quantidade</label><input type="text" id="negQtd" placeholder="ex: 50 caixas" style="width:120px;"></div>
+          <div class="campo" style="flex:1;min-width:160px;"><label for="negObs">Observação</label><input type="text" id="negObs" placeholder="opcional"></div>
+          <button class="btn-p" id="negSalvar" style="margin-top:18px;">Adicionar</button>
+          <button class="btn-s" id="negCancelar" style="display:none;margin-top:18px;">Cancelar</button>
+          <span id="negMsg" style="flex-basis:100%;font-size:12.5px;color:#c0392b;margin-top:6px;display:none;"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Negociações</h2>
+        <div id="negTabela"></div>
       </div>
     </section>
   </main>
@@ -4715,6 +4755,62 @@ function ferLimparForm(){ ["ferNome","ferIni","ferFim","ferObs"].forEach(functio
   });
 })();
 
+// ---- Negociações (produtos negociados pra o comprador lançar no sistema) ----
+let negDados = (function(){ try{ return JSON.parse(localStorage.getItem("negociacoes_dados")||"[]"); }catch(e){ return []; } })();
+let negEditId = null;
+function negSave(){ try{ localStorage.setItem("negociacoes_dados", JSON.stringify(negDados)); }catch(e){} }
+function negUid(){ return "n"+(HOJE.getTime())+Math.floor(performance.now()*1000)+negDados.length; }
+function negBadgeHtml(n){ return n.status==="lancado" ? '<span class="neg-badge neg-b-lancado">LANÇADO</span>' : '<span class="neg-badge neg-b-pendente">PENDENTE</span>'; }
+function negAtualizaBadge(){
+  var b=document.getElementById("negNavBadge"); if(!b) return;
+  var pend=negDados.filter(function(n){ return n.status!=="lancado"; }).length;
+  if(pend>0){ b.textContent=pend; b.title=pend+" negociação(ões) pendente(s) de lançamento"; b.style.display=""; }
+  else { b.style.display="none"; }
+}
+function renderNegociar(){
+  var pend=negDados.filter(function(n){ return n.status!=="lancado"; }).length;
+  var lanc=negDados.filter(function(n){ return n.status==="lancado"; }).length;
+  document.getElementById("negKpis").innerHTML=
+    '<div class="kpi"><div class="v">'+pend+'</div><div class="l">Pendentes (lançar)</div></div>'+
+    '<div class="kpi"><div class="v">'+lanc+'</div><div class="l">Já lançados</div></div>'+
+    '<div class="kpi"><div class="v">'+negDados.length+'</div><div class="l">Total</div></div>';
+  // pendentes primeiro
+  var lista=negDados.slice().sort(function(a,b){ var pa=a.status==="lancado"?1:0, pb=b.status==="lancado"?1:0; return pa-pb; });
+  if(!lista.length){ document.getElementById("negTabela").innerHTML='<div class="neg-vazio">Nenhuma negociação anotada ainda. Use o formulário acima.</div>'; }
+  else {
+    document.getElementById("negTabela").innerHTML='<table><thead><tr><th>Produto</th><th>Fornecedor</th><th>Preço / condição</th><th>Qtd.</th><th>Obs.</th><th>Situação</th><th></th></tr></thead><tbody>'+
+      lista.map(function(n){
+        var acao = n.status==="lancado"
+          ? '<button class="neg-reabrir" data-negreabrir="'+n.id+'">↩ Reabrir</button>'
+          : '<button class="neg-mark" data-neglancar="'+n.id+'">✓ Lançado</button>';
+        return '<tr><td><b>'+pxEsc(n.produto)+'</b></td><td>'+pxEsc(n.fornecedor||"")+'</td><td>'+pxEsc(n.preco||"")+'</td><td>'+pxEsc(n.qtd||"")+'</td><td>'+pxEsc(n.obs||"")+'</td><td>'+negBadgeHtml(n)+'</td>'+
+          '<td class="acoes">'+acao+' &nbsp; <span class="esc-nome" data-negedit="'+n.id+'">editar</span> &nbsp; <span class="neg-del" data-negdel="'+n.id+'">excluir</span></td></tr>';
+      }).join("")+'</tbody></table>';
+  }
+  negAtualizaBadge();
+}
+function negLimparForm(){ ["negProd","negForn","negPreco","negQtd","negObs"].forEach(function(id){ document.getElementById(id).value=""; }); negEditId=null; document.getElementById("negSalvar").textContent="Adicionar"; document.getElementById("negCancelar").style.display="none"; document.getElementById("negMsg").style.display="none"; }
+(function(){
+  var sb=document.getElementById("negSalvar"); if(!sb) return;
+  sb.addEventListener("click", function(){
+    var produto=document.getElementById("negProd").value.trim();
+    var msg=document.getElementById("negMsg");
+    if(!produto){ msg.textContent="Digite pelo menos o produto."; msg.style.display="block"; return; }
+    var dados={ produto:produto, fornecedor:document.getElementById("negForn").value.trim(), preco:document.getElementById("negPreco").value.trim(), qtd:document.getElementById("negQtd").value.trim(), obs:document.getElementById("negObs").value.trim() };
+    if(negEditId){ var n=negDados.find(function(x){ return x.id===negEditId; }); if(n){ Object.assign(n,dados); } }
+    else { negDados.push(Object.assign({id:negUid(),status:"pendente"},dados)); }
+    negSave(); negLimparForm(); renderNegociar();
+  });
+  document.getElementById("negCancelar").addEventListener("click", negLimparForm);
+  document.getElementById("negTabela").addEventListener("click", function(e){
+    var la=e.target.closest("[data-neglancar]"), re=e.target.closest("[data-negreabrir]"), ed=e.target.closest("[data-negedit]"), dl=e.target.closest("[data-negdel]");
+    if(la){ var n1=negDados.find(function(x){ return x.id===la.dataset.neglancar; }); if(n1){ n1.status="lancado"; negSave(); renderNegociar(); } return; }
+    if(re){ var n2=negDados.find(function(x){ return x.id===re.dataset.negreabrir; }); if(n2){ n2.status="pendente"; negSave(); renderNegociar(); } return; }
+    if(ed){ var n3=negDados.find(function(x){ return x.id===ed.dataset.negedit; }); if(n3){ document.getElementById("negProd").value=n3.produto||""; document.getElementById("negForn").value=n3.fornecedor||""; document.getElementById("negPreco").value=n3.preco||""; document.getElementById("negQtd").value=n3.qtd||""; document.getElementById("negObs").value=n3.obs||""; negEditId=n3.id; document.getElementById("negSalvar").textContent="Salvar"; document.getElementById("negCancelar").style.display=""; window.scrollTo(0,document.getElementById("page-negociar").offsetTop); } return; }
+    if(dl){ var alvo=negDados.find(function(x){ return x.id===dl.dataset.negdel; }); uiConfirm({titulo:"Excluir negociação",msg:"Remover a negociação de "+((alvo&&alvo.produto)||"")+"?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; negDados=negDados.filter(function(x){ return x.id!==dl.dataset.negdel; }); negSave(); renderNegociar(); }); return; }
+  });
+})();
+
 document.querySelectorAll(".nav-item").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll(".nav-item").forEach(b=>b.classList.remove("ativo"));
@@ -4728,6 +4824,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="perdas") renderPerdas();
     if(btn.dataset.page==="entregas") renderEntregas();
     if(btn.dataset.page==="ferias"){ if(!document.getElementById("ferConsultaDia").value){ document.getElementById("ferConsultaDia").value=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2)+"-"+("0"+HOJE.getDate()).slice(-2); } renderFerias(); }
+    if(btn.dataset.page==="negociar") renderNegociar();
     try{ localStorage.setItem("ui_pagina_atual", btn.dataset.page); }catch(e){}
     window.scrollTo(0,0);
   });
@@ -4740,6 +4837,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
 
 render();
 try{ pxAtualizaBadge(); }catch(e){}
+try{ negAtualizaBadge(); }catch(e){}
 
 // Restaura a última página aberta após recarregar (Cmd+R) e sempre vai pro topo
 (function(){
