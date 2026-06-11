@@ -527,6 +527,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <div class="campo" style="flex:1;min-width:170px;"><label for="pxForn">Fornecedor</label><input type="text" id="pxForn" placeholder="preenchido pelo CNPJ" readonly style="background:#f3f6fa;color:#46535f;cursor:not-allowed;"><input type="hidden" id="pxRazao"><span id="pxCnpjMsg" style="font-size:11px;display:block;margin-top:4px;line-height:1.25;"></span></div>
           <div class="campo"><label for="pxVend">Vendedor</label><input type="text" id="pxVend" placeholder="ex: Josinaldo"></div>
           <div class="campo"><label for="pxTel">Contato</label><input type="tel" id="pxTel" placeholder="ex: (84) 99999-0000" style="width:160px;"></div>
+          <div class="campo"><label for="pxEmail">E-mail (p/ cobrança)</label><input type="email" id="pxEmail" placeholder="ex: financeiro@empresa.com" style="width:230px;"></div>
+          <div class="campo" style="flex:1;min-width:200px;"><label for="pxEndereco">Endereço</label><input type="text" id="pxEndereco" placeholder="preenchido pelo CNPJ"></div>
           <div class="campo"><label for="pxValor">Valor (R$)</label><input type="number" id="pxValor" step="0.01" min="0" style="width:120px;"></div>
           <div class="campo"><label for="pxPag">Modo de pagamento</label>
             <input type="text" id="pxPag" list="pxPagList" style="width:150px;" placeholder="Boleto">
@@ -2041,6 +2043,7 @@ function pxContratoDocHtml(p){
   var cnpj=pxEsc(p.cnpj?pxFmtCnpj(p.cnpj):"[CNPJ DO FORNECEDOR]");
   var vend=pxEsc(p.vendedor||"[REPRESENTANTE DO FORNECEDOR]");
   var contato=pxEsc(p.contato?pxFmtTel(p.contato):"[CONTATO]");
+  var endereco=pxEsc(p.endereco||"");
   var valor=pxEsc(p.valor?brl(+p.valor):"[VALOR]");
   var pag=pxEsc(p.pagamento||"[FORMA DE PAGAMENTO]");
   var assin=pxEsc(p.abertura?pxFmtData(p.abertura):"____/____/______");
@@ -2062,7 +2065,7 @@ function pxContratoDocHtml(p){
   h+="<div style='height:34px'></div>";
   h+="<h1>Contrato de Locação de Espaço Comercial<br>(Ponto Extra / Gôndola)</h1>";
   h+="<p><b>LOCADOR:</b> <span class='campo'>"+L.razao+"</span>, inscrito no CNPJ sob o nº <span class='campo'>"+L.cnpj+"</span>, com sede em <span class='campo'>"+L.endereco+"</span>, neste ato representado por <span class='campo'>"+L.representante+"</span>, doravante denominado <b>LOCADOR</b>.</p>";
-  h+="<p><b>LOCATÁRIO:</b> "+locatario+(nomeFant?(" ("+nomeFant+")"):"")+", inscrito no CNPJ sob o nº "+cnpj+", neste ato representado por "+vend+", contato "+contato+", doravante denominado <b>LOCATÁRIO</b>.</p>";
+  h+="<p><b>LOCATÁRIO:</b> "+locatario+(nomeFant?(" ("+nomeFant+")"):"")+", inscrito no CNPJ sob o nº "+cnpj+(endereco?(", com sede em "+endereco):"")+", neste ato representado por "+vend+", contato "+contato+", doravante denominado <b>LOCATÁRIO</b>.</p>";
   h+="<p>As partes acima identificadas têm, entre si, justo e acertado o presente Contrato de Locação de Espaço Comercial, que se regerá pelas cláusulas seguintes.</p>";
   h+="<h2>Cláusula 1ª — Do Objeto</h2><p>O presente contrato tem por objeto a cessão onerosa, pelo LOCADOR ao LOCATÁRIO, do uso do ponto extra / espaço de gôndola identificado sob o nº <b>"+numPonto+"</b>, destinado exclusivamente à exposição e divulgação dos produtos do LOCATÁRIO no interior do estabelecimento do LOCADOR.</p>";
   h+="<h2>Cláusula 2ª — Do Valor e Forma de Pagamento</h2><p>Pela locação do espaço, o LOCATÁRIO pagará ao LOCADOR o valor mensal de <b>"+valor+"</b>, por meio de <b>"+pag+"</b>"+(obs?(", conforme observação: "+obs):"")+".</p>";
@@ -2162,6 +2165,8 @@ function renderPontosG(){
         pxDetItem("Razão Social", p.razaoSocial||"—")+
         pxDetItem("Vendedor", p.vendedor||"—")+
         pxDetItem("Contato", p.contato?pxFmtTel(p.contato):"—")+
+        pxDetItem("E-mail", p.email ? ('<a href="mailto:'+pxEsc(p.email)+'">'+pxEsc(p.email)+'</a>') : "—")+
+        pxDetItem("Endereço", p.endereco?pxEsc(p.endereco):"—")+
         pxContratoHtml(p)+
       '</div>'+pxAgendaHtml(p)+'</div></td></tr>';
   }).join("");
@@ -2179,6 +2184,8 @@ function pxLerForm(){
     razaoSocial: document.getElementById("pxRazao").value.trim(),
     vendedor: document.getElementById("pxVend").value.trim(),
     contato: document.getElementById("pxTel").value.trim(),
+    email: document.getElementById("pxEmail").value.trim(),
+    endereco: document.getElementById("pxEndereco").value.trim(),
     valor: parseFloat(document.getElementById("pxValor").value)||0,
     pagamento: document.getElementById("pxPag").value.trim(),
     abertura: document.getElementById("pxAbertura").value,
@@ -2193,6 +2200,8 @@ function pxPreencherForm(p){
   document.getElementById("pxRazao").value=p.razaoSocial||"";
   document.getElementById("pxVend").value=p.vendedor||"";
   document.getElementById("pxTel").value=pxFmtTel(p.contato||"");
+  document.getElementById("pxEmail").value=p.email||"";
+  document.getElementById("pxEndereco").value=p.endereco||"";
   document.getElementById("pxValor").value=p.valor||"";
   document.getElementById("pxPag").value=p.pagamento||"";
   document.getElementById("pxAbertura").value=/^\\d{4}-\\d{2}-\\d{2}\$/.test(p.abertura||"")?p.abertura:"";
@@ -2200,7 +2209,7 @@ function pxPreencherForm(p){
   document.getElementById("pxObs").value=p.obs||"";
 }
 function pxLimparForm(){
-  ["pxNum","pxCnpj","pxForn","pxRazao","pxVend","pxTel","pxValor","pxPag","pxAbertura","pxVenc","pxObs"].forEach(id=>document.getElementById(id).value="");
+  ["pxNum","pxCnpj","pxForn","pxRazao","pxVend","pxTel","pxEmail","pxEndereco","pxValor","pxPag","pxAbertura","pxVenc","pxObs"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("pxCnpjMsg").textContent="";
   pxEditId=null;
   document.getElementById("pxFormTitulo").textContent="Adicionar ponto extra";
@@ -2224,8 +2233,23 @@ function pxBuscarCnpj(){
       if(nome){
         document.getElementById("pxForn").value=nome;
         document.getElementById("pxRazao").value=razao;
+        // email: preenche se a Receita tiver e o campo estiver vazio
+        var emEl=document.getElementById("pxEmail");
+        if(d.email && !emEl.value.trim()) emEl.value=String(d.email).toLowerCase();
+        // telefone: preenche se vier e o campo estiver vazio
+        var telEl=document.getElementById("pxTel");
+        if(d.ddd_telefone_1 && !telEl.value.trim()) telEl.value=pxFmtTel(String(d.ddd_telefone_1).replace(/\\D/g,""));
+        // endereço: monta a partir dos campos da Receita
+        var endEl=document.getElementById("pxEndereco");
+        var partes=[];
+        if(d.logradouro) partes.push(d.logradouro+(d.numero?(", "+d.numero):""));
+        if(d.bairro) partes.push(d.bairro);
+        if(d.municipio) partes.push(d.municipio+(d.uf?("/"+d.uf):""));
+        if(d.cep) partes.push("CEP "+String(d.cep).replace(/(\\d{5})(\\d{3})/,"$1-$2"));
+        var endereco=partes.join(" - ");
+        if(endereco && !endEl.value.trim()) endEl.value=endereco;
         msg.style.color="#1b9e4b";
-        msg.textContent="\\u2713 "+(fantasia?("Fantasia: "+fantasia):"")+((fantasia&&razao)?"  \\u00b7  ":"")+(razao?("Razão: "+razao):"");
+        msg.textContent="\\u2713 "+(fantasia?("Fantasia: "+fantasia):"")+((fantasia&&razao)?"  \\u00b7  ":"")+(razao?("Razão: "+razao):"")+(d.email?("  \\u00b7  \\u2709 "+String(d.email).toLowerCase()):"");
       } else { msg.style.color="#c0392b"; msg.textContent="CNPJ encontrado, mas sem nome cadastrado."; }
     })
     .catch(function(){ msg.style.color="#c0392b"; msg.textContent="Não encontrei esse CNPJ. Confira o número e a internet."; })
@@ -2544,6 +2568,8 @@ function mapaDetalhe(num){
     '<div class="lin"><b>Razão social</b><span>'+(p.razaoSocial||"—")+'</span></div>'+
     '<div class="lin"><b>Vendedor</b><span>'+(p.vendedor||"—")+'</span></div>'+
     '<div class="lin"><b>Contato</b><span>'+(p.contato?pxFmtTel(p.contato):"—")+'</span></div>'+
+    '<div class="lin"><b>E-mail</b><span>'+(p.email?('<a href="mailto:'+pxEsc(p.email)+'">'+pxEsc(p.email)+'</a>'):"—")+'</span></div>'+
+    '<div class="lin"><b>Endereço</b><span>'+(p.endereco?pxEsc(p.endereco):"—")+'</span></div>'+
     valLin+
     '<div class="lin"><b>Pagamento</b><span>'+(p.pagamento||"—")+'</span></div>'+
     '<div class="lin"><b>Abertura</b><span>'+(pxFmtData(p.abertura)||"—")+'</span></div>'+
