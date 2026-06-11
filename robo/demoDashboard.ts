@@ -380,6 +380,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="estoque"><span class="ico">📦</span> Estoque</button>
     <button class="nav-item" data-page="calendario"><span class="ico">📅</span> Calendário</button>
     <button class="nav-item" data-page="escala"><span class="ico">🗓️</span> Escala</button>
+    <button class="nav-item" data-page="ferias"><span class="ico">🏖️</span> Férias</button>
     <button class="nav-item" data-page="pontos"><span class="ico">🏷️</span> Pontos extras<span class="nav-badge" id="pxNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="mapa"><span class="ico">🗺️</span> Mapa dos pontos</button>
     <button class="nav-item" data-page="layout"><span class="ico">📐</span> Layout da loja</button>
@@ -1004,6 +1005,54 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         </div>
         <div id="entGraficos"></div>
         <div id="entTip" class="ent-tip"></div>
+      </div>
+    </section>
+
+    <section id="page-ferias" class="page">
+      <style>
+        .fer-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11.5px;font-weight:700;letter-spacing:.2px;}
+        .fer-b-ferias{background:#e8f5ec;color:#1b9e4b;}
+        .fer-b-agendada{background:#fff4d6;color:#9a6b00;}
+        .fer-b-concluida{background:#eef1f5;color:#7a8696;}
+        #ferConsultaResultado{margin-top:12px;}
+        .fer-chip{display:inline-flex;align-items:center;gap:7px;background:#f3f8f4;border:1px solid #d4e6da;border-radius:10px;padding:8px 13px;margin:0 8px 8px 0;font-size:14px;color:#1d2733;font-weight:600;}
+        .fer-chip .ico{font-size:15px;}
+        .fer-vazio{padding:18px 4px;color:#8a97a8;font-size:14px;}
+        #ferTabela table{width:100%;border-collapse:collapse;font-size:14px;}
+        #ferTabela th,#ferTabela td{text-align:left;padding:10px 12px;border-bottom:1px solid #eef2f6;}
+        #ferTabela th{font-size:11.5px;text-transform:uppercase;letter-spacing:.3px;color:#6b7787;font-weight:700;background:#f7f9fc;}
+        #ferTabela td.acoes{white-space:nowrap;}
+        .fer-del{color:#c0392b;cursor:pointer;font-weight:700;}
+        .fer-del:hover{text-decoration:underline;}
+      </style>
+      <div class="kpis" id="ferKpis" style="grid-template-columns:repeat(3,1fr);"></div>
+
+      <div class="card">
+        <h2>Cadastrar férias</h2>
+        <div class="filtros" style="box-shadow:none;padding:0;flex-wrap:wrap;align-items:flex-start;">
+          <div class="campo" style="flex:1;min-width:200px;"><label for="ferNome">Funcionário</label>
+            <input type="text" id="ferNome" list="ferFuncList" placeholder="nome do funcionário">
+            <datalist id="ferFuncList"></datalist>
+          </div>
+          <div class="campo"><label for="ferIni">Início das férias</label><input type="date" id="ferIni"></div>
+          <div class="campo"><label for="ferFim">Fim das férias</label><input type="date" id="ferFim"></div>
+          <div class="campo" style="flex:1;min-width:160px;"><label for="ferObs">Observação</label><input type="text" id="ferObs" placeholder="opcional"></div>
+          <button class="btn-p" id="ferSalvar" style="margin-top:18px;">Adicionar</button>
+          <button class="btn-s" id="ferCancelar" style="display:none;margin-top:18px;">Cancelar</button>
+          <span id="ferMsg" style="flex-basis:100%;font-size:12.5px;color:#c0392b;margin-top:6px;display:none;"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Quem está de férias?</h2>
+        <p style="margin:0 0 6px;color:#6b7787;font-size:13.5px;">Escolha um dia pra ver quem estará de férias — assim você se programa e não é pego de surpresa.</p>
+        <input type="date" id="ferConsultaDia" style="padding:8px 11px;border:1px solid #cdd6e0;border-radius:8px;font-size:14px;">
+        <div id="ferConsultaResultado"></div>
+      </div>
+
+      <div class="card">
+        <h2>Férias cadastradas</h2>
+        <div id="ferTabela"></div>
       </div>
     </section>
   </main>
@@ -4593,6 +4642,79 @@ function renderLayout(){ layRender(); layPlanoRender(); }
   parea.addEventListener("change",function(e){ const nm=e.target.closest("#layPlanoNome"); if(!nm) return; const g=layPlanoAtiva(); if(g){ g.nome=(nm.value||"").trim()||"Gôndola"; layPlanoSave(); layPlanoRender(); } });
 })();
 
+// ---- Férias dos funcionários ----
+let feriasDados = (function(){ try{ return JSON.parse(localStorage.getItem("ferias_dados")||"[]"); }catch(e){ return []; } })();
+let ferEditId = null;
+function feriasSave(){ try{ localStorage.setItem("ferias_dados", JSON.stringify(feriasDados)); }catch(e){} }
+function ferUid(){ return "f"+(HOJE.getTime())+Math.floor(performance.now()*1000)+feriasDados.length; }
+function ferD(s){ if(!/^\\d{4}-\\d{2}-\\d{2}\$/.test(s||"")) return null; var p=s.split("-"); return new Date(+p[0],+p[1]-1,+p[2]); }
+function ferStatus(f){ var i=ferD(f.inicio), fm=ferD(f.fim); if(!i||!fm) return "agendada"; if(HOJE>=i&&HOJE<=fm) return "ferias"; if(i>HOJE) return "agendada"; return "concluida"; }
+function ferDias(f){ var i=ferD(f.inicio), fm=ferD(f.fim); if(!i||!fm) return 0; return Math.round((fm-i)/86400000)+1; }
+function ferBadge(f){ var s=ferStatus(f); if(s==="ferias") return '<span class="fer-badge fer-b-ferias">EM FÉRIAS</span>'; if(s==="agendada") return '<span class="fer-badge fer-b-agendada">AGENDADA</span>'; return '<span class="fer-badge fer-b-concluida">CONCLUÍDA</span>'; }
+function ferNoDia(dt){ // dt = Date; retorna nomes de quem está de férias nesse dia
+  return feriasDados.filter(function(f){ var i=ferD(f.inicio), fm=ferD(f.fim); return i&&fm&&dt>=i&&dt<=fm; });
+}
+function ferPreencheLista(){
+  var vistos={}, opts="";
+  (roster||[]).forEach(function(c){ var n=(c.nome||"").trim(); if(n&&n!=="(vaga)"&&!vistos[n]){ vistos[n]=1; opts+='<option value="'+pxEsc(n)+'"></option>'; } });
+  var dl=document.getElementById("ferFuncList"); if(dl) dl.innerHTML=opts;
+}
+function ferConsultaRender(){
+  var inp=document.getElementById("ferConsultaDia"); if(!inp) return;
+  var dt=ferD(inp.value); var box=document.getElementById("ferConsultaResultado");
+  if(!dt){ box.innerHTML='<div class="fer-vazio">Escolha um dia acima.</div>'; return; }
+  var lista=ferNoDia(dt);
+  var dataFmt=pxFmtData(inp.value);
+  if(!lista.length){ box.innerHTML='<div class="fer-chip" style="background:#eef1f5;border-color:#dfe4ea;color:#56606d;"><span class="ico">✅</span> Ninguém de férias em '+dataFmt+'</div>'; return; }
+  box.innerHTML='<p style="margin:0 0 8px;color:#46535f;font-size:13.5px;"><b>'+lista.length+'</b> de férias em '+dataFmt+':</p>'+
+    lista.map(function(f){ return '<span class="fer-chip"><span class="ico">🏖️</span>'+pxEsc(f.nome)+' <span style="color:#8a97a8;font-weight:500;">(até '+pxFmtData(f.fim)+')</span></span>'; }).join("");
+}
+function renderFerias(){
+  ferPreencheLista();
+  // KPIs
+  var hojeFer=feriasDados.filter(function(f){ return ferStatus(f)==="ferias"; }).length;
+  var agendadas=feriasDados.filter(function(f){ return ferStatus(f)==="agendada"; }).length;
+  var total=feriasDados.length;
+  document.getElementById("ferKpis").innerHTML=
+    '<div class="kpi"><div class="v">'+hojeFer+'</div><div class="l">De férias hoje</div></div>'+
+    '<div class="kpi"><div class="v">'+agendadas+'</div><div class="l">Agendadas (futuras)</div></div>'+
+    '<div class="kpi"><div class="v">'+total+'</div><div class="l">Total cadastradas</div></div>';
+  // tabela ordenada: em férias primeiro, depois agendadas (por início), depois concluídas (mais recentes)
+  var ordem={ferias:0,agendada:1,concluida:2};
+  var lista=feriasDados.slice().sort(function(a,b){ var d=ordem[ferStatus(a)]-ordem[ferStatus(b)]; if(d) return d; return (a.inicio||"").localeCompare(b.inicio||""); });
+  if(!lista.length){ document.getElementById("ferTabela").innerHTML='<div class="fer-vazio">Nenhuma férias cadastrada ainda. Use o formulário acima.</div>'; }
+  else {
+    document.getElementById("ferTabela").innerHTML='<table><thead><tr><th>Funcionário</th><th>Início</th><th>Fim</th><th>Dias</th><th>Situação</th><th>Obs.</th><th></th></tr></thead><tbody>'+
+      lista.map(function(f){ return '<tr><td><b>'+pxEsc(f.nome)+'</b></td><td>'+pxFmtData(f.inicio)+'</td><td>'+pxFmtData(f.fim)+'</td><td>'+ferDias(f)+'</td><td>'+ferBadge(f)+'</td><td>'+pxEsc(f.obs||"")+'</td>'+
+        '<td class="acoes"><span class="esc-nome" data-feredit="'+f.id+'">editar</span> &nbsp; <span class="fer-del" data-ferdel="'+f.id+'">excluir</span></td></tr>'; }).join("")+
+      '</tbody></table>';
+  }
+  ferConsultaRender();
+}
+function ferLimparForm(){ ["ferNome","ferIni","ferFim","ferObs"].forEach(function(id){ document.getElementById(id).value=""; }); ferEditId=null; document.getElementById("ferSalvar").textContent="Adicionar"; document.getElementById("ferCancelar").style.display="none"; document.getElementById("ferMsg").style.display="none"; }
+(function(){
+  var sb=document.getElementById("ferSalvar"); if(!sb) return;
+  sb.addEventListener("click", function(){
+    var nome=document.getElementById("ferNome").value.trim();
+    var ini=document.getElementById("ferIni").value, fim=document.getElementById("ferFim").value, obs=document.getElementById("ferObs").value.trim();
+    var msg=document.getElementById("ferMsg");
+    function erro(t){ msg.textContent=t; msg.style.display="block"; }
+    if(!nome){ return erro("Digite o nome do funcionário."); }
+    if(!ferD(ini)||!ferD(fim)){ return erro("Preencha as datas de início e fim."); }
+    if(ferD(fim)<ferD(ini)){ return erro("A data de fim não pode ser antes do início."); }
+    if(ferEditId){ var f=feriasDados.find(function(x){ return x.id===ferEditId; }); if(f){ f.nome=nome; f.inicio=ini; f.fim=fim; f.obs=obs; } }
+    else { feriasDados.push({id:ferUid(),nome:nome,inicio:ini,fim:fim,obs:obs}); }
+    feriasSave(); ferLimparForm(); renderFerias();
+  });
+  document.getElementById("ferCancelar").addEventListener("click", ferLimparForm);
+  document.getElementById("ferConsultaDia").addEventListener("change", ferConsultaRender);
+  document.getElementById("ferTabela").addEventListener("click", function(e){
+    var ed=e.target.closest("[data-feredit]"); var dl=e.target.closest("[data-ferdel]");
+    if(ed){ var f=feriasDados.find(function(x){ return x.id===ed.dataset.feredit; }); if(f){ document.getElementById("ferNome").value=f.nome||""; document.getElementById("ferIni").value=f.inicio||""; document.getElementById("ferFim").value=f.fim||""; document.getElementById("ferObs").value=f.obs||""; ferEditId=f.id; document.getElementById("ferSalvar").textContent="Salvar"; document.getElementById("ferCancelar").style.display=""; window.scrollTo(0,document.getElementById("page-ferias").offsetTop); } return; }
+    if(dl){ var alvo=feriasDados.find(function(x){ return x.id===dl.dataset.ferdel; }); uiConfirm({titulo:"Excluir férias",msg:"Remover as férias de "+((alvo&&alvo.nome)||"")+"?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; feriasDados=feriasDados.filter(function(x){ return x.id!==dl.dataset.ferdel; }); feriasSave(); renderFerias(); }); return; }
+  });
+})();
+
 document.querySelectorAll(".nav-item").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll(".nav-item").forEach(b=>b.classList.remove("ativo"));
@@ -4605,6 +4727,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="layout"){ renderLayout(); layFitView(); }
     if(btn.dataset.page==="perdas") renderPerdas();
     if(btn.dataset.page==="entregas") renderEntregas();
+    if(btn.dataset.page==="ferias"){ if(!document.getElementById("ferConsultaDia").value){ document.getElementById("ferConsultaDia").value=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2)+"-"+("0"+HOJE.getDate()).slice(-2); } renderFerias(); }
     try{ localStorage.setItem("ui_pagina_atual", btn.dataset.page); }catch(e){}
     window.scrollTo(0,0);
   });
