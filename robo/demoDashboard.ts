@@ -37,8 +37,8 @@ const estoque: { id_produto: string; produto: string; setor: string; estoque: nu
 
 const dataMin = DIA.length ? DIA[0].d : "";
 const dataMax = DIA.length ? DIA[DIA.length - 1].d : "";
-// Data inicial padrão = 1º dia do mês mais recente (abre mostrando o mês atual).
-const defaultDe = dataMax ? dataMax.slice(0, 8) + "01" : dataMin;
+// Data inicial padrão = dia de hoje (o dia mais recente com dados). Abre mostrando só o dia atual.
+const defaultDe = dataMax || dataMin;
 const geradoEm = new Date().toLocaleString("pt-BR");
 
 // Lista unica de produtos (codigo + nome) a partir do ranking - para o autocompletar.
@@ -4832,10 +4832,8 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
   });
 });
 
-// Restaura o último período escolhido (mantém a data ao atualizar a página).
-(function(){ try{ const s=JSON.parse(localStorage.getItem("vendas_periodo2")||"null");
-  if(s&&s.de&&s.ate){ document.getElementById("de").value=s.de; document.getElementById("ate").value=s.ate; }
-}catch(e){} })();
+// Sempre abre no dia de hoje (não restaura a última data escolhida).
+// A data padrão de "de" e "ate" já é o dia mais recente com dados (DATA_MAX).
 
 render();
 try{ pxAtualizaBadge(); }catch(e){}
