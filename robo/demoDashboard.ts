@@ -414,7 +414,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <input type="text" id="nome" list="listaNomes" placeholder="ex: Arroz" autocomplete="off">
         <datalist id="listaNomes">${datalistNomes}</datalist>
       </div>
-      <button class="btn-p" id="aplicar">Aplicar filtro</button>
+      <button class="btn-p" id="aplicar">Pesquisar</button>
       <button class="btn-s" id="limpar">Limpar (tudo)</button>
       <span class="periodo-info" id="periodoInfo"></span>
     </div>
@@ -458,7 +458,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
             <option value="RUPTURA">Ruptura</option>
           </select>
         </div>
-        <button class="btn-p" id="aplicarE">Aplicar filtro</button>
+        <button class="btn-p" id="aplicarE">Pesquisar</button>
         <button class="btn-s" id="limparE">Limpar (tudo)</button>
         <span class="periodo-info" id="estoqueInfo"></span>
       </div>
