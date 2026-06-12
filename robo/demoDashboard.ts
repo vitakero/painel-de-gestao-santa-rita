@@ -84,7 +84,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .nav-item { display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:none; border:0; cursor:pointer; padding:11px 12px; border-radius:9px; font-size:14px; color:#33404f; font-weight:500; margin-bottom:3px; }
   .nav-item:hover { background:#e2e8f1; }
   .nav-item.ativo { background:#157a35; color:#fff; font-weight:600; }
-  .nav-item .ico { font-size:16px; width:20px; text-align:center; }
+  .nav-item .ico { width:20px; display:inline-flex; align-items:center; justify-content:center; flex:none; color:#8a97a8; }
+  .nav-item.ativo .ico { color:#fff; }
+  .nav-item .ico svg { width:18px; height:18px; display:block; }
   .nav-item .soon { margin-left:auto; font-size:9px; background:#cdd6e0; color:#5a6678; padding:1px 6px; border-radius:20px; text-transform:uppercase; letter-spacing:.3px; }
   .nav-badge { margin-left:auto; min-width:19px; height:19px; padding:0 5px; background:#c0392b; color:#fff; border-radius:10px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 0 0 2px #fff; }
   .nav-item.ativo .nav-badge { box-shadow:0 0 0 2px #157a35; }
@@ -376,20 +378,20 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   <div class="layout">
   <nav class="sidebar">
     <div class="titulo">Painel de controle</div>
-    <button class="nav-item ativo" data-page="vendas"><span class="ico">📊</span> Vendas</button>
-    <button class="nav-item" data-page="estoque"><span class="ico">📦</span> Estoque</button>
-    <button class="nav-item" data-page="calendario"><span class="ico">📅</span> Calendário</button>
-    <button class="nav-item" data-page="escala"><span class="ico">🗓️</span> Escala</button>
-    <button class="nav-item" data-page="ferias"><span class="ico">🏖️</span> Férias</button>
-    <button class="nav-item" data-page="pontos"><span class="ico">🏷️</span> Pontos extras<span class="nav-badge" id="pxNavBadge" style="display:none;"></span></button>
-    <button class="nav-item" data-page="mapa"><span class="ico">🗺️</span> Mapa dos pontos</button>
-    <button class="nav-item" data-page="layout"><span class="ico">📐</span> Layout da loja</button>
-    <button class="nav-item" data-page="organograma"><span class="ico">🏢</span> Organograma</button>
-    <button class="nav-item" data-page="fluxograma"><span class="ico">🔀</span> Fluxograma</button>
-    <button class="nav-item" data-page="perdas"><span class="ico">⚠️</span> Perdas/Quebras</button>
-    <button class="nav-item" data-page="negociar"><span class="ico">🤝</span> Negociar<span class="nav-badge" id="negNavBadge" style="display:none;"></span></button>
-    <button class="nav-item" data-page="metas"><span class="ico">🎯</span> Metas <span class="soon">em breve</span></button>
-    <button class="nav-item" data-page="entregas"><span class="ico">🚚</span> Entregas</button>
+    <button class="nav-item ativo" data-page="vendas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Vendas</button>
+    <button class="nav-item" data-page="estoque"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Estoque</button>
+    <button class="nav-item" data-page="calendario"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Calendário</button>
+    <button class="nav-item" data-page="escala"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span> Escala</button>
+    <button class="nav-item" data-page="ferias"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg></span> Férias</button>
+    <button class="nav-item" data-page="pontos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span> Pontos extras<span class="nav-badge" id="pxNavBadge" style="display:none;"></span></button>
+    <button class="nav-item" data-page="mapa"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span> Mapa dos pontos</button>
+    <button class="nav-item" data-page="layout"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></span> Layout da loja</button>
+    <button class="nav-item" data-page="organograma"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="5" rx="1"/><rect x="2" y="17" width="6" height="5" rx="1"/><rect x="16" y="17" width="6" height="5" rx="1"/><path d="M12 7v6"/><path d="M5 17v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/></svg></span> Organograma</button>
+    <button class="nav-item" data-page="fluxograma"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg></span> Fluxograma</button>
+    <button class="nav-item" data-page="perdas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Perdas/Quebras</button>
+    <button class="nav-item" data-page="negociar"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span> Negociar<span class="nav-badge" id="negNavBadge" style="display:none;"></span></button>
+    <button class="nav-item" data-page="metas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span> Metas <span class="soon">em breve</span></button>
+    <button class="nav-item" data-page="entregas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Entregas</button>
   </nav>
   <main>
     <section id="page-vendas" class="page ativo">
