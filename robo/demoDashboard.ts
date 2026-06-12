@@ -1234,7 +1234,19 @@ function render(){
     : '<p class="vazio">Sem dados no período.</p>';
 }
 
-document.getElementById("aplicar").addEventListener("click", render);
+document.getElementById("aplicar").addEventListener("click", function(){
+  // "Pesquisar" recarrega a página buscando os dados mais recentes do servidor
+  // e mantém a data/filtro que você escolheu.
+  try{
+    sessionStorage.setItem("vendas_pesquisar", JSON.stringify({
+      de: document.getElementById("de").value,
+      ate: document.getElementById("ate").value,
+      cod: document.getElementById("cod").value,
+      nome: document.getElementById("nome").value
+    }));
+  }catch(e){}
+  window.location.replace(window.location.pathname + "?r=" + Date.now());
+});
 document.getElementById("limpar").addEventListener("click", ()=>{
   document.getElementById("de").value=DATA_DEF_DE;
   document.getElementById("ate").value=DATA_MAX;
@@ -4832,8 +4844,19 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
   });
 });
 
-// Sempre abre no dia de hoje (não restaura a última data escolhida).
-// A data padrão de "de" e "ate" já é o dia mais recente com dados (DATA_MAX).
+// Abertura normal (ou Cmd+R) = sempre no dia de hoje (DATA_MAX em "de" e "ate").
+// Exceção: se o usuário clicou em "Pesquisar", restaura a data/filtro que ele escolheu
+// (a página recarregou pra trazer os dados frescos, mas mantendo o filtro).
+(function(){ try{
+  const f=JSON.parse(sessionStorage.getItem("vendas_pesquisar")||"null");
+  if(f){
+    sessionStorage.removeItem("vendas_pesquisar");
+    if(f.de) document.getElementById("de").value=f.de;
+    if(f.ate) document.getElementById("ate").value=f.ate;
+    document.getElementById("cod").value=f.cod||"";
+    document.getElementById("nome").value=f.nome||"";
+  }
+}catch(e){} })();
 
 render();
 try{ pxAtualizaBadge(); }catch(e){}
