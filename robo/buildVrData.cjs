@@ -33,16 +33,23 @@ async function timed(c,nome,sql,params){
   (await timed(c,"finalizadoras",`SELECT id, descricao FROM pdv.finalizadora`))
     .forEach(r=>pagMap[r.id]=(r.descricao||"").trim()||("Forma "+r.id));
 
-  // ---- DIA: faturamento, margem, qtd (itens) + cupons (cabecalho) ----
-  const diaIt=await timed(c,"DIA itens",`
-    SELECT data, SUM(valortotal) fat,
+  // ---- DIA: faturamento (cupom, = VR Venda Liquida) + margem/qtd (itens) + cupons ----
+  // Faturamento pelo TOTAL DO CUPOM (subtotalimpressora), igual ao que o VR mostra como
+  // "Venda Liquida" e ao que os graficos de hora/operador ja usam. (Antes somava item a
+  // item com vendaitem.valortotal, o que contava itens de cupons cancelados e nao abatia
+  // descontos -> dava ~R$657 a mais que o VR.)
+  const diaFat=await timed(c,"DIA faturamento (cupom)",`
+    SELECT data, SUM(subtotalimpressora) fat FROM pdv.venda WHERE cancelado=false GROUP BY data`);
+  const fatByDia={}; diaFat.forEach(r=>fatByDia[d10(r.data)]=num(r.fat));
+  const diaIt=await timed(c,"DIA itens (margem/qtd)",`
+    SELECT data,
            SUM(valortotal - COALESCE(customediosemimposto,0)*quantidade) marg,
            SUM(quantidade) qtd
     FROM pdv.vendaitem WHERE cancelado=false GROUP BY data`);
   const diaCup=await timed(c,"DIA cupons",`
     SELECT data, COUNT(*) cup FROM pdv.venda WHERE cancelado=false GROUP BY data`);
   const cupByDia={}; diaCup.forEach(r=>cupByDia[d10(r.data)]=Number(r.cup));
-  const DIA=diaIt.map(r=>({d:d10(r.data),fat:num(r.fat),marg:num(r.marg),qtd:num(r.qtd),cup:cupByDia[d10(r.data)]||0}))
+  const DIA=diaIt.map(r=>({d:d10(r.data),fat:fatByDia[d10(r.data)]||0,marg:num(r.marg),qtd:num(r.qtd),cup:cupByDia[d10(r.data)]||0}))
                  .sort((a,b)=>a.d<b.d?-1:1);
 
   // ---- HORA: dia x hora (cabecalho) ----
