@@ -441,6 +441,26 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     </section>
 
     <section id="page-analise" class="page">
+      <style>
+        .an-dens{margin-top:2px;}
+        .an-dens-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+        .an-dens-tit{font-size:16px;font-weight:800;color:#1d2733;}
+        .an-dens-sub{font-size:12.5px;color:#6b7787;margin-top:3px;}
+        .an-dens-badge{font-size:12.5px;font-weight:800;padding:5px 14px;border-radius:20px;white-space:nowrap;}
+        .an-dens-badge.ok{background:#e8f5ec;color:#1b9e4b;}
+        .an-dens-badge.bad{background:#fdecea;color:#c0392b;}
+        .an-dens-num{font-size:42px;font-weight:800;line-height:1.05;margin:14px 0 4px;}
+        .an-dens-num small{font-size:15px;font-weight:600;color:#8a97a8;}
+        .an-dens-num.ok{color:#1b9e4b;}
+        .an-dens-num.bad{color:#c0392b;}
+        .an-dens-track{position:relative;height:14px;background:#eef2f7;border-radius:8px;margin:10px 0 6px;overflow:visible;}
+        .an-dens-fill{height:100%;border-radius:8px;transition:width .85s cubic-bezier(.22,1,.36,1);}
+        .an-dens-metaline{position:absolute;top:-4px;bottom:-4px;width:2px;background:#1d2733;}
+        .an-dens-metaline span{position:absolute;top:-19px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:#1d2733;white-space:nowrap;}
+        .an-dens-msg{font-size:13.5px;line-height:1.5;margin-top:12px;padding:11px 14px;border-radius:9px;}
+        .an-dens-msg.ok{background:#f1f9f3;color:#1b6e3b;}
+        .an-dens-msg.bad{background:#fff5f4;color:#9a3328;}
+      </style>
       <div class="filtros">
         <div class="campo">
           <label for="anDe">Data inicial</label>
@@ -455,6 +475,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <span class="periodo-info" id="anPeriodoInfo"></span>
       </div>
       <div class="kpis" id="anKpis" style="grid-template-columns:repeat(5,1fr);"></div>
+      <div class="card an-dens" id="anDensidade"></div>
     </section>
 
     <section id="page-estoque" class="page">
@@ -1313,6 +1334,8 @@ document.getElementById("limpar").addEventListener("click", ()=>{
 });
 
 // ---- Página de Análise (números consolidados; começa com os 5 KPIs, vamos adicionando) ----
+var AREA_VENDA_M2 = 1050;       // área de venda da loja (m²)
+var META_CLIENTES_M2 = 2.77;    // meta de clientes por m² por dia (fluxo)
 function renderAnalise(){
   var de = document.getElementById("anDe").value || DATA_MIN;
   var ate = document.getElementById("anAte").value || DATA_MAX;
@@ -1338,6 +1361,31 @@ function renderAnalise(){
     return '<div class="kpi"><div class="v" data-alvo="'+a[1]+'" data-fmt="'+a[0]+'">'+txt+'</div><div class="l">'+a[2]+'</div></div>';
   }).join('');
   animarContagem(document.getElementById("anKpis"));
+
+  // --- Clientes por m² (fluxo na loja) ---
+  var dias = f.length || 1;                 // dias com dados no período
+  var clientesDia = cup / dias;             // média de clientes (cupons) por dia
+  var densidade = clientesDia / AREA_VENDA_M2;
+  var meta = META_CLIENTES_M2;
+  var bateu = densidade >= meta;
+  var cls = bateu ? "ok" : "bad";
+  var nf2 = function(n){ return Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+  var ni = function(n){ return Math.round(n).toLocaleString('pt-BR'); };
+  var necessarioDia = Math.round(meta*AREA_VENDA_M2);
+  var faltam = Math.max(0, Math.round(necessarioDia - clientesDia));
+  var pct = Math.min(densidade/meta*100, 100);
+  var msg = bateu
+    ? "✅ Meta de fluxo batida! Em média "+ni(clientesDia)+" clientes/dia (meta "+ni(necessarioDia)+"). Continue firme na divulgação pra manter esse movimento."
+    : "⚠️ Abaixo da meta de fluxo. Faltam ~"+ni(faltam)+" clientes/dia pra chegar em "+ni(necessarioDia)+". Sinal de que o marketing precisa de ação — reforce a divulgação em mais canais: carro de som, outdoor, rádio, cartaz na frente da loja, WhatsApp, anúncios pagos e app próprio. Quanto mais canais, mais gente dentro da loja.";
+  document.getElementById("anDensidade").innerHTML =
+    '<div class="an-dens-top"><div>'+
+      '<div class="an-dens-tit">Clientes por m² (fluxo na loja)</div>'+
+      '<div class="an-dens-sub">média de '+ni(clientesDia)+' clientes/dia · área de venda '+ni(AREA_VENDA_M2)+' m² · meta '+nf2(meta)+'/m²/dia</div>'+
+    '</div><span class="an-dens-badge '+cls+'">'+(bateu?'🟢 Meta batida':'🔴 Abaixo da meta')+'</span></div>'+
+    '<div class="an-dens-num '+cls+'">'+nf2(densidade)+' <small>clientes/m² por dia</small></div>'+
+    '<div class="an-dens-track"><div class="an-dens-fill" data-w="'+pct+'%" style="width:0;background:'+(bateu?'#1b9e4b':'#c0392b')+'"></div></div>'+
+    '<div class="an-dens-msg '+cls+'">'+msg+'</div>';
+  animarBarras(document.getElementById("anDensidade"));
 }
 document.getElementById("anAplicar").addEventListener("click", renderAnalise);
 document.getElementById("anLimpar").addEventListener("click", function(){
