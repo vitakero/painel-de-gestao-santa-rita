@@ -1390,8 +1390,13 @@ function renderAnalise(){
   var temPrev = fp.length>0 && ticketP>0;
   var trendPct = temPrev ? (ticket-ticketP)/ticketP*100 : 0;
   var subiu = trendPct >= 0;
-  var setaHtml = temPrev ? ' <span style="font-size:12px;font-weight:700;color:'+(subiu?'#1b9e4b':'#c0392b')+';">'+(subiu?'▲':'▼')+' '+Math.abs(trendPct).toFixed(1).replace('.',',')+'%</span>' : '';
-  var tipTk = "Valor médio que cada cliente gasta por compra (faturamento ÷ cupons). Varia de ~R$30 a ~R$200 (R$200 ≈ loja que fatura R$10 milhões). Quanto maior, melhor. A setinha compara com o período anterior de mesma duração: ▲ subiu (lado certo) / ▼ caiu (lado errado).";
+  var dm = function(iso){ var p=iso.split("-"); return p[2]+"/"+p[1]; };
+  var compLabel = (lenDias===1) ? dm(prevDe) : (dm(prevDe)+"–"+dm(prevAte));
+  var setaHtml = temPrev
+    ? ' <span style="font-size:12px;font-weight:700;color:'+(subiu?'#1b9e4b':'#c0392b')+';">'+(subiu?'▲':'▼')+' '+Math.abs(trendPct).toFixed(1).replace('.',',')+'%</span>'+
+      ' <span style="font-size:11px;font-weight:500;color:#8a97a8;">vs '+compLabel+'</span>'
+    : ' <span style="font-size:11px;font-weight:500;color:#8a97a8;">(sem período anterior)</span>';
+  var tipTk = "Valor médio que cada cliente gasta por compra (faturamento ÷ cupons). Varia de ~R$30 a ~R$200 (R$200 ≈ loja que fatura R$10 milhões). Quanto maior, melhor. A setinha compara com o período anterior de mesma duração"+(temPrev?(" — neste caso, "+compLabel):"")+": ▲ subiu (lado certo) / ▼ caiu (lado errado).";
   inds.push({ v: brl(ticket)+setaHtml, cls:'', l:'Ticket médio (R$30–200)', tip:tipTk });
 
   document.getElementById("anIndicadores").innerHTML = inds.map(function(x){
