@@ -442,22 +442,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 
     <section id="page-analise" class="page">
       <style>
-        .an-dens{padding:13px 15px;}
-        .an-dens-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;}
-        .an-dens-tit{font-size:13.5px;font-weight:800;color:#1d2733;}
-        .an-dens-sub{font-size:11.5px;color:#6b7787;margin-top:2px;}
-        .an-dens-badge{font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;white-space:nowrap;}
-        .an-dens-badge.ok{background:#e8f5ec;color:#1b9e4b;}
-        .an-dens-badge.bad{background:#fdecea;color:#c0392b;}
-        .an-dens-num{font-size:26px;font-weight:800;line-height:1.05;margin:7px 0 2px;}
-        .an-dens-num small{font-size:12px;font-weight:600;color:#8a97a8;}
-        .an-dens-num.ok{color:#1b9e4b;}
-        .an-dens-num.bad{color:#c0392b;}
-        .an-dens-track{position:relative;height:8px;background:#eef2f7;border-radius:6px;margin:7px 0 4px;overflow:hidden;}
-        .an-dens-fill{height:100%;border-radius:6px;transition:width .85s cubic-bezier(.22,1,.36,1);}
-        .an-dens-msg{font-size:11.5px;line-height:1.4;margin-top:8px;padding:8px 11px;border-radius:8px;}
-        .an-dens-msg.ok{background:#f1f9f3;color:#1b6e3b;}
-        .an-dens-msg.bad{background:#fff5f4;color:#9a3328;}
+        #page-analise .kpi .v.ind-ok{color:#1b9e4b;}
+        #page-analise .kpi .v.ind-bad{color:#c0392b;}
+        #page-analise .kpi-help{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#c2ccd8;color:#fff;font-size:10px;font-weight:800;cursor:help;margin-left:5px;position:relative;vertical-align:middle;}
+        #page-analise .kpi-help:hover{background:#157a35;}
+        #page-analise .kpi-help:hover::after{content:attr(data-tip);position:absolute;bottom:160%;left:50%;transform:translateX(-50%);width:230px;background:#1f2d3d;color:#fff;font-size:11.5px;font-weight:500;line-height:1.45;padding:9px 11px;border-radius:8px;box-shadow:0 3px 14px rgba(0,0,0,.28);z-index:60;text-align:left;white-space:normal;}
+        #page-analise .kpi-help:hover::before{content:"";position:absolute;bottom:160%;left:50%;transform:translate(-50%,90%);border:6px solid transparent;border-top-color:#1f2d3d;z-index:60;}
       </style>
       <div class="filtros">
         <div class="campo">
@@ -473,10 +463,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <span class="periodo-info" id="anPeriodoInfo"></span>
       </div>
       <div class="kpis" id="anKpis" style="grid-template-columns:repeat(5,1fr);"></div>
-      <div class="grid2">
-        <div class="card an-dens" id="anDensidade"></div>
-        <div class="card an-dens" id="anProdCliente"></div>
-      </div>
+      <div class="kpis" id="anIndicadores" style="grid-template-columns:repeat(5,1fr);margin-top:6px;"></div>
     </section>
 
     <section id="page-estoque" class="page">
@@ -1364,55 +1351,37 @@ function renderAnalise(){
   }).join('');
   animarContagem(document.getElementById("anKpis"));
 
-  // --- Clientes por m² (fluxo na loja) ---
-  var dias = f.length || 1;                 // dias com dados no período
-  var clientesDia = cup / dias;             // média de clientes (cupons) por dia
-  var densidade = clientesDia / AREA_VENDA_M2;
-  var meta = META_CLIENTES_M2;
-  var bateu = densidade >= meta;
-  var cls = bateu ? "ok" : "bad";
+  // --- Indicadores compactos (cards pequenos + bolinha "?" com a explicação no hover) ---
   var nf2 = function(n){ return Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); };
   var ni = function(n){ return Math.round(n).toLocaleString('pt-BR'); };
-  var necessarioDia = Math.round(meta*AREA_VENDA_M2);
-  var faltam = Math.max(0, Math.round(necessarioDia - clientesDia));
-  var pct = Math.min(densidade/meta*100, 100);
-  var msg = bateu
-    ? "✅ Meta de fluxo batida! Em média "+ni(clientesDia)+" clientes/dia (meta "+ni(necessarioDia)+"). Continue firme na divulgação pra manter esse movimento."
-    : "⚠️ Abaixo da meta de fluxo. Faltam ~"+ni(faltam)+" clientes/dia pra chegar em "+ni(necessarioDia)+". Sinal de que o marketing precisa de ação — reforce a divulgação em mais canais: carro de som, outdoor, rádio, cartaz na frente da loja, WhatsApp, anúncios pagos e app próprio. Quanto mais canais, mais gente dentro da loja.";
-  document.getElementById("anDensidade").innerHTML =
-    '<div class="an-dens-top"><div>'+
-      '<div class="an-dens-tit">Clientes por m² (fluxo na loja)</div>'+
-      '<div class="an-dens-sub">média de '+ni(clientesDia)+' clientes/dia · área de venda '+ni(AREA_VENDA_M2)+' m² · meta '+nf2(meta)+'/m²/dia</div>'+
-    '</div><span class="an-dens-badge '+cls+'">'+(bateu?'🟢 Meta batida':'🔴 Abaixo da meta')+'</span></div>'+
-    '<div class="an-dens-num '+cls+'">'+nf2(densidade)+' <small>clientes/m² por dia</small></div>'+
-    '<div class="an-dens-track"><div class="an-dens-fill" data-w="'+pct+'%" style="width:0;background:'+(bateu?'#1b9e4b':'#c0392b')+'"></div></div>'+
-    '<div class="an-dens-msg '+cls+'">'+msg+'</div>';
+  var dias = f.length || 1;
+  var inds = [];
 
-  // --- Produtos por cliente (layout / organização da loja) ---
+  // Clientes por m² (fluxo)
+  var clientesDia = cup / dias;
+  var densidade = clientesDia / AREA_VENDA_M2;
+  var bateu = densidade >= META_CLIENTES_M2;
+  var necessarioDia = Math.round(META_CLIENTES_M2*AREA_VENDA_M2);
+  var faltam = Math.max(0, Math.round(necessarioDia - clientesDia));
+  var tipDens = bateu
+    ? "Clientes por m² de área de venda, por dia (meta 2,77). Mostra o fluxo de gente na loja. Você está batendo — média de "+ni(clientesDia)+" clientes/dia."
+    : "Clientes por m² de área de venda, por dia (meta 2,77 = ~"+ni(necessarioDia)+" clientes/dia). Mostra o fluxo de gente na loja. Você está abaixo — faltam ~"+ni(faltam)+"/dia. Sinal de reforçar o marketing: carro de som, outdoor, rádio, cartaz, WhatsApp, anúncios pagos, app próprio.";
+  inds.push({ v:nf2(densidade), cls:bateu?'ind-ok':'ind-bad', l:'Clientes/m² (meta 2,77)', tip:tipDens });
+
+  // Produtos por cliente (layout)
   var nprod = f.reduce(function(s,x){ return s+(x.nprod||0); },0);
   if(nprod>0){
     var prodCli = cup ? nprod/cup : 0;
-    var metaP = META_PRODUTOS_CLIENTE;
-    var bateuP = prodCli >= metaP;
-    var clsP = bateuP ? "ok" : "bad";
-    var pctP = Math.min(prodCli/metaP*100, 100);
-    var msgP = bateuP
-      ? "✅ Cada cliente leva em média "+nf2(prodCli)+" produtos (meta "+nf2(metaP)+"). O layout e a organização da loja estão funcionando — o cliente circula e leva mais."
-      : "⚠️ Cada cliente leva só "+nf2(prodCli)+" produtos (meta "+nf2(metaP)+"). Sinal de que o layout, o cross-merchandising e a organização da loja podem estar ineficientes pra região — vale repensar a disposição dos produtos, pontos de impulso e o caminho do cliente dentro da loja pra ele levar mais itens.";
-    document.getElementById("anProdCliente").innerHTML =
-      '<div class="an-dens-top"><div>'+
-        '<div class="an-dens-tit">Produtos por cliente (layout da loja)</div>'+
-        '<div class="an-dens-sub">'+ni(nprod)+' produtos ÷ '+ni(cup)+' clientes · meta '+nf2(metaP)+' produtos/cliente</div>'+
-      '</div><span class="an-dens-badge '+clsP+'">'+(bateuP?'🟢 Meta batida':'🔴 Abaixo da meta')+'</span></div>'+
-      '<div class="an-dens-num '+clsP+'">'+nf2(prodCli)+' <small>produtos por cliente</small></div>'+
-      '<div class="an-dens-track"><div class="an-dens-fill" data-w="'+pctP+'%" style="width:0;background:'+(bateuP?'#1b9e4b':'#c0392b')+'"></div></div>'+
-      '<div class="an-dens-msg '+clsP+'">'+msgP+'</div>';
-    document.getElementById("anProdCliente").style.display="";
-  } else {
-    document.getElementById("anProdCliente").style.display="none";
+    var bateuP = prodCli >= META_PRODUTOS_CLIENTE;
+    var tipProd = bateuP
+      ? "Produtos que cada cliente leva em média (meta 4,5). Mede se o layout estimula o cliente a levar mais. Você está batendo ("+nf2(prodCli)+") — layout e organização funcionando."
+      : "Produtos que cada cliente leva em média (meta 4,5). Mede se o layout estimula o cliente a levar mais. Está abaixo ("+nf2(prodCli)+") — sinal de rever o layout, o cross-merchandising e os pontos de impulso da loja.";
+    inds.push({ v:nf2(prodCli), cls:bateuP?'ind-ok':'ind-bad', l:'Produtos/cliente (meta 4,5)', tip:tipProd });
   }
-  animarBarras(document.getElementById("anDensidade"));
-  animarBarras(document.getElementById("anProdCliente"));
+
+  document.getElementById("anIndicadores").innerHTML = inds.map(function(x){
+    return '<div class="kpi"><div class="v '+x.cls+'">'+x.v+'</div><div class="l">'+x.l+' <span class="kpi-help" data-tip="'+x.tip.replace(/"/g,'&quot;')+'">?</span></div></div>';
+  }).join('');
 }
 document.getElementById("anAplicar").addEventListener("click", renderAnalise);
 document.getElementById("anLimpar").addEventListener("click", function(){
