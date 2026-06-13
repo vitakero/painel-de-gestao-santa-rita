@@ -1379,6 +1379,21 @@ function renderAnalise(){
     inds.push({ v:nf2(prodCli), cls:bateuP?'ind-ok':'ind-bad', l:'Produtos/cliente (meta 4,5)', tip:tipProd });
   }
 
+  // Ticket médio — valor + tendência (subiu = lado certo / caiu = lado errado) vs período anterior de mesma duração
+  var addDias = function(iso,n){ var p=iso.split("-"); var d=new Date(Date.UTC(+p[0],+p[1]-1,+p[2])); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); };
+  var lenDias = Math.round((Date.UTC.apply(null,ate.split("-").map((x,i)=>i===1?+x-1:+x)) - Date.UTC.apply(null,de.split("-").map((x,i)=>i===1?+x-1:+x)))/86400000)+1;
+  var prevAte = addDias(de,-1), prevDe = addDias(prevAte,-(lenDias-1));
+  var fp = DIA.filter(function(x){ return x.d>=prevDe && x.d<=prevAte; });
+  var fatP = fp.reduce(function(s,x){ return s+(x.fat||0); },0);
+  var cupP = fp.reduce(function(s,x){ return s+(x.cup||0); },0);
+  var ticketP = cupP ? fatP/cupP : 0;
+  var temPrev = fp.length>0 && ticketP>0;
+  var trendPct = temPrev ? (ticket-ticketP)/ticketP*100 : 0;
+  var subiu = trendPct >= 0;
+  var setaHtml = temPrev ? ' <span style="font-size:12px;font-weight:700;color:'+(subiu?'#1b9e4b':'#c0392b')+';">'+(subiu?'▲':'▼')+' '+Math.abs(trendPct).toFixed(1).replace('.',',')+'%</span>' : '';
+  var tipTk = "Valor médio que cada cliente gasta por compra (faturamento ÷ cupons). Varia de ~R$30 a ~R$200 (R$200 ≈ loja que fatura R$10 milhões). Quanto maior, melhor. A setinha compara com o período anterior de mesma duração: ▲ subiu (lado certo) / ▼ caiu (lado errado).";
+  inds.push({ v: brl(ticket)+setaHtml, cls:'', l:'Ticket médio (R$30–200)', tip:tipTk });
+
   document.getElementById("anIndicadores").innerHTML = inds.map(function(x){
     return '<div class="kpi"><div class="v '+x.cls+'">'+x.v+'</div><div class="l">'+x.l+' <span class="kpi-help" data-tip="'+x.tip.replace(/"/g,'&quot;')+'">?</span></div></div>';
   }).join('');
