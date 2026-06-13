@@ -379,6 +379,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   <nav class="sidebar">
     <div class="titulo">Painel de controle</div>
     <button class="nav-item ativo" data-page="vendas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Vendas</button>
+    <button class="nav-item" data-page="analise"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span> Análise</button>
     <button class="nav-item" data-page="estoque"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Estoque</button>
     <button class="nav-item" data-page="calendario"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Calendário</button>
     <button class="nav-item" data-page="escala"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span> Escala</button>
@@ -437,6 +438,23 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     </div>
 
     <div class="card"><h2>Formas de pagamento</h2><div id="pagamentos"></div></div>
+    </section>
+
+    <section id="page-analise" class="page">
+      <div class="filtros">
+        <div class="campo">
+          <label for="anDe">Data inicial</label>
+          <input type="date" id="anDe" min="${dataMin}" max="${dataMax}" value="${defaultDe}">
+        </div>
+        <div class="campo">
+          <label for="anAte">Data final</label>
+          <input type="date" id="anAte" min="${dataMin}" max="${dataMax}" value="${dataMax}">
+        </div>
+        <button class="btn-p" id="anAplicar">Pesquisar</button>
+        <button class="btn-s" id="anLimpar">Limpar</button>
+        <span class="periodo-info" id="anPeriodoInfo"></span>
+      </div>
+      <div class="kpis" id="anKpis" style="grid-template-columns:repeat(5,1fr);"></div>
     </section>
 
     <section id="page-estoque" class="page">
@@ -1293,6 +1311,41 @@ document.getElementById("limpar").addEventListener("click", ()=>{
   document.getElementById("nome").value="";
   render();
 });
+
+// ---- Página de Análise (números consolidados; começa com os 5 KPIs, vamos adicionando) ----
+function renderAnalise(){
+  var de = document.getElementById("anDe").value || DATA_MIN;
+  var ate = document.getElementById("anAte").value || DATA_MAX;
+  if(de>ate){ var t=de; de=ate; ate=t; }
+  var f = DIA.filter(function(x){ return x.d>=de && x.d<=ate; });
+  var fat = f.reduce(function(s,x){ return s+(x.fat||0); },0);
+  var marg = f.reduce(function(s,x){ return s+(x.marg||0); },0);
+  var qtd = f.reduce(function(s,x){ return s+(x.qtd||0); },0);
+  var cup = f.reduce(function(s,x){ return s+(x.cup||0); },0);
+  var ticket = cup ? fat/cup : 0;
+  var margPerc = fat ? marg/fat*100 : 0;
+  var fmtData = function(s){ return s.split("-").reverse().join("/"); };
+  document.getElementById("anPeriodoInfo").textContent = "Período: "+fmtData(de)+" a "+fmtData(ate);
+  var cards = [
+    ["brl", fat, "Faturamento"],
+    ["n", cup, "Vendas (cupons)"],
+    ["brl", ticket, "Ticket médio"],
+    ["brl", marg, "Margem ("+margPerc.toFixed(0)+"%)"],
+    ["n", qtd, "Itens vendidos"]
+  ];
+  document.getElementById("anKpis").innerHTML = cards.map(function(a){
+    var txt = a[0]==="n" ? num(Math.round(a[1])) : brl(a[1]);
+    return '<div class="kpi"><div class="v" data-alvo="'+a[1]+'" data-fmt="'+a[0]+'">'+txt+'</div><div class="l">'+a[2]+'</div></div>';
+  }).join('');
+  animarContagem(document.getElementById("anKpis"));
+}
+document.getElementById("anAplicar").addEventListener("click", renderAnalise);
+document.getElementById("anLimpar").addEventListener("click", function(){
+  document.getElementById("anDe").value=DATA_MAX;
+  document.getElementById("anAte").value=DATA_MAX;
+  renderAnalise();
+});
+
 // Quando digita um código que resolve para UM produto só, preenche o nome.
 function autoPreencherNome(finalizar){
   const tCod = (document.getElementById("cod").value || "").trim().toLowerCase();
@@ -4878,6 +4931,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="entregas") renderEntregas();
     if(btn.dataset.page==="ferias"){ if(!document.getElementById("ferConsultaDia").value){ document.getElementById("ferConsultaDia").value=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2)+"-"+("0"+HOJE.getDate()).slice(-2); } renderFerias(); }
     if(btn.dataset.page==="negociar") renderNegociar();
+    if(btn.dataset.page==="analise") renderAnalise();
     try{ localStorage.setItem("ui_pagina_atual", btn.dataset.page); }catch(e){}
     window.scrollTo(0,0);
   });
