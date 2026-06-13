@@ -133,14 +133,14 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .card h2 { font-size:14px; margin:0 0 16px; color:#0c5a26; }
   .bars { display:flex; align-items:flex-end; gap:10px; height:170px; padding-top:10px; }
   .bar-col { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; }
-  .bar-v { width:70%; border-radius:5px 5px 0 0; min-height:3px; transition:.2s; }
+  .bar-v { width:70%; border-radius:5px 5px 0 0; min-height:3px; transition:height .85s cubic-bezier(.22,1,.36,1), opacity .2s; }
   .bar-col:hover .bar-v { opacity:.8; }
   .bar-lbl { font-size:10px; color:#6b7787; margin-top:6px; white-space:nowrap; }
   .hbars { display:flex; flex-direction:column; gap:11px; }
   .hbar-row { display:grid; grid-template-columns:130px 1fr 110px; align-items:center; gap:10px; }
   .hbar-lbl { font-size:12px; color:#33404f; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .hbar-track { background:#eef2f7; border-radius:6px; height:18px; overflow:hidden; }
-  .hbar-fill { height:100%; border-radius:6px; }
+  .hbar-fill { height:100%; border-radius:6px; transition:width .85s cubic-bezier(.22,1,.36,1); }
   .hbar-val { font-size:12px; text-align:right; color:#33404f; font-weight:600; }
   table { border-collapse:collapse; width:100%; font-size:13px; }
   th { background:#f3f6fa; text-align:left; padding:9px 11px; color:#46546a; font-size:11px; text-transform:uppercase; letter-spacing:.3px; }
@@ -1127,14 +1127,14 @@ function barsVertical(data, cor){
   if(!data.length) return '<p class="vazio">Sem dados no período.</p>';
   const max=Math.max(...data.map(d=>d.value),1);
   return '<div class="bars">'+data.map(d=>
-    '<div class="bar-col"><div class="bar-v" style="height:'+(d.value/max*140)+'px;background:'+cor+';min-height:'+(d.value>0?3:0)+'px" title="'+brl(d.value)+'"></div><span class="bar-lbl">'+d.label+'</span></div>'
+    '<div class="bar-col"><div class="bar-v" data-h="'+(d.value/max*140)+'px" style="height:0;background:'+cor+';min-height:'+(d.value>0?3:0)+'px" title="'+brl(d.value)+'"></div><span class="bar-lbl">'+d.label+'</span></div>'
   ).join('')+'</div>';
 }
 function barsHorizontal(data, cor){
   if(!data.length) return '<p class="vazio">Sem dados no período.</p>';
   const max=Math.max(...data.map(d=>d.value),1);
   return '<div class="hbars">'+data.map(d=>
-    '<div class="hbar-row"><span class="hbar-lbl">'+d.label+'</span><div class="hbar-track"><div class="hbar-fill" style="width:'+(d.value/max*100)+'%;background:'+cor+'"></div></div><span class="hbar-val">'+(d.sub??brl(d.value))+'</span></div>'
+    '<div class="hbar-row"><span class="hbar-lbl">'+d.label+'</span><div class="hbar-track"><div class="hbar-fill" data-w="'+(d.value/max*100)+'%" style="width:0;background:'+cor+'"></div></div><span class="hbar-val">'+(d.sub??brl(d.value))+'</span></div>'
   ).join('')+'</div>';
 }
 
@@ -1159,6 +1159,16 @@ function animarContagem(container){
       requestAnimationFrame(passo);
     })(els[i]);
   }
+}
+// Faz as barras dos gráficos crescerem de 0 até o tamanho final (animação de subida).
+function animarBarras(root){
+  if(!root) return;
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){
+    var vs=root.querySelectorAll('.bar-v[data-h]');
+    for(var i=0;i<vs.length;i++) vs[i].style.height=vs[i].getAttribute('data-h');
+    var hs=root.querySelectorAll('.hbar-fill[data-w]');
+    for(var j=0;j<hs.length;j++) hs[j].style.width=hs[j].getAttribute('data-w');
+  }); });
 }
 function render(){
   let de = document.getElementById("de").value || DATA_MIN;
@@ -1260,6 +1270,7 @@ function render(){
   document.getElementById("pagamentos").innerHTML = pag.length ?
     pag.map((p,i)=>'<div class="pill"><span class="dot" style="background:'+cores[i%cores.length]+'"></span><span class="nm">'+p.nome+'</span><span class="vl">'+brl(p.total)+' · '+(p.total/Math.max(tot,1)*100).toFixed(0)+'%</span></div>').join('')
     : '<p class="vazio">Sem dados no período.</p>';
+  animarBarras(document.getElementById("page-vendas"));
 }
 
 document.getElementById("aplicar").addEventListener("click", function(){
