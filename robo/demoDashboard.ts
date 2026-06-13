@@ -442,22 +442,20 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 
     <section id="page-analise" class="page">
       <style>
-        .an-dens{margin-top:2px;}
-        .an-dens-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-        .an-dens-tit{font-size:16px;font-weight:800;color:#1d2733;}
-        .an-dens-sub{font-size:12.5px;color:#6b7787;margin-top:3px;}
-        .an-dens-badge{font-size:12.5px;font-weight:800;padding:5px 14px;border-radius:20px;white-space:nowrap;}
+        .an-dens{padding:13px 15px;}
+        .an-dens-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+        .an-dens-tit{font-size:13.5px;font-weight:800;color:#1d2733;}
+        .an-dens-sub{font-size:11.5px;color:#6b7787;margin-top:2px;}
+        .an-dens-badge{font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;white-space:nowrap;}
         .an-dens-badge.ok{background:#e8f5ec;color:#1b9e4b;}
         .an-dens-badge.bad{background:#fdecea;color:#c0392b;}
-        .an-dens-num{font-size:42px;font-weight:800;line-height:1.05;margin:14px 0 4px;}
-        .an-dens-num small{font-size:15px;font-weight:600;color:#8a97a8;}
+        .an-dens-num{font-size:26px;font-weight:800;line-height:1.05;margin:7px 0 2px;}
+        .an-dens-num small{font-size:12px;font-weight:600;color:#8a97a8;}
         .an-dens-num.ok{color:#1b9e4b;}
         .an-dens-num.bad{color:#c0392b;}
-        .an-dens-track{position:relative;height:14px;background:#eef2f7;border-radius:8px;margin:10px 0 6px;overflow:visible;}
-        .an-dens-fill{height:100%;border-radius:8px;transition:width .85s cubic-bezier(.22,1,.36,1);}
-        .an-dens-metaline{position:absolute;top:-4px;bottom:-4px;width:2px;background:#1d2733;}
-        .an-dens-metaline span{position:absolute;top:-19px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:#1d2733;white-space:nowrap;}
-        .an-dens-msg{font-size:13.5px;line-height:1.5;margin-top:12px;padding:11px 14px;border-radius:9px;}
+        .an-dens-track{position:relative;height:8px;background:#eef2f7;border-radius:6px;margin:7px 0 4px;overflow:hidden;}
+        .an-dens-fill{height:100%;border-radius:6px;transition:width .85s cubic-bezier(.22,1,.36,1);}
+        .an-dens-msg{font-size:11.5px;line-height:1.4;margin-top:8px;padding:8px 11px;border-radius:8px;}
         .an-dens-msg.ok{background:#f1f9f3;color:#1b6e3b;}
         .an-dens-msg.bad{background:#fff5f4;color:#9a3328;}
       </style>
@@ -475,8 +473,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <span class="periodo-info" id="anPeriodoInfo"></span>
       </div>
       <div class="kpis" id="anKpis" style="grid-template-columns:repeat(5,1fr);"></div>
-      <div class="card an-dens" id="anDensidade"></div>
-      <div class="card an-dens" id="anProdCliente"></div>
+      <div class="grid2">
+        <div class="card an-dens" id="anDensidade"></div>
+        <div class="card an-dens" id="anProdCliente"></div>
+      </div>
     </section>
 
     <section id="page-estoque" class="page">
