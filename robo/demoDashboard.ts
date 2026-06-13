@@ -1138,6 +1138,28 @@ function barsHorizontal(data, cor){
   ).join('')+'</div>';
 }
 
+// Anima os números (KPIs) subindo de 0 até o valor final — efeito de contagem rodando.
+function animarContagem(container){
+  if(!container) return;
+  var els = container.querySelectorAll('.v[data-alvo]');
+  for(var i=0;i<els.length;i++){
+    (function(el){
+      var alvo = parseFloat(el.getAttribute('data-alvo'));
+      var fmt = el.getAttribute('data-fmt');
+      if(!isFinite(alvo)) return;
+      var dur = 900, ini = null;
+      function fmtVal(v){ return fmt==="n" ? num(Math.round(v)) : brl(v); }
+      function passo(ts){
+        if(ini===null) ini=ts;
+        var p = Math.min((ts-ini)/dur, 1);
+        var eased = 1-Math.pow(1-p,3);
+        el.textContent = fmtVal(alvo*eased);
+        if(p<1) requestAnimationFrame(passo); else el.textContent = fmtVal(alvo);
+      }
+      requestAnimationFrame(passo);
+    })(els[i]);
+  }
+}
 function render(){
   let de = document.getElementById("de").value || DATA_MIN;
   let ate = document.getElementById("ate").value || DATA_MAX;
@@ -1179,7 +1201,13 @@ function render(){
   document.getElementById("kpis").innerHTML =
     [["v_brl",fat,"Faturamento"],["n",cupons,"Vendas (cupons)"],["v_brl",ticket,"Ticket médio"],
      ["m",marg,"Margem"+(margPerc!==null?" ("+margPerc.toFixed(0)+"%)":"")],["n",qtd,"Itens vendidos"]]
-    .map(a=>'<div class="kpi"><div class="v">'+kpiVal(a[0],a[1])+'</div><div class="l">'+a[2]+'</div></div>').join('');
+    .map(function(a){
+      var nulo = a[1]===null||a[1]===undefined;
+      var fmt = a[0]==="n" ? "n" : "brl";
+      var dataAttr = nulo ? "" : (' data-alvo="'+a[1]+'" data-fmt="'+fmt+'"');
+      return '<div class="kpi"><div class="v"'+dataAttr+'>'+kpiVal(a[0],a[1])+'</div><div class="l">'+a[2]+'</div></div>';
+    }).join('');
+  animarContagem(document.getElementById("kpis"));
 
   // por dia — preenche dias vazios com 0 pra a linha do tempo ficar contínua
   const mapaDia=new Map(fDia.map(x=>[x.d,x.fat]));
