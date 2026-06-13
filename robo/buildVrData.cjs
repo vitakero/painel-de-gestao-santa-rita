@@ -41,15 +41,16 @@ async function timed(c,nome,sql,params){
   const diaFat=await timed(c,"DIA faturamento (cupom)",`
     SELECT data, SUM(subtotalimpressora) fat FROM pdv.venda WHERE cancelado=false GROUP BY data`);
   const fatByDia={}; diaFat.forEach(r=>fatByDia[d10(r.data)]=num(r.fat));
-  const diaIt=await timed(c,"DIA itens (margem/qtd)",`
+  const diaIt=await timed(c,"DIA itens (margem/qtd/nprod)",`
     SELECT data,
            SUM(valortotal - COALESCE(customediosemimposto,0)*quantidade) marg,
-           SUM(quantidade) qtd
+           SUM(quantidade) qtd,
+           COUNT(*) nprod
     FROM pdv.vendaitem WHERE cancelado=false GROUP BY data`);
   const diaCup=await timed(c,"DIA cupons",`
     SELECT data, COUNT(*) cup FROM pdv.venda WHERE cancelado=false GROUP BY data`);
   const cupByDia={}; diaCup.forEach(r=>cupByDia[d10(r.data)]=Number(r.cup));
-  const DIA=diaIt.map(r=>({d:d10(r.data),fat:fatByDia[d10(r.data)]||0,marg:num(r.marg),qtd:num(r.qtd),cup:cupByDia[d10(r.data)]||0}))
+  const DIA=diaIt.map(r=>({d:d10(r.data),fat:fatByDia[d10(r.data)]||0,marg:num(r.marg),qtd:num(r.qtd),nprod:Number(r.nprod),cup:cupByDia[d10(r.data)]||0}))
                  .sort((a,b)=>a.d<b.d?-1:1);
 
   // ---- HORA: dia x hora (cabecalho) ----
