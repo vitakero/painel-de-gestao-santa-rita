@@ -476,6 +476,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       </div>
       <div class="kpis" id="anKpis" style="grid-template-columns:repeat(5,1fr);"></div>
       <div class="card an-dens" id="anDensidade"></div>
+      <div class="card an-dens" id="anProdCliente"></div>
     </section>
 
     <section id="page-estoque" class="page">
@@ -1334,8 +1335,9 @@ document.getElementById("limpar").addEventListener("click", ()=>{
 });
 
 // ---- Página de Análise (números consolidados; começa com os 5 KPIs, vamos adicionando) ----
-var AREA_VENDA_M2 = 1050;       // área de venda da loja (m²)
-var META_CLIENTES_M2 = 2.77;    // meta de clientes por m² por dia (fluxo)
+var AREA_VENDA_M2 = 1050;         // área de venda da loja (m²)
+var META_CLIENTES_M2 = 2.77;      // meta de clientes por m² por dia (fluxo)
+var META_PRODUTOS_CLIENTE = 4.5;  // meta de produtos por cliente (layout/organização)
 function renderAnalise(){
   var de = document.getElementById("anDe").value || DATA_MIN;
   var ate = document.getElementById("anAte").value || DATA_MAX;
@@ -1385,7 +1387,32 @@ function renderAnalise(){
     '<div class="an-dens-num '+cls+'">'+nf2(densidade)+' <small>clientes/m² por dia</small></div>'+
     '<div class="an-dens-track"><div class="an-dens-fill" data-w="'+pct+'%" style="width:0;background:'+(bateu?'#1b9e4b':'#c0392b')+'"></div></div>'+
     '<div class="an-dens-msg '+cls+'">'+msg+'</div>';
+
+  // --- Produtos por cliente (layout / organização da loja) ---
+  var nprod = f.reduce(function(s,x){ return s+(x.nprod||0); },0);
+  if(nprod>0){
+    var prodCli = cup ? nprod/cup : 0;
+    var metaP = META_PRODUTOS_CLIENTE;
+    var bateuP = prodCli >= metaP;
+    var clsP = bateuP ? "ok" : "bad";
+    var pctP = Math.min(prodCli/metaP*100, 100);
+    var msgP = bateuP
+      ? "✅ Cada cliente leva em média "+nf2(prodCli)+" produtos (meta "+nf2(metaP)+"). O layout e a organização da loja estão funcionando — o cliente circula e leva mais."
+      : "⚠️ Cada cliente leva só "+nf2(prodCli)+" produtos (meta "+nf2(metaP)+"). Sinal de que o layout, o cross-merchandising e a organização da loja podem estar ineficientes pra região — vale repensar a disposição dos produtos, pontos de impulso e o caminho do cliente dentro da loja pra ele levar mais itens.";
+    document.getElementById("anProdCliente").innerHTML =
+      '<div class="an-dens-top"><div>'+
+        '<div class="an-dens-tit">Produtos por cliente (layout da loja)</div>'+
+        '<div class="an-dens-sub">'+ni(nprod)+' produtos ÷ '+ni(cup)+' clientes · meta '+nf2(metaP)+' produtos/cliente</div>'+
+      '</div><span class="an-dens-badge '+clsP+'">'+(bateuP?'🟢 Meta batida':'🔴 Abaixo da meta')+'</span></div>'+
+      '<div class="an-dens-num '+clsP+'">'+nf2(prodCli)+' <small>produtos por cliente</small></div>'+
+      '<div class="an-dens-track"><div class="an-dens-fill" data-w="'+pctP+'%" style="width:0;background:'+(bateuP?'#1b9e4b':'#c0392b')+'"></div></div>'+
+      '<div class="an-dens-msg '+clsP+'">'+msgP+'</div>';
+    document.getElementById("anProdCliente").style.display="";
+  } else {
+    document.getElementById("anProdCliente").style.display="none";
+  }
   animarBarras(document.getElementById("anDensidade"));
+  animarBarras(document.getElementById("anProdCliente"));
 }
 document.getElementById("anAplicar").addEventListener("click", renderAnalise);
 document.getElementById("anLimpar").addEventListener("click", function(){
