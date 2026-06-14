@@ -1729,7 +1729,7 @@ function renderMes(){
     const dim=destaque && !match && !c.fora;
     const cls="cal-cell"+(c.fora?" fora":"")+(fds?" fds":"")+(ehHoje?" hoje":"")+(motivo?" fechado":"")+(match?" destacado":"")+(dim?" atenuado":"");
     const tag=motivo ? '<span class="fechado-tag">Fechado · '+motivo+'</span>' : '';
-    const chips=camps.map(cp=>{ var alvoTxt=cp.alvo ? (' → '+cp.alvo.slice(8,10)+'/'+cp.alvo.slice(5,7)) : ''; var txt=cp.camp ? (cp.nome+': '+cp.camp+alvoTxt) : cp.nome; var ttl=cp.camp ? (cp.nome+' · '+cp.camp+(cp.alvo?(' · campanha em '+cp.alvo.split("-").reverse().join("/")):'')) : (cp.nome+' · '+cp.setor); return '<span class="camp" style="background:'+corCampanha(cp.nome)+'" title="'+ttl+'">'+txt+'</span>'; }).join('');
+    const chips=camps.map(cp=>{ var txt=cp.camp ? (cp.nome+': '+cp.camp) : cp.nome; var ttl=cp.camp ? (cp.nome+' · '+cp.camp) : (cp.nome+' · '+cp.setor); return '<span class="camp" style="background:'+corCampanha(cp.nome)+'" title="'+ttl+'">'+txt+'</span>'; }).join('');
     return '<div class="'+cls+'"><span class="dia">'+c.dia+'</span>'+tag+chips+'</div>';
   }).join('');
 }
@@ -1750,7 +1750,7 @@ function renderAno(){
       const match=ehMatch(ehHoje,motivo,camps);
       const dim=destaque && !match && !c.fora;
       const cls="mini-cell"+(c.fora?" fora":"")+(fds?" fds":"")+(ehHoje?" hoje":"")+(motivo?" fechado":"")+(pinta?" tem-camp":"")+(match?" destacado":"")+(dim?" atenuado":"");
-      const ttl=motivo ? 'Fechado · '+motivo : (camps.length ? camps.map(x=>x.camp?(x.nome+": "+x.camp+(x.alvo?(" ("+x.alvo.slice(8,10)+"/"+x.alvo.slice(5,7)+")"):"")):x.nome).join(", ") : "");
+      const ttl=motivo ? 'Fechado · '+motivo : (camps.length ? camps.map(x=>x.camp?(x.nome+": "+x.camp):x.nome).join(", ") : "");
       const sty=pinta ? ' style="background:'+corCampanha(camps[0].nome)+'"' : '';
       return '<div class="'+cls+'"'+sty+(ttl?' title="'+ttl+'"':'')+'>'+c.dia+'</div>';
     }).join('');
