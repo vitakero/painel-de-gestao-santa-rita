@@ -1667,7 +1667,7 @@ function rebuildUserCor(){ USER_COR={}; campanhasUsuario.forEach(function(c){ US
 rebuildUserCor();
 // Etapas do Calendário de Operação (cor de cada uma).
 const OP_STEPS=["Negociação","Pedido","Aprovação","Recebimento","Montagem","Encartes","Divulgação","Análise","Reunião"];
-const OP_STEP_COR={ "Negociação":"#7048b6","Pedido":"#e8590c","Aprovação":"#1b9e4b","Recebimento":"#2a9d8f","Montagem":"#e8a800","Encartes":"#0c8599","Divulgação":"#d6336c","Análise":"#495057","Reunião":"#1c7ed6" };
+const OP_STEP_COR={ "Negociação":"#6741d9","Pedido":"#e8590c","Aprovação":"#2f9e44","Recebimento":"#8a5a2b","Montagem":"#f0b400","Encartes":"#0c8599","Divulgação":"#e64980","Análise":"#343a40","Reunião":"#1c7ed6" };
 const corCampanha=(nome)=> USER_COR[nome] || CAMP_COR[nome] || OP_STEP_COR[nome] || "#566379";
 
 // Campanha destacada ao clicar na legenda (null = nenhuma).
