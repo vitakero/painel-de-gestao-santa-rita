@@ -383,7 +383,6 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="analise"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span> Análise</button>
     <button class="nav-item" data-page="estoque"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Estoque</button>
     <button class="nav-item" data-page="calendario"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Calendário</button>
-    <button class="nav-item" data-page="operacao"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg></span> Operação<span class="nav-badge" id="opNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="escala"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span> Escala</button>
     <button class="nav-item" data-page="ferias"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg></span> Férias</button>
     <button class="nav-item" data-page="pontos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span> Pontos extras<span class="nav-badge" id="pxNavBadge" style="display:none;"></span></button>
@@ -504,6 +503,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
             <button class="seg ativo" id="viewMes">Mês</button>
             <button class="seg" id="viewAno">Ano</button>
           </div>
+          <div class="cal-toggle">
+            <button class="seg ativo" id="modoCamp">Campanhas</button>
+            <button class="seg" id="modoOper">Operação</button>
+          </div>
           <button class="btn-s" id="calHoje" style="margin-left:auto;">Hoje</button>
         </div>
         <div id="calMesView">
@@ -548,28 +551,6 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           </div>
           <div id="ccLista" style="margin-top:12px;"></div>
         </details>
-      </div>
-    </section>
-
-    <section id="page-operacao" class="page">
-      <style>
-        .op-sub{color:#6b7787;font-size:13.5px;margin:0 0 12px;line-height:1.5;}
-        .op-task{display:block;background:#f7f9fc;border-left:3px solid #888;border-radius:7px;padding:7px 11px;margin:0 0 7px;font-size:13.5px;color:#33404f;}
-        .op-task b{color:#1d2733;font-weight:700;margin-right:4px;}
-        .op-dia{margin-bottom:16px;}
-        .op-dia-h{font-size:13px;font-weight:800;color:#0c5a26;text-transform:uppercase;letter-spacing:.4px;margin:0 0 7px;border-bottom:1px solid #eef2f6;padding-bottom:5px;}
-        .op-vazio{padding:14px 4px;color:#8a97a8;font-size:14px;}
-        #opHoje .op-task{background:#f1f9f3;}
-      </style>
-      <div class="card">
-        <h2 style="margin:0 0 4px;">📋 Operação — o que fazer</h2>
-        <p class="op-sub">A contagem regressiva de cada campanha: negociação, pedido, aprovação, recebimento, montagem, encartes, divulgação... cada coisa no seu dia, pra nada dar errado. (Plano baseado no seu Calendário Comercial.)</p>
-        <h3 style="margin:6px 0 8px;font-size:14px;color:#0c5a26;" id="opHojeTitulo">Para fazer HOJE</h3>
-        <div id="opHoje"></div>
-      </div>
-      <div class="card">
-        <h2 style="margin:0 0 12px;">Próximos 14 dias</h2>
-        <div id="opProximos"></div>
       </div>
     </section>
 
@@ -1537,6 +1518,15 @@ renderEstoque();
 const MESES=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const HOJE=new Date(${JSON.stringify(new Date().getUTCFullYear())},${JSON.stringify(new Date().getUTCMonth())},${JSON.stringify(new Date().getUTCDate())});
 let calAno=HOJE.getFullYear(), calMes=HOJE.getMonth(), calView="ano";
+let calModo="campanhas"; // "campanhas" ou "operacao"
+// O que aparece em cada dia: campanhas OU as tarefas de operação (do Calendário Comercial).
+function itensDoDia(a,m,d,dow){
+  if(calModo==="operacao"){
+    var k=fmtKey(a,m,d);
+    return (OPERACAO[k]||[]).map(function(t){ return { nome:t[0], camp:t[1], setor:t[1] }; });
+  }
+  return campanhasDoDia(a,m,d,dow);
+}
 const ehHojeDmy=(a,m,d)=> d===HOJE.getDate() && m===HOJE.getMonth() && a===HOJE.getFullYear();
 
 // Domingo de Páscoa (algoritmo de Meeus/Butcher) -> Sexta-feira Santa = Páscoa - 2 dias.
@@ -1675,7 +1665,10 @@ function salvarCampUser(){ try{ localStorage.setItem("calendario_campanhas", JSO
 var USER_COR={};
 function rebuildUserCor(){ USER_COR={}; campanhasUsuario.forEach(function(c){ USER_COR[c.nome]=c.cor; }); }
 rebuildUserCor();
-const corCampanha=(nome)=> USER_COR[nome] || CAMP_COR[nome] || "#566379";
+// Etapas do Calendário de Operação (cor de cada uma).
+const OP_STEPS=["Negociação","Pedido","Aprovação","Recebimento","Montagem","Encartes","Divulgação","Análise","Reunião"];
+const OP_STEP_COR={ "Negociação":"#7048b6","Pedido":"#e8590c","Aprovação":"#1b9e4b","Recebimento":"#2a9d8f","Montagem":"#e8a800","Encartes":"#0c8599","Divulgação":"#d6336c","Análise":"#495057","Reunião":"#1c7ed6" };
+const corCampanha=(nome)=> USER_COR[nome] || CAMP_COR[nome] || OP_STEP_COR[nome] || "#566379";
 
 // Campanha destacada ao clicar na legenda (null = nenhuma).
 // Pode ser o nome de uma campanha ou os tokens especiais "__hoje__" / "__fechado__".
@@ -1697,18 +1690,26 @@ function montarLegendas(){
       return '<span class="leg-item" data-camp="'+c.nome+'"><span class="qd" style="background:'+corCampanha(c.nome)+'"></span> '+c.nome+'</span>';
     }).join("");
   }
-  // Grupo 1: promoções recorrentes do mercado.
   const box=document.getElementById("calLegSetores");
-  if(box) box.innerHTML=montar(CAMPANHAS);
-  // Grupo 2: datas comemorativas (separado por linha; some quando vazio).
   const box2=document.getElementById("calLegDatas");
+  const box3=document.getElementById("calLegUser");
+  if(calModo==="operacao"){
+    // Modo Operação: legenda com as etapas (Negociação, Pedido, ...).
+    if(box){ box.style.display=""; box.innerHTML=montar(OP_STEPS.map(function(s){ return {nome:s}; })); }
+    if(box2) box2.style.display="none";
+    if(box3) box3.style.display="none";
+    return;
+  }
+  // Modo Campanhas
+  // Grupo 1: promoções recorrentes do mercado.
+  if(box){ box.style.display=""; box.innerHTML=montar(CAMPANHAS); }
+  // Grupo 2: datas comemorativas (separado por linha; some quando vazio).
   if(box2){
     const lista2=DATAS_ANUAIS.concat(DATAS_ESPECIAIS);
-    if(lista2.length){ box2.innerHTML=montar(lista2); }
+    if(lista2.length){ box2.style.display=""; box2.innerHTML=montar(lista2); }
     else { box2.style.display="none"; }
   }
   // Grupo 3: campanhas que VOCÊ adicionou (some quando vazio).
-  const box3=document.getElementById("calLegUser");
   if(box3){
     if(campanhasUsuario.length){ box3.style.display=""; box3.innerHTML=montar(campanhasUsuario); }
     else { box3.style.display="none"; box3.innerHTML=""; }
@@ -1723,12 +1724,12 @@ function renderMes(){
     const ehHoje=!c.fora && ehHojeDmy(calAno,calMes,c.dia);
     const fds=(c.dow===0||c.dow===6);
     const motivo=!c.fora ? fech.get(fmtKey(calAno,calMes,c.dia)) : null;
-    const camps=!c.fora ? campanhasDoDia(calAno,calMes,c.dia,c.dow) : [];
+    const camps=!c.fora ? itensDoDia(calAno,calMes,c.dia,c.dow) : [];
     const match=ehMatch(ehHoje,motivo,camps);
     const dim=destaque && !match && !c.fora;
     const cls="cal-cell"+(c.fora?" fora":"")+(fds?" fds":"")+(ehHoje?" hoje":"")+(motivo?" fechado":"")+(match?" destacado":"")+(dim?" atenuado":"");
     const tag=motivo ? '<span class="fechado-tag">Fechado · '+motivo+'</span>' : '';
-    const chips=camps.map(cp=>'<span class="camp" style="background:'+corCampanha(cp.nome)+'" title="'+cp.nome+' · '+cp.setor+'">'+cp.nome+'</span>').join('');
+    const chips=camps.map(cp=>{ var txt=cp.camp ? (cp.nome+': '+cp.camp) : cp.nome; var ttl=cp.camp ? (cp.nome+' · '+cp.camp) : (cp.nome+' · '+cp.setor); return '<span class="camp" style="background:'+corCampanha(cp.nome)+'" title="'+ttl+'">'+txt+'</span>'; }).join('');
     return '<div class="'+cls+'"><span class="dia">'+c.dia+'</span>'+tag+chips+'</div>';
   }).join('');
 }
@@ -1743,13 +1744,13 @@ function renderAno(){
       const ehHoje=!c.fora && ehHojeDmy(calAno,m,c.dia);
       const fds=(c.dow===0||c.dow===6);
       const motivo=!c.fora ? fech.get(fmtKey(calAno,m,c.dia)) : null;
-      const camps=!c.fora ? campanhasDoDia(calAno,m,c.dia,c.dow) : [];
+      const camps=!c.fora ? itensDoDia(calAno,m,c.dia,c.dow) : [];
       // O fundo colorido (estilo B) só vale quando NÃO é hoje nem dia fechado (esses já têm cor própria).
       const pinta=camps.length && !ehHoje && !motivo;
       const match=ehMatch(ehHoje,motivo,camps);
       const dim=destaque && !match && !c.fora;
       const cls="mini-cell"+(c.fora?" fora":"")+(fds?" fds":"")+(ehHoje?" hoje":"")+(motivo?" fechado":"")+(pinta?" tem-camp":"")+(match?" destacado":"")+(dim?" atenuado":"");
-      const ttl=motivo ? 'Fechado · '+motivo : (camps.length ? camps.map(x=>x.nome).join(", ") : "");
+      const ttl=motivo ? 'Fechado · '+motivo : (camps.length ? camps.map(x=>x.camp?(x.nome+": "+x.camp):x.nome).join(", ") : "");
       const sty=pinta ? ' style="background:'+corCampanha(camps[0].nome)+'"' : '';
       return '<div class="'+cls+'"'+sty+(ttl?' title="'+ttl+'"':'')+'>'+c.dia+'</div>';
     }).join('');
@@ -1775,6 +1776,15 @@ function setView(v){
 
 document.getElementById("viewMes").addEventListener("click",()=>setView("mes"));
 document.getElementById("viewAno").addEventListener("click",()=>setView("ano"));
+function setModo(m){
+  calModo=m;
+  document.getElementById("modoCamp").classList.toggle("ativo", m==="campanhas");
+  document.getElementById("modoOper").classList.toggle("ativo", m==="operacao");
+  destaque=null;
+  montarLegendas(); marcarLegenda(); renderCal();
+}
+document.getElementById("modoCamp").addEventListener("click",()=>setModo("campanhas"));
+document.getElementById("modoOper").addEventListener("click",()=>setModo("operacao"));
 document.getElementById("calPrev").addEventListener("click",()=>{
   if(calView==="ano"){ calAno--; } else { calMes--; if(calMes<0){calMes=11;calAno--;} }
   renderCal();
@@ -1794,7 +1804,7 @@ function campanhaNoMes(nome,ano,mes){
     return false;
   }
   const ult=new Date(ano,mes+1,0).getDate();
-  for(let d=1;d<=ult;d++){ const dow=new Date(ano,mes,d).getDay(); if(campanhasDoDia(ano,mes,d,dow).some(c=>c.nome===nome)) return true; }
+  for(let d=1;d<=ult;d++){ const dow=new Date(ano,mes,d).getDay(); if(itensDoDia(ano,mes,d,dow).some(c=>c.nome===nome)) return true; }
   return false;
 }
 function primeiroMesComCampanha(nome,ano){
@@ -5146,7 +5156,6 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="ferias"){ if(!document.getElementById("ferConsultaDia").value){ document.getElementById("ferConsultaDia").value=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2)+"-"+("0"+HOJE.getDate()).slice(-2); } renderFerias(); }
     if(btn.dataset.page==="negociar") renderNegociar();
     if(btn.dataset.page==="analise") renderAnalise();
-    if(btn.dataset.page==="operacao") renderOperacao();
     try{ localStorage.setItem("ui_pagina_atual", btn.dataset.page); }catch(e){}
     window.scrollTo(0,0);
   });
@@ -5169,7 +5178,6 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
 render();
 try{ pxAtualizaBadge(); }catch(e){}
 try{ negAtualizaBadge(); }catch(e){}
-try{ opAtualizaBadge(); }catch(e){}
 
 // Restaura a última página aberta após recarregar (Cmd+R) e sempre vai pro topo
 (function(){
