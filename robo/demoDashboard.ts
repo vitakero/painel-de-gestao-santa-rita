@@ -1843,7 +1843,7 @@ function ccUid(){ return "c"+HOJE.getTime()+Math.floor(performance.now()*1000)+c
   document.getElementById("ccLista").addEventListener("click",function(e){
     var d=e.target.closest("[data-ccdel]"); if(!d) return;
     var alvo=campanhasUsuario.find(function(c){ return c.id===d.dataset.ccdel; });
-    uiConfirm({titulo:"Excluir campanha",msg:"Remover a campanha \""+((alvo&&alvo.nome)||"")+"\"?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){
+    uiConfirm({titulo:"Excluir campanha",msg:"Remover a campanha '"+((alvo&&alvo.nome)||"")+"'?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){
       if(!sim) return;
       campanhasUsuario=campanhasUsuario.filter(function(c){ return c.id!==d.dataset.ccdel; });
       salvarCampUser(); rebuildUserCor(); montarLegendas(); renderCal(); ccRenderLista();
