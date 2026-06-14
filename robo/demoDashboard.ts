@@ -517,6 +517,35 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         </div>
         <div class="cal-legenda" id="calLegSetores" style="margin-top:8px;border-top:1px solid #eef1f4;padding-top:10px;"></div>
         <div class="cal-legenda" id="calLegDatas" style="margin-top:8px;border-top:1px solid #eef1f4;padding-top:10px;"></div>
+        <div class="cal-legenda" id="calLegUser" style="margin-top:8px;border-top:1px solid #eef1f4;padding-top:10px;display:none;"></div>
+      </div>
+      <div class="card">
+        <details id="ccBox">
+          <summary style="cursor:pointer;font-weight:700;color:#0c5a26;font-size:15px;">➕ Adicionar campanha / data comemorativa</summary>
+          <p style="margin:10px 0 6px;color:#6b7787;font-size:13px;">Crie suas próprias campanhas (ex: "Quarta do Hortifruti", "Aniversário do Cliente"). Elas aparecem no calendário e na legenda.</p>
+          <div class="filtros" style="box-shadow:none;padding:0;flex-wrap:wrap;align-items:flex-start;">
+            <div class="campo" style="flex:1;min-width:180px;"><label for="ccNome">Nome da campanha</label><input type="text" id="ccNome" placeholder="ex: Quarta do Hortifruti"></div>
+            <div class="campo"><label for="ccCor">Cor</label><input type="color" id="ccCor" value="#157a35" style="width:54px;height:40px;padding:2px;cursor:pointer;"></div>
+            <div class="campo"><label for="ccTipo">Quando acontece</label>
+              <select id="ccTipo" style="padding:9px 11px;border:1px solid #cdd6e0;border-radius:8px;font-size:14px;">
+                <option value="data">Numa data específica</option>
+                <option value="semana">Toda semana (dia fixo)</option>
+              </select>
+            </div>
+            <div class="campo" id="ccDataBox"><label for="ccData">Data</label>
+              <input type="date" id="ccData">
+              <label style="font-size:12px;color:#6b7787;font-weight:400;margin-top:5px;display:flex;align-items:center;gap:5px;"><input type="checkbox" id="ccAnual" style="width:auto;"> repetir todo ano</label>
+            </div>
+            <div class="campo" id="ccSemanaBox" style="display:none;"><label for="ccDow">Dia da semana</label>
+              <select id="ccDow" style="padding:9px 11px;border:1px solid #cdd6e0;border-radius:8px;font-size:14px;">
+                <option value="0">Domingo</option><option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option>
+              </select>
+            </div>
+            <button class="btn-p" id="ccAdd" style="margin-top:18px;">Adicionar</button>
+            <span id="ccMsg" style="flex-basis:100%;font-size:12.5px;color:#c0392b;margin-top:6px;display:none;"></span>
+          </div>
+          <div id="ccLista" style="margin-top:12px;"></div>
+        </details>
       </div>
     </section>
 
@@ -1559,7 +1588,12 @@ function campanhasDoDia(a,m,d,dow){
   const anu=DATAS_ANUAIS.filter(c=>c.mes===m && c.dia===d);         // anuais primeiro
   const esp=DATAS_ESPECIAIS.filter(c=>c.key===k);                   // datas especiais
   const rec=CAMPANHAS.filter(c=>c.quando(a,m,d,dow));
-  return [...anu, ...esp, ...rec];
+  const usr=campanhasUsuario.filter(function(c){
+    if(c.tipo==="semana") return c.dow===dow;
+    if(c.tipo==="data"){ if(c.anual){ var p=c.data.split("-"); return (+p[1]-1)===m && (+p[2])===d; } return c.data===k; }
+    return false;
+  }).map(function(c){ return {nome:c.nome, setor:"Personalizada"}; });
+  return [...anu, ...esp, ...rec, ...usr];
 }
 
 // Cor única por campanha. Para evitar tons parecidos, usamos DOIS anéis de
@@ -1611,7 +1645,13 @@ const CAMP_COR=(function(){
   map["Sábado Bombástico (Prorrogado)"]=map["Sábado Bombástico"];
   return map;
 })();
-const corCampanha=(nome)=> CAMP_COR[nome] || "#566379";
+// Campanhas criadas pelo usuário (salvas no navegador, via "Adicionar campanha").
+var campanhasUsuario = (function(){ try{ return JSON.parse(localStorage.getItem("calendario_campanhas")||"[]"); }catch(e){ return []; } })();
+function salvarCampUser(){ try{ localStorage.setItem("calendario_campanhas", JSON.stringify(campanhasUsuario)); }catch(e){} }
+var USER_COR={};
+function rebuildUserCor(){ USER_COR={}; campanhasUsuario.forEach(function(c){ USER_COR[c.nome]=c.cor; }); }
+rebuildUserCor();
+const corCampanha=(nome)=> USER_COR[nome] || CAMP_COR[nome] || "#566379";
 
 // Campanha destacada ao clicar na legenda (null = nenhuma).
 // Pode ser o nome de uma campanha ou os tokens especiais "__hoje__" / "__fechado__".
@@ -1623,7 +1663,7 @@ function ehMatch(ehHoje,motivo,camps){
   return camps.some(cp=>cp.nome===destaque);
 }
 
-(function(){
+function montarLegendas(){
   function montar(lista){
     const nomes=[], vistos={};
     lista.forEach(function(c){
@@ -1643,7 +1683,14 @@ function ehMatch(ehHoje,motivo,camps){
     if(lista2.length){ box2.innerHTML=montar(lista2); }
     else { box2.style.display="none"; }
   }
-})();
+  // Grupo 3: campanhas que VOCÊ adicionou (some quando vazio).
+  const box3=document.getElementById("calLegUser");
+  if(box3){
+    if(campanhasUsuario.length){ box3.style.display=""; box3.innerHTML=montar(campanhasUsuario); }
+    else { box3.style.display="none"; box3.innerHTML=""; }
+  }
+}
+montarLegendas();
 
 function renderMes(){
   document.getElementById("calTitulo").textContent=MESES[calMes]+" "+calAno;
@@ -1735,25 +1782,75 @@ function marcarLegenda(){
     el.classList.toggle("sel", destaque!==null && el.dataset.camp===destaque);
   });
 }
-document.querySelectorAll(".leg-item").forEach(el=>{
-  el.addEventListener("click",()=>{
-    const nome=el.dataset.camp;
-    destaque=(destaque===nome)?null:nome;
-    // Na visão Mês, se a campanha não acontece no mês atual, pula pro primeiro que tem.
-    if(destaque && calView==="mes" && !campanhaNoMes(destaque,calAno,calMes)){
-      const m=primeiroMesComCampanha(destaque,calAno);
-      if(m>=0) calMes=m;
-    }
-    marcarLegenda();
-    renderCal();
-    // Rola a tela até o primeiro dia destacado pra ele aparecer.
-    if(destaque){
-      const alvo=document.querySelector((calView==="mes"?"#calDias":"#calAnoView")+" .destacado");
-      if(alvo) alvo.scrollIntoView({behavior:"smooth", block:"center"});
-    }
-  });
+// Delegação: funciona também pras campanhas adicionadas depois (legenda recriada).
+document.addEventListener("click",function(e){
+  const el=e.target.closest(".leg-item");
+  if(!el) return;
+  const nome=el.dataset.camp;
+  destaque=(destaque===nome)?null:nome;
+  // Na visão Mês, se a campanha não acontece no mês atual, pula pro primeiro que tem.
+  if(destaque && calView==="mes" && !campanhaNoMes(destaque,calAno,calMes)){
+    const m=primeiroMesComCampanha(destaque,calAno);
+    if(m>=0) calMes=m;
+  }
+  marcarLegenda();
+  renderCal();
+  // Rola a tela até o primeiro dia destacado pra ele aparecer.
+  if(destaque){
+    const alvo=document.querySelector((calView==="mes"?"#calDias":"#calAnoView")+" .destacado");
+    if(alvo) alvo.scrollIntoView({behavior:"smooth", block:"center"});
+  }
 });
 setView(calView);
+
+// ---- Adicionar campanha (calendário) ----
+function ccRenderLista(){
+  var box=document.getElementById("ccLista"); if(!box) return;
+  if(!campanhasUsuario.length){ box.innerHTML='<p style="color:#8a97a8;font-size:13px;margin:4px 0;">Você ainda não adicionou nenhuma campanha.</p>'; return; }
+  var diasSem=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+  box.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:13px;">'+
+    campanhasUsuario.map(function(c){
+      var quando = c.tipo==="semana" ? ("Toda "+diasSem[c.dow]) : (c.data.split("-").reverse().join("/")+(c.anual?" (todo ano)":""));
+      return '<tr style="border-bottom:1px solid #eef2f6;"><td style="padding:6px 4px;"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:'+c.cor+';vertical-align:middle;margin-right:7px;"></span>'+pxEsc(c.nome)+'</td><td style="padding:6px 4px;color:#6b7787;">'+quando+'</td><td style="padding:6px 4px;text-align:right;"><span data-ccdel="'+c.id+'" style="color:#c0392b;cursor:pointer;font-weight:700;">excluir</span></td></tr>';
+    }).join('')+'</table>';
+}
+function ccUid(){ return "c"+HOJE.getTime()+Math.floor(performance.now()*1000)+campanhasUsuario.length; }
+(function(){
+  var tipo=document.getElementById("ccTipo"); if(!tipo) return;
+  tipo.addEventListener("change",function(){
+    var dataBox=document.getElementById("ccDataBox"), semBox=document.getElementById("ccSemanaBox");
+    if(tipo.value==="semana"){ dataBox.style.display="none"; semBox.style.display=""; }
+    else { dataBox.style.display=""; semBox.style.display="none"; }
+  });
+  document.getElementById("ccAdd").addEventListener("click",function(){
+    var nome=document.getElementById("ccNome").value.trim();
+    var cor=document.getElementById("ccCor").value;
+    var t=document.getElementById("ccTipo").value;
+    var msg=document.getElementById("ccMsg");
+    function erro(x){ msg.textContent=x; msg.style.display="block"; }
+    if(!nome){ return erro("Digite o nome da campanha."); }
+    var nova={ id:ccUid(), nome:nome, cor:cor, tipo:t };
+    if(t==="semana"){ nova.dow=parseInt(document.getElementById("ccDow").value,10); }
+    else {
+      var data=document.getElementById("ccData").value;
+      if(!/^\\d{4}-\\d{2}-\\d{2}\$/.test(data)){ return erro("Escolha a data da campanha."); }
+      nova.data=data; nova.anual=document.getElementById("ccAnual").checked;
+    }
+    campanhasUsuario.push(nova);
+    salvarCampUser(); rebuildUserCor(); montarLegendas(); renderCal(); ccRenderLista();
+    document.getElementById("ccNome").value=""; msg.style.display="none";
+  });
+  document.getElementById("ccLista").addEventListener("click",function(e){
+    var d=e.target.closest("[data-ccdel]"); if(!d) return;
+    var alvo=campanhasUsuario.find(function(c){ return c.id===d.dataset.ccdel; });
+    uiConfirm({titulo:"Excluir campanha",msg:"Remover a campanha \""+((alvo&&alvo.nome)||"")+"\"?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){
+      if(!sim) return;
+      campanhasUsuario=campanhasUsuario.filter(function(c){ return c.id!==d.dataset.ccdel; });
+      salvarCampUser(); rebuildUserCor(); montarLegendas(); renderCal(); ccRenderLista();
+    });
+  });
+  ccRenderLista();
+})();
 
 // ---- Escala de trabalho (editável, salva no navegador) ----
 const ESCALA_ROSTER = ${JSON.stringify(escalaRoster)};
