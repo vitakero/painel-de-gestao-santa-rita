@@ -2471,7 +2471,7 @@ function pxContratoDocHtml(p){
     ".barra{position:fixed;top:0;left:0;right:0;background:#157a35;color:#fff;padding:10px 16px;text-align:center;font-family:Arial,sans-serif}"+
     ".barra button{font-size:14px;font-weight:700;padding:8px 18px;margin:0 4px;border:0;border-radius:6px;cursor:pointer;background:#fff;color:#157a35}"+
     ".barra .sec{background:transparent;color:#fff;border:1px solid #fff}"+
-    "@media print{.barra{display:none}body{padding:0}}";
+    "@page{margin:0}@media print{.barra{display:none}body{max-width:none;margin:0;padding:26mm 28mm 22mm}}";
   var h="<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Acordo Comercial — "+forn+"</title><style>"+css+"</style></head><body>";
   h+="<div class='barra'><button onclick='window.print()'>Imprimir / Salvar PDF</button><button class='sec' onclick='window.close()'>Fechar</button></div>";
   h+="<div style='height:34px'></div>";
