@@ -2420,6 +2420,7 @@ function pixImprimirFicha(cv,o){
 // Dados do supermercado (LOCADOR). Editáveis aqui — substituir pelos dados reais quando o cliente enviar o modelo.
 var PX_LOCADOR={
   razao:"G JOAO DOS SANTOS INDÚSTRIA E COMÉRCIO LTDA",
+  fantasia:"Supermercado Santa Rita",
   cnpj:"12.988.127/0001-40",
   cidade:"Caicó/RN"
 };
@@ -2458,37 +2459,66 @@ function pxContratoDocHtml(p){
   var valTotalExt=total?(" ("+pxReaisExtenso(total)+")"):"";
   var mensalFmt=mensal?pxEsc(brl(mensal)):"[VALOR]";
   var pagBase = /pix/i.test(p.pagamento||"") ? "Pix" : (/boleto/i.test(p.pagamento||"") ? "boleto bancário" : (pxEsc(p.pagamento)||"boleto bancário"));
-  // Data do documento (usa a abertura; senão hoje)
+  var pagCap = pagBase.charAt(0).toUpperCase()+pagBase.slice(1);
   var dd=ini?new Date(+ini.split("-")[0],+ini.split("-")[1]-1,+ini.split("-")[2]):new Date(HOJE.getTime());
   var dataExt=dd.getDate()+" de "+MES[dd.getMonth()]+" de "+dd.getFullYear();
-  var vigencia = meses>0 ? (", correspondendo a "+meses+(meses===1?" mês":" meses")+" de vigência") : "";
+  var hojeDD=("0"+HOJE.getDate()).slice(-2)+"/"+("0"+(HOJE.getMonth()+1)).slice(-2)+"/"+HOJE.getFullYear();
+  var numContrato="ACP-"+dd.getFullYear()+"-"+String(p.numero||0).padStart(4,"0");
+  var mesesTxt = meses>0 ? (meses+(meses===1?" mês":" meses")) : "—";
+  var vigencia = meses>0 ? (", correspondendo a "+mesesTxt+" de vigência") : "";
   var pagTxt="O valor será pago através de "+pagBase+", no valor total de "+valTotalFmt+", referente ao período contratado"+vigencia+", com valor mensal de "+mensalFmt+".";
-  var css="*{box-sizing:border-box}html,body{background:#fff}body{font-family:'Times New Roman',Georgia,serif;color:#1a1a1a;max-width:760px;margin:0 auto;padding:48px 60px;line-height:1.75;font-size:15px}"+
-    "h1{text-align:center;font-size:20px;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px}.sub{text-align:center;color:#555;font-size:11.5px;letter-spacing:.6px;margin:0 0 30px;text-transform:uppercase}"+
-    "p{margin:0 0 14px;text-align:justify}.lbl{font-weight:bold}.bloco-info{margin:18px 0}.clausula{margin-top:22px}.clausula .t{font-weight:bold}"+
-    ".assin{margin-top:60px}.assin .row{display:flex;gap:60px;justify-content:space-between;margin-top:56px}"+
+  var razao=pxEsc(L.razao), cnpjL=pxEsc(L.cnpj), fant=pxEsc(L.fantasia||L.razao), cidade=pxEsc(L.cidade||"Caicó/RN");
+  var css="*{box-sizing:border-box}html,body{background:#fff}"+
+    "body{font-family:'Times New Roman',Georgia,serif;color:#1a1a1a;max-width:780px;margin:0 auto;padding:54px 64px;line-height:1.7;font-size:14.5px}"+
+    ".cab{text-align:center;border-bottom:2px solid #157a35;padding-bottom:16px;margin-bottom:6px}"+
+    ".cab h1{font-size:17px;text-transform:uppercase;letter-spacing:.6px;margin:0 0 10px;line-height:1.35}"+
+    ".cab .meta{font-size:12px;color:#444}.cab .meta b{color:#1a1a1a}"+
+    "h2{font-size:13.5px;text-transform:uppercase;letter-spacing:.4px;margin:22px 0 6px;border-left:3px solid #157a35;padding-left:8px}"+
+    "p{margin:0 0 12px;text-align:justify}"+
+    "table.resumo{width:100%;border-collapse:collapse;margin:18px 0 6px;font-size:13.5px}"+
+    "table.resumo td{border:1px solid #cfd8d0;padding:8px 12px;vertical-align:top}"+
+    "table.resumo td.k{background:#eef5f0;font-weight:bold;width:38%;color:#0c5a26}"+
+    ".assin{margin-top:54px}.assin .row{display:flex;gap:60px;justify-content:space-between;margin-top:54px}"+
     ".assin .bloco{flex:1;text-align:center}.assin .linha{border-top:1px solid #1a1a1a;padding-top:6px}"+
-    ".assin .papel{font-weight:bold;font-size:13px}.assin .dado{font-size:11.5px;color:#333;margin-top:2px}"+
+    ".assin .papel{font-weight:bold;font-size:12.5px}.assin .dado{font-size:11px;color:#333;margin-top:2px}"+
     ".barra{position:fixed;top:0;left:0;right:0;background:#157a35;color:#fff;padding:10px 16px;text-align:center;font-family:Arial,sans-serif}"+
     ".barra button{font-size:14px;font-weight:700;padding:8px 18px;margin:0 4px;border:0;border-radius:6px;cursor:pointer;background:#fff;color:#157a35}"+
     ".barra .sec{background:transparent;color:#fff;border:1px solid #fff}"+
     "@media print{.barra{display:none}body{padding:0}}";
-  var h="<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Acordo Comercial — "+forn+"</title><style>"+css+"</style></head><body>";
+  var h="<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Acordo Comercial "+numContrato+" — "+forn+"</title><style>"+css+"</style></head><body>";
   h+="<div class='barra'><button onclick='window.print()'>Imprimir / Salvar PDF</button><button class='sec' onclick='window.close()'>Fechar</button></div>";
   h+="<div style='height:34px'></div>";
-  h+="<h1>Acordo Comercial</h1>";
-  h+="<div class='sub'>Cessão de Espaço Comercial — Ponto Extra</div>";
-  h+="<p>Por este instrumento particular, de um lado <b>"+forn+"</b>, inscrita no CNPJ nº <b>"+cnpjForn+"</b>, doravante denominada <b>CONTRATANTE</b>, e de outro lado <b>"+pxEsc(L.razao)+"</b>, inscrita no CNPJ nº <b>"+pxEsc(L.cnpj)+"</b>, doravante denominada <b>CONTRATADA</b>, resolvem firmar o presente <b>ACORDO COMERCIAL</b>, mediante as condições abaixo estabelecidas:</p>";
-  h+="<div class='bloco-info'>";
-  h+="<p><span class='lbl'>PERÍODO DA NEGOCIAÇÃO E QUITAÇÃO:</span> "+iniFmt+" a "+fimFmt+"</p>";
-  h+="<p><span class='lbl'>VALOR DA QUITAÇÃO:</span> "+valTotalFmt+valTotalExt+"</p>";
-  h+="<p><span class='lbl'>FORMA DE PAGAMENTO:</span> "+pagTxt+"</p>";
-  h+="</div>";
-  h+="<div class='clausula'><p><span class='t'>CLÁUSULA DE QUITAÇÃO:</span> Após a confirmação do pagamento integral do valor acordado, as partes concedem entre si plena, geral e irrevogável quitação referente ao objeto deste acordo, nada mais tendo a reclamar uma da outra a qualquer título.</p></div>";
-  h+="<p style='margin-top:26px'>"+pxEsc((L.cidade||"Caicó/RN").toUpperCase())+", "+dataExt+".</p>";
+  h+="<div class='cab'><h1>Acordo Comercial para Utilização de Espaço Promocional (Ponto Extra)</h1>";
+  h+="<div class='meta'>Contrato nº <b>"+numContrato+"</b> &nbsp;·&nbsp; Data de emissão: <b>"+hojeDD+"</b></div></div>";
+  h+="<p style='margin-top:16px'>Por este instrumento particular, de um lado <b>"+forn+"</b>, inscrita no CNPJ sob o nº <b>"+cnpjForn+"</b>, doravante denominada <b>CONTRATANTE</b>, e de outro lado <b>"+razao+"</b> ("+fant+"), inscrita no CNPJ sob o nº <b>"+cnpjL+"</b>, doravante denominada <b>CONTRATADA</b>, têm entre si justo e acordado o presente Acordo Comercial, que se regerá pelas cláusulas e condições a seguir.</p>";
+  h+="<table class='resumo'>";
+  h+="<tr><td class='k'>Fornecedor (CONTRATANTE)</td><td>"+forn+"</td></tr>";
+  h+="<tr><td class='k'>CNPJ</td><td>"+cnpjForn+"</td></tr>";
+  h+="<tr><td class='k'>Supermercado (CONTRATADA)</td><td>"+fant+" — "+razao+" · CNPJ "+cnpjL+"</td></tr>";
+  h+="<tr><td class='k'>Período de Vigência</td><td>"+iniFmt+" a "+fimFmt+"</td></tr>";
+  h+="<tr><td class='k'>Valor Mensal</td><td>"+mensalFmt+"</td></tr>";
+  h+="<tr><td class='k'>Quantidade de Meses</td><td>"+mesesTxt+"</td></tr>";
+  h+="<tr><td class='k'>Valor Total</td><td>"+valTotalFmt+valTotalExt+"</td></tr>";
+  h+="<tr><td class='k'>Forma de Pagamento</td><td>"+pagCap+"</td></tr>";
+  h+="</table>";
+  h+="<h2>Cláusula Primeira – Do Objeto</h2><p>O presente acordo tem por objeto a cessão onerosa, pela CONTRATADA à CONTRATANTE, de espaço promocional / ponto extra destinado exclusivamente à exposição e divulgação dos produtos da CONTRATANTE nas dependências do estabelecimento "+fant+", localizado em "+cidade+".</p>";
+  h+="<h2>Cláusula Segunda – Da Vigência</h2><p>O presente acordo vigorará no período de <b>"+iniFmt+"</b> a <b>"+fimFmt+"</b>"+(meses>0?(", totalizando "+mesesTxt+" de vigência"):"")+", podendo ser renovado mediante acordo expresso entre as partes.</p>";
+  h+="<h2>Cláusula Terceira – Do Valor</h2><p>Pela utilização do espaço promocional, a CONTRATANTE pagará à CONTRATADA o valor mensal de <b>"+mensalFmt+"</b>, totalizando o valor de <b>"+valTotalFmt+valTotalExt+"</b> referente a todo o período contratado.</p>";
+  h+="<h2>Cláusula Quarta – Da Forma de Pagamento</h2><p>"+pagTxt+"</p>";
+  h+="<h2>Cláusula Quinta – Das Responsabilidades da Contratante</h2><p>A CONTRATANTE é integralmente responsável pela qualidade, validade, procedência e regularidade fiscal dos produtos expostos no espaço cedido, bem como por sua reposição, organização e conformidade com as normas sanitárias e legais aplicáveis durante toda a vigência deste acordo.</p>";
+  h+="<h2>Cláusula Sexta – Das Responsabilidades da Contratada</h2><p>A CONTRATADA obriga-se a disponibilizar o espaço comercial acordado, em condições adequadas para a exposição dos produtos da CONTRATANTE, conforme o presente instrumento.</p>";
+  h+="<h2>Cláusula Sétima – Da Utilização do Espaço</h2><p>O posicionamento e a localização do ponto extra serão definidos exclusivamente pela CONTRATADA, conforme seus critérios comerciais e operacionais, visando à melhor exposição dos produtos dentro do estabelecimento.</p>";
+  h+="<h2>Cláusula Oitava – Da Inadimplência</h2><p>O atraso no pagamento sujeitará a CONTRATANTE ao pagamento de multa de 2% (dois por cento) sobre o valor em atraso, acrescido de juros de mora de 1% (um por cento) ao mês e correção monetária pelo índice oficial, sem prejuízo das demais medidas cabíveis.</p>";
+  h+="<h2>Cláusula Nona – Da Rescisão</h2><p>O descumprimento de qualquer cláusula deste acordo faculta à parte prejudicada rescindi-lo de pleno direito, independentemente de notificação judicial ou extrajudicial, respondendo a parte infratora pelas perdas e danos a que der causa.</p>";
+  h+="<h2>Cláusula Décima – Da Quitação</h2><p>Após a confirmação do pagamento integral do valor acordado, as partes concedem entre si plena, geral e irrevogável quitação referente ao objeto deste acordo, nada mais tendo a reclamar uma da outra a qualquer título.</p>";
+  h+="<h2>Cláusula Décima Primeira – Do Foro</h2><p>Fica eleito o foro da Comarca de "+cidade+" para dirimir quaisquer dúvidas ou conflitos oriundos do presente acordo, com renúncia expressa a qualquer outro, por mais privilegiado que seja.</p>";
+  h+="<p style='margin-top:22px'>E, por estarem assim justas e acordadas, as partes firmam o presente instrumento em duas vias de igual teor e forma.</p>";
+  h+="<p>"+cidade+", "+dataExt+".</p>";
   h+="<div class='assin'>";
   h+="<div class='row'><div class='bloco'><div class='linha'><div class='papel'>CONTRATANTE</div><div class='dado'>"+forn+(p.cnpj?(" — CNPJ "+cnpjForn):"")+"</div></div></div>";
-  h+="<div class='bloco'><div class='linha'><div class='papel'>CONTRATADA</div><div class='dado'>"+pxEsc(L.razao)+" — CNPJ "+pxEsc(L.cnpj)+"</div></div></div></div>";
+  h+="<div class='bloco'><div class='linha'><div class='papel'>CONTRATADA</div><div class='dado'>"+razao+" — CNPJ "+cnpjL+"</div></div></div></div>";
+  h+="<div class='row'><div class='bloco'><div class='linha'><div class='papel'>TESTEMUNHA 1</div><div class='dado'>CPF: ____________________</div></div></div>";
+  h+="<div class='bloco'><div class='linha'><div class='papel'>TESTEMUNHA 2</div><div class='dado'>CPF: ____________________</div></div></div></div>";
   h+="</div>";
   h+="</body></html>";
   return h;
