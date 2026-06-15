@@ -2517,8 +2517,6 @@ function pxContratoDocHtml(p){
   h+="<div class='assin'>";
   h+="<div class='row'><div class='bloco'><div class='linha'><div class='papel'>CONTRATANTE</div><div class='dado'>"+forn+(p.cnpj?(" — CNPJ "+cnpjForn):"")+"</div></div></div>";
   h+="<div class='bloco'><div class='linha'><div class='papel'>CONTRATADA</div><div class='dado'>"+razao+" — CNPJ "+cnpjL+"</div></div></div></div>";
-  h+="<div class='row'><div class='bloco'><div class='linha'><div class='papel'>TESTEMUNHA 1</div><div class='dado'>CPF: ____________________</div></div></div>";
-  h+="<div class='bloco'><div class='linha'><div class='papel'>TESTEMUNHA 2</div><div class='dado'>CPF: ____________________</div></div></div></div>";
   h+="</div>";
   h+="</body></html>";
   return h;
