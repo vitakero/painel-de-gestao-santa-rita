@@ -2460,7 +2460,7 @@ function pxContratoDocHtml(p){
   var dataExt=dd.getDate()+" de "+MES[dd.getMonth()]+" de "+dd.getFullYear();
   var vigencia = meses>0 ? (", correspondendo a "+meses+(meses===1?" mês":" meses")+" de vigência") : "";
   var pagTxt="O valor será pago através de "+pagBase+", no valor total de "+valTotalFmt+", referente ao período contratado"+vigencia+", com valor mensal de "+mensalFmt+".";
-  var razao=pxEsc(L.razao), cnpjL=pxEsc(L.cnpj), cidade=pxEsc(L.cidade||"Caicó/RN");
+  var razao=pxEsc(L.razao), cnpjL=pxEsc(L.cnpj), fant=pxEsc(L.fantasia||L.razao), cidade=pxEsc(L.cidade||"Caicó/RN");
   var css="*{box-sizing:border-box}html,body{background:#fff}body{font-family:'Times New Roman',Georgia,serif;color:#1a1a1a;max-width:760px;margin:0 auto;padding:48px 60px;line-height:1.75;font-size:15px}"+
     "h1{text-align:center;font-size:17px;text-transform:uppercase;letter-spacing:.8px;line-height:1.35;margin:0 0 30px}"+
     "p{margin:0 0 14px;text-align:justify}.lbl{font-weight:bold}.bloco-info{margin:18px 0}.clausula{margin-top:22px}.clausula .t{font-weight:bold}"+
@@ -2475,7 +2475,7 @@ function pxContratoDocHtml(p){
   h+="<div class='barra'><button onclick='window.print()'>Imprimir / Salvar PDF</button><button class='sec' onclick='window.close()'>Fechar</button></div>";
   h+="<div style='height:34px'></div>";
   h+="<h1>Acordo Comercial para Utilização de Espaço Promocional<br>(Ponto Extra)</h1>";
-  h+="<p>Por este instrumento particular, de um lado <b>"+forn+"</b>, inscrita no CNPJ nº <b>"+cnpjForn+"</b>, doravante denominada <b>CONTRATANTE</b>, e de outro lado <b>"+razao+"</b>, inscrita no CNPJ nº <b>"+cnpjL+"</b>, doravante denominada <b>CONTRATADA</b>, resolvem firmar o presente <b>ACORDO COMERCIAL</b>, mediante as condições abaixo estabelecidas:</p>";
+  h+="<p>Por este instrumento particular, de um lado <b>"+forn+"</b>, inscrita no CNPJ sob o nº <b>"+cnpjForn+"</b>, doravante denominada <b>CONTRATANTE</b>, e de outro lado <b>"+razao+"</b> ("+fant+"), inscrita no CNPJ sob o nº <b>"+cnpjL+"</b>, doravante denominada <b>CONTRATADA</b>, têm entre si justo e acordado o presente Acordo Comercial, que se regerá pelas cláusulas e condições a seguir.</p>";
   h+="<div class='bloco-info'>";
   h+="<p><span class='lbl'>PERÍODO DA NEGOCIAÇÃO E QUITAÇÃO:</span> "+iniFmt+" a "+fimFmt+"</p>";
   h+="<p><span class='lbl'>VALOR DA QUITAÇÃO:</span> "+valTotalFmt+valTotalExt+"</p>";
