@@ -1889,6 +1889,7 @@ function ccUid(){ return "c"+HOJE.getTime()+Math.floor(performance.now()*1000)+c
 // ---- Escala de trabalho (editável, salva no navegador) ----
 const ESCALA_ROSTER = ${JSON.stringify(escalaRoster)};
 const OPERACAO = ${JSON.stringify(operacaoSeed)};
+const LOGO_URI = ${JSON.stringify(logoDataUri)};
 const DOW_PT = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 let escAno = HOJE.getFullYear(), escMes = HOJE.getMonth();
 
@@ -2474,7 +2475,7 @@ function pxContratoDocHtml(p){
   var h="<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Acordo Comercial — "+forn+"</title><style>"+css+"</style></head><body>";
   h+="<div class='barra'><button onclick='window.print()'>Imprimir / Salvar PDF</button><button class='sec' onclick='window.close()'>Fechar</button></div>";
   h+="<div style='height:34px'></div>";
-  var logoSrc=""; try{ var _li=document.querySelector("header img"); if(_li) logoSrc=_li.src; }catch(e){}
+  var logoSrc=""; try{ logoSrc=(typeof LOGO_URI!=="undefined"&&LOGO_URI)?LOGO_URI:((document.querySelector("header img")||{}).src||""); }catch(e){}
   if(logoSrc) h+="<div style='text-align:center;margin:0 0 16px'><img src='"+logoSrc+"' alt='Supermercado Santa Rita' style='max-height:74px;width:auto'></div>";
   h+="<h1>Acordo Comercial para Utilização de Espaço Promocional<br>(Ponto Extra)</h1>";
   h+="<p>Por este instrumento particular, de um lado <b>"+forn+"</b>, inscrita no CNPJ sob o nº <b>"+cnpjForn+"</b>, doravante denominada <b>CONTRATANTE</b>, e de outro lado <b>"+razao+"</b> ("+fant+"), inscrita no CNPJ sob o nº <b>"+cnpjL+"</b>, doravante denominada <b>CONTRATADA</b>, têm entre si justo e acordado o presente Acordo Comercial, que se regerá pelas cláusulas e condições a seguir.</p>";
