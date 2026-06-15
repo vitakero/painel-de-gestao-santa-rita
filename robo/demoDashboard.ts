@@ -2419,54 +2419,68 @@ function pixImprimirFicha(cv,o){
 }
 // Dados do supermercado (LOCADOR). Editáveis aqui — substituir pelos dados reais quando o cliente enviar o modelo.
 var PX_LOCADOR={
-  razao:"[RAZÃO SOCIAL DO SUPERMERCADO]",
-  cnpj:"[CNPJ DO SUPERMERCADO]",
-  endereco:"[ENDEREÇO COMPLETO], Caicó/RN",
-  representante:"[NOME DO RESPONSÁVEL]"
+  razao:"G JOAO DOS SANTOS INDÚSTRIA E COMÉRCIO LTDA",
+  cnpj:"12.988.127/0001-40",
+  cidade:"Caicó/RN"
 };
 function pxEsc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
-// Monta o documento HTML do contrato padrão de locação de ponto extra a partir dos dados do ponto.
+// Número por extenso (reais) — pt-BR, até milhões.
+function pxNumExtenso(n){
+  n=Math.round(n); if(n===0) return "zero";
+  var u=["","um","dois","três","quatro","cinco","seis","sete","oito","nove","dez","onze","doze","treze","quatorze","quinze","dezesseis","dezessete","dezoito","dezenove"];
+  var dez=["","","vinte","trinta","quarenta","cinquenta","sessenta","setenta","oitenta","noventa"];
+  var cem=["","cento","duzentos","trezentos","quatrocentos","quinhentos","seiscentos","setecentos","oitocentos","novecentos"];
+  function ate999(x){ if(x===0) return ""; if(x===100) return "cem"; var p=[]; var c=Math.floor(x/100), r=x%100; if(c) p.push(cem[c]); if(r){ if(r<20) p.push(u[r]); else { var d=Math.floor(r/10), un=r%10; p.push(dez[d]+(un?(" e "+u[un]):"")); } } return p.join(" e "); }
+  var partes=[], milhao=Math.floor(n/1000000), resto=n%1000000, mil=Math.floor(resto/1000), cent=resto%1000;
+  if(milhao) partes.push(ate999(milhao)+(milhao===1?" milhão":" milhões"));
+  if(mil) partes.push(mil===1?"mil":(ate999(mil)+" mil"));
+  if(cent) partes.push(ate999(cent));
+  return partes.join(" e ");
+}
+function pxReaisExtenso(v){ var i=Math.floor(v); return pxNumExtenso(i)+(i===1?" real":" reais"); }
+function pxMesesEntre(ini,fim){ if(!ini||!fim) return 0; var a=ini.split("-"), b=fim.split("-"); var m=(+b[0]*12+ +b[1])-(+a[0]*12+ +a[1]); if(+b[2] < +a[2]) m-=1; return m>0?m:0; }
+// Monta o "Acordo Comercial" (modelo da loja) a partir dos dados do ponto.
 function pxContratoDocHtml(p){
-  var hoje=new Date();
-  var dataHoje=("0"+hoje.getDate()).slice(-2)+"/"+("0"+(hoje.getMonth()+1)).slice(-2)+"/"+hoje.getFullYear();
-  var locatario=pxEsc(p.razaoSocial||p.fornecedor||"[FORNECEDOR]");
-  var nomeFant=pxEsc(p.fornecedor||"");
-  var cnpj=pxEsc(p.cnpj?pxFmtCnpj(p.cnpj):"[CNPJ DO FORNECEDOR]");
-  var vend=pxEsc(p.vendedor||"[REPRESENTANTE DO FORNECEDOR]");
-  var contato=pxEsc(p.contato?pxFmtTel(p.contato):"[CONTATO]");
-  var endereco=pxEsc(p.endereco||"");
-  var valor=pxEsc(p.valor?brl(+p.valor):"[VALOR]");
-  var pag=pxEsc(p.pagamento||"[FORMA DE PAGAMENTO]");
-  var assin=pxEsc(p.abertura?pxFmtData(p.abertura):"____/____/______");
-  var venc=pxEsc(p.vencimento?pxFmtData(p.vencimento):"____/____/______");
-  var numPonto=pxEsc(p.numero||"____");
-  var obs=pxEsc(p.obs||"");
+  var MES=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
   var L=PX_LOCADOR;
-  var css="*{box-sizing:border-box}html,body{background:#fff}body{font-family:'Times New Roman',Georgia,serif;color:#1a1a1a;max-width:760px;margin:0 auto;padding:48px 56px;line-height:1.6;font-size:15px}"+
-    "h1{text-align:center;font-size:18px;text-transform:uppercase;letter-spacing:.5px;margin:0 0 28px}"+
-    "h2{font-size:15px;margin:22px 0 6px;text-transform:uppercase}p{margin:0 0 12px;text-align:justify}"+
-    ".campo{background:#fff3cd}.assin{margin-top:60px;display:flex;justify-content:space-between;gap:40px}"+
-    ".assin div{flex:1;text-align:center;border-top:1px solid #1a1a1a;padding-top:6px;font-size:13px}"+
+  // Fornecedor (PRIMEIRO CONTRATANTE)
+  var forn=pxEsc(p.razaoSocial||p.fornecedor||"[FORNECEDOR]");
+  var cnpjForn=pxEsc(p.cnpj?pxFmtCnpj(p.cnpj):"[CNPJ DO FORNECEDOR]");
+  // Período
+  var ini=p.abertura, fim=p.vencimento;
+  var iniFmt=pxEsc(ini?pxFmtData(ini):"____/____/______");
+  var fimFmt=pxEsc(fim?pxFmtData(fim):"____/____/______");
+  var meses=pxMesesEntre(ini,fim);
+  // Valor
+  var mensal=+p.valor||0;
+  var total=meses>0 ? mensal*meses : mensal;
+  var valTotalFmt=total?pxEsc(brl(total)):"[VALOR]";
+  var valTotalExt=total?(" ("+pxReaisExtenso(total)+")"):"";
+  var mensalFmt=mensal?pxEsc(brl(mensal)):"[VALOR]";
+  var pag=pxEsc(p.pagamento||"Boleto");
+  // Data do documento (usa a abertura; senão hoje)
+  var dd=ini?new Date(+ini.split("-")[0],+ini.split("-")[1]-1,+ini.split("-")[2]):new Date(HOJE.getTime());
+  var dataExt=dd.getDate()+" de "+MES[dd.getMonth()]+" de "+dd.getFullYear();
+  var pagTxt="O valor será pago através de "+pag+", no valor total de "+valTotalFmt
+    +", referente ao período de "+iniFmt+" a "+fimFmt+(meses>0?(" ("+meses+(meses===1?" mês":" meses")+")"):"")
+    +", com valor mensal do ponto extra de "+mensalFmt+".";
+  var css="*{box-sizing:border-box}html,body{background:#fff}body{font-family:'Times New Roman',Georgia,serif;color:#1a1a1a;max-width:760px;margin:0 auto;padding:48px 56px;line-height:1.7;font-size:15px}"+
+    "h1{text-align:center;font-size:19px;text-transform:uppercase;letter-spacing:.5px;margin:0 0 30px}p{margin:0 0 14px;text-align:justify}.lbl{font-weight:bold}"+
+    ".assin{margin-top:70px}.assin .ln{margin-top:46px;border-top:1px solid #1a1a1a;padding-top:6px;font-size:14px;max-width:460px}"+
     ".barra{position:fixed;top:0;left:0;right:0;background:#157a35;color:#fff;padding:10px 16px;text-align:center;font-family:Arial,sans-serif}"+
     ".barra button{font-size:14px;font-weight:700;padding:8px 18px;margin:0 4px;border:0;border-radius:6px;cursor:pointer;background:#fff;color:#157a35}"+
     ".barra .sec{background:transparent;color:#fff;border:1px solid #fff}"+
     "@media print{.barra{display:none}body{padding:0}}";
-  var h="<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Contrato — Ponto Extra "+numPonto+" — "+nomeFant+"</title><style>"+css+"</style></head><body>";
+  var h="<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Acordo Comercial — "+forn+"</title><style>"+css+"</style></head><body>";
   h+="<div class='barra'><button onclick='window.print()'>Imprimir / Salvar PDF</button><button class='sec' onclick='window.close()'>Fechar</button></div>";
   h+="<div style='height:34px'></div>";
-  h+="<h1>Contrato de Locação de Espaço Comercial<br>(Ponto Extra / Gôndola)</h1>";
-  h+="<p><b>LOCADOR:</b> <span class='campo'>"+L.razao+"</span>, inscrito no CNPJ sob o nº <span class='campo'>"+L.cnpj+"</span>, com sede em <span class='campo'>"+L.endereco+"</span>, neste ato representado por <span class='campo'>"+L.representante+"</span>, doravante denominado <b>LOCADOR</b>.</p>";
-  h+="<p><b>LOCATÁRIO:</b> "+locatario+(nomeFant?(" ("+nomeFant+")"):"")+", inscrito no CNPJ sob o nº "+cnpj+(endereco?(", com sede em "+endereco):"")+", neste ato representado por "+vend+", contato "+contato+", doravante denominado <b>LOCATÁRIO</b>.</p>";
-  h+="<p>As partes acima identificadas têm, entre si, justo e acertado o presente Contrato de Locação de Espaço Comercial, que se regerá pelas cláusulas seguintes.</p>";
-  h+="<h2>Cláusula 1ª — Do Objeto</h2><p>O presente contrato tem por objeto a cessão onerosa, pelo LOCADOR ao LOCATÁRIO, do uso do ponto extra / espaço de gôndola identificado sob o nº <b>"+numPonto+"</b>, destinado exclusivamente à exposição e divulgação dos produtos do LOCATÁRIO no interior do estabelecimento do LOCADOR.</p>";
-  h+="<h2>Cláusula 2ª — Do Valor e Forma de Pagamento</h2><p>Pela locação do espaço, o LOCATÁRIO pagará ao LOCADOR o valor mensal de <b>"+valor+"</b>, por meio de <b>"+pag+"</b>"+(obs?(", conforme observação: "+obs):"")+".</p>";
-  h+="<h2>Cláusula 3ª — Da Vigência</h2><p>O presente contrato vigorará a partir de <b>"+assin+"</b>, com término previsto em <b>"+venc+"</b>, podendo ser renovado mediante acordo entre as partes.</p>";
-  h+="<h2>Cláusula 4ª — Das Obrigações do Locatário</h2><p>Obriga-se o LOCATÁRIO a manter o espaço organizado e abastecido, a respeitar as normas internas do estabelecimento e a efetuar o pagamento nas datas acordadas.</p>";
-  h+="<h2>Cláusula 5ª — Da Rescisão</h2><p>O descumprimento de quaisquer cláusulas deste contrato faculta à parte prejudicada rescindi-lo, independentemente de notificação judicial ou extrajudicial.</p>";
-  h+="<h2>Cláusula 6ª — Do Foro</h2><p>Fica eleito o foro da comarca de Caicó/RN para dirimir quaisquer dúvidas oriundas do presente contrato.</p>";
-  h+="<p style='margin-top:24px'>E, por estarem assim justas e contratadas, as partes assinam o presente em duas vias de igual teor.</p>";
-  h+="<p>Caicó/RN, "+dataHoje+".</p>";
-  h+="<div class='assin'><div>LOCADOR<br>"+L.razao+"</div><div>LOCATÁRIO<br>"+locatario+"</div></div>";
+  h+="<h1>Acordo Comercial</h1>";
+  h+="<p>Por este instrumento particular, de um lado <b>"+forn+"</b> CNPJ: <b>"+cnpjForn+"</b>, doravante denominada <b>PRIMEIRO CONTRATANTE</b>, e de outro lado <b>"+pxEsc(L.razao)+"</b>, CNPJ: <b>"+pxEsc(L.cnpj)+"</b>, doravante denominada <b>SEGUNDO CONTRATANTE</b>, protocolam entre si a estipulação de uma parceria comercial, conforme convencionado a seguir:</p>";
+  h+="<p><span class='lbl'>PERÍODO DA NEGOCIAÇÃO E QUITAÇÃO:</span> "+iniFmt+" a "+fimFmt+"</p>";
+  h+="<p><span class='lbl'>VALOR DA QUITAÇÃO:</span> "+valTotalFmt+valTotalExt+"</p>";
+  h+="<p><span class='lbl'>FORMA DE PAGAMENTO:</span> "+pagTxt+"</p>";
+  h+="<p style='margin-top:26px'>"+pxEsc((L.cidade||"Caicó/RN").toUpperCase())+", "+dataExt+".</p>";
+  h+="<div class='assin'><div class='ln'>"+forn+(p.cnpj?(": "+cnpjForn):"")+"</div><div class='ln'>"+pxEsc(L.razao)+": "+pxEsc(L.cnpj)+"</div></div>";
   h+="</body></html>";
   return h;
 }
