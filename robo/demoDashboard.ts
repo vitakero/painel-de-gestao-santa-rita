@@ -2457,16 +2457,18 @@ function pxContratoDocHtml(p){
   var valTotalFmt=total?pxEsc(brl(total)):"[VALOR]";
   var valTotalExt=total?(" ("+pxReaisExtenso(total)+")"):"";
   var mensalFmt=mensal?pxEsc(brl(mensal)):"[VALOR]";
-  var pag=pxEsc(p.pagamento||"Boleto");
+  var pagBase = /pix/i.test(p.pagamento||"") ? "Pix" : (/boleto/i.test(p.pagamento||"") ? "boleto bancário" : (pxEsc(p.pagamento)||"boleto bancário"));
   // Data do documento (usa a abertura; senão hoje)
   var dd=ini?new Date(+ini.split("-")[0],+ini.split("-")[1]-1,+ini.split("-")[2]):new Date(HOJE.getTime());
   var dataExt=dd.getDate()+" de "+MES[dd.getMonth()]+" de "+dd.getFullYear();
-  var pagTxt="O valor será pago através de "+pag+", no valor total de "+valTotalFmt
-    +", referente ao período de "+iniFmt+" a "+fimFmt+(meses>0?(" ("+meses+(meses===1?" mês":" meses")+")"):"")
-    +", com valor mensal do ponto extra de "+mensalFmt+".";
-  var css="*{box-sizing:border-box}html,body{background:#fff}body{font-family:'Times New Roman',Georgia,serif;color:#1a1a1a;max-width:760px;margin:0 auto;padding:48px 56px;line-height:1.7;font-size:15px}"+
-    "h1{text-align:center;font-size:19px;text-transform:uppercase;letter-spacing:.5px;margin:0 0 30px}p{margin:0 0 14px;text-align:justify}.lbl{font-weight:bold}"+
-    ".assin{margin-top:90px;display:flex;gap:50px;justify-content:space-between}.assin .ln{flex:1;border-top:1px solid #1a1a1a;padding-top:6px;font-size:13px;text-align:center}"+
+  var vigencia = meses>0 ? (", correspondendo a "+meses+(meses===1?" mês":" meses")+" de vigência") : "";
+  var pagTxt="O valor será pago através de "+pagBase+", no valor total de "+valTotalFmt+", referente ao período contratado"+vigencia+", com valor mensal de "+mensalFmt+".";
+  var css="*{box-sizing:border-box}html,body{background:#fff}body{font-family:'Times New Roman',Georgia,serif;color:#1a1a1a;max-width:760px;margin:0 auto;padding:48px 60px;line-height:1.75;font-size:15px}"+
+    "h1{text-align:center;font-size:20px;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px}.sub{text-align:center;color:#555;font-size:11.5px;letter-spacing:.6px;margin:0 0 30px;text-transform:uppercase}"+
+    "p{margin:0 0 14px;text-align:justify}.lbl{font-weight:bold}.bloco-info{margin:18px 0}.clausula{margin-top:22px}.clausula .t{font-weight:bold}"+
+    ".assin{margin-top:60px}.assin .row{display:flex;gap:60px;justify-content:space-between;margin-top:56px}"+
+    ".assin .bloco{flex:1;text-align:center}.assin .linha{border-top:1px solid #1a1a1a;padding-top:6px}"+
+    ".assin .papel{font-weight:bold;font-size:13px}.assin .dado{font-size:11.5px;color:#333;margin-top:2px}"+
     ".barra{position:fixed;top:0;left:0;right:0;background:#157a35;color:#fff;padding:10px 16px;text-align:center;font-family:Arial,sans-serif}"+
     ".barra button{font-size:14px;font-weight:700;padding:8px 18px;margin:0 4px;border:0;border-radius:6px;cursor:pointer;background:#fff;color:#157a35}"+
     ".barra .sec{background:transparent;color:#fff;border:1px solid #fff}"+
@@ -2475,12 +2477,21 @@ function pxContratoDocHtml(p){
   h+="<div class='barra'><button onclick='window.print()'>Imprimir / Salvar PDF</button><button class='sec' onclick='window.close()'>Fechar</button></div>";
   h+="<div style='height:34px'></div>";
   h+="<h1>Acordo Comercial</h1>";
-  h+="<p>Por este instrumento particular, de um lado <b>"+forn+"</b> CNPJ: <b>"+cnpjForn+"</b>, doravante denominada <b>PRIMEIRO CONTRATANTE</b>, e de outro lado <b>"+pxEsc(L.razao)+"</b>, CNPJ: <b>"+pxEsc(L.cnpj)+"</b>, doravante denominada <b>SEGUNDO CONTRATANTE</b>, protocolam entre si a estipulação de uma parceria comercial, conforme convencionado a seguir:</p>";
+  h+="<div class='sub'>Cessão de Espaço Comercial — Ponto Extra</div>";
+  h+="<p>Por este instrumento particular, de um lado <b>"+forn+"</b>, inscrita no CNPJ nº <b>"+cnpjForn+"</b>, doravante denominada <b>CONTRATANTE</b>, e de outro lado <b>"+pxEsc(L.razao)+"</b>, inscrita no CNPJ nº <b>"+pxEsc(L.cnpj)+"</b>, doravante denominada <b>CONTRATADA</b>, resolvem firmar o presente <b>ACORDO COMERCIAL</b>, mediante as condições abaixo estabelecidas:</p>";
+  h+="<div class='bloco-info'>";
   h+="<p><span class='lbl'>PERÍODO DA NEGOCIAÇÃO E QUITAÇÃO:</span> "+iniFmt+" a "+fimFmt+"</p>";
   h+="<p><span class='lbl'>VALOR DA QUITAÇÃO:</span> "+valTotalFmt+valTotalExt+"</p>";
   h+="<p><span class='lbl'>FORMA DE PAGAMENTO:</span> "+pagTxt+"</p>";
+  h+="</div>";
+  h+="<div class='clausula'><p><span class='t'>CLÁUSULA DE QUITAÇÃO:</span> Após a confirmação do pagamento integral do valor acordado, as partes concedem entre si plena, geral e irrevogável quitação referente ao objeto deste acordo, nada mais tendo a reclamar uma da outra a qualquer título.</p></div>";
   h+="<p style='margin-top:26px'>"+pxEsc((L.cidade||"Caicó/RN").toUpperCase())+", "+dataExt+".</p>";
-  h+="<div class='assin'><div class='ln'>"+forn+(p.cnpj?(": "+cnpjForn):"")+"</div><div class='ln'>"+pxEsc(L.razao)+": "+pxEsc(L.cnpj)+"</div></div>";
+  h+="<div class='assin'>";
+  h+="<div class='row'><div class='bloco'><div class='linha'><div class='papel'>CONTRATANTE</div><div class='dado'>"+forn+(p.cnpj?(" — CNPJ "+cnpjForn):"")+"</div></div></div>";
+  h+="<div class='bloco'><div class='linha'><div class='papel'>CONTRATADA</div><div class='dado'>"+pxEsc(L.razao)+" — CNPJ "+pxEsc(L.cnpj)+"</div></div></div></div>";
+  h+="<div class='row'><div class='bloco'><div class='linha'><div class='papel'>TESTEMUNHA 1</div><div class='dado'>CPF: ____________________</div></div></div>";
+  h+="<div class='bloco'><div class='linha'><div class='papel'>TESTEMUNHA 2</div><div class='dado'>CPF: ____________________</div></div></div></div>";
+  h+="</div>";
   h+="</body></html>";
   return h;
 }
