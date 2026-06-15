@@ -2466,7 +2466,7 @@ function pxContratoDocHtml(p){
     +", com valor mensal do ponto extra de "+mensalFmt+".";
   var css="*{box-sizing:border-box}html,body{background:#fff}body{font-family:'Times New Roman',Georgia,serif;color:#1a1a1a;max-width:760px;margin:0 auto;padding:48px 56px;line-height:1.7;font-size:15px}"+
     "h1{text-align:center;font-size:19px;text-transform:uppercase;letter-spacing:.5px;margin:0 0 30px}p{margin:0 0 14px;text-align:justify}.lbl{font-weight:bold}"+
-    ".assin{margin-top:70px}.assin .ln{margin-top:46px;border-top:1px solid #1a1a1a;padding-top:6px;font-size:14px;max-width:460px}"+
+    ".assin{margin-top:90px;display:flex;gap:50px;justify-content:space-between}.assin .ln{flex:1;border-top:1px solid #1a1a1a;padding-top:6px;font-size:13px;text-align:center}"+
     ".barra{position:fixed;top:0;left:0;right:0;background:#157a35;color:#fff;padding:10px 16px;text-align:center;font-family:Arial,sans-serif}"+
     ".barra button{font-size:14px;font-weight:700;padding:8px 18px;margin:0 4px;border:0;border-radius:6px;cursor:pointer;background:#fff;color:#157a35}"+
     ".barra .sec{background:transparent;color:#fff;border:1px solid #fff}"+
