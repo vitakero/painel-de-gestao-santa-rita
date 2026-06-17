@@ -593,7 +593,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <div class="campo"><label for="pxVend">Vendedor</label><input type="text" id="pxVend" placeholder="ex: Josinaldo"></div>
           <div class="campo"><label for="pxTel">Contato</label><input type="tel" id="pxTel" placeholder="ex: (84) 99999-0000" style="width:160px;"></div>
           <div class="campo"><label for="pxEmail">E-mail (p/ cobrança)</label><input type="email" id="pxEmail" placeholder="ex: financeiro@empresa.com" style="width:230px;"></div>
-          <div class="campo" style="flex:1;min-width:200px;"><label for="pxEndereco">Endereço</label><input type="text" id="pxEndereco" placeholder="preenchido pelo CNPJ"></div>
+          <div class="campo" style="flex:1;min-width:200px;"><label for="pxEndereco">Endereço</label><input type="text" id="pxEndereco" placeholder="preenchido pelo CNPJ" readonly style="background:#f3f6fa;color:#46535f;cursor:not-allowed;"></div>
           <div class="campo"><label for="pxValor">Valor (R$)</label><input type="number" id="pxValor" step="0.01" min="0" style="width:120px;"></div>
           <div class="campo"><label for="pxPag">Modo de pagamento</label>
             <input type="text" id="pxPag" list="pxPagList" style="width:150px;" placeholder="Boleto">
@@ -2661,7 +2661,7 @@ function pxBuscarCnpj(){
         if(d.municipio) partes.push(d.municipio+(d.uf?("/"+d.uf):""));
         if(d.cep) partes.push("CEP "+String(d.cep).replace(/(\\d{5})(\\d{3})/,"$1-$2"));
         var endereco=partes.join(" - ");
-        if(endereco && !endEl.value.trim()) endEl.value=endereco;
+        if(endereco) endEl.value=endereco;
         msg.style.color="#1b9e4b";
         msg.textContent="\\u2713 "+(fantasia?("Fantasia: "+fantasia):"")+((fantasia&&razao)?"  \\u00b7  ":"")+(razao?("Razão: "+razao):"")+(d.email?("  \\u00b7  \\u2709 "+String(d.email).toLowerCase()):"");
       } else { msg.style.color="#c0392b"; msg.textContent="CNPJ encontrado, mas sem nome cadastrado."; }
