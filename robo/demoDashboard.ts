@@ -355,7 +355,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     table.esc { font-size:8px; width:100% !important; table-layout:fixed; }
     table.esc th, table.esc td { padding:2px 0; min-width:0 !important; overflow:hidden; }
     table.esc th { font-size:6px; line-height:1.05; }
-    table.esc th.nome, table.esc td.nome { position:static !important; min-width:0 !important; width:132px; box-shadow:none !important; white-space:nowrap; overflow:visible; font-size:8px; line-height:1.1; }
+    table.esc th.nome, table.esc td.nome { position:static !important; min-width:0 !important; width:132px; box-shadow:none !important; white-space:nowrap; overflow:visible; font-size:8px; line-height:1.1; padding-left:7px !important; text-align:left !important; }
     table.esc th.nome { font-size:7px; }
     table.esc th:nth-child(2), table.esc td:nth-child(2) { width:30px; white-space:normal; }
     .esc-enc { display:inline !important; color:#6b7787 !important; font-size:7px; }
