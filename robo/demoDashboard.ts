@@ -358,7 +358,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     table.esc th.nome, table.esc td.nome { position:static !important; min-width:0 !important; width:105px; box-shadow:none !important; white-space:normal; overflow:visible; font-size:8px; line-height:1.1; }
     table.esc th.nome { font-size:7px; }
     table.esc th:nth-child(2), table.esc td:nth-child(2) { width:30px; white-space:normal; }
-    .esc-enc { display:none !important; }
+    .esc-enc { display:inline !important; color:#6b7787 !important; font-size:7px; }
     .cel-t1 { background:#FFB154 !important; color:#fff !important; }
     .cel-t2 { background:#01B0F0 !important; color:#fff !important; }
     .cel-folga { background:#48DC62 !important; color:#fff !important; }
