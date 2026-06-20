@@ -70,7 +70,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   * { box-sizing: border-box; }
   body { font-family: system-ui, -apple-system, sans-serif; margin:0; background:#eef1f6; color:#1a2233; }
   header { background:linear-gradient(120deg,#0a4d21 0%,#157a35 55%,#1f9d3f 100%); color:#fff; padding:18px 32px; border-bottom:3px solid #e11b0e; }
-  header .hwrap { display:flex; align-items:center; gap:16px; max-width:1320px; margin:0 auto; }
+  header .hwrap { display:flex; align-items:center; gap:16px; max-width:none; margin:0; }
   header .logo { flex:none; display:flex; align-items:center; justify-content:center; }
   header .logo img { height:56px; width:auto; display:block; filter:drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
   header .htxt { flex:1; min-width:0; }
@@ -79,7 +79,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .tag { display:inline-flex; align-items:center; gap:6px; background:#ffffff22; border:1px solid #ffffff55; padding:3px 11px; border-radius:20px; font-size:11px; font-weight:600; letter-spacing:.3px; vertical-align:middle; }
   .tag .dot { width:7px; height:7px; border-radius:50%; background:#5df08a; animation:pulseDot 1.8s infinite; }
   @keyframes pulseDot { 0%{box-shadow:0 0 0 0 rgba(93,240,138,.6);} 70%{box-shadow:0 0 0 7px rgba(93,240,138,0);} 100%{box-shadow:0 0 0 0 rgba(93,240,138,0);} }
-  .layout { display:flex; align-items:flex-start; max-width:1320px; margin:0 auto; }
+  .layout { display:flex; align-items:flex-start; max-width:none; margin:0; }
   .sidebar { width:210px; flex:none; padding:22px 14px; position:sticky; top:0; }
   .sidebar .titulo { font-size:11px; color:#8a97a8; text-transform:uppercase; letter-spacing:.5px; padding:0 12px 8px; }
   .nav-item { display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:none; border:0; cursor:pointer; padding:11px 12px; border-radius:9px; font-size:14px; color:#33404f; font-weight:500; margin-bottom:3px; }
@@ -92,7 +92,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .nav-badge { margin-left:auto; min-width:19px; height:19px; padding:0 5px; background:#c0392b; color:#fff; border-radius:10px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 0 0 2px #fff; }
   .nav-item.ativo .nav-badge { box-shadow:0 0 0 2px #157a35; }
   .nav-item.ativo .soon { background:#ffffff33; color:#fff; }
-  main { flex:1; min-width:0; padding:22px 32px 60px; }
+  main { flex:1 1 auto; min-width:0; max-width:1340px; margin:0 auto; padding:22px 32px 60px; }
   .page { display:none; }
   .page.ativo { display:grid; grid-template-columns:minmax(0,1fr); gap:22px; }
   .page.ativo > * { min-width:0; }
