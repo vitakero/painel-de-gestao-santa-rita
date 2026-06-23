@@ -399,6 +399,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="organograma"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="5" rx="1"/><rect x="2" y="17" width="6" height="5" rx="1"/><rect x="16" y="17" width="6" height="5" rx="1"/><path d="M12 7v6"/><path d="M5 17v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/></svg></span> Organograma</button>
     <button class="nav-item" data-page="fluxograma"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg></span> Fluxograma</button>
     <button class="nav-item" data-page="perdas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Perdas/Quebras</button>
+    <button class="nav-item" data-page="acougue"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h11a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3z"/><path d="M15 8h4a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4"/><path d="M3 19h13"/></svg></span> Perdas açougue</button>
     <button class="nav-item" data-page="negociar"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span> Negociar<span class="nav-badge" id="negNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="metas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span> Metas <span class="soon">em breve</span></button>
     <button class="nav-item" data-page="entregas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Entregas</button>
@@ -1004,6 +1005,20 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div class="kpis" id="prdKpis" style="grid-template-columns:repeat(6,minmax(0,1fr));margin-bottom:22px;"></div>
         <div id="prdEditWrap" style="display:none;"></div>
         <div id="prdGraficos"></div>
+      </div>
+    </section>
+
+    <section id="page-acougue" class="page">
+      <div class="card">
+        <div class="prd-top">
+          <div class="prd-nav"><button id="acoPrev" type="button">‹</button><button id="acoNext" type="button">›</button></div>
+          <div class="prd-titulo" id="acoTitulo"></div>
+          <button class="prd-btn" id="acoHoje" type="button">Hoje</button>
+          <button class="prd-btn" id="acoEditar" type="button" style="margin-left:auto;">＋ Lançar perda</button>
+        </div>
+        <div class="kpis" id="acoKpis" style="grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:22px;"></div>
+        <div id="acoEditWrap" style="display:none;"></div>
+        <div id="acoGraficos"></div>
       </div>
     </section>
 
@@ -4967,6 +4982,105 @@ function prdAddFromForm(){
   wrap.addEventListener("keydown",function(e){ if(e.key==="Enter" && e.target.closest(".prd-form") && e.target.tagName==="INPUT"){ e.preventDefault(); prdAddFromForm(); } });
 })();
 
+/* ===== Perdas do Açougue (aba dedicada) ===== */
+const ACO_MOTIVOS = ["Osso/aparas","Gordura/sebo","Quebra de peso","Queda no chão","Vencido","Estragado","Corte errado","Outro"];
+let acoAno=HOJE.getFullYear(), acoMes=HOJE.getMonth(), acoEdit=false;
+let acoData=acoLoad();
+function acoLoad(){ try{ const s=localStorage.getItem("acougue_perdas"); if(s){ const a=JSON.parse(s); if(Array.isArray(a)) return a; } }catch(e){} return []; }
+function acoSave(){ try{ localStorage.setItem("acougue_perdas", JSON.stringify(acoData)); }catch(e){} }
+function acoMesItens(){ const pref=acoAno+"-"+String(acoMes+1).padStart(2,"0"); return acoData.filter(function(r){ return r.data && r.data.indexOf(pref)===0; }); }
+function acoRenderKpis(){
+  const itens=acoMesItens();
+  const totVal=soma(itens.map(function(r){return +r.valor||0;}));
+  const totQtd=soma(itens.map(function(r){return +r.qtd||0;}));
+  const byMotivo=prdAgrupa(itens,function(r){return r.motivo;}).sort(function(a,b){return b.v-a.v;});
+  const byCorte=prdAgrupa(itens,function(r){return r.produto;}).sort(function(a,b){return b.v-a.v;});
+  const cards=[
+    {v:brl(totVal),l:"Total perdido"},
+    {v:num(Math.round(totQtd))+" kg",l:"Peso perdido"},
+    {v:num(itens.length),l:"Registros"},
+    {v:byMotivo[0]?prdEsc(byMotivo[0].k):"—",l:"Motivo principal"},
+    {v:byCorte[0]?prdEsc(byCorte[0].k):"—",l:"Corte que mais perde"}
+  ];
+  document.getElementById("acoKpis").innerHTML=cards.map(function(c){ return '<div class="kpi"><div class="v">'+c.v+'</div><div class="l">'+c.l+'</div></div>'; }).join('');
+}
+function acoRenderEdit(){
+  const wrap=document.getElementById("acoEditWrap");
+  const itens=acoMesItens().slice().sort(function(a,b){ return a.data<b.data?1:(a.data>b.data?-1:0); });
+  const motivoOpts=ACO_MOTIVOS.map(function(s){return '<option>'+s+'</option>';}).join("");
+  const isoHoje=HOJE.getFullYear()+"-"+String(HOJE.getMonth()+1).padStart(2,"0")+"-"+String(HOJE.getDate()).padStart(2,"0");
+  const defData=(HOJE.getFullYear()===acoAno && HOJE.getMonth()===acoMes)?isoHoje:(acoAno+"-"+String(acoMes+1).padStart(2,"0")+"-01");
+  let h='<div class="prd-form"><h4>Registrar perda do açougue</h4><div class="prd-grid" style="grid-template-columns:130px 1.6fr 1.2fr .8fr 1fr auto;">'
+    +'<div class="prd-fld"><label>Data</label><input type="date" id="acoNData" value="'+defData+'"></div>'
+    +'<div class="prd-fld"><label>Corte / Produto</label><input id="acoNProd" placeholder="Ex: Costela, Picanha, Frango"></div>'
+    +'<div class="prd-fld"><label>Motivo</label><select id="acoNMotivo">'+motivoOpts+'</select></div>'
+    +'<div class="prd-fld"><label>Qtd (kg)</label><input id="acoNQtd" type="number" min="0" step="0.01" placeholder="0"></div>'
+    +'<div class="prd-fld"><label>Valor (R$)</label><input id="acoNValor" type="number" min="0" step="0.01" placeholder="0,00"></div>'
+    +'<button class="prd-add" id="acoAddBtn" type="button">Adicionar</button>'
+    +'</div></div>';
+  if(!itens.length){ h+='<p class="prd-vazio">Nenhuma perda lançada em '+MESES[acoMes]+' '+acoAno+' ainda.</p>'; }
+  else {
+    h+='<div class="prd-lista-wrap"><table class="prd-lista"><thead><tr><th>Data</th><th>Corte</th><th>Motivo</th><th>Qtd (kg)</th><th>Valor</th><th></th></tr></thead><tbody>';
+    itens.forEach(function(r){
+      h+='<tr><td>'+r.data.split("-").reverse().join("/")+'</td>'
+        +'<td>'+prdEsc(r.produto||"-")+'</td>'
+        +'<td>'+prdEsc(r.motivo||"-")+'</td>'
+        +'<td class="r">'+num(r.qtd||0)+'</td>'
+        +'<td class="val">'+brl(r.valor||0)+'</td>'
+        +'<td><button class="prd-rm" data-rm="'+r.id+'" title="Remover">✕</button></td></tr>';
+    });
+    h+='</tbody></table></div>';
+  }
+  wrap.innerHTML=h;
+}
+function acoRenderGraficos(){
+  const el=document.getElementById("acoGraficos");
+  const itens=acoMesItens();
+  if(!itens.length){ el.innerHTML='<div class="prd-graf"><p class="prd-vazio">Nenhuma perda registrada em '+MESES[acoMes]+' '+acoAno+'.<br>Clique em <b>＋ Lançar perda</b> para começar.</p></div>'; return; }
+  const porMotivo=prdAgrupa(itens,function(r){return r.motivo;}).map(function(d,i){ return {label:d.k,value:d.v,cor:cores[i%cores.length]}; }).sort(function(a,b){return b.value-a.value;});
+  const porCorte=prdAgrupa(itens,function(r){return r.produto;}).map(function(d){ return {label:d.k,value:d.v,cor:"#c0392b"}; }).sort(function(a,b){return b.value-a.value;}).slice(0,10);
+  let h='<div class="prd-graf2">';
+  h+='<div class="prd-graf"><h3>Perdas por motivo</h3>'+prdBars(porMotivo)+'</div>';
+  h+='<div class="prd-graf"><h3>Cortes que mais perdem</h3>'+prdBars(porCorte)+'</div>';
+  h+='</div>';
+  el.innerHTML=h;
+}
+function renderAcougue(){
+  document.getElementById("acoTitulo").textContent=MESES[acoMes]+" "+acoAno;
+  const be=document.getElementById("acoEditar");
+  be.classList.toggle("ativo",acoEdit);
+  be.innerHTML=acoEdit?"✓ Concluir":"＋ Lançar perda";
+  document.getElementById("acoEditWrap").style.display=acoEdit?"":"none";
+  acoRenderKpis();
+  if(acoEdit) acoRenderEdit();
+  acoRenderGraficos();
+}
+function acoAddFromForm(){
+  const data=document.getElementById("acoNData").value;
+  const produto=(document.getElementById("acoNProd").value||"").trim();
+  const motivo=document.getElementById("acoNMotivo").value;
+  const qtd=parseFloat(document.getElementById("acoNQtd").value)||0;
+  const valor=parseFloat(document.getElementById("acoNValor").value)||0;
+  if(!data){ uiConfirm({titulo:"Aviso",msg:"Informe a data da perda.",ok:"OK",cancel:""}); return; }
+  if(!produto && valor===0 && qtd===0){ uiConfirm({titulo:"Aviso",msg:"Preencha pelo menos o corte e o valor (ou a quantidade).",ok:"OK",cancel:""}); return; }
+  acoData.push({ id:prdUid(), data:data, produto:produto, motivo:motivo, qtd:qtd, valor:valor });
+  acoSave();
+  renderAcougue();
+}
+(function initAcougue(){
+  document.getElementById("acoPrev").addEventListener("click",function(){ acoMes--; if(acoMes<0){acoMes=11;acoAno--;} renderAcougue(); });
+  document.getElementById("acoNext").addEventListener("click",function(){ acoMes++; if(acoMes>11){acoMes=0;acoAno++;} renderAcougue(); });
+  document.getElementById("acoHoje").addEventListener("click",function(){ acoAno=HOJE.getFullYear(); acoMes=HOJE.getMonth(); renderAcougue(); });
+  document.getElementById("acoEditar").addEventListener("click",function(){ acoEdit=!acoEdit; renderAcougue(); });
+  const wrap=document.getElementById("acoEditWrap");
+  wrap.addEventListener("click",function(e){
+    if(e.target.closest("#acoAddBtn")){ acoAddFromForm(); return; }
+    const rm=e.target.closest("[data-rm]");
+    if(rm){ const id=rm.getAttribute("data-rm"); uiConfirm({titulo:"Remover perda",msg:"Tem certeza que quer apagar este registro?",ok:"Remover",cancel:"Cancelar"}).then(function(ok){ if(ok){ acoData=acoData.filter(function(r){return r.id!==id;}); acoSave(); renderAcougue(); } }); return; }
+  });
+  wrap.addEventListener("keydown",function(e){ if(e.key==="Enter" && e.target.closest(".prd-form") && e.target.tagName==="INPUT"){ e.preventDefault(); acoAddFromForm(); } });
+})();
+
 /* ===== Layout da loja (planta + planograma) ===== */
 const LAY_TIPOS={
   gondola:{nome:"Gôndola",w:170,h:46,cor:"#2a9d8f",txt:"#fff"},
@@ -5308,6 +5422,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="fluxograma") renderFlux();
     if(btn.dataset.page==="layout"){ renderLayout(); layFitView(); }
     if(btn.dataset.page==="perdas") renderPerdas();
+    if(btn.dataset.page==="acougue") renderAcougue();
     if(btn.dataset.page==="escala") voltarSetores();
     if(btn.dataset.page==="entregas") renderEntregas();
     if(btn.dataset.page==="ferias"){ if(!document.getElementById("ferConsultaDia").value){ document.getElementById("ferConsultaDia").value=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2)+"-"+("0"+HOJE.getDate()).slice(-2); } renderFerias(); }
