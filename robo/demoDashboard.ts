@@ -1981,8 +1981,8 @@ function setCelula(id,dia,val){ if(!escDados[id]) escDados[id]={}; escDados[id][
 // ---- Setores da escala (cada setor agrupa os grupos de funcionários dele) ----
 const ESC_SETORES = [
   { nome:"Frente de Loja", grupos:["Caixas Femininos","Caixas Masculino","Embaladores Masculinos"], icone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>' },
-  { nome:"Abastecedor", grupos:["Abastecedores"], icone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>' },
-  { nome:"Açougue", grupos:["Açougue"], icone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v6a2 2 0 0 0 4 0V3"/><path d="M8 9v12"/><path d="M17 3c-1.5 1-2 3-2 6v2h4"/><path d="M18 11v10"/></svg>' }
+  { nome:"Abastecedor", grupos:["Abastecedores"], icone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="13" width="7" height="7" rx="1"/><rect x="14" y="13" width="7" height="7" rx="1"/><rect x="8.5" y="3.5" width="7" height="7" rx="1"/></svg>' },
+  { nome:"Açougue", grupos:["Açougue"], icone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h11a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3z"/><path d="M15 8h4a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4"/><path d="M3 19h13"/></svg>' }
 ];
 let escSetorAtual = null;
 
