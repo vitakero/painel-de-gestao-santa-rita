@@ -1203,12 +1203,16 @@ const corRuptura = { OK:"#1b9e4b", BAIXO:"#e8a800", RUPTURA:"#c0392b" };
 const cores = ["#157a35","#2a9d8f","#e8a800","#c0392b","#7048b6"];
 
 function soma(arr){ return arr.reduce((a,b)=>a+b,0); }
-function sparkline(vals, color){
-  if(!vals || vals.length<2) return '';
-  var w=100, h=30, n=vals.length;
-  var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals), rng=(mx-mn)||1;
-  var pts=vals.map(function(v,i){ var x=(i/(n-1))*w; var y=h-3-((v-mn)/rng)*(h-6); return x.toFixed(1)+','+y.toFixed(1); });
-  return '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none"><polyline fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="'+pts.join(' ')+'"/></svg>';
+function sparkline(cur, prev, color){
+  if(!cur || cur.length<2) return '';
+  var w=100, h=30;
+  var all=cur.concat(prev&&prev.length?prev:[]);
+  var mn=Math.min.apply(null,all), mx=Math.max.apply(null,all), rng=(mx-mn)||1;
+  var path=function(vals){ var n=vals.length; return vals.map(function(v,i){ var x=(i/(n-1))*w; var y=h-3-((v-mn)/rng)*(h-6); return x.toFixed(1)+','+y.toFixed(1); }).join(' '); };
+  var s='<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none">';
+  if(prev && prev.length>1){ s+='<polyline fill="none" stroke="#aeb8c2" stroke-width="1.4" stroke-dasharray="2.5 2.5" stroke-linecap="round" stroke-linejoin="round" points="'+path(prev)+'"/>'; }
+  s+='<polyline fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="'+path(cur)+'"/></svg>';
+  return s;
 }
 function grupo(arr, keyFn){ const m=new Map(); for(const x of arr){ const k=keyFn(x); (m.get(k)??m.set(k,[]).get(k)).push(x);} return m; }
 
@@ -1408,17 +1412,16 @@ function renderAnalise(){
   var _fatP=_fp.reduce(function(s,x){return s+(x.fat||0);},0), _margP=_fp.reduce(function(s,x){return s+(x.marg||0);},0);
   var _qtdP=_fp.reduce(function(s,x){return s+(x.qtd||0);},0), _cupP=_fp.reduce(function(s,x){return s+(x.cup||0);},0);
   var _tkP=_cupP?_fatP/_cupP:0, temPrevK=_fp.length>0;
-  var _serie = DIA.filter(function(x){ return x.d<=ate; }).slice(-30);
-  var sFat=_serie.map(function(x){return x.fat||0;}), sCup=_serie.map(function(x){return x.cup||0;});
-  var sTk=_serie.map(function(x){return x.cup?(x.fat/x.cup):0;});
-  var sMarg=_serie.map(function(x){return x.marg||0;}), sQtd=_serie.map(function(x){return x.qtd||0;});
+  var _all = DIA.filter(function(x){ return x.d<=ate; });
+  var _W=30, _cur=_all.slice(-_W), _prev=_all.slice(-(2*_W), -_W);
+  var serieOf=function(arr,k){ return arr.map(function(x){ return k==="tk"?(x.cup?x.fat/x.cup:0):(x[k]||0); }); };
 
   var cards = [
-    ["brl", fat, "Faturamento", _fatP, sFat],
-    ["n", cup, "Vendas (cupons)", _cupP, sCup],
-    ["brl", ticket, "Ticket médio", _tkP, sTk],
-    ["brl", marg, "Margem ("+margPerc.toFixed(0)+"%)", _margP, sMarg],
-    ["n", qtd, "Itens vendidos", _qtdP, sQtd]
+    ["brl", fat, "Faturamento", _fatP, serieOf(_cur,"fat"), serieOf(_prev,"fat")],
+    ["n", cup, "Vendas (cupons)", _cupP, serieOf(_cur,"cup"), serieOf(_prev,"cup")],
+    ["brl", ticket, "Ticket médio", _tkP, serieOf(_cur,"tk"), serieOf(_prev,"tk")],
+    ["brl", marg, "Margem ("+margPerc.toFixed(0)+"%)", _margP, serieOf(_cur,"marg"), serieOf(_prev,"marg")],
+    ["n", qtd, "Itens vendidos", _qtdP, serieOf(_cur,"qtd"), serieOf(_prev,"qtd")]
   ];
   document.getElementById("anKpis").innerHTML = cards.map(function(a){
     var txt = a[0]==="n" ? num(Math.round(a[1])) : brl(a[1]);
@@ -1427,7 +1430,7 @@ function renderAnalise(){
       var pct=(a[1]-a[3])/a[3]*100, up=pct>=0;
       trendHtml='<span class="an-trend '+(up?"up":"down")+'">'+(up?"▲":"▼")+' '+Math.abs(pct).toFixed(0)+'%</span>';
     }
-    return '<div class="kpi"><div class="l">'+a[2]+'</div><div class="an-top"><div class="v" data-alvo="'+a[1]+'" data-fmt="'+a[0]+'">'+txt+'</div>'+trendHtml+'</div><div class="an-spark">'+sparkline(a[4],"#2f9e44")+'</div></div>';
+    return '<div class="kpi"><div class="l">'+a[2]+'</div><div class="an-top"><div class="v" data-alvo="'+a[1]+'" data-fmt="'+a[0]+'">'+txt+'</div>'+trendHtml+'</div><div class="an-spark">'+sparkline(a[4],a[5],"#2f9e44")+'</div></div>';
   }).join('');
   animarContagem(document.getElementById("anKpis"));
 
