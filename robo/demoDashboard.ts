@@ -453,6 +453,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       <style>
         #page-analise .kpi .v.ind-ok{color:#1b9e4b;}
         #page-analise .kpi .v.ind-bad{color:#c0392b;}
+        #page-analise .kpi .v.ind-est{color:#1565c0;}
         #page-analise .kpi-help{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#c2ccd8;color:#fff;font-size:10px;font-weight:800;cursor:help;margin-left:5px;position:relative;vertical-align:middle;}
         #page-analise .kpi-help:hover{background:#157a35;}
         #page-analise .kpi-help:hover::after{content:attr(data-tip);position:absolute;bottom:160%;left:50%;transform:translateX(-50%);width:230px;background:#1f2d3d;color:#fff;font-size:11.5px;font-weight:500;line-height:1.45;padding:9px 11px;border-radius:8px;box-shadow:0 3px 14px rgba(0,0,0,.28);z-index:60;text-align:left;white-space:normal;}
@@ -1444,6 +1445,17 @@ function renderAnalise(){
     : ' <span style="font-size:11px;font-weight:500;color:#8a97a8;">(sem período anterior)</span>';
   var tipTk = "Valor médio que cada cliente gasta por compra (faturamento ÷ cupons). Varia de ~R$30 a ~R$200 (R$200 ≈ loja que fatura R$10 milhões). Quanto maior, melhor. A setinha compara com o período anterior de mesma duração"+(temPrev?(" — neste caso, "+compLabel):"")+": ▲ subiu (lado certo) / ▼ caiu (lado errado).";
   inds.push({ v: brl(ticket)+setaHtml, cls:'', l:'Ticket médio (R$30–200)', tip:tipTk });
+
+  // Estimativa de faturamento do mês corrente (projeção pelo ritmo até agora)
+  var mesAtual = DATA_MAX.slice(0,7);
+  var diaMesArr = DIA.filter(function(x){ return x.d.slice(0,7)===mesAtual; });
+  var fatMes = diaMesArr.reduce(function(s,x){ return s+(x.fat||0); },0);
+  var diaNum = parseInt(DATA_MAX.slice(8,10),10);
+  var diasNoMes = new Date(Date.UTC(+DATA_MAX.slice(0,4), +DATA_MAX.slice(5,7), 0)).getUTCDate();
+  var estMes = diaNum>0 ? fatMes/diaNum*diasNoMes : fatMes;
+  var nomeMes = MESES[(+DATA_MAX.slice(5,7))-1].toLowerCase();
+  var tipEst = "Projeção de quanto a loja deve faturar no mês de "+nomeMes+", mantendo o ritmo atual. Conta: faturamento do mês até agora ("+brl(fatMes)+" em "+diaNum+" dia"+(diaNum!==1?"s":"")+") ÷ dias passados × "+diasNoMes+" dias do mês. É só uma estimativa — muda conforme as vendas dos próximos dias.";
+  inds.push({ v: brl(estMes), cls:'ind-est', l:'Estimativa do mês ('+nomeMes+')', tip:tipEst });
 
   document.getElementById("anIndicadores").innerHTML = inds.map(function(x){
     return '<div class="kpi"><div class="v '+x.cls+'">'+x.v+'</div><div class="l">'+x.l+' <span class="kpi-help" data-tip="'+x.tip.replace(/"/g,'&quot;')+'">?</span></div></div>';
