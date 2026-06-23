@@ -4985,10 +4985,9 @@ function prdAddFromForm(){
 /* ===== Perdas do Açougue (aba dedicada) ===== */
 const ACO_MOTIVOS = ["Osso/aparas","Gordura/sebo","Quebra de peso","Queda no chão","Vencido","Estragado","Corte errado","Outro"];
 let acoAno=HOJE.getFullYear(), acoMes=HOJE.getMonth(), acoEdit=false;
-let acoData=acoLoad();
-function acoLoad(){ try{ const s=localStorage.getItem("acougue_perdas"); if(s){ const a=JSON.parse(s); if(Array.isArray(a)) return a; } }catch(e){} return []; }
-function acoSave(){ try{ localStorage.setItem("acougue_perdas", JSON.stringify(acoData)); }catch(e){} }
-function acoMesItens(){ const pref=acoAno+"-"+String(acoMes+1).padStart(2,"0"); return acoData.filter(function(r){ return r.data && r.data.indexOf(pref)===0; }); }
+// O açougue usa a MESMA base da Perdas/Quebras (prdData), filtrando só o setor "Açougue".
+// Assim, o que se lança aqui aparece também na análise geral de todos os setores.
+function acoMesItens(){ const pref=acoAno+"-"+String(acoMes+1).padStart(2,"0"); return prdData.filter(function(r){ return r.setor==="Açougue" && r.data && r.data.indexOf(pref)===0; }); }
 function acoRenderKpis(){
   const itens=acoMesItens();
   const totVal=soma(itens.map(function(r){return +r.valor||0;}));
@@ -5063,8 +5062,8 @@ function acoAddFromForm(){
   const valor=parseFloat(document.getElementById("acoNValor").value)||0;
   if(!data){ uiConfirm({titulo:"Aviso",msg:"Informe a data da perda.",ok:"OK",cancel:""}); return; }
   if(!produto && valor===0 && qtd===0){ uiConfirm({titulo:"Aviso",msg:"Preencha pelo menos o corte e o valor (ou a quantidade).",ok:"OK",cancel:""}); return; }
-  acoData.push({ id:prdUid(), data:data, produto:produto, motivo:motivo, qtd:qtd, valor:valor });
-  acoSave();
+  prdData.push({ id:prdUid(), data:data, produto:produto, setor:"Açougue", motivo:motivo, qtd:qtd, valor:valor, origem:"manual" });
+  prdSave();
   renderAcougue();
 }
 (function initAcougue(){
@@ -5076,7 +5075,7 @@ function acoAddFromForm(){
   wrap.addEventListener("click",function(e){
     if(e.target.closest("#acoAddBtn")){ acoAddFromForm(); return; }
     const rm=e.target.closest("[data-rm]");
-    if(rm){ const id=rm.getAttribute("data-rm"); uiConfirm({titulo:"Remover perda",msg:"Tem certeza que quer apagar este registro?",ok:"Remover",cancel:"Cancelar"}).then(function(ok){ if(ok){ acoData=acoData.filter(function(r){return r.id!==id;}); acoSave(); renderAcougue(); } }); return; }
+    if(rm){ const id=rm.getAttribute("data-rm"); uiConfirm({titulo:"Remover perda",msg:"Tem certeza que quer apagar este registro?",ok:"Remover",cancel:"Cancelar"}).then(function(ok){ if(ok){ prdData=prdData.filter(function(r){return r.id!==id;}); prdSave(); renderAcougue(); } }); return; }
   });
   wrap.addEventListener("keydown",function(e){ if(e.key==="Enter" && e.target.closest(".prd-form") && e.target.tagName==="INPUT"){ e.preventDefault(); acoAddFromForm(); } });
 })();
