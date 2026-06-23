@@ -1017,6 +1017,17 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .aco-chip:hover{border-color:#157a35;box-shadow:0 2px 9px rgba(21,122,53,.13);transform:translateY(-1px);}
         .aco-chip .nm{font-size:13px;font-weight:700;color:#1a2233;}
         .aco-chip .pp{font-size:11.5px;color:#8a97a8;}
+        .des-top{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;max-width:520px;}
+        .des-tbwrap{overflow-x:auto;border:1px solid #e6ebf1;border-radius:10px;margin-bottom:16px;}
+        table.des{border-collapse:collapse;width:100%;font-size:13px;min-width:600px;}
+        table.des th,table.des td{border:1px solid #eef2f6;padding:6px 9px;text-align:right;white-space:nowrap;}
+        table.des th{background:#f3f6fa;color:#46546a;font-weight:700;font-size:11.5px;}
+        table.des th:first-child,table.des td:first-child{text-align:left;font-weight:600;color:#1a2233;}
+        table.des input{width:88px;border:1px solid #d4dde6;border-radius:6px;padding:5px 7px;font:inherit;text-align:right;}
+        table.des input:focus{outline:none;border-color:#157a35;box-shadow:0 0 0 2px rgba(21,122,53,.15);}
+        table.des tr.osso td{background:#fbf3ec;color:#9a5a2b;font-weight:700;}
+        .des-pos{color:#1b9e4b;font-weight:700;}.des-neg{color:#c0392b;font-weight:700;}
+        .des-sum .kpi{padding:14px 16px;}.des-sum .kpi .v{font-size:19px;}
       </style>
       <div class="card" style="margin-bottom:18px;">
         <h2 style="margin:0 0 3px;font-size:18px;color:#0c5a26;">Mapa dos cortes do boi</h2>
@@ -1025,6 +1036,18 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <img class="aco-boi" id="acoBoiImg" alt="Mapa dos cortes do boi">
           <div class="aco-chips" id="acoChips"></div>
         </div>
+      </div>
+      <div class="card" style="margin-bottom:18px;">
+        <h2 style="margin:0 0 3px;font-size:18px;color:#0c5a26;">Desossa / Rendimento do boi</h2>
+        <p style="margin:0 0 16px;font-size:13px;color:#6b7787;">Lance o peso e o custo do boi e quanto saiu de cada corte. O sistema calcula o rendimento, a perda no osso e o <b>custo real do kg</b> — e o lucro de cada corte pelo preço de venda que você puser.</p>
+        <div class="des-top">
+          <div class="prd-fld"><label>Peso total do boi (kg)</label><input id="desPeso" type="number" min="0" step="0.1" placeholder="Ex: 250"></div>
+          <div class="prd-fld"><label>Custo total do boi (R$)</label><input id="desCusto" type="number" min="0" step="0.01" placeholder="Ex: 5000"></div>
+        </div>
+        <div class="des-tbwrap"><table class="des"><thead><tr><th>Corte</th><th>Saiu (kg)</th><th>Preço venda (R$/kg)</th><th>Custo real (R$/kg)</th><th>Lucro/kg</th><th>Lucro total</th></tr></thead><tbody id="desBody"></tbody><tfoot id="desFoot"></tfoot></table></div>
+        <div class="kpis des-sum" id="desResumo" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:14px;"></div>
+        <button class="prd-add" id="desSalvar" type="button" style="height:auto;padding:10px 18px;">Salvar esta desossa</button>
+        <div id="desHist" style="margin-top:18px;"></div>
       </div>
       <div class="card">
         <div class="prd-top">
@@ -5098,8 +5121,67 @@ function acoRenderMapa(){
     return '<div class="aco-chip" data-corte="'+prdEsc(c.n)+'"><span class="nm">'+(i+1)+'. '+prdEsc(c.n)+'</span><span class="pp">Perda esperada ~'+c.p+'%</span></div>';
   }).join('');
 }
+// ----- Desossa / Rendimento -----
+function desLoad(){ try{ var s=localStorage.getItem("acougue_desossas"); if(s){var a=JSON.parse(s); if(Array.isArray(a))return a;} }catch(e){} return []; }
+let desData=desLoad();
+function desSave(){ try{ localStorage.setItem("acougue_desossas",JSON.stringify(desData)); }catch(e){} }
+function desRenderTabela(){
+  document.getElementById("desBody").innerHTML=ACO_CORTES.map(function(c){
+    return '<tr><td>'+prdEsc(c.n)+'</td><td><input class="des-kg" type="number" min="0" step="0.01" placeholder="0"></td><td><input class="des-pv" type="number" min="0" step="0.01" placeholder="0,00"></td><td class="des-cr">—</td><td class="des-lk">—</td><td class="des-lt">—</td></tr>';
+  }).join('');
+}
+function desCalc(){
+  var peso=parseFloat(document.getElementById("desPeso").value)||0;
+  var custo=parseFloat(document.getElementById("desCusto").value)||0;
+  var rows=document.querySelectorAll("#desBody tr");
+  var carne=0, fat=0, dados=[];
+  rows.forEach(function(tr){ var kg=parseFloat(tr.querySelector(".des-kg").value)||0; var pv=parseFloat(tr.querySelector(".des-pv").value)||0; carne+=kg; fat+=kg*pv; dados.push({tr:tr,kg:kg,pv:pv}); });
+  var custoReal = carne>0 ? custo/carne : 0;
+  dados.forEach(function(d){
+    var cr=d.tr.querySelector(".des-cr"), lk=d.tr.querySelector(".des-lk"), lt=d.tr.querySelector(".des-lt");
+    cr.textContent=(d.kg>0&&carne>0)?brl(custoReal):"—";
+    if(d.pv>0&&carne>0){ var lkg=d.pv-custoReal, ltot=lkg*d.kg; lk.textContent=brl(lkg); lk.className="des-lk "+(lkg>=0?"des-pos":"des-neg"); lt.textContent=brl(ltot); lt.className="des-lt "+(ltot>=0?"des-pos":"des-neg"); }
+    else { lk.textContent="—"; lk.className="des-lk"; lt.textContent="—"; lt.className="des-lt"; }
+  });
+  var osso = peso>0 ? Math.max(0,peso-carne) : 0;
+  var ossoPct = peso>0 ? osso/peso*100 : 0, rend = peso>0 ? carne/peso*100 : 0, lucro = fat-custo;
+  document.getElementById("desFoot").innerHTML = peso>0 ? '<tr class="osso"><td>Osso / perda</td><td>'+num(Math.round(osso*10)/10)+' kg</td><td>'+ossoPct.toFixed(0)+'%</td><td colspan="3"></td></tr>' : '';
+  var cards=[
+    {v:num(Math.round(carne*10)/10)+" kg",l:"Carne aproveitada"},
+    {v:num(Math.round(osso*10)/10)+" kg ("+ossoPct.toFixed(0)+"%)",l:"Osso / perda"},
+    {v:rend.toFixed(0)+"%",l:"Rendimento"},
+    {v:carne>0?brl(custoReal):"—",l:"Custo real do kg"},
+    {v:brl(fat),l:"Faturamento esperado"},
+    {v:brl(lucro),l:"Lucro esperado"}
+  ];
+  document.getElementById("desResumo").innerHTML=cards.map(function(c){return '<div class="kpi"><div class="v">'+c.v+'</div><div class="l">'+c.l+'</div></div>';}).join('');
+}
+function desSalvar(){
+  var peso=parseFloat(document.getElementById("desPeso").value)||0, custo=parseFloat(document.getElementById("desCusto").value)||0;
+  if(peso<=0||custo<=0){ uiConfirm({titulo:"Aviso",msg:"Preencha o peso e o custo do boi.",ok:"OK",cancel:""}); return; }
+  var itens=[], carne=0;
+  document.querySelectorAll("#desBody tr").forEach(function(tr,i){ var kg=parseFloat(tr.querySelector(".des-kg").value)||0; var pv=parseFloat(tr.querySelector(".des-pv").value)||0; if(kg>0){ itens.push({n:ACO_CORTES[i].n,kg:kg,pv:pv}); carne+=kg; } });
+  if(!itens.length){ uiConfirm({titulo:"Aviso",msg:"Lance pelo menos um corte (kg).",ok:"OK",cancel:""}); return; }
+  var iso=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2)+"-"+("0"+HOJE.getDate()).slice(-2);
+  desData.unshift({id:prdUid(),data:iso,peso:peso,custo:custo,carne:carne,itens:itens});
+  desSave(); renderDesHist();
+  uiConfirm({titulo:"Salvo",msg:"Desossa registrada com sucesso!",ok:"OK",cancel:""});
+}
+function renderDesHist(){
+  var el=document.getElementById("desHist");
+  if(!desData.length){ el.innerHTML=""; return; }
+  var h='<h4 style="margin:0 0 8px;font-size:13px;color:#0c5a26;">Desossas registradas</h4><div class="prd-lista-wrap"><table class="prd-lista"><thead><tr><th>Data</th><th>Peso</th><th>Custo</th><th>Carne</th><th>Rendim.</th><th>Custo real/kg</th><th></th></tr></thead><tbody>';
+  desData.forEach(function(d){ var rend=d.peso?d.carne/d.peso*100:0, cr=d.carne?d.custo/d.carne:0; h+='<tr><td>'+d.data.split("-").reverse().join("/")+'</td><td class="r">'+num(Math.round(d.peso*10)/10)+' kg</td><td class="r">'+brl(d.custo)+'</td><td class="r">'+num(Math.round(d.carne*10)/10)+' kg</td><td class="r">'+rend.toFixed(0)+'%</td><td class="val">'+brl(cr)+'</td><td><button class="prd-rm" data-desrm="'+d.id+'">✕</button></td></tr>'; });
+  h+='</tbody></table></div>'; el.innerHTML=h;
+}
 (function initAcougue(){
   acoRenderMapa();
+  desRenderTabela(); desCalc(); renderDesHist();
+  document.getElementById("desBody").addEventListener("input",desCalc);
+  document.getElementById("desPeso").addEventListener("input",desCalc);
+  document.getElementById("desCusto").addEventListener("input",desCalc);
+  document.getElementById("desSalvar").addEventListener("click",desSalvar);
+  document.getElementById("desHist").addEventListener("click",function(e){ var rm=e.target.closest("[data-desrm]"); if(rm){ var id=rm.getAttribute("data-desrm"); uiConfirm({titulo:"Remover",msg:"Apagar esta desossa?",ok:"Remover",cancel:"Cancelar"}).then(function(ok){ if(ok){ desData=desData.filter(function(x){return x.id!==id;}); desSave(); renderDesHist(); } }); } });
   document.getElementById("acoChips").addEventListener("click",function(e){
     var ch=e.target.closest("[data-corte]"); if(!ch) return;
     acoEdit=true; renderAcougue();
