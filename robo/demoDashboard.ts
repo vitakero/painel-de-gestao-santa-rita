@@ -334,6 +334,14 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .esc-del { cursor:pointer; color:#c0392b; font-weight:700; margin-right:5px; }
   .esc-nome { cursor:pointer; }
   .esc-nome:hover { text-decoration:underline; }
+  .esc-hub-tit { font-size:18px; font-weight:700; color:#157a35; margin:4px 2px 16px; }
+  .esc-hub { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; padding:2px; }
+  .esc-setor { background:#fff; border:1px solid #e6ebf1; border-radius:14px; padding:20px; cursor:pointer; transition:.13s; box-shadow:0 1px 4px rgba(0,0,0,.06); display:flex; align-items:center; gap:14px; }
+  .esc-setor:hover { border-color:#157a35; box-shadow:0 5px 16px rgba(21,122,53,.16); transform:translateY(-2px); }
+  .esc-setor .ic { width:48px; height:48px; border-radius:12px; background:#e3f0e8; color:#157a35; display:flex; align-items:center; justify-content:center; flex:none; }
+  .esc-setor .ic svg { width:24px; height:24px; }
+  .esc-setor .nm { font-size:16px; font-weight:700; color:#1a2233; }
+  .esc-setor .qt { font-size:12.5px; color:#8a97a8; margin-top:3px; }
   .esc-nome-input { font:inherit; color:#1a2233; border:2px solid #157a35; border-radius:6px; padding:3px 7px; width:155px; outline:none; box-shadow:0 0 0 3px rgba(21,122,53,.15); }
   .esc-domcol { font-weight:700; color:#0c5a26; }
   .px-venc-vencido { color:#c0392b; font-weight:700; }
@@ -343,7 +351,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     @page { size: landscape; margin: 6mm; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
     html, body, .layout, main, .card, #page-escala { background:#fff !important; }
-    header, .sidebar, footer, .esc-top, .esc-legenda { display:none !important; }
+    header, .sidebar, footer, .esc-top, .esc-legenda, #escVoltar, #escHub { display:none !important; }
     .esc-print-cab { display:flex !important; align-items:baseline; justify-content:space-between; margin-bottom:8px; padding-bottom:4px; border-bottom:2px solid #157a35; }
     #escPrintTitulo { font-size:15px; font-weight:700; color:#157a35; }
     #escPrintData { font-size:9px; color:#6b7787; }
@@ -555,6 +563,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     </section>
 
     <section id="page-escala" class="page">
+      <div id="escHub"></div>
+      <div id="escDetalhe" style="display:none">
+      <button class="btn-s" id="escVoltar" style="margin-bottom:14px;display:inline-flex;align-items:center;gap:6px;font-weight:600;">‹ Voltar aos setores</button>
       <div class="card">
         <div id="escPrintCab" class="esc-print-cab"><span id="escPrintTitulo"></span><span id="escPrintData"></span></div>
         <div class="esc-top">
@@ -572,6 +583,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <span style="color:#8a97a8;">A escala é gerada automaticamente e não pode ser editada célula a célula. Para trocar quem ocupa uma vaga (saiu um, entra outro), clique no nome do funcionário — o rodízio da vaga continua o mesmo.</span>
         </div>
         <div id="escGrade"></div>
+      </div>
       </div>
     </section>
 
@@ -1966,15 +1978,55 @@ function valorCelula(id,dia){
 }
 function setCelula(id,dia,val){ if(!escDados[id]) escDados[id]={}; escDados[id][dia]=val; saveMes(); }
 
+// ---- Setores da escala (cada setor agrupa os grupos de funcionários dele) ----
+const ESC_SETORES = [
+  { nome:"Frente de Loja", grupos:["Caixas Femininos","Caixas Masculino","Embaladores Masculinos"], icone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>' },
+  { nome:"Abastecedor", grupos:["Abastecedores"], icone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>' }
+];
+let escSetorAtual = null;
+
+function renderEscalaHub(){
+  let html='<div class="esc-hub-tit">Escala de Trabalho — escolha o setor</div><div class="esc-hub">';
+  ESC_SETORES.forEach(function(s){
+    var nv = roster.filter(function(r){ return s.grupos.indexOf(r.grupo)>=0; }).length;
+    var pessoas = roster.filter(function(r){ return s.grupos.indexOf(r.grupo)>=0 && r.nome!=="(vaga)"; }).length;
+    var vagas = nv - pessoas;
+    var sub = nv ? (pessoas+" funcionário"+(pessoas!==1?"s":"")+(vagas>0?(" · "+vagas+" vaga"+(vagas!==1?"s":"")):"")) : "Nenhum cadastrado ainda";
+    html+='<div class="esc-setor" data-setor="'+s.nome+'"><div class="ic">'+s.icone+'</div><div><div class="nm">'+s.nome+'</div><div class="qt">'+sub+'</div></div></div>';
+  });
+  html+='</div>';
+  document.getElementById("escHub").innerHTML=html;
+}
+function abrirSetor(nome){
+  escSetorAtual=nome;
+  document.getElementById("escHub").style.display="none";
+  document.getElementById("escDetalhe").style.display="";
+  escAno=HOJE.getFullYear(); escMes=HOJE.getMonth();
+  renderEscala();
+  window.scrollTo(0,0);
+}
+function voltarSetores(){
+  escSetorAtual=null;
+  document.getElementById("escDetalhe").style.display="none";
+  document.getElementById("escHub").style.display="";
+  renderEscalaHub();
+}
+
 function renderEscala(){
+  var setor = ESC_SETORES.filter(function(s){ return s.nome===escSetorAtual; })[0];
+  if(!setor) return;
   document.getElementById("escTitulo").textContent = MESES[escMes]+" "+escAno;
-  document.getElementById("escPrintTitulo").textContent = "Escala de Trabalho — "+MESES[escMes]+" "+escAno;
+  document.getElementById("escPrintTitulo").textContent = "Escala — "+setor.nome+" — "+MESES[escMes]+" "+escAno;
   const _hj=new Date();
   document.getElementById("escPrintData").textContent = "Supermercado Santa Rita · impresso em "+("0"+_hj.getDate()).slice(-2)+"/"+("0"+(_hj.getMonth()+1)).slice(-2)+"/"+_hj.getFullYear();
   loadMes();
   const nd = diasDoMes(escAno,escMes);
-  const grupos=[]; roster.forEach(r=>{ if(!grupos.includes(r.grupo)) grupos.push(r.grupo); });
+  const grupos = setor.grupos.filter(function(g){ return roster.some(function(r){ return r.grupo===g; }); });
   let html="";
+  if(grupos.length===0){
+    document.getElementById("escGrade").innerHTML='<div style="padding:48px 24px;text-align:center;color:#8a97a8;font-size:15px;line-height:1.7;">Nenhum funcionário cadastrado no setor <b>'+setor.nome+'</b> ainda.<br><span style="font-size:13px;">É só me mandar os nomes e folgas que eu monto a escala deste setor.</span></div>';
+    return;
+  }
   grupos.forEach(g=>{
     let head='<tr><th class="nome">Funcionário</th><th>Folga</th>';
     for(let d=1; d<=nd; d++){
@@ -2025,7 +2077,9 @@ document.getElementById("escPrev").addEventListener("click",()=>{ escMes--; if(e
 document.getElementById("escNext").addEventListener("click",()=>{ escMes++; if(escMes>11){escMes=0;escAno++;} renderEscala(); });
 document.getElementById("escHoje").addEventListener("click",()=>{ escAno=HOJE.getFullYear(); escMes=HOJE.getMonth(); renderEscala(); });
 document.getElementById("escImprimir").addEventListener("click",()=>window.print());
-renderEscala();
+document.getElementById("escHub").addEventListener("click",(e)=>{ const c=e.target.closest("[data-setor]"); if(c) abrirSetor(c.dataset.setor); });
+document.getElementById("escVoltar").addEventListener("click",voltarSetores);
+renderEscalaHub();
 
 // ---- Pontos extras de gôndola (alugados a fornecedores) ----
 // Pré-carregado da planilha; tudo editável e salvo no navegador.
@@ -5175,6 +5229,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="fluxograma") renderFlux();
     if(btn.dataset.page==="layout"){ renderLayout(); layFitView(); }
     if(btn.dataset.page==="perdas") renderPerdas();
+    if(btn.dataset.page==="escala") voltarSetores();
     if(btn.dataset.page==="entregas") renderEntregas();
     if(btn.dataset.page==="ferias"){ if(!document.getElementById("ferConsultaDia").value){ document.getElementById("ferConsultaDia").value=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2)+"-"+("0"+HOJE.getDate()).slice(-2); } renderFerias(); }
     if(btn.dataset.page==="negociar") renderNegociar();
