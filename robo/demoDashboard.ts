@@ -458,6 +458,14 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-analise .kpi-help:hover{background:#157a35;}
         #page-analise .kpi-help:hover::after{content:attr(data-tip);position:absolute;bottom:160%;left:50%;transform:translateX(-50%);width:230px;background:#1f2d3d;color:#fff;font-size:11.5px;font-weight:500;line-height:1.45;padding:9px 11px;border-radius:8px;box-shadow:0 3px 14px rgba(0,0,0,.28);z-index:60;text-align:left;white-space:normal;}
         #page-analise .kpi-help:hover::before{content:"";position:absolute;bottom:160%;left:50%;transform:translate(-50%,90%);border:6px solid transparent;border-top-color:#1f2d3d;z-index:60;}
+        #page-analise #anKpis .kpi{display:flex;flex-direction:column;}
+        #page-analise #anKpis .l{margin-top:0;margin-bottom:7px;}
+        #page-analise #anKpis .an-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+        #page-analise #anKpis .an-trend{font-size:12.5px;font-weight:700;white-space:nowrap;}
+        #page-analise #anKpis .an-trend.up{color:#1b9e4b;}
+        #page-analise #anKpis .an-trend.down{color:#c0392b;}
+        #page-analise #anKpis .an-spark{margin-top:auto;padding-top:10px;width:100%;}
+        #page-analise #anKpis .an-spark svg{width:100%;height:30px;display:block;}
       </style>
       <div class="filtros">
         <div class="campo">
@@ -1195,6 +1203,13 @@ const corRuptura = { OK:"#1b9e4b", BAIXO:"#e8a800", RUPTURA:"#c0392b" };
 const cores = ["#157a35","#2a9d8f","#e8a800","#c0392b","#7048b6"];
 
 function soma(arr){ return arr.reduce((a,b)=>a+b,0); }
+function sparkline(vals, color){
+  if(!vals || vals.length<2) return '';
+  var w=100, h=30, n=vals.length;
+  var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals), rng=(mx-mn)||1;
+  var pts=vals.map(function(v,i){ var x=(i/(n-1))*w; var y=h-3-((v-mn)/rng)*(h-6); return x.toFixed(1)+','+y.toFixed(1); });
+  return '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none"><polyline fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="'+pts.join(' ')+'"/></svg>';
+}
 function grupo(arr, keyFn){ const m=new Map(); for(const x of arr){ const k=keyFn(x); (m.get(k)??m.set(k,[]).get(k)).push(x);} return m; }
 
 function barsVertical(data, cor){
@@ -1385,16 +1400,34 @@ function renderAnalise(){
   var margPerc = fat ? marg/fat*100 : 0;
   var fmtData = function(s){ return s.split("-").reverse().join("/"); };
   document.getElementById("anPeriodoInfo").textContent = "Período: "+fmtData(de)+" a "+fmtData(ate);
+  // tendência (vs período anterior de mesma duração) + série dos últimos 30 dias pro mini-gráfico
+  var _add = function(iso,n){ var p=iso.split("-"); var d=new Date(Date.UTC(+p[0],+p[1]-1,+p[2])); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); };
+  var _len = Math.round((Date.UTC(+ate.slice(0,4),+ate.slice(5,7)-1,+ate.slice(8,10)) - Date.UTC(+de.slice(0,4),+de.slice(5,7)-1,+de.slice(8,10)))/86400000)+1;
+  var _pAte=_add(de,-1), _pDe=_add(_pAte,-(_len-1));
+  var _fp = DIA.filter(function(x){ return x.d>=_pDe && x.d<=_pAte; });
+  var _fatP=_fp.reduce(function(s,x){return s+(x.fat||0);},0), _margP=_fp.reduce(function(s,x){return s+(x.marg||0);},0);
+  var _qtdP=_fp.reduce(function(s,x){return s+(x.qtd||0);},0), _cupP=_fp.reduce(function(s,x){return s+(x.cup||0);},0);
+  var _tkP=_cupP?_fatP/_cupP:0, temPrevK=_fp.length>0;
+  var _serie = DIA.filter(function(x){ return x.d<=ate; }).slice(-30);
+  var sFat=_serie.map(function(x){return x.fat||0;}), sCup=_serie.map(function(x){return x.cup||0;});
+  var sTk=_serie.map(function(x){return x.cup?(x.fat/x.cup):0;});
+  var sMarg=_serie.map(function(x){return x.marg||0;}), sQtd=_serie.map(function(x){return x.qtd||0;});
+
   var cards = [
-    ["brl", fat, "Faturamento"],
-    ["n", cup, "Vendas (cupons)"],
-    ["brl", ticket, "Ticket médio"],
-    ["brl", marg, "Margem ("+margPerc.toFixed(0)+"%)"],
-    ["n", qtd, "Itens vendidos"]
+    ["brl", fat, "Faturamento", _fatP, sFat],
+    ["n", cup, "Vendas (cupons)", _cupP, sCup],
+    ["brl", ticket, "Ticket médio", _tkP, sTk],
+    ["brl", marg, "Margem ("+margPerc.toFixed(0)+"%)", _margP, sMarg],
+    ["n", qtd, "Itens vendidos", _qtdP, sQtd]
   ];
   document.getElementById("anKpis").innerHTML = cards.map(function(a){
     var txt = a[0]==="n" ? num(Math.round(a[1])) : brl(a[1]);
-    return '<div class="kpi"><div class="v" data-alvo="'+a[1]+'" data-fmt="'+a[0]+'">'+txt+'</div><div class="l">'+a[2]+'</div></div>';
+    var trendHtml="";
+    if(temPrevK && a[3]>0){
+      var pct=(a[1]-a[3])/a[3]*100, up=pct>=0;
+      trendHtml='<span class="an-trend '+(up?"up":"down")+'">'+(up?"▲":"▼")+' '+Math.abs(pct).toFixed(0)+'%</span>';
+    }
+    return '<div class="kpi"><div class="l">'+a[2]+'</div><div class="an-top"><div class="v" data-alvo="'+a[1]+'" data-fmt="'+a[0]+'">'+txt+'</div>'+trendHtml+'</div><div class="an-spark">'+sparkline(a[4],"#2f9e44")+'</div></div>';
   }).join('');
   animarContagem(document.getElementById("anKpis"));
 
