@@ -473,7 +473,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <span class="periodo-info" id="anPeriodoInfo"></span>
       </div>
       <div class="kpis" id="anKpis" style="grid-template-columns:repeat(5,1fr);"></div>
-      <div class="kpis" id="anIndicadores" style="grid-template-columns:repeat(5,1fr);margin-top:6px;"></div>
+      <div class="kpis" id="anIndicadores" style="grid-template-columns:repeat(auto-fit,minmax(205px,1fr));margin-top:6px;"></div>
     </section>
 
     <section id="page-estoque" class="page">
@@ -1456,6 +1456,35 @@ function renderAnalise(){
   var nomeMes = MESES[(+DATA_MAX.slice(5,7))-1].toLowerCase();
   var tipEst = "Projeção de quanto a loja deve faturar no mês de "+nomeMes+", mantendo o ritmo atual. Conta: faturamento do mês até agora ("+brl(fatMes)+" em "+diaNum+" dia"+(diaNum!==1?"s":"")+") ÷ dias passados × "+diasNoMes+" dias do mês. É só uma estimativa — muda conforme as vendas dos próximos dias.";
   inds.push({ v: brl(estMes), cls:'ind-est', l:'Estimativa do mês ('+nomeMes+')', tip:tipEst });
+
+  // Lucro (margem) estimado do mês
+  var margMesTot = diaMesArr.reduce(function(s,x){ return s+(x.marg||0); },0);
+  var estLucro = diaNum>0 ? margMesTot/diaNum*diasNoMes : margMesTot;
+  var tipLucro = "Projeção do lucro (margem) do mês de "+nomeMes+" no ritmo atual. Mesmo cálculo da estimativa de faturamento, mas usando a margem. É uma estimativa.";
+  inds.push({ v: brl(estLucro), cls:'ind-est', l:'Lucro estimado do mês', tip:tipLucro });
+
+  // Comparativo com o MESMO período do mês passado (dia 1 até o dia de hoje)
+  var mesP = (+DATA_MAX.slice(5,7))-1, anoP = +DATA_MAX.slice(0,4);
+  if(mesP<1){ mesP=12; anoP--; }
+  var mesPassadoKey = anoP+"-"+("0"+mesP).slice(-2);
+  var diaMesPassado = DIA.filter(function(x){ return x.d.slice(0,7)===mesPassadoKey && parseInt(x.d.slice(8,10),10)<=diaNum; });
+  var fatMesPassado = diaMesPassado.reduce(function(s,x){ return s+(x.fat||0); },0);
+  var temComp = fatMesPassado>0;
+  var compPct = temComp ? (fatMes-fatMesPassado)/fatMesPassado*100 : 0;
+  var compSubiu = compPct>=0;
+  var nomeMesP = MESES[mesP-1].toLowerCase();
+  var compVal = temComp
+    ? '<span style="color:'+(compSubiu?'#1b9e4b':'#c0392b')+'">'+(compSubiu?'▲':'▼')+' '+Math.abs(compPct).toFixed(1).replace('.',',')+'%</span>'
+    : '—';
+  var tipComp = temComp
+    ? "Compara o faturamento do mês até agora ("+brl(fatMes)+", dias 1 a "+diaNum+") com os MESMOS dias de "+nomeMesP+" ("+brl(fatMesPassado)+"). Verde ▲ = crescendo; vermelho ▼ = caindo em relação ao mês passado."
+    : "Ainda não há dados de "+nomeMesP+" (mês passado) para comparar.";
+  inds.push({ v: compVal, cls:'', l:'Faturamento vs '+nomeMesP, tip:tipComp });
+
+  // Vendas por m² (período selecionado)
+  var vendasM2 = fat / AREA_VENDA_M2;
+  var tipVM2 = "Quanto a loja faturou por metro quadrado de área de venda ("+AREA_VENDA_M2+" m²) no período que você selecionou em cima. Referência mensal saudável no varejo: ~R$1.000 a R$2.500/m².";
+  inds.push({ v: brl(vendasM2), cls:'ind-est', l:'Vendas/m²', tip:tipVM2 });
 
   document.getElementById("anIndicadores").innerHTML = inds.map(function(x){
     return '<div class="kpi"><div class="v '+x.cls+'">'+x.v+'</div><div class="l">'+x.l+' <span class="kpi-help" data-tip="'+x.tip.replace(/"/g,'&quot;')+'">?</span></div></div>';
