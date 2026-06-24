@@ -1037,7 +1037,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <div class="aco-chips" id="acoChips"></div>
         </div>
       </div>
-      <div class="card" style="margin-bottom:18px;">
+      <div class="card" id="desCard" style="margin-bottom:18px;">
         <h2 style="margin:0 0 3px;font-size:18px;color:#0c5a26;">Desossa / Rendimento do boi</h2>
         <p style="margin:0 0 16px;font-size:13px;color:#6b7787;">Lance o peso e o custo do boi e quanto saiu de cada corte. O sistema calcula o rendimento, a perda no osso e o <b>custo real do kg</b> — e o lucro de cada corte pelo preço de venda que você puser.</p>
         <div class="des-top">
@@ -5182,6 +5182,14 @@ function renderDesHist(){
   document.getElementById("desBody").addEventListener("input",desCalc);
   ["desPeso","desCusto"].forEach(function(id){ document.getElementById(id).addEventListener("input",function(e){ e.target.value=maskNum(e.target.value); desCalc(); }); });
   document.getElementById("desSalvar").addEventListener("click",desSalvar);
+  document.getElementById("desCard").addEventListener("keydown",function(e){
+    if(e.key!=="Enter"||e.target.tagName!=="INPUT") return;
+    e.preventDefault();
+    var inputs=Array.prototype.slice.call(document.querySelectorAll("#desCard input"));
+    var i=inputs.indexOf(e.target);
+    if(i>=0 && i+1<inputs.length){ inputs[i+1].focus(); if(inputs[i+1].select) inputs[i+1].select(); }
+    else e.target.blur();
+  });
   document.getElementById("desHist").addEventListener("click",function(e){ var rm=e.target.closest("[data-desrm]"); if(rm){ var id=rm.getAttribute("data-desrm"); uiConfirm({titulo:"Remover",msg:"Apagar esta desossa?",ok:"Remover",cancel:"Cancelar"}).then(function(ok){ if(ok){ desData=desData.filter(function(x){return x.id!==id;}); desSave(); renderDesHist(); } }); } });
   document.getElementById("acoChips").addEventListener("click",function(e){
     var ch=e.target.closest("[data-corte]"); if(!ch) return;
