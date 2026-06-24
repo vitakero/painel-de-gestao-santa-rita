@@ -1041,8 +1041,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <h2 style="margin:0 0 3px;font-size:18px;color:#0c5a26;">Desossa / Rendimento do boi</h2>
         <p style="margin:0 0 16px;font-size:13px;color:#6b7787;">Lance o peso e o custo do boi e quanto saiu de cada corte. O sistema calcula o rendimento, a perda no osso e o <b>custo real do kg</b> — e o lucro de cada corte pelo preço de venda que você puser.</p>
         <div class="des-top">
-          <div class="prd-fld"><label>Peso total do boi (kg)</label><input id="desPeso" type="number" min="0" step="0.1" placeholder="Ex: 250"></div>
-          <div class="prd-fld"><label>Custo total do boi (R$)</label><input id="desCusto" type="number" min="0" step="0.01" placeholder="Ex: 5000"></div>
+          <div class="prd-fld"><label>Peso total do boi (kg)</label><input id="desPeso" type="text" inputmode="decimal" placeholder="Ex: 250"></div>
+          <div class="prd-fld"><label>Custo total do boi (R$)</label><input id="desCusto" type="text" inputmode="decimal" placeholder="Ex: 5.000,00"></div>
         </div>
         <div class="des-tbwrap"><table class="des"><thead><tr><th>Corte</th><th>Saiu (kg)</th><th>Preço venda (R$/kg)</th><th>Custo real (R$/kg)</th><th>Lucro/kg</th><th>Lucro total</th></tr></thead><tbody id="desBody"></tbody><tfoot id="desFoot"></tfoot></table></div>
         <div class="kpis des-sum" id="desResumo" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:14px;"></div>
@@ -5125,14 +5125,16 @@ function acoRenderMapa(){
 function desLoad(){ try{ var s=localStorage.getItem("acougue_desossas"); if(s){var a=JSON.parse(s); if(Array.isArray(a))return a;} }catch(e){} return []; }
 let desData=desLoad();
 function desSave(){ try{ localStorage.setItem("acougue_desossas",JSON.stringify(desData)); }catch(e){} }
+function maskNum(str){ str=String(str).replace(/[^\d,]/g,""); var p=str.split(","); var i=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,"."); return p.length>1 ? i+","+p.slice(1).join("").slice(0,2) : i; }
+function unmaskNum(str){ return parseFloat(String(str).replace(/\./g,"").replace(",","."))||0; }
 function desRenderTabela(){
   document.getElementById("desBody").innerHTML=ACO_CORTES.map(function(c){
     return '<tr><td>'+prdEsc(c.n)+'</td><td><input class="des-kg" type="number" min="0" step="0.01" placeholder="0"></td><td><input class="des-pv" type="number" min="0" step="0.01" placeholder="0,00"></td><td class="des-cr">—</td><td class="des-lk">—</td><td class="des-lt">—</td></tr>';
   }).join('');
 }
 function desCalc(){
-  var peso=parseFloat(document.getElementById("desPeso").value)||0;
-  var custo=parseFloat(document.getElementById("desCusto").value)||0;
+  var peso=unmaskNum(document.getElementById("desPeso").value);
+  var custo=unmaskNum(document.getElementById("desCusto").value);
   var rows=document.querySelectorAll("#desBody tr");
   var carne=0, fat=0, dados=[];
   rows.forEach(function(tr){ var kg=parseFloat(tr.querySelector(".des-kg").value)||0; var pv=parseFloat(tr.querySelector(".des-pv").value)||0; carne+=kg; fat+=kg*pv; dados.push({tr:tr,kg:kg,pv:pv}); });
@@ -5157,7 +5159,7 @@ function desCalc(){
   document.getElementById("desResumo").innerHTML=cards.map(function(c){return '<div class="kpi"><div class="v">'+c.v+'</div><div class="l">'+c.l+'</div></div>';}).join('');
 }
 function desSalvar(){
-  var peso=parseFloat(document.getElementById("desPeso").value)||0, custo=parseFloat(document.getElementById("desCusto").value)||0;
+  var peso=unmaskNum(document.getElementById("desPeso").value), custo=unmaskNum(document.getElementById("desCusto").value);
   if(peso<=0||custo<=0){ uiConfirm({titulo:"Aviso",msg:"Preencha o peso e o custo do boi.",ok:"OK",cancel:""}); return; }
   var itens=[], carne=0;
   document.querySelectorAll("#desBody tr").forEach(function(tr,i){ var kg=parseFloat(tr.querySelector(".des-kg").value)||0; var pv=parseFloat(tr.querySelector(".des-pv").value)||0; if(kg>0){ itens.push({n:ACO_CORTES[i].n,kg:kg,pv:pv}); carne+=kg; } });
@@ -5178,8 +5180,7 @@ function renderDesHist(){
   acoRenderMapa();
   desRenderTabela(); desCalc(); renderDesHist();
   document.getElementById("desBody").addEventListener("input",desCalc);
-  document.getElementById("desPeso").addEventListener("input",desCalc);
-  document.getElementById("desCusto").addEventListener("input",desCalc);
+  ["desPeso","desCusto"].forEach(function(id){ document.getElementById(id).addEventListener("input",function(e){ e.target.value=maskNum(e.target.value); desCalc(); }); });
   document.getElementById("desSalvar").addEventListener("click",desSalvar);
   document.getElementById("desHist").addEventListener("click",function(e){ var rm=e.target.closest("[data-desrm]"); if(rm){ var id=rm.getAttribute("data-desrm"); uiConfirm({titulo:"Remover",msg:"Apagar esta desossa?",ok:"Remover",cancel:"Cancelar"}).then(function(ok){ if(ok){ desData=desData.filter(function(x){return x.id!==id;}); desSave(); renderDesHist(); } }); } });
   document.getElementById("acoChips").addEventListener("click",function(e){
