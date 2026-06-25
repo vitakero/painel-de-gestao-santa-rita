@@ -1028,6 +1028,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         table.des tr.osso td{background:#fbf3ec;color:#9a5a2b;font-weight:700;}
         .des-pos{color:#1b9e4b;font-weight:700;}.des-neg{color:#c0392b;font-weight:700;}
         .des-sum .kpi{padding:14px 16px;}.des-sum .kpi .v{font-size:19px;}
+        .uf{position:relative;display:block;}
+        .uf-sfx > input{padding-right:38px !important;}
+        .uf-pfx > input{padding-left:36px !important;}
+        .uf .sfx{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:13px;color:#7a8696;font-weight:700;pointer-events:none;}
+        .uf .pfx{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;color:#7a8696;font-weight:700;pointer-events:none;}
       </style>
       <div class="card" style="margin-bottom:18px;">
         <h2 style="margin:0 0 3px;font-size:18px;color:#0c5a26;">Mapa dos cortes do boi</h2>
@@ -1041,8 +1046,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <h2 style="margin:0 0 3px;font-size:18px;color:#0c5a26;">Desossa / Rendimento do boi</h2>
         <p style="margin:0 0 16px;font-size:13px;color:#6b7787;">Lance o peso e o custo do boi e quanto saiu de cada corte. O sistema calcula o rendimento, a perda no osso e o <b>custo real do kg</b> — e o lucro de cada corte pelo preço de venda que você puser.</p>
         <div class="des-top">
-          <div class="prd-fld"><label>Peso total do boi (kg)</label><input id="desPeso" type="text" inputmode="decimal" placeholder="Ex: 250"></div>
-          <div class="prd-fld"><label>Custo total do boi (R$)</label><input id="desCusto" type="text" inputmode="decimal" placeholder="Ex: 5.000,00"></div>
+          <div class="prd-fld"><label>Peso total do boi</label><span class="uf uf-sfx"><input id="desPeso" type="text" inputmode="decimal" placeholder="Ex: 250"><span class="sfx">kg</span></span></div>
+          <div class="prd-fld"><label>Custo total do boi</label><span class="uf uf-pfx"><span class="pfx">R$</span><input id="desCusto" type="text" inputmode="decimal" placeholder="Ex: 5.000,00"></span></div>
         </div>
         <div class="des-tbwrap"><table class="des"><thead><tr><th>Corte</th><th>Saiu (kg)</th><th>Preço venda (R$/kg)</th><th>Custo real (R$/kg)</th><th>Lucro/kg</th><th>Lucro total</th></tr></thead><tbody id="desBody"></tbody><tfoot id="desFoot"></tfoot></table></div>
         <div class="kpis des-sum" id="desResumo" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:14px;"></div>
