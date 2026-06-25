@@ -401,6 +401,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="perdas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Perdas/Quebras</button>
     <button class="nav-item" data-page="acougue"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h11a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3z"/><path d="M15 8h4a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4"/><path d="M3 19h13"/></svg></span> Perdas açougue</button>
     <button class="nav-item" data-page="epi"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span> EPI</button>
+    <button class="nav-item" data-page="fardamento"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l4-3 2 2h4l2-2 4 3-2 3-2-1v11H8V9L6 10z"/></svg></span> Fardamento</button>
     <button class="nav-item" data-page="negociar"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span> Negociar<span class="nav-badge" id="negNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="metas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span> Metas <span class="soon">em breve</span></button>
     <button class="nav-item" data-page="entregas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Entregas</button>
@@ -1106,6 +1107,44 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <button class="prd-add" id="epiAddEnt" type="button">Registrar</button>
         </div></div>
         <div id="epiEntWrap"></div>
+      </div>
+    </section>
+
+    <section id="page-fardamento" class="page">
+      <style>
+        tr.fard-low td{background:#fff5f5;}
+      </style>
+      <div class="card">
+        <div class="prd-top">
+          <div class="prd-titulo" style="min-width:auto;">Controle de Fardamento</div>
+          <span style="font-size:13px;color:#8a97a8;">Uniformes da equipe</span>
+        </div>
+        <div class="kpis" id="fardKpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));"></div>
+      </div>
+      <div class="card" style="margin-top:18px;">
+        <h2 style="margin:0 0 3px;font-size:18px;color:#0c5a26;">Estoque de fardamento</h2>
+        <p style="margin:0 0 14px;font-size:13px;color:#6b7787;">Cadastre cada peça com o tamanho e quanto tem em estoque. (Troca em dias é opcional.)</p>
+        <div class="prd-form"><div class="prd-grid" style="grid-template-columns:1.5fr .8fr .8fr .8fr .8fr auto;">
+          <div class="prd-fld"><label>Peça</label><input id="fardNNome" placeholder="Ex: Camisa"></div>
+          <div class="prd-fld"><label>Tamanho</label><input id="fardNTam" placeholder="P/M/G"></div>
+          <div class="prd-fld"><label>Troca (dias)</label><input id="fardNDur" type="number" min="0" placeholder="opcional"></div>
+          <div class="prd-fld"><label>Estoque</label><input id="fardNEst" type="number" min="0" placeholder="0"></div>
+          <div class="prd-fld"><label>Mínimo</label><input id="fardNMin" type="number" min="0" placeholder="0"></div>
+          <button class="prd-add" id="fardAddCat" type="button">Adicionar</button>
+        </div></div>
+        <div id="fardCatWrap"></div>
+      </div>
+      <div class="card" style="margin-top:18px;">
+        <h2 style="margin:0 0 3px;font-size:18px;color:#0c5a26;">Entrega aos funcionários</h2>
+        <p style="margin:0 0 14px;font-size:13px;color:#6b7787;">Registre quem recebeu cada peça. Dá baixa no estoque.</p>
+        <div class="prd-form"><div class="prd-grid" style="grid-template-columns:130px 1.4fr 1.4fr .7fr auto;">
+          <div class="prd-fld"><label>Data</label><input type="date" id="fardNData"></div>
+          <div class="prd-fld"><label>Funcionário</label><input id="fardNFunc" list="fardFuncs" placeholder="Nome"><datalist id="fardFuncs"></datalist></div>
+          <div class="prd-fld"><label>Peça</label><select id="fardNItem"></select></div>
+          <div class="prd-fld"><label>Qtd</label><input id="fardNQtd" type="number" min="1" value="1"></div>
+          <button class="prd-add" id="fardAddEnt" type="button">Registrar</button>
+        </div></div>
+        <div id="fardEntWrap"></div>
       </div>
     </section>
 
@@ -5349,6 +5388,93 @@ function epiAddEnt(){
   document.getElementById("epiEntWrap").addEventListener("click",function(e){ var rm=e.target.closest("[data-epientrm]"); if(rm){ var id=rm.getAttribute("data-epientrm"); uiConfirm({titulo:"Remover entrega",msg:"Apagar este registro de entrega?",ok:"Remover",cancel:"Cancelar"}).then(function(ok){ if(ok){ epiEnt=epiEnt.filter(function(x){return x.id!==id;}); epiSaveEnt(); renderEPI(); } }); } });
 })();
 
+/* ===== Controle de Fardamento ===== */
+const FARD_SEED=[
+  {nome:"Camisa",tam:"",dur:0,est:0,min:0},
+  {nome:"Calça",tam:"",dur:0,est:0,min:0},
+  {nome:"Jaleco",tam:"",dur:0,est:0,min:0},
+  {nome:"Avental",tam:"",dur:0,est:0,min:0},
+  {nome:"Boné / Touca",tam:"",dur:0,est:0,min:0}
+];
+function fardLoadCat(){ try{ var s=localStorage.getItem("fard_catalogo"); if(s){var a=JSON.parse(s); if(Array.isArray(a)&&a.length) return a;} }catch(e){} return FARD_SEED.map(function(x){ return {id:prdUid(),nome:x.nome,tam:x.tam,dur:x.dur,est:x.est,min:x.min}; }); }
+function fardSaveCat(){ try{ localStorage.setItem("fard_catalogo",JSON.stringify(fardCat)); }catch(e){} }
+function fardLoadEnt(){ try{ var s=localStorage.getItem("fard_entregas"); if(s){var a=JSON.parse(s); if(Array.isArray(a)) return a;} }catch(e){} return []; }
+function fardSaveEnt(){ try{ localStorage.setItem("fard_entregas",JSON.stringify(fardEnt)); }catch(e){} }
+let fardCat=fardLoadCat();
+let fardEnt=fardLoadEnt();
+function fardLabel(c){ return c.nome+(c.tam?" - "+c.tam:""); }
+function fardFillSelects(){
+  var nomes=[]; roster.forEach(function(r){ if(r.nome && r.nome!=="(vaga)" && nomes.indexOf(r.nome)<0) nomes.push(r.nome); });
+  document.getElementById("fardFuncs").innerHTML=nomes.map(function(n){return '<option value="'+prdEsc(n)+'">';}).join("");
+  document.getElementById("fardNItem").innerHTML=fardCat.map(function(c){return '<option value="'+c.id+'">'+prdEsc(fardLabel(c))+'</option>';}).join("");
+}
+function fardRenderKpis(){
+  var totEst=fardCat.reduce(function(s,c){return s+(+c.est||0);},0);
+  var emFalta=fardCat.filter(function(c){return (+c.est||0)<=(+c.min||0);}).length;
+  var pref=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2);
+  var entMes=fardEnt.filter(function(e){return e.data&&e.data.indexOf(pref)===0;}).length;
+  var cards=[
+    {v:num(totEst),l:"Peças em estoque"},
+    {v:num(entMes),l:"Entregas no mês"},
+    {v:num(fardEnt.length),l:"Total entregue"},
+    {v:num(emFalta),l:"Peças em falta"}
+  ];
+  document.getElementById("fardKpis").innerHTML=cards.map(function(c){return '<div class="kpi"><div class="v">'+c.v+'</div><div class="l">'+c.l+'</div></div>';}).join('');
+}
+function fardRenderCat(){
+  var el=document.getElementById("fardCatWrap");
+  if(!fardCat.length){ el.innerHTML='<p class="prd-vazio">Nenhuma peça cadastrada.</p>'; return; }
+  var h='<div class="prd-lista-wrap"><table class="prd-lista"><thead><tr><th>Peça</th><th>Tamanho</th><th>Troca</th><th>Estoque</th><th>Mínimo</th><th></th></tr></thead><tbody>';
+  fardCat.forEach(function(c){
+    var low=((+c.est||0)<=(+c.min||0));
+    h+='<tr'+(low?' class="fard-low"':'')+'><td>'+prdEsc(c.nome)+'</td><td>'+(c.tam?prdEsc(c.tam):"—")+'</td><td class="r">'+(c.dur?c.dur+" dias":"—")+'</td><td class="r '+(low?"epi-st-bad":"")+'">'+num(c.est||0)+(low?" ⚠":"")+'</td><td class="r">'+num(c.min||0)+'</td><td><button class="prd-rm" data-fardcatrm="'+c.id+'">✕</button></td></tr>';
+  });
+  h+='</tbody></table></div>'; el.innerHTML=h;
+}
+function fardRenderEnt(){
+  var el=document.getElementById("fardEntWrap");
+  if(!fardEnt.length){ el.innerHTML='<p class="prd-vazio">Nenhuma entrega registrada ainda.</p>'; return; }
+  var hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
+  var lista=fardEnt.slice().sort(function(a,b){return a.data<b.data?1:(a.data>b.data?-1:0);});
+  var h='<div class="prd-lista-wrap"><table class="prd-lista"><thead><tr><th>Data</th><th>Funcionário</th><th>Peça</th><th>Qtd</th><th>Próxima troca</th><th>Status</th><th></th></tr></thead><tbody>';
+  lista.forEach(function(e){
+    var cat=fardCat.filter(function(c){return c.id===e.itemId;})[0];
+    var nome=cat?fardLabel(cat):(e.itemNome||"—"), dur=cat?cat.dur:(e.dur||0);
+    var troca="—", st="", stcls="";
+    if(dur>0){ var p=e.data.split("-"); var td=new Date(+p[0],+p[1]-1,+p[2]); td.setDate(td.getDate()+(+dur)); troca=("0"+td.getDate()).slice(-2)+"/"+("0"+(td.getMonth()+1)).slice(-2)+"/"+td.getFullYear(); var diff=Math.round((td-hoje)/86400000);
+      if(diff<0){st="Trocar já";stcls="epi-st-bad";} else if(diff<=7){st="Vence em "+diff+"d";stcls="epi-st-warn";} else {st="OK";stcls="epi-st-ok";} }
+    h+='<tr><td>'+e.data.split("-").reverse().join("/")+'</td><td>'+prdEsc(e.func||"—")+'</td><td>'+prdEsc(nome)+'</td><td class="r">'+num(e.qtd||0)+'</td><td>'+troca+'</td><td class="'+stcls+'">'+st+'</td><td><button class="prd-rm" data-fardentrm="'+e.id+'">✕</button></td></tr>';
+  });
+  h+='</tbody></table></div>'; el.innerHTML=h;
+}
+function renderFardamento(){
+  fardFillSelects(); fardRenderKpis(); fardRenderCat(); fardRenderEnt();
+  var di=document.getElementById("fardNData"); if(di && !di.value){ di.value=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2)+"-"+("0"+HOJE.getDate()).slice(-2); }
+}
+function fardAddCat(){
+  var nome=(document.getElementById("fardNNome").value||"").trim();
+  if(!nome){ uiConfirm({titulo:"Aviso",msg:"Informe o nome da peça.",ok:"OK",cancel:""}); return; }
+  fardCat.push({id:prdUid(),nome:nome,tam:(document.getElementById("fardNTam").value||"").trim(),dur:parseInt(document.getElementById("fardNDur").value,10)||0,est:parseInt(document.getElementById("fardNEst").value,10)||0,min:parseInt(document.getElementById("fardNMin").value,10)||0});
+  fardSaveCat();
+  ["fardNNome","fardNTam","fardNDur","fardNEst","fardNMin"].forEach(function(id){document.getElementById(id).value="";});
+  renderFardamento();
+}
+function fardAddEnt(){
+  var data=document.getElementById("fardNData").value, func=(document.getElementById("fardNFunc").value||"").trim();
+  var itemId=document.getElementById("fardNItem").value, qtd=parseInt(document.getElementById("fardNQtd").value,10)||0;
+  if(!data||!func||!itemId||qtd<=0){ uiConfirm({titulo:"Aviso",msg:"Preencha data, funcionário, peça e quantidade.",ok:"OK",cancel:""}); return; }
+  var cat=fardCat.filter(function(c){return c.id===itemId;})[0];
+  if(cat){ cat.est=Math.max(0,(+cat.est||0)-qtd); fardSaveCat(); }
+  fardEnt.push({id:prdUid(),data:data,func:func,itemId:itemId,itemNome:cat?fardLabel(cat):"",qtd:qtd});
+  fardSaveEnt(); renderFardamento();
+}
+(function initFardamento(){
+  document.getElementById("fardAddCat").addEventListener("click",fardAddCat);
+  document.getElementById("fardAddEnt").addEventListener("click",fardAddEnt);
+  document.getElementById("fardCatWrap").addEventListener("click",function(e){ var rm=e.target.closest("[data-fardcatrm]"); if(rm){ var id=rm.getAttribute("data-fardcatrm"); uiConfirm({titulo:"Remover peça",msg:"Apagar esta peça do cadastro?",ok:"Remover",cancel:"Cancelar"}).then(function(ok){ if(ok){ fardCat=fardCat.filter(function(c){return c.id!==id;}); fardSaveCat(); renderFardamento(); } }); } });
+  document.getElementById("fardEntWrap").addEventListener("click",function(e){ var rm=e.target.closest("[data-fardentrm]"); if(rm){ var id=rm.getAttribute("data-fardentrm"); uiConfirm({titulo:"Remover entrega",msg:"Apagar este registro de entrega?",ok:"Remover",cancel:"Cancelar"}).then(function(ok){ if(ok){ fardEnt=fardEnt.filter(function(x){return x.id!==id;}); fardSaveEnt(); renderFardamento(); } }); } });
+})();
+
 /* ===== Layout da loja (planta + planograma) ===== */
 const LAY_TIPOS={
   gondola:{nome:"Gôndola",w:170,h:46,cor:"#2a9d8f",txt:"#fff"},
@@ -5692,6 +5818,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="perdas") renderPerdas();
     if(btn.dataset.page==="acougue") renderAcougue();
     if(btn.dataset.page==="epi") renderEPI();
+    if(btn.dataset.page==="fardamento") renderFardamento();
     if(btn.dataset.page==="escala") voltarSetores();
     if(btn.dataset.page==="entregas") renderEntregas();
     if(btn.dataset.page==="ferias"){ if(!document.getElementById("ferConsultaDia").value){ document.getElementById("ferConsultaDia").value=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2)+"-"+("0"+HOJE.getDate()).slice(-2); } renderFerias(); }
