@@ -5125,8 +5125,8 @@ function acoRenderMapa(){
 function desLoad(){ try{ var s=localStorage.getItem("acougue_desossas"); if(s){var a=JSON.parse(s); if(Array.isArray(a))return a;} }catch(e){} return []; }
 let desData=desLoad();
 function desSave(){ try{ localStorage.setItem("acougue_desossas",JSON.stringify(desData)); }catch(e){} }
-function maskNum(str){ str=String(str).replace(/[^\d,]/g,""); var p=str.split(","); var i=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,"."); return p.length>1 ? i+","+p.slice(1).join("").slice(0,2) : i; }
-function unmaskNum(str){ return parseFloat(String(str).replace(/\./g,"").replace(",","."))||0; }
+function maskNum(str){ str=String(str).replace(/[^\\d,]/g,""); var p=str.split(","); var i=p[0].replace(/\\B(?=(\\d{3})+(?!\\d))/g,"."); return p.length>1 ? i+","+p.slice(1).join("").slice(0,2) : i; }
+function unmaskNum(str){ return parseFloat(String(str).replace(/\\./g,"").replace(",","."))||0; }
 function desRenderTabela(){
   document.getElementById("desBody").innerHTML=ACO_CORTES.map(function(c){
     return '<tr><td>'+prdEsc(c.n)+'</td><td><input class="des-kg" type="number" min="0" step="0.01" placeholder="0"></td><td><input class="des-pv" type="number" min="0" step="0.01" placeholder="0,00"></td><td class="des-cr">—</td><td class="des-lk">—</td><td class="des-lt">—</td></tr>';
