@@ -400,6 +400,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="fluxograma"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg></span> Fluxograma</button>
     <button class="nav-item" data-page="perdas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Perdas/Quebras</button>
     <button class="nav-item" data-page="acougue"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h11a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3z"/><path d="M15 8h4a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4"/><path d="M3 19h13"/></svg></span> Perdas açougue</button>
+    <button class="nav-item" data-page="epi"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span> EPI</button>
     <button class="nav-item" data-page="negociar"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span> Negociar<span class="nav-badge" id="negNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="metas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span> Metas <span class="soon">em breve</span></button>
     <button class="nav-item" data-page="entregas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Entregas</button>
@@ -1064,6 +1065,47 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div class="kpis" id="acoKpis" style="grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:22px;"></div>
         <div id="acoEditWrap" style="display:none;"></div>
         <div id="acoGraficos"></div>
+      </div>
+    </section>
+
+    <section id="page-epi" class="page">
+      <style>
+        .epi-st-ok{color:#1b9e4b;font-weight:700;}
+        .epi-st-warn{color:#b8860b;font-weight:700;}
+        .epi-st-bad{color:#c0392b;font-weight:700;}
+        tr.epi-low td{background:#fff5f5;}
+      </style>
+      <div class="card">
+        <div class="prd-top">
+          <div class="prd-titulo" style="min-width:auto;">Controle de EPI</div>
+          <span style="font-size:13px;color:#8a97a8;">Equipamentos de Proteção Individual (NR-6)</span>
+        </div>
+        <div class="kpis" id="epiKpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));"></div>
+      </div>
+      <div class="card" style="margin-top:18px;">
+        <h2 style="margin:0 0 3px;font-size:18px;color:#0c5a26;">Estoque de EPIs</h2>
+        <p style="margin:0 0 14px;font-size:13px;color:#6b7787;">Cadastre cada EPI com o nº do CA, a duração (quando trocar) e quanto tem em estoque.</p>
+        <div class="prd-form"><div class="prd-grid" style="grid-template-columns:1.5fr 1fr .8fr .8fr .8fr auto;">
+          <div class="prd-fld"><label>EPI</label><input id="epiNNome" placeholder="Ex: Luva de malha"></div>
+          <div class="prd-fld"><label>CA (nº)</label><input id="epiNCa" placeholder="Ex: 12345"></div>
+          <div class="prd-fld"><label>Troca (dias)</label><input id="epiNDur" type="number" min="0" placeholder="Ex: 180"></div>
+          <div class="prd-fld"><label>Estoque</label><input id="epiNEst" type="number" min="0" placeholder="0"></div>
+          <div class="prd-fld"><label>Mínimo</label><input id="epiNMin" type="number" min="0" placeholder="0"></div>
+          <button class="prd-add" id="epiAddCat" type="button">Adicionar</button>
+        </div></div>
+        <div id="epiCatWrap"></div>
+      </div>
+      <div class="card" style="margin-top:18px;">
+        <h2 style="margin:0 0 3px;font-size:18px;color:#0c5a26;">Entrega aos funcionários</h2>
+        <p style="margin:0 0 14px;font-size:13px;color:#6b7787;">Registre quem recebeu cada EPI (a ficha da NR-6). Dá baixa no estoque e calcula a próxima troca.</p>
+        <div class="prd-form"><div class="prd-grid" style="grid-template-columns:130px 1.4fr 1.4fr .7fr auto;">
+          <div class="prd-fld"><label>Data</label><input type="date" id="epiNData"></div>
+          <div class="prd-fld"><label>Funcionário</label><input id="epiNFunc" list="epiFuncs" placeholder="Nome"><datalist id="epiFuncs"></datalist></div>
+          <div class="prd-fld"><label>EPI</label><select id="epiNEpi"></select></div>
+          <div class="prd-fld"><label>Qtd</label><input id="epiNQtd" type="number" min="1" value="1"></div>
+          <button class="prd-add" id="epiAddEnt" type="button">Registrar</button>
+        </div></div>
+        <div id="epiEntWrap"></div>
       </div>
     </section>
 
@@ -5215,6 +5257,98 @@ function renderDesHist(){
   wrap.addEventListener("keydown",function(e){ if(e.key==="Enter" && e.target.closest(".prd-form") && e.target.tagName==="INPUT"){ e.preventDefault(); acoAddFromForm(); } });
 })();
 
+/* ===== Controle de EPI ===== */
+const EPI_SEED=[
+  {nome:"Luva de malha (açougue)",ca:"",dur:365,est:0,min:1},
+  {nome:"Luva térmica (câmara fria)",ca:"",dur:365,est:0,min:1},
+  {nome:"Bota de borracha",ca:"",dur:180,est:0,min:1},
+  {nome:"Avental",ca:"",dur:180,est:0,min:1},
+  {nome:"Touca descartável",ca:"",dur:30,est:0,min:10},
+  {nome:"Protetor auricular",ca:"",dur:180,est:0,min:1},
+  {nome:"Óculos de proteção",ca:"",dur:365,est:0,min:1}
+];
+function epiLoadCat(){ try{ var s=localStorage.getItem("epi_catalogo"); if(s){var a=JSON.parse(s); if(Array.isArray(a)&&a.length) return a;} }catch(e){} return EPI_SEED.map(function(x){ return {id:prdUid(),nome:x.nome,ca:x.ca,dur:x.dur,est:x.est,min:x.min}; }); }
+function epiSaveCat(){ try{ localStorage.setItem("epi_catalogo",JSON.stringify(epiCat)); }catch(e){} }
+function epiLoadEnt(){ try{ var s=localStorage.getItem("epi_entregas"); if(s){var a=JSON.parse(s); if(Array.isArray(a)) return a;} }catch(e){} return []; }
+function epiSaveEnt(){ try{ localStorage.setItem("epi_entregas",JSON.stringify(epiEnt)); }catch(e){} }
+let epiCat=epiLoadCat();
+let epiEnt=epiLoadEnt();
+function epiTrocaDate(dataIso,dur){ var p=dataIso.split("-"); var d=new Date(+p[0],+p[1]-1,+p[2]); d.setDate(d.getDate()+(+dur||0)); return d; }
+function epiFmt(d){ return ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear(); }
+function epiFillSelects(){
+  var nomes=[]; roster.forEach(function(r){ if(r.nome && r.nome!=="(vaga)" && nomes.indexOf(r.nome)<0) nomes.push(r.nome); });
+  document.getElementById("epiFuncs").innerHTML=nomes.map(function(n){return '<option value="'+prdEsc(n)+'">';}).join("");
+  document.getElementById("epiNEpi").innerHTML=epiCat.map(function(c){return '<option value="'+c.id+'">'+prdEsc(c.nome)+'</option>';}).join("");
+}
+function epiRenderKpis(){
+  var totEst=epiCat.reduce(function(s,c){return s+(+c.est||0);},0);
+  var emFalta=epiCat.filter(function(c){return (+c.est||0)<=(+c.min||0);}).length;
+  var pref=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2);
+  var entMes=epiEnt.filter(function(e){return e.data&&e.data.indexOf(pref)===0;}).length;
+  var hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate()), vencendo=0;
+  epiEnt.forEach(function(e){ var cat=epiCat.filter(function(c){return c.id===e.epiId;})[0]; var dur=cat?cat.dur:0; if(dur>0){ var diff=Math.round((epiTrocaDate(e.data,dur)-hoje)/86400000); if(diff<=7) vencendo++; } });
+  var cards=[
+    {v:num(totEst),l:"EPIs em estoque"},
+    {v:num(entMes),l:"Entregas no mês"},
+    {v:num(vencendo),l:"Trocas vencendo"},
+    {v:num(emFalta),l:"EPIs em falta"}
+  ];
+  document.getElementById("epiKpis").innerHTML=cards.map(function(c){return '<div class="kpi"><div class="v">'+c.v+'</div><div class="l">'+c.l+'</div></div>';}).join('');
+}
+function epiRenderCat(){
+  var el=document.getElementById("epiCatWrap");
+  if(!epiCat.length){ el.innerHTML='<p class="prd-vazio">Nenhum EPI cadastrado.</p>'; return; }
+  var h='<div class="prd-lista-wrap"><table class="prd-lista"><thead><tr><th>EPI</th><th>CA</th><th>Troca a cada</th><th>Estoque</th><th>Mínimo</th><th></th></tr></thead><tbody>';
+  epiCat.forEach(function(c){
+    var low=((+c.est||0)<=(+c.min||0));
+    h+='<tr'+(low?' class="epi-low"':'')+'><td>'+prdEsc(c.nome)+'</td><td>'+(c.ca?prdEsc(c.ca):"—")+'</td><td class="r">'+(c.dur?c.dur+" dias":"—")+'</td><td class="r '+(low?"epi-st-bad":"")+'">'+num(c.est||0)+(low?" ⚠":"")+'</td><td class="r">'+num(c.min||0)+'</td><td><button class="prd-rm" data-epicatrm="'+c.id+'">✕</button></td></tr>';
+  });
+  h+='</tbody></table></div>'; el.innerHTML=h;
+}
+function epiRenderEnt(){
+  var el=document.getElementById("epiEntWrap");
+  if(!epiEnt.length){ el.innerHTML='<p class="prd-vazio">Nenhuma entrega registrada ainda.</p>'; return; }
+  var hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
+  var lista=epiEnt.slice().sort(function(a,b){return a.data<b.data?1:(a.data>b.data?-1:0);});
+  var h='<div class="prd-lista-wrap"><table class="prd-lista"><thead><tr><th>Data</th><th>Funcionário</th><th>EPI</th><th>Qtd</th><th>Próxima troca</th><th>Status</th><th></th></tr></thead><tbody>';
+  lista.forEach(function(e){
+    var cat=epiCat.filter(function(c){return c.id===e.epiId;})[0];
+    var nome=cat?cat.nome:(e.epiNome||"—"), dur=cat?cat.dur:(e.dur||0);
+    var troca="—", st="", stcls="";
+    if(dur>0){ var td=epiTrocaDate(e.data,dur); troca=epiFmt(td); var diff=Math.round((td-hoje)/86400000);
+      if(diff<0){st="Trocar já";stcls="epi-st-bad";} else if(diff<=7){st="Vence em "+diff+"d";stcls="epi-st-warn";} else {st="OK";stcls="epi-st-ok";} }
+    h+='<tr><td>'+e.data.split("-").reverse().join("/")+'</td><td>'+prdEsc(e.func||"—")+'</td><td>'+prdEsc(nome)+'</td><td class="r">'+num(e.qtd||0)+'</td><td>'+troca+'</td><td class="'+stcls+'">'+st+'</td><td><button class="prd-rm" data-epientrm="'+e.id+'">✕</button></td></tr>';
+  });
+  h+='</tbody></table></div>'; el.innerHTML=h;
+}
+function renderEPI(){
+  epiFillSelects(); epiRenderKpis(); epiRenderCat(); epiRenderEnt();
+  var di=document.getElementById("epiNData"); if(di && !di.value){ di.value=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2)+"-"+("0"+HOJE.getDate()).slice(-2); }
+}
+function epiAddCat(){
+  var nome=(document.getElementById("epiNNome").value||"").trim();
+  if(!nome){ uiConfirm({titulo:"Aviso",msg:"Informe o nome do EPI.",ok:"OK",cancel:""}); return; }
+  epiCat.push({id:prdUid(),nome:nome,ca:(document.getElementById("epiNCa").value||"").trim(),dur:parseInt(document.getElementById("epiNDur").value,10)||0,est:parseInt(document.getElementById("epiNEst").value,10)||0,min:parseInt(document.getElementById("epiNMin").value,10)||0});
+  epiSaveCat();
+  ["epiNNome","epiNCa","epiNDur","epiNEst","epiNMin"].forEach(function(id){document.getElementById(id).value="";});
+  renderEPI();
+}
+function epiAddEnt(){
+  var data=document.getElementById("epiNData").value, func=(document.getElementById("epiNFunc").value||"").trim();
+  var epiId=document.getElementById("epiNEpi").value, qtd=parseInt(document.getElementById("epiNQtd").value,10)||0;
+  if(!data||!func||!epiId||qtd<=0){ uiConfirm({titulo:"Aviso",msg:"Preencha data, funcionário, EPI e quantidade.",ok:"OK",cancel:""}); return; }
+  var cat=epiCat.filter(function(c){return c.id===epiId;})[0];
+  if(cat){ cat.est=Math.max(0,(+cat.est||0)-qtd); epiSaveCat(); }
+  epiEnt.push({id:prdUid(),data:data,func:func,epiId:epiId,epiNome:cat?cat.nome:"",qtd:qtd});
+  epiSaveEnt(); renderEPI();
+}
+(function initEPI(){
+  document.getElementById("epiAddCat").addEventListener("click",epiAddCat);
+  document.getElementById("epiAddEnt").addEventListener("click",epiAddEnt);
+  document.getElementById("epiCatWrap").addEventListener("click",function(e){ var rm=e.target.closest("[data-epicatrm]"); if(rm){ var id=rm.getAttribute("data-epicatrm"); uiConfirm({titulo:"Remover EPI",msg:"Apagar este EPI do cadastro?",ok:"Remover",cancel:"Cancelar"}).then(function(ok){ if(ok){ epiCat=epiCat.filter(function(c){return c.id!==id;}); epiSaveCat(); renderEPI(); } }); } });
+  document.getElementById("epiEntWrap").addEventListener("click",function(e){ var rm=e.target.closest("[data-epientrm]"); if(rm){ var id=rm.getAttribute("data-epientrm"); uiConfirm({titulo:"Remover entrega",msg:"Apagar este registro de entrega?",ok:"Remover",cancel:"Cancelar"}).then(function(ok){ if(ok){ epiEnt=epiEnt.filter(function(x){return x.id!==id;}); epiSaveEnt(); renderEPI(); } }); } });
+})();
+
 /* ===== Layout da loja (planta + planograma) ===== */
 const LAY_TIPOS={
   gondola:{nome:"Gôndola",w:170,h:46,cor:"#2a9d8f",txt:"#fff"},
@@ -5557,6 +5691,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="layout"){ renderLayout(); layFitView(); }
     if(btn.dataset.page==="perdas") renderPerdas();
     if(btn.dataset.page==="acougue") renderAcougue();
+    if(btn.dataset.page==="epi") renderEPI();
     if(btn.dataset.page==="escala") voltarSetores();
     if(btn.dataset.page==="entregas") renderEntregas();
     if(btn.dataset.page==="ferias"){ if(!document.getElementById("ferConsultaDia").value){ document.getElementById("ferConsultaDia").value=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2)+"-"+("0"+HOJE.getDate()).slice(-2); } renderFerias(); }
