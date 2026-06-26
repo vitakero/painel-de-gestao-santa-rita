@@ -532,7 +532,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .dc-meta .dc-fill{display:inline-block;min-width:120px;border-bottom:1px solid #1a2233;padding:0 6px;font-weight:600;}
         table.dc-table{width:100%;border-collapse:collapse;table-layout:fixed;}
         table.dc-table th{background:#d9d9d9;color:#1a2233;font-size:11px;font-weight:800;letter-spacing:.03em;border:1px solid #1a2233;padding:6px;text-align:center;}
-        table.dc-table td{border:1px solid #1a2233;height:27px;padding:0 6px;font-size:12px;}
+        table.dc-table td{border:1px solid #1a2233;height:23px;padding:0 6px;font-size:12px;}
         .dc-table col.c-plu{width:18%;}
         .dc-table col.c-prod{width:44%;}
         .dc-table col.c-venc{width:21%;}
@@ -542,7 +542,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           body.printing-datas #page-datas{display:block !important;}
           body.printing-datas .dc-noprint{display:none !important;}
           body.printing-datas .dc-sheet{padding:0;margin:0;border:none;box-shadow:none;background:#fff;}
-          body.printing-datas .dc-head{padding:6px 14px;}body.printing-datas .dc-logo{height:34px;}body.printing-datas .dc-title{font-size:18px;letter-spacing:.1em;}body.printing-datas table.dc-table{page-break-inside:avoid;}body.printing-datas table.dc-table td{height:6.4mm;}
+          body.printing-datas .dc-head{padding:6px 14px;}body.printing-datas .dc-logo{height:34px;}body.printing-datas .dc-title{font-size:18px;letter-spacing:.1em;}body.printing-datas table.dc-table{page-break-inside:avoid;}body.printing-datas table.dc-table td{height:6.3mm;}
           body.printing-datas table.dc-table th{padding:4px 6px;}
         }
       </style>
@@ -568,7 +568,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <table class="dc-table">
           <colgroup><col class="c-plu"><col class="c-prod"><col class="c-venc"><col class="c-est"></colgroup>
           <thead><tr><th>PLU / CÓD. BARRAS</th><th>PRODUTO</th><th>DATA VENCIMENTO</th><th>ESTOQUE</th></tr></thead>
-          <tbody><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr></tbody>
+          <tbody><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr></tbody>
         </table>
       </div>
     </section>
