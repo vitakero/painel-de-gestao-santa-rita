@@ -538,11 +538,18 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .dc-table col.c-venc{width:16%;}
         .dc-table col.c-est-loja{width:12%;}.dc-table col.c-est-dep{width:12%;}.dc-table col.c-est-tot{width:12%;}
         
+        body.printing-datas #page-datas{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+        body.printing-datas main{padding:0;margin:0;}
+        body.printing-datas .layout{display:block;}
+        body.printing-datas .dc-sheet{flex:1;display:flex;flex-direction:column;min-height:0;}
+        body.printing-datas table.dc-table{flex:1 1 auto;}
+        body.printing-datas table.dc-table td{height:auto;}
         @media print{
-          body.printing-datas #page-datas{display:block !important;}
           body.printing-datas .dc-noprint{display:none !important;}
           body.printing-datas .dc-sheet{padding:0;margin:0;border:none;box-shadow:none;background:#fff;}
-          body.printing-datas .dc-head{padding:6px 14px;}body.printing-datas .dc-logo{height:34px;}body.printing-datas .dc-title{font-size:18px;letter-spacing:.1em;}body.printing-datas table.dc-table{page-break-inside:avoid;}body.printing-datas table.dc-table td{height:6.2mm;}
+          body.printing-datas .dc-head{padding:6px 14px;}
+          body.printing-datas .dc-logo{height:34px;}
+          body.printing-datas .dc-title{font-size:18px;letter-spacing:.1em;}
           body.printing-datas table.dc-table th{padding:4px 6px;}
         }
       </style>
