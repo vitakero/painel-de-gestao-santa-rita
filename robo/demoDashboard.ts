@@ -523,11 +523,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .dc-print-btn:hover{background:#0f6429;}
         .dc-hint{margin:0 0 12px;font-size:13px;color:#6b7787;}
         .dc-sheet{padding:20px 22px;}
-        .dc-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;border:1.6px solid #1a2233;border-bottom:none;padding:10px 14px;gap:12px;}
+        .dc-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;border:1.6px solid #1a2233;border-bottom:none;padding:10px 18px;gap:30px;}
         .dc-brand{font-size:13px;color:#1a2233;font-weight:800;letter-spacing:.02em;line-height:1.15;}
         .dc-brand small{display:block;font-size:8.5px;font-weight:600;color:#6b7787;letter-spacing:.16em;}
+        .dc-logo{height:48px;width:auto;display:block;}
         .dc-title{font-size:22px;font-weight:800;letter-spacing:.14em;color:#1a2233;text-align:center;}
-        .dc-meta{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:800;color:#1a2233;}
+        .dc-meta{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:800;color:#1a2233;justify-self:end;}
         .dc-meta .dc-fill{display:inline-block;min-width:120px;border-bottom:1px solid #1a2233;padding:0 6px;font-weight:600;}
         table.dc-table{width:100%;border-collapse:collapse;table-layout:fixed;}
         table.dc-table th{background:#d9d9d9;color:#1a2233;font-size:11px;font-weight:800;letter-spacing:.03em;border:1px solid #1a2233;padding:6px;text-align:center;}
@@ -557,7 +558,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 
       <div class="card dc-sheet">
         <div class="dc-head">
-          <div class="dc-brand">SUPERMERCADO SANTA RITA<small>QUALIDADE QUE VOCÊ CONFIA</small></div>
+          <img class="dc-logo" src="${logoDataUri}" alt="Supermercado Santa Rita">
           <div class="dc-title">DATAS CRÍTICAS</div>
           <div class="dc-meta">
             <div>SEÇÃO: <span class="dc-fill" id="dcSecOut"></span></div>
