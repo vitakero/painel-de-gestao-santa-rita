@@ -541,8 +541,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         @media print{
           body.printing-datas #page-datas{display:block !important;}
           body.printing-datas .dc-noprint{display:none !important;}
-          body.printing-datas .dc-sheet{padding:0;border:none;box-shadow:none;background:#fff;}
-          body.printing-datas table.dc-table td{height:7.1mm;}
+          body.printing-datas .dc-sheet{padding:0;margin:0;border:none;box-shadow:none;background:#fff;}
+          body.printing-datas .dc-head{padding:6px 14px;}body.printing-datas .dc-logo{height:34px;}body.printing-datas .dc-title{font-size:18px;letter-spacing:.1em;}body.printing-datas table.dc-table{page-break-inside:avoid;}body.printing-datas table.dc-table td{height:6.4mm;}
           body.printing-datas table.dc-table th{padding:4px 6px;}
         }
       </style>
@@ -568,7 +568,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <table class="dc-table">
           <colgroup><col class="c-plu"><col class="c-prod"><col class="c-venc"><col class="c-est"><col class="c-prc"></colgroup>
           <thead><tr><th>PLU / CÓD. BARRAS</th><th>PRODUTO</th><th>DATA VENCIMENTO</th><th>ESTOQUE</th><th>PREÇO</th></tr></thead>
-          <tbody><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr></tbody>
+          <tbody><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr></tbody>
         </table>
       </div>
     </section>
