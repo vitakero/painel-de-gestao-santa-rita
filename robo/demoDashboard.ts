@@ -531,18 +531,18 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .dc-meta{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:800;color:#1a2233;justify-self:end;}
         .dc-meta .dc-fill{display:inline-block;min-width:120px;border-bottom:1px solid #1a2233;padding:0 6px;font-weight:600;}
         table.dc-table{width:100%;border-collapse:collapse;table-layout:fixed;}
-        table.dc-table th{background:#d9d9d9;color:#1a2233;font-size:11px;font-weight:800;letter-spacing:.03em;border:1px solid #1a2233;padding:6px;text-align:center;}
+        table.dc-table th{background:#d9d9d9;color:#1a2233;font-size:9.5px;font-weight:800;letter-spacing:0;border:1px solid #1a2233;padding:6px 4px;text-align:center;line-height:1.1;}
         table.dc-table td{border:1px solid #1a2233;height:23px;padding:0 6px;font-size:12px;}
-        .dc-table col.c-plu{width:18%;}
-        .dc-table col.c-prod{width:44%;}
-        .dc-table col.c-venc{width:21%;}
-        .dc-table col.c-est{width:17%;}
+        .dc-table col.c-plu{width:14%;}
+        .dc-table col.c-prod{width:34%;}
+        .dc-table col.c-venc{width:16%;}
+        .dc-table col.c-est-loja{width:12%;}.dc-table col.c-est-dep{width:12%;}.dc-table col.c-est-tot{width:12%;}
         
         @media print{
           body.printing-datas #page-datas{display:block !important;}
           body.printing-datas .dc-noprint{display:none !important;}
           body.printing-datas .dc-sheet{padding:0;margin:0;border:none;box-shadow:none;background:#fff;}
-          body.printing-datas .dc-head{padding:6px 14px;}body.printing-datas .dc-logo{height:34px;}body.printing-datas .dc-title{font-size:18px;letter-spacing:.1em;}body.printing-datas table.dc-table{page-break-inside:avoid;}body.printing-datas table.dc-table td{height:6.3mm;}
+          body.printing-datas .dc-head{padding:6px 14px;}body.printing-datas .dc-logo{height:34px;}body.printing-datas .dc-title{font-size:18px;letter-spacing:.1em;}body.printing-datas table.dc-table{page-break-inside:avoid;}body.printing-datas table.dc-table td{height:6.2mm;}
           body.printing-datas table.dc-table th{padding:4px 6px;}
         }
       </style>
@@ -566,9 +566,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           </div>
         </div>
         <table class="dc-table">
-          <colgroup><col class="c-plu"><col class="c-prod"><col class="c-venc"><col class="c-est"></colgroup>
-          <thead><tr><th>PLU / CÓD. BARRAS</th><th>PRODUTO</th><th>DATA VENCIMENTO</th><th>ESTOQUE</th></tr></thead>
-          <tbody><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr></tbody>
+          <colgroup><col class="c-plu"><col class="c-prod"><col class="c-venc"><col class="c-est-loja"><col class="c-est-dep"><col class="c-est-tot"></colgroup>
+          <thead><tr><th>PLU / CÓD. BARRAS</th><th>PRODUTO</th><th>DATA VENCIMENTO</th><th>ESTOQUE LOJA</th><th>ESTOQUE DEPÓSITO</th><th>ESTOQUE TOTAL</th></tr></thead>
+          <tbody><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr></tbody>
         </table>
       </div>
     </section>
