@@ -538,7 +538,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .dc-table col.c-venc{width:16%;}
         .dc-table col.c-est-loja{width:12%;}.dc-table col.c-est-dep{width:12%;}.dc-table col.c-est-tot{width:12%;}
         
-        body.printing-datas #page-datas{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+        body.printing-datas #page-datas{display:flex !important;flex-direction:column;height:100vh;overflow:hidden;}
         body.printing-datas main{padding:0;margin:0;}
         body.printing-datas .layout{display:block;}
         body.printing-datas .dc-sheet{flex:1;display:flex;flex-direction:column;min-height:0;}
