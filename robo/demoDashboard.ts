@@ -526,7 +526,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .dc-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;border:1.6px solid #1a2233;border-bottom:none;padding:10px 18px;gap:30px;}
         .dc-brand{font-size:13px;color:#1a2233;font-weight:800;letter-spacing:.02em;line-height:1.15;}
         .dc-brand small{display:block;font-size:8.5px;font-weight:600;color:#6b7787;letter-spacing:.16em;}
-        .dc-logo{height:48px;width:auto;display:block;}
+        .dc-logo{height:60px;width:auto;display:block;}
         .dc-title{font-size:22px;font-weight:800;letter-spacing:.14em;color:#1a2233;text-align:center;}
         .dc-meta{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:800;color:#1a2233;justify-self:end;}
         .dc-meta .dc-fill{display:inline-block;min-width:120px;border-bottom:1px solid #1a2233;padding:0 6px;font-weight:600;}
@@ -541,14 +541,14 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         body.printing-datas #page-datas{display:flex !important;flex-direction:column;height:100vh;overflow:hidden;}
         body.printing-datas main{padding:0;margin:0;}
         body.printing-datas .layout{display:block;}
-        body.printing-datas .dc-sheet{flex:1;display:flex;flex-direction:column;min-height:0;}
+        body.printing-datas .dc-sheet{flex:1;display:flex;flex-direction:column;min-height:0;padding:0 15mm;}
         body.printing-datas table.dc-table{flex:1 1 auto;}
         body.printing-datas table.dc-table td{height:auto;}
         @media print{
           body.printing-datas .dc-noprint{display:none !important;}
-          body.printing-datas .dc-sheet{padding:0;margin:0;border:none;box-shadow:none;background:#fff;}
+          body.printing-datas .dc-sheet{margin:0;border:none;box-shadow:none;background:#fff;}
           body.printing-datas .dc-head{padding:6px 14px;}
-          body.printing-datas .dc-logo{height:34px;}
+          body.printing-datas .dc-logo{height:52px;}
           body.printing-datas .dc-title{font-size:18px;letter-spacing:.1em;}
           body.printing-datas table.dc-table th{padding:4px 6px;}
         }
