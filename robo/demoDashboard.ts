@@ -541,15 +541,15 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         body.printing-datas #page-datas{display:flex !important;flex-direction:column;height:100vh;overflow:hidden;}
         body.printing-datas main{padding:0;margin:0;}
         body.printing-datas .layout{display:block;}
-        body.printing-datas .dc-sheet{flex:1;display:flex;flex-direction:column;min-height:0;padding:7mm;}
+        body.printing-datas .dc-sheet{flex:1;display:flex;flex-direction:column;min-height:0;padding:3mm 7mm 7mm 7mm;}
         body.printing-datas table.dc-table{flex:1 1 auto;}
         body.printing-datas table.dc-table td{height:auto;}
         @media print{
           body.printing-datas .dc-noprint{display:none !important;}
           body.printing-datas .dc-sheet{margin:0;border:none;box-shadow:none;background:#fff;}
-          body.printing-datas .dc-head{padding:6px 14px;}
-          body.printing-datas .dc-logo{height:52px;}
-          body.printing-datas .dc-title{font-size:18px;letter-spacing:.1em;}
+          body.printing-datas .dc-head{padding:16px 18px;}
+          body.printing-datas .dc-logo{height:74px;}
+          body.printing-datas .dc-title{font-size:27px;letter-spacing:.12em;}body.printing-datas .dc-meta{font-size:14px;gap:10px;}body.printing-datas .dc-meta .dc-fill{min-width:160px;}
           body.printing-datas table.dc-table th{padding:4px 6px;}
         }
       </style>
