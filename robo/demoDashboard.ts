@@ -541,7 +541,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         body.printing-datas #page-datas{display:flex !important;flex-direction:column;height:100vh;overflow:hidden;}
         body.printing-datas main{padding:0;margin:0;}
         body.printing-datas .layout{display:block;}
-        body.printing-datas .dc-sheet{flex:1;display:flex;flex-direction:column;min-height:0;padding:0 4mm;}
+        body.printing-datas .dc-sheet{flex:1;display:flex;flex-direction:column;min-height:0;padding:7mm 9mm;}
         body.printing-datas table.dc-table{flex:1 1 auto;}
         body.printing-datas table.dc-table td{height:auto;}
         @media print{
