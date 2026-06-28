@@ -5958,10 +5958,10 @@ var manForm=null, manEqEdit=null, manServEq="", manAbertos={}, manFiltroTipo="",
   function dA(n){ return manIso(new Date(HOJE.getTime()-n*86400000)); }
   var e1=manUid("e"),e2=manUid("e"),e3=manUid("e"),e4=manUid("e");
   manData.equipamentos=[
-    {id:e1,nome:"Ar-condicionado Frente de Caixa",tipo:"Ar-condicionado",local:"Frente de loja",intervalo:90,responsavel:"Refrigeração Caicó",telefone:"(84) 99999-1234"},
-    {id:e2,nome:"Câmara Fria do Açougue",tipo:"Câmara fria",local:"Açougue",intervalo:60,responsavel:"Refrigeração Caicó",telefone:"(84) 99999-1234"},
-    {id:e3,nome:"Balcão Refrigerado de Frios",tipo:"Balcão refrigerado",local:"Frios/Laticínios",intervalo:30,responsavel:"Equipe interna",telefone:""},
-    {id:e4,nome:"Gerador",tipo:"Gerador",local:"Área externa",intervalo:180,responsavel:"Energia Service",telefone:"(84) 98888-5678"}
+    {id:e1,nome:"Ar-condicionado Frente de Caixa",tipo:"Ar-condicionado",local:"Frente de loja",intervalo:90,responsavel:"Refrigeração Caicó",telefone:"(84) 99999-1234",execucao:"externa"},
+    {id:e2,nome:"Câmara Fria do Açougue",tipo:"Câmara fria",local:"Açougue",intervalo:60,responsavel:"Refrigeração Caicó",telefone:"(84) 99999-1234",execucao:"externa"},
+    {id:e3,nome:"Balcão Refrigerado de Frios",tipo:"Balcão refrigerado",local:"Frios/Laticínios",intervalo:30,responsavel:"Equipe interna",telefone:"",execucao:"interna"},
+    {id:e4,nome:"Gerador",tipo:"Gerador",local:"Área externa",intervalo:180,responsavel:"Energia Service",telefone:"(84) 98888-5678",execucao:"externa"}
   ];
   manData.registros=[
     {id:manUid("r"),idEq:e1,data:dA(100),tipo:"Manutenção preventiva",responsavel:"Refrigeração Caicó",custo:350,obs:"Limpeza de filtros e recarga de gás"},
@@ -6041,8 +6041,9 @@ function manRenderForm(){
       +'<div class="man-fld"><label>Local / Setor'+rq+'</label><input id="manEqLocal" placeholder="Ex: Açougue" value="'+(ed?manEsc(ed.local||''):'')+'"></div>'
       +'<div class="man-fld"><label>A cada (dias)'+rq+'</label><input id="manEqInt" type="number" min="0" step="1" placeholder="90" value="'+(ed&&ed.intervalo?ed.intervalo:'')+'"></div>'
       +'</div>'
-      +'<div class="man-grid" style="grid-template-columns:1.6fr 1fr auto;margin-top:8px;">'
-      +'<div class="man-fld"><label>Quem faz a manutenção'+rq+'</label><input id="manEqResp" placeholder="Empresa ou pessoa" value="'+(ed?manEsc(ed.responsavel||''):'')+'"></div>'
+      +'<div class="man-grid" style="grid-template-columns:160px 1.4fr 1fr auto;margin-top:8px;">'
+      +'<div class="man-fld"><label>Execução</label><select id="manEqExec"><option value="externa"'+((!ed||ed.execucao!=="interna")?" selected":"")+'>Empresa externa</option><option value="interna"'+((ed&&ed.execucao==="interna")?" selected":"")+'>Equipe interna</option></select></div>'
+      +'<div class="man-fld"><label>Quem faz a manutenção'+rq+'</label><input id="manEqResp" placeholder="Empresa ou funcionário" value="'+(ed?manEsc(ed.responsavel||''):'')+'"></div>'
       +'<div class="man-fld"><label>Telefone</label><input id="manEqFone" placeholder="(00) 00000-0000" value="'+(ed?manEsc(ed.telefone||''):'')+'"></div>'
       +'<button class="man-add" id="manEqSave" type="button" style="align-self:end;">'+(ed?'Salvar':'Adicionar')+'</button>'
       +'</div><p style="font-size:11px;color:#8a97a8;margin:8px 0 0;">"A cada (dias)" = de quanto em quanto tempo deve ser feito — o sistema calcula a próxima sozinho e te avisa quando chegar perto, mostrando quem chamar.</p></div>';
@@ -6077,7 +6078,7 @@ function manRenderLista(){
     h+='<div class="man-card"><div class="man-card-top"><div><div class="man-nome">'+manEsc(e.nome)+'</div>'+(e.local?'<div class="man-local">📍 '+manEsc(e.local)+'</div>':'')+'</div><span class="man-tag" style="background:'+cor+'22;color:'+cor+'">'+manEsc(e.tipo)+'</span></div>';
     h+='<div><span class="man-status '+st.cls+'">'+st.txt+'</span></div>';
     var agi=manAgInfo(e);
-    if(agi){ var cont=''; if(agi.faltam<=2 && (e.responsavel||e.telefone)){ cont = e.telefone ? ('<br>📞 Avise: '+manEsc(e.responsavel||'responsável')+' · '+manEsc(e.telefone)) : ('<br>🧹 Fazer — responsável: '+manEsc(e.responsavel||'equipe interna')); } h+='<div class="man-agenda '+agi.cls+'">'+agi.txt+cont+'</div>'; }
+    if(agi){ var cont=''; var externaE = e.execucao ? (e.execucao==="externa") : !!e.telefone; if(agi.faltam<=2 && (e.responsavel||e.telefone)){ cont = externaE ? ('<br>📞 Avise: '+manEsc(e.responsavel||'responsável')+(e.telefone?' · '+manEsc(e.telefone):'')) : ('<br>🧹 Fazer — responsável: '+manEsc(e.responsavel||'equipe interna')); } h+='<div class="man-agenda '+agi.cls+'">'+agi.txt+cont+'</div>'; }
     h+=ult?('<div class="man-ult">Último: '+ult.data.split("-").reverse().join("/")+' · '+manEsc(ult.tipo)+(ult.responsavel?' · '+manEsc(ult.responsavel):'')+'</div>'):'<div class="man-ult">Nenhum serviço registrado ainda — registre o 1º pra começar a contar a próxima.</div>';
     if((e.responsavel||e.telefone)){ h+='<div class="man-ult" style="font-size:11px;">👷 '+manEsc(e.responsavel||'')+(e.telefone?' · 📞 '+manEsc(e.telefone):'')+'</div>'; }
     h+='<div class="man-acoes"><button class="man-mini serv" data-svq="'+e.id+'">＋ Serviço feito</button><button class="man-mini" data-hist="'+e.id+'">'+(manAbertos[e.id]?'Ocultar':'Histórico ('+regs.length+')')+'</button><button class="man-mini" data-eqedit="'+e.id+'">Editar</button><button class="man-mini del" data-eqdel="'+e.id+'">Remover</button></div>';
@@ -6093,10 +6094,10 @@ function manRenderLista(){
 }
 function renderManut(){ manRenderFiltro(); manRenderFiltroSetor(); manRenderKpis(); manRenderForm(); manRenderLista(); manAtualizaBadge(); }
 function manEqValidaVisual(){
-  ["manEqNome","manEqLocal","manEqInt","manEqResp"].forEach(function(id){
-    var el=document.getElementById(id); if(!el) return;
-    if((el.value||"").trim()==="") el.classList.add("campo-erro"); else el.classList.remove("campo-erro");
-  });
+  var ex=document.getElementById("manEqExec"); var externa = ex ? (ex.value==="externa") : true;
+  var obrig=["manEqNome","manEqLocal","manEqInt","manEqResp"]; if(externa) obrig.push("manEqFone");
+  ["manEqNome","manEqLocal","manEqInt","manEqResp","manEqFone"].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove("campo-erro"); });
+  obrig.forEach(function(id){ var el=document.getElementById(id); if(el && (el.value||"").trim()==="") el.classList.add("campo-erro"); });
 }
 function manEqSaveFromForm(){
   var nome=(document.getElementById("manEqNome").value||"").trim();
@@ -6105,14 +6106,16 @@ function manEqSaveFromForm(){
   var intervalo=parseInt(document.getElementById("manEqInt").value,10)||0;
   var responsavel=(document.getElementById("manEqResp").value||"").trim();
   var telefone=(document.getElementById("manEqFone").value||"").trim();
+  var execucao=document.getElementById("manEqExec").value;
   var faltando=[];
   if(!nome) faltando.push("Nome");
   if(!local) faltando.push("Local / Setor");
   if(!intervalo) faltando.push("A cada (dias)");
   if(!responsavel) faltando.push("Quem faz a manutenção");
+  if(execucao==="externa" && !telefone) faltando.push("Telefone");
   if(faltando.length){ manEqValidaVisual(); uiConfirm({titulo:"Campos obrigatórios",msg:"Preencha antes de adicionar: "+faltando.join(", ")+".",ok:"OK",cancel:""}); return; }
-  if(manEqEdit){ var e=manData.equipamentos.find(function(x){return x.id===manEqEdit;}); if(e){ e.nome=nome; e.tipo=tipo; e.local=local; e.intervalo=intervalo; e.responsavel=responsavel; e.telefone=telefone; } }
-  else { manData.equipamentos.push({id:manUid("e"),nome:nome,tipo:tipo,local:local,intervalo:intervalo,responsavel:responsavel,telefone:telefone}); }
+  if(manEqEdit){ var e=manData.equipamentos.find(function(x){return x.id===manEqEdit;}); if(e){ e.nome=nome; e.tipo=tipo; e.local=local; e.intervalo=intervalo; e.responsavel=responsavel; e.telefone=telefone; e.execucao=execucao; } }
+  else { manData.equipamentos.push({id:manUid("e"),nome:nome,tipo:tipo,local:local,intervalo:intervalo,responsavel:responsavel,telefone:telefone,execucao:execucao}); }
   manSave(); manForm=null; manEqEdit=null; renderManut();
 }
 function manSvSaveFromForm(){
