@@ -1220,7 +1220,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       <style>
         .man-top{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
         .man-titulo{font-size:17px;font-weight:700;color:#0c5a26;}
-        .man-sel-top{border:1px solid #d4dde6;border-radius:8px;padding:7px 10px;font:inherit;color:#1d2733;background:#fff;}
+        .man-sel-top{-webkit-appearance:none;appearance:none;border:1px solid #d4dde6;border-radius:8px;padding:7px 34px 7px 12px;font:inherit;color:#1d2733;cursor:pointer;background-color:#fff;background-repeat:no-repeat;background-position:right 12px center;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2356606d' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");}
         .man-btn{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #d7dee7;border-radius:9px;padding:7px 13px;font-size:13px;font-weight:600;color:#56606d;cursor:pointer;}
         .man-btn:hover{background:#f4f7fb;}
         .man-btn.prim{background:#157a35;border-color:#157a35;color:#fff;}
