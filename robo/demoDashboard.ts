@@ -403,6 +403,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="acougue"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h11a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3z"/><path d="M15 8h4a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4"/><path d="M3 19h13"/></svg></span> Perdas açougue</button>
     <button class="nav-item" data-page="epi"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span> EPI</button>
     <button class="nav-item" data-page="fardamento"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l4-3 2 2h4l2-2 4 3-2 3-2-1v11H8V9L6 10z"/></svg></span> Fardamento</button>
+    <button class="nav-item" data-page="manutencoes"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.3-.6-.6-2.3 2.6-2.6z"/></svg></span> Manutenções</button>
     <button class="nav-item" data-page="negociar"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span> Negociar<span class="nav-badge" id="negNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="metas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span> Metas <span class="soon">em breve</span></button>
     <button class="nav-item" data-page="entregas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Entregas</button>
@@ -1212,6 +1213,66 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <button class="prd-add" id="fardAddEnt" type="button">Registrar</button>
         </div></div>
         <div id="fardEntWrap"></div>
+      </div>
+    </section>
+
+    <section id="page-manutencoes" class="page">
+      <style>
+        .man-top{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+        .man-titulo{font-size:17px;font-weight:700;color:#0c5a26;}
+        .man-sel-top{border:1px solid #d4dde6;border-radius:8px;padding:7px 10px;font:inherit;color:#1d2733;background:#fff;}
+        .man-btn{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #d7dee7;border-radius:9px;padding:7px 13px;font-size:13px;font-weight:600;color:#56606d;cursor:pointer;}
+        .man-btn:hover{background:#f4f7fb;}
+        .man-btn.prim{background:#157a35;border-color:#157a35;color:#fff;}
+        .man-btn.prim:hover{background:#0c5a26;}
+        #manKpis .kpi{padding:18px 16px;min-width:0;overflow:hidden;}
+        #manKpis .kpi .v{font-size:23px;line-height:1.1;overflow-wrap:anywhere;}
+        #manKpis .kpi .l{font-size:12px;margin-top:6px;}
+        .man-form{border:1px solid #e6ebf1;border-radius:10px;padding:14px 16px;margin:6px 0 18px;background:#fafcfe;}
+        .man-form h4{margin:0 0 12px;font-size:13px;color:#0c5a26;}
+        .man-grid{display:grid;gap:8px;align-items:end;}
+        @media (max-width:820px){ .man-grid{grid-template-columns:1fr 1fr !important;} }
+        .man-fld{display:flex;flex-direction:column;gap:3px;min-width:0;}
+        .man-fld label{font-size:11px;color:#7a8696;font-weight:600;text-transform:uppercase;letter-spacing:.3px;}
+        .man-fld input,.man-fld select{border:1px solid #d4dde6;border-radius:7px;padding:7px 9px;font:inherit;color:#1d2733;background:#fff;width:100%;box-sizing:border-box;}
+        .man-fld input:focus,.man-fld select:focus{outline:none;border-color:#157a35;box-shadow:0 0 0 2px rgba(21,122,53,.15);}
+        .man-add{border:0;background:#157a35;color:#fff;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;height:36px;white-space:nowrap;}
+        .man-add:hover{background:#0c5a26;}
+        .man-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px;}
+        .man-card{border:1px solid #e6ebf1;border-radius:12px;padding:14px 16px;background:#fff;box-shadow:0 1px 3px rgba(20,40,70,.05);}
+        .man-card-top{display:flex;align-items:flex-start;gap:8px;}
+        .man-nome{font-size:15px;font-weight:700;color:#1d2733;flex:1;min-width:0;overflow-wrap:anywhere;}
+        .man-tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+        .man-local{font-size:12px;color:#8a97a8;margin-top:2px;}
+        .man-status{display:inline-block;margin-top:10px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;}
+        .man-status.ok{background:#e7f6ed;color:#157a35;}
+        .man-status.prox{background:#fdf3d9;color:#a07a00;}
+        .man-status.venc{background:#fdecec;color:#c0392b;}
+        .man-status.sem{background:#eef1f6;color:#8a97a8;}
+        .man-ult{font-size:12px;color:#56606d;margin-top:8px;}
+        .man-acoes{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;}
+        .man-mini{border:1px solid #d7dee7;background:#fff;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;color:#46535f;cursor:pointer;}
+        .man-mini:hover{background:#f4f7fb;}
+        .man-mini.serv{background:#157a35;border-color:#157a35;color:#fff;}
+        .man-mini.serv:hover{background:#0c5a26;}
+        .man-mini.del{color:#c0392b;}
+        .man-hist{margin-top:12px;border-top:1px dashed #e2e8f1;padding-top:10px;}
+        .man-hist-item{display:flex;align-items:flex-start;gap:8px;font-size:12px;padding:6px 0;border-bottom:1px solid #f1f4f8;}
+        .man-hist-item:last-child{border-bottom:0;}
+        .man-hist-data{font-weight:700;color:#0c5a26;white-space:nowrap;}
+        .man-hist-x{margin-left:auto;border:0;background:#fdecec;color:#c0392b;border-radius:6px;width:22px;height:22px;font-size:12px;font-weight:700;cursor:pointer;flex:none;}
+        .man-vazio{padding:36px 20px;text-align:center;color:#8a97a8;font-size:14px;}
+      </style>
+      <div class="card">
+        <div class="man-top">
+          <div class="man-titulo">🔧 Manutenções e Limpezas</div>
+          <select id="manFiltro" class="man-sel-top"></select>
+          <button class="man-btn" id="manAddServ" type="button" style="margin-left:auto;">＋ Registrar serviço</button>
+          <button class="man-btn prim" id="manAddEq" type="button">＋ Equipamento</button>
+        </div>
+        <div class="kpis" id="manKpis" style="grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:22px;"></div>
+        <div id="manFormWrap"></div>
+        <div id="manLista"></div>
       </div>
     </section>
 
@@ -5872,6 +5933,158 @@ function opAtualizaBadge(){
   }catch(e){}
 }
 
+/* ===== Manutenções e Limpezas ===== */
+var MAN_TIPOS=["Ar-condicionado","Câmara fria","Freezer/Ilha","Balcão refrigerado","Geladeira/Expositor","Gerador","Empilhadeira/Paleteira","Extintor","Sistema/PDV","Veículo","Outro"];
+var MAN_SERVICOS=["Manutenção preventiva","Manutenção corretiva","Limpeza","Higienização","Inspeção","Troca de peça","Recarga de gás","Outro"];
+function manTipoCor(t){ var i=MAN_TIPOS.indexOf(t); return cores[(i<0?0:i)%cores.length]; }
+function manLoad(){ try{ var s=localStorage.getItem("manutencoes"); if(s){ var o=JSON.parse(s); if(o&&o.equipamentos&&o.registros) return o; } }catch(e){} return {equipamentos:[],registros:[]}; }
+var manData=manLoad();
+function manSave(){ try{ localStorage.setItem("manutencoes", JSON.stringify(manData)); }catch(e){} }
+function manUid(p){ return (p||"m")+Date.now().toString(36)+Math.floor(Math.random()*1000); }
+function manEsc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function manIso(d){ return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2); }
+var manForm=null, manEqEdit=null, manServEq="", manAbertos={}, manFiltroTipo="";
+
+(function manSeed(){
+  try{ if(localStorage.getItem("manutencoes_demo_v1")==="1") return; }catch(e){}
+  if(manData.equipamentos.length){ try{ localStorage.setItem("manutencoes_demo_v1","1"); }catch(e){} return; }
+  function dA(n){ return manIso(new Date(HOJE.getTime()-n*86400000)); }
+  var e1=manUid("e"),e2=manUid("e"),e3=manUid("e"),e4=manUid("e");
+  manData.equipamentos=[
+    {id:e1,nome:"Ar-condicionado Frente de Caixa",tipo:"Ar-condicionado",local:"Frente de loja",intervalo:90},
+    {id:e2,nome:"Câmara Fria do Açougue",tipo:"Câmara fria",local:"Açougue",intervalo:60},
+    {id:e3,nome:"Balcão Refrigerado de Frios",tipo:"Balcão refrigerado",local:"Frios/Laticínios",intervalo:30},
+    {id:e4,nome:"Gerador",tipo:"Gerador",local:"Área externa",intervalo:180}
+  ];
+  manData.registros=[
+    {id:manUid("r"),idEq:e1,data:dA(100),tipo:"Manutenção preventiva",responsavel:"Refrigeração Caicó",custo:350,obs:"Limpeza de filtros e recarga de gás"},
+    {id:manUid("r"),idEq:e2,data:dA(20),tipo:"Higienização",responsavel:"Equipe interna",custo:0,obs:""},
+    {id:manUid("r"),idEq:e3,data:dA(40),tipo:"Limpeza",responsavel:"Equipe interna",custo:0,obs:""},
+    {id:manUid("r"),idEq:e4,data:dA(30),tipo:"Manutenção preventiva",responsavel:"Energia Service",custo:480,obs:"Troca de óleo"}
+  ];
+  manSave();
+  try{ localStorage.setItem("manutencoes_demo_v1","1"); }catch(e){}
+})();
+
+function manUltimo(idEq){ var regs=manData.registros.filter(function(r){return r.idEq===idEq;}).sort(function(a,b){return a.data<b.data?1:(a.data>b.data?-1:0);}); return regs[0]||null; }
+function manDiasDesde(iso){ return Math.floor((new Date(manIso(HOJE)+"T00:00:00") - new Date(iso+"T00:00:00"))/86400000); }
+function manStatus(eq){
+  var ult=manUltimo(eq.id);
+  if(!ult) return {cls:"sem",txt:"Sem registro"};
+  var dd=manDiasDesde(ult.data), intervalo=+eq.intervalo||0;
+  if(!intervalo) return {cls:"ok",txt:"Feito há "+dd+" dia"+(dd===1?"":"s")};
+  var rest=intervalo-dd;
+  if(rest<0) return {cls:"venc",txt:"Vencido há "+(-rest)+" dia"+((-rest)===1?"":"s")};
+  if(rest<=7) return {cls:"prox",txt:"Vence em "+rest+" dia"+(rest===1?"":"s")};
+  return {cls:"ok",txt:"Em dia · próx. em "+rest+" dias"};
+}
+function manRenderKpis(){
+  var eqs=manData.equipamentos, lim=manIso(new Date(HOJE.getTime()-30*86400000));
+  var recentes=manData.registros.filter(function(r){return r.data>=lim;});
+  var custo=soma(recentes.map(function(r){return +r.custo||0;}));
+  var venc=0, emdia=0;
+  eqs.forEach(function(e){ var s=manStatus(e); if(s.cls==="venc")venc++; else if(s.cls==="ok"||s.cls==="prox")emdia++; });
+  var cards=[{v:num(eqs.length),l:"Equipamentos"},{v:num(recentes.length),l:"Serviços (30 dias)"},{v:brl(custo),l:"Custo (30 dias)"},{v:num(venc),l:"Vencidos"},{v:num(emdia),l:"Em dia"}];
+  document.getElementById("manKpis").innerHTML=cards.map(function(c){ return '<div class="kpi"><div class="v">'+c.v+'</div><div class="l">'+c.l+'</div></div>'; }).join('');
+}
+function manRenderFiltro(){
+  document.getElementById("manFiltro").innerHTML='<option value="">Todos os tipos</option>'+MAN_TIPOS.map(function(t){ return '<option value="'+manEsc(t)+'"'+(t===manFiltroTipo?' selected':'')+'>'+manEsc(t)+'</option>'; }).join('');
+}
+function manRenderForm(){
+  var wrap=document.getElementById("manFormWrap");
+  if(manForm==="eq"){
+    var ed=manEqEdit?manData.equipamentos.find(function(e){return e.id===manEqEdit;}):null;
+    var tipoOpts=MAN_TIPOS.map(function(t){ return '<option'+(ed&&ed.tipo===t?' selected':'')+'>'+manEsc(t)+'</option>'; }).join('');
+    wrap.innerHTML='<div class="man-form"><h4>'+(ed?'Editar equipamento':'Novo equipamento')+'</h4>'
+      +'<div class="man-grid" style="grid-template-columns:2fr 1fr 1fr 130px auto;">'
+      +'<div class="man-fld"><label>Nome</label><input id="manEqNome" placeholder="Ex: Ar-condicionado do caixa" value="'+(ed?manEsc(ed.nome):'')+'"></div>'
+      +'<div class="man-fld"><label>Tipo</label><select id="manEqTipo">'+tipoOpts+'</select></div>'
+      +'<div class="man-fld"><label>Local</label><input id="manEqLocal" placeholder="Ex: Açougue" value="'+(ed?manEsc(ed.local||''):'')+'"></div>'
+      +'<div class="man-fld"><label>A cada (dias)</label><input id="manEqInt" type="number" min="0" step="1" placeholder="90" value="'+(ed&&ed.intervalo?ed.intervalo:'')+'"></div>'
+      +'<button class="man-add" id="manEqSave" type="button">'+(ed?'Salvar':'Adicionar')+'</button>'
+      +'</div><p style="font-size:11px;color:#8a97a8;margin:8px 0 0;">"A cada (dias)" = de quanto em quanto tempo deve ser feito (pra avisar quando vencer). Deixe vazio se não tiver periodicidade.</p></div>';
+  } else if(manForm==="serv"){
+    if(!manData.equipamentos.length){ wrap.innerHTML='<div class="man-form"><p class="man-vazio">Cadastre um equipamento primeiro (botão ＋ Equipamento).</p></div>'; return; }
+    var eqOpts=manData.equipamentos.map(function(e){ return '<option value="'+e.id+'"'+(e.id===manServEq?' selected':'')+'>'+manEsc(e.nome)+'</option>'; }).join('');
+    var servOpts=MAN_SERVICOS.map(function(s){ return '<option>'+manEsc(s)+'</option>'; }).join('');
+    wrap.innerHTML='<div class="man-form"><h4>Registrar serviço / limpeza</h4>'
+      +'<div class="man-grid" style="grid-template-columns:2fr 130px 1.4fr 1.4fr 1fr;">'
+      +'<div class="man-fld"><label>Equipamento</label><select id="manSvEq">'+eqOpts+'</select></div>'
+      +'<div class="man-fld"><label>Data</label><input id="manSvData" type="date" value="'+manIso(HOJE)+'"></div>'
+      +'<div class="man-fld"><label>Serviço</label><select id="manSvTipo">'+servOpts+'</select></div>'
+      +'<div class="man-fld"><label>Responsável</label><input id="manSvResp" placeholder="Empresa ou pessoa"></div>'
+      +'<div class="man-fld"><label>Custo (R$)</label><input id="manSvCusto" type="number" min="0" step="0.01" placeholder="0,00"></div>'
+      +'</div>'
+      +'<div class="man-grid" style="grid-template-columns:1fr auto;margin-top:8px;">'
+      +'<div class="man-fld"><label>Observação</label><input id="manSvObs" placeholder="Opcional"></div>'
+      +'<button class="man-add" id="manSvSave" type="button" style="align-self:end;">Adicionar</button>'
+      +'</div></div>';
+  } else { wrap.innerHTML=''; }
+}
+function manRenderLista(){
+  var el=document.getElementById("manLista");
+  var eqs=manData.equipamentos.filter(function(e){ return !manFiltroTipo || e.tipo===manFiltroTipo; });
+  function ord(e){ var s=manStatus(e); return s.cls==="venc"?0:(s.cls==="prox"?1:(s.cls==="sem"?2:3)); }
+  eqs=eqs.slice().sort(function(a,b){ return ord(a)-ord(b); });
+  if(!eqs.length){ el.innerHTML='<p class="man-vazio">Nenhum equipamento '+(manFiltroTipo?'desse tipo':'cadastrado')+'.<br>Clique em <b>＋ Equipamento</b> para começar.</p>'; return; }
+  var h='<div class="man-cards">';
+  eqs.forEach(function(e){
+    var cor=manTipoCor(e.tipo), st=manStatus(e), ult=manUltimo(e.id);
+    var regs=manData.registros.filter(function(r){return r.idEq===e.id;}).sort(function(a,b){return a.data<b.data?1:-1;});
+    h+='<div class="man-card"><div class="man-card-top"><div><div class="man-nome">'+manEsc(e.nome)+'</div>'+(e.local?'<div class="man-local">📍 '+manEsc(e.local)+'</div>':'')+'</div><span class="man-tag" style="background:'+cor+'22;color:'+cor+'">'+manEsc(e.tipo)+'</span></div>';
+    h+='<div><span class="man-status '+st.cls+'">'+st.txt+'</span></div>';
+    h+=ult?('<div class="man-ult">Último: '+ult.data.split("-").reverse().join("/")+' · '+manEsc(ult.tipo)+(ult.responsavel?' · '+manEsc(ult.responsavel):'')+'</div>'):'<div class="man-ult">Nenhum serviço registrado ainda.</div>';
+    h+='<div class="man-acoes"><button class="man-mini serv" data-svq="'+e.id+'">＋ Serviço</button><button class="man-mini" data-hist="'+e.id+'">'+(manAbertos[e.id]?'Ocultar':'Histórico ('+regs.length+')')+'</button><button class="man-mini" data-eqedit="'+e.id+'">Editar</button><button class="man-mini del" data-eqdel="'+e.id+'">Remover</button></div>';
+    if(manAbertos[e.id]){
+      h+='<div class="man-hist">';
+      if(!regs.length){ h+='<p style="font-size:12px;color:#8a97a8;margin:0;">Sem serviços registrados.</p>'; }
+      else { regs.forEach(function(r){ h+='<div class="man-hist-item"><span class="man-hist-data">'+r.data.split("-").reverse().join("/")+'</span><span>'+manEsc(r.tipo)+(r.responsavel?' — '+manEsc(r.responsavel):'')+(+r.custo?' · '+brl(r.custo):'')+(r.obs?'<br><span style="color:#8a97a8">'+manEsc(r.obs)+'</span>':'')+'</span><button class="man-hist-x" data-rdel="'+r.id+'" title="Remover">✕</button></div>'; }); }
+      h+='</div>';
+    }
+    h+='</div>';
+  });
+  el.innerHTML=h+'</div>';
+}
+function renderManut(){ manRenderFiltro(); manRenderKpis(); manRenderForm(); manRenderLista(); }
+function manEqSaveFromForm(){
+  var nome=(document.getElementById("manEqNome").value||"").trim();
+  var tipo=document.getElementById("manEqTipo").value;
+  var local=(document.getElementById("manEqLocal").value||"").trim();
+  var intervalo=parseInt(document.getElementById("manEqInt").value,10)||0;
+  if(!nome){ uiConfirm({titulo:"Aviso",msg:"Dê um nome ao equipamento.",ok:"OK",cancel:""}); return; }
+  if(manEqEdit){ var e=manData.equipamentos.find(function(x){return x.id===manEqEdit;}); if(e){ e.nome=nome; e.tipo=tipo; e.local=local; e.intervalo=intervalo; } }
+  else { manData.equipamentos.push({id:manUid("e"),nome:nome,tipo:tipo,local:local,intervalo:intervalo}); }
+  manSave(); manForm=null; manEqEdit=null; renderManut();
+}
+function manSvSaveFromForm(){
+  var idEq=document.getElementById("manSvEq").value;
+  var data=document.getElementById("manSvData").value;
+  var tipo=document.getElementById("manSvTipo").value;
+  var resp=(document.getElementById("manSvResp").value||"").trim();
+  var custo=parseFloat(document.getElementById("manSvCusto").value)||0;
+  var obs=(document.getElementById("manSvObs").value||"").trim();
+  if(!idEq){ uiConfirm({titulo:"Aviso",msg:"Escolha o equipamento.",ok:"OK",cancel:""}); return; }
+  if(!data){ uiConfirm({titulo:"Aviso",msg:"Informe a data.",ok:"OK",cancel:""}); return; }
+  manData.registros.push({id:manUid("r"),idEq:idEq,data:data,tipo:tipo,responsavel:resp,custo:custo,obs:obs});
+  manSave(); manForm=null; manAbertos[idEq]=true; renderManut();
+}
+(function initManut(){
+  document.getElementById("manAddEq").addEventListener("click",function(){ manForm=(manForm==="eq"?null:"eq"); manEqEdit=null; renderManut(); });
+  document.getElementById("manAddServ").addEventListener("click",function(){ manForm=(manForm==="serv"?null:"serv"); manServEq=""; renderManut(); });
+  document.getElementById("manFiltro").addEventListener("change",function(){ manFiltroTipo=this.value; renderManut(); });
+  document.getElementById("manFormWrap").addEventListener("click",function(ev){
+    if(ev.target.closest("#manEqSave")){ manEqSaveFromForm(); return; }
+    if(ev.target.closest("#manSvSave")){ manSvSaveFromForm(); return; }
+  });
+  document.getElementById("manLista").addEventListener("click",function(ev){
+    var svq=ev.target.closest("[data-svq]"); if(svq){ manForm="serv"; manServEq=svq.getAttribute("data-svq"); renderManut(); var w=document.getElementById("manFormWrap"); if(w) w.scrollIntoView({behavior:"smooth",block:"center"}); return; }
+    var hist=ev.target.closest("[data-hist]"); if(hist){ var id=hist.getAttribute("data-hist"); manAbertos[id]=!manAbertos[id]; renderManut(); return; }
+    var eqed=ev.target.closest("[data-eqedit]"); if(eqed){ manForm="eq"; manEqEdit=eqed.getAttribute("data-eqedit"); renderManut(); var w2=document.getElementById("manFormWrap"); if(w2) w2.scrollIntoView({behavior:"smooth",block:"center"}); return; }
+    var eqdel=ev.target.closest("[data-eqdel]"); if(eqdel){ var id2=eqdel.getAttribute("data-eqdel"); var e2=manData.equipamentos.find(function(x){return x.id===id2;}); uiConfirm({titulo:"Remover equipamento",msg:'Remover "'+(e2?manEsc(e2.nome):'')+'" e todo o histórico dele?',ok:"Remover",cancel:"Cancelar"}).then(function(ok){ if(!ok)return; manData.equipamentos=manData.equipamentos.filter(function(x){return x.id!==id2;}); manData.registros=manData.registros.filter(function(r){return r.idEq!==id2;}); manSave(); renderManut(); }); return; }
+    var rdel=ev.target.closest("[data-rdel]"); if(rdel){ var rid=rdel.getAttribute("data-rdel"); uiConfirm({titulo:"Remover serviço",msg:"Apagar este registro de serviço?",ok:"Remover",cancel:"Cancelar"}).then(function(ok){ if(!ok)return; manData.registros=manData.registros.filter(function(r){return r.id!==rid;}); manSave(); renderManut(); }); return; }
+  });
+})();
+
 document.querySelectorAll(".nav-item").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll(".nav-item").forEach(b=>b.classList.remove("ativo"));
@@ -5884,6 +6097,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="layout"){ renderLayout(); layFitView(); }
     if(btn.dataset.page==="perdas") renderPerdas();
     if(btn.dataset.page==="acougue") renderAcougue();
+    if(btn.dataset.page==="manutencoes") renderManut();
     if(btn.dataset.page==="epi") renderEPI();
     if(btn.dataset.page==="fardamento") renderFardamento();
     if(btn.dataset.page==="escala") voltarSetores();
