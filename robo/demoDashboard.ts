@@ -6033,18 +6033,19 @@ function manRenderForm(){
   if(manForm==="eq"){
     var ed=manEqEdit?manData.equipamentos.find(function(e){return e.id===manEqEdit;}):null;
     var tipoOpts=MAN_TIPOS.map(function(t){ return '<option'+(ed&&ed.tipo===t?' selected':'')+'>'+manEsc(t)+'</option>'; }).join('');
+    var rq=' <span style="color:#c0392b">*</span>';
     wrap.innerHTML='<div class="man-form"><h4>'+(ed?'Editar equipamento':'Novo equipamento')+'</h4>'
       +'<div class="man-grid" style="grid-template-columns:2fr 1fr 1fr 150px;">'
-      +'<div class="man-fld"><label>Nome</label><input id="manEqNome" placeholder="Ex: Ar-condicionado do caixa" value="'+(ed?manEsc(ed.nome):'')+'"></div>'
+      +'<div class="man-fld"><label>Nome'+rq+'</label><input id="manEqNome" placeholder="Ex: Ar-condicionado do caixa" value="'+(ed?manEsc(ed.nome):'')+'"></div>'
       +'<div class="man-fld"><label>Tipo</label><select id="manEqTipo">'+tipoOpts+'</select></div>'
-      +'<div class="man-fld"><label>Local / Setor</label><input id="manEqLocal" placeholder="Ex: Açougue" value="'+(ed?manEsc(ed.local||''):'')+'"></div>'
-      +'<div class="man-fld"><label>A cada (dias)</label><input id="manEqInt" type="number" min="0" step="1" placeholder="90" value="'+(ed&&ed.intervalo?ed.intervalo:'')+'"></div>'
+      +'<div class="man-fld"><label>Local / Setor'+rq+'</label><input id="manEqLocal" placeholder="Ex: Açougue" value="'+(ed?manEsc(ed.local||''):'')+'"></div>'
+      +'<div class="man-fld"><label>A cada (dias)'+rq+'</label><input id="manEqInt" type="number" min="0" step="1" placeholder="90" value="'+(ed&&ed.intervalo?ed.intervalo:'')+'"></div>'
       +'</div>'
       +'<div class="man-grid" style="grid-template-columns:1.6fr 1fr auto;margin-top:8px;">'
-      +'<div class="man-fld"><label>Quem faz a manutenção</label><input id="manEqResp" placeholder="Empresa ou pessoa" value="'+(ed?manEsc(ed.responsavel||''):'')+'"></div>'
+      +'<div class="man-fld"><label>Quem faz a manutenção'+rq+'</label><input id="manEqResp" placeholder="Empresa ou pessoa" value="'+(ed?manEsc(ed.responsavel||''):'')+'"></div>'
       +'<div class="man-fld"><label>Telefone</label><input id="manEqFone" placeholder="(00) 00000-0000" value="'+(ed?manEsc(ed.telefone||''):'')+'"></div>'
       +'<button class="man-add" id="manEqSave" type="button" style="align-self:end;">'+(ed?'Salvar':'Adicionar')+'</button>'
-      +'</div><p style="font-size:11px;color:#8a97a8;margin:8px 0 0;">"A cada (dias)" = de quanto em quanto tempo deve ser feito. O sistema calcula a próxima sozinho e te avisa quando chegar perto, mostrando quem chamar.</p></div>';
+      +'</div><p style="font-size:11px;color:#8a97a8;margin:8px 0 0;"><span style="color:#c0392b">*</span> obrigatório. "A cada (dias)" = de quanto em quanto tempo deve ser feito — o sistema calcula a próxima sozinho e te avisa quando chegar perto, mostrando quem chamar.</p></div>';
   } else if(manForm==="serv"){
     if(!manData.equipamentos.length){ wrap.innerHTML='<div class="man-form"><p class="man-vazio">Cadastre um equipamento primeiro (botão ＋ Equipamento).</p></div>'; return; }
     var eqOpts=manData.equipamentos.map(function(e){ return '<option value="'+e.id+'"'+(e.id===manServEq?' selected':'')+'>'+manEsc(e.nome)+'</option>'; }).join('');
@@ -6098,7 +6099,12 @@ function manEqSaveFromForm(){
   var intervalo=parseInt(document.getElementById("manEqInt").value,10)||0;
   var responsavel=(document.getElementById("manEqResp").value||"").trim();
   var telefone=(document.getElementById("manEqFone").value||"").trim();
-  if(!nome){ uiConfirm({titulo:"Aviso",msg:"Dê um nome ao equipamento.",ok:"OK",cancel:""}); return; }
+  var faltando=[];
+  if(!nome) faltando.push("Nome");
+  if(!local) faltando.push("Local / Setor");
+  if(!intervalo) faltando.push("A cada (dias)");
+  if(!responsavel) faltando.push("Quem faz a manutenção");
+  if(faltando.length){ uiConfirm({titulo:"Campos obrigatórios",msg:"Preencha antes de adicionar: "+faltando.join(", ")+".",ok:"OK",cancel:""}); return; }
   if(manEqEdit){ var e=manData.equipamentos.find(function(x){return x.id===manEqEdit;}); if(e){ e.nome=nome; e.tipo=tipo; e.local=local; e.intervalo=intervalo; e.responsavel=responsavel; e.telefone=telefone; } }
   else { manData.equipamentos.push({id:manUid("e"),nome:nome,tipo:tipo,local:local,intervalo:intervalo,responsavel:responsavel,telefone:telefone}); }
   manSave(); manForm=null; manEqEdit=null; renderManut();
