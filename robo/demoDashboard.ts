@@ -1235,6 +1235,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .man-fld{display:flex;flex-direction:column;gap:3px;min-width:0;}
         .man-fld label{font-size:11px;color:#7a8696;font-weight:600;text-transform:uppercase;letter-spacing:.3px;}
         .man-fld input,.man-fld select{border:1px solid #d4dde6;border-radius:7px;padding:7px 9px;font:inherit;color:#1d2733;background:#fff;width:100%;box-sizing:border-box;}
+        .man-fld select{-webkit-appearance:none;appearance:none;cursor:pointer;padding-right:30px;background-repeat:no-repeat;background-position:right 10px center;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2356606d' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");}
         .man-fld input:focus,.man-fld select:focus{outline:none;border-color:#157a35;box-shadow:0 0 0 2px rgba(21,122,53,.15);}
         .man-add{border:0;background:#157a35;color:#fff;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;height:36px;white-space:nowrap;}
         .man-add:hover{background:#0c5a26;}
