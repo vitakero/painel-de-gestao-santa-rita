@@ -6046,7 +6046,6 @@ function manRenderForm(){
       +'<div class="man-fld"><label>Telefone</label><input id="manEqFone" placeholder="(00) 00000-0000" value="'+(ed?manEsc(ed.telefone||''):'')+'"></div>'
       +'<button class="man-add" id="manEqSave" type="button" style="align-self:end;">'+(ed?'Salvar':'Adicionar')+'</button>'
       +'</div><p style="font-size:11px;color:#8a97a8;margin:8px 0 0;">"A cada (dias)" = de quanto em quanto tempo deve ser feito — o sistema calcula a próxima sozinho e te avisa quando chegar perto, mostrando quem chamar.</p></div>';
-    manEqValidaVisual();
   } else if(manForm==="serv"){
     if(!manData.equipamentos.length){ wrap.innerHTML='<div class="man-form"><p class="man-vazio">Cadastre um equipamento primeiro (botão ＋ Equipamento).</p></div>'; return; }
     var eqOpts=manData.equipamentos.map(function(e){ return '<option value="'+e.id+'"'+(e.id===manServEq?' selected':'')+'>'+manEsc(e.nome)+'</option>'; }).join('');
@@ -6145,13 +6144,6 @@ function manAgSaveFromForm(){
   document.getElementById("manFormWrap").addEventListener("click",function(ev){
     if(ev.target.closest("#manEqSave")){ manEqSaveFromForm(); return; }
     if(ev.target.closest("#manSvSave")){ manSvSaveFromForm(); return; }
-  });
-  document.getElementById("manFormWrap").addEventListener("input",function(){ if(manForm==="eq") manEqValidaVisual(); });
-  document.getElementById("manFormWrap").addEventListener("change",function(){ if(manForm==="eq") manEqValidaVisual(); });
-  document.getElementById("manFormWrap").addEventListener("click",function(ev){
-    if(ev.target.closest("#manEqSave2_placeholder")){ return; }
-    if(ev.target.closest("#manAgSave")){ manAgSaveFromForm(); return; }
-    if(ev.target.closest("#manAgClear")){ var eqc=manData.equipamentos.find(function(x){return x.id===manAgendaEq;}); if(eqc){ eqc.agenda=null; manSave(); } manForm=null; renderManut(); return; }
   });
   document.getElementById("manLista").addEventListener("click",function(ev){
     var svq=ev.target.closest("[data-svq]"); if(svq){ manForm="serv"; manServEq=svq.getAttribute("data-svq"); renderManut(); var w=document.getElementById("manFormWrap"); if(w) w.scrollIntoView({behavior:"smooth",block:"center"}); return; }
