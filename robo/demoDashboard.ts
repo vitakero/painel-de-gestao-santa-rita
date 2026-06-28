@@ -6076,7 +6076,7 @@ function manRenderLista(){
     h+='<div class="man-card"><div class="man-card-top"><div><div class="man-nome">'+manEsc(e.nome)+'</div>'+(e.local?'<div class="man-local">📍 '+manEsc(e.local)+'</div>':'')+'</div><span class="man-tag" style="background:'+cor+'22;color:'+cor+'">'+manEsc(e.tipo)+'</span></div>';
     h+='<div><span class="man-status '+st.cls+'">'+st.txt+'</span></div>';
     var agi=manAgInfo(e);
-    if(agi){ h+='<div class="man-agenda '+agi.cls+'">'+agi.txt+((agi.faltam<=2 && (e.responsavel||e.telefone))?('<br>📞 Avise: '+manEsc(e.responsavel||'responsável')+(e.telefone?' · '+manEsc(e.telefone):'')):'')+'</div>'; }
+    if(agi){ var cont=''; if(agi.faltam<=2 && (e.responsavel||e.telefone)){ cont = e.telefone ? ('<br>📞 Avise: '+manEsc(e.responsavel||'responsável')+' · '+manEsc(e.telefone)) : ('<br>🧹 Fazer — responsável: '+manEsc(e.responsavel||'equipe interna')); } h+='<div class="man-agenda '+agi.cls+'">'+agi.txt+cont+'</div>'; }
     h+=ult?('<div class="man-ult">Último: '+ult.data.split("-").reverse().join("/")+' · '+manEsc(ult.tipo)+(ult.responsavel?' · '+manEsc(ult.responsavel):'')+'</div>'):'<div class="man-ult">Nenhum serviço registrado ainda — registre o 1º pra começar a contar a próxima.</div>';
     if((e.responsavel||e.telefone)){ h+='<div class="man-ult" style="font-size:11px;">👷 '+manEsc(e.responsavel||'')+(e.telefone?' · 📞 '+manEsc(e.telefone):'')+'</div>'; }
     h+='<div class="man-acoes"><button class="man-mini serv" data-svq="'+e.id+'">＋ Serviço feito</button><button class="man-mini" data-hist="'+e.id+'">'+(manAbertos[e.id]?'Ocultar':'Histórico ('+regs.length+')')+'</button><button class="man-mini" data-eqedit="'+e.id+'">Editar</button><button class="man-mini del" data-eqdel="'+e.id+'">Remover</button></div>';
