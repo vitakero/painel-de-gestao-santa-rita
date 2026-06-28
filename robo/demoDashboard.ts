@@ -1267,6 +1267,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div class="man-top">
           <div class="man-titulo">🔧 Manutenções e Limpezas</div>
           <select id="manFiltro" class="man-sel-top"></select>
+          <select id="manFiltroSetor" class="man-sel-top"></select>
           <button class="man-btn" id="manAddServ" type="button" style="margin-left:auto;">＋ Registrar serviço</button>
           <button class="man-btn prim" id="manAddEq" type="button">＋ Equipamento</button>
         </div>
@@ -5943,7 +5944,7 @@ function manSave(){ try{ localStorage.setItem("manutencoes", JSON.stringify(manD
 function manUid(p){ return (p||"m")+Date.now().toString(36)+Math.floor(Math.random()*1000); }
 function manEsc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
 function manIso(d){ return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2); }
-var manForm=null, manEqEdit=null, manServEq="", manAbertos={}, manFiltroTipo="";
+var manForm=null, manEqEdit=null, manServEq="", manAbertos={}, manFiltroTipo="", manFiltroSetor="";
 
 (function manSeed(){
   try{ if(localStorage.getItem("manutencoes_demo_v1")==="1") return; }catch(e){}
@@ -5992,6 +5993,12 @@ function manRenderKpis(){
 function manRenderFiltro(){
   document.getElementById("manFiltro").innerHTML='<option value="">Todos os tipos</option>'+MAN_TIPOS.map(function(t){ return '<option value="'+manEsc(t)+'"'+(t===manFiltroTipo?' selected':'')+'>'+manEsc(t)+'</option>'; }).join('');
 }
+function manRenderFiltroSetor(){
+  var locais=[]; manData.equipamentos.forEach(function(e){ var l=(e.local||"").trim(); if(l && locais.indexOf(l)<0) locais.push(l); });
+  locais.sort(function(a,b){ return a.localeCompare(b); });
+  if(manFiltroSetor && locais.indexOf(manFiltroSetor)<0) manFiltroSetor="";
+  document.getElementById("manFiltroSetor").innerHTML='<option value="">Todos os setores</option>'+locais.map(function(l){ return '<option value="'+manEsc(l)+'"'+(l===manFiltroSetor?' selected':'')+'>'+manEsc(l)+'</option>'; }).join('');
+}
 function manRenderForm(){
   var wrap=document.getElementById("manFormWrap");
   if(manForm==="eq"){
@@ -6025,10 +6032,10 @@ function manRenderForm(){
 }
 function manRenderLista(){
   var el=document.getElementById("manLista");
-  var eqs=manData.equipamentos.filter(function(e){ return !manFiltroTipo || e.tipo===manFiltroTipo; });
+  var eqs=manData.equipamentos.filter(function(e){ return (!manFiltroTipo || e.tipo===manFiltroTipo) && (!manFiltroSetor || (e.local||"").trim()===manFiltroSetor); });
   function ord(e){ var s=manStatus(e); return s.cls==="venc"?0:(s.cls==="prox"?1:(s.cls==="sem"?2:3)); }
   eqs=eqs.slice().sort(function(a,b){ return ord(a)-ord(b); });
-  if(!eqs.length){ el.innerHTML='<p class="man-vazio">Nenhum equipamento '+(manFiltroTipo?'desse tipo':'cadastrado')+'.<br>Clique em <b>＋ Equipamento</b> para começar.</p>'; return; }
+  if(!eqs.length){ el.innerHTML='<p class="man-vazio">Nenhum equipamento '+((manFiltroTipo||manFiltroSetor)?'com esse filtro':'cadastrado')+'.<br>Clique em <b>＋ Equipamento</b> para começar.</p>'; return; }
   var h='<div class="man-cards">';
   eqs.forEach(function(e){
     var cor=manTipoCor(e.tipo), st=manStatus(e), ult=manUltimo(e.id);
@@ -6049,7 +6056,7 @@ function manRenderLista(){
   });
   el.innerHTML=h+'</div>';
 }
-function renderManut(){ manRenderFiltro(); manRenderKpis(); manRenderForm(); manRenderLista(); manAtualizaBadge(); }
+function renderManut(){ manRenderFiltro(); manRenderFiltroSetor(); manRenderKpis(); manRenderForm(); manRenderLista(); manAtualizaBadge(); }
 function manEqSaveFromForm(){
   var nome=(document.getElementById("manEqNome").value||"").trim();
   var tipo=document.getElementById("manEqTipo").value;
@@ -6076,6 +6083,7 @@ function manSvSaveFromForm(){
   document.getElementById("manAddEq").addEventListener("click",function(){ manForm=(manForm==="eq"?null:"eq"); manEqEdit=null; renderManut(); });
   document.getElementById("manAddServ").addEventListener("click",function(){ manForm=(manForm==="serv"?null:"serv"); manServEq=""; renderManut(); });
   document.getElementById("manFiltro").addEventListener("change",function(){ manFiltroTipo=this.value; renderManut(); });
+  document.getElementById("manFiltroSetor").addEventListener("change",function(){ manFiltroSetor=this.value; renderManut(); });
   document.getElementById("manFormWrap").addEventListener("click",function(ev){
     if(ev.target.closest("#manEqSave")){ manEqSaveFromForm(); return; }
     if(ev.target.closest("#manSvSave")){ manSvSaveFromForm(); return; }
