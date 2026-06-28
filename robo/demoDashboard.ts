@@ -6042,7 +6042,7 @@ function manRenderForm(){
       +'<div class="man-fld"><label>A cada (dias)'+rq+'</label><input id="manEqInt" type="number" min="0" step="1" placeholder="90" value="'+(ed&&ed.intervalo?ed.intervalo:'')+'"></div>'
       +'</div>'
       +'<div class="man-grid" style="grid-template-columns:200px 1.4fr 1fr auto;margin-top:8px;">'
-      +'<div class="man-fld"><label>Execução</label><select id="manEqExec"><option value="externa"'+((!ed||ed.execucao!=="interna")?" selected":"")+'>Empresa externa</option><option value="interna"'+((ed&&ed.execucao==="interna")?" selected":"")+'>Equipe interna</option></select></div>'
+      +'<div class="man-fld"><label>Execução'+rq+'</label><select id="manEqExec"><option value=""'+((!ed||!ed.execucao)?" selected":"")+'>Selecione...</option><option value="externa"'+((ed&&ed.execucao==="externa")?" selected":"")+'>Empresa externa</option><option value="interna"'+((ed&&ed.execucao==="interna")?" selected":"")+'>Equipe interna</option></select></div>'
       +'<div class="man-fld"><label>Quem faz a manutenção'+rq+'</label><input id="manEqResp" placeholder="Empresa ou funcionário" value="'+(ed?manEsc(ed.responsavel||''):'')+'"></div>'
       +'<div class="man-fld"><label>Telefone</label><input id="manEqFone" placeholder="(00) 00000-0000" value="'+(ed?manEsc(ed.telefone||''):'')+'"></div>'
       +'<button class="man-add" id="manEqSave" type="button" style="align-self:end;">'+(ed?'Salvar':'Adicionar')+'</button>'
@@ -6094,9 +6094,9 @@ function manRenderLista(){
 }
 function renderManut(){ manRenderFiltro(); manRenderFiltroSetor(); manRenderKpis(); manRenderForm(); manRenderLista(); manAtualizaBadge(); }
 function manEqValidaVisual(){
-  var ex=document.getElementById("manEqExec"); var externa = ex ? (ex.value==="externa") : true;
-  var obrig=["manEqNome","manEqLocal","manEqInt","manEqResp"]; if(externa) obrig.push("manEqFone");
-  ["manEqNome","manEqLocal","manEqInt","manEqResp","manEqFone"].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove("campo-erro"); });
+  var ex=document.getElementById("manEqExec"); var externa = ex ? (ex.value==="externa") : false;
+  var obrig=["manEqNome","manEqLocal","manEqInt","manEqResp","manEqExec"]; if(externa) obrig.push("manEqFone");
+  ["manEqNome","manEqLocal","manEqInt","manEqResp","manEqExec","manEqFone"].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove("campo-erro"); });
   obrig.forEach(function(id){ var el=document.getElementById(id); if(el && (el.value||"").trim()==="") el.classList.add("campo-erro"); });
 }
 function manEqSaveFromForm(){
@@ -6112,6 +6112,7 @@ function manEqSaveFromForm(){
   if(!local) faltando.push("Local / Setor");
   if(!intervalo) faltando.push("A cada (dias)");
   if(!responsavel) faltando.push("Quem faz a manutenção");
+  if(!execucao) faltando.push("Execução (externa ou interna)");
   if(execucao==="externa" && !telefone) faltando.push("Telefone");
   if(faltando.length){ manEqValidaVisual(); uiConfirm({titulo:"Campos obrigatórios",msg:"Preencha antes de adicionar: "+faltando.join(", ")+".",ok:"OK",cancel:""}); return; }
   if(manEqEdit){ var e=manData.equipamentos.find(function(x){return x.id===manEqEdit;}); if(e){ e.nome=nome; e.tipo=tipo; e.local=local; e.intervalo=intervalo; e.responsavel=responsavel; e.telefone=telefone; e.execucao=execucao; } }
