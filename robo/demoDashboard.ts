@@ -6041,7 +6041,7 @@ function manRenderForm(){
       +'<div class="man-fld"><label>Local / Setor'+rq+'</label><input id="manEqLocal" placeholder="Ex: Açougue" value="'+(ed?manEsc(ed.local||''):'')+'"></div>'
       +'<div class="man-fld"><label>A cada (dias)'+rq+'</label><input id="manEqInt" type="number" min="0" step="1" placeholder="90" value="'+(ed&&ed.intervalo?ed.intervalo:'')+'"></div>'
       +'</div>'
-      +'<div class="man-grid" style="grid-template-columns:160px 1.4fr 1fr auto;margin-top:8px;">'
+      +'<div class="man-grid" style="grid-template-columns:200px 1.4fr 1fr auto;margin-top:8px;">'
       +'<div class="man-fld"><label>Execução</label><select id="manEqExec"><option value="externa"'+((!ed||ed.execucao!=="interna")?" selected":"")+'>Empresa externa</option><option value="interna"'+((ed&&ed.execucao==="interna")?" selected":"")+'>Equipe interna</option></select></div>'
       +'<div class="man-fld"><label>Quem faz a manutenção'+rq+'</label><input id="manEqResp" placeholder="Empresa ou funcionário" value="'+(ed?manEsc(ed.responsavel||''):'')+'"></div>'
       +'<div class="man-fld"><label>Telefone</label><input id="manEqFone" placeholder="(00) 00000-0000" value="'+(ed?manEsc(ed.telefone||''):'')+'"></div>'
