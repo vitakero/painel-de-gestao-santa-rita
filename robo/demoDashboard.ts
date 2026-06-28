@@ -403,7 +403,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="acougue"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h11a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3z"/><path d="M15 8h4a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4"/><path d="M3 19h13"/></svg></span> Perdas açougue</button>
     <button class="nav-item" data-page="epi"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span> EPI</button>
     <button class="nav-item" data-page="fardamento"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l4-3 2 2h4l2-2 4 3-2 3-2-1v11H8V9L6 10z"/></svg></span> Fardamento</button>
-    <button class="nav-item" data-page="manutencoes"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.3-.6-.6-2.3 2.6-2.6z"/></svg></span> Manutenções</button>
+    <button class="nav-item" data-page="manutencoes"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.3-.6-.6-2.3 2.6-2.6z"/></svg></span> Manutenções<span class="nav-badge" id="manNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="negociar"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span> Negociar<span class="nav-badge" id="negNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="metas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span> Metas <span class="soon">em breve</span></button>
     <button class="nav-item" data-page="entregas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Entregas</button>
@@ -5978,6 +5978,8 @@ function manStatus(eq){
   if(rest<=7) return {cls:"prox",txt:"Vence em "+rest+" dia"+(rest===1?"":"s")};
   return {cls:"ok",txt:"Em dia · próx. em "+rest+" dias"};
 }
+function manProxData(eq){ var ult=manUltimo(eq.id); if(!ult||!(+eq.intervalo)) return null; var d=new Date(ult.data+"T00:00:00"); d.setDate(d.getDate()+(+eq.intervalo)); return ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear(); }
+function manAtualizaBadge(){ var b=document.getElementById("manNavBadge"); if(!b) return; var n=manData.equipamentos.filter(function(e){return manStatus(e).cls==="venc";}).length; if(n>0){ b.textContent=n; b.style.display=""; } else { b.style.display="none"; } }
 function manRenderKpis(){
   var eqs=manData.equipamentos, lim=manIso(new Date(HOJE.getTime()-30*86400000));
   var recentes=manData.registros.filter(function(r){return r.data>=lim;});
@@ -6033,6 +6035,8 @@ function manRenderLista(){
     var regs=manData.registros.filter(function(r){return r.idEq===e.id;}).sort(function(a,b){return a.data<b.data?1:-1;});
     h+='<div class="man-card"><div class="man-card-top"><div><div class="man-nome">'+manEsc(e.nome)+'</div>'+(e.local?'<div class="man-local">📍 '+manEsc(e.local)+'</div>':'')+'</div><span class="man-tag" style="background:'+cor+'22;color:'+cor+'">'+manEsc(e.tipo)+'</span></div>';
     h+='<div><span class="man-status '+st.cls+'">'+st.txt+'</span></div>';
+    var prox=manProxData(e);
+    if(prox){ h+='<div class="man-ult" style="margin-top:4px;font-weight:600;color:'+(st.cls==="venc"?"#c0392b":"#157a35")+'">'+(st.cls==="venc"?"⚠️ Era pra ter sido em ":"📅 Próxima: ")+prox+'</div>'; }
     h+=ult?('<div class="man-ult">Último: '+ult.data.split("-").reverse().join("/")+' · '+manEsc(ult.tipo)+(ult.responsavel?' · '+manEsc(ult.responsavel):'')+'</div>'):'<div class="man-ult">Nenhum serviço registrado ainda.</div>';
     h+='<div class="man-acoes"><button class="man-mini serv" data-svq="'+e.id+'">＋ Serviço</button><button class="man-mini" data-hist="'+e.id+'">'+(manAbertos[e.id]?'Ocultar':'Histórico ('+regs.length+')')+'</button><button class="man-mini" data-eqedit="'+e.id+'">Editar</button><button class="man-mini del" data-eqdel="'+e.id+'">Remover</button></div>';
     if(manAbertos[e.id]){
@@ -6045,7 +6049,7 @@ function manRenderLista(){
   });
   el.innerHTML=h+'</div>';
 }
-function renderManut(){ manRenderFiltro(); manRenderKpis(); manRenderForm(); manRenderLista(); }
+function renderManut(){ manRenderFiltro(); manRenderKpis(); manRenderForm(); manRenderLista(); manAtualizaBadge(); }
 function manEqSaveFromForm(){
   var nome=(document.getElementById("manEqNome").value||"").trim();
   var tipo=document.getElementById("manEqTipo").value;
@@ -6127,6 +6131,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
 render();
 try{ pxAtualizaBadge(); }catch(e){}
 try{ negAtualizaBadge(); }catch(e){}
+try{ manAtualizaBadge(); }catch(e){}
 
 // Restaura a última página aberta após recarregar (Cmd+R) e sempre vai pro topo
 (function(){
