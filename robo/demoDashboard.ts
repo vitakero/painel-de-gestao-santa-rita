@@ -6032,12 +6032,12 @@ function manRenderForm(){
   var wrap=document.getElementById("manFormWrap");
   if(manForm==="eq"){
     var ed=manEqEdit?manData.equipamentos.find(function(e){return e.id===manEqEdit;}):null;
-    var tipoOpts=MAN_TIPOS.map(function(t){ return '<option'+(ed&&ed.tipo===t?' selected':'')+'>'+manEsc(t)+'</option>'; }).join('');
+    var tipoOpts='<option value=""'+((!ed||!ed.tipo)?" selected":"")+'>Selecione...</option>'+MAN_TIPOS.map(function(t){ return '<option'+(ed&&ed.tipo===t?' selected':'')+'>'+manEsc(t)+'</option>'; }).join('');
     var rq='';
     wrap.innerHTML='<div class="man-form"><h4>'+(ed?'Editar equipamento':'Novo equipamento')+'</h4>'
       +'<div class="man-grid" style="grid-template-columns:2fr 1fr 1fr 150px;">'
       +'<div class="man-fld"><label>Nome'+rq+'</label><input id="manEqNome" placeholder="Ex: Ar-condicionado do caixa" value="'+(ed?manEsc(ed.nome):'')+'"></div>'
-      +'<div class="man-fld"><label>Tipo</label><select id="manEqTipo">'+tipoOpts+'</select></div>'
+      +'<div class="man-fld"><label>Tipo'+rq+'</label><select id="manEqTipo">'+tipoOpts+'</select></div>'
       +'<div class="man-fld"><label>Local / Setor'+rq+'</label><input id="manEqLocal" placeholder="Ex: Açougue" value="'+(ed?manEsc(ed.local||''):'')+'"></div>'
       +'<div class="man-fld"><label>A cada (dias)'+rq+'</label><input id="manEqInt" type="number" min="0" step="1" placeholder="90" value="'+(ed&&ed.intervalo?ed.intervalo:'')+'"></div>'
       +'</div>'
@@ -6095,8 +6095,8 @@ function manRenderLista(){
 function renderManut(){ manRenderFiltro(); manRenderFiltroSetor(); manRenderKpis(); manRenderForm(); manRenderLista(); manAtualizaBadge(); }
 function manEqValidaVisual(){
   var ex=document.getElementById("manEqExec"); var externa = ex ? (ex.value==="externa") : false;
-  var obrig=["manEqNome","manEqLocal","manEqInt","manEqResp","manEqExec"]; if(externa) obrig.push("manEqFone");
-  ["manEqNome","manEqLocal","manEqInt","manEqResp","manEqExec","manEqFone"].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove("campo-erro"); });
+  var obrig=["manEqNome","manEqTipo","manEqLocal","manEqInt","manEqResp","manEqExec"]; if(externa) obrig.push("manEqFone");
+  ["manEqNome","manEqTipo","manEqLocal","manEqInt","manEqResp","manEqExec","manEqFone"].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove("campo-erro"); });
   obrig.forEach(function(id){ var el=document.getElementById(id); if(el && (el.value||"").trim()==="") el.classList.add("campo-erro"); });
 }
 function manEqSaveFromForm(){
@@ -6109,6 +6109,7 @@ function manEqSaveFromForm(){
   var execucao=document.getElementById("manEqExec").value;
   var faltando=[];
   if(!nome) faltando.push("Nome");
+  if(!tipo) faltando.push("Tipo");
   if(!local) faltando.push("Local / Setor");
   if(!intervalo) faltando.push("A cada (dias)");
   if(!responsavel) faltando.push("Quem faz a manutenção");
