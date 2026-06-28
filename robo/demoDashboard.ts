@@ -1250,6 +1250,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .man-status.prox{background:#fdf3d9;color:#a07a00;}
         .man-status.venc{background:#fdecec;color:#c0392b;}
         .man-status.sem{background:#eef1f6;color:#8a97a8;}
+        .man-agenda{margin-top:8px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:600;line-height:1.35;}
+        .man-agenda.ag-fut{background:#eef4fb;color:#2a6fb0;}
+        .man-agenda.ag-amanha{background:#fdf3d9;color:#9a6a00;}
+        .man-agenda.ag-hoje{background:#fdecec;color:#c0392b;}
+        .man-agenda.ag-atras{background:#fdecec;color:#c0392b;}
         .man-ult{font-size:12px;color:#56606d;margin-top:8px;}
         .man-acoes{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;}
         .man-mini{border:1px solid #d7dee7;background:#fff;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;color:#46535f;cursor:pointer;}
@@ -1272,7 +1277,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <button class="man-btn" id="manAddServ" type="button" style="margin-left:auto;">＋ Registrar serviço</button>
           <button class="man-btn prim" id="manAddEq" type="button">＋ Equipamento</button>
         </div>
-        <div class="kpis" id="manKpis" style="grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:22px;"></div>
+        <div class="kpis" id="manKpis" style="grid-template-columns:repeat(6,minmax(0,1fr));margin-bottom:22px;"></div>
         <div id="manFormWrap"></div>
         <div id="manLista"></div>
       </div>
@@ -5945,7 +5950,7 @@ function manSave(){ try{ localStorage.setItem("manutencoes", JSON.stringify(manD
 function manUid(p){ return (p||"m")+Date.now().toString(36)+Math.floor(Math.random()*1000); }
 function manEsc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
 function manIso(d){ return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2); }
-var manForm=null, manEqEdit=null, manServEq="", manAbertos={}, manFiltroTipo="", manFiltroSetor="";
+var manForm=null, manEqEdit=null, manServEq="", manAbertos={}, manFiltroTipo="", manFiltroSetor="", manAgendaEq="";
 
 (function manSeed(){
   try{ if(localStorage.getItem("manutencoes_demo_v1")==="1") return; }catch(e){}
@@ -5953,7 +5958,7 @@ var manForm=null, manEqEdit=null, manServEq="", manAbertos={}, manFiltroTipo="",
   function dA(n){ return manIso(new Date(HOJE.getTime()-n*86400000)); }
   var e1=manUid("e"),e2=manUid("e"),e3=manUid("e"),e4=manUid("e");
   manData.equipamentos=[
-    {id:e1,nome:"Ar-condicionado Frente de Caixa",tipo:"Ar-condicionado",local:"Frente de loja",intervalo:90},
+    {id:e1,nome:"Ar-condicionado Frente de Caixa",tipo:"Ar-condicionado",local:"Frente de loja",intervalo:90,agenda:{data:dA(-1),resp:"Refrigeração Caicó",fone:"(84) 99999-1234"}},
     {id:e2,nome:"Câmara Fria do Açougue",tipo:"Câmara fria",local:"Açougue",intervalo:60},
     {id:e3,nome:"Balcão Refrigerado de Frios",tipo:"Balcão refrigerado",local:"Frios/Laticínios",intervalo:30},
     {id:e4,nome:"Gerador",tipo:"Gerador",local:"Área externa",intervalo:180}
@@ -5981,14 +5986,34 @@ function manStatus(eq){
   return {cls:"ok",txt:"Em dia · próx. em "+rest+" dias"};
 }
 function manProxData(eq){ var ult=manUltimo(eq.id); if(!ult||!(+eq.intervalo)) return null; var d=new Date(ult.data+"T00:00:00"); d.setDate(d.getDate()+(+eq.intervalo)); return ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear(); }
-function manAtualizaBadge(){ var b=document.getElementById("manNavBadge"); if(!b) return; var n=manData.equipamentos.filter(function(e){return manStatus(e).cls==="venc";}).length; if(n>0){ b.textContent=n; b.style.display=""; } else { b.style.display="none"; } }
+// Info do agendamento (data marcada da proxima manutencao). faltam: dias ate o agendamento.
+function manAgInfo(eq){
+  if(!eq.agenda||!eq.agenda.data) return null;
+  var faltam=-manDiasDesde(eq.agenda.data);
+  var dataBr=eq.agenda.data.split("-").reverse().join("/");
+  var cls,txt;
+  if(faltam<0){ cls="ag-atras"; txt="⚠️ Agendado passou ("+dataBr+")"; }
+  else if(faltam===0){ cls="ag-hoje"; txt="📌 Agendado para HOJE ("+dataBr+")"; }
+  else if(faltam===1){ cls="ag-amanha"; txt="⏰ É AMANHÃ ("+dataBr+") — avise o responsável!"; }
+  else { cls="ag-fut"; txt="🗓️ Agendado: "+dataBr+" (faltam "+faltam+" dias)"; }
+  return {cls:cls,txt:txt,faltam:faltam,dataBr:dataBr};
+}
+function manAtualizaBadge(){
+  var b=document.getElementById("manNavBadge"); if(!b) return;
+  var n=manData.equipamentos.filter(function(e){
+    if(manStatus(e).cls==="venc") return true;
+    var ag=manAgInfo(e); if(ag && ag.faltam<=1) return true;
+    return false;
+  }).length;
+  if(n>0){ b.textContent=n; b.style.display=""; } else { b.style.display="none"; }
+}
 function manRenderKpis(){
   var eqs=manData.equipamentos, lim=manIso(new Date(HOJE.getTime()-30*86400000));
   var recentes=manData.registros.filter(function(r){return r.data>=lim;});
   var custo=soma(recentes.map(function(r){return +r.custo||0;}));
-  var venc=0, emdia=0;
-  eqs.forEach(function(e){ var s=manStatus(e); if(s.cls==="venc")venc++; else if(s.cls==="ok"||s.cls==="prox")emdia++; });
-  var cards=[{v:num(eqs.length),l:"Equipamentos"},{v:num(recentes.length),l:"Serviços (30 dias)"},{v:brl(custo),l:"Custo (30 dias)"},{v:num(venc),l:"Vencidos"},{v:num(emdia),l:"Em dia"}];
+  var venc=0, emdia=0, agend=0;
+  eqs.forEach(function(e){ var s=manStatus(e); if(s.cls==="venc")venc++; else if(s.cls==="ok"||s.cls==="prox")emdia++; var ag=manAgInfo(e); if(ag && ag.faltam>=0) agend++; });
+  var cards=[{v:num(eqs.length),l:"Equipamentos"},{v:num(recentes.length),l:"Serviços (30 dias)"},{v:brl(custo),l:"Custo (30 dias)"},{v:num(venc),l:"Vencidos"},{v:num(agend),l:"Agendados"},{v:num(emdia),l:"Em dia"}];
   document.getElementById("manKpis").innerHTML=cards.map(function(c){ return '<div class="kpi"><div class="v">'+c.v+'</div><div class="l">'+c.l+'</div></div>'; }).join('');
 }
 function manRenderFiltro(){
@@ -6029,6 +6054,21 @@ function manRenderForm(){
       +'<div class="man-fld"><label>Observação</label><input id="manSvObs" placeholder="Opcional"></div>'
       +'<button class="man-add" id="manSvSave" type="button" style="align-self:end;">Adicionar</button>'
       +'</div></div>';
+  } else if(manForm==="agenda"){
+    var eqa=manData.equipamentos.find(function(e){return e.id===manAgendaEq;});
+    if(!eqa){ wrap.innerHTML=''; return; }
+    var ag=eqa.agenda||{};
+    var prev=manProxData(eqa);
+    wrap.innerHTML='<div class="man-form"><h4>🗓️ Agendar manutenção — '+manEsc(eqa.nome)+'</h4>'
+      +'<div class="man-grid" style="grid-template-columns:150px 1.4fr 1fr auto;">'
+      +'<div class="man-fld"><label>Dia agendado</label><input id="manAgData" type="date" value="'+(ag.data||'')+'"></div>'
+      +'<div class="man-fld"><label>Quem vai fazer</label><input id="manAgResp" placeholder="Empresa ou pessoa" value="'+manEsc(ag.resp||'')+'"></div>'
+      +'<div class="man-fld"><label>Telefone</label><input id="manAgFone" placeholder="(00) 00000-0000" value="'+manEsc(ag.fone||'')+'"></div>'
+      +'<button class="man-add" id="manAgSave" type="button">Salvar</button>'
+      +'</div>'
+      +(prev?'<p style="font-size:11px;color:#8a97a8;margin:8px 0 0;">📅 Próxima prevista pelo sistema: <b>'+prev+'</b> — você pode agendar pra qualquer dia.</p>':'')
+      +(eqa.agenda?'<button class="man-mini del" id="manAgClear" type="button" style="margin-top:8px;">Cancelar agendamento</button>':'')
+      +'</div>';
   } else { wrap.innerHTML=''; }
 }
 function manRenderLista(){
@@ -6046,7 +6086,9 @@ function manRenderLista(){
     var prox=manProxData(e);
     if(prox){ h+='<div class="man-ult" style="margin-top:4px;font-weight:600;color:'+(st.cls==="venc"?"#c0392b":"#157a35")+'">'+(st.cls==="venc"?"⚠️ Era pra ter sido em ":"📅 Próxima: ")+prox+'</div>'; }
     h+=ult?('<div class="man-ult">Último: '+ult.data.split("-").reverse().join("/")+' · '+manEsc(ult.tipo)+(ult.responsavel?' · '+manEsc(ult.responsavel):'')+'</div>'):'<div class="man-ult">Nenhum serviço registrado ainda.</div>';
-    h+='<div class="man-acoes"><button class="man-mini serv" data-svq="'+e.id+'">＋ Serviço</button><button class="man-mini" data-hist="'+e.id+'">'+(manAbertos[e.id]?'Ocultar':'Histórico ('+regs.length+')')+'</button><button class="man-mini" data-eqedit="'+e.id+'">Editar</button><button class="man-mini del" data-eqdel="'+e.id+'">Remover</button></div>';
+    var agi=manAgInfo(e);
+    if(agi){ h+='<div class="man-agenda '+agi.cls+'">'+agi.txt+(e.agenda.resp?'<br>👷 '+manEsc(e.agenda.resp):'')+(e.agenda.fone?' · 📞 '+manEsc(e.agenda.fone):'')+'</div>'; }
+    h+='<div class="man-acoes"><button class="man-mini serv" data-svq="'+e.id+'">＋ Serviço</button><button class="man-mini" data-agenda="'+e.id+'">🗓️ '+(e.agenda?'Reagendar':'Agendar')+'</button><button class="man-mini" data-hist="'+e.id+'">'+(manAbertos[e.id]?'Ocultar':'Histórico ('+regs.length+')')+'</button><button class="man-mini" data-eqedit="'+e.id+'">Editar</button><button class="man-mini del" data-eqdel="'+e.id+'">Remover</button></div>';
     if(manAbertos[e.id]){
       h+='<div class="man-hist">';
       if(!regs.length){ h+='<p style="font-size:12px;color:#8a97a8;margin:0;">Sem serviços registrados.</p>'; }
@@ -6078,7 +6120,16 @@ function manSvSaveFromForm(){
   if(!idEq){ uiConfirm({titulo:"Aviso",msg:"Escolha o equipamento.",ok:"OK",cancel:""}); return; }
   if(!data){ uiConfirm({titulo:"Aviso",msg:"Informe a data.",ok:"OK",cancel:""}); return; }
   manData.registros.push({id:manUid("r"),idEq:idEq,data:data,tipo:tipo,responsavel:resp,custo:custo,obs:obs});
+  var eqd=manData.equipamentos.find(function(x){return x.id===idEq;}); if(eqd) eqd.agenda=null;
   manSave(); manForm=null; manAbertos[idEq]=true; renderManut();
+}
+function manAgSaveFromForm(){
+  var eqa=manData.equipamentos.find(function(x){return x.id===manAgendaEq;});
+  if(!eqa){ manForm=null; renderManut(); return; }
+  var data=document.getElementById("manAgData").value;
+  if(!data){ uiConfirm({titulo:"Aviso",msg:"Escolha o dia agendado.",ok:"OK",cancel:""}); return; }
+  eqa.agenda={data:data,resp:(document.getElementById("manAgResp").value||"").trim(),fone:(document.getElementById("manAgFone").value||"").trim()};
+  manSave(); manForm=null; renderManut();
 }
 (function initManut(){
   document.getElementById("manAddEq").addEventListener("click",function(){ manForm=(manForm==="eq"?null:"eq"); manEqEdit=null; renderManut(); });
@@ -6088,9 +6139,12 @@ function manSvSaveFromForm(){
   document.getElementById("manFormWrap").addEventListener("click",function(ev){
     if(ev.target.closest("#manEqSave")){ manEqSaveFromForm(); return; }
     if(ev.target.closest("#manSvSave")){ manSvSaveFromForm(); return; }
+    if(ev.target.closest("#manAgSave")){ manAgSaveFromForm(); return; }
+    if(ev.target.closest("#manAgClear")){ var eqc=manData.equipamentos.find(function(x){return x.id===manAgendaEq;}); if(eqc){ eqc.agenda=null; manSave(); } manForm=null; renderManut(); return; }
   });
   document.getElementById("manLista").addEventListener("click",function(ev){
     var svq=ev.target.closest("[data-svq]"); if(svq){ manForm="serv"; manServEq=svq.getAttribute("data-svq"); renderManut(); var w=document.getElementById("manFormWrap"); if(w) w.scrollIntoView({behavior:"smooth",block:"center"}); return; }
+    var agb=ev.target.closest("[data-agenda]"); if(agb){ manForm="agenda"; manAgendaEq=agb.getAttribute("data-agenda"); renderManut(); var wa=document.getElementById("manFormWrap"); if(wa) wa.scrollIntoView({behavior:"smooth",block:"center"}); return; }
     var hist=ev.target.closest("[data-hist]"); if(hist){ var id=hist.getAttribute("data-hist"); manAbertos[id]=!manAbertos[id]; renderManut(); return; }
     var eqed=ev.target.closest("[data-eqedit]"); if(eqed){ manForm="eq"; manEqEdit=eqed.getAttribute("data-eqedit"); renderManut(); var w2=document.getElementById("manFormWrap"); if(w2) w2.scrollIntoView({behavior:"smooth",block:"center"}); return; }
     var eqdel=ev.target.closest("[data-eqdel]"); if(eqdel){ var id2=eqdel.getAttribute("data-eqdel"); var e2=manData.equipamentos.find(function(x){return x.id===id2;}); uiConfirm({titulo:"Remover equipamento",msg:'Remover "'+(e2?manEsc(e2.nome):'')+'" e todo o histórico dele?',ok:"Remover",cancel:"Cancelar"}).then(function(ok){ if(!ok)return; manData.equipamentos=manData.equipamentos.filter(function(x){return x.id!==id2;}); manData.registros=manData.registros.filter(function(r){return r.idEq!==id2;}); manSave(); renderManut(); }); return; }
