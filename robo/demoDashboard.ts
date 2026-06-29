@@ -6048,6 +6048,7 @@ function manRenderForm(){
       +'<button class="man-add" id="manEqSave" type="button" style="align-self:end;">'+(ed?'Salvar':'Adicionar')+'</button>'
       +'</div>'
       +'<div class="man-fld" style="margin-top:10px;"><label>📖 Manual / passo a passo (como limpar, montar e fazer manutenção)</label><textarea id="manEqManual" rows="7" placeholder="Escreva o passo a passo desta máquina. Ex.:  LIMPEZA: 1) Desligue e tire da tomada  2) Retire as bandejas  3) ...   MONTAGEM: 1) ...   SEGURANÇA: ..." style="width:100%;border:1px solid #d4dde6;border-radius:7px;padding:8px 10px;font:inherit;color:#1d2733;box-sizing:border-box;resize:vertical;line-height:1.5;">'+(ed?manEsc(ed.manual||''):'')+'</textarea></div>'
+      +'<div class="man-fld" style="margin-top:10px;"><label>📄 Link do manual (PDF do fabricante ou do seu Google Drive)</label><input id="manEqLink" placeholder="Cole o link do manual aqui" value="'+(ed?manEsc(ed.linkManual||''):'')+'" style="width:100%;box-sizing:border-box;border:1px solid #d4dde6;border-radius:7px;padding:8px 10px;font:inherit;color:#1d2733;"></div>'
       +'<p style="font-size:11px;color:#8a97a8;margin:8px 0 0;">"A cada (dias)" = de quanto em quanto tempo deve ser feito — o sistema calcula a próxima sozinho e te avisa quando chegar perto, mostrando quem chamar.</p></div>';
   } else if(manForm==="serv"){
     if(!manData.equipamentos.length){ wrap.innerHTML='<div class="man-form"><p class="man-vazio">Cadastre um equipamento primeiro (botão ＋ Equipamento).</p></div>'; return; }
@@ -6083,7 +6084,7 @@ function manRenderLista(){
     if(agi){ var cont=''; var externaE = e.execucao ? (e.execucao==="externa") : !!e.telefone; if(agi.faltam<=2 && (e.responsavel||e.telefone)){ cont = externaE ? ('<br>📞 Avise: '+manEsc(e.responsavel||'responsável')+(e.telefone?' · '+manEsc(e.telefone):'')) : ('<br>🧹 Fazer — responsável: '+manEsc(e.responsavel||'equipe interna')); } h+='<div class="man-agenda '+agi.cls+'">'+agi.txt+cont+'</div>'; }
     h+=ult?('<div class="man-ult">Último: '+ult.data.split("-").reverse().join("/")+' · '+manEsc(ult.tipo)+(ult.responsavel?' · '+manEsc(ult.responsavel):'')+'</div>'):'<div class="man-ult">Nenhum serviço registrado ainda — registre o 1º pra começar a contar a próxima.</div>';
     if((e.responsavel||e.telefone)){ h+='<div class="man-ult" style="font-size:11px;">👷 '+manEsc(e.responsavel||'')+(e.telefone?' · 📞 '+manEsc(e.telefone):'')+'</div>'; }
-    h+='<div class="man-acoes"><button class="man-mini serv" data-svq="'+e.id+'">＋ Serviço feito</button><button class="man-mini" data-hist="'+e.id+'">'+(manAbertos[e.id]?'Ocultar':'Histórico ('+regs.length+')')+'</button><button class="man-mini" data-manual="'+e.id+'">📖 '+(manManualAberto[e.id]?'Ocultar manual':'Manual')+'</button><button class="man-mini" data-eqedit="'+e.id+'">Editar</button><button class="man-mini del" data-eqdel="'+e.id+'">Remover</button></div>';
+    h+='<div class="man-acoes"><button class="man-mini serv" data-svq="'+e.id+'">＋ Serviço feito</button><button class="man-mini" data-hist="'+e.id+'">'+(manAbertos[e.id]?'Ocultar':'Histórico ('+regs.length+')')+'</button><button class="man-mini" data-manual="'+e.id+'">📖 '+(manManualAberto[e.id]?'Ocultar manual':'Manual')+'</button>'+(e.linkManual?'<a class="man-mini" href="'+manEsc(e.linkManual)+'" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block;">📄 Manual (PDF)</a>':'')+'<button class="man-mini" data-eqedit="'+e.id+'">Editar</button><button class="man-mini del" data-eqdel="'+e.id+'">Remover</button></div>';
     if(manAbertos[e.id]){
       h+='<div class="man-hist">';
       if(!regs.length){ h+='<p style="font-size:12px;color:#8a97a8;margin:0;">Sem serviços registrados.</p>'; }
@@ -6111,6 +6112,7 @@ function manEqSaveFromForm(){
   var telefone=(document.getElementById("manEqFone").value||"").trim();
   var execucao=document.getElementById("manEqExec").value;
   var manualEl=document.getElementById("manEqManual"); var manual=manualEl?(manualEl.value||"").trim():"";
+  var linkEl=document.getElementById("manEqLink"); var linkManual=linkEl?(linkEl.value||"").trim():""; if(linkManual && linkManual.indexOf("http")!==0) linkManual="https://"+linkManual;
   var faltando=[];
   if(!nome) faltando.push("Nome");
   if(!tipo) faltando.push("Tipo");
@@ -6120,8 +6122,8 @@ function manEqSaveFromForm(){
   if(!execucao) faltando.push("Execução (externa ou interna)");
   if(execucao==="externa" && !telefone) faltando.push("Telefone");
   if(faltando.length){ manEqValidaVisual(); uiConfirm({titulo:"Campos obrigatórios",msg:"Preencha antes de adicionar: "+faltando.join(", ")+".",ok:"OK",cancel:""}); return; }
-  if(manEqEdit){ var e=manData.equipamentos.find(function(x){return x.id===manEqEdit;}); if(e){ e.nome=nome; e.tipo=tipo; e.local=local; e.intervalo=intervalo; e.responsavel=responsavel; e.telefone=telefone; e.execucao=execucao; e.manual=manual; } }
-  else { manData.equipamentos.push({id:manUid("e"),nome:nome,tipo:tipo,local:local,intervalo:intervalo,responsavel:responsavel,telefone:telefone,execucao:execucao,manual:manual}); }
+  if(manEqEdit){ var e=manData.equipamentos.find(function(x){return x.id===manEqEdit;}); if(e){ e.nome=nome; e.tipo=tipo; e.local=local; e.intervalo=intervalo; e.responsavel=responsavel; e.telefone=telefone; e.execucao=execucao; e.manual=manual; e.linkManual=linkManual; } }
+  else { manData.equipamentos.push({id:manUid("e"),nome:nome,tipo:tipo,local:local,intervalo:intervalo,responsavel:responsavel,telefone:telefone,execucao:execucao,manual:manual,linkManual:linkManual}); }
   manSave(); manForm=null; manEqEdit=null; renderManut();
 }
 function manSvSaveFromForm(){
