@@ -371,8 +371,26 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     .cel-t2 { background:#01B0F0 !important; color:#fff !important; }
     .cel-folga { background:#48DC62 !important; color:#fff !important; }
   }
-</style></head>
+  #authOv{position:fixed;inset:0;background:linear-gradient(140deg,#0a4d21,#0c2417);display:flex;align-items:center;justify-content:center;z-index:99999;padding:18px;}
+  #authCard{background:#fff;border-radius:16px;padding:30px 26px;width:100%;max-width:380px;box-shadow:0 22px 60px rgba(0,0,0,.45);}
+  #authCard h2{margin:0 0 4px;font-size:20px;color:#0c5a26;text-align:center;}
+  #authCard .sub{margin:0 0 18px;font-size:13px;color:#7a8696;text-align:center;}
+  .auth-tab{display:flex;gap:6px;margin-bottom:16px;}
+  .auth-tab button{flex:1;padding:9px;border:1px solid #d7dee7;background:#f4f7fb;border-radius:9px;font-size:13px;font-weight:600;color:#56606d;cursor:pointer;}
+  .auth-tab button.on{background:#157a35;border-color:#157a35;color:#fff;}
+  .auth-fld{margin-bottom:11px;}
+  .auth-fld label{display:block;font-size:12px;color:#7a8696;font-weight:600;margin-bottom:4px;}
+  .auth-fld input{width:100%;box-sizing:border-box;border:1px solid #d4dde6;border-radius:8px;padding:10px 11px;font:inherit;color:#1d2733;}
+  .auth-fld input:focus{outline:none;border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.15);}
+  #authBtn{width:100%;border:0;background:#157a35;color:#fff;border-radius:9px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;}
+  #authBtn:hover{background:#0c5a26;}
+  #authMsg{font-size:13px;margin:10px 0 0;text-align:center;min-height:18px;line-height:1.4;}
+  #authSkip{display:block;text-align:center;margin-top:16px;font-size:12px;color:#8a97a8;cursor:pointer;text-decoration:underline;}
+  #authUser{display:flex;align-items:center;gap:8px;padding:9px 11px;margin:0 8px 10px;background:#eef4ef;border-radius:10px;font-size:12.5px;color:#0c5a26;font-weight:600;}
+  #authSair{margin-left:auto;border:1px solid #cdd6e0;background:#fff;border-radius:7px;padding:4px 9px;font-size:12px;cursor:pointer;color:#56606d;font-weight:600;}
+</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body>
+<div id="authOv" style="display:none"><div id="authCard"><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar acesso</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authSkip" onclick="document.getElementById('authOv').style.display='none'">Continuar sem entrar (configuração)</span></div></div>
   <header>
     <div class="hwrap">
       <div class="logo">
@@ -6222,6 +6240,83 @@ try{ manAtualizaBadge(); }catch(e){}
     }
   }catch(e){}
   window.scrollTo(0,0);
+})();
+
+/* ===== Login / Acesso (Supabase) ===== */
+(function initAuth(){
+  var SUPA_URL="https://uabhsmculsfwzcrhyhch.supabase.co";
+  var SUPA_KEY="sb_publishable_IPLbRjk89c666QkfcoVTiw_GXujUTZU";
+  var ov=document.getElementById("authOv");
+  if(!ov) return;
+  if(!window.supabase){ ov.style.display="none"; return; } // a prova de travar: se a lib nao carregar, libera o painel
+  var SB=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+  window.__SB=SB;
+  var modo="login";
+  var msg=document.getElementById("authMsg");
+  function setMsg(t,cor){ msg.textContent=t||""; msg.style.color=cor||"#c0392b"; }
+  function applyPerms(perfil){
+    var navs=document.querySelectorAll('.nav-item[data-page]');
+    if(!perfil || perfil.is_master){ navs.forEach(function(b){b.style.display='';}); return; }
+    var ok=perfil.paginas||[], first=null;
+    navs.forEach(function(b){ var allow=ok.indexOf(b.dataset.page)>=0; b.style.display=allow?'':'none'; if(allow&&!first)first=b; });
+    var ativa=document.querySelector('.page.ativo');
+    var aid=ativa?ativa.id.replace('page-',''):'';
+    if(ok.indexOf(aid)<0 && first){ first.click(); }
+  }
+  function showUser(perfil,email){
+    var sbar=document.querySelector('.sidebar'); if(!sbar) return;
+    var u=document.getElementById('authUser');
+    if(!u){ u=document.createElement('div'); u.id='authUser'; sbar.insertBefore(u,sbar.firstChild); }
+    var nm=(perfil&&perfil.nome)?perfil.nome:(email||'Conectado');
+    u.innerHTML='<span>'+nm+((perfil&&perfil.is_master)?' (master)':'')+'</span><button id="authSair" type="button">Sair</button>';
+    document.getElementById('authSair').onclick=function(){ SB.auth.signOut().then(function(){ location.reload(); }); };
+  }
+  function carregarPerfil(sessao){
+    var email=(sessao&&sessao.user)?sessao.user.email:'';
+    SB.from('perfis').select('*').maybeSingle().then(function(r){
+      var perfil=(r&&r.data)?r.data:null;
+      applyPerms(perfil); showUser(perfil,email); ov.style.display="none";
+    });
+  }
+  SB.auth.getSession().then(function(r){
+    if(r && r.data && r.data.session){ carregarPerfil(r.data.session); }
+    else { ov.style.display="flex"; }
+  });
+  function traduzErro(m){
+    m=(m||"").toLowerCase();
+    if(m.indexOf("invalid login")>=0) return "Email ou senha errados.";
+    if(m.indexOf("not confirmed")>=0) return "Confirme o email antes de entrar (veja a caixa de entrada do setor).";
+    if(m.indexOf("already registered")>=0) return "Esse email já tem acesso. Use a aba Entrar.";
+    if(m.indexOf("weak")>=0) return "Senha muito fraca, escolha outra.";
+    return "Erro: "+m;
+  }
+  document.getElementById("tabLogin").onclick=function(){ modo="login"; this.classList.add("on"); document.getElementById("tabCad").classList.remove("on"); document.getElementById("fldNome").style.display="none"; document.getElementById("authBtn").textContent="Entrar"; setMsg(""); };
+  document.getElementById("tabCad").onclick=function(){ modo="cad"; this.classList.add("on"); document.getElementById("tabLogin").classList.remove("on"); document.getElementById("fldNome").style.display=""; document.getElementById("authBtn").textContent="Criar acesso"; setMsg(""); };
+  document.getElementById("authBtn").onclick=function(){
+    var email=(document.getElementById("authEmail").value||"").trim();
+    var senha=document.getElementById("authSenha").value||"";
+    var nome=(document.getElementById("authNome").value||"").trim();
+    if(!email||!senha){ setMsg("Preencha email e senha."); return; }
+    var btn=this; btn.disabled=true;
+    if(modo==="cad"){
+      if(!nome){ setMsg("Coloque seu nome."); btn.disabled=false; return; }
+      setMsg("Criando acesso...","#7a8696");
+      SB.auth.signUp({email:email,password:senha,options:{data:{nome:nome}}}).then(function(r){
+        btn.disabled=false;
+        if(r.error){ setMsg(traduzErro(r.error.message)); return; }
+        if(r.data && r.data.session){ carregarPerfil(r.data.session); }
+        else { setMsg("Acesso criado! Confirme o email enviado pra "+email+" e depois faça login.","#1b9e4b"); document.getElementById("tabLogin").click(); }
+      });
+    } else {
+      setMsg("Entrando...","#7a8696");
+      SB.auth.signInWithPassword({email:email,password:senha}).then(function(r){
+        btn.disabled=false;
+        if(r.error){ setMsg(traduzErro(r.error.message)); return; }
+        carregarPerfil(r.data.session);
+      });
+    }
+  };
+  ["authEmail","authSenha","authNome"].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); document.getElementById("authBtn").click(); } }); });
 })();
 </script>
 </body></html>`;
