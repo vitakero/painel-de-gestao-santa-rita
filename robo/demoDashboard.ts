@@ -371,26 +371,29 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     .cel-t2 { background:#01B0F0 !important; color:#fff !important; }
     .cel-folga { background:#48DC62 !important; color:#fff !important; }
   }
-  #authOv{position:fixed;inset:0;background:linear-gradient(140deg,#0a4d21,#0c2417);display:flex;align-items:center;justify-content:center;z-index:99999;padding:18px;}
-  #authCard{background:#fff;border-radius:16px;padding:30px 26px;width:100%;max-width:380px;box-shadow:0 22px 60px rgba(0,0,0,.45);}
-  #authCard h2{margin:0 0 4px;font-size:20px;color:#0c5a26;text-align:center;}
-  #authCard .sub{margin:0 0 18px;font-size:13px;color:#7a8696;text-align:center;}
-  .auth-tab{display:flex;gap:6px;margin-bottom:16px;}
-  .auth-tab button{flex:1;padding:9px;border:1px solid #d7dee7;background:#f4f7fb;border-radius:9px;font-size:13px;font-weight:600;color:#56606d;cursor:pointer;}
-  .auth-tab button.on{background:#157a35;border-color:#157a35;color:#fff;}
-  .auth-fld{margin-bottom:11px;}
-  .auth-fld label{display:block;font-size:12px;color:#7a8696;font-weight:600;margin-bottom:4px;}
-  .auth-fld input{width:100%;box-sizing:border-box;border:1px solid #d4dde6;border-radius:8px;padding:10px 11px;font:inherit;color:#1d2733;}
-  .auth-fld input:focus{outline:none;border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.15);}
-  #authBtn{width:100%;border:0;background:#157a35;color:#fff;border-radius:9px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;}
-  #authBtn:hover{background:#0c5a26;}
-  #authMsg{font-size:13px;margin:10px 0 0;text-align:center;min-height:18px;line-height:1.4;}
-  #authSkip{display:block;text-align:center;margin-top:16px;font-size:12px;color:#8a97a8;cursor:pointer;text-decoration:underline;}
+  #authOv{position:fixed;inset:0;background:radial-gradient(circle at 50% 16%,#23a847 0%,#0a4d21 50%,#06301a 100%);display:flex;align-items:center;justify-content:center;z-index:99999;padding:18px;}
+  #authCard{background:#fff;border-radius:20px;padding:34px 30px 26px;width:100%;max-width:400px;box-shadow:0 30px 70px rgba(0,0,0,.5);text-align:center;animation:authIn .25s ease;}
+  @keyframes authIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+  #authLogo{width:76px;height:76px;object-fit:contain;border-radius:18px;background:#fff;box-shadow:0 5px 16px rgba(0,0,0,.14);padding:7px;margin:0 auto 14px;display:block;}
+  #authCard h2{margin:0 0 3px;font-size:22px;color:#0c5a26;text-align:center;font-weight:800;}
+  #authCard .sub{margin:0 0 20px;font-size:13.5px;color:#8a97a8;text-align:center;}
+  .auth-tab{display:flex;gap:4px;margin-bottom:18px;background:#f1f4f8;padding:4px;border-radius:12px;}
+  .auth-tab button{flex:1;padding:9px;border:0;background:transparent;border-radius:9px;font-size:13.5px;font-weight:700;color:#7a8696;cursor:pointer;transition:.15s;}
+  .auth-tab button.on{background:#fff;color:#157a35;box-shadow:0 1px 5px rgba(0,0,0,.1);}
+  .auth-fld{margin-bottom:13px;text-align:left;}
+  .auth-fld label{display:block;font-size:12px;color:#7a8696;font-weight:600;margin-bottom:5px;}
+  .auth-fld input{width:100%;box-sizing:border-box;border:1.5px solid #e1e7ee;border-radius:10px;padding:12px 13px;font:inherit;font-size:15px;color:#1d2733;transition:.15s;}
+  .auth-fld input:focus{outline:none;border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.14);}
+  #authBtn{width:100%;border:0;background:linear-gradient(135deg,#23a847,#0c5a26);color:#fff;border-radius:11px;padding:13px;font-size:15.5px;font-weight:800;cursor:pointer;margin-top:6px;box-shadow:0 7px 18px rgba(21,122,53,.32);transition:.15s;}
+  #authBtn:hover{filter:brightness(1.07);}
+  #authBtn:active{transform:scale(.99);}
+  #authMsg{font-size:13px;margin:12px 0 0;text-align:center;min-height:18px;line-height:1.4;}
+  #authSkip{display:block;text-align:center;margin-top:18px;font-size:12px;color:#b3bcc7;cursor:pointer;text-decoration:underline;}
   #authUser{display:flex;align-items:center;gap:8px;padding:9px 11px;margin:0 8px 10px;background:#eef4ef;border-radius:10px;font-size:12.5px;color:#0c5a26;font-weight:600;}
   #authSair{margin-left:auto;border:1px solid #cdd6e0;background:#fff;border-radius:7px;padding:4px 9px;font-size:12px;cursor:pointer;color:#56606d;font-weight:600;}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body>
-<div id="authOv" style="display:none"><div id="authCard"><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar acesso</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authSkip" onclick="document.getElementById('authOv').style.display='none'">Continuar sem entrar (configuração)</span></div></div>
+<div id="authOv" style="display:none"><div id="authCard"><img id="authLogo" alt=""><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar acesso</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authSkip" onclick="document.getElementById('authOv').style.display='none'">Continuar sem entrar (configuração)</span></div></div>
   <header>
     <div class="hwrap">
       <div class="logo">
@@ -6251,6 +6254,8 @@ try{ manAtualizaBadge(); }catch(e){}
   if(!window.supabase){ ov.style.display="none"; return; } // a prova de travar: se a lib nao carregar, libera o painel
   var SB=window.supabase.createClient(SUPA_URL,SUPA_KEY);
   window.__SB=SB;
+  var lg=document.getElementById("authLogo");
+  if(lg){ if(typeof LOGO_URI!=="undefined" && LOGO_URI){ lg.src=LOGO_URI; } else { lg.style.display="none"; } }
   var modo="login";
   var msg=document.getElementById("authMsg");
   function setMsg(t,cor){ msg.textContent=t||""; msg.style.color=cor||"#c0392b"; }
