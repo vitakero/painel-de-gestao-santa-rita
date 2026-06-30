@@ -428,6 +428,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="negociar"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span> Negociar<span class="nav-badge" id="negNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="metas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span> Metas <span class="soon">em breve</span></button>
     <button class="nav-item" data-page="entregas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Entregas</button>
+    <button class="nav-item" data-page="acessos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Acessos</button>
   </nav>
   <main>
     <section id="page-vendas" class="page ativo">
@@ -1301,6 +1302,26 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div class="kpis" id="manKpis" style="grid-template-columns:repeat(6,minmax(0,1fr));margin-bottom:22px;"></div>
         <div id="manFormWrap"></div>
         <div id="manLista"></div>
+      </div>
+    </section>
+
+    <section id="page-acessos" class="page">
+      <style>
+        .acs-card{background:#fff;border:1px solid #e6ebf1;border-radius:12px;padding:16px 18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(20,40,70,.05);}
+        .acs-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+        .acs-top b{font-size:15px;color:#1a2233;}
+        .acs-email{font-size:12.5px;color:#8a97a8;}
+        .acs-master{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#0c5a26;background:#eef4ef;padding:6px 11px;border-radius:8px;cursor:pointer;}
+        .acs-pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:7px 14px;margin-bottom:12px;}
+        .acs-pg{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;color:#33404f;cursor:pointer;}
+        .acs-pg input{width:16px;height:16px;}
+        .acs-salvar{border:0;background:#157a35;color:#fff;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;}
+        .acs-salvar:hover{background:#0c5a26;}
+      </style>
+      <div class="card">
+        <h2 style="margin:0 0 3px;font-size:18px;color:#0c5a26;">Usuários e acessos</h2>
+        <p style="margin:0 0 16px;font-size:13px;color:#6b7787;">Marque o que cada setor pode acessar. Quem for <b>master</b> vê tudo. As mudanças valem no próximo login da pessoa.</p>
+        <div id="acsLista"></div>
       </div>
     </section>
 
@@ -6203,6 +6224,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="manutencoes") renderManut();
     if(btn.dataset.page==="epi") renderEPI();
     if(btn.dataset.page==="fardamento") renderFardamento();
+    if(btn.dataset.page==="acessos") renderAcessos();
     if(btn.dataset.page==="escala") voltarSetores();
     if(btn.dataset.page==="entregas") renderEntregas();
     if(btn.dataset.page==="ferias"){ if(!document.getElementById("ferConsultaDia").value){ document.getElementById("ferConsultaDia").value=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2)+"-"+("0"+HOJE.getDate()).slice(-2); } renderFerias(); }
@@ -6322,6 +6344,44 @@ try{ manAtualizaBadge(); }catch(e){}
     }
   };
   ["authEmail","authSenha","authNome"].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); document.getElementById("authBtn").click(); } }); });
+})();
+
+/* ===== Tela de Acessos (permissões por usuário) ===== */
+function renderAcessos(){
+  var SB=window.__SB; var el=document.getElementById("acsLista");
+  if(!el) return;
+  if(!SB){ el.innerHTML='<p style="color:#8a97a8">Login não está ativo.</p>'; return; }
+  el.innerHTML='<p style="color:#8a97a8">Carregando...</p>';
+  var pages=[]; document.querySelectorAll('.nav-item[data-page]').forEach(function(b){ var pg=b.dataset.page; if(pg!=="acessos"){ pages.push({key:pg,label:b.textContent.trim()}); } });
+  SB.from('perfis').select('*').then(function(r){
+    if(r&&r.error){ el.innerHTML='<p style="color:#c0392b">Erro: '+r.error.message+'</p>'; return; }
+    var perfis=(r&&r.data)?r.data:[];
+    if(!perfis.length){ el.innerHTML='<p style="color:#8a97a8">Nenhum usuário ainda. Quando um setor criar o acesso dele, aparece aqui.</p>'; return; }
+    perfis.sort(function(a,b){ return (a.criado_em||'')<(b.criado_em||'')?-1:1; });
+    el.innerHTML=perfis.map(function(p){
+      var pgsHtml=pages.map(function(pg){ var on=(p.paginas||[]).indexOf(pg.key)>=0; return '<label class="acs-pg"><input type="checkbox" class="acs-pgchk" value="'+pg.key+'"'+(on?' checked':'')+(p.is_master?' disabled':'')+'> '+pg.label+'</label>'; }).join('');
+      return '<div class="acs-card" data-uid="'+p.id+'"><div class="acs-top"><div><b>'+(p.nome||'(sem nome)')+'</b><div class="acs-email">'+(p.email||'')+'</div></div><label class="acs-master"><input type="checkbox" class="acs-ismaster"'+(p.is_master?' checked':'')+'> Master (vê tudo)</label></div><div class="acs-pages">'+pgsHtml+'</div><button class="acs-salvar" type="button">Salvar acessos</button></div>';
+    }).join('');
+  });
+}
+(function initAcessos(){
+  var lista=document.getElementById("acsLista"); if(!lista) return;
+  lista.addEventListener("click",function(e){
+    var btn=e.target.closest(".acs-salvar"); if(!btn) return;
+    var SB=window.__SB; if(!SB) return;
+    var card=btn.closest(".acs-card"); var uid=card.getAttribute("data-uid");
+    var isMaster=card.querySelector(".acs-ismaster").checked;
+    var pgs=[]; card.querySelectorAll(".acs-pgchk:checked").forEach(function(c){ pgs.push(c.value); });
+    btn.disabled=true; btn.textContent="Salvando...";
+    SB.from("perfis").update({is_master:isMaster, paginas:pgs}).eq("id",uid).then(function(r){
+      btn.disabled=false; btn.textContent="Salvar acessos";
+      if(r&&r.error){ uiConfirm({titulo:"Erro",msg:r.error.message,ok:"OK",cancel:""}); }
+      else { uiConfirm({titulo:"Salvo",msg:"Acessos atualizados! Valem no próximo login da pessoa.",ok:"OK",cancel:""}); }
+    });
+  });
+  lista.addEventListener("change",function(e){
+    if(e.target.classList.contains("acs-ismaster")){ var card=e.target.closest(".acs-card"); var dis=e.target.checked; card.querySelectorAll(".acs-pgchk").forEach(function(c){ c.disabled=dis; }); }
+  });
 })();
 </script>
 </body></html>`;
