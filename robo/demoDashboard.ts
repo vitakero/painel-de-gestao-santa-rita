@@ -402,7 +402,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #authUser span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #authUser .ach{flex:none;color:#8aa596;font-size:16px;}
   #authSair{margin-left:auto;border:1px solid #cdd6e0;background:#fff;border-radius:7px;padding:4px 9px;font-size:12px;cursor:pointer;color:#56606d;font-weight:600;}
-</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
+</style><link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body>
 <div id="authOv" style="display:none"><div id="authCard"><img id="authLogo" alt=""><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div id="authLoginBox"><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar acesso</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld" id="fldSetor" style="display:none"><label>Setor</label><select id="authSetor"><option value="">Selecione...</option><option>Frente de Loja</option><option>Açougue</option><option>Padaria</option><option>Hortifruti</option><option>Mercearia</option><option>Estoque</option><option>Financeiro</option><option>RH</option><option>Compras</option><option>Administração</option><option>Diretoria</option><option>Outro</option></select></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><div class="pw-wrap"><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld" id="fldRepetir" style="display:none"><label>Repetir senha</label><div class="pw-wrap"><input id="authRepetir" type="password" placeholder="digite a senha de novo" autocomplete="new-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authForgot">Esqueci minha senha</span><span id="authSkip" onclick="document.getElementById('authOv').style.display='none'">Continuar sem entrar (configuração)</span></div><div id="authReset" style="display:none"><div class="auth-fld"><label>Nova senha</label><div class="pw-wrap"><input id="authNovaSenha" type="password" placeholder="mínimo 6 caracteres"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld"><label>Repetir nova senha</label><div class="pw-wrap"><input id="authNovaRepetir" type="password" placeholder="digite a senha de novo"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authResetBtn" type="button">Salvar nova senha</button><div id="authResetMsg" style="font-size:13px;margin-top:10px;text-align:center;"></div></div></div></div>
 <script>try{var _o=document.getElementById("authOv");var _s=(location.hash||"")+(location.search||"");var _rec=(_s.indexOf("type=recovery")>=0)||(window.sessionStorage&&sessionStorage.getItem("sr_recovery")==="1");var _exp=(!_rec)&&(_s.indexOf("otp_expired")>=0||_s.indexOf("access_denied")>=0||_s.indexOf("error_code")>=0);if(_o&&(_rec||_exp)){_o.style.display="flex";var _lb=document.getElementById("authLoginBox");var _rb=document.getElementById("authReset");if(_rec){if(_lb)_lb.style.display="none";if(_rb)_rb.style.display="";}else{if(_rb)_rb.style.display="none";if(_lb)_lb.style.display="";var _m=document.getElementById("authMsg");if(_m){_m.textContent="Este link de senha já foi usado ou expirou. Toque em Esqueci minha senha para receber um novo.";_m.style.color="#c0392b";}}}}catch(e){}</script>
@@ -440,6 +440,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="negociar"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span> Negociar<span class="nav-badge" id="negNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="metas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span> Metas <span class="soon">em breve</span></button>
     <button class="nav-item" data-page="entregas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Entregas</button>
+    <button class="nav-item" data-page="cartaz"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span> Cartaz de oferta</button>
     <button class="nav-item" data-page="acessos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Acessos</button>
   </nav>
   <main>
@@ -1376,6 +1377,52 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       </div>
     </section>
 
+    <section id="page-cartaz" class="page">
+      <style>
+        #page-cartaz .cz-sub{text-align:center;color:#6b7787;font-size:13px;margin:0 0 14px;}
+        #page-cartaz .cz-steps{display:flex;gap:8px;justify-content:center;margin:0 0 18px;flex-wrap:wrap;}
+        #page-cartaz .cz-step{padding:7px 14px;border-radius:20px;font-size:12.5px;font-weight:700;background:#eef1f5;color:#97a2ae;}
+        #page-cartaz .cz-step.on{background:#157a35;color:#fff;}
+        #page-cartaz .cz-step.done{background:#e4f5ea;color:#157a35;}
+        #page-cartaz .cz-models{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+        #page-cartaz .cz-model{border:2px solid #e1e7ee;border-radius:14px;padding:14px;cursor:pointer;text-align:center;background:#fff;transition:.12s;}
+        #page-cartaz .cz-model.on{border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.12);}
+        #page-cartaz .cz-model h4{margin:10px 0 0;font-size:14px;color:#1d2733;}
+        #page-cartaz .cz-model .ctz{max-width:118px;margin:0 auto;pointer-events:none;}
+        #page-cartaz .cz-hint{background:#eef6ff;border:1px solid #d5e6fb;border-radius:10px;padding:10px 12px;font-size:12.5px;color:#3a5573;margin:0 0 10px;}
+        #page-cartaz textarea.cz-ta{width:100%;box-sizing:border-box;min-height:170px;border:1.5px solid #e1e7ee;border-radius:12px;padding:12px;font-family:monospace;font-size:14px;resize:vertical;color:#1d2733;}
+        #page-cartaz .cz-count{font-size:12px;color:#8a97a8;margin-top:6px;}
+        #page-cartaz .cz-actions{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:18px;flex-wrap:wrap;}
+        #page-cartaz .cz-btn{border:0;border-radius:11px;padding:11px 20px;font-size:14px;font-weight:800;cursor:pointer;}
+        #page-cartaz .cz-btn.prim{background:linear-gradient(135deg,#23a847,#0c5a26);color:#fff;}
+        #page-cartaz .cz-btn.sec{background:#eef1f5;color:#56606d;}
+        #page-cartaz .cz-tblwrap{overflow-x:auto;}
+        #page-cartaz .cz-tbl{width:100%;border-collapse:collapse;}
+        #page-cartaz .cz-tbl th{background:#f6f8fa;text-align:left;padding:7px 6px;font-size:10.5px;color:#8a97a8;text-transform:uppercase;letter-spacing:.4px;}
+        #page-cartaz .cz-tbl td{padding:3px;border-bottom:1px solid #eef0f3;}
+        #page-cartaz .cz-tbl input{width:100%;box-sizing:border-box;border:1px solid #e1e7ee;border-radius:7px;padding:6px 7px;font-size:13px;color:#1d2733;}
+        #page-cartaz .cz-del{border:0;background:#fdecec;color:#c0392b;border-radius:7px;padding:6px 9px;cursor:pointer;font-weight:700;}
+        #page-cartaz .cz-sizes{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:8px;max-width:420px;margin:0 auto 18px;}
+        #page-cartaz .cz-size{border:2px solid #e1e7ee;border-radius:10px;padding:14px 6px;text-align:center;cursor:pointer;font-weight:800;color:#56606d;}
+        #page-cartaz .cz-size.on{border-color:#157a35;color:#157a35;background:#f0f9f3;}
+        #page-cartaz .cz-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;}
+        .ctz{container-type:inline-size;background:#fff;border:1px solid #e5e9ee;border-radius:6px;aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:5% 4%;overflow:hidden;font-family:'Anton',Arial,sans-serif;}
+        .ctz .of{color:#e11414;background:#ffe600;font-size:15cqw;line-height:.95;padding:0 3cqw;transform:skew(-5deg);}
+        .ctz .nm{color:#111;font-size:26cqw;line-height:.85;margin-top:2cqw;word-break:break-word;}
+        .ctz .mc{color:#111;font-size:16cqw;line-height:.9;}
+        .ctz .gr{color:#111;font-size:9cqw;margin-top:1cqw;}
+        .ctz .d{color:#111;font-size:7cqw;margin-top:2cqw;}
+        .ctz .pr{color:#e11414;display:flex;align-items:flex-start;justify-content:center;line-height:.8;margin-top:1cqw;}
+        .ctz .pr .rs{font-size:11cqw;margin-top:.4em;}
+        .ctz .pr .in{font-size:34cqw;}
+        .ctz .pr .ce{font-size:16cqw;}
+        .ctz .ft{color:#888;font-family:Arial,sans-serif;font-size:3.2cqw;margin-top:3cqw;}
+      </style>
+      <div class="card">
+        <div class="prd-top"><div class="prd-titulo" style="min-width:auto;">Gerador de Cartaz de Oferta</div><span style="font-size:13px;color:#8a97a8;">Monte cartazes e imprima pra loja</span></div>
+        <div id="cartazWrap" style="margin-top:8px;"></div>
+      </div>
+    </section>
     <section id="page-metas" class="page">
       <div class="em-breve"><div class="big">🎯</div><h2>Metas</h2>
         <p>Aqui você vai definir metas de faturamento (diária/mensal) e acompanhar o quanto já bateu — com semáforo de quem está atingindo. Em breve.</p></div>
@@ -6260,6 +6307,125 @@ function manAgSaveFromForm(){
   });
 })();
 
+/* ===== Gerador de Cartaz de Oferta ===== */
+var czStep=1, czModelo='padrao', czProdutos=[], czTamanho='A4';
+function czEsc(s){ s=(s==null?'':''+s); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function czTemDigito(w){ for(var i=0;i<w.length;i++){ if(w.charAt(i)>='0'&&w.charAt(i)<='9') return true; } return false; }
+function czEhPreco(w){ return czTemDigito(w) && (w.indexOf(',')>=0 || w.indexOf('.')>=0); }
+var CZ_UNID=['KG','GR','MG','ML','UN','PCT','PC','CX','DZ','LT','L','G'];
+function czEhGram(w){ var up=w.toUpperCase(); if(!czTemDigito(up)) return false; for(var i=0;i<CZ_UNID.length;i++){ var u=CZ_UNID[i]; if(up.length>=u.length && up.slice(-u.length)===u) return true; } return false; }
+function czParseLinha(raw){
+  raw=(raw||'').trim(); if(!raw) return null;
+  var oferta='OFERTA';
+  if(raw.charAt(0)==='('){ var fim=raw.indexOf(')'); if(fim>0){ oferta=raw.slice(1,fim).trim().toUpperCase()||'OFERTA'; raw=raw.slice(fim+1).trim(); } }
+  var w=raw.split(' ').filter(function(x){return x.length;});
+  var preco='', gram='';
+  if(w.length && czEhPreco(w[w.length-1])) preco=w.pop();
+  if(w.length && czEhGram(w[w.length-1])) gram=w.pop();
+  var nome=w.length?w[0]:'';
+  var marca=w.length>1?w.slice(1).join(' '):'';
+  return {oferta:oferta,nome:nome,marca:marca,gram:gram,precoDe:'',preco:preco,qtd:1};
+}
+function czParseTexto(txt){ var out=[]; var linhas=(txt||'').split('\\n'); for(var i=0;i<linhas.length;i++){ var p=czParseLinha(linhas[i]); if(p) out.push(p); } return out; }
+function czPreco(p){ p=(''+(p||'')).replace('.',','); var a=p.split(','); var r=(a[0]||'0').replace(/[^0-9]/g,'')||'0'; var c=(a[1]||'00'); c=(c+'00').slice(0,2); return {reais:r,cent:c}; }
+function czInner(p){
+  var pp=czPreco(p.preco);
+  var dep=(czModelo==='depor'&&p.precoDe)?('<div class="d">DE R$ '+czEsc(p.precoDe)+' POR APENAS</div>'):'';
+  return '<div class="of">'+czEsc(p.oferta||'OFERTA')+'</div>'
+   +'<div class="nm">'+czEsc((p.nome||'').toUpperCase())+'</div>'
+   +(p.marca?('<div class="mc">'+czEsc((p.marca||'').toUpperCase())+'</div>'):'')
+   +(p.gram?('<div class="gr">'+czEsc((p.gram||'').toUpperCase())+'</div>'):'')
+   +dep
+   +'<div class="pr"><span class="rs">R$</span><span class="in">'+czEsc(pp.reais)+'</span><span class="ce">,'+czEsc(pp.cent)+'</span></div>'
+   +'<div class="ft">Oferta válida enquanto durar o estoque</div>';
+}
+function renderCartaz(){
+  var wrap=document.getElementById('cartazWrap'); if(!wrap) return;
+  if(!wrap.__czb){ wrap.__czb=1; wrap.addEventListener('click',czClick); wrap.addEventListener('input',czInput); }
+  var st='<div class="cz-steps"><div class="cz-step '+(czStep>1?'done':(czStep===1?'on':''))+'">1. Modelo</div><div class="cz-step '+(czStep>2?'done':(czStep===2?'on':''))+'">2. Produtos</div><div class="cz-step '+(czStep>3?'done':(czStep===3?'on':''))+'">3. Conferir</div></div>';
+  var b='';
+  if(czStep===1){
+    var mods=[{k:'padrao',t:'Oferta padrão'},{k:'depor',t:'De / Por'}];
+    b='<p class="cz-sub">Escolha o modelo do cartaz</p><div class="cz-models">';
+    for(var i=0;i<mods.length;i++){ var m=mods[i]; b+='<div class="cz-model '+(czModelo===m.k?'on':'')+'" data-czmodel="'+m.k+'"><div class="ctz">'+czInner({oferta:'OFERTA',nome:'PRODUTO',marca:'MARCA',gram:'1KG',preco:'9,99',precoDe:(m.k==='depor'?'12,99':'')})+'</div><h4>'+m.t+'</h4></div>'; }
+    b+='</div><div class="cz-actions"><button class="cz-btn prim" data-czact="step2">Continuar para produtos →</button></div>';
+  } else if(czStep===2){
+    b='<p class="cz-sub">Coloque sua lista — cada linha vira um cartaz</p>'
+     +'<div class="cz-hint">Formato: <b>PRODUTO MARCA GRAMATURA PREÇO</b><br>Ex: Arroz Camil 5KG 29,99</div>'
+     +'<textarea id="czTexto" class="cz-ta" placeholder="Digite ou cole sua lista, um produto por linha. Ex: Arroz Camil 5KG 29,99">'+czEsc(czProdutos.map(function(p){return [p.nome,p.marca,p.gram,p.preco].filter(Boolean).join(' ');}).join('\\n'))+'</textarea>'
+     +'<div id="czCount" class="cz-count">'+czProdutos.length+' linha(s) detectada(s)</div>'
+     +'<div class="cz-actions"><button class="cz-btn sec" data-czact="step1">← Voltar</button><button class="cz-btn prim" data-czact="parse">Continuar →</button></div>';
+  } else if(czStep===3){
+    b='<p class="cz-sub">Confira e ajuste sua lista</p><div class="cz-tblwrap"><table class="cz-tbl"><thead><tr><th>Oferta</th><th>Produto</th><th>Marca</th><th>Gramatura</th>'+(czModelo==='depor'?'<th>De R$</th>':'')+'<th>Preço</th><th>Qtd</th><th></th></tr></thead><tbody>';
+    for(var j=0;j<czProdutos.length;j++){ var p=czProdutos[j];
+      b+='<tr><td><input data-czidx="'+j+'" data-czfield="oferta" value="'+czEsc(p.oferta)+'"></td>'
+      +'<td><input data-czidx="'+j+'" data-czfield="nome" value="'+czEsc(p.nome)+'"></td>'
+      +'<td><input data-czidx="'+j+'" data-czfield="marca" value="'+czEsc(p.marca)+'"></td>'
+      +'<td><input data-czidx="'+j+'" data-czfield="gram" value="'+czEsc(p.gram)+'"></td>'
+      +(czModelo==='depor'?('<td><input data-czidx="'+j+'" data-czfield="precoDe" value="'+czEsc(p.precoDe)+'"></td>'):'')
+      +'<td><input data-czidx="'+j+'" data-czfield="preco" value="'+czEsc(p.preco)+'"></td>'
+      +'<td><input data-czidx="'+j+'" data-czfield="qtd" value="'+czEsc(p.qtd)+'" style="width:52px;"></td>'
+      +'<td><button class="cz-del" data-czdel="'+j+'">✕</button></td></tr>';
+    }
+    b+='</tbody></table></div><div class="cz-actions" style="justify-content:space-between;"><button class="cz-btn sec" data-czact="addrow">+ Adicionar linha</button><div style="display:flex;gap:10px;"><button class="cz-btn sec" data-czact="step2">← Voltar</button><button class="cz-btn prim" data-czact="gerar">Gerar cartazes →</button></div></div>';
+  } else {
+    var sizes=['A3','A4','A5','A6'];
+    b='<p class="cz-sub">Escolha o tamanho e imprima</p><div class="cz-sizes">';
+    for(var s=0;s<sizes.length;s++){ b+='<div class="cz-size '+(czTamanho===sizes[s]?'on':'')+'" data-czsize="'+sizes[s]+'">'+sizes[s]+'</div>'; }
+    b+='</div><div class="cz-preview">';
+    for(var k=0;k<czProdutos.length;k++){ b+='<div class="ctz">'+czInner(czProdutos[k])+'</div>'; }
+    b+='</div><div class="cz-actions" style="justify-content:space-between;"><button class="cz-btn sec" data-czact="step3">← Voltar</button><div style="display:flex;gap:10px;"><button class="cz-btn sec" data-czact="novo">Novo</button><button class="cz-btn prim" data-czact="imprimir">🖨 Imprimir cartazes</button></div></div>';
+  }
+  wrap.innerHTML=st+b;
+}
+function czClick(e){
+  var t;
+  if(t=e.target.closest('[data-czmodel]')){ czModelo=t.getAttribute('data-czmodel'); renderCartaz(); return; }
+  if(t=e.target.closest('[data-czsize]')){ czTamanho=t.getAttribute('data-czsize'); renderCartaz(); return; }
+  if(t=e.target.closest('[data-czdel]')){ czProdutos.splice(parseInt(t.getAttribute('data-czdel'),10),1); renderCartaz(); return; }
+  if(t=e.target.closest('[data-czact]')){ var a=t.getAttribute('data-czact');
+    if(a==='step1') czStep=1;
+    else if(a==='step2') czStep=2;
+    else if(a==='step3') czStep=3;
+    else if(a==='parse'){ var ta=document.getElementById('czTexto'); czProdutos=czParseTexto(ta?ta.value:''); if(!czProdutos.length){ alert('Coloque pelo menos um produto.'); return; } czStep=3; }
+    else if(a==='addrow') czProdutos.push({oferta:'OFERTA',nome:'',marca:'',gram:'',precoDe:'',preco:'',qtd:1});
+    else if(a==='gerar'){ if(!czProdutos.length){ alert('Nenhum produto na lista.'); return; } czStep=4; }
+    else if(a==='novo'){ czProdutos=[]; czStep=1; }
+    else if(a==='imprimir'){ czImprimir(); return; }
+    renderCartaz(); return;
+  }
+}
+function czInput(e){
+  var t=e.target;
+  if(t.id==='czTexto'){ var n=t.value.split('\\n').filter(function(x){return x.trim();}).length; var c=document.getElementById('czCount'); if(c) c.textContent=n+' linha(s) detectada(s)'; return; }
+  if(t.hasAttribute && t.hasAttribute('data-czfield')){ var idx=parseInt(t.getAttribute('data-czidx'),10); var f=t.getAttribute('data-czfield'); if(czProdutos[idx]) czProdutos[idx][f]=t.value; return; }
+}
+function czImprimir(){
+  var itens=[]; for(var i=0;i<czProdutos.length;i++){ var q=Math.max(1,parseInt(czProdutos[i].qtd,10)||1); for(var k=0;k<q;k++) itens.push(czProdutos[i]); }
+  if(!itens.length) return;
+  var cfg={A3:{per:1,cols:1,rows:1,of:120,nm:250,mc:150,gr:78,dp:60,rs:90,inn:290,ce:145,ft:24},
+           A4:{per:1,cols:1,rows:1,of:88,nm:180,mc:112,gr:56,dp:44,rs:66,inn:210,ce:104,ft:19},
+           A5:{per:2,cols:1,rows:2,of:56,nm:116,mc:72,gr:37,dp:29,rs:44,inn:136,ce:68,ft:14},
+           A6:{per:4,cols:2,rows:2,of:40,nm:82,mc:52,gr:27,dp:21,rs:31,inn:97,ce:49,ft:12}};
+  var c=cfg[czTamanho]||cfg.A4;
+  var pages='';
+  for(var i2=0;i2<itens.length;i2+=c.per){ var cells=''; for(var j=i2;j<i2+c.per && j<itens.length;j++){ cells+='<div class="cell">'+czInner(itens[j])+'</div>'; } pages+='<div class="pg">'+cells+'</div>'; }
+  var css='<style>@page{size:A4;margin:6mm;}*{margin:0;padding:0;box-sizing:border-box;font-family:Anton,Arial,sans-serif;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+   +'.pg{width:100%;height:285mm;page-break-after:always;display:grid;grid-template-columns:repeat('+c.cols+',1fr);grid-template-rows:repeat('+c.rows+',1fr);gap:5mm;}'
+   +'.cell{border:1px dashed #ccc;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:3% 4%;overflow:hidden;}'
+   +'.of{color:#e11414;background:#ffe600;font-size:'+c.of+'px;line-height:.95;padding:0 12px;transform:skew(-5deg);}'
+   +'.nm{color:#111;font-size:'+c.nm+'px;line-height:.85;margin-top:2%;}'
+   +'.mc{color:#111;font-size:'+c.mc+'px;line-height:.9;}'
+   +'.gr{color:#111;font-size:'+c.gr+'px;margin-top:1%;}'
+   +'.d{color:#111;font-size:'+c.dp+'px;margin-top:3%;}'
+   +'.pr{color:#e11414;display:flex;align-items:flex-start;justify-content:center;line-height:.85;margin-top:2%;}'
+   +'.pr .rs{font-size:'+c.rs+'px;margin-top:.4em;}.pr .in{font-size:'+c.inn+'px;}.pr .ce{font-size:'+c.ce+'px;}'
+   +'.ft{color:#666;font-family:Arial,sans-serif;font-size:'+c.ft+'px;margin-top:4%;}</style>';
+  var w=window.open('','_blank'); if(!w){ alert('Permita pop-ups (janelas) para imprimir os cartazes.'); return; }
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">'+css+'</head><body>'+pages+'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},600);};</scr'+'ipt></body></html>');
+  w.document.close();
+}
+
 document.querySelectorAll(".nav-item").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll(".nav-item").forEach(b=>b.classList.remove("ativo"));
@@ -6278,6 +6444,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="acessos") renderAcessos();
     if(btn.dataset.page==="escala") voltarSetores();
     if(btn.dataset.page==="entregas") renderEntregas();
+    if(btn.dataset.page==="cartaz") renderCartaz();
     if(btn.dataset.page==="ferias"){ if(!document.getElementById("ferConsultaDia").value){ document.getElementById("ferConsultaDia").value=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2)+"-"+("0"+HOJE.getDate()).slice(-2); } renderFerias(); }
     if(btn.dataset.page==="negociar") renderNegociar();
     if(btn.dataset.page==="analise") renderAnalise();
