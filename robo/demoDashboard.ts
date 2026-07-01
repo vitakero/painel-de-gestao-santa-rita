@@ -382,8 +382,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .auth-tab button.on{background:#fff;color:#157a35;box-shadow:0 1px 5px rgba(0,0,0,.1);}
   .auth-fld{margin-bottom:13px;text-align:left;}
   .auth-fld label{display:block;font-size:12px;color:#7a8696;font-weight:600;margin-bottom:5px;}
-  .auth-fld input{width:100%;box-sizing:border-box;border:1.5px solid #e1e7ee;border-radius:10px;padding:12px 13px;font:inherit;font-size:15px;color:#1d2733;transition:.15s;}
-  .auth-fld input:focus{outline:none;border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.14);}
+  .auth-fld input,.auth-fld select{width:100%;box-sizing:border-box;border:1.5px solid #e1e7ee;border-radius:10px;padding:12px 13px;font:inherit;font-size:15px;color:#1d2733;transition:.15s;background:#fff;}
+  .auth-fld input:focus,.auth-fld select:focus{outline:none;border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.14);}
   #authBtn{width:100%;border:0;background:linear-gradient(135deg,#23a847,#0c5a26);color:#fff;border-radius:11px;padding:13px;font-size:15.5px;font-weight:800;cursor:pointer;margin-top:6px;box-shadow:0 7px 18px rgba(21,122,53,.32);transition:.15s;}
   #authBtn:hover{filter:brightness(1.07);}
   #authBtn:active{transform:scale(.99);}
@@ -396,7 +396,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #authSair{margin-left:auto;border:1px solid #cdd6e0;background:#fff;border-radius:7px;padding:4px 9px;font-size:12px;cursor:pointer;color:#56606d;font-weight:600;}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body>
-<div id="authOv" style="display:none"><div id="authCard"><img id="authLogo" alt=""><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar acesso</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authSkip" onclick="document.getElementById('authOv').style.display='none'">Continuar sem entrar (configuração)</span></div></div>
+<div id="authOv" style="display:none"><div id="authCard"><img id="authLogo" alt=""><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar acesso</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld" id="fldSetor" style="display:none"><label>Setor</label><select id="authSetor"><option value="">Selecione...</option><option>Frente de Loja</option><option>Açougue</option><option>Padaria</option><option>Hortifruti</option><option>Mercearia</option><option>Estoque</option><option>Financeiro</option><option>RH</option><option>Compras</option><option>Administração</option><option>Diretoria</option><option>Outro</option></select></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authSkip" onclick="document.getElementById('authOv').style.display='none'">Continuar sem entrar (configuração)</span></div></div>
   <header>
     <div class="hwrap">
       <div class="logo">
@@ -1338,6 +1338,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .acs-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
         .acs-top b{font-size:15px;color:#1a2233;}
         .acs-email{font-size:12.5px;color:#8a97a8;}
+        .acs-setorwrap{font-size:12.5px;color:#7a8696;margin-top:5px;}
+        .acs-setor{border:1px solid #d4dde6;border-radius:6px;padding:4px 8px;font:inherit;font-size:12.5px;width:140px;}
+        .acs-setor:focus{outline:none;border-color:#157a35;}
         .acs-master{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#0c5a26;background:#eef4ef;padding:6px 11px;border-radius:8px;cursor:pointer;}
         .acs-pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:7px 14px;margin-bottom:12px;}
         .acs-pg{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;color:#33404f;cursor:pointer;}
@@ -6347,8 +6350,8 @@ try{ manAtualizaBadge(); }catch(e){}
     if(m.indexOf("weak")>=0) return "Senha muito fraca, escolha outra.";
     return "Erro: "+m;
   }
-  document.getElementById("tabLogin").onclick=function(){ modo="login"; this.classList.add("on"); document.getElementById("tabCad").classList.remove("on"); document.getElementById("fldNome").style.display="none"; document.getElementById("authBtn").textContent="Entrar"; setMsg(""); };
-  document.getElementById("tabCad").onclick=function(){ modo="cad"; this.classList.add("on"); document.getElementById("tabLogin").classList.remove("on"); document.getElementById("fldNome").style.display=""; document.getElementById("authBtn").textContent="Criar acesso"; setMsg(""); };
+  document.getElementById("tabLogin").onclick=function(){ modo="login"; this.classList.add("on"); document.getElementById("tabCad").classList.remove("on"); document.getElementById("fldNome").style.display="none"; document.getElementById("fldSetor").style.display="none"; document.getElementById("authBtn").textContent="Entrar"; setMsg(""); };
+  document.getElementById("tabCad").onclick=function(){ modo="cad"; this.classList.add("on"); document.getElementById("tabLogin").classList.remove("on"); document.getElementById("fldNome").style.display=""; document.getElementById("fldSetor").style.display=""; document.getElementById("authBtn").textContent="Criar acesso"; setMsg(""); };
   document.getElementById("authBtn").onclick=function(){
     var email=(document.getElementById("authEmail").value||"").trim();
     var senha=document.getElementById("authSenha").value||"";
@@ -6357,8 +6360,9 @@ try{ manAtualizaBadge(); }catch(e){}
     var btn=this; btn.disabled=true;
     if(modo==="cad"){
       if(!nome){ setMsg("Coloque seu nome."); btn.disabled=false; return; }
+      var setor=document.getElementById("authSetor")?document.getElementById("authSetor").value:"";
       setMsg("Criando acesso...","#7a8696");
-      SB.auth.signUp({email:email,password:senha,options:{data:{nome:nome}}}).then(function(r){
+      SB.auth.signUp({email:email,password:senha,options:{data:{nome:nome,setor:setor}}}).then(function(r){
         btn.disabled=false;
         if(r.error){ setMsg(traduzErro(r.error.message)); return; }
         if(r.data && r.data.session){ carregarPerfil(r.data.session); }
@@ -6390,7 +6394,7 @@ function renderAcessos(){
     perfis.sort(function(a,b){ return (a.criado_em||'')<(b.criado_em||'')?-1:1; });
     el.innerHTML=perfis.map(function(p){
       var pgsHtml=pages.map(function(pg){ var on=(p.paginas||[]).indexOf(pg.key)>=0; return '<label class="acs-pg"><input type="checkbox" class="acs-pgchk" value="'+pg.key+'"'+(on?' checked':'')+(p.is_master?' disabled':'')+'> '+pg.label+'</label>'; }).join('');
-      return '<div class="acs-card" data-uid="'+p.id+'"><div class="acs-top"><div><b>'+(p.nome||'(sem nome)')+'</b><div class="acs-email">'+(p.email||'')+'</div></div><label class="acs-master"><input type="checkbox" class="acs-ismaster"'+(p.is_master?' checked':'')+'> Master (vê tudo)</label></div><div class="acs-pages">'+pgsHtml+'</div><button class="acs-salvar" type="button">Salvar acessos</button></div>';
+      return '<div class="acs-card" data-uid="'+p.id+'"><div class="acs-top"><div><b>'+(p.nome||'(sem nome)')+'</b><div class="acs-email">'+(p.email||'')+'</div><div class="acs-setorwrap">Setor: <input class="acs-setor" value="'+(p.setor||'')+'" placeholder="ex: Açougue"></div></div><label class="acs-master"><input type="checkbox" class="acs-ismaster"'+(p.is_master?' checked':'')+'> Master (vê tudo)</label></div><div class="acs-pages">'+pgsHtml+'</div><button class="acs-salvar" type="button">Salvar acessos</button></div>';
     }).join('');
   });
 }
@@ -6401,9 +6405,10 @@ function renderAcessos(){
     var SB=window.__SB; if(!SB) return;
     var card=btn.closest(".acs-card"); var uid=card.getAttribute("data-uid");
     var isMaster=card.querySelector(".acs-ismaster").checked;
+    var setorEl=card.querySelector(".acs-setor"); var setor=setorEl?setorEl.value.trim():"";
     var pgs=[]; card.querySelectorAll(".acs-pgchk:checked").forEach(function(c){ pgs.push(c.value); });
     btn.disabled=true; btn.textContent="Salvando...";
-    SB.from("perfis").update({is_master:isMaster, paginas:pgs}).eq("id",uid).then(function(r){
+    SB.from("perfis").update({is_master:isMaster, paginas:pgs, setor:setor}).eq("id",uid).then(function(r){
       btn.disabled=false; btn.textContent="Salvar acessos";
       if(r&&r.error){ uiConfirm({titulo:"Erro",msg:r.error.message,ok:"OK",cancel:""}); }
       else { uiConfirm({titulo:"Salvo",msg:"Acessos atualizados! Valem no próximo login da pessoa.",ok:"OK",cancel:""}); }
@@ -6424,7 +6429,8 @@ function renderPerfil(){
   var badge=p.is_master?'<span class="perfil-badge">👑 Master · acesso total</span>':'<span class="perfil-badge setor">Setor</span>';
   el.innerHTML=
     '<div class="perfil-head"><div class="perfil-av">'+ini+'</div><div><div class="perfil-nome">'+nome+'</div>'+badge+'</div></div>'+
-    '<div class="perfil-lin"><span>Email / setor</span><b>'+(email||'—')+'</b></div>'+
+    '<div class="perfil-lin"><span>Setor</span><b>'+(p.setor||'—')+'</b></div>'+
+    '<div class="perfil-lin"><span>Email</span><b>'+(email||'—')+'</b></div>'+
     '<div class="perfil-acoes"><button id="perfilTrocar" type="button" class="perfil-btn">Trocar senha</button><button id="perfilSair" type="button" class="perfil-sair">Sair do sistema</button></div>'+
     '<div id="perfilSenha" class="perfil-senha" style="display:none"><label style="font-size:12px;color:#7a8696;font-weight:600;display:block;margin-bottom:6px;">Nova senha</label><input id="perfilNovaSenha" type="password" placeholder="mínimo 6 caracteres"><button id="perfilSalvarSenha" type="button" class="perfil-btn" style="background:#157a35;color:#fff;border:0;">Salvar nova senha</button><div id="perfilSenhaMsg" style="font-size:12.5px;margin-top:8px;"></div></div>';
   document.getElementById("perfilSair").onclick=function(){ if(window.__SB){ window.__SB.auth.signOut().then(function(){ location.reload(); }); } else { location.reload(); } };
