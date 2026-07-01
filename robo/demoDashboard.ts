@@ -1310,11 +1310,21 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 
     <section id="page-perfil" class="page">
       <style>
+        .perfil-head{display:flex;align-items:center;gap:15px;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid #eef2f6;}
+        .perfil-av{width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#23a847,#0c5a26);color:#fff;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800;flex:none;box-shadow:0 4px 12px rgba(21,122,53,.28);}
+        .perfil-nome{font-size:19px;font-weight:800;color:#1a2233;}
+        .perfil-badge{display:inline-block;margin-top:5px;font-size:12px;font-weight:700;padding:3px 11px;border-radius:20px;background:#eaf5ee;color:#0c5a26;}
+        .perfil-badge.setor{background:#eef2f8;color:#46546a;}
         .perfil-lin{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #eef2f6;font-size:14px;}
         .perfil-lin span{color:#7a8696;}
         .perfil-lin b{color:#1a2233;text-align:right;word-break:break-word;}
-        .perfil-sair{margin-top:20px;border:0;background:#c0392b;color:#fff;border-radius:9px;padding:11px 22px;font-size:14px;font-weight:700;cursor:pointer;}
+        .perfil-acoes{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;}
+        .perfil-btn{border:1px solid #d7dee7;background:#fff;color:#46535f;border-radius:9px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;}
+        .perfil-btn:hover{background:#f4f7fb;}
+        .perfil-sair{border:0;background:#c0392b;color:#fff;border-radius:9px;padding:11px 20px;font-size:14px;font-weight:700;cursor:pointer;}
         .perfil-sair:hover{background:#a5301f;}
+        .perfil-senha{margin-top:14px;padding:14px 16px;background:#fafcfe;border:1px solid #e6ebf1;border-radius:10px;max-width:320px;}
+        .perfil-senha input{width:100%;box-sizing:border-box;border:1px solid #d4dde6;border-radius:8px;padding:9px 11px;font:inherit;margin-bottom:9px;}
       </style>
       <div class="card" style="max-width:540px;">
         <h2 style="margin:0 0 16px;font-size:18px;color:#0c5a26;">Meu perfil</h2>
@@ -6408,14 +6418,27 @@ function renderAcessos(){
 function renderPerfil(){
   var p=window.__PERFIL||{}; var email=window.__EMAIL||'';
   var el=document.getElementById("perfilBox"); if(!el) return;
-  var tipo=p.is_master?'Master (acesso total) 👑':'Setor';
+  var nome=p.nome||'—';
+  var partes=nome==='—'?[]:nome.trim().split(" ").filter(Boolean);
+  var ini=partes.length?partes.slice(0,2).map(function(w){return w.charAt(0).toUpperCase();}).join(''):'?';
+  var badge=p.is_master?'<span class="perfil-badge">👑 Master · acesso total</span>':'<span class="perfil-badge setor">Setor</span>';
   el.innerHTML=
-    '<div class="perfil-lin"><span>Nome</span><b>'+(p.nome||'—')+'</b></div>'+
+    '<div class="perfil-head"><div class="perfil-av">'+ini+'</div><div><div class="perfil-nome">'+nome+'</div>'+badge+'</div></div>'+
     '<div class="perfil-lin"><span>Email / setor</span><b>'+(email||'—')+'</b></div>'+
-    '<div class="perfil-lin"><span>Tipo de acesso</span><b>'+tipo+'</b></div>'+
-    '<button id="perfilSair" type="button" class="perfil-sair">Sair do sistema</button>';
-  var b=document.getElementById("perfilSair");
-  if(b) b.onclick=function(){ if(window.__SB){ window.__SB.auth.signOut().then(function(){ location.reload(); }); } else { location.reload(); } };
+    '<div class="perfil-acoes"><button id="perfilTrocar" type="button" class="perfil-btn">Trocar senha</button><button id="perfilSair" type="button" class="perfil-sair">Sair do sistema</button></div>'+
+    '<div id="perfilSenha" class="perfil-senha" style="display:none"><label style="font-size:12px;color:#7a8696;font-weight:600;display:block;margin-bottom:6px;">Nova senha</label><input id="perfilNovaSenha" type="password" placeholder="mínimo 6 caracteres"><button id="perfilSalvarSenha" type="button" class="perfil-btn" style="background:#157a35;color:#fff;border:0;">Salvar nova senha</button><div id="perfilSenhaMsg" style="font-size:12.5px;margin-top:8px;"></div></div>';
+  document.getElementById("perfilSair").onclick=function(){ if(window.__SB){ window.__SB.auth.signOut().then(function(){ location.reload(); }); } else { location.reload(); } };
+  document.getElementById("perfilTrocar").onclick=function(){ var bx=document.getElementById("perfilSenha"); bx.style.display=(bx.style.display==="none")?"":"none"; };
+  document.getElementById("perfilSalvarSenha").onclick=function(){
+    var s=document.getElementById("perfilNovaSenha").value||""; var m=document.getElementById("perfilSenhaMsg");
+    if(s.length<6){ m.textContent="Senha muito curta (mínimo 6)."; m.style.color="#c0392b"; return; }
+    if(!window.__SB){ return; }
+    m.textContent="Salvando..."; m.style.color="#7a8696";
+    window.__SB.auth.updateUser({password:s}).then(function(r){
+      if(r&&r.error){ m.textContent="Erro: "+r.error.message; m.style.color="#c0392b"; }
+      else { m.textContent="✓ Senha alterada com sucesso!"; m.style.color="#1b9e4b"; document.getElementById("perfilNovaSenha").value=""; }
+    });
+  };
 }
 function showPerfil(){
   document.querySelectorAll('.nav-item').forEach(function(b){b.classList.remove('ativo');});
