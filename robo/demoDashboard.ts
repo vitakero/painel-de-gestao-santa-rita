@@ -389,9 +389,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #authBtn:active{transform:scale(.99);}
   #authMsg{font-size:13px;margin:12px 0 0;text-align:center;min-height:18px;line-height:1.4;}
   #authSkip{display:block;text-align:center;margin-top:18px;font-size:12px;color:#b3bcc7;cursor:pointer;text-decoration:underline;}
-  #authUser{display:flex;align-items:center;gap:8px;padding:9px 11px;margin:0 8px 10px;background:#eef4ef;border-radius:10px;font-size:12.5px;color:#0c5a26;font-weight:600;}
-  #authUser span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  #authSair{flex:none;}
+  #authUser{display:flex;align-items:center;gap:8px;padding:10px 11px;margin:0 8px 12px;background:#eef4ef;border-radius:10px;font-size:12.5px;color:#0c5a26;font-weight:700;cursor:pointer;transition:.12s;}
+  #authUser:hover{background:#e0ece3;}
+  #authUser span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #authUser .ach{flex:none;color:#8aa596;font-size:16px;}
   #authSair{margin-left:auto;border:1px solid #cdd6e0;background:#fff;border-radius:7px;padding:4px 9px;font-size:12px;cursor:pointer;color:#56606d;font-weight:600;}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body>
@@ -1304,6 +1305,20 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div class="kpis" id="manKpis" style="grid-template-columns:repeat(6,minmax(0,1fr));margin-bottom:22px;"></div>
         <div id="manFormWrap"></div>
         <div id="manLista"></div>
+      </div>
+    </section>
+
+    <section id="page-perfil" class="page">
+      <style>
+        .perfil-lin{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #eef2f6;font-size:14px;}
+        .perfil-lin span{color:#7a8696;}
+        .perfil-lin b{color:#1a2233;text-align:right;word-break:break-word;}
+        .perfil-sair{margin-top:20px;border:0;background:#c0392b;color:#fff;border-radius:9px;padding:11px 22px;font-size:14px;font-weight:700;cursor:pointer;}
+        .perfil-sair:hover{background:#a5301f;}
+      </style>
+      <div class="card" style="max-width:540px;">
+        <h2 style="margin:0 0 16px;font-size:18px;color:#0c5a26;">Meu perfil</h2>
+        <div id="perfilBox"></div>
       </div>
     </section>
 
@@ -6293,12 +6308,14 @@ try{ manAtualizaBadge(); }catch(e){}
     if(ok.indexOf(aid)<0 && first){ first.click(); }
   }
   function showUser(perfil,email){
+    window.__PERFIL=perfil; window.__EMAIL=email;
     var sbar=document.querySelector('.sidebar'); if(!sbar) return;
     var u=document.getElementById('authUser');
     if(!u){ u=document.createElement('div'); u.id='authUser'; sbar.insertBefore(u,sbar.firstChild); }
     var nm=(perfil&&perfil.nome)?perfil.nome:(email||'Conectado');
-    u.innerHTML='<span>'+nm+((perfil&&perfil.is_master)?' (master)':'')+'</span><button id="authSair" type="button">Sair</button>';
-    document.getElementById('authSair').onclick=function(){ SB.auth.signOut().then(function(){ location.reload(); }); };
+    u.innerHTML='<span>'+nm+((perfil&&perfil.is_master)?' 👑':'')+'</span><span class="ach">›</span>';
+    u.title="Ver meu perfil";
+    u.onclick=function(){ if(typeof showPerfil==="function") showPerfil(); };
   }
   function carregarPerfil(sessao){
     var email=(sessao&&sessao.user)?sessao.user.email:'';
@@ -6386,6 +6403,26 @@ function renderAcessos(){
     if(e.target.classList.contains("acs-ismaster")){ var card=e.target.closest(".acs-card"); var dis=e.target.checked; card.querySelectorAll(".acs-pgchk").forEach(function(c){ c.disabled=dis; }); }
   });
 })();
+
+/* ===== Meu Perfil ===== */
+function renderPerfil(){
+  var p=window.__PERFIL||{}; var email=window.__EMAIL||'';
+  var el=document.getElementById("perfilBox"); if(!el) return;
+  var tipo=p.is_master?'Master (acesso total) 👑':'Setor';
+  el.innerHTML=
+    '<div class="perfil-lin"><span>Nome</span><b>'+(p.nome||'—')+'</b></div>'+
+    '<div class="perfil-lin"><span>Email / setor</span><b>'+(email||'—')+'</b></div>'+
+    '<div class="perfil-lin"><span>Tipo de acesso</span><b>'+tipo+'</b></div>'+
+    '<button id="perfilSair" type="button" class="perfil-sair">Sair do sistema</button>';
+  var b=document.getElementById("perfilSair");
+  if(b) b.onclick=function(){ if(window.__SB){ window.__SB.auth.signOut().then(function(){ location.reload(); }); } else { location.reload(); } };
+}
+function showPerfil(){
+  document.querySelectorAll('.nav-item').forEach(function(b){b.classList.remove('ativo');});
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('ativo');});
+  var pg=document.getElementById('page-perfil'); if(pg) pg.classList.add('ativo');
+  renderPerfil(); window.scrollTo(0,0);
+}
 </script>
 </body></html>`;
 
