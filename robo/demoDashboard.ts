@@ -1334,7 +1334,15 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 
     <section id="page-acessos" class="page">
       <style>
-        .acs-card{background:#fff;border:1px solid #e6ebf1;border-radius:12px;padding:16px 18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(20,40,70,.05);}
+        .acs-card{background:#fff;border:1px solid #e6ebf1;border-radius:12px;padding:14px 18px;margin-bottom:10px;box-shadow:0 1px 3px rgba(20,40,70,.05);}
+        .acs-header{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;}
+        .acs-header:hover b{color:#157a35;}
+        .acs-hleft b{font-size:15px;color:#1a2233;}
+        .acs-tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;background:#eef2f8;color:#46546a;margin-left:6px;vertical-align:middle;}
+        .acs-tag.master{background:#eaf5ee;color:#0c5a26;}
+        .acs-chevron{font-size:22px;color:#8aa596;transition:transform .15s;flex:none;}
+        .acs-card.aberto .acs-chevron{transform:rotate(90deg);}
+        .acs-body{margin-top:14px;padding-top:14px;border-top:1px solid #eef2f6;}
         .acs-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
         .acs-top b{font-size:15px;color:#1a2233;}
         .acs-email{font-size:12.5px;color:#8a97a8;}
@@ -6394,13 +6402,18 @@ function renderAcessos(){
     perfis.sort(function(a,b){ return (a.criado_em||'')<(b.criado_em||'')?-1:1; });
     el.innerHTML=perfis.map(function(p){
       var pgsHtml=pages.map(function(pg){ var on=(p.paginas||[]).indexOf(pg.key)>=0; return '<label class="acs-pg"><input type="checkbox" class="acs-pgchk" value="'+pg.key+'"'+(on?' checked':'')+(p.is_master?' disabled':'')+'> '+pg.label+'</label>'; }).join('');
-      return '<div class="acs-card" data-uid="'+p.id+'"><div class="acs-top"><div><b>'+(p.nome||'(sem nome)')+'</b><div class="acs-email">'+(p.email||'')+'</div><div class="acs-setorwrap">Setor: <input class="acs-setor" value="'+(p.setor||'')+'" placeholder="ex: Açougue"></div></div><label class="acs-master"><input type="checkbox" class="acs-ismaster"'+(p.is_master?' checked':'')+'> Master (vê tudo)</label></div><div class="acs-pages">'+pgsHtml+'</div><button class="acs-salvar" type="button">Salvar acessos</button></div>';
+      return '<div class="acs-card" data-uid="'+p.id+'">'+
+        '<div class="acs-header"><div class="acs-hleft"><b>'+(p.nome||'(sem nome)')+'</b>'+(p.setor?'<span class="acs-tag">'+prdEsc(p.setor)+'</span>':'')+(p.is_master?'<span class="acs-tag master">👑 Master</span>':'')+'<div class="acs-email">'+(p.email||'')+'</div></div><span class="acs-chevron">›</span></div>'+
+        '<div class="acs-body" style="display:none"><div class="acs-top"><label class="acs-master"><input type="checkbox" class="acs-ismaster"'+(p.is_master?' checked':'')+'> Master (vê tudo)</label><div class="acs-setorwrap">Setor: <input class="acs-setor" value="'+(p.setor||'')+'" placeholder="ex: Açougue"></div></div><div class="acs-pages">'+pgsHtml+'</div><button class="acs-salvar" type="button">Salvar acessos</button></div>'+
+        '</div>';
     }).join('');
   });
 }
 (function initAcessos(){
   var lista=document.getElementById("acsLista"); if(!lista) return;
   lista.addEventListener("click",function(e){
+    var head=e.target.closest(".acs-header");
+    if(head){ var c=head.closest(".acs-card"); var b=c.querySelector(".acs-body"); var op=(b.style.display==="none"); b.style.display=op?"":"none"; c.classList.toggle("aberto",op); return; }
     var btn=e.target.closest(".acs-salvar"); if(!btn) return;
     var SB=window.__SB; if(!SB) return;
     var card=btn.closest(".acs-card"); var uid=card.getAttribute("data-uid");
