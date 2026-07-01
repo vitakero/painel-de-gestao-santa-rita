@@ -6326,6 +6326,7 @@ try{ manAtualizaBadge(); }catch(e){}
   if(!ov) return;
   var _isRecovery=((location.hash||"")+" "+(location.search||"")).indexOf("type=recovery")>=0;
   try{ if(_isRecovery && window.sessionStorage){ sessionStorage.setItem("sr_recovery","1"); } else if(window.sessionStorage && sessionStorage.getItem("sr_recovery")==="1"){ _isRecovery=true; } }catch(e){}
+  var _linkExpirado=(function(){var s=(location.hash||"")+(location.search||"");return (!(_isRecovery) && (s.indexOf("otp_expired")>=0 || s.indexOf("access_denied")>=0 || s.indexOf("error_code")>=0));})();
   if(!window.supabase){ ov.style.display="none"; return; } // se a lib nao carregar, nao trava
   if(_isRecovery){ ov.style.display="flex"; var _lbx=document.getElementById("authLoginBox"); if(_lbx) _lbx.style.display="none"; var _rbx=document.getElementById("authReset"); if(_rbx) _rbx.style.display=""; }
   var SB=window.supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{persistSession:true,autoRefreshToken:true,storage:window.sessionStorage}});
@@ -6378,7 +6379,7 @@ try{ manAtualizaBadge(); }catch(e){}
   SB.auth.getSession().then(function(r){
     if(_isRecovery){ mostrarReset(); return; }
     if(r && r.data && r.data.session){ carregarPerfil(r.data.session); }
-    else { ov.style.display="flex"; }
+    else { ov.style.display="flex"; if(_linkExpirado){ setMsg("Este link de senha já foi usado ou expirou. Toque em Esqueci minha senha para receber um novo.","#c0392b"); } }
   });
   function traduzErro(m){
     m=(m||"").toLowerCase();
