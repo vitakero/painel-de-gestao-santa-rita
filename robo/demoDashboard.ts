@@ -372,24 +372,24 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     .cel-folga { background:#48DC62 !important; color:#fff !important; }
   }
   #authOv{position:fixed;inset:0;background:radial-gradient(circle at 50% 16%,#23a847 0%,#0a4d21 50%,#06301a 100%);display:flex;align-items:center;justify-content:center;z-index:99999;padding:18px;}
-  #authCard{background:#fff;border-radius:20px;padding:34px 30px 26px;width:100%;max-width:400px;box-shadow:0 30px 70px rgba(0,0,0,.5);text-align:center;animation:authIn .25s ease;}
+  #authCard{background:#fff;border-radius:20px;padding:24px 28px 20px;width:100%;max-width:400px;box-shadow:0 30px 70px rgba(0,0,0,.5);text-align:center;animation:authIn .25s ease;}
   @keyframes authIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
-  #authLogo{width:76px;height:76px;object-fit:contain;border-radius:18px;background:#fff;box-shadow:0 5px 16px rgba(0,0,0,.14);padding:7px;margin:0 auto 14px;display:block;}
-  #authCard h2{margin:0 0 3px;font-size:22px;color:#0c5a26;text-align:center;font-weight:800;}
-  #authCard .sub{margin:0 0 20px;font-size:13.5px;color:#8a97a8;text-align:center;}
-  .auth-tab{display:flex;gap:4px;margin-bottom:18px;background:#f1f4f8;padding:4px;border-radius:12px;}
+  #authLogo{width:56px;height:56px;object-fit:contain;border-radius:16px;background:#fff;box-shadow:0 5px 16px rgba(0,0,0,.14);padding:6px;margin:0 auto 8px;display:block;}
+  #authCard h2{margin:0 0 2px;font-size:20px;color:#0c5a26;text-align:center;font-weight:800;}
+  #authCard .sub{margin:0 0 14px;font-size:13px;color:#8a97a8;text-align:center;}
+  .auth-tab{display:flex;gap:4px;margin-bottom:12px;background:#f1f4f8;padding:4px;border-radius:12px;}
   .auth-tab button{flex:1;padding:9px;border:0;background:transparent;border-radius:9px;font-size:13.5px;font-weight:700;color:#7a8696;cursor:pointer;transition:.15s;}
   .auth-tab button.on{background:#fff;color:#157a35;box-shadow:0 1px 5px rgba(0,0,0,.1);}
-  .auth-fld{margin-bottom:13px;text-align:left;}
-  .auth-fld label{display:block;font-size:12px;color:#7a8696;font-weight:600;margin-bottom:5px;}
-  .auth-fld input,.auth-fld select{width:100%;box-sizing:border-box;border:1.5px solid #e1e7ee;border-radius:10px;padding:12px 13px;font:inherit;font-size:15px;color:#1d2733;transition:.15s;background:#fff;}
+  .auth-fld{margin-bottom:9px;text-align:left;}
+  .auth-fld label{display:block;font-size:12px;color:#7a8696;font-weight:600;margin-bottom:3px;}
+  .auth-fld input,.auth-fld select{width:100%;box-sizing:border-box;border:1.5px solid #e1e7ee;border-radius:10px;padding:10px 12px;font:inherit;font-size:15px;color:#1d2733;transition:.15s;background:#fff;}
   .auth-fld input:focus,.auth-fld select:focus{outline:none;border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.14);}
-  #authBtn{width:100%;border:0;background:linear-gradient(135deg,#23a847,#0c5a26);color:#fff;border-radius:11px;padding:13px;font-size:15.5px;font-weight:800;cursor:pointer;margin-top:6px;box-shadow:0 7px 18px rgba(21,122,53,.32);transition:.15s;}
+  #authBtn{width:100%;border:0;background:linear-gradient(135deg,#23a847,#0c5a26);color:#fff;border-radius:11px;padding:12px;font-size:15.5px;font-weight:800;cursor:pointer;margin-top:4px;box-shadow:0 7px 18px rgba(21,122,53,.32);transition:.15s;}
   #authBtn:hover{filter:brightness(1.07);}
   #authBtn:active{transform:scale(.99);}
   #authMsg{font-size:13px;margin:12px 0 0;text-align:center;min-height:18px;line-height:1.4;}
-  #authSkip{display:block;text-align:center;margin-top:18px;font-size:12px;color:#b3bcc7;cursor:pointer;text-decoration:underline;}
-  #authForgot{display:block;text-align:center;margin-top:12px;font-size:12.5px;color:#157a35;cursor:pointer;text-decoration:underline;font-weight:600;}
+  #authSkip{display:block;text-align:center;margin-top:12px;font-size:12px;color:#b3bcc7;cursor:pointer;text-decoration:underline;}
+  #authForgot{display:block;text-align:center;margin-top:10px;font-size:12.5px;color:#157a35;cursor:pointer;text-decoration:underline;font-weight:600;}
   #authReset .auth-fld{text-align:left;}
   .pw-wrap{position:relative;}
   .pw-wrap input{padding-right:44px !important;}
