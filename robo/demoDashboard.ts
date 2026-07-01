@@ -6326,6 +6326,7 @@ try{ manAtualizaBadge(); }catch(e){}
   var _isRecovery=((location.hash||"")+" "+(location.search||"")).indexOf("type=recovery")>=0;
   try{ if(_isRecovery && window.sessionStorage){ sessionStorage.setItem("sr_recovery","1"); } else if(window.sessionStorage && sessionStorage.getItem("sr_recovery")==="1"){ _isRecovery=true; } }catch(e){}
   if(!window.supabase){ ov.style.display="none"; return; } // se a lib nao carregar, nao trava
+  if(_isRecovery){ ov.style.display="flex"; var _lbx=document.getElementById("authLoginBox"); if(_lbx) _lbx.style.display="none"; var _rbx=document.getElementById("authReset"); if(_rbx) _rbx.style.display=""; }
   var SB=window.supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{persistSession:true,autoRefreshToken:true,storage:window.sessionStorage}});
   window.__SB=SB;
   var lg=document.getElementById("authLogo");
