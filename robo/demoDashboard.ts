@@ -6319,7 +6319,7 @@ try{ manAtualizaBadge(); }catch(e){}
   var ov=document.getElementById("authOv");
   if(!ov) return;
   if(!window.supabase){ ov.style.display="none"; return; } // se a lib nao carregar, nao trava
-  var SB=window.supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+  var SB=window.supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{persistSession:true,autoRefreshToken:true,storage:window.sessionStorage}});
   window.__SB=SB;
   var lg=document.getElementById("authLogo");
   if(lg){ if(typeof LOGO_URI!=="undefined" && LOGO_URI){ lg.src=LOGO_URI; } else { lg.style.display="none"; } }
