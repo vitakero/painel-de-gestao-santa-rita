@@ -6318,6 +6318,7 @@ try{ manAtualizaBadge(); }catch(e){}
   var SUPA_KEY="sb_publishable_IPLbRjk89c666QkfcoVTiw_GXujUTZU";
   var ov=document.getElementById("authOv");
   if(!ov) return;
+  var _isRecovery=((location.hash||"")+" "+(location.search||"")).indexOf("type=recovery")>=0;
   if(!window.supabase){ ov.style.display="none"; return; } // se a lib nao carregar, nao trava
   var SB=window.supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{persistSession:true,autoRefreshToken:true,storage:window.sessionStorage}});
   window.__SB=SB;
@@ -6362,7 +6363,9 @@ try{ manAtualizaBadge(); }catch(e){}
       try{ var _pa=document.getElementById('page-acessos'); if(_pa && _pa.classList.contains('ativo') && typeof renderAcessos==='function'){ _acsTries=0; renderAcessos(); } }catch(e){}
     });
   }
+  function mostrarReset(){ ov.style.display="flex"; var lb=document.getElementById("authLoginBox"); if(lb) lb.style.display="none"; var rb=document.getElementById("authReset"); if(rb) rb.style.display=""; }
   SB.auth.getSession().then(function(r){
+    if(_isRecovery){ mostrarReset(); return; }
     if(r && r.data && r.data.session){ carregarPerfil(r.data.session); }
     else { ov.style.display="flex"; }
   });
@@ -6391,11 +6394,11 @@ try{ manAtualizaBadge(); }catch(e){}
     m.textContent="Salvando..."; m.style.color="#7a8696";
     SB.auth.updateUser({password:s}).then(function(r){
       if(r&&r.error){ m.textContent="Erro: "+r.error.message; m.style.color="#c0392b"; }
-      else { m.textContent="✓ Senha alterada! Entrando..."; m.style.color="#1b9e4b"; setTimeout(function(){ location.reload(); },1500); }
+      else { m.textContent="✓ Senha alterada! Entrando..."; m.style.color="#1b9e4b"; setTimeout(function(){ location.replace(location.origin+location.pathname); },1500); }
     });
   };
   SB.auth.onAuthStateChange(function(ev,ses){
-    if(ev==="PASSWORD_RECOVERY"){ ov.style.display="flex"; var lb=document.getElementById("authLoginBox"); if(lb) lb.style.display="none"; var rb=document.getElementById("authReset"); if(rb) rb.style.display=""; }
+    if(ev==="PASSWORD_RECOVERY"){ _isRecovery=true; mostrarReset(); }
   });
   document.getElementById("authBtn").onclick=function(){
     var email=(document.getElementById("authEmail").value||"").trim();
