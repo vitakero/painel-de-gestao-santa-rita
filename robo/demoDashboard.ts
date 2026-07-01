@@ -390,6 +390,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #authMsg{font-size:13px;margin:12px 0 0;text-align:center;min-height:18px;line-height:1.4;}
   #authSkip{display:block;text-align:center;margin-top:18px;font-size:12px;color:#b3bcc7;cursor:pointer;text-decoration:underline;}
   #authUser{display:flex;align-items:center;gap:8px;padding:9px 11px;margin:0 8px 10px;background:#eef4ef;border-radius:10px;font-size:12.5px;color:#0c5a26;font-weight:600;}
+  #authUser span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #authSair{flex:none;}
   #authSair{margin-left:auto;border:1px solid #cdd6e0;background:#fff;border-radius:7px;padding:4px 9px;font-size:12px;cursor:pointer;color:#56606d;font-weight:600;}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body>
@@ -6300,7 +6302,8 @@ try{ manAtualizaBadge(); }catch(e){}
   }
   function carregarPerfil(sessao){
     var email=(sessao&&sessao.user)?sessao.user.email:'';
-    SB.from('perfis').select('*').maybeSingle().then(function(r){
+    var uid=(sessao&&sessao.user)?sessao.user.id:null;
+    SB.from('perfis').select('*').eq('id',uid).maybeSingle().then(function(r){
       var perfil=(r&&r.data)?r.data:null;
       applyPerms(perfil); showUser(perfil,email); ov.style.display="none";
     });
