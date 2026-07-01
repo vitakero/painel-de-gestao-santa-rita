@@ -389,6 +389,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #authBtn:active{transform:scale(.99);}
   #authMsg{font-size:13px;margin:12px 0 0;text-align:center;min-height:18px;line-height:1.4;}
   #authSkip{display:block;text-align:center;margin-top:18px;font-size:12px;color:#b3bcc7;cursor:pointer;text-decoration:underline;}
+  #authForgot{display:block;text-align:center;margin-top:12px;font-size:12.5px;color:#157a35;cursor:pointer;text-decoration:underline;font-weight:600;}
+  #authReset .auth-fld{text-align:left;}
+  #authResetBtn{width:100%;border:0;background:linear-gradient(135deg,#23a847,#0c5a26);color:#fff;border-radius:11px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;margin-top:4px;}
   #authUser{display:flex;align-items:center;gap:8px;padding:10px 11px;margin:0 8px 12px;background:#eef4ef;border-radius:10px;font-size:12.5px;color:#0c5a26;font-weight:700;cursor:pointer;transition:.12s;}
   #authUser:hover{background:#e0ece3;}
   #authUser span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -396,7 +399,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #authSair{margin-left:auto;border:1px solid #cdd6e0;background:#fff;border-radius:7px;padding:4px 9px;font-size:12px;cursor:pointer;color:#56606d;font-weight:600;}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body>
-<div id="authOv" style="display:none"><div id="authCard"><img id="authLogo" alt=""><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar acesso</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld" id="fldSetor" style="display:none"><label>Setor</label><select id="authSetor"><option value="">Selecione...</option><option>Frente de Loja</option><option>Açougue</option><option>Padaria</option><option>Hortifruti</option><option>Mercearia</option><option>Estoque</option><option>Financeiro</option><option>RH</option><option>Compras</option><option>Administração</option><option>Diretoria</option><option>Outro</option></select></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authSkip" onclick="document.getElementById('authOv').style.display='none'">Continuar sem entrar (configuração)</span></div></div>
+<div id="authOv" style="display:none"><div id="authCard"><img id="authLogo" alt=""><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div id="authLoginBox"><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar acesso</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld" id="fldSetor" style="display:none"><label>Setor</label><select id="authSetor"><option value="">Selecione...</option><option>Frente de Loja</option><option>Açougue</option><option>Padaria</option><option>Hortifruti</option><option>Mercearia</option><option>Estoque</option><option>Financeiro</option><option>RH</option><option>Compras</option><option>Administração</option><option>Diretoria</option><option>Outro</option></select></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authForgot">Esqueci minha senha</span><span id="authSkip" onclick="document.getElementById('authOv').style.display='none'">Continuar sem entrar (configuração)</span></div><div id="authReset" style="display:none"><div class="auth-fld"><label>Nova senha</label><input id="authNovaSenha" type="password" placeholder="mínimo 6 caracteres"></div><button id="authResetBtn" type="button">Salvar nova senha</button><div id="authResetMsg" style="font-size:13px;margin-top:10px;text-align:center;"></div></div></div></div>
   <header>
     <div class="hwrap">
       <div class="logo">
@@ -6358,8 +6361,29 @@ try{ manAtualizaBadge(); }catch(e){}
     if(m.indexOf("weak")>=0) return "Senha muito fraca, escolha outra.";
     return "Erro: "+m;
   }
-  document.getElementById("tabLogin").onclick=function(){ modo="login"; this.classList.add("on"); document.getElementById("tabCad").classList.remove("on"); document.getElementById("fldNome").style.display="none"; document.getElementById("fldSetor").style.display="none"; document.getElementById("authBtn").textContent="Entrar"; setMsg(""); };
-  document.getElementById("tabCad").onclick=function(){ modo="cad"; this.classList.add("on"); document.getElementById("tabLogin").classList.remove("on"); document.getElementById("fldNome").style.display=""; document.getElementById("fldSetor").style.display=""; document.getElementById("authBtn").textContent="Criar acesso"; setMsg(""); };
+  document.getElementById("tabLogin").onclick=function(){ modo="login"; this.classList.add("on"); document.getElementById("tabCad").classList.remove("on"); document.getElementById("fldNome").style.display="none"; document.getElementById("fldSetor").style.display="none"; document.getElementById("authForgot").style.display=""; document.getElementById("authBtn").textContent="Entrar"; setMsg(""); };
+  document.getElementById("tabCad").onclick=function(){ modo="cad"; this.classList.add("on"); document.getElementById("tabLogin").classList.remove("on"); document.getElementById("fldNome").style.display=""; document.getElementById("fldSetor").style.display=""; document.getElementById("authForgot").style.display="none"; document.getElementById("authBtn").textContent="Criar acesso"; setMsg(""); };
+  document.getElementById("authForgot").onclick=function(){
+    var email=(document.getElementById("authEmail").value||"").trim();
+    if(!email){ setMsg("Digite o email do setor primeiro."); return; }
+    setMsg("Enviando link...","#7a8696");
+    SB.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname}).then(function(r){
+      if(r&&r.error){ setMsg(traduzErro(r.error.message)); }
+      else { setMsg("Link enviado! Veja o email de "+email+" e clique pra criar a nova senha.","#1b9e4b"); }
+    });
+  };
+  document.getElementById("authResetBtn").onclick=function(){
+    var s=document.getElementById("authNovaSenha").value||""; var m=document.getElementById("authResetMsg");
+    if(s.length<6){ m.textContent="Senha muito curta (mínimo 6)."; m.style.color="#c0392b"; return; }
+    m.textContent="Salvando..."; m.style.color="#7a8696";
+    SB.auth.updateUser({password:s}).then(function(r){
+      if(r&&r.error){ m.textContent="Erro: "+r.error.message; m.style.color="#c0392b"; }
+      else { m.textContent="✓ Senha alterada! Entrando..."; m.style.color="#1b9e4b"; setTimeout(function(){ location.reload(); },1500); }
+    });
+  };
+  SB.auth.onAuthStateChange(function(ev,ses){
+    if(ev==="PASSWORD_RECOVERY"){ ov.style.display="flex"; var lb=document.getElementById("authLoginBox"); if(lb) lb.style.display="none"; var rb=document.getElementById("authReset"); if(rb) rb.style.display=""; }
+  });
   document.getElementById("authBtn").onclick=function(){
     var email=(document.getElementById("authEmail").value||"").trim();
     var senha=document.getElementById("authSenha").value||"";
