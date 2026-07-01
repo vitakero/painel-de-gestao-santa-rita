@@ -6359,6 +6359,7 @@ try{ manAtualizaBadge(); }catch(e){}
           window.__PRESCH=ch;
         }
       }catch(e){}
+      try{ var _pa=document.getElementById('page-acessos'); if(_pa && _pa.classList.contains('ativo') && typeof renderAcessos==='function'){ _acsTries=0; renderAcessos(); } }catch(e){}
     });
   }
   SB.auth.getSession().then(function(r){
