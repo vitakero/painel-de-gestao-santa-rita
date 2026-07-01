@@ -1346,6 +1346,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .acs-chevron{font-size:22px;color:#8aa596;transition:transform .15s;flex:none;}
         .acs-card.aberto .acs-chevron{transform:rotate(90deg);}
         .acs-body{margin-top:14px;padding-top:14px;border-top:1px solid #eef2f6;}
+        .acs-online{background:#eaf5ee;border:1px solid #cfe6d8;border-radius:10px;padding:11px 14px;margin-bottom:16px;font-size:13.5px;color:#0c5a26;line-height:1.6;}
+        .acs-online b{font-weight:800;}
+        .acs-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#22c55e;margin-right:6px;vertical-align:middle;box-shadow:0 0 0 3px rgba(34,197,94,.2);}
         .acs-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
         .acs-top b{font-size:15px;color:#1a2233;}
         .acs-email{font-size:12.5px;color:#8a97a8;}
@@ -1362,6 +1365,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       <div class="card">
         <h2 style="margin:0 0 3px;font-size:18px;color:#0c5a26;">Usuários e acessos</h2>
         <p style="margin:0 0 16px;font-size:13px;color:#6b7787;">Marque o que cada setor pode acessar. Quem for <b>master</b> vê tudo. As mudanças valem no próximo login da pessoa.</p>
+        <div id="acsOnline"></div>
         <div id="acsLista"></div>
       </div>
     </section>
@@ -6347,6 +6351,14 @@ try{ manAtualizaBadge(); }catch(e){}
     SB.from('perfis').select('*').eq('id',uid).maybeSingle().then(function(r){
       var perfil=(r&&r.data)?r.data:null;
       applyPerms(perfil); showUser(perfil,email); ov.style.display="none";
+      try{
+        if(!window.__PRESCH){
+          var ch=SB.channel('presenca',{config:{presence:{key:uid||email}}});
+          ch.on('presence',{event:'sync'},function(){ window.__ONLINE=ch.presenceState(); if(typeof renderOnline==='function') renderOnline(); });
+          ch.subscribe(function(st){ if(st==='SUBSCRIBED'){ ch.track({nome:(perfil&&perfil.nome)||email, setor:(perfil&&perfil.setor)||'', email:email}); } });
+          window.__PRESCH=ch;
+        }
+      }catch(e){}
     });
   }
   SB.auth.getSession().then(function(r){
@@ -6413,8 +6425,16 @@ try{ manAtualizaBadge(); }catch(e){}
 })();
 
 /* ===== Tela de Acessos (permissões por usuário) ===== */
+function renderOnline(){
+  var el=document.getElementById("acsOnline"); if(!el) return;
+  var st=window.__ONLINE||{}; var users=[];
+  for(var k in st){ if(st[k]&&st[k][0]) users.push(st[k][0]); }
+  if(!users.length){ el.innerHTML=''; return; }
+  el.innerHTML='<div class="acs-online"><span class="acs-dot"></span><b>'+users.length+' online agora:</b> '+users.map(function(u){ return prdEsc(u.nome||u.email||'?')+(u.setor?' ('+prdEsc(u.setor)+')':''); }).join(' · ')+'</div>';
+}
 var _acsTries=0;
 function renderAcessos(){
+  renderOnline();
   var el=document.getElementById("acsLista"); if(!el) return;
   var SB=window.__SB;
   if(!SB){ if(_acsTries++<15){ el.innerHTML='<p style="color:#8a97a8">Carregando...</p>'; setTimeout(renderAcessos,350); } else { el.innerHTML='<p style="color:#8a97a8">Login não está ativo. Recarregue a página (Ctrl+Shift+R).</p>'; } return; }
