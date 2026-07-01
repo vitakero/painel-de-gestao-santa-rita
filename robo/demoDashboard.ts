@@ -1407,12 +1407,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-size.on{border-color:#157a35;color:#157a35;background:#f0f9f3;}
         #page-cartaz .cz-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;}
         .ctz{container-type:inline-size;background:#fff;border:1px solid #e5e9ee;border-radius:6px;aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:5% 4%;overflow:hidden;font-family:'Anton',Arial,sans-serif;}
-        .ctz .of{color:#e11414;background:#ffe600;font-size:15cqw;line-height:.95;padding:0 3cqw;transform:skew(-5deg);}
-        .ctz .nm{color:#111;font-size:26cqw;line-height:.85;margin-top:2cqw;word-break:break-word;}
+        .ctz .of{color:#e11414;background:#ffe600;font-size:15cqw;line-height:1;padding:1.2cqw 4cqw;transform:rotate(-1.5deg);clip-path:polygon(1% 18%,9% 4%,26% 11%,46% 3%,66% 10%,85% 3%,99% 14%,97% 84%,85% 97%,64% 89%,42% 98%,20% 89%,4% 95%);}
+        .ctz .nm{color:#111;font-size:26cqw;line-height:.85;margin-top:3cqw;word-break:break-word;}
         .ctz .mc{color:#111;font-size:16cqw;line-height:.9;}
-        .ctz .gr{color:#111;font-size:9cqw;margin-top:1cqw;}
+        .ctz .gr{color:#111;font-size:9cqw;margin-top:2cqw;border-bottom:.5cqw solid #111;padding:0 4cqw 1cqw;}
         .ctz .d{color:#111;font-size:7cqw;margin-top:2cqw;}
-        .ctz .pr{color:#e11414;display:flex;align-items:flex-start;justify-content:center;line-height:.8;margin-top:1cqw;}
+        .ctz .pr{color:#e11414;background:#ffe600;display:flex;align-items:flex-start;justify-content:center;line-height:.8;margin-top:2.5cqw;padding:1.5cqw 4cqw 2.5cqw;transform:rotate(-1.5deg);clip-path:polygon(1% 18%,9% 4%,26% 11%,46% 3%,66% 10%,85% 3%,99% 14%,97% 84%,85% 97%,64% 89%,42% 98%,20% 89%,4% 95%);}
         .ctz .pr .rs{font-size:11cqw;margin-top:.4em;}
         .ctz .pr .in{font-size:34cqw;}
         .ctz .pr .ce{font-size:16cqw;}
@@ -6413,12 +6413,12 @@ function czImprimir(){
   var css='<style>@page{size:A4;margin:6mm;}*{margin:0;padding:0;box-sizing:border-box;font-family:Anton,Arial,sans-serif;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
    +'.pg{width:100%;height:285mm;page-break-after:always;display:grid;grid-template-columns:repeat('+c.cols+',1fr);grid-template-rows:repeat('+c.rows+',1fr);gap:5mm;}'
    +'.cell{border:1px dashed #ccc;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:3% 4%;overflow:hidden;}'
-   +'.of{color:#e11414;background:#ffe600;font-size:'+c.of+'px;line-height:.95;padding:0 12px;transform:skew(-5deg);}'
-   +'.nm{color:#111;font-size:'+c.nm+'px;line-height:.85;margin-top:2%;}'
+   +'.of{color:#e11414;background:#ffe600;font-size:'+c.of+'px;line-height:1;padding:6px 22px;transform:rotate(-1.5deg);clip-path:polygon(1% 18%,9% 4%,26% 11%,46% 3%,66% 10%,85% 3%,99% 14%,97% 84%,85% 97%,64% 89%,42% 98%,20% 89%,4% 95%);}'
+   +'.nm{color:#111;font-size:'+c.nm+'px;line-height:.85;margin-top:3%;}'
    +'.mc{color:#111;font-size:'+c.mc+'px;line-height:.9;}'
-   +'.gr{color:#111;font-size:'+c.gr+'px;margin-top:1%;}'
+   +'.gr{color:#111;font-size:'+c.gr+'px;margin-top:2%;border-bottom:4px solid #111;padding:0 14px 4px;}'
    +'.d{color:#111;font-size:'+c.dp+'px;margin-top:3%;}'
-   +'.pr{color:#e11414;display:flex;align-items:flex-start;justify-content:center;line-height:.85;margin-top:2%;}'
+   +'.pr{color:#e11414;background:#ffe600;display:flex;align-items:flex-start;justify-content:center;line-height:.85;margin-top:3%;padding:6px 22px 10px;transform:rotate(-1.5deg);clip-path:polygon(1% 18%,9% 4%,26% 11%,46% 3%,66% 10%,85% 3%,99% 14%,97% 84%,85% 97%,64% 89%,42% 98%,20% 89%,4% 95%);}'
    +'.pr .rs{font-size:'+c.rs+'px;margin-top:.4em;}.pr .in{font-size:'+c.inn+'px;}.pr .ce{font-size:'+c.ce+'px;}'
    +'.ft{color:#666;font-family:Arial,sans-serif;font-size:'+c.ft+'px;margin-top:4%;}</style>';
   var w=window.open('','_blank'); if(!w){ alert('Permita pop-ups (janelas) para imprimir os cartazes.'); return; }
