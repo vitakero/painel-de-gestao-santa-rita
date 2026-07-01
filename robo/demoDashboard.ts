@@ -6413,10 +6413,12 @@ try{ manAtualizaBadge(); }catch(e){}
 })();
 
 /* ===== Tela de Acessos (permissões por usuário) ===== */
+var _acsTries=0;
 function renderAcessos(){
-  var SB=window.__SB; var el=document.getElementById("acsLista");
-  if(!el) return;
-  if(!SB){ el.innerHTML='<p style="color:#8a97a8">Login não está ativo.</p>'; return; }
+  var el=document.getElementById("acsLista"); if(!el) return;
+  var SB=window.__SB;
+  if(!SB){ if(_acsTries++<15){ el.innerHTML='<p style="color:#8a97a8">Carregando...</p>'; setTimeout(renderAcessos,350); } else { el.innerHTML='<p style="color:#8a97a8">Login não está ativo. Recarregue a página (Ctrl+Shift+R).</p>'; } return; }
+  _acsTries=0;
   el.innerHTML='<p style="color:#8a97a8">Carregando...</p>';
   var pages=[]; document.querySelectorAll('.nav-item[data-page]').forEach(function(b){ var pg=b.dataset.page; if(pg!=="acessos"){ pages.push({key:pg,label:b.textContent.trim()}); } });
   SB.from('perfis').select('*').then(function(r){
