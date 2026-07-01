@@ -6324,6 +6324,7 @@ try{ manAtualizaBadge(); }catch(e){}
   var ov=document.getElementById("authOv");
   if(!ov) return;
   var _isRecovery=((location.hash||"")+" "+(location.search||"")).indexOf("type=recovery")>=0;
+  try{ if(_isRecovery && window.sessionStorage){ sessionStorage.setItem("sr_recovery","1"); } else if(window.sessionStorage && sessionStorage.getItem("sr_recovery")==="1"){ _isRecovery=true; } }catch(e){}
   if(!window.supabase){ ov.style.display="none"; return; } // se a lib nao carregar, nao trava
   var SB=window.supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{persistSession:true,autoRefreshToken:true,storage:window.sessionStorage}});
   window.__SB=SB;
@@ -6403,11 +6404,11 @@ try{ manAtualizaBadge(); }catch(e){}
     m.textContent="Salvando..."; m.style.color="#7a8696";
     SB.auth.updateUser({password:s}).then(function(r){
       if(r&&r.error){ m.textContent="Erro: "+r.error.message; m.style.color="#c0392b"; }
-      else { m.textContent="✓ Senha alterada! Entrando..."; m.style.color="#1b9e4b"; setTimeout(function(){ location.replace(location.origin+location.pathname); },1500); }
+      else { m.textContent="✓ Senha alterada! Entrando..."; m.style.color="#1b9e4b"; try{ if(window.sessionStorage) sessionStorage.removeItem("sr_recovery"); }catch(e){} setTimeout(function(){ location.replace(location.origin+location.pathname); },1500); }
     });
   };
   SB.auth.onAuthStateChange(function(ev,ses){
-    if(ev==="PASSWORD_RECOVERY"){ _isRecovery=true; mostrarReset(); }
+    if(ev==="PASSWORD_RECOVERY"){ _isRecovery=true; try{ if(window.sessionStorage) sessionStorage.setItem("sr_recovery","1"); }catch(e){} mostrarReset(); }
   });
   document.getElementById("authBtn").onclick=function(){
     var email=(document.getElementById("authEmail").value||"").trim();
