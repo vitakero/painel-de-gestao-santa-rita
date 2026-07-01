@@ -391,6 +391,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #authSkip{display:block;text-align:center;margin-top:18px;font-size:12px;color:#b3bcc7;cursor:pointer;text-decoration:underline;}
   #authForgot{display:block;text-align:center;margin-top:12px;font-size:12.5px;color:#157a35;cursor:pointer;text-decoration:underline;font-weight:600;}
   #authReset .auth-fld{text-align:left;}
+  .pw-wrap{position:relative;}
+  .pw-wrap input{padding-right:44px !important;}
+  .pw-eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px;line-height:1;padding:4px 6px;user-select:none;opacity:.7;}
+  .pw-eye:hover{opacity:1;}
   #authResetBtn{width:100%;border:0;background:linear-gradient(135deg,#23a847,#0c5a26);color:#fff;border-radius:11px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;margin-top:4px;}
   #authUser{display:flex;align-items:center;gap:8px;padding:10px 11px;margin:0 8px 12px;background:#eef4ef;border-radius:10px;font-size:12.5px;color:#0c5a26;font-weight:700;cursor:pointer;transition:.12s;}
   #authUser:hover{background:#e0ece3;}
@@ -399,7 +403,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #authSair{margin-left:auto;border:1px solid #cdd6e0;background:#fff;border-radius:7px;padding:4px 9px;font-size:12px;cursor:pointer;color:#56606d;font-weight:600;}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body>
-<div id="authOv" style="display:none"><div id="authCard"><img id="authLogo" alt=""><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div id="authLoginBox"><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar acesso</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld" id="fldSetor" style="display:none"><label>Setor</label><select id="authSetor"><option value="">Selecione...</option><option>Frente de Loja</option><option>Açougue</option><option>Padaria</option><option>Hortifruti</option><option>Mercearia</option><option>Estoque</option><option>Financeiro</option><option>RH</option><option>Compras</option><option>Administração</option><option>Diretoria</option><option>Outro</option></select></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authForgot">Esqueci minha senha</span><span id="authSkip" onclick="document.getElementById('authOv').style.display='none'">Continuar sem entrar (configuração)</span></div><div id="authReset" style="display:none"><div class="auth-fld"><label>Nova senha</label><input id="authNovaSenha" type="password" placeholder="mínimo 6 caracteres"></div><button id="authResetBtn" type="button">Salvar nova senha</button><div id="authResetMsg" style="font-size:13px;margin-top:10px;text-align:center;"></div></div></div></div>
+<div id="authOv" style="display:none"><div id="authCard"><img id="authLogo" alt=""><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div id="authLoginBox"><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar acesso</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld" id="fldSetor" style="display:none"><label>Setor</label><select id="authSetor"><option value="">Selecione...</option><option>Frente de Loja</option><option>Açougue</option><option>Padaria</option><option>Hortifruti</option><option>Mercearia</option><option>Estoque</option><option>Financeiro</option><option>RH</option><option>Compras</option><option>Administração</option><option>Diretoria</option><option>Outro</option></select></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><div class="pw-wrap"><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"><span class="pw-eye" onclick="var i=this.previousElementSibling;var s=i.type==='password';i.type=s?'text':'password';this.textContent=s?'🙈':'👁';">👁</span></div></div><div class="auth-fld" id="fldRepetir" style="display:none"><label>Repetir senha</label><div class="pw-wrap"><input id="authRepetir" type="password" placeholder="digite a senha de novo" autocomplete="new-password"><span class="pw-eye" onclick="var i=this.previousElementSibling;var s=i.type==='password';i.type=s?'text':'password';this.textContent=s?'🙈':'👁';">👁</span></div></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authForgot">Esqueci minha senha</span><span id="authSkip" onclick="document.getElementById('authOv').style.display='none'">Continuar sem entrar (configuração)</span></div><div id="authReset" style="display:none"><div class="auth-fld"><label>Nova senha</label><div class="pw-wrap"><input id="authNovaSenha" type="password" placeholder="mínimo 6 caracteres"><span class="pw-eye" onclick="var i=this.previousElementSibling;var s=i.type==='password';i.type=s?'text':'password';this.textContent=s?'🙈':'👁';">👁</span></div></div><div class="auth-fld"><label>Repetir nova senha</label><div class="pw-wrap"><input id="authNovaRepetir" type="password" placeholder="digite a senha de novo"><span class="pw-eye" onclick="var i=this.previousElementSibling;var s=i.type==='password';i.type=s?'text':'password';this.textContent=s?'🙈':'👁';">👁</span></div></div><button id="authResetBtn" type="button">Salvar nova senha</button><div id="authResetMsg" style="font-size:13px;margin-top:10px;text-align:center;"></div></div></div></div>
   <header>
     <div class="hwrap">
       <div class="logo">
@@ -6377,8 +6381,8 @@ try{ manAtualizaBadge(); }catch(e){}
     if(m.indexOf("weak")>=0) return "Senha muito fraca, escolha outra.";
     return "Erro: "+m;
   }
-  document.getElementById("tabLogin").onclick=function(){ modo="login"; this.classList.add("on"); document.getElementById("tabCad").classList.remove("on"); document.getElementById("fldNome").style.display="none"; document.getElementById("fldSetor").style.display="none"; document.getElementById("authForgot").style.display=""; document.getElementById("authBtn").textContent="Entrar"; setMsg(""); };
-  document.getElementById("tabCad").onclick=function(){ modo="cad"; this.classList.add("on"); document.getElementById("tabLogin").classList.remove("on"); document.getElementById("fldNome").style.display=""; document.getElementById("fldSetor").style.display=""; document.getElementById("authForgot").style.display="none"; document.getElementById("authBtn").textContent="Criar acesso"; setMsg(""); };
+  document.getElementById("tabLogin").onclick=function(){ modo="login"; this.classList.add("on"); document.getElementById("tabCad").classList.remove("on"); document.getElementById("fldNome").style.display="none"; document.getElementById("fldSetor").style.display="none"; document.getElementById("fldRepetir").style.display="none"; document.getElementById("authForgot").style.display=""; document.getElementById("authBtn").textContent="Entrar"; setMsg(""); };
+  document.getElementById("tabCad").onclick=function(){ modo="cad"; this.classList.add("on"); document.getElementById("tabLogin").classList.remove("on"); document.getElementById("fldNome").style.display=""; document.getElementById("fldSetor").style.display=""; document.getElementById("fldRepetir").style.display=""; document.getElementById("authForgot").style.display="none"; document.getElementById("authBtn").textContent="Criar acesso"; setMsg(""); };
   document.getElementById("authForgot").onclick=function(){
     var email=(document.getElementById("authEmail").value||"").trim();
     if(!email){ setMsg("Digite o email do setor primeiro."); return; }
@@ -6389,8 +6393,9 @@ try{ manAtualizaBadge(); }catch(e){}
     });
   };
   document.getElementById("authResetBtn").onclick=function(){
-    var s=document.getElementById("authNovaSenha").value||""; var m=document.getElementById("authResetMsg");
+    var s=document.getElementById("authNovaSenha").value||""; var r=document.getElementById("authNovaRepetir").value||""; var m=document.getElementById("authResetMsg");
     if(s.length<6){ m.textContent="Senha muito curta (mínimo 6)."; m.style.color="#c0392b"; return; }
+    if(s!==r){ m.textContent="As senhas não são iguais. Confira o campo Repetir."; m.style.color="#c0392b"; return; }
     m.textContent="Salvando..."; m.style.color="#7a8696";
     SB.auth.updateUser({password:s}).then(function(r){
       if(r&&r.error){ m.textContent="Erro: "+r.error.message; m.style.color="#c0392b"; }
@@ -6408,6 +6413,9 @@ try{ manAtualizaBadge(); }catch(e){}
     var btn=this; btn.disabled=true;
     if(modo==="cad"){
       if(!nome){ setMsg("Coloque seu nome."); btn.disabled=false; return; }
+      var rep=document.getElementById("authRepetir").value||"";
+      if(senha.length<6){ setMsg("A senha precisa ter no mínimo 6 caracteres."); btn.disabled=false; return; }
+      if(senha!==rep){ setMsg("As senhas não são iguais. Confira o campo Repetir senha."); btn.disabled=false; return; }
       var setor=document.getElementById("authSetor")?document.getElementById("authSetor").value:"";
       setMsg("Criando acesso...","#7a8696");
       SB.auth.signUp({email:email,password:senha,options:{data:{nome:nome,setor:setor}}}).then(function(r){
@@ -6425,7 +6433,8 @@ try{ manAtualizaBadge(); }catch(e){}
       });
     }
   };
-  ["authEmail","authSenha","authNome"].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); document.getElementById("authBtn").click(); } }); });
+  ["authEmail","authSenha","authNome","authRepetir"].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); document.getElementById("authBtn").click(); } }); });
+  ["authNovaSenha","authNovaRepetir"].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); document.getElementById("authResetBtn").click(); } }); });
 })();
 
 /* ===== Tela de Acessos (permissões por usuário) ===== */
