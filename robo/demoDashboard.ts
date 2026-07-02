@@ -1413,7 +1413,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ctz .nm{color:#111;font-size:26cqw;line-height:.92;white-space:nowrap;}
         .ctz .mc{color:#111;font-size:21cqw;line-height:.94;}
         .ctz .gr{color:#111;font-size:8.5cqw;margin-top:2cqw;border-bottom:.6cqw solid #111;padding:0 4cqw .5cqw;}
-        .ctz .d{font-size:8cqw;margin-bottom:1cqw;line-height:1;}
+        .ctz .d{font-size:10.5cqw;margin-bottom:1cqw;line-height:1;}
         .ctz .d .d1{color:#111;}
         .ctz .d .d2{color:#8a8a8a;text-decoration:line-through;}
         .ctz .d .d3{color:#ef1b1b;}
@@ -6424,10 +6424,10 @@ function czInput(e){
 function czImprimir(){
   var itens=[]; for(var i=0;i<czProdutos.length;i++){ var q=Math.max(1,parseInt(czProdutos[i].qtd,10)||1); for(var k=0;k<q;k++) itens.push(czProdutos[i]); }
   if(!itens.length) return;
-  var cfg={A3:{per:1,cols:1,rows:1,of:222,nm:250,mc:150,gr:78,dp:60,rs:98,inn:290,ce:190,ft:24},
-           A4:{per:1,cols:1,rows:1,of:163,nm:180,mc:112,gr:56,dp:44,rs:72,inn:210,ce:140,ft:19},
-           A5:{per:2,cols:1,rows:2,of:104,nm:116,mc:72,gr:37,dp:29,rs:47,inn:136,ce:90,ft:14},
-           A6:{per:4,cols:2,rows:2,of:74,nm:82,mc:52,gr:27,dp:21,rs:33,inn:97,ce:64,ft:12}};
+  var cfg={A3:{per:1,cols:1,rows:1,of:222,nm:250,mc:150,gr:78,dp:84,rs:98,inn:290,ce:190,ft:24},
+           A4:{per:1,cols:1,rows:1,of:163,nm:180,mc:112,gr:56,dp:62,rs:72,inn:210,ce:140,ft:19},
+           A5:{per:2,cols:1,rows:2,of:104,nm:116,mc:72,gr:37,dp:41,rs:47,inn:136,ce:90,ft:14},
+           A6:{per:4,cols:2,rows:2,of:74,nm:82,mc:52,gr:27,dp:29,rs:33,inn:97,ce:64,ft:12}};
   var c=cfg[czTamanho]||cfg.A4;
   var pages='';
   for(var i2=0;i2<itens.length;i2+=c.per){ var cells=''; for(var j=i2;j<i2+c.per && j<itens.length;j++){ cells+='<div class="cell">'+czInner(itens[j])+'</div>'; } pages+='<div class="pg">'+cells+'</div>'; }
