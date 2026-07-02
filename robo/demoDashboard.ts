@@ -1422,6 +1422,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ctz .pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:5.5cqw 8cqw;transform:rotate(-1deg);}
         .ctz .pr .rs{font-size:16cqw;align-self:flex-start;margin-top:1.5cqw;margin-right:.5cqw;}
         .ctz .pr .in{font-size:47cqw;}
+        .ctz .pr .cm{font-size:30cqw;align-self:flex-end;margin:0 .3cqw 4cqw;}
         .ctz .pr .ce{font-size:31cqw;align-self:flex-start;margin-top:1cqw;}
         .ctz .ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:3.2cqw;margin-top:2cqw;line-height:1.25;}
       </style>
@@ -6348,7 +6349,7 @@ function czInner(p){
    +(p.marca?('<div class="mc">'+czEsc((p.marca||'').toUpperCase())+'</div>'):'')
    +(p.gram?('<div class="gr">'+czEsc((p.gram||'').toUpperCase())+'</div>'):'')+'</div>'
    +'<div class="ctz-bot">'+dep
-   +'<div class="pr"><span class="rs">R$</span><span class="in">'+czEsc(pp.reais)+'</span><span class="ce">,'+czEsc(pp.cent)+'</span></div>'
+   +'<div class="pr"><span class="rs">R$</span><span class="in">'+czEsc(pp.reais)+'</span><span class="cm">,</span><span class="ce">'+czEsc(pp.cent)+'</span></div>'
    +'<div class="ft">'+czEsc(czFooter())+'</div></div>';
 }
 function renderCartaz(){
@@ -6432,7 +6433,7 @@ function czImprimir(){
    +'.gr{color:#111;font-size:'+c.gr+'px;margin-top:2%;border-bottom:4px solid #111;padding:0 14px 4px;}'
    +'.d{font-size:'+c.dp+'px;margin:0 0 2%;}.d .d1{color:#111;}.d .d2{color:#8a8a8a;text-decoration:line-through;}.d .d3{color:#ef1b1b;}'
    +'.pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:flex;align-items:center;justify-content:center;line-height:1;margin-top:3%;padding:26px 42px;transform:rotate(-1.5deg);}'
-   +'.pr .rs{font-size:'+c.rs+'px;align-self:flex-start;margin-top:8px;margin-right:6px;}.pr .in{font-size:'+c.inn+'px;}.pr .ce{font-size:'+c.ce+'px;align-self:flex-start;margin-top:6px;}'
+   +'.pr .rs{font-size:'+c.rs+'px;align-self:flex-start;margin-top:8px;margin-right:6px;}.pr .in{font-size:'+c.inn+'px;}.pr .cm{font-size:'+c.ce+'px;align-self:flex-end;margin:0 3px 14px;}.pr .ce{font-size:'+c.ce+'px;align-self:flex-start;margin-top:6px;}'
    +'.ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:'+c.ft+'px;margin-top:4%;}</style>';
   var w=window.open('','_blank'); if(!w){ alert('Permita pop-ups (janelas) para imprimir os cartazes.'); return; }
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">'+css+'</head><body>'+pages+'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},600);};</scr'+'ipt></body></html>');
