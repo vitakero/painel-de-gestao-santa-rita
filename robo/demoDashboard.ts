@@ -1406,26 +1406,25 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-size{border:2px solid #e1e7ee;border-radius:10px;padding:14px 6px;text-align:center;cursor:pointer;font-weight:800;color:#56606d;}
         #page-cartaz .cz-size.on{border-color:#157a35;color:#157a35;background:#f0f9f3;}
         #page-cartaz .cz-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;}
-        .ctz{container-type:inline-size;background:#fff;border:1px solid #eceef1;border-radius:18px;box-shadow:0 3px 14px rgba(0,0,0,.09);aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:3% 4%;overflow:hidden;font-family:'Bangers',cursive;}
+        .ctz{container-type:inline-size;background:#fff;border:1px solid #eceef1;border-radius:18px;box-shadow:0 3px 14px rgba(0,0,0,.09);aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:2% 4% 1.5%;overflow:hidden;font-family:'Bangers',cursive;}
         .ctz .ctz-top,.ctz .ctz-mid,.ctz .ctz-bot{width:100%;display:flex;flex-direction:column;align-items:center;}
-        .ctz .of{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;font-size:21.8cqw;line-height:1;padding:1.4cqw 5.6cqw;transform:rotate(-1.5deg);}
-        .ctz .of.small{font-size:12.4cqw;}
-        .ctz .nm{color:#111;font-size:24cqw;line-height:.85;margin-top:3%;white-space:nowrap;}
-        .ctz .mc{color:#111;font-size:15cqw;line-height:.9;white-space:nowrap;}
-        .ctz .gr{color:#111;font-size:7.5cqw;margin-top:2%;border-bottom:.55cqw solid #111;padding:0 1.9cqw .55cqw;}
-        .ctz .d{font-size:8.3cqw;margin:5% 0 2%;line-height:1;}
+        .ctz .of{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;font-size:calc(var(--k,1)*24.7cqw);line-height:1;padding:1.4cqw 5.6cqw;transform:rotate(-1.5deg);}
+        .ctz .nm{color:#111;font-size:calc(var(--k,1)*28.9cqw);line-height:.85;margin-top:2%;white-space:nowrap;}
+        .ctz .mc{color:#111;font-size:calc(var(--k,1)*19.4cqw);line-height:.9;white-space:nowrap;}
+        .ctz .gr{color:#111;font-size:8.6cqw;margin-top:1.5%;border-bottom:.55cqw solid #111;padding:0 1.9cqw .55cqw;}
+        .ctz .d{font-size:9.9cqw;margin:2% 0 1%;line-height:1;}
         .ctz .d .d1{color:#111;}
         .ctz .d .d2{color:#8a8a8a;text-decoration:line-through;}
         .ctz .d .d3{color:#ef1b1b;}
         #page-cartaz .cz-opc{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:0 0 16px;font-size:12.5px;color:#56606d;}
         #page-cartaz .cz-opc label{display:flex;align-items:center;gap:6px;font-weight:600;}
         #page-cartaz .cz-opc input{border:1.5px solid #e1e7ee;border-radius:8px;padding:6px 8px;font-size:13px;}
-        .ctz .pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-top:3%;padding:3.5cqw 5.6cqw;transform:rotate(-1.5deg);}
-        .ctz .pr .rs{font-size:9.6cqw;align-self:flex-start;margin-top:1.1cqw;margin-right:.8cqw;}
-        .ctz .pr .in{font-size:28cqw;}
-        .ctz .pr .cm{font-size:18.7cqw;align-self:flex-end;margin:0 .4cqw 1.9cqw;}
-        .ctz .pr .ce{font-size:18.7cqw;align-self:flex-start;margin-top:.8cqw;}
-        .ctz .ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:2.5cqw;margin-top:4%;line-height:1.25;}
+        .ctz .pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-top:1%;padding:3cqw 5.6cqw;transform:rotate(-1.5deg);}
+        .ctz .pr .rs{font-size:11.2cqw;align-self:flex-start;margin-top:1.1cqw;margin-right:.8cqw;}
+        .ctz .pr .in{font-size:calc(var(--k,1)*33.7cqw);}
+        .ctz .pr .cm{font-size:calc(var(--k,1)*22.5cqw);align-self:flex-end;margin:0 .4cqw 1.9cqw;}
+        .ctz .pr .ce{font-size:calc(var(--k,1)*22.5cqw);align-self:flex-start;margin-top:.8cqw;}
+        .ctz .ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:2.4cqw;margin-top:1.5%;line-height:1.25;}
       </style>
       <div class="card">
         <div class="prd-top"><div class="prd-titulo" style="min-width:auto;">Gerador de Cartaz de Oferta</div><span style="font-size:13px;color:#8a97a8;">Monte cartazes e imprima pra loja</span></div>
@@ -6349,16 +6348,20 @@ function czFooter(){
 }
 function czInner(p){
   var pp=czPreco(p.preco);
+  function kst(base,len){ var k=Math.min(1,base/(len||1)); return (k<1)?(' style="--k:'+(Math.round(k*100)/100)+'"'):''; }
   var dep=(p.precoDe)?('<div class="d"><span class="d1">DE:</span> <span class="d2">'+czEsc(p.precoDe)+'</span> <span class="d3">POR APENAS</span></div>'):'';
-  var ofT=(p.oferta||'OFERTA'); var ofCls='of'+(ofT.length>8?' small':'');
-  return '<div class="ctz-top"><div class="'+ofCls+'">'+czEsc(ofT)+'</div></div>'
-   +'<div class="ctz-mid"><div class="nm">'+czEsc((p.nome||'').toUpperCase())+'</div>'
-   +(p.marca?('<div class="mc">'+czEsc((p.marca||'').toUpperCase())+'</div>'):'')
+  var ofT=(p.oferta||'OFERTA');
+  var nomeT=(p.nome||'').toUpperCase(), marcaT=(p.marca||'').toUpperCase();
+  var nd=pp.reais.length+pp.cent.length;
+  return '<div class="ctz-top"><div class="of"'+kst(6.5,ofT.length)+'>'+czEsc(ofT)+'</div></div>'
+   +'<div class="ctz-mid"><div class="nm"'+kst(7.2,nomeT.length)+'>'+czEsc(nomeT)+'</div>'
+   +(marcaT?('<div class="mc"'+kst(10,marcaT.length)+'>'+czEsc(marcaT)+'</div>'):'')
    +(p.gram?('<div class="gr">'+czEsc((p.gram||'').toUpperCase())+'</div>'):'')+'</div>'
    +'<div class="ctz-bot">'+dep
-   +'<div class="pr"><span class="rs">R$</span><span class="in">'+czEsc(pp.reais)+'</span><span class="cm">,</span><span class="ce">'+czEsc(pp.cent)+'</span></div>'
+   +'<div class="pr"'+kst(5.2,nd)+'><span class="rs">R$</span><span class="in">'+czEsc(pp.reais)+'</span><span class="cm">,</span><span class="ce">'+czEsc(pp.cent)+'</span></div>'
    +'<div class="ft">'+czEsc(czFooter())+'</div></div>';
 }
+
 function renderCartaz(){
   var wrap=document.getElementById('cartazWrap'); if(!wrap) return;
   if(!wrap.__czb){ wrap.__czb=1; wrap.addEventListener('click',czClick); wrap.addEventListener('input',czInput); wrap.addEventListener('change',czChange); }
@@ -6431,26 +6434,25 @@ function czInput(e){
 function czImprimir(){
   var itens=[]; for(var i=0;i<czProdutos.length;i++){ var q=Math.max(1,parseInt(czProdutos[i].qtd,10)||1); for(var k=0;k<q;k++) itens.push(czProdutos[i]); }
   if(!itens.length) return;
-  var cfg={A3:{per:1,cols:1,rows:1,of:222,nm:250,mc:150,gr:78,dp:84,rs:98,inn:290,ce:190,ft:24},
-           A4:{per:1,cols:1,rows:1,of:163,nm:180,mc:112,gr:56,dp:62,rs:72,inn:210,ce:140,ft:19},
-           A5:{per:2,cols:1,rows:2,of:104,nm:116,mc:72,gr:37,dp:41,rs:47,inn:136,ce:90,ft:14},
-           A6:{per:4,cols:2,rows:2,of:74,nm:82,mc:52,gr:27,dp:29,rs:33,inn:97,ce:64,ft:12}};
+  var cfg={A3:{per:1,cols:1,rows:1,of:261,nm:305,mc:205,gr:90,dp:104,rs:118,inn:355,ce:237,ft:25},
+           A4:{per:1,cols:1,rows:1,of:185,nm:216,mc:145,gr:64,dp:74,rs:84,inn:252,ce:168,ft:18},
+           A5:{per:2,cols:1,rows:2,of:122,nm:143,mc:96,gr:42,dp:49,rs:55,inn:166,ce:111,ft:12},
+           A6:{per:4,cols:2,rows:2,of:87,nm:102,mc:68,gr:30,dp:35,rs:39,inn:118,ce:79,ft:9}};
   var c=cfg[czTamanho]||cfg.A4;
   var pages='';
   for(var i2=0;i2<itens.length;i2+=c.per){ var cells=''; for(var j=i2;j<i2+c.per && j<itens.length;j++){ cells+='<div class="cell">'+czInner(itens[j])+'</div>'; } pages+='<div class="pg">'+cells+'</div>'; }
   var css='<style>:root{color-scheme:light only;}@page{size:A4;margin:6mm;}*{margin:0;padding:0;box-sizing:border-box;font-family:"Bangers",cursive;}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
    +'.pg{width:100%;height:285mm;page-break-after:always;display:grid;grid-template-columns:repeat('+c.cols+',1fr);grid-template-rows:repeat('+c.rows+',1fr);gap:5mm;}'
-   +'.cell{border:1px dashed #ccc;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:3% 4%;overflow:hidden;}'
+   +'.cell{'+(c.per>1?'border:1px dashed #bbb;':'')+'display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:2% 4% 1.5%;overflow:hidden;}'
    +'.ctz-top,.ctz-mid,.ctz-bot{width:100%;display:flex;flex-direction:column;align-items:center;}'
-   +'.of{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;font-size:'+c.of+'px;line-height:1;padding:10px 42px;transform:rotate(-1.5deg);}'
-   +'.of.small{font-size:'+Math.round(c.of*0.57)+'px;}'
-   +'.nm{color:#111;font-size:'+c.nm+'px;line-height:.85;margin-top:3%;}'
-   +'.mc{color:#111;font-size:'+c.mc+'px;line-height:.9;}'
-   +'.gr{color:#111;font-size:'+c.gr+'px;margin-top:2%;border-bottom:4px solid #111;padding:0 14px 4px;}'
-   +'.d{font-size:'+c.dp+'px;margin:5% 0 2%;}.d .d1{color:#111;}.d .d2{color:#8a8a8a;text-decoration:line-through;}.d .d3{color:#ef1b1b;}'
-   +'.pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-top:3%;padding:26px 42px;transform:rotate(-1.5deg);}'
-   +'.pr .rs{font-size:'+c.rs+'px;align-self:flex-start;margin-top:8px;margin-right:6px;}.pr .in{font-size:'+c.inn+'px;}.pr .cm{font-size:'+c.ce+'px;align-self:flex-end;margin:0 3px 14px;}.pr .ce{font-size:'+c.ce+'px;align-self:flex-start;margin-top:6px;}'
-   +'.ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:'+c.ft+'px;margin-top:4%;}'
+   +'.of{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;font-size:calc(var(--k,1)*'+c.of+'px);line-height:1;padding:10px 42px;transform:rotate(-1.5deg);}'
+   +'.nm{color:#111;font-size:calc(var(--k,1)*'+c.nm+'px);line-height:.85;margin-top:2%;white-space:nowrap;}'
+   +'.mc{color:#111;font-size:calc(var(--k,1)*'+c.mc+'px);line-height:.9;white-space:nowrap;}'
+   +'.gr{color:#111;font-size:'+c.gr+'px;margin-top:1.5%;border-bottom:4px solid #111;padding:0 14px 4px;}'
+   +'.d{font-size:'+c.dp+'px;margin:2% 0 1%;}.d .d1{color:#111;}.d .d2{color:#8a8a8a;text-decoration:line-through;}.d .d3{color:#ef1b1b;}'
+   +'.pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-top:1%;padding:22px 42px;transform:rotate(-1.5deg);}'
+   +'.pr .rs{font-size:'+c.rs+'px;align-self:flex-start;margin-top:8px;margin-right:6px;}.pr .in{font-size:calc(var(--k,1)*'+c.inn+'px);}.pr .cm{font-size:calc(var(--k,1)*'+c.ce+'px);align-self:flex-end;margin:0 3px 14px;}.pr .ce{font-size:calc(var(--k,1)*'+c.ce+'px);align-self:flex-start;margin-top:6px;}'
+   +'.ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:'+c.ft+'px;margin-top:1.5%;}'
    +'@media screen{html{background:#3c4043;}body{zoom:.45;background:#3c4043;padding:30px 0;}.pg{background:#fff;width:794px;margin:0 auto 30px;box-shadow:0 8px 30px rgba(0,0,0,.45);}}</style>';
   var w=window.open('','_blank'); if(!w){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return; }
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">'+css+'</head><body>'+pages+'<scr'+'ipt>(function(){function go(){setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
