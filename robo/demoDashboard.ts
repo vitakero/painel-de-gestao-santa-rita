@@ -6361,7 +6361,7 @@ function czInner(p){
    +(p.gram?('<div class="gr">'+czEsc((p.gram||'').toUpperCase())+'</div>'):'')+'</div>'
    +'<div class="ctz-bot">'+dep
    +'<div class="pr"'+kst(5.2,nd)+'><span class="rs">R$</span><span class="in">'+czEsc(pp.reais)+'</span><span class="cm">,</span><span class="ce">'+czEsc(pp.cent)+'</span></div>'
-   +(function(){ var ftT=czFooter(); return '<div class="ft"'+kst(64,ftT.length)+'>'+czEsc(ftT)+'</div>'; })()+'</div>';
+   +(function(){ var ftT=czFooter(); return '<div class="ft"'+kst(54,ftT.length)+'>'+czEsc(ftT)+'</div>'; })()+'</div>';
 }
 
 function renderCartaz(){
