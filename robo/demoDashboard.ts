@@ -6394,7 +6394,7 @@ function renderCartaz(){
     for(var s=0;s<sizes.length;s++){ b+='<div class="cz-size '+(czTamanho===sizes[s]?'on':'')+'" data-czsize="'+sizes[s]+'">'+sizes[s]+'</div>'; }
     b+='</div><div class="cz-opc"><label>Início da oferta <input type="date" id="czValIni" value="'+czEsc(czValIni)+'"></label><label>Fim da oferta <input type="date" id="czValidade" value="'+czEsc(czValidade)+'"></label><label>Limite por cliente <input type="number" min="0" id="czLimite" value="'+czEsc(czLimite)+'" style="width:66px;"></label></div><div class="cz-preview">';
     for(var k=0;k<czProdutos.length;k++){ b+='<div class="ctz">'+czInner(czProdutos[k])+'</div>'; }
-    b+='</div><div class="cz-actions" style="justify-content:space-between;"><button class="cz-btn sec" data-czact="step3">← Voltar</button><div style="display:flex;gap:10px;"><button class="cz-btn sec" data-czact="novo">Novo</button><button class="cz-btn prim" data-czact="imprimir">🖨 Imprimir cartazes</button></div></div>';
+    b+='</div><div class="cz-actions" style="justify-content:space-between;"><button class="cz-btn sec" data-czact="step3">← Voltar</button><div style="display:flex;gap:10px;"><button class="cz-btn sec" data-czact="novo">Novo</button><button class="cz-btn prim" data-czact="imprimir" style="display:inline-flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir cartazes</button></div></div>';
   }
   wrap.innerHTML=st+b;
 }
