@@ -6316,7 +6316,7 @@ function manAgSaveFromForm(){
 })();
 
 /* ===== Gerador de Cartaz de Oferta ===== */
-var czStep=1, czModelo='padrao', czProdutos=[], czTamanho='A4', czValIni='', czValidade='', czLimite='1';
+var czStep=1, czModelo='padrao', czProdutos=[], czTamanho='A4', czValIni='', czValidade='', czLimite='0';
 function czEsc(s){ s=(s==null?'':''+s); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function czTemDigito(w){ for(var i=0;i<w.length;i++){ if(w.charAt(i)>='0'&&w.charAt(i)<='9') return true; } return false; }
 function czEhPreco(w){ return czTemDigito(w) && (w.indexOf(',')>=0 || w.indexOf('.')>=0); }
@@ -6408,7 +6408,7 @@ function czClick(e){
     else if(a==='parse'){ var ta=document.getElementById('czTexto'); czProdutos=czParseTexto(ta?ta.value:''); if(!czProdutos.length){ alert('Coloque pelo menos um produto.'); return; } czStep=3; }
     else if(a==='addrow') czProdutos.push({oferta:'OFERTA',nome:'',marca:'',gram:'',precoDe:'',preco:'',qtd:1});
     else if(a==='gerar'){ if(!czProdutos.length){ alert('Nenhum produto na lista.'); return; } czStep=4; }
-    else if(a==='novo'){ czProdutos=[]; czStep=1; }
+    else if(a==='novo'){ czProdutos=[]; czStep=1; czValIni=''; czValidade=''; czLimite='0'; }
     else if(a==='imprimir'){ czImprimir(); return; }
     renderCartaz(); return;
   }
