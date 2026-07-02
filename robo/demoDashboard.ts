@@ -1427,6 +1427,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ctz .pr .cm{font-size:calc(var(--k,1)*22.2cqw);align-self:flex-end;margin:0 .4cqw 1.9cqw;}
         .ctz .pr .ce{font-size:calc(var(--k,1)*22.2cqw);align-self:flex-start;margin-top:.8cqw;}
         .ctz .ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:calc(var(--k,1)*2.4cqw);margin-top:2cqw;line-height:1.25;white-space:nowrap;}
+        @container (max-width:220px){ .ctz .ft{display:none;} }
       </style>
       <div class="card">
         <div class="prd-top"><div class="prd-titulo" style="min-width:auto;">Gerador de Cartaz de Oferta</div><span style="font-size:13px;color:#8a97a8;">Monte cartazes e imprima pra loja</span></div>
