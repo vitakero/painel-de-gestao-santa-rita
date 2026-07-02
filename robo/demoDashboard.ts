@@ -6392,7 +6392,7 @@ function renderCartaz(){
     var sizes=['A3','A4','A5','A6'];
     b='<p class="cz-sub">Escolha o tamanho e imprima</p><div class="cz-sizes">';
     for(var s=0;s<sizes.length;s++){ b+='<div class="cz-size '+(czTamanho===sizes[s]?'on':'')+'" data-czsize="'+sizes[s]+'">'+sizes[s]+'</div>'; }
-    b+='</div><div class="cz-opc"><label>Início da oferta <input type="date" id="czValIni" value="'+czEsc(czValIni)+'"></label><label>Fim da oferta <input type="date" id="czValidade" value="'+czEsc(czValidade)+'"></label><label>Limite por cliente <input type="number" min="0" id="czLimite" value="'+czEsc(czLimite)+'" style="width:66px;"></label></div><div class="cz-preview">';
+    b+='</div><div class="cz-opc"><label>Início da oferta <b style="color:#c0392b">*</b> <input type="date" id="czValIni" value="'+czEsc(czValIni)+'"></label><label>Fim da oferta <b style="color:#c0392b">*</b> <input type="date" id="czValidade" value="'+czEsc(czValidade)+'"></label><label>Limite por cliente <input type="number" min="0" id="czLimite" value="'+czEsc(czLimite)+'" style="width:66px;"></label></div><div class="cz-preview">';
     for(var k=0;k<czProdutos.length;k++){ b+='<div class="ctz">'+czInner(czProdutos[k])+'</div>'; }
     b+='</div><div class="cz-actions" style="justify-content:space-between;"><button class="cz-btn sec" data-czact="step3">← Voltar</button><div style="display:flex;gap:10px;"><button class="cz-btn sec" data-czact="novo">Novo</button><button class="cz-btn prim" data-czact="imprimir">🖨 Imprimir cartazes</button></div></div>';
   }
@@ -6411,7 +6411,14 @@ function czClick(e){
     else if(a==='addrow') czProdutos.push({oferta:'OFERTA',nome:'',marca:'',gram:'',precoDe:'',preco:'',qtd:1});
     else if(a==='gerar'){ if(!czProdutos.length){ alert('Nenhum produto na lista.'); return; } czStep=4; }
     else if(a==='novo'){ czProdutos=[]; czStep=1; czValIni=''; czValidade=''; czLimite='0'; }
-    else if(a==='imprimir'){ czImprimir(); return; }
+    else if(a==='imprimir'){
+      if(!czValIni || !czValidade){
+        alert('Preencha a data de INÍCIO e a data de FIM da oferta antes de imprimir.');
+        var _dt=document.getElementById(!czValIni?'czValIni':'czValidade');
+        if(_dt){ _dt.focus(); _dt.style.borderColor='#e05252'; _dt.style.boxShadow='0 0 0 3px rgba(224,82,82,.25)'; }
+        return;
+      }
+      czImprimir(); return; }
     renderCartaz(); return;
   }
 }
