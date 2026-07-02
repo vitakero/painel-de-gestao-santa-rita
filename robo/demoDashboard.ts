@@ -6339,9 +6339,9 @@ function czPreco(p){ p=(''+(p||'')).replace('.',','); var a=p.split(','); var r=
 function czFooter(){
   function czData(d){ var pt=(d||'').split('-'); return (pt.length===3)?(pt[2]+'/'+pt[1]+'/'+pt[0]):d; }
   var v;
-  if(czValIni && czValidade){ v='OFERTA VÁLIDA DE '+czData(czValIni)+' ATÉ '+czData(czValidade); }
-  else if(czValidade){ v='OFERTA VÁLIDA ATÉ '+czData(czValidade); }
-  else if(czValIni){ v='OFERTA VÁLIDA A PARTIR DE '+czData(czValIni); }
+  if(czValIni && czValidade){ v='OFERTA VÁLIDA DE '+czData(czValIni)+' ATÉ '+czData(czValidade)+' OU ENQUANTO DURAR O ESTOQUE'; }
+  else if(czValidade){ v='OFERTA VÁLIDA ATÉ '+czData(czValidade)+' OU ENQUANTO DURAR O ESTOQUE'; }
+  else if(czValIni){ v='OFERTA VÁLIDA A PARTIR DE '+czData(czValIni)+' OU ENQUANTO DURAR O ESTOQUE'; }
   else { v='OFERTA VÁLIDA ENQUANTO DURAR O ESTOQUE'; }
   var n=parseInt(czLimite,10); var lim=(n>0)?('LIMITE '+n+' UNIDADE'+(n>1?'S':'')+' POR CLIENTE'):'';
   return lim?(v+'  ·  '+lim):v;
