@@ -1413,7 +1413,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ctz .nm{color:#111;font-size:26cqw;line-height:.92;white-space:nowrap;}
         .ctz .mc{color:#111;font-size:21cqw;line-height:.94;}
         .ctz .gr{color:#111;font-size:8.5cqw;margin-top:2cqw;border-bottom:.6cqw solid #111;padding:0 4cqw .5cqw;}
-        .ctz .d{font-size:10.5cqw;margin-bottom:1cqw;line-height:1;}
+        .ctz .d{font-size:10.5cqw;margin:4cqw 0 2cqw;line-height:1;}
         .ctz .d .d1{color:#111;}
         .ctz .d .d2{color:#8a8a8a;text-decoration:line-through;}
         .ctz .d .d3{color:#ef1b1b;}
@@ -6440,7 +6440,7 @@ function czImprimir(){
    +'.nm{color:#111;font-size:'+c.nm+'px;line-height:.85;margin-top:3%;}'
    +'.mc{color:#111;font-size:'+c.mc+'px;line-height:.9;}'
    +'.gr{color:#111;font-size:'+c.gr+'px;margin-top:2%;border-bottom:4px solid #111;padding:0 14px 4px;}'
-   +'.d{font-size:'+c.dp+'px;margin:0 0 2%;}.d .d1{color:#111;}.d .d2{color:#8a8a8a;text-decoration:line-through;}.d .d3{color:#ef1b1b;}'
+   +'.d{font-size:'+c.dp+'px;margin:5% 0 2%;}.d .d1{color:#111;}.d .d2{color:#8a8a8a;text-decoration:line-through;}.d .d3{color:#ef1b1b;}'
    +'.pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-top:3%;padding:26px 42px;transform:rotate(-1.5deg);}'
    +'.pr .rs{font-size:'+c.rs+'px;align-self:flex-start;margin-top:8px;margin-right:6px;}.pr .in{font-size:'+c.inn+'px;}.pr .cm{font-size:'+c.ce+'px;align-self:flex-end;margin:0 3px 14px;}.pr .ce{font-size:'+c.ce+'px;align-self:flex-start;margin-top:6px;}'
    +'.ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:'+c.ft+'px;margin-top:4%;}</style>';
