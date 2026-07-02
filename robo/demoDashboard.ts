@@ -6407,13 +6407,13 @@ function czClick(e){
     if(a==='step1') czStep=1;
     else if(a==='step2') czStep=2;
     else if(a==='step3') czStep=3;
-    else if(a==='parse'){ var ta=document.getElementById('czTexto'); czProdutos=czParseTexto(ta?ta.value:''); if(!czProdutos.length){ alert('Coloque pelo menos um produto.'); return; } czStep=3; }
+    else if(a==='parse'){ var ta=document.getElementById('czTexto'); czProdutos=czParseTexto(ta?ta.value:''); if(!czProdutos.length){ uiConfirm({titulo:'Lista vazia',msg:'Coloque pelo menos um produto na lista.',ok:'OK',cancel:''}); return; } czStep=3; }
     else if(a==='addrow') czProdutos.push({oferta:'OFERTA',nome:'',marca:'',gram:'',precoDe:'',preco:'',qtd:1});
-    else if(a==='gerar'){ if(!czProdutos.length){ alert('Nenhum produto na lista.'); return; } czStep=4; }
+    else if(a==='gerar'){ if(!czProdutos.length){ uiConfirm({titulo:'Lista vazia',msg:'Nenhum produto na lista.',ok:'OK',cancel:''}); return; } czStep=4; }
     else if(a==='novo'){ czProdutos=[]; czStep=1; czValIni=''; czValidade=''; czLimite='0'; }
     else if(a==='imprimir'){
       if(!czValIni || !czValidade){
-        alert('Preencha a data de INÍCIO e a data de FIM da oferta antes de imprimir.');
+        uiConfirm({titulo:'Datas obrigatórias',msg:'Preencha a data de INÍCIO e a data de FIM da oferta antes de imprimir.',ok:'OK',cancel:''});
         var _dt=document.getElementById(!czValIni?'czValIni':'czValidade');
         if(_dt){ _dt.focus(); _dt.style.borderColor='#e05252'; _dt.style.boxShadow='0 0 0 3px rgba(224,82,82,.25)'; }
         return;
@@ -6452,7 +6452,7 @@ function czImprimir(){
    +'.pr .rs{font-size:'+c.rs+'px;align-self:flex-start;margin-top:8px;margin-right:6px;}.pr .in{font-size:'+c.inn+'px;}.pr .cm{font-size:'+c.ce+'px;align-self:flex-end;margin:0 3px 14px;}.pr .ce{font-size:'+c.ce+'px;align-self:flex-start;margin-top:6px;}'
    +'.ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:'+c.ft+'px;margin-top:4%;}'
    +'@media screen{html{background:#3c4043;}body{zoom:.45;background:#3c4043;padding:30px 0;}.pg{background:#fff;width:794px;margin:0 auto 30px;box-shadow:0 8px 30px rgba(0,0,0,.45);}}</style>';
-  var w=window.open('','_blank'); if(!w){ alert('Permita pop-ups (janelas) para imprimir os cartazes.'); return; }
+  var w=window.open('','_blank'); if(!w){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return; }
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">'+css+'</head><body>'+pages+'<scr'+'ipt>(function(){function go(){setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
   w.document.close();
 }
