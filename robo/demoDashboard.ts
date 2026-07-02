@@ -1406,9 +1406,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-size{border:2px solid #e1e7ee;border-radius:10px;padding:14px 6px;text-align:center;cursor:pointer;font-weight:800;color:#56606d;}
         #page-cartaz .cz-size.on{border-color:#157a35;color:#157a35;background:#f0f9f3;}
         #page-cartaz .cz-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;}
-        .ctz{container-type:inline-size;background:#fff;border:1px solid #eceef1;border-radius:18px;box-shadow:0 3px 14px rgba(0,0,0,.09);aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:7% 6%;overflow:hidden;font-family:'Bangers',cursive;}
+        .ctz{container-type:inline-size;background:#fff;border:1px solid #eceef1;border-radius:18px;box-shadow:0 3px 14px rgba(0,0,0,.09);aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:4% 5% 3%;overflow:hidden;font-family:'Bangers',cursive;}
         .ctz .ctz-top,.ctz .ctz-mid,.ctz .ctz-bot{width:100%;display:flex;flex-direction:column;align-items:center;}
-        .ctz .of{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;font-size:23cqw;line-height:1;padding:4cqw 11cqw;transform:rotate(-1.5deg);}
+        .ctz .of{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;font-size:28cqw;line-height:.95;padding:3cqw 11cqw;transform:rotate(-1.5deg);}
+        .ctz .of.small{font-size:16cqw;}
         .ctz .nm{color:#111;font-size:26cqw;line-height:.92;white-space:nowrap;}
         .ctz .mc{color:#111;font-size:21cqw;line-height:.94;}
         .ctz .gr{color:#111;font-size:8.5cqw;margin-top:2cqw;border-bottom:.6cqw solid #111;padding:0 4cqw .5cqw;}
@@ -1419,12 +1420,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-opc{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:0 0 16px;font-size:12.5px;color:#56606d;}
         #page-cartaz .cz-opc label{display:flex;align-items:center;gap:6px;font-weight:600;}
         #page-cartaz .cz-opc input{border:1.5px solid #e1e7ee;border-radius:8px;padding:6px 8px;font-size:13px;}
-        .ctz .pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:5.5cqw 8cqw;transform:rotate(-1deg);}
+        .ctz .pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:4cqw 7cqw;transform:rotate(-1deg);}
         .ctz .pr .rs{font-size:16cqw;align-self:flex-start;margin-top:1.5cqw;margin-right:.5cqw;}
         .ctz .pr .in{font-size:47cqw;}
         .ctz .pr .cm{font-size:30cqw;align-self:flex-end;margin:0 .3cqw 4cqw;}
         .ctz .pr .ce{font-size:31cqw;align-self:flex-start;margin-top:1cqw;}
-        .ctz .ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:3.2cqw;margin-top:2cqw;line-height:1.25;}
+        .ctz .ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:3.2cqw;margin-top:1cqw;line-height:1.25;}
       </style>
       <div class="card">
         <div class="prd-top"><div class="prd-titulo" style="min-width:auto;">Gerador de Cartaz de Oferta</div><span style="font-size:13px;color:#8a97a8;">Monte cartazes e imprima pra loja</span></div>
@@ -6349,7 +6350,8 @@ function czFooter(){
 function czInner(p){
   var pp=czPreco(p.preco);
   var dep=(czModelo==='depor'&&p.precoDe)?('<div class="d"><span class="d1">DE:</span> <span class="d2">'+czEsc(p.precoDe)+'</span> <span class="d3">POR APENAS</span></div>'):'';
-  return '<div class="ctz-top"><div class="of">'+czEsc(p.oferta||'OFERTA')+'</div></div>'
+  var ofT=(p.oferta||'OFERTA'); var ofCls='of'+(ofT.length>8?' small':'');
+  return '<div class="ctz-top"><div class="'+ofCls+'">'+czEsc(ofT)+'</div></div>'
    +'<div class="ctz-mid"><div class="nm">'+czEsc((p.nome||'').toUpperCase())+'</div>'
    +(p.marca?('<div class="mc">'+czEsc((p.marca||'').toUpperCase())+'</div>'):'')
    +(p.gram?('<div class="gr">'+czEsc((p.gram||'').toUpperCase())+'</div>'):'')+'</div>'
@@ -6422,10 +6424,10 @@ function czInput(e){
 function czImprimir(){
   var itens=[]; for(var i=0;i<czProdutos.length;i++){ var q=Math.max(1,parseInt(czProdutos[i].qtd,10)||1); for(var k=0;k<q;k++) itens.push(czProdutos[i]); }
   if(!itens.length) return;
-  var cfg={A3:{per:1,cols:1,rows:1,of:182,nm:250,mc:150,gr:78,dp:60,rs:98,inn:290,ce:190,ft:24},
-           A4:{per:1,cols:1,rows:1,of:134,nm:180,mc:112,gr:56,dp:44,rs:72,inn:210,ce:140,ft:19},
-           A5:{per:2,cols:1,rows:2,of:85,nm:116,mc:72,gr:37,dp:29,rs:47,inn:136,ce:90,ft:14},
-           A6:{per:4,cols:2,rows:2,of:61,nm:82,mc:52,gr:27,dp:21,rs:33,inn:97,ce:64,ft:12}};
+  var cfg={A3:{per:1,cols:1,rows:1,of:222,nm:250,mc:150,gr:78,dp:60,rs:98,inn:290,ce:190,ft:24},
+           A4:{per:1,cols:1,rows:1,of:163,nm:180,mc:112,gr:56,dp:44,rs:72,inn:210,ce:140,ft:19},
+           A5:{per:2,cols:1,rows:2,of:104,nm:116,mc:72,gr:37,dp:29,rs:47,inn:136,ce:90,ft:14},
+           A6:{per:4,cols:2,rows:2,of:74,nm:82,mc:52,gr:27,dp:21,rs:33,inn:97,ce:64,ft:12}};
   var c=cfg[czTamanho]||cfg.A4;
   var pages='';
   for(var i2=0;i2<itens.length;i2+=c.per){ var cells=''; for(var j=i2;j<i2+c.per && j<itens.length;j++){ cells+='<div class="cell">'+czInner(itens[j])+'</div>'; } pages+='<div class="pg">'+cells+'</div>'; }
@@ -6434,6 +6436,7 @@ function czImprimir(){
    +'.cell{border:1px dashed #ccc;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:3% 4%;overflow:hidden;}'
    +'.ctz-top,.ctz-mid,.ctz-bot{width:100%;display:flex;flex-direction:column;align-items:center;}'
    +'.of{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;font-size:'+c.of+'px;line-height:1;padding:10px 42px;transform:rotate(-1.5deg);}'
+   +'.of.small{font-size:'+Math.round(c.of*0.57)+'px;}'
    +'.nm{color:#111;font-size:'+c.nm+'px;line-height:.85;margin-top:3%;}'
    +'.mc{color:#111;font-size:'+c.mc+'px;line-height:.9;}'
    +'.gr{color:#111;font-size:'+c.gr+'px;margin-top:2%;border-bottom:4px solid #111;padding:0 14px 4px;}'
