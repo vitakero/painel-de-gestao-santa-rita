@@ -6392,7 +6392,7 @@ function renderCartaz(){
     var sizes=['A3','A4','A5','A6'];
     b='<p class="cz-sub">Escolha o tamanho e imprima</p><div class="cz-sizes">';
     for(var s=0;s<sizes.length;s++){ b+='<div class="cz-size '+(czTamanho===sizes[s]?'on':'')+'" data-czsize="'+sizes[s]+'">'+sizes[s]+'</div>'; }
-    b+='</div><div class="cz-opc"><label>Início da oferta <b style="color:#c0392b">*</b> <input type="date" id="czValIni" value="'+czEsc(czValIni)+'"></label><label>Fim da oferta <b style="color:#c0392b">*</b> <input type="date" id="czValidade" value="'+czEsc(czValidade)+'"></label><label>Limite por cliente <input type="number" min="0" id="czLimite" value="'+czEsc(czLimite)+'" style="width:66px;"></label></div><div class="cz-preview">';
+    b+='</div><div class="cz-opc"><label>Início da oferta <input type="date" id="czValIni" value="'+czEsc(czValIni)+'"></label><label>Fim da oferta <input type="date" id="czValidade" value="'+czEsc(czValidade)+'"></label><label>Limite por cliente <input type="number" min="0" id="czLimite" value="'+czEsc(czLimite)+'" style="width:66px;"></label></div><div class="cz-preview">';
     for(var k=0;k<czProdutos.length;k++){ b+='<div class="ctz">'+czInner(czProdutos[k])+'</div>'; }
     b+='</div><div class="cz-actions" style="justify-content:space-between;"><button class="cz-btn sec" data-czact="step3">← Voltar</button><div style="display:flex;gap:10px;"><button class="cz-btn sec" data-czact="novo">Novo</button><button class="cz-btn prim" data-czact="imprimir">🖨 Imprimir cartazes</button></div></div>';
   }
@@ -6414,8 +6414,8 @@ function czClick(e){
     else if(a==='imprimir'){
       if(!czValIni || !czValidade){
         uiConfirm({titulo:'Datas obrigatórias',msg:'Preencha a data de INÍCIO e a data de FIM da oferta antes de imprimir.',ok:'OK',cancel:''});
-        var _dt=document.getElementById(!czValIni?'czValIni':'czValidade');
-        if(_dt){ _dt.focus(); _dt.style.borderColor='#e05252'; _dt.style.boxShadow='0 0 0 3px rgba(224,82,82,.25)'; }
+        [['czValIni',!czValIni],['czValidade',!czValidade]].forEach(function(par){ var el=document.getElementById(par[0]); if(!el) return; if(par[1]){ el.style.borderColor='#e05252'; el.style.boxShadow='0 0 0 3px rgba(224,82,82,.25)'; } else { el.style.borderColor=''; el.style.boxShadow=''; } });
+        var _dt=document.getElementById(!czValIni?'czValIni':'czValidade'); if(_dt) _dt.focus();
         return;
       }
       czImprimir(); return; }
