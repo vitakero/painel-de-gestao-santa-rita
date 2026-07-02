@@ -6441,7 +6441,7 @@ function czImprimir(){
   var c=cfg[czTamanho]||cfg.A4;
   var pages='';
   for(var i2=0;i2<itens.length;i2+=c.per){ var cells=''; for(var j=i2;j<i2+c.per && j<itens.length;j++){ cells+='<div class="cell">'+czInner(itens[j])+'</div>'; } pages+='<div class="pg">'+cells+'</div>'; }
-  var css='<style>:root{color-scheme:light only;}@page{size:A4;margin:0;}@media print{body{padding:8mm;}}*{margin:0;padding:0;box-sizing:border-box;font-family:"Bangers",cursive;}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+  var css='<style>:root{color-scheme:light only;}@page{size:A4;margin:6mm;}*{margin:0;padding:0;box-sizing:border-box;font-family:"Bangers",cursive;}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
    +'.pg{width:100%;height:265mm;overflow:hidden;break-inside:avoid;display:grid;grid-template-columns:repeat('+c.cols+',minmax(0,1fr));grid-template-rows:repeat('+c.rows+',minmax(0,1fr));gap:5mm;}.pg+.pg{page-break-before:always;}'
    +'.cell{'+(c.per>1?'border:1px dashed #bbb;':'')+'display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:1.5% 4% 1%;overflow:hidden;}'
    +'.ctz-top,.ctz-mid,.ctz-bot{width:100%;display:flex;flex-direction:column;align-items:center;}'
