@@ -6316,7 +6316,7 @@ function manAgSaveFromForm(){
 })();
 
 /* ===== Gerador de Cartaz de Oferta ===== */
-var czStep=1, czModelo='padrao', czProdutos=[], czTamanho='A4', czValidade='', czLimite='1';
+var czStep=1, czModelo='padrao', czProdutos=[], czTamanho='A4', czValIni='', czValidade='', czLimite='1';
 function czEsc(s){ s=(s==null?'':''+s); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function czTemDigito(w){ for(var i=0;i<w.length;i++){ if(w.charAt(i)>='0'&&w.charAt(i)<='9') return true; } return false; }
 function czEhPreco(w){ return czTemDigito(w) && (w.indexOf(',')>=0 || w.indexOf('.')>=0); }
@@ -6337,7 +6337,12 @@ function czParseLinha(raw){
 function czParseTexto(txt){ var out=[]; var linhas=(txt||'').split('\\n'); for(var i=0;i<linhas.length;i++){ var p=czParseLinha(linhas[i]); if(p) out.push(p); } return out; }
 function czPreco(p){ p=(''+(p||'')).replace('.',','); var a=p.split(','); var r=(a[0]||'0').replace(/[^0-9]/g,'')||'0'; var c=(a[1]||'00'); c=(c+'00').slice(0,2); return {reais:r,cent:c}; }
 function czFooter(){
-  var v; if(czValidade){ var pt=czValidade.split('-'); v='OFERTA VÁLIDA ATÉ '+((pt.length===3)?(pt[2]+'/'+pt[1]+'/'+pt[0]):czValidade); } else { v='OFERTA VÁLIDA ENQUANTO DURAR O ESTOQUE'; }
+  function czData(d){ var pt=(d||'').split('-'); return (pt.length===3)?(pt[2]+'/'+pt[1]+'/'+pt[0]):d; }
+  var v;
+  if(czValIni && czValidade){ v='OFERTA VÁLIDA DE '+czData(czValIni)+' ATÉ '+czData(czValidade); }
+  else if(czValidade){ v='OFERTA VÁLIDA ATÉ '+czData(czValidade); }
+  else if(czValIni){ v='OFERTA VÁLIDA A PARTIR DE '+czData(czValIni); }
+  else { v='OFERTA VÁLIDA ENQUANTO DURAR O ESTOQUE'; }
   var n=parseInt(czLimite,10); var lim=(n>0)?('LIMITE '+n+' UNIDADE'+(n>1?'S':'')+' POR CLIENTE'):'';
   return lim?(v+'  ·  '+lim):v;
 }
@@ -6385,7 +6390,7 @@ function renderCartaz(){
     var sizes=['A3','A4','A5','A6'];
     b='<p class="cz-sub">Escolha o tamanho e imprima</p><div class="cz-sizes">';
     for(var s=0;s<sizes.length;s++){ b+='<div class="cz-size '+(czTamanho===sizes[s]?'on':'')+'" data-czsize="'+sizes[s]+'">'+sizes[s]+'</div>'; }
-    b+='</div><div class="cz-opc"><label>Validade da oferta <input type="date" id="czValidade" value="'+czEsc(czValidade)+'"></label><label>Limite por cliente <input type="number" min="0" id="czLimite" value="'+czEsc(czLimite)+'" style="width:66px;"></label></div><div class="cz-preview">';
+    b+='</div><div class="cz-opc"><label>Início da oferta <input type="date" id="czValIni" value="'+czEsc(czValIni)+'"></label><label>Fim da oferta <input type="date" id="czValidade" value="'+czEsc(czValidade)+'"></label><label>Limite por cliente <input type="number" min="0" id="czLimite" value="'+czEsc(czLimite)+'" style="width:66px;"></label></div><div class="cz-preview">';
     for(var k=0;k<czProdutos.length;k++){ b+='<div class="ctz">'+czInner(czProdutos[k])+'</div>'; }
     b+='</div><div class="cz-actions" style="justify-content:space-between;"><button class="cz-btn sec" data-czact="step3">← Voltar</button><div style="display:flex;gap:10px;"><button class="cz-btn sec" data-czact="novo">Novo</button><button class="cz-btn prim" data-czact="imprimir">🖨 Imprimir cartazes</button></div></div>';
   }
@@ -6408,7 +6413,7 @@ function czClick(e){
     renderCartaz(); return;
   }
 }
-function czChange(e){ var t=e.target; if(t.id==='czValidade'){ czValidade=t.value; renderCartaz(); } else if(t.id==='czLimite'){ czLimite=t.value; renderCartaz(); } }
+function czChange(e){ var t=e.target; if(t.id==='czValidade'){ czValidade=t.value; renderCartaz(); } else if(t.id==='czValIni'){ czValIni=t.value; renderCartaz(); } else if(t.id==='czLimite'){ czLimite=t.value; renderCartaz(); } }
 function czInput(e){
   var t=e.target;
   if(t.id==='czTexto'){ var n=t.value.split('\\n').filter(function(x){return x.trim();}).length; var c=document.getElementById('czCount'); if(c) c.textContent=n+' linha(s) detectada(s)'; return; }
