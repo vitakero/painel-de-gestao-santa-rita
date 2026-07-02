@@ -1402,9 +1402,26 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-tbl td{padding:3px;border-bottom:1px solid #eef0f3;}
         #page-cartaz .cz-tbl input{width:100%;box-sizing:border-box;border:1px solid #e1e7ee;border-radius:7px;padding:6px 7px;font-size:13px;color:#1d2733;}
         #page-cartaz .cz-del{border:0;background:#fdecec;color:#c0392b;border-radius:7px;padding:6px 9px;cursor:pointer;font-weight:700;}
-        #page-cartaz .cz-sizes{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:8px;max-width:420px;margin:0 auto 18px;}
-        #page-cartaz .cz-size{border:2px solid #e1e7ee;border-radius:10px;padding:14px 6px;text-align:center;cursor:pointer;font-weight:800;color:#56606d;}
-        #page-cartaz .cz-size.on{border-color:#157a35;color:#157a35;background:#f0f9f3;}
+        #page-cartaz .cz-sizes{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:10px;max-width:820px;margin:0 auto 14px;}
+        #page-cartaz .cz-size{border:2px solid #e1e7ee;border-radius:12px;padding:10px 6px 8px;text-align:center;cursor:pointer;color:#56606d;background:#fff;}
+        #page-cartaz .cz-size.on{border-color:#157a35;background:#f0f9f3;}
+        #page-cartaz .cz-size .t{font-weight:800;font-size:15px;}
+        #page-cartaz .cz-size.on .t{color:#157a35;}
+        #page-cartaz .cz-mini{width:34px;height:47px;border:1.5px solid #c9d2dc;border-radius:4px;margin:7px auto 5px;display:grid;gap:1.5px;padding:2px;background:#fff;}
+        #page-cartaz .cz-mini i{background:#dbe4f8;border-radius:2px;}
+        #page-cartaz .cz-mini.m2{grid-template-rows:1fr 1fr;}
+        #page-cartaz .cz-mini.m4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;}
+        #page-cartaz .cz-mini.m8{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr 1fr 1fr;}
+        #page-cartaz .cz-mini.mY i{background:#ffe9a8;}
+        #page-cartaz .cz-size .badge{display:inline-block;background:#5b6672;color:#fff;font-size:9.5px;font-weight:800;border-radius:8px;padding:2px 8px;letter-spacing:.4px;}
+        #page-cartaz .cz-size .inf{font-size:10.5px;color:#8a97a8;margin-top:4px;}
+        #page-cartaz .cz-imp{max-width:560px;margin:0 auto 16px;border:1px solid #e1e7ee;border-radius:12px;padding:12px 14px;background:#fff;}
+        #page-cartaz .cz-impt{font-size:13px;font-weight:800;color:#1d2733;margin-bottom:8px;}
+        #page-cartaz .cz-impo{display:flex;gap:9px;align-items:flex-start;border:2px solid #e9edf2;border-radius:10px;padding:9px 11px;cursor:pointer;margin-bottom:7px;}
+        #page-cartaz .cz-impo.on{border-color:#157a35;background:#f0f9f3;}
+        #page-cartaz .cz-impo b{font-size:13.5px;color:#1d2733;display:block;}
+        #page-cartaz .cz-impo span{font-size:12px;color:#8a97a8;display:block;}
+        #page-cartaz .cz-impo input{margin-top:3px;accent-color:#157a35;}
         #page-cartaz .cz-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;}
         .ctz{container-type:inline-size;background:#fff;border:1px solid #eceef1;border-radius:18px;box-shadow:0 3px 14px rgba(0,0,0,.09);aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:0;overflow:hidden;font-family:'Bangers',cursive;}
         .ctz .ctz-top,.ctz .ctz-mid,.ctz .ctz-bot{width:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;padding:0 4cqw;}
@@ -6318,7 +6335,7 @@ function manAgSaveFromForm(){
 })();
 
 /* ===== Gerador de Cartaz de Oferta ===== */
-var czStep=1, czModelo='padrao', czProdutos=[], czTamanho='A4', czValIni='', czValidade='', czLimite='0';
+var czStep=1, czModelo='padrao', czProdutos=[], czTamanho='A4', czImpressao='multi', czValIni='', czValidade='', czLimite='0';
 function czEsc(s){ s=(s==null?'':''+s); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function czTemDigito(w){ for(var i=0;i<w.length;i++){ if(w.charAt(i)>='0'&&w.charAt(i)<='9') return true; } return false; }
 function czEhPreco(w){ return czTemDigito(w) && (w.indexOf(',')>=0 || w.indexOf('.')>=0); }
@@ -6394,10 +6411,31 @@ function renderCartaz(){
     }
     b+='</tbody></table></div><div class="cz-actions" style="justify-content:space-between;"><button class="cz-btn sec" data-czact="addrow">+ Adicionar linha</button><div style="display:flex;gap:10px;"><button class="cz-btn sec" data-czact="step2">← Voltar</button><button class="cz-btn prim" data-czact="gerar">Gerar cartazes →</button></div></div>';
   } else {
-    var sizes=['A3','A4','A5','A6'];
+    var SDEFS=[
+      {k:'A1',badge:'GRANDE',info:'8 folhas A4',mini:'m1'},
+      {k:'A2',badge:'MÉDIO',info:'4 folhas A4',mini:'m1'},
+      {k:'A3',badge:'PEQUENO',info:'2 folhas A4',mini:'m1'},
+      {k:'A4',badge:'A4',info:'1 por folha',mini:'m1'},
+      {k:'A5',badge:'',info:'2 por folha',mini:'m2 mY'},
+      {k:'A6',badge:'',info:'4 por folha',mini:'m4 mY'},
+      {k:'A7',badge:'',info:'8 por folha',mini:'m8 mY'}
+    ];
+    var selDef=null;
     b='<p class="cz-sub">Escolha o tamanho e imprima</p><div class="cz-sizes">';
-    for(var s=0;s<sizes.length;s++){ b+='<div class="cz-size '+(czTamanho===sizes[s]?'on':'')+'" data-czsize="'+sizes[s]+'">'+sizes[s]+'</div>'; }
-    b+='</div><div class="cz-opc"><label>Início da oferta <input type="date" id="czValIni" value="'+czEsc(czValIni)+'"></label><label>Fim da oferta <input type="date" id="czValidade" value="'+czEsc(czValidade)+'"></label><label>Limite por cliente <input type="number" min="0" id="czLimite" value="'+czEsc(czLimite)+'" style="width:66px;"></label></div><div class="cz-preview">';
+    for(var s=0;s<SDEFS.length;s++){ var sd=SDEFS[s]; if(czTamanho===sd.k) selDef=sd;
+      var cells=''; var ncell=(sd.mini.indexOf('m2')>=0)?2:((sd.mini.indexOf('m4')>=0)?4:((sd.mini.indexOf('m8')>=0)?8:0));
+      for(var q=0;q<ncell;q++) cells+='<i></i>';
+      b+='<div class="cz-size '+(czTamanho===sd.k?'on':'')+'" data-czsize="'+sd.k+'"><div class="t">'+sd.k+'</div><div class="cz-mini '+sd.mini+'">'+cells+'</div>'+(sd.badge?('<span class="badge">'+sd.badge+'</span>'):'')+'<div class="inf">'+sd.info+'</div></div>';
+    }
+    b+='</div>';
+    if(czTamanho==='A1'||czTamanho==='A2'||czTamanho==='A3'){
+      var nf={A1:8,A2:4,A3:2}[czTamanho];
+      b+='<div class="cz-imp"><div class="cz-impt">Opções de impressão</div>'
+       +'<label class="cz-impo '+(czImpressao==='multi'?'on':'')+'"><input type="radio" name="czimp" value="multi"'+(czImpressao==='multi'?' checked':'')+'><span><b>Múltiplas A4</b><span>'+nf+' folhas A4 por cartaz — imprima e emende (cole) as folhas</span></span></label>'
+       +'<label class="cz-impo '+(czImpressao==='unica'?'on':'')+'"><input type="radio" name="czimp" value="unica"'+(czImpressao==='unica'?' checked':'')+'><span><b>Folha única '+czTamanho+'</b><span>Impressora de grande formato ou gráfica (salvar como PDF)</span></span></label>'
+       +'</div>';
+    }
+    b+='<div class="cz-opc"><label>Início da oferta <input type="date" id="czValIni" value="'+czEsc(czValIni)+'"></label><label>Fim da oferta <input type="date" id="czValidade" value="'+czEsc(czValidade)+'"></label><label>Limite por cliente <input type="number" min="0" id="czLimite" value="'+czEsc(czLimite)+'" style="width:66px;"></label></div><div class="cz-preview">';
     for(var k=0;k<czProdutos.length;k++){ b+='<div class="ctz">'+czInner(czProdutos[k])+'</div>'; }
     b+='</div><div class="cz-actions" style="justify-content:space-between;"><button class="cz-btn sec" data-czact="step3">← Voltar</button><div style="display:flex;gap:10px;"><button class="cz-btn sec" data-czact="novo">Novo</button><button class="cz-btn prim" data-czact="imprimir" style="display:inline-flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir cartazes</button></div></div>';
   }
@@ -6427,7 +6465,7 @@ function czClick(e){
     renderCartaz(); return;
   }
 }
-function czChange(e){ var t=e.target; if(t.id==='czValidade'){ czValidade=t.value; renderCartaz(); } else if(t.id==='czValIni'){ czValIni=t.value; renderCartaz(); } else if(t.id==='czLimite'){ czLimite=t.value; renderCartaz(); } }
+function czChange(e){ var t=e.target; if(t.id==='czValidade'){ czValidade=t.value; renderCartaz(); } else if(t.id==='czValIni'){ czValIni=t.value; renderCartaz(); } else if(t.id==='czLimite'){ czLimite=t.value; renderCartaz(); } else if(t.name==='czimp'){ czImpressao=t.value; renderCartaz(); } }
 function czInput(e){
   var t=e.target;
   if(t.id==='czTexto'){ var n=t.value.split('\\n').filter(function(x){return x.trim();}).length; var c=document.getElementById('czCount'); if(c) c.textContent=n+' linha(s) detectada(s)'; return; }
@@ -6436,15 +6474,46 @@ function czInput(e){
 function czImprimir(){
   var itens=[]; for(var i=0;i<czProdutos.length;i++){ var q=Math.max(1,parseInt(czProdutos[i].qtd,10)||1); for(var k=0;k<q;k++) itens.push(czProdutos[i]); }
   if(!itens.length) return;
-  var cfg={A3:{per:1,cols:1,rows:1,of:332,nm:268,mc:184,gr:90,dp:104,rs:118,inn:350,ce:234,ft:25},
-           A4:{per:1,cols:1,rows:1,of:228,nm:184,mc:126,gr:62,dp:72,rs:82,inn:240,ce:161,ft:18},
+  // ===== POSTERS A1/A2/A3 (multiplas folhas A4 pra emendar, ou folha unica) =====
+  var POSTERS={A1:{w:594,h:841,tiles:{cols:2,rows:4,tw:297,th:210.25,rot:1}},
+               A2:{w:420,h:594,tiles:{cols:2,rows:2,tw:210,th:297,rot:0}},
+               A3:{w:297,h:420,tiles:{cols:1,rows:2,tw:297,th:210,rot:1}}};
+  if(POSTERS[czTamanho]){
+    var P=POSTERS[czTamanho];
+    var pcss=':root{color-scheme:light only;}*{margin:0;padding:0;box-sizing:border-box;font-family:"Bangers",cursive;}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}.poster{position:absolute;container-type:inline-size;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;overflow:hidden;font-family:"Bangers",cursive;box-sizing:border-box;}.poster .ctz-top,.poster .ctz-mid,.poster .ctz-bot{width:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;padding:0 4cqw;}.poster .ctz-top{padding-top:1.5cqw;}.poster .ctz-bot{padding-bottom:1cqw;}.poster .of{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;font-size:calc(var(--k,1)*31.4cqw);line-height:1;padding:.8cqw 5.6cqw;transform:rotate(-1.5deg);}.poster .nm{color:#111;font-size:calc(var(--k,1)*25.4cqw);line-height:.85;margin-top:2cqw;white-space:nowrap;}.poster .mc{color:#111;font-size:calc(var(--k,1)*17.4cqw);line-height:.9;white-space:nowrap;}.poster .gr{color:#111;font-size:8.6cqw;margin-top:1.5cqw;border-bottom:.55cqw solid #111;padding:0 1.9cqw .55cqw;}.poster .d{font-size:9.9cqw;margin:1.5cqw 0 1cqw;line-height:1;}.poster .d .d1{color:#111;}.poster .d .d2{color:#8a8a8a;text-decoration:line-through;}.poster .d .d3{color:#ef1b1b;}.poster .pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-top:1cqw;padding:2.1cqw 5.6cqw;transform:rotate(-1.5deg);}.poster .pr .rs{font-size:11.2cqw;align-self:flex-start;margin-top:1.1cqw;margin-right:.8cqw;}.poster .pr .in{font-size:calc(var(--k,1)*33.2cqw);}.poster .pr .cm{font-size:calc(var(--k,1)*22.2cqw);align-self:flex-end;margin:0 .4cqw 1.9cqw;}.poster .pr .ce{font-size:calc(var(--k,1)*22.2cqw);align-self:flex-start;margin-top:.8cqw;}.poster .ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:calc(var(--k,1)*2.4cqw);margin-top:1.5cqw;line-height:1.25;white-space:nowrap;}';
+    var pgs='';
+    if(czImpressao==='unica'){
+      pcss='@page{size:'+P.w+'mm '+P.h+'mm;margin:0;}'+pcss+'.pg{position:relative;width:'+P.w+'mm;height:'+P.h+'mm;overflow:hidden;page-break-after:always;}';
+      for(var pu=0;pu<itens.length;pu++){ pgs+='<div class="pg"><div class="poster" style="left:0;top:0;width:'+P.w+'mm;height:'+P.h+'mm;">'+czInner(itens[pu])+'</div></div>'; }
+    } else {
+      var T=P.tiles;
+      pcss='@page{size:A4;margin:0;}'+pcss
+        +'.tp{width:210mm;height:296mm;overflow:hidden;page-break-after:always;display:flex;align-items:center;justify-content:center;position:relative;}'
+        +'.win{position:relative;overflow:hidden;width:'+T.tw+'mm;height:'+T.th+'mm;'+(T.rot?'transform:rotate(90deg);':'')+'}'
+        +'.lbl{position:absolute;bottom:1.5mm;right:2.5mm;font:9px Arial;color:#b8b8b8;z-index:5;}';
+      for(var pi=0;pi<itens.length;pi++){
+        var folha=0;
+        for(var rr=0;rr<T.rows;rr++){ for(var cc=0;cc<T.cols;cc++){ folha++;
+          pgs+='<div class="tp"><div class="win"><div class="poster" style="width:'+P.w+'mm;height:'+P.h+'mm;left:-'+(cc*T.tw)+'mm;top:-'+(rr*T.th)+'mm;">'+czInner(itens[pi])+'</div><div class="lbl">'+czTamanho+' · folha '+folha+'/'+(T.rows*T.cols)+' (linha '+(rr+1)+', coluna '+(cc+1)+')</div></div></div>';
+        }}
+      }
+    }
+    var wp=window.open('','_blank'); if(!wp){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return; }
+    wp.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet"><style>'+pcss+'@media screen{html{background:#3c4043;}body{zoom:.3;background:#3c4043;padding:30px 0;}.tp,.pg{background:#fff;margin:0 auto 30px;box-shadow:0 8px 30px rgba(0,0,0,.45);}}</style></head><body>'+pgs+'<scr'+'ipt>(function(){function go(){setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
+    wp.document.close();
+    return;
+  }
+  var cfg={A4:{per:1,cols:1,rows:1,of:228,nm:184,mc:126,gr:62,dp:72,rs:82,inn:240,ce:161,ft:18},
            A5:{per:2,cols:1,rows:2,of:155,nm:125,mc:86,gr:42,dp:49,rs:55,inn:164,ce:110,ft:12},
-           A6:{per:4,cols:2,rows:2,of:110,nm:89,mc:61,gr:30,dp:35,rs:39,inn:116,ce:78,ft:9}};
+           A6:{per:4,cols:2,rows:2,of:110,nm:89,mc:61,gr:30,dp:35,rs:39,inn:116,ce:78,ft:9},
+           A7:{per:8,cols:4,rows:2,of:82,nm:66,mc:45,gr:22,dp:26,rs:30,inn:86,ce:58,ft:7}};
   var c=cfg[czTamanho]||cfg.A4;
   var pages='';
   for(var i2=0;i2<itens.length;i2+=c.per){ var cells=''; for(var j=i2;j<i2+c.per && j<itens.length;j++){ cells+='<div class="cell">'+czInner(itens[j])+'</div>'; } pages+='<div class="pg">'+cells+'</div>'; }
-  var css='<style>:root{color-scheme:light only;}@page{size:A4;margin:6mm;}*{margin:0;padding:0;box-sizing:border-box;font-family:"Bangers",cursive;}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
-   +'.pg{width:100%;height:265mm;overflow:hidden;break-inside:avoid;display:grid;grid-template-columns:repeat('+c.cols+',minmax(0,1fr));grid-template-rows:repeat('+c.rows+',minmax(0,1fr));gap:5mm;}.pg+.pg{page-break-before:always;}'
+  var _pageDef=(czTamanho==='A7')?'@page{size:A4 landscape;margin:6mm;}':'@page{size:A4;margin:6mm;}';
+  var _pgH=(czTamanho==='A7')?'182mm':'265mm';
+  var css='<style>:root{color-scheme:light only;}'+_pageDef+'*{margin:0;padding:0;box-sizing:border-box;font-family:"Bangers",cursive;}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+   +'.pg{width:100%;height:'+_pgH+';overflow:hidden;break-inside:avoid;display:grid;grid-template-columns:repeat('+c.cols+',minmax(0,1fr));grid-template-rows:repeat('+c.rows+',minmax(0,1fr));gap:5mm;}.pg+.pg{page-break-before:always;}'
    +'.cell{'+(c.per>1?'border:1px dashed #bbb;':'')+'display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:1.5% 4% 1%;overflow:hidden;}'
    +'.ctz-top,.ctz-mid,.ctz-bot{width:100%;display:flex;flex-direction:column;align-items:center;}'
    +'.of{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;font-size:calc(var(--k,1)*'+c.of+'px);line-height:.95;padding:6px 42px;transform:rotate(-1.5deg);}'
