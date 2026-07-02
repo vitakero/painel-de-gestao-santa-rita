@@ -6349,7 +6349,7 @@ function czFooter(){
 }
 function czInner(p){
   var pp=czPreco(p.preco);
-  var dep=(czModelo==='depor'&&p.precoDe)?('<div class="d"><span class="d1">DE:</span> <span class="d2">'+czEsc(p.precoDe)+'</span> <span class="d3">POR APENAS</span></div>'):'';
+  var dep=(p.precoDe)?('<div class="d"><span class="d1">DE:</span> <span class="d2">'+czEsc(p.precoDe)+'</span> <span class="d3">POR APENAS</span></div>'):'';
   var ofT=(p.oferta||'OFERTA'); var ofCls='of'+(ofT.length>8?' small':'');
   return '<div class="ctz-top"><div class="'+ofCls+'">'+czEsc(ofT)+'</div></div>'
    +'<div class="ctz-mid"><div class="nm">'+czEsc((p.nome||'').toUpperCase())+'</div>'
