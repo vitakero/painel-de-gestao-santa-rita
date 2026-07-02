@@ -22,6 +22,13 @@ const headers = {
 };
 
 (async () => {
+  // BOTAO DE PAUSA REMOTO: se existir o arquivo robo/PAUSADO no repo, o robo NAO publica.
+  // (Publicacao manual do Mac ignora a pausa usando: FORCAR=1 node scripts/publicar.cjs)
+  if (process.env.FORCAR !== "1") {
+    const rp = await fetch("https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/robo/PAUSADO", { headers });
+    if (rp.status === 200) { console.log(">>> Robo PAUSADO (existe robo/PAUSADO no repo). Nao vou publicar. Para reativar, apague esse arquivo."); process.exit(0); }
+  }
+
   const buf = fs.readFileSync(path.join(__dirname, "..", "output", "index.html"));
   const b64 = buf.toString("base64");
 
