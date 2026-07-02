@@ -402,7 +402,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #authUser span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #authUser .ach{flex:none;color:#8aa596;font-size:16px;}
   #authSair{margin-left:auto;border:1px solid #cdd6e0;background:#fff;border-radius:7px;padding:4px 9px;font-size:12px;cursor:pointer;color:#56606d;font-weight:600;}
-</style><link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
+</style><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body>
 <div id="authOv" style="display:none"><div id="authCard"><img id="authLogo" alt=""><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div id="authLoginBox"><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar acesso</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld" id="fldSetor" style="display:none"><label>Setor</label><select id="authSetor"><option value="">Selecione...</option><option>Frente de Loja</option><option>Açougue</option><option>Padaria</option><option>Hortifruti</option><option>Mercearia</option><option>Estoque</option><option>Financeiro</option><option>RH</option><option>Compras</option><option>Administração</option><option>Diretoria</option><option>Outro</option></select></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><div class="pw-wrap"><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld" id="fldRepetir" style="display:none"><label>Repetir senha</label><div class="pw-wrap"><input id="authRepetir" type="password" placeholder="digite a senha de novo" autocomplete="new-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authForgot">Esqueci minha senha</span><span id="authSkip" onclick="document.getElementById('authOv').style.display='none'">Continuar sem entrar (configuração)</span></div><div id="authReset" style="display:none"><div class="auth-fld"><label>Nova senha</label><div class="pw-wrap"><input id="authNovaSenha" type="password" placeholder="mínimo 6 caracteres"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld"><label>Repetir nova senha</label><div class="pw-wrap"><input id="authNovaRepetir" type="password" placeholder="digite a senha de novo"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authResetBtn" type="button">Salvar nova senha</button><div id="authResetMsg" style="font-size:13px;margin-top:10px;text-align:center;"></div></div></div></div>
 <script>try{var _o=document.getElementById("authOv");var _s=(location.hash||"")+(location.search||"");var _rec=(_s.indexOf("type=recovery")>=0)||(window.sessionStorage&&sessionStorage.getItem("sr_recovery")==="1");var _exp=(!_rec)&&(_s.indexOf("otp_expired")>=0||_s.indexOf("access_denied")>=0||_s.indexOf("error_code")>=0);if(_o&&(_rec||_exp)){_o.style.display="flex";var _lb=document.getElementById("authLoginBox");var _rb=document.getElementById("authReset");if(_rec){if(_lb)_lb.style.display="none";if(_rb)_rb.style.display="";}else{if(_rb)_rb.style.display="none";if(_lb)_lb.style.display="";var _m=document.getElementById("authMsg");if(_m){_m.textContent="Este link de senha já foi usado ou expirou. Toque em Esqueci minha senha para receber um novo.";_m.style.color="#c0392b";}}}}catch(e){}</script>
@@ -1406,27 +1406,25 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-size{border:2px solid #e1e7ee;border-radius:10px;padding:14px 6px;text-align:center;cursor:pointer;font-weight:800;color:#56606d;}
         #page-cartaz .cz-size.on{border-color:#157a35;color:#157a35;background:#f0f9f3;}
         #page-cartaz .cz-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;}
-        .ctz{container-type:inline-size;background:#fff;border:1px solid #eceef1;border-radius:14px;box-shadow:0 3px 14px rgba(0,0,0,.09);aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:3% 3% 2.2%;overflow:hidden;font-family:'Luckiest Guy',cursive;box-sizing:border-box;}
+        .ctz{container-type:inline-size;background:#fff;border:1px solid #eceef1;border-radius:18px;box-shadow:0 3px 14px rgba(0,0,0,.09);aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:7% 6%;overflow:hidden;font-family:'Bangers',cursive;}
         .ctz .ctz-top,.ctz .ctz-mid,.ctz .ctz-bot{width:100%;display:flex;flex-direction:column;align-items:center;}
-        .ctz .of,.ctz .pr{background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj4KPHBhdGggZmlsbD0iI0ZGRjIwMCIgZD0iTTE0IDI0IEw0NiAxNCBMOTIgMjEgTDE0OCAxMSBMMjA1IDE5IEwyNjggMTAgTDMyOCAxOCBMMzgyIDEzIEwzOTYgMjggTDM4NyA0MiBMMzk3IDU1IEwzODkgNzAgTDM5NCA4NCBMMzM4IDkwIEwyODIgODMgTDIxOCA5MSBMMTUyIDg0IEw5NCA5MiBMNDggODUgTDE1IDg5IEwyMCA3MCBMOCA1OCBMMTggNDQgTDEwIDMyIFoiLz4KPHBhdGggZmlsbD0iI0ZGRjIwMCIgZD0iTTAgMjggTDE4IDI0IEwxNSAzMyBMMiAzNSBaIi8+CjxwYXRoIGZpbGw9IiNGRkYyMDAiIGQ9Ik0zIDQ1IEwyMCA0MiBMMTggNTIgTDUgNTMgWiIvPgo8cGF0aCBmaWxsPSIjRkZGMjAwIiBkPSJNMCA2MiBMMTcgNTkgTDE1IDY4IEwyIDY5IFoiLz4KPHBhdGggZmlsbD0iI0ZGRjIwMCIgZD0iTTQgNzggTDIyIDc2IEwyMCA4NSBMNiA4NiBaIi8+CjxwYXRoIGZpbGw9IiNGRkYyMDAiIGQ9Ik0zODIgMjQgTDQwMCAyMSBMMzk4IDMxIEwzODQgMzMgWiIvPgo8cGF0aCBmaWxsPSIjRkZGMjAwIiBkPSJNMzgwIDQyIEw0MDAgMzkgTDM5OSA0OSBMMzgyIDUxIFoiLz4KPHBhdGggZmlsbD0iI0ZGRjIwMCIgZD0iTTM4MyA2MCBMNDAwIDU3IEwzOTggNjcgTDM4NSA2OCBaIi8+CjxwYXRoIGZpbGw9IiNGRkYyMDAiIGQ9Ik0zNzggNzggTDM5OCA3NSBMMzk2IDg1IEwzODAgODYgWiIvPgo8L3N2Zz4K") no-repeat center/100% 100%;}
-        .ctz .of{color:#f01414;line-height:.9;padding:1.5cqw 0 0;width:106%;box-sizing:border-box;}
-        .ctz .nm{color:#0d0d0d;line-height:1.02;white-space:nowrap;margin-top:2cqw;}
-        .ctz .mc{color:#0d0d0d;line-height:1.02;white-space:nowrap;}
-        .ctz .gr{color:#0d0d0d;line-height:1;margin-top:3cqw;}
-        .ctz .rule{width:88%;border-top:.3cqw solid #777;margin-top:2.5cqw;}
-        .ctz .d{font-size:8cqw;margin-bottom:.5cqw;line-height:1;}
+        .ctz .of{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;font-size:15cqw;line-height:1;padding:3cqw 9cqw;transform:rotate(-1.5deg);}
+        .ctz .nm{color:#111;font-size:26cqw;line-height:.92;white-space:nowrap;}
+        .ctz .mc{color:#111;font-size:21cqw;line-height:.94;}
+        .ctz .gr{color:#111;font-size:8.5cqw;margin-top:2cqw;border-bottom:.6cqw solid #111;padding:0 4cqw .5cqw;}
+        .ctz .d{font-size:8cqw;margin-bottom:1cqw;line-height:1;}
         .ctz .d .d1{color:#111;}
         .ctz .d .d2{color:#8a8a8a;text-decoration:line-through;}
-        .ctz .d .d3{color:#f01414;}
+        .ctz .d .d3{color:#ef1b1b;}
         #page-cartaz .cz-opc{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:0 0 16px;font-size:12.5px;color:#56606d;}
         #page-cartaz .cz-opc label{display:flex;align-items:center;gap:6px;font-weight:600;}
         #page-cartaz .cz-opc input{border:1.5px solid #e1e7ee;border-radius:8px;padding:6px 8px;font-size:13px;}
-        .ctz .pr{color:#f01414;display:flex;align-items:center;justify-content:center;line-height:.92;padding:2.5cqw 0 2cqw;width:106%;box-sizing:border-box;margin-top:1cqw;}
-        .ctz .pr .in{line-height:.92;}
-        .ctz .pr .cm{align-self:flex-end;line-height:1;margin:0 .3cqw 2.5cqw;}
-        .ctz .pr .ce{line-height:.92;}
-        .ctz .ft{width:98%;display:flex;justify-content:space-between;color:#111;font-family:Arial,sans-serif;font-weight:bold;font-size:3.3cqw;margin-top:2cqw;line-height:1.2;}
-        .ctz .ft span{white-space:nowrap;}
+        .ctz .pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:5.5cqw 8cqw;transform:rotate(-1deg);}
+        .ctz .pr .rs{font-size:16cqw;align-self:flex-start;margin-top:1.5cqw;margin-right:.5cqw;}
+        .ctz .pr .in{font-size:47cqw;}
+        .ctz .pr .cm{font-size:30cqw;align-self:flex-end;margin:0 .3cqw 4cqw;}
+        .ctz .pr .ce{font-size:31cqw;align-self:flex-start;margin-top:1cqw;}
+        .ctz .ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:3.2cqw;margin-top:2cqw;line-height:1.25;}
       </style>
       <div class="card">
         <div class="prd-top"><div class="prd-titulo" style="min-width:auto;">Gerador de Cartaz de Oferta</div><span style="font-size:13px;color:#8a97a8;">Monte cartazes e imprima pra loja</span></div>
@@ -6318,7 +6316,7 @@ function manAgSaveFromForm(){
 })();
 
 /* ===== Gerador de Cartaz de Oferta ===== */
-var czStep=1, czModelo='padrao', czProdutos=[], czTamanho='A4', czValidade='', czLimite='';
+var czStep=1, czModelo='padrao', czProdutos=[], czTamanho='A4', czValidade='', czLimite='1';
 function czEsc(s){ s=(s==null?'':''+s); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function czTemDigito(w){ for(var i=0;i<w.length;i++){ if(w.charAt(i)>='0'&&w.charAt(i)<='9') return true; } return false; }
 function czEhPreco(w){ return czTemDigito(w) && (w.indexOf(',')>=0 || w.indexOf('.')>=0); }
@@ -6339,37 +6337,21 @@ function czParseLinha(raw){
 function czParseTexto(txt){ var out=[]; var linhas=(txt||'').split('\\n'); for(var i=0;i<linhas.length;i++){ var p=czParseLinha(linhas[i]); if(p) out.push(p); } return out; }
 function czPreco(p){ p=(''+(p||'')).replace('.',','); var a=p.split(','); var r=(a[0]||'0').replace(/[^0-9]/g,'')||'0'; var c=(a[1]||'00'); c=(c+'00').slice(0,2); return {reais:r,cent:c}; }
 function czFooter(){
-  var v=''; if(czValidade){ var pt=czValidade.split('-'); v='OFERTA VÁLIDA ATÉ '+((pt.length===3)?(pt[2]+'/'+pt[1]+'/'+pt[0]):czValidade); }
-  var n=parseInt(czLimite,10); var lim=(n>0)?('Limite '+n+' unidade'+(n>1?'s':'')+' por cliente'):'';
-  return {v:v,l:lim};
+  var v; if(czValidade){ var pt=czValidade.split('-'); v='OFERTA VÁLIDA ATÉ '+((pt.length===3)?(pt[2]+'/'+pt[1]+'/'+pt[0]):czValidade); } else { v='OFERTA VÁLIDA ENQUANTO DURAR O ESTOQUE'; }
+  var n=parseInt(czLimite,10); var lim=(n>0)?('LIMITE '+n+' UNIDADE'+(n>1?'S':'')+' POR CLIENTE'):'';
+  return lim?(v+'  ·  '+lim):v;
 }
 function czInner(p){
   var pp=czPreco(p.preco);
-  var nomeT=czEsc((p.nome||'').toUpperCase()), marcaT=czEsc((p.marca||'').toUpperCase()), gramT=czEsc((p.gram||'').toUpperCase()), ofT=czEsc((p.oferta||'OFERTA').toUpperCase());
-  function fit(base,budget,len){ return Math.round(Math.min(base,budget/(len||1))*10)/10; }
-  var nmS=fit(27,160,nomeT.length), mcS=fit(27,160,marcaT.length), ofS=fit(24,150,ofT.length), grS=fit(7.5,160,gramT.length);
-  var nd=pp.reais.length+pp.cent.length;
-  var inS=Math.round(Math.min(48,94/(nd*0.47+0.22))*10)/10;
-  var cmS=Math.round(inS*5)/10;
-  var dep=(p.precoDe)?('<div class="d"><span class="d1">DE:</span> <span class="d2">'+czEsc(p.precoDe)+'</span> <span class="d3">POR APENAS</span></div>'):'';
-  var f=czFooter();
-  var ftHtml='';
-  if(f.v||f.l){
-    var ftS=Math.round(Math.min(3.3,185/(((f.v+' '+f.l).length)||1))*10)/10;
-    if(f.v&&f.l){ ftHtml='<div class="ft" style="font-size:'+ftS+'cqw"><span>'+czEsc(f.v)+'</span><span>'+czEsc(f.l)+'</span></div>'; }
-    else { ftHtml='<div class="ft" style="font-size:'+ftS+'cqw"><span style="margin:0 auto;">'+czEsc(f.v||f.l)+'</span></div>'; }
-  }
-  return '<div class="ctz-top"><div class="of" style="font-size:'+ofS+'cqw">'+ofT+'</div></div>'
-   +'<div class="ctz-mid"><div class="nm" style="font-size:'+nmS+'cqw">'+nomeT+'</div>'
-   +(marcaT?('<div class="mc" style="font-size:'+mcS+'cqw">'+marcaT+'</div>'):'')
-   +(gramT?('<div class="gr" style="font-size:'+grS+'cqw">'+gramT+'</div>'):'')
-   +'<div class="rule"></div></div>'
+  var dep=(czModelo==='depor'&&p.precoDe)?('<div class="d"><span class="d1">DE:</span> <span class="d2">'+czEsc(p.precoDe)+'</span> <span class="d3">POR APENAS</span></div>'):'';
+  return '<div class="ctz-top"><div class="of">'+czEsc(p.oferta||'OFERTA')+'</div></div>'
+   +'<div class="ctz-mid"><div class="nm">'+czEsc((p.nome||'').toUpperCase())+'</div>'
+   +(p.marca?('<div class="mc">'+czEsc((p.marca||'').toUpperCase())+'</div>'):'')
+   +(p.gram?('<div class="gr">'+czEsc((p.gram||'').toUpperCase())+'</div>'):'')+'</div>'
    +'<div class="ctz-bot">'+dep
-   +'<div class="pr"><span class="in" style="font-size:'+inS+'cqw">'+czEsc(pp.reais)+'</span><span class="cm" style="font-size:'+cmS+'cqw">,</span><span class="ce" style="font-size:'+inS+'cqw">'+czEsc(pp.cent)+'</span></div>'
-   +ftHtml+'</div>';
+   +'<div class="pr"><span class="rs">R$</span><span class="in">'+czEsc(pp.reais)+'</span><span class="cm">,</span><span class="ce">'+czEsc(pp.cent)+'</span></div>'
+   +'<div class="ft">'+czEsc(czFooter())+'</div></div>';
 }
-
-
 function renderCartaz(){
   var wrap=document.getElementById('cartazWrap'); if(!wrap) return;
   if(!wrap.__czb){ wrap.__czb=1; wrap.addEventListener('click',czClick); wrap.addEventListener('input',czInput); wrap.addEventListener('change',czChange); }
@@ -6435,33 +6417,28 @@ function czInput(e){
 function czImprimir(){
   var itens=[]; for(var i=0;i<czProdutos.length;i++){ var q=Math.max(1,parseInt(czProdutos[i].qtd,10)||1); for(var k=0;k<q;k++) itens.push(czProdutos[i]); }
   if(!itens.length) return;
-  var cfg={A3:{per:1,cols:1,rows:1,page:'A3',h:'408mm'},
-           A4:{per:1,cols:1,rows:1,page:'A4',h:'285mm'},
-           A5:{per:2,cols:1,rows:2,page:'A4',h:'285mm'},
-           A6:{per:4,cols:2,rows:2,page:'A4',h:'285mm'}};
+  var cfg={A3:{per:1,cols:1,rows:1,of:120,nm:250,mc:150,gr:78,dp:60,rs:98,inn:290,ce:190,ft:24},
+           A4:{per:1,cols:1,rows:1,of:88,nm:180,mc:112,gr:56,dp:44,rs:72,inn:210,ce:140,ft:19},
+           A5:{per:2,cols:1,rows:2,of:56,nm:116,mc:72,gr:37,dp:29,rs:47,inn:136,ce:90,ft:14},
+           A6:{per:4,cols:2,rows:2,of:40,nm:82,mc:52,gr:27,dp:21,rs:33,inn:97,ce:64,ft:12}};
   var c=cfg[czTamanho]||cfg.A4;
   var pages='';
-  for(var i2=0;i2<itens.length;i2+=c.per){ var cells=''; for(var j=i2;j<i2+c.per && j<itens.length;j++){ cells+='<div class="cell"><div class="ctzP">'+czInner(itens[j])+'</div></div>'; } pages+='<div class="pg">'+cells+'</div>'; }
-  var css='<style>@page{size:'+c.page+';margin:6mm;}*{margin:0;padding:0;box-sizing:border-box;font-family:"Luckiest Guy",cursive;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
-   +'.pg{width:100%;height:'+c.h+';page-break-after:always;display:grid;grid-template-columns:repeat('+c.cols+',1fr);grid-template-rows:repeat('+c.rows+',1fr);gap:4mm;}'
-   +'.cell{display:flex;align-items:center;justify-content:center;overflow:hidden;'+(c.per>1?'border:1px dashed #bbb;':'')+'}'
-   +'.ctzP{container-type:inline-size;height:98%;aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:3% 3% 2.2%;overflow:hidden;box-sizing:border-box;}'
-   +'.ctz-top,.ctz-mid,.ctz-bot{width:100%;display:flex;flex-direction:column;align-items:center;}'
-   +'.of,.pr{background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj4KPHBhdGggZmlsbD0iI0ZGRjIwMCIgZD0iTTE0IDI0IEw0NiAxNCBMOTIgMjEgTDE0OCAxMSBMMjA1IDE5IEwyNjggMTAgTDMyOCAxOCBMMzgyIDEzIEwzOTYgMjggTDM4NyA0MiBMMzk3IDU1IEwzODkgNzAgTDM5NCA4NCBMMzM4IDkwIEwyODIgODMgTDIxOCA5MSBMMTUyIDg0IEw5NCA5MiBMNDggODUgTDE1IDg5IEwyMCA3MCBMOCA1OCBMMTggNDQgTDEwIDMyIFoiLz4KPHBhdGggZmlsbD0iI0ZGRjIwMCIgZD0iTTAgMjggTDE4IDI0IEwxNSAzMyBMMiAzNSBaIi8+CjxwYXRoIGZpbGw9IiNGRkYyMDAiIGQ9Ik0zIDQ1IEwyMCA0MiBMMTggNTIgTDUgNTMgWiIvPgo8cGF0aCBmaWxsPSIjRkZGMjAwIiBkPSJNMCA2MiBMMTcgNTkgTDE1IDY4IEwyIDY5IFoiLz4KPHBhdGggZmlsbD0iI0ZGRjIwMCIgZD0iTTQgNzggTDIyIDc2IEwyMCA4NSBMNiA4NiBaIi8+CjxwYXRoIGZpbGw9IiNGRkYyMDAiIGQ9Ik0zODIgMjQgTDQwMCAyMSBMMzk4IDMxIEwzODQgMzMgWiIvPgo8cGF0aCBmaWxsPSIjRkZGMjAwIiBkPSJNMzgwIDQyIEw0MDAgMzkgTDM5OSA0OSBMMzgyIDUxIFoiLz4KPHBhdGggZmlsbD0iI0ZGRjIwMCIgZD0iTTM4MyA2MCBMNDAwIDU3IEwzOTggNjcgTDM4NSA2OCBaIi8+CjxwYXRoIGZpbGw9IiNGRkYyMDAiIGQ9Ik0zNzggNzggTDM5OCA3NSBMMzk2IDg1IEwzODAgODYgWiIvPgo8L3N2Zz4K") no-repeat center/100% 100%;}'
-   +'.of{color:#f01414;line-height:.9;padding:1.5cqw 0 0;width:106%;}'
-   +'.nm{color:#0d0d0d;line-height:1.02;white-space:nowrap;margin-top:2cqw;}'
-   +'.mc{color:#0d0d0d;line-height:1.02;white-space:nowrap;}'
-   +'.gr{color:#0d0d0d;line-height:1;margin-top:3cqw;}.rule{width:88%;border-top:.3cqw solid #777;margin-top:2.5cqw;}'
-   +'.d{font-size:8cqw;margin-bottom:.5cqw;line-height:1;}.d .d1{color:#111;}.d .d2{color:#8a8a8a;text-decoration:line-through;}.d .d3{color:#f01414;}'
-   +'.pr{color:#f01414;display:flex;align-items:center;justify-content:center;line-height:.92;padding:2.5cqw 0 2cqw;width:106%;margin-top:1cqw;}'
-   +'.pr .in{line-height:.92;}.pr .cm{align-self:flex-end;line-height:1;margin:0 .3cqw 2.5cqw;}.pr .ce{line-height:.92;}'
-   +'.ft{width:98%;display:flex;justify-content:space-between;color:#111;font-family:Arial,sans-serif;font-weight:bold;margin-top:2cqw;line-height:1.2;}.ft span{white-space:nowrap;}'
-   +'</style>';
+  for(var i2=0;i2<itens.length;i2+=c.per){ var cells=''; for(var j=i2;j<i2+c.per && j<itens.length;j++){ cells+='<div class="cell">'+czInner(itens[j])+'</div>'; } pages+='<div class="pg">'+cells+'</div>'; }
+  var css='<style>@page{size:A4;margin:6mm;}*{margin:0;padding:0;box-sizing:border-box;font-family:"Bangers",cursive;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+   +'.pg{width:100%;height:285mm;page-break-after:always;display:grid;grid-template-columns:repeat('+c.cols+',1fr);grid-template-rows:repeat('+c.rows+',1fr);gap:5mm;}'
+   +'.cell{border:1px dashed #ccc;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:3% 4%;overflow:hidden;}'
+   +'.of{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;font-size:'+c.of+'px;line-height:1;padding:10px 42px;transform:rotate(-1.5deg);}'
+   +'.nm{color:#111;font-size:'+c.nm+'px;line-height:.85;margin-top:3%;}'
+   +'.mc{color:#111;font-size:'+c.mc+'px;line-height:.9;}'
+   +'.gr{color:#111;font-size:'+c.gr+'px;margin-top:2%;border-bottom:4px solid #111;padding:0 14px 4px;}'
+   +'.d{font-size:'+c.dp+'px;margin:0 0 2%;}.d .d1{color:#111;}.d .d2{color:#8a8a8a;text-decoration:line-through;}.d .d3{color:#ef1b1b;}'
+   +'.pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:flex;align-items:center;justify-content:center;line-height:1;margin-top:3%;padding:26px 42px;transform:rotate(-1.5deg);}'
+   +'.pr .rs{font-size:'+c.rs+'px;align-self:flex-start;margin-top:8px;margin-right:6px;}.pr .in{font-size:'+c.inn+'px;}.pr .cm{font-size:'+c.ce+'px;align-self:flex-end;margin:0 3px 14px;}.pr .ce{font-size:'+c.ce+'px;align-self:flex-start;margin-top:6px;}'
+   +'.ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:'+c.ft+'px;margin-top:4%;}</style>';
   var w=window.open('','_blank'); if(!w){ alert('Permita pop-ups (janelas) para imprimir os cartazes.'); return; }
-  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet">'+css+'</head><body>'+pages+'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},600);};</scr'+'ipt></body></html>');
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">'+css+'</head><body>'+pages+'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},600);};</scr'+'ipt></body></html>');
   w.document.close();
 }
-
 
 document.querySelectorAll(".nav-item").forEach(btn=>{
   btn.addEventListener("click", ()=>{
