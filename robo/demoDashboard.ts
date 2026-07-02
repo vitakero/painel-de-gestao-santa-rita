@@ -402,7 +402,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #authUser span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #authUser .ach{flex:none;color:#8aa596;font-size:16px;}
   #authSair{margin-left:auto;border:1px solid #cdd6e0;background:#fff;border-radius:7px;padding:4px 9px;font-size:12px;cursor:pointer;color:#56606d;font-weight:600;}
-</style><link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
+</style><link href="https://fonts.googleapis.com/css2?family=Anton&family=Luckiest+Guy&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body>
 <div id="authOv" style="display:none"><div id="authCard"><img id="authLogo" alt=""><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div id="authLoginBox"><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar acesso</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld" id="fldSetor" style="display:none"><label>Setor</label><select id="authSetor"><option value="">Selecione...</option><option>Frente de Loja</option><option>Açougue</option><option>Padaria</option><option>Hortifruti</option><option>Mercearia</option><option>Estoque</option><option>Financeiro</option><option>RH</option><option>Compras</option><option>Administração</option><option>Diretoria</option><option>Outro</option></select></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><div class="pw-wrap"><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld" id="fldRepetir" style="display:none"><label>Repetir senha</label><div class="pw-wrap"><input id="authRepetir" type="password" placeholder="digite a senha de novo" autocomplete="new-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authForgot">Esqueci minha senha</span><span id="authSkip" onclick="document.getElementById('authOv').style.display='none'">Continuar sem entrar (configuração)</span></div><div id="authReset" style="display:none"><div class="auth-fld"><label>Nova senha</label><div class="pw-wrap"><input id="authNovaSenha" type="password" placeholder="mínimo 6 caracteres"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld"><label>Repetir nova senha</label><div class="pw-wrap"><input id="authNovaRepetir" type="password" placeholder="digite a senha de novo"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authResetBtn" type="button">Salvar nova senha</button><div id="authResetMsg" style="font-size:13px;margin-top:10px;text-align:center;"></div></div></div></div>
 <script>try{var _o=document.getElementById("authOv");var _s=(location.hash||"")+(location.search||"");var _rec=(_s.indexOf("type=recovery")>=0)||(window.sessionStorage&&sessionStorage.getItem("sr_recovery")==="1");var _exp=(!_rec)&&(_s.indexOf("otp_expired")>=0||_s.indexOf("access_denied")>=0||_s.indexOf("error_code")>=0);if(_o&&(_rec||_exp)){_o.style.display="flex";var _lb=document.getElementById("authLoginBox");var _rb=document.getElementById("authReset");if(_rec){if(_lb)_lb.style.display="none";if(_rb)_rb.style.display="";}else{if(_rb)_rb.style.display="none";if(_lb)_lb.style.display="";var _m=document.getElementById("authMsg");if(_m){_m.textContent="Este link de senha já foi usado ou expirou. Toque em Esqueci minha senha para receber um novo.";_m.style.color="#c0392b";}}}}catch(e){}</script>
@@ -1406,23 +1406,23 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-size{border:2px solid #e1e7ee;border-radius:10px;padding:14px 6px;text-align:center;cursor:pointer;font-weight:800;color:#56606d;}
         #page-cartaz .cz-size.on{border-color:#157a35;color:#157a35;background:#f0f9f3;}
         #page-cartaz .cz-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;}
-        .ctz{container-type:inline-size;background:#fff;border:1px solid #e5e9ee;border-radius:6px;aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:6% 5%;overflow:hidden;font-family:'Anton',Arial,sans-serif;}
+        .ctz{container-type:inline-size;background:#fff;border:1px solid #eceef1;border-radius:18px;box-shadow:0 3px 14px rgba(0,0,0,.09);aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:7% 6%;overflow:hidden;font-family:'Luckiest Guy',cursive;}
         .ctz .ctz-top,.ctz .ctz-mid,.ctz .ctz-bot{width:100%;display:flex;flex-direction:column;align-items:center;}
-        .ctz .of{color:#e11414;background:#ffe600;font-size:17cqw;line-height:1;padding:1.2cqw 4cqw;transform:rotate(-1.5deg);clip-path:polygon(1% 18%,9% 4%,26% 11%,46% 3%,66% 10%,85% 3%,99% 14%,97% 84%,85% 97%,64% 89%,42% 98%,20% 89%,4% 95%);}
-        .ctz .nm{color:#111;font-size:31cqw;line-height:.82;word-break:break-word;}
-        .ctz .mc{color:#111;font-size:22cqw;line-height:.85;margin-top:.5cqw;}
-        .ctz .gr{color:#111;font-size:10cqw;margin-top:2.5cqw;border-bottom:.5cqw solid #111;padding:0 4cqw 1cqw;}
+        .ctz .of{color:#ef1b1b;background:#ffe600;font-size:15cqw;line-height:1;padding:2cqw 5cqw;transform:rotate(-1.5deg);clip-path:polygon(1% 22%,8% 6%,24% 14%,44% 5%,64% 13%,84% 5%,99% 16%,97% 82%,84% 97%,63% 88%,42% 97%,20% 88%,4% 94%);}
+        .ctz .nm{color:#111;font-size:25cqw;line-height:.95;word-break:break-word;}
+        .ctz .mc{color:#111;font-size:20cqw;line-height:.98;}
+        .ctz .gr{color:#111;font-size:8.5cqw;margin-top:2cqw;border-bottom:.6cqw solid #111;padding:0 4cqw .5cqw;}
         .ctz .d{font-size:8cqw;margin-bottom:1cqw;line-height:1;}
         .ctz .d .d1{color:#111;}
         .ctz .d .d2{color:#8a8a8a;text-decoration:line-through;}
-        .ctz .d .d3{color:#e11414;}
+        .ctz .d .d3{color:#ef1b1b;}
         #page-cartaz .cz-opc{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:0 0 16px;font-size:12.5px;color:#56606d;}
         #page-cartaz .cz-opc label{display:flex;align-items:center;gap:6px;font-weight:600;}
         #page-cartaz .cz-opc input{border:1.5px solid #e1e7ee;border-radius:8px;padding:6px 8px;font-size:13px;}
-        .ctz .pr{color:#e11414;background:#ffe600;display:inline-flex;align-items:flex-start;justify-content:center;line-height:.8;padding:1.5cqw 4cqw 2.5cqw;transform:rotate(-1.5deg);clip-path:polygon(1% 18%,9% 4%,26% 11%,46% 3%,66% 10%,85% 3%,99% 14%,97% 84%,85% 97%,64% 89%,42% 98%,20% 89%,4% 95%);}
-        .ctz .pr .rs{font-size:13cqw;margin-top:.5em;margin-right:.3cqw;}
-        .ctz .pr .in{font-size:42cqw;}
-        .ctz .pr .ce{font-size:19cqw;margin-top:.15em;}
+        .ctz .pr{color:#ef1b1b;background:#ffe600;display:inline-flex;align-items:flex-start;justify-content:center;line-height:.85;padding:2cqw 5cqw 3cqw;transform:rotate(-1deg);clip-path:polygon(1% 20%,7% 5%,22% 13%,42% 4%,62% 12%,82% 4%,99% 15%,98% 80%,85% 96%,63% 87%,42% 96%,20% 87%,4% 93%);}
+        .ctz .pr .rs{font-size:14cqw;margin-top:.55em;margin-right:.3cqw;}
+        .ctz .pr .in{font-size:45cqw;}
+        .ctz .pr .ce{font-size:21cqw;margin-top:.1em;}
         .ctz .ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:3.2cqw;margin-top:2cqw;line-height:1.25;}
       </style>
       <div class="card">
@@ -6423,19 +6423,19 @@ function czImprimir(){
   var c=cfg[czTamanho]||cfg.A4;
   var pages='';
   for(var i2=0;i2<itens.length;i2+=c.per){ var cells=''; for(var j=i2;j<i2+c.per && j<itens.length;j++){ cells+='<div class="cell">'+czInner(itens[j])+'</div>'; } pages+='<div class="pg">'+cells+'</div>'; }
-  var css='<style>@page{size:A4;margin:6mm;}*{margin:0;padding:0;box-sizing:border-box;font-family:Anton,Arial,sans-serif;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+  var css='<style>@page{size:A4;margin:6mm;}*{margin:0;padding:0;box-sizing:border-box;font-family:"Luckiest Guy",cursive;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
    +'.pg{width:100%;height:285mm;page-break-after:always;display:grid;grid-template-columns:repeat('+c.cols+',1fr);grid-template-rows:repeat('+c.rows+',1fr);gap:5mm;}'
    +'.cell{border:1px dashed #ccc;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:3% 4%;overflow:hidden;}'
-   +'.of{color:#e11414;background:#ffe600;font-size:'+c.of+'px;line-height:1;padding:6px 22px;transform:rotate(-1.5deg);clip-path:polygon(1% 18%,9% 4%,26% 11%,46% 3%,66% 10%,85% 3%,99% 14%,97% 84%,85% 97%,64% 89%,42% 98%,20% 89%,4% 95%);}'
+   +'.of{color:#ef1b1b;background:#ffe600;font-size:'+c.of+'px;line-height:1;padding:6px 22px;transform:rotate(-1.5deg);clip-path:polygon(1% 21%,7% 5%,23% 13%,43% 4%,63% 12%,83% 4%,99% 15%,98% 81%,84% 96%,63% 87%,42% 96%,20% 87%,4% 93%);}'
    +'.nm{color:#111;font-size:'+c.nm+'px;line-height:.85;margin-top:3%;}'
    +'.mc{color:#111;font-size:'+c.mc+'px;line-height:.9;}'
    +'.gr{color:#111;font-size:'+c.gr+'px;margin-top:2%;border-bottom:4px solid #111;padding:0 14px 4px;}'
-   +'.d{font-size:'+c.dp+'px;margin:0 0 2%;}.d .d1{color:#111;}.d .d2{color:#8a8a8a;text-decoration:line-through;}.d .d3{color:#e11414;}'
-   +'.pr{color:#e11414;background:#ffe600;display:flex;align-items:flex-start;justify-content:center;line-height:.85;margin-top:3%;padding:6px 22px 10px;transform:rotate(-1.5deg);clip-path:polygon(1% 18%,9% 4%,26% 11%,46% 3%,66% 10%,85% 3%,99% 14%,97% 84%,85% 97%,64% 89%,42% 98%,20% 89%,4% 95%);}'
+   +'.d{font-size:'+c.dp+'px;margin:0 0 2%;}.d .d1{color:#111;}.d .d2{color:#8a8a8a;text-decoration:line-through;}.d .d3{color:#ef1b1b;}'
+   +'.pr{color:#ef1b1b;background:#ffe600;display:flex;align-items:flex-start;justify-content:center;line-height:.85;margin-top:3%;padding:6px 22px 10px;transform:rotate(-1.5deg);clip-path:polygon(1% 21%,7% 5%,23% 13%,43% 4%,63% 12%,83% 4%,99% 15%,98% 81%,84% 96%,63% 87%,42% 96%,20% 87%,4% 93%);}'
    +'.pr .rs{font-size:'+c.rs+'px;margin-top:.4em;}.pr .in{font-size:'+c.inn+'px;}.pr .ce{font-size:'+c.ce+'px;}'
    +'.ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:'+c.ft+'px;margin-top:4%;}</style>';
   var w=window.open('','_blank'); if(!w){ alert('Permita pop-ups (janelas) para imprimir os cartazes.'); return; }
-  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">'+css+'</head><body>'+pages+'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},600);};</scr'+'ipt></body></html>');
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Anton&family=Luckiest+Guy&display=swap" rel="stylesheet">'+css+'</head><body>'+pages+'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},600);};</scr'+'ipt></body></html>');
   w.document.close();
 }
 
