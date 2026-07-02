@@ -1424,7 +1424,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ctz .pr .in{font-size:calc(var(--k,1)*33.2cqw);}
         .ctz .pr .cm{font-size:calc(var(--k,1)*22.2cqw);align-self:flex-end;margin:0 .4cqw 1.9cqw;}
         .ctz .pr .ce{font-size:calc(var(--k,1)*22.2cqw);align-self:flex-start;margin-top:.8cqw;}
-        .ctz .ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:2.4cqw;margin-top:1.5%;line-height:1.25;}
+        .ctz .ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:calc(var(--k,1)*2.4cqw);margin-top:1.5%;line-height:1.25;white-space:nowrap;}
       </style>
       <div class="card">
         <div class="prd-top"><div class="prd-titulo" style="min-width:auto;">Gerador de Cartaz de Oferta</div><span style="font-size:13px;color:#8a97a8;">Monte cartazes e imprima pra loja</span></div>
@@ -6359,7 +6359,7 @@ function czInner(p){
    +(p.gram?('<div class="gr">'+czEsc((p.gram||'').toUpperCase())+'</div>'):'')+'</div>'
    +'<div class="ctz-bot">'+dep
    +'<div class="pr"'+kst(5.2,nd)+'><span class="rs">R$</span><span class="in">'+czEsc(pp.reais)+'</span><span class="cm">,</span><span class="ce">'+czEsc(pp.cent)+'</span></div>'
-   +'<div class="ft">'+czEsc(czFooter())+'</div></div>';
+   +(function(){ var ftT=czFooter(); return '<div class="ft"'+kst(64,ftT.length)+'>'+czEsc(ftT)+'</div>'; })()+'</div>';
 }
 
 function renderCartaz(){
@@ -6452,7 +6452,7 @@ function czImprimir(){
    +'.d{font-size:'+c.dp+'px;margin:1.5% 0 1%;}.d .d1{color:#111;}.d .d2{color:#8a8a8a;text-decoration:line-through;}.d .d3{color:#ef1b1b;}'
    +'.pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-top:1%;padding:12px 42px;transform:rotate(-1.5deg);}'
    +'.pr .rs{font-size:'+c.rs+'px;align-self:flex-start;margin-top:8px;margin-right:6px;}.pr .in{font-size:calc(var(--k,1)*'+c.inn+'px);}.pr .cm{font-size:calc(var(--k,1)*'+c.ce+'px);align-self:flex-end;margin:0 3px 14px;}.pr .ce{font-size:calc(var(--k,1)*'+c.ce+'px);align-self:flex-start;margin-top:6px;}'
-   +'.ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:'+c.ft+'px;margin-top:1.5%;}'
+   +'.ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:calc(var(--k,1)*'+c.ft+'px);margin-top:1.5%;white-space:nowrap;}'
    +'@media screen{html{background:#3c4043;}body{zoom:.45;background:#3c4043;padding:30px 0;}.pg{background:#fff;width:794px;margin:0 auto 30px;box-shadow:0 8px 30px rgba(0,0,0,.45);}}</style>';
   var w=window.open('','_blank'); if(!w){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return; }
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">'+css+'</head><body>'+pages+'<scr'+'ipt>(function(){function go(){setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
