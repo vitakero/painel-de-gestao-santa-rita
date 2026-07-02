@@ -1419,10 +1419,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-opc{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:0 0 16px;font-size:12.5px;color:#56606d;}
         #page-cartaz .cz-opc label{display:flex;align-items:center;gap:6px;font-weight:600;}
         #page-cartaz .cz-opc input{border:1.5px solid #e1e7ee;border-radius:8px;padding:6px 8px;font-size:13px;}
-        .ctz .pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:inline-flex;align-items:flex-start;justify-content:center;line-height:.82;padding:3cqw 8cqw 4cqw;transform:rotate(-1deg);}
-        .ctz .pr .rs{font-size:15cqw;margin-top:.6em;margin-right:.3cqw;}
-        .ctz .pr .in{font-size:52cqw;}
-        .ctz .pr .ce{font-size:23cqw;margin-top:.1em;}
+        .ctz .pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:5.5cqw 8cqw;transform:rotate(-1deg);}
+        .ctz .pr .rs{font-size:16cqw;align-self:flex-start;margin-top:1.5cqw;margin-right:.5cqw;}
+        .ctz .pr .in{font-size:47cqw;}
+        .ctz .pr .ce{font-size:31cqw;align-self:flex-start;margin-top:1cqw;}
         .ctz .ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:3.2cqw;margin-top:2cqw;line-height:1.25;}
       </style>
       <div class="card">
@@ -6416,10 +6416,10 @@ function czInput(e){
 function czImprimir(){
   var itens=[]; for(var i=0;i<czProdutos.length;i++){ var q=Math.max(1,parseInt(czProdutos[i].qtd,10)||1); for(var k=0;k<q;k++) itens.push(czProdutos[i]); }
   if(!itens.length) return;
-  var cfg={A3:{per:1,cols:1,rows:1,of:120,nm:250,mc:150,gr:78,dp:60,rs:90,inn:290,ce:145,ft:24},
-           A4:{per:1,cols:1,rows:1,of:88,nm:180,mc:112,gr:56,dp:44,rs:66,inn:210,ce:104,ft:19},
-           A5:{per:2,cols:1,rows:2,of:56,nm:116,mc:72,gr:37,dp:29,rs:44,inn:136,ce:68,ft:14},
-           A6:{per:4,cols:2,rows:2,of:40,nm:82,mc:52,gr:27,dp:21,rs:31,inn:97,ce:49,ft:12}};
+  var cfg={A3:{per:1,cols:1,rows:1,of:120,nm:250,mc:150,gr:78,dp:60,rs:98,inn:290,ce:190,ft:24},
+           A4:{per:1,cols:1,rows:1,of:88,nm:180,mc:112,gr:56,dp:44,rs:72,inn:210,ce:140,ft:19},
+           A5:{per:2,cols:1,rows:2,of:56,nm:116,mc:72,gr:37,dp:29,rs:47,inn:136,ce:90,ft:14},
+           A6:{per:4,cols:2,rows:2,of:40,nm:82,mc:52,gr:27,dp:21,rs:33,inn:97,ce:64,ft:12}};
   var c=cfg[czTamanho]||cfg.A4;
   var pages='';
   for(var i2=0;i2<itens.length;i2+=c.per){ var cells=''; for(var j=i2;j<i2+c.per && j<itens.length;j++){ cells+='<div class="cell">'+czInner(itens[j])+'</div>'; } pages+='<div class="pg">'+cells+'</div>'; }
@@ -6431,8 +6431,8 @@ function czImprimir(){
    +'.mc{color:#111;font-size:'+c.mc+'px;line-height:.9;}'
    +'.gr{color:#111;font-size:'+c.gr+'px;margin-top:2%;border-bottom:4px solid #111;padding:0 14px 4px;}'
    +'.d{font-size:'+c.dp+'px;margin:0 0 2%;}.d .d1{color:#111;}.d .d2{color:#8a8a8a;text-decoration:line-through;}.d .d3{color:#ef1b1b;}'
-   +'.pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:flex;align-items:flex-start;justify-content:center;line-height:.85;margin-top:3%;padding:10px 42px 16px;transform:rotate(-1.5deg);}'
-   +'.pr .rs{font-size:'+c.rs+'px;margin-top:.4em;}.pr .in{font-size:'+c.inn+'px;}.pr .ce{font-size:'+c.ce+'px;}'
+   +'.pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:flex;align-items:center;justify-content:center;line-height:1;margin-top:3%;padding:26px 42px;transform:rotate(-1.5deg);}'
+   +'.pr .rs{font-size:'+c.rs+'px;align-self:flex-start;margin-top:8px;margin-right:6px;}.pr .in{font-size:'+c.inn+'px;}.pr .ce{font-size:'+c.ce+'px;align-self:flex-start;margin-top:6px;}'
    +'.ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:'+c.ft+'px;margin-top:4%;}</style>';
   var w=window.open('','_blank'); if(!w){ alert('Permita pop-ups (janelas) para imprimir os cartazes.'); return; }
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Anton&family=Luckiest+Guy&display=swap" rel="stylesheet">'+css+'</head><body>'+pages+'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},600);};</scr'+'ipt></body></html>');
