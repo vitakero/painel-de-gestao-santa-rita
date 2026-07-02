@@ -1406,17 +1406,24 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-size{border:2px solid #e1e7ee;border-radius:10px;padding:14px 6px;text-align:center;cursor:pointer;font-weight:800;color:#56606d;}
         #page-cartaz .cz-size.on{border-color:#157a35;color:#157a35;background:#f0f9f3;}
         #page-cartaz .cz-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;}
-        .ctz{container-type:inline-size;background:#fff;border:1px solid #e5e9ee;border-radius:6px;aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:5% 4%;overflow:hidden;font-family:'Anton',Arial,sans-serif;}
-        .ctz .of{color:#e11414;background:#ffe600;font-size:15cqw;line-height:1;padding:1.2cqw 4cqw;transform:rotate(-1.5deg);clip-path:polygon(1% 18%,9% 4%,26% 11%,46% 3%,66% 10%,85% 3%,99% 14%,97% 84%,85% 97%,64% 89%,42% 98%,20% 89%,4% 95%);}
-        .ctz .nm{color:#111;font-size:26cqw;line-height:.85;margin-top:3cqw;word-break:break-word;}
-        .ctz .mc{color:#111;font-size:16cqw;line-height:.9;}
-        .ctz .gr{color:#111;font-size:9cqw;margin-top:2cqw;border-bottom:.5cqw solid #111;padding:0 4cqw 1cqw;}
-        .ctz .d{color:#111;font-size:7cqw;margin-top:2cqw;}
-        .ctz .pr{color:#e11414;background:#ffe600;display:flex;align-items:flex-start;justify-content:center;line-height:.8;margin-top:2.5cqw;padding:1.5cqw 4cqw 2.5cqw;transform:rotate(-1.5deg);clip-path:polygon(1% 18%,9% 4%,26% 11%,46% 3%,66% 10%,85% 3%,99% 14%,97% 84%,85% 97%,64% 89%,42% 98%,20% 89%,4% 95%);}
-        .ctz .pr .rs{font-size:11cqw;margin-top:.4em;}
-        .ctz .pr .in{font-size:34cqw;}
-        .ctz .pr .ce{font-size:16cqw;}
-        .ctz .ft{color:#888;font-family:Arial,sans-serif;font-size:3.2cqw;margin-top:3cqw;}
+        .ctz{container-type:inline-size;background:#fff;border:1px solid #e5e9ee;border-radius:6px;aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:6% 5%;overflow:hidden;font-family:'Anton',Arial,sans-serif;}
+        .ctz .ctz-top,.ctz .ctz-mid,.ctz .ctz-bot{width:100%;display:flex;flex-direction:column;align-items:center;}
+        .ctz .of{color:#e11414;background:#ffe600;font-size:17cqw;line-height:1;padding:1.2cqw 4cqw;transform:rotate(-1.5deg);clip-path:polygon(1% 18%,9% 4%,26% 11%,46% 3%,66% 10%,85% 3%,99% 14%,97% 84%,85% 97%,64% 89%,42% 98%,20% 89%,4% 95%);}
+        .ctz .nm{color:#111;font-size:31cqw;line-height:.82;word-break:break-word;}
+        .ctz .mc{color:#111;font-size:22cqw;line-height:.85;margin-top:.5cqw;}
+        .ctz .gr{color:#111;font-size:10cqw;margin-top:2.5cqw;border-bottom:.5cqw solid #111;padding:0 4cqw 1cqw;}
+        .ctz .d{font-size:8cqw;margin-bottom:1cqw;line-height:1;}
+        .ctz .d .d1{color:#111;}
+        .ctz .d .d2{color:#8a8a8a;text-decoration:line-through;}
+        .ctz .d .d3{color:#e11414;}
+        #page-cartaz .cz-opc{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:0 0 16px;font-size:12.5px;color:#56606d;}
+        #page-cartaz .cz-opc label{display:flex;align-items:center;gap:6px;font-weight:600;}
+        #page-cartaz .cz-opc input{border:1.5px solid #e1e7ee;border-radius:8px;padding:6px 8px;font-size:13px;}
+        .ctz .pr{color:#e11414;background:#ffe600;display:inline-flex;align-items:flex-start;justify-content:center;line-height:.8;padding:1.5cqw 4cqw 2.5cqw;transform:rotate(-1.5deg);clip-path:polygon(1% 18%,9% 4%,26% 11%,46% 3%,66% 10%,85% 3%,99% 14%,97% 84%,85% 97%,64% 89%,42% 98%,20% 89%,4% 95%);}
+        .ctz .pr .rs{font-size:13cqw;margin-top:.5em;margin-right:.3cqw;}
+        .ctz .pr .in{font-size:42cqw;}
+        .ctz .pr .ce{font-size:19cqw;margin-top:.15em;}
+        .ctz .ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:3.2cqw;margin-top:2cqw;line-height:1.25;}
       </style>
       <div class="card">
         <div class="prd-top"><div class="prd-titulo" style="min-width:auto;">Gerador de Cartaz de Oferta</div><span style="font-size:13px;color:#8a97a8;">Monte cartazes e imprima pra loja</span></div>
@@ -6308,7 +6315,7 @@ function manAgSaveFromForm(){
 })();
 
 /* ===== Gerador de Cartaz de Oferta ===== */
-var czStep=1, czModelo='padrao', czProdutos=[], czTamanho='A4';
+var czStep=1, czModelo='padrao', czProdutos=[], czTamanho='A4', czValidade='', czLimite='1';
 function czEsc(s){ s=(s==null?'':''+s); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function czTemDigito(w){ for(var i=0;i<w.length;i++){ if(w.charAt(i)>='0'&&w.charAt(i)<='9') return true; } return false; }
 function czEhPreco(w){ return czTemDigito(w) && (w.indexOf(',')>=0 || w.indexOf('.')>=0); }
@@ -6328,26 +6335,31 @@ function czParseLinha(raw){
 }
 function czParseTexto(txt){ var out=[]; var linhas=(txt||'').split('\\n'); for(var i=0;i<linhas.length;i++){ var p=czParseLinha(linhas[i]); if(p) out.push(p); } return out; }
 function czPreco(p){ p=(''+(p||'')).replace('.',','); var a=p.split(','); var r=(a[0]||'0').replace(/[^0-9]/g,'')||'0'; var c=(a[1]||'00'); c=(c+'00').slice(0,2); return {reais:r,cent:c}; }
+function czFooter(){
+  var v; if(czValidade){ var pt=czValidade.split('-'); v='OFERTA VÁLIDA ATÉ '+((pt.length===3)?(pt[2]+'/'+pt[1]+'/'+pt[0]):czValidade); } else { v='OFERTA VÁLIDA ENQUANTO DURAR O ESTOQUE'; }
+  var n=parseInt(czLimite,10); var lim=(n>0)?('LIMITE '+n+' UNIDADE'+(n>1?'S':'')+' POR CLIENTE'):'';
+  return lim?(v+'  ·  '+lim):v;
+}
 function czInner(p){
   var pp=czPreco(p.preco);
-  var dep=(czModelo==='depor'&&p.precoDe)?('<div class="d">DE R$ '+czEsc(p.precoDe)+' POR APENAS</div>'):'';
-  return '<div class="of">'+czEsc(p.oferta||'OFERTA')+'</div>'
-   +'<div class="nm">'+czEsc((p.nome||'').toUpperCase())+'</div>'
+  var dep=(czModelo==='depor'&&p.precoDe)?('<div class="d"><span class="d1">DE:</span> <span class="d2">'+czEsc(p.precoDe)+'</span> <span class="d3">POR APENAS</span></div>'):'';
+  return '<div class="ctz-top"><div class="of">'+czEsc(p.oferta||'OFERTA')+'</div></div>'
+   +'<div class="ctz-mid"><div class="nm">'+czEsc((p.nome||'').toUpperCase())+'</div>'
    +(p.marca?('<div class="mc">'+czEsc((p.marca||'').toUpperCase())+'</div>'):'')
-   +(p.gram?('<div class="gr">'+czEsc((p.gram||'').toUpperCase())+'</div>'):'')
-   +dep
+   +(p.gram?('<div class="gr">'+czEsc((p.gram||'').toUpperCase())+'</div>'):'')+'</div>'
+   +'<div class="ctz-bot">'+dep
    +'<div class="pr"><span class="rs">R$</span><span class="in">'+czEsc(pp.reais)+'</span><span class="ce">,'+czEsc(pp.cent)+'</span></div>'
-   +'<div class="ft">Oferta válida enquanto durar o estoque</div>';
+   +'<div class="ft">'+czEsc(czFooter())+'</div></div>';
 }
 function renderCartaz(){
   var wrap=document.getElementById('cartazWrap'); if(!wrap) return;
-  if(!wrap.__czb){ wrap.__czb=1; wrap.addEventListener('click',czClick); wrap.addEventListener('input',czInput); }
+  if(!wrap.__czb){ wrap.__czb=1; wrap.addEventListener('click',czClick); wrap.addEventListener('input',czInput); wrap.addEventListener('change',czChange); }
   var st='<div class="cz-steps"><div class="cz-step '+(czStep>1?'done':(czStep===1?'on':''))+'">1. Modelo</div><div class="cz-step '+(czStep>2?'done':(czStep===2?'on':''))+'">2. Produtos</div><div class="cz-step '+(czStep>3?'done':(czStep===3?'on':''))+'">3. Conferir</div></div>';
   var b='';
   if(czStep===1){
     var mods=[{k:'padrao',t:'Oferta padrão'},{k:'depor',t:'De / Por'}];
     b='<p class="cz-sub">Escolha o modelo do cartaz</p><div class="cz-models">';
-    for(var i=0;i<mods.length;i++){ var m=mods[i]; b+='<div class="cz-model '+(czModelo===m.k?'on':'')+'" data-czmodel="'+m.k+'"><div class="ctz">'+czInner({oferta:'OFERTA',nome:'PRODUTO',marca:'MARCA',gram:'1KG',preco:'9,99',precoDe:(m.k==='depor'?'12,99':'')})+'</div><h4>'+m.t+'</h4></div>'; }
+    for(var i=0;i<mods.length;i++){ var m=mods[i]; b+='<div class="cz-model '+(czModelo===m.k?'on':'')+'" data-czmodel="'+m.k+'"><div class="ctz">'+czInner({oferta:'OFERTA',nome:'PRODUTO',marca:'MARCA',gram:'DESCRIÇÃO DO PRODUTO',preco:'99,99',precoDe:(m.k==='depor'?'129,99':'')})+'</div><h4>'+m.t+'</h4></div>'; }
     b+='</div><div class="cz-actions"><button class="cz-btn prim" data-czact="step2">Continuar para produtos →</button></div>';
   } else if(czStep===2){
     b='<p class="cz-sub">Coloque sua lista — cada linha vira um cartaz</p>'
@@ -6372,7 +6384,7 @@ function renderCartaz(){
     var sizes=['A3','A4','A5','A6'];
     b='<p class="cz-sub">Escolha o tamanho e imprima</p><div class="cz-sizes">';
     for(var s=0;s<sizes.length;s++){ b+='<div class="cz-size '+(czTamanho===sizes[s]?'on':'')+'" data-czsize="'+sizes[s]+'">'+sizes[s]+'</div>'; }
-    b+='</div><div class="cz-preview">';
+    b+='</div><div class="cz-opc"><label>Validade da oferta <input type="date" id="czValidade" value="'+czEsc(czValidade)+'"></label><label>Limite por cliente <input type="number" min="0" id="czLimite" value="'+czEsc(czLimite)+'" style="width:66px;"></label></div><div class="cz-preview">';
     for(var k=0;k<czProdutos.length;k++){ b+='<div class="ctz">'+czInner(czProdutos[k])+'</div>'; }
     b+='</div><div class="cz-actions" style="justify-content:space-between;"><button class="cz-btn sec" data-czact="step3">← Voltar</button><div style="display:flex;gap:10px;"><button class="cz-btn sec" data-czact="novo">Novo</button><button class="cz-btn prim" data-czact="imprimir">🖨 Imprimir cartazes</button></div></div>';
   }
@@ -6395,6 +6407,7 @@ function czClick(e){
     renderCartaz(); return;
   }
 }
+function czChange(e){ var t=e.target; if(t.id==='czValidade'){ czValidade=t.value; renderCartaz(); } else if(t.id==='czLimite'){ czLimite=t.value; renderCartaz(); } }
 function czInput(e){
   var t=e.target;
   if(t.id==='czTexto'){ var n=t.value.split('\\n').filter(function(x){return x.trim();}).length; var c=document.getElementById('czCount'); if(c) c.textContent=n+' linha(s) detectada(s)'; return; }
@@ -6417,10 +6430,10 @@ function czImprimir(){
    +'.nm{color:#111;font-size:'+c.nm+'px;line-height:.85;margin-top:3%;}'
    +'.mc{color:#111;font-size:'+c.mc+'px;line-height:.9;}'
    +'.gr{color:#111;font-size:'+c.gr+'px;margin-top:2%;border-bottom:4px solid #111;padding:0 14px 4px;}'
-   +'.d{color:#111;font-size:'+c.dp+'px;margin-top:3%;}'
+   +'.d{font-size:'+c.dp+'px;margin:0 0 2%;}.d .d1{color:#111;}.d .d2{color:#8a8a8a;text-decoration:line-through;}.d .d3{color:#e11414;}'
    +'.pr{color:#e11414;background:#ffe600;display:flex;align-items:flex-start;justify-content:center;line-height:.85;margin-top:3%;padding:6px 22px 10px;transform:rotate(-1.5deg);clip-path:polygon(1% 18%,9% 4%,26% 11%,46% 3%,66% 10%,85% 3%,99% 14%,97% 84%,85% 97%,64% 89%,42% 98%,20% 89%,4% 95%);}'
    +'.pr .rs{font-size:'+c.rs+'px;margin-top:.4em;}.pr .in{font-size:'+c.inn+'px;}.pr .ce{font-size:'+c.ce+'px;}'
-   +'.ft{color:#666;font-family:Arial,sans-serif;font-size:'+c.ft+'px;margin-top:4%;}</style>';
+   +'.ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:'+c.ft+'px;margin-top:4%;}</style>';
   var w=window.open('','_blank'); if(!w){ alert('Permita pop-ups (janelas) para imprimir os cartazes.'); return; }
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">'+css+'</head><body>'+pages+'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},600);};</scr'+'ipt></body></html>');
   w.document.close();
