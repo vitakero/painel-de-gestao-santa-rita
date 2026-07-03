@@ -1389,7 +1389,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-model.on{border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.12);}
         #page-cartaz .cz-model h4{margin:10px 0 0;font-size:14px;color:#1d2733;}
         #page-cartaz .cz-model .ctz{max-width:150px;margin:0 auto;pointer-events:none;}
-        #page-cartaz .cz-model .ctzL{max-width:190px;margin:24px auto;pointer-events:none;border:1px solid #e8ecf1;border-radius:8px;overflow:hidden;}
+        #page-cartaz .cz-model .czLd2{max-width:170px;margin:10px auto;pointer-events:none;display:flex;flex-direction:column;border:1px solid #e8ecf1;border-radius:8px;overflow:hidden;}
+        #page-cartaz .cz-model .czLd2 .ctzL+.ctzL{border-top:2px dashed #c9d2dc;}
         #page-cartaz .cz-temas{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;}
         #page-cartaz .cz-tema{position:relative;border:2px solid #e1e7ee;border-radius:14px;background:#fff;padding:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;transition:.12s;}
         #page-cartaz .cz-tema.on{border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.12);}
@@ -6475,7 +6476,8 @@ function renderCartaz(){
     var mods=[{k:'padrao',t:'Oferta padrão'},{k:'depor',t:'De / Por'},{k:'deitado',t:'Deitado — 2 por folha'}];
     b='<p class="cz-sub">Escolha o modelo do cartaz</p><div class="cz-models">';
     for(var i=0;i<mods.length;i++){ var m=mods[i]; var amostra={oferta:'OFERTA',nome:'PRODUTO',marca:'MARCA',gram:'DESCRIÇÃO DO PRODUTO',preco:'99,99',precoDe:(m.k==='depor'?'129,99':'')};
-      var thumb=(m.k==='deitado')?('<div class="ctzL">'+czInnerL(amostra)+'</div>'):('<div class="ctz">'+czInner(amostra)+'</div>');
+      var umL='<div class="ctzL">'+czInnerL(amostra)+'</div>';
+      var thumb=(m.k==='deitado')?('<div class="czLd2">'+umL+umL+'</div>'):('<div class="ctz">'+czInner(amostra)+'</div>');
       b+='<div class="cz-model '+(czModelo===m.k?'on':'')+'" data-czmodel="'+m.k+'">'+thumb+'<h4>'+m.t+'</h4></div>'; }
     b+='</div>';
     var temas=czTemasGet();
