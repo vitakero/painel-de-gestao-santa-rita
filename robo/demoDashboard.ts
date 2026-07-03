@@ -6529,11 +6529,17 @@ function czImprimir(){
         +'.gv{position:absolute;top:0;bottom:0;left:'+(T.rot?(T.th*0.93):(T.tw*0.93)).toFixed(1)+'mm;border-left:1.5px dashed #c9ced6;}'
         +'.gh{position:absolute;left:0;right:0;top:'+(T.rot?(T.tw*0.93):(T.th*0.93)).toFixed(1)+'mm;border-top:1.5px dashed #c9ced6;}'
         +'.gtx{position:absolute;top:40%;left:'+((T.rot?(T.th*0.93):(T.tw*0.93))+2).toFixed(1)+'mm;transform:rotate(90deg);transform-origin:left top;font:10px Arial;color:#b5bcc7;white-space:nowrap;}'
+        +'.gtx2{position:absolute;left:30%;top:'+((T.rot?(T.tw*0.93):(T.th*0.93))+2).toFixed(1)+'mm;font:10px Arial;color:#b5bcc7;white-space:nowrap;}'
         +'.lbl{position:absolute;bottom:2mm;right:3mm;font:10px Arial;color:#a8a8a8;z-index:5;}';
       for(var pi=0;pi<itens.length;pi++){
         var folha=0;
         for(var rr=0;rr<T.rows;rr++){ for(var cc=0;cc<T.cols;cc++){ folha++;
-          pgs+='<div class="tp"><div class="fl"><div class="win"><div class="poster" style="width:'+P.w+'mm;height:'+P.h+'mm;left:-'+(cc*T.tw)+'mm;top:-'+(rr*T.th)+'mm;">'+czInner(itens[pi])+'</div></div></div><div class="gv"></div><div class="gh"></div><div class="gtx">área de colagem — a próxima folha cola aqui</div><div class="lbl">'+czTamanho+' · folha '+folha+'/'+(T.rows*T.cols)+' (linha '+(rr+1)+', coluna '+(cc+1)+')</div></div>';
+          var showGv = T.rot ? (rr>0) : (cc<T.cols-1);
+          var showGh = T.rot ? (cc<T.cols-1) : (rr<T.rows-1);
+          var guias='';
+          if(showGv) guias+='<div class="gv"></div><div class="gtx">área de colagem — a folha vizinha cola aqui</div>';
+          if(showGh) guias+='<div class="gh"></div>'+(showGv?'':'<div class="gtx2">área de colagem — a folha vizinha cola aqui</div>');
+          pgs+='<div class="tp"><div class="fl"><div class="win"><div class="poster" style="width:'+P.w+'mm;height:'+P.h+'mm;left:-'+(cc*T.tw)+'mm;top:-'+(rr*T.th)+'mm;">'+czInner(itens[pi])+'</div></div></div>'+guias+'<div class="lbl">'+czTamanho+' · folha '+folha+'/'+(T.rows*T.cols)+' (linha '+(rr+1)+', coluna '+(cc+1)+')</div></div>';
         }}
       }
     }
