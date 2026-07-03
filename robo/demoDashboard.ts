@@ -1389,7 +1389,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-model.on{border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.12);}
         #page-cartaz .cz-model h4{margin:10px 0 0;font-size:14px;color:#1d2733;}
         #page-cartaz .cz-model .ctz{max-width:150px;margin:0 auto;pointer-events:none;}
-        #page-cartaz .cz-model .ctzL{max-width:190px;margin:24px auto;pointer-events:none;}
+        #page-cartaz .cz-model .ctzL{max-width:190px;margin:24px auto;pointer-events:none;border:1px solid #e8ecf1;border-radius:8px;overflow:hidden;}
         #page-cartaz .cz-temas{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;}
         #page-cartaz .cz-tema{position:relative;border:2px solid #e1e7ee;border-radius:14px;background:#fff;padding:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;transition:.12s;}
         #page-cartaz .cz-tema.on{border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.12);}
@@ -6433,20 +6433,19 @@ function czInner(p){
 }
 
 var CZ_BR='url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%';
-var CZLCSS='.ctzL{container-type:inline-size;background:#ffe600;border-radius:2.4cqw;padding:2.2cqw;box-sizing:border-box;font-family:"Bangers",cursive;aspect-ratio:198/130;}'
- +'.ctzL .ctzLin{background:#fff;border-radius:1.6cqw;position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;overflow:hidden;padding:1.4cqw 3cqw 7.5cqw;box-sizing:border-box;}'
- +'.ctzL .lof{color:#ef1b1b;background:'+CZ_BR+';font-size:calc(var(--k,1)*9.5cqw);line-height:1;padding:.5cqw 4.5cqw;transform:rotate(-1.2deg);}'
- +'.ctzL .lnm{color:#111;font-size:calc(var(--k,1)*12.5cqw);line-height:.85;margin-top:.6cqw;white-space:nowrap;}'
+var CZLCSS='.ctzL{container-type:inline-size;background:#fff;box-sizing:border-box;font-family:"Bangers",cursive;aspect-ratio:198/130;}'
+ +'.ctzL .ctzLin{background:#fff;position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;overflow:hidden;padding:1.2cqw 3cqw 1.2cqw;box-sizing:border-box;}'
+ +'.ctzL .lof{color:#ef1b1b;background:'+CZ_BR+';font-size:calc(var(--k,1)*10.5cqw);line-height:1;padding:.5cqw 4.5cqw;transform:rotate(-1.2deg);}'
+ +'.ctzL .lnm{color:#111;font-size:calc(var(--k,1)*14cqw);line-height:.85;margin-top:.6cqw;white-space:nowrap;}'
  +'.ctzL .lmc{color:#111;font-size:calc(var(--k,1)*9cqw);line-height:.9;white-space:nowrap;}'
  +'.ctzL .lgr{color:#111;font-size:calc(var(--k,1)*4.4cqw);border-bottom:.3cqw solid #111;padding:0 1.4cqw .3cqw;white-space:nowrap;}'
  +'.ctzL .ld{font-size:5cqw;line-height:1;margin-top:.6cqw;}.ctzL .ld .d1{color:#111;}.ctzL .ld .d2{color:#8a8a8a;text-decoration:line-through;}.ctzL .ld .d3{color:#ef1b1b;}'
  +'.ctzL .lpr{color:#ef1b1b;background:'+CZ_BR+';display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-top:.6cqw;padding:1cqw 4.5cqw;transform:rotate(-1.2deg);}'
  +'.ctzL .lrs{font-size:5.5cqw;align-self:flex-start;margin:.6cqw .5cqw 0 0;}'
- +'.ctzL .lin{font-size:calc(var(--k,1)*17cqw);}'
+ +'.ctzL .lin{font-size:calc(var(--k,1)*18cqw);}'
  +'.ctzL .lcm{font-size:calc(var(--k,1)*11cqw);align-self:flex-end;margin:0 .2cqw 1cqw;}'
  +'.ctzL .lce{font-size:calc(var(--k,1)*11cqw);align-self:flex-start;margin-top:.5cqw;}'
- +'.ctzL .lft{position:absolute;right:2.6cqw;bottom:1.1cqw;text-align:right;color:#111;font-family:Arial,sans-serif;font-weight:bold;font-size:1.6cqw;line-height:1.4;white-space:nowrap;}'
- +'.ctzL .lft .lim{color:#ef1b1b;}'
+ +'.ctzL .lft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:calc(var(--k,1)*2.1cqw);margin-top:1cqw;line-height:1.3;white-space:nowrap;}'
  +'.ctzL .ofimg{width:62%;height:auto;display:block;border-radius:1cqw;}';
 function czInnerL(p){
   var pp=czPreco(p.preco);
@@ -6457,14 +6456,13 @@ function czInnerL(p){
   var nd=pp.reais.length+pp.cent.length;
   var dep=(p.precoDe)?('<div class="ld"><span class="d1">DE:</span> <span class="d2">'+czEsc(p.precoDe)+'</span> <span class="d3">POR APENAS</span></div>'):'';
   var topo=czTema?('<img class="ofimg" src="'+czTema.d+'" alt="">'):('<div class="lof"'+kst(6.5,ofT.length)+'>'+czEsc(ofT)+'</div>');
-  var ft=czFooter().split('  ·  ');
   return '<div class="ctzLin">'+topo
    +'<div class="lnm"'+kst(11,nomeT.length)+'>'+czEsc(nomeT)+'</div>'
    +(marcaT?('<div class="lmc"'+kst(14,marcaT.length)+'>'+czEsc(marcaT)+'</div>'):'')
    +(grT?('<div class="lgr"'+kst(26,grT.length)+'>'+czEsc(grT)+'</div>'):'')
    +dep
    +'<div class="lpr"'+kst(5.2,nd)+'><span class="lrs">R$</span><span class="lin">'+czEsc(pp.reais)+'</span><span class="lcm">,</span><span class="lce">'+czEsc(pp.cent)+'</span></div>'
-   +'<div class="lft">'+czEsc(ft[0])+(ft[1]?('<br><span class="lim">'+czEsc(ft[1])+'</span>'):'')+'</div>'
+   +(function(){ var ftT=czFooter(); return '<div class="lft"'+kst(58,ftT.length)+'>'+czEsc(ftT)+'</div>'; })()
    +'</div>';
 }
 function renderCartaz(){
@@ -6544,7 +6542,7 @@ function renderCartaz(){
       for(var pg=0;pg<nfol;pg++){
         b+='<div class="cz-folhaWrap"><div class="cz-folha'+(LAY.land?' land':'')+(per>1?' multi':'')+'" style="grid-template-columns:repeat('+LAY.cols+',1fr);grid-template-rows:repeat('+LAY.rows+',1fr);">';
         for(var ce=0;ce<per;ce++){ var it=itensPrev[pg*per+ce];
-          var celIn = it ? (LAY.cardL?('<div class="ctzL" style="width:94%;">'+czInnerL(it)+'</div>'):('<div class="ctz">'+czInner(it)+'</div>')) : '';
+          var celIn = it ? (LAY.cardL?('<div class="ctzL" style="width:98%;">'+czInnerL(it)+'</div>'):('<div class="ctz">'+czInner(it)+'</div>')) : '';
           b+='<div class="cz-cel'+(LAY.rotCell?' rot':'')+'">'+celIn+'</div>';
         }
         b+='</div><div class="cz-folhaLbl">Folha '+(pg+1)+'</div></div>';
