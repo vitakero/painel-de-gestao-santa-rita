@@ -6436,14 +6436,14 @@ function czInner(p){
 var CZ_BR='url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%';
 var CZLCSS='.ctzL{container-type:inline-size;background:#fff;box-sizing:border-box;font-family:"Bangers",cursive;aspect-ratio:198/130;}'
  +'.ctzL .ctzLin{background:#fff;position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;overflow:hidden;padding:1.2cqw 3cqw 1.2cqw;box-sizing:border-box;}'
- +'.ctzL .lof{color:#ef1b1b;background:'+CZ_BR+';font-size:calc(var(--k,1)*10.5cqw);line-height:1;padding:.5cqw 4.5cqw;transform:rotate(-1.2deg);}'
- +'.ctzL .lnm{color:#111;font-size:calc(var(--k,1)*14cqw);line-height:.85;margin-top:.6cqw;white-space:nowrap;}'
- +'.ctzL .lmc{color:#111;font-size:calc(var(--k,1)*9cqw);line-height:.9;white-space:nowrap;}'
+ +'.ctzL .lof{color:#ef1b1b;background:'+CZ_BR+';font-size:calc(var(--k,1)*9cqw);line-height:1;padding:.5cqw 4.5cqw;transform:rotate(-1.2deg);}'
+ +'.ctzL .lnm{color:#111;font-size:calc(var(--k,1)*22cqw);line-height:.85;margin-top:.6cqw;white-space:nowrap;}'
+ +'.ctzL .lmc{color:#111;font-size:calc(var(--k,1)*8.5cqw);line-height:.9;white-space:nowrap;}'
  +'.ctzL .lgr{color:#111;font-size:calc(var(--k,1)*4.4cqw);border-bottom:.3cqw solid #111;padding:0 1.4cqw .3cqw;white-space:nowrap;}'
  +'.ctzL .ld{font-size:5cqw;line-height:1;margin-top:.6cqw;}.ctzL .ld .d1{color:#111;}.ctzL .ld .d2{color:#8a8a8a;text-decoration:line-through;}.ctzL .ld .d3{color:#ef1b1b;}'
- +'.ctzL .lpr{color:#ef1b1b;background:'+CZ_BR+';display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-top:.6cqw;padding:1cqw 4.5cqw;transform:rotate(-1.2deg);}'
+ +'.ctzL .lpr{color:#ef1b1b;background:'+CZ_BR+';display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-top:.4cqw;padding:.8cqw 4.5cqw;transform:rotate(-1.2deg);}'
  +'.ctzL .lrs{font-size:5.5cqw;align-self:flex-start;margin:.6cqw .5cqw 0 0;}'
- +'.ctzL .lin{font-size:calc(var(--k,1)*18cqw);}'
+ +'.ctzL .lin{font-size:calc(var(--k,1)*15.5cqw);}'
  +'.ctzL .lcm{font-size:calc(var(--k,1)*11cqw);align-self:flex-end;margin:0 .2cqw 1cqw;}'
  +'.ctzL .lce{font-size:calc(var(--k,1)*11cqw);align-self:flex-start;margin-top:.5cqw;}'
  +'.ctzL .lft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:calc(var(--k,1)*2.1cqw);margin-top:1cqw;line-height:1.3;white-space:nowrap;}'
@@ -6458,8 +6458,8 @@ function czInnerL(p){
   var dep=(p.precoDe)?('<div class="ld"><span class="d1">DE:</span> <span class="d2">'+czEsc(p.precoDe)+'</span> <span class="d3">POR APENAS</span></div>'):'';
   var topo=czTema?('<img class="ofimg" src="'+czTema.d+'" alt="">'):('<div class="lof"'+kst(6.5,ofT.length)+'>'+czEsc(ofT)+'</div>');
   return '<div class="ctzLin">'+topo
-   +'<div class="lnm"'+kst(11,nomeT.length)+'>'+czEsc(nomeT)+'</div>'
-   +(marcaT?('<div class="lmc"'+kst(14,marcaT.length)+'>'+czEsc(marcaT)+'</div>'):'')
+   +'<div class="lnm"'+kst(7.8,nomeT.length)+'>'+czEsc(nomeT)+'</div>'
+   +(marcaT?('<div class="lmc"'+kst(13,marcaT.length)+'>'+czEsc(marcaT)+'</div>'):'')
    +(grT?('<div class="lgr"'+kst(26,grT.length)+'>'+czEsc(grT)+'</div>'):'')
    +dep
    +'<div class="lpr"'+kst(5.2,nd)+'><span class="lrs">R$</span><span class="lin">'+czEsc(pp.reais)+'</span><span class="lcm">,</span><span class="lce">'+czEsc(pp.cent)+'</span></div>'
