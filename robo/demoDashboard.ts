@@ -1422,7 +1422,14 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-impo b{font-size:13.5px;color:#1d2733;display:block;}
         #page-cartaz .cz-impo span{font-size:12px;color:#8a97a8;display:block;}
         #page-cartaz .cz-impo input{margin-top:3px;accent-color:#157a35;}
-        #page-cartaz .cz-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;}
+        #page-cartaz .cz-preview{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;align-items:flex-start;}
+        #page-cartaz .cz-folhaWrap{text-align:center;}
+        #page-cartaz .cz-folha{width:300px;aspect-ratio:210/297;background:#fff;border:1px solid #e5e9ee;border-radius:8px;box-shadow:0 3px 14px rgba(0,0,0,.09);display:grid;padding:7px;box-sizing:border-box;}
+        #page-cartaz .cz-folha.land{width:430px;aspect-ratio:297/210;}
+        #page-cartaz .cz-cel{display:flex;overflow:hidden;min-width:0;min-height:0;}
+        #page-cartaz .cz-folha.multi .cz-cel{border:1px dashed #cfd6de;}
+        #page-cartaz .cz-cel .ctz{aspect-ratio:auto;height:100%;width:100%;border:none;border-radius:0;box-shadow:none;}
+        #page-cartaz .cz-folhaLbl{font-size:12.5px;color:#8a97a8;margin-top:7px;font-weight:700;}
         .ctz{container-type:inline-size;background:#fff;border:1px solid #eceef1;border-radius:18px;box-shadow:0 3px 14px rgba(0,0,0,.09);aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:0;overflow:hidden;font-family:'Bangers',cursive;}
         .ctz .ctz-top,.ctz .ctz-mid,.ctz .ctz-bot{width:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;padding:0 4cqw;}
         .ctz .ctz-top{padding-top:1.5cqw;}
@@ -6436,8 +6443,24 @@ function renderCartaz(){
        +'</div>';
     }
     b+='<div class="cz-opc"><label>Início da oferta <input type="date" id="czValIni" value="'+czEsc(czValIni)+'"></label><label>Fim da oferta <input type="date" id="czValidade" value="'+czEsc(czValidade)+'"></label><label>Limite por cliente <input type="number" min="0" id="czLimite" value="'+czEsc(czLimite)+'" style="width:66px;"></label></div><div class="cz-preview">';
-    for(var k=0;k<czProdutos.length;k++){ b+='<div class="ctz">'+czInner(czProdutos[k])+'</div>'; }
-    b+='</div><div class="cz-actions" style="justify-content:space-between;"><button class="cz-btn sec" data-czact="step3">← Voltar</button><div style="display:flex;gap:10px;"><button class="cz-btn sec" data-czact="novo">Novo</button><button class="cz-btn prim" data-czact="imprimir" style="display:inline-flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir cartazes</button></div></div>';
+    var LAY={A4:{cols:1,rows:1},A5:{cols:1,rows:2},A6:{cols:2,rows:2},A7:{cols:4,rows:2,land:1}}[czTamanho];
+    var itensPrev=[]; for(var k=0;k<czProdutos.length;k++){ var qq=Math.max(1,parseInt(czProdutos[k].qtd,10)||1); for(var k2=0;k2<qq;k2++) itensPrev.push(czProdutos[k]); }
+    if(LAY){
+      var per=LAY.cols*LAY.rows;
+      var nfol=Math.max(1,Math.ceil(itensPrev.length/per));
+      for(var pg=0;pg<nfol;pg++){
+        b+='<div class="cz-folhaWrap"><div class="cz-folha'+(LAY.land?' land':'')+(per>1?' multi':'')+'" style="grid-template-columns:repeat('+LAY.cols+',1fr);grid-template-rows:repeat('+LAY.rows+',1fr);">';
+        for(var ce=0;ce<per;ce++){ var it=itensPrev[pg*per+ce];
+          b+= it ? ('<div class="cz-cel"><div class="ctz">'+czInner(it)+'</div></div>') : '<div class="cz-cel"></div>';
+        }
+        b+='</div><div class="cz-folhaLbl">Folha '+(pg+1)+'</div></div>';
+      }
+    } else {
+      for(var k3=0;k3<czProdutos.length;k3++){ b+='<div class="ctz">'+czInner(czProdutos[k3])+'</div>'; }
+    }
+    b+='</div>';
+    if(!LAY){ var _nf={A1:8,A2:4,A3:2}[czTamanho]; if(czImpressao==='multi'){ b+='<p class="cz-sub" style="margin-top:10px;">Cada cartaz será impresso em <b>'+_nf+' folhas A4 numeradas</b> — é só imprimir e emendar (colar) as folhas.</p>'; } else { b+='<p class="cz-sub" style="margin-top:10px;">Será gerada uma folha única '+czTamanho+' (imprima em gráfica ou salve como PDF).</p>'; } }
+    b+='<div class="cz-actions" style="justify-content:space-between;"><button class="cz-btn sec" data-czact="step3">← Voltar</button><div style="display:flex;gap:10px;"><button class="cz-btn sec" data-czact="novo">Novo</button><button class="cz-btn prim" data-czact="imprimir" style="display:inline-flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir cartazes</button></div></div>';
   }
   wrap.innerHTML=st+b;
 }
