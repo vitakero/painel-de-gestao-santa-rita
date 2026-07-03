@@ -6363,7 +6363,7 @@ function czParseLinha(raw){
   if(w.length && czEhGram(w[w.length-1])) gram=w.pop();
   var nome=w.length?w[0]:'';
   var marca=w.length>1?w.slice(1).join(' '):'';
-  return {oferta:oferta,nome:nome,marca:marca,gram:gram,precoDe:'',preco:preco,qtd:1};
+  return {oferta:oferta,nome:nome,marca:marca,tipo:'',gram:gram,precoDe:'',preco:preco,qtd:1};
 }
 function czParseTexto(txt){ var out=[]; var linhas=(txt||'').split('\\n'); for(var i=0;i<linhas.length;i++){ var p=czParseLinha(linhas[i]); if(p) out.push(p); } return out; }
 function czPreco(p){ p=(''+(p||'')).replace('.',','); var a=p.split(','); var r=(a[0]||'0').replace(/[^0-9]/g,'')||'0'; var c=(a[1]||'00'); c=(c+'00').slice(0,2); return {reais:r,cent:c}; }
@@ -6382,7 +6382,7 @@ function czInner(p){
   function kst(base,len){ var k=Math.min(1,base/(len||1)); return (k<1)?(' style="--k:'+(Math.round(k*100)/100)+'"'):''; }
   var dep=(p.precoDe)?('<div class="d"><span class="d1">DE:</span> <span class="d2">'+czEsc(p.precoDe)+'</span> <span class="d3">POR APENAS</span></div>'):'';
   var ofT=(p.oferta||'OFERTA');
-  var nomeT=(p.nome||'').toUpperCase(), marcaT=(p.marca||'').toUpperCase();
+  var nomeT=(p.nome||'').toUpperCase(), marcaT=((p.marca||'')+((p.marca&&p.tipo)?' ':'')+(p.tipo||'')).toUpperCase();
   var nd=pp.reais.length+pp.cent.length;
   return '<div class="ctz-top"><div class="of"'+kst(6.5,ofT.length)+'>'+czEsc(ofT)+'</div></div>'
    +'<div class="ctz-mid"><div class="nm"'+kst(7.2,nomeT.length)+'>'+czEsc(nomeT)+'</div>'
@@ -6410,11 +6410,12 @@ function renderCartaz(){
      +'<div id="czCount" class="cz-count">'+czProdutos.length+' linha(s) detectada(s)</div>'
      +'<div class="cz-actions"><button class="cz-btn sec" data-czact="step1">← Voltar</button><button class="cz-btn prim" data-czact="parse">Continuar →</button></div>';
   } else if(czStep===3){
-    b='<p class="cz-sub">Confira e ajuste sua lista</p><div class="cz-tblwrap"><table class="cz-tbl"><thead><tr><th>Oferta</th><th>Produto</th><th>Marca</th><th>Gramatura</th>'+(czModelo==='depor'?'<th>De R$</th>':'')+'<th>Preço</th><th>Qtd</th><th></th></tr></thead><tbody>';
+    b='<p class="cz-sub">Confira e ajuste sua lista</p><div class="cz-tblwrap"><table class="cz-tbl"><thead><tr><th>Oferta</th><th>Produto</th><th>Marca</th><th>Tipo</th><th>Gramatura</th>'+(czModelo==='depor'?'<th>De R$</th>':'')+'<th>Preço</th><th>Qtd</th><th></th></tr></thead><tbody>';
     for(var j=0;j<czProdutos.length;j++){ var p=czProdutos[j];
       b+='<tr><td><input data-czidx="'+j+'" data-czfield="oferta" value="'+czEsc(p.oferta)+'"></td>'
       +'<td><input data-czidx="'+j+'" data-czfield="nome" value="'+czEsc(p.nome)+'"></td>'
       +'<td><input data-czidx="'+j+'" data-czfield="marca" value="'+czEsc(p.marca)+'"></td>'
+      +'<td><input data-czidx="'+j+'" data-czfield="tipo" value="'+czEsc(p.tipo||'')+'" placeholder="DIGITE O TIPO"></td>'
       +'<td><input data-czidx="'+j+'" data-czfield="gram" value="'+czEsc(p.gram)+'"></td>'
       +(czModelo==='depor'?('<td><input data-czidx="'+j+'" data-czfield="precoDe" value="'+czEsc(p.precoDe)+'"></td>'):'')
       +'<td><input data-czidx="'+j+'" data-czfield="preco" value="'+czEsc(p.preco)+'"></td>'
@@ -6485,7 +6486,7 @@ function czClick(e){
     else if(a==='step2') czStep=2;
     else if(a==='step3') czStep=3;
     else if(a==='parse'){ var ta=document.getElementById('czTexto'); czProdutos=czParseTexto(ta?ta.value:''); if(!czProdutos.length){ uiConfirm({titulo:'Lista vazia',msg:'Coloque pelo menos um produto na lista.',ok:'OK',cancel:''}); return; } czStep=3; }
-    else if(a==='addrow') czProdutos.push({oferta:'OFERTA',nome:'',marca:'',gram:'',precoDe:'',preco:'',qtd:1});
+    else if(a==='addrow') czProdutos.push({oferta:'OFERTA',nome:'',marca:'',tipo:'',gram:'',precoDe:'',preco:'',qtd:1});
     else if(a==='gerar'){ if(!czProdutos.length){ uiConfirm({titulo:'Lista vazia',msg:'Nenhum produto na lista.',ok:'OK',cancel:''}); return; } czStep=4; }
     else if(a==='novo'){ czProdutos=[]; czStep=1; czValIni=''; czValidade=''; czLimite='0'; }
     else if(a==='imprimir'){
