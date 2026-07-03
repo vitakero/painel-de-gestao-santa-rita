@@ -34,17 +34,22 @@ const headers = {
 
   // ECONOMIA DE PUBLICACOES (limite do Vercel: ~100 deploys/dia):
   // 1) se o conteudo nao mudou (ignorando o carimbo "gerado em HH:MM"), nao publica;
-  // 2) o robo espera no minimo 15 min entre publicacoes (FORCAR=1 ignora tudo isso).
+  // 2) mudou? publica ja (ciclo de 5 min normal). So comeca a ESPACAR se o dia
+  //    estiver chegando perto do limite: 60+ publicacoes -> minimo 15 min;
+  //    80+ -> minimo 30 min. (FORCAR=1 ignora tudo isso.)
   const statePath = path.join(__dirname, "..", "output", ".pub-state.json");
   const normalizado = buf.toString("utf8").replace(/gerados? em [0-9\/:,\s]+/g, "gerado em X");
   const hash = require("crypto").createHash("sha256").update(normalizado).digest("hex");
+  const hoje = new Date().toISOString().slice(0, 10);
+  let st = null;
+  try { st = JSON.parse(fs.readFileSync(statePath, "utf8")); } catch (e) {}
+  const pubsHoje = (st && st.dia === hoje) ? (st.pubs || 0) : 0;
   if (process.env.FORCAR !== "1") {
-    let st = null;
-    try { st = JSON.parse(fs.readFileSync(statePath, "utf8")); } catch (e) {}
     if (st && st.hash === hash) { console.log(">>> Nada mudou desde a ultima publicacao. Nao vou publicar (economia de deploys)."); process.exit(0); }
-    if (st && st.ts && (Date.now() - st.ts) < 15 * 60 * 1000) {
-      const falta = Math.ceil((15 * 60 * 1000 - (Date.now() - st.ts)) / 60000);
-      console.log(">>> Publicei ha menos de 15 min (faltam ~" + falta + " min). Nao vou publicar agora (economia de deploys).");
+    const minEspera = (pubsHoje >= 80) ? 30 : (pubsHoje >= 60) ? 15 : 0;
+    if (minEspera && st && st.ts && (Date.now() - st.ts) < minEspera * 60 * 1000) {
+      const falta = Math.ceil((minEspera * 60 * 1000 - (Date.now() - st.ts)) / 60000);
+      console.log(">>> Dia com muitas publicacoes (" + pubsHoje + "). Espacando: proxima em ~" + falta + " min.");
       process.exit(0);
     }
   }
@@ -60,7 +65,7 @@ const headers = {
 
   const r2 = await fetch(api, { method: "PUT", headers, body: JSON.stringify(body) });
   if (r2.status === 200 || r2.status === 201) {
-    try { fs.writeFileSync(statePath, JSON.stringify({ hash: hash, ts: Date.now() })); } catch (e) {}
+    try { fs.writeFileSync(statePath, JSON.stringify({ hash: hash, ts: Date.now(), dia: hoje, pubs: pubsHoje + 1 })); } catch (e) {}
     console.log(">>> PUBLICADO no GitHub! O painel online atualiza em ~1 min.");
     console.log("    https://vitakero.github.io/painel-de-gestao-santa-rita/");
   } else {
