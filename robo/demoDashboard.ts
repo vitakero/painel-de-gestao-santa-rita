@@ -1389,6 +1389,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-model.on{border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.12);}
         #page-cartaz .cz-model h4{margin:10px 0 0;font-size:14px;color:#1d2733;}
         #page-cartaz .cz-model .ctz{max-width:150px;margin:0 auto;pointer-events:none;}
+        #page-cartaz .cz-model .ctzL{max-width:190px;margin:24px auto;pointer-events:none;}
         #page-cartaz .cz-temas{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;}
         #page-cartaz .cz-tema{position:relative;border:2px solid #e1e7ee;border-radius:14px;background:#fff;padding:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;transition:.12s;}
         #page-cartaz .cz-tema.on{border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.12);}
@@ -6431,15 +6432,53 @@ function czInner(p){
    +(function(){ var ftT=czFooter(); return '<div class="ft"'+kst(54,ftT.length)+'>'+czEsc(ftT)+'</div>'; })()+'</div>';
 }
 
+var CZ_BR='url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%';
+var CZLCSS='.ctzL{container-type:inline-size;background:#ffe600;border-radius:2.4cqw;padding:2.2cqw;box-sizing:border-box;font-family:"Bangers",cursive;aspect-ratio:198/130;}'
+ +'.ctzL .ctzLin{background:#fff;border-radius:1.6cqw;position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;overflow:hidden;padding:1.4cqw 3cqw 7.5cqw;box-sizing:border-box;}'
+ +'.ctzL .lof{color:#ef1b1b;background:'+CZ_BR+';font-size:calc(var(--k,1)*9.5cqw);line-height:1;padding:.5cqw 4.5cqw;transform:rotate(-1.2deg);}'
+ +'.ctzL .lnm{color:#111;font-size:calc(var(--k,1)*12.5cqw);line-height:.85;margin-top:.6cqw;white-space:nowrap;}'
+ +'.ctzL .lmc{color:#111;font-size:calc(var(--k,1)*9cqw);line-height:.9;white-space:nowrap;}'
+ +'.ctzL .lgr{color:#111;font-size:calc(var(--k,1)*4.4cqw);border-bottom:.3cqw solid #111;padding:0 1.4cqw .3cqw;white-space:nowrap;}'
+ +'.ctzL .ld{font-size:5cqw;line-height:1;margin-top:.6cqw;}.ctzL .ld .d1{color:#111;}.ctzL .ld .d2{color:#8a8a8a;text-decoration:line-through;}.ctzL .ld .d3{color:#ef1b1b;}'
+ +'.ctzL .lpr{color:#ef1b1b;background:'+CZ_BR+';display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-top:.6cqw;padding:1cqw 4.5cqw;transform:rotate(-1.2deg);}'
+ +'.ctzL .lrs{font-size:5.5cqw;align-self:flex-start;margin:.6cqw .5cqw 0 0;}'
+ +'.ctzL .lin{font-size:calc(var(--k,1)*17cqw);}'
+ +'.ctzL .lcm{font-size:calc(var(--k,1)*11cqw);align-self:flex-end;margin:0 .2cqw 1cqw;}'
+ +'.ctzL .lce{font-size:calc(var(--k,1)*11cqw);align-self:flex-start;margin-top:.5cqw;}'
+ +'.ctzL .lft{position:absolute;right:2.6cqw;bottom:1.1cqw;text-align:right;color:#111;font-family:Arial,sans-serif;font-weight:bold;font-size:1.6cqw;line-height:1.4;white-space:nowrap;}'
+ +'.ctzL .lft .lim{color:#ef1b1b;}'
+ +'.ctzL .ofimg{width:62%;height:auto;display:block;border-radius:1cqw;}';
+function czInnerL(p){
+  var pp=czPreco(p.preco);
+  function kst(base,len){ var k=Math.min(1,base/(len||1)); return (k<1)?(' style="--k:'+(Math.round(k*100)/100)+'"'):''; }
+  var ofT=(p.oferta||'OFERTA');
+  var nomeT=(p.nome||'').toUpperCase(), marcaT=(p.marca||'').toUpperCase();
+  var grT=((p.tipo||'')+((p.tipo&&p.gram)?' ':'')+(p.gram||'')).toUpperCase();
+  var nd=pp.reais.length+pp.cent.length;
+  var dep=(p.precoDe)?('<div class="ld"><span class="d1">DE:</span> <span class="d2">'+czEsc(p.precoDe)+'</span> <span class="d3">POR APENAS</span></div>'):'';
+  var topo=czTema?('<img class="ofimg" src="'+czTema.d+'" alt="">'):('<div class="lof"'+kst(6.5,ofT.length)+'>'+czEsc(ofT)+'</div>');
+  var ft=czFooter().split('  ·  ');
+  return '<div class="ctzLin">'+topo
+   +'<div class="lnm"'+kst(11,nomeT.length)+'>'+czEsc(nomeT)+'</div>'
+   +(marcaT?('<div class="lmc"'+kst(14,marcaT.length)+'>'+czEsc(marcaT)+'</div>'):'')
+   +(grT?('<div class="lgr"'+kst(26,grT.length)+'>'+czEsc(grT)+'</div>'):'')
+   +dep
+   +'<div class="lpr"'+kst(5.2,nd)+'><span class="lrs">R$</span><span class="lin">'+czEsc(pp.reais)+'</span><span class="lcm">,</span><span class="lce">'+czEsc(pp.cent)+'</span></div>'
+   +'<div class="lft">'+czEsc(ft[0])+(ft[1]?('<br><span class="lim">'+czEsc(ft[1])+'</span>'):'')+'</div>'
+   +'</div>';
+}
 function renderCartaz(){
   var wrap=document.getElementById('cartazWrap'); if(!wrap) return;
+  if(!document.getElementById('czlcss')){ var stl=document.createElement('style'); stl.id='czlcss'; stl.textContent=CZLCSS; document.head.appendChild(stl); }
   if(!wrap.__czb){ wrap.__czb=1; wrap.addEventListener('click',czClick); wrap.addEventListener('input',czInput); wrap.addEventListener('change',czChange); }
   var st='<div class="cz-steps"><div class="cz-step '+(czStep>1?'done':(czStep===1?'on':''))+'">1. Modelo</div><div class="cz-step '+(czStep>2?'done':(czStep===2?'on':''))+'">2. Produtos</div><div class="cz-step '+(czStep>3?'done':(czStep===3?'on':''))+'">3. Conferir</div></div>';
   var b='';
   if(czStep===1){
-    var mods=[{k:'padrao',t:'Oferta padrão'},{k:'depor',t:'De / Por'}];
+    var mods=[{k:'padrao',t:'Oferta padrão'},{k:'depor',t:'De / Por'},{k:'deitado',t:'Deitado — 2 por folha'}];
     b='<p class="cz-sub">Escolha o modelo do cartaz</p><div class="cz-models">';
-    for(var i=0;i<mods.length;i++){ var m=mods[i]; b+='<div class="cz-model '+(czModelo===m.k?'on':'')+'" data-czmodel="'+m.k+'"><div class="ctz">'+czInner({oferta:'OFERTA',nome:'PRODUTO',marca:'MARCA',gram:'DESCRIÇÃO DO PRODUTO',preco:'99,99',precoDe:(m.k==='depor'?'129,99':'')})+'</div><h4>'+m.t+'</h4></div>'; }
+    for(var i=0;i<mods.length;i++){ var m=mods[i]; var amostra={oferta:'OFERTA',nome:'PRODUTO',marca:'MARCA',gram:'DESCRIÇÃO DO PRODUTO',preco:'99,99',precoDe:(m.k==='depor'?'129,99':'')};
+      var thumb=(m.k==='deitado')?('<div class="ctzL">'+czInnerL(amostra)+'</div>'):('<div class="ctz">'+czInner(amostra)+'</div>');
+      b+='<div class="cz-model '+(czModelo===m.k?'on':'')+'" data-czmodel="'+m.k+'">'+thumb+'<h4>'+m.t+'</h4></div>'; }
     b+='</div>';
     var temas=czTemasGet();
     b+='<p class="cz-sub" style="margin:22px 0 4px;font-weight:700;color:#1d2733;">Cabeçalho do cartaz</p><p class="cz-sub" style="margin:0 0 10px;">Use o texto padrão ou envie um banner do seu computador</p><div class="cz-temas">';
@@ -6478,6 +6517,9 @@ function renderCartaz(){
       {k:'A7',badge:'',info:'8 por folha',mini:'m8 mY'}
     ];
     var selDef=null;
+    if(czModelo==='deitado'){
+      b='<p class="cz-sub">Confira e imprima</p><div class="cz-hint" style="text-align:center;">Cartaz deitado — <b>2 por folha A4</b>, ocupa menos espaço no PDV</div>';
+    } else {
     b='<p class="cz-sub">Escolha o tamanho e imprima</p><div class="cz-sizes">';
     for(var s=0;s<SDEFS.length;s++){ var sd=SDEFS[s]; if(czTamanho===sd.k) selDef=sd;
       var cells=''; var ncell=(sd.mini.indexOf('m2')>=0)?2:((sd.mini.indexOf('m4')>=0)?4:((sd.mini.indexOf('m8')>=0)?8:0));
@@ -6485,7 +6527,8 @@ function renderCartaz(){
       b+='<div class="cz-size '+(czTamanho===sd.k?'on':'')+'" data-czsize="'+sd.k+'"><div class="t">'+sd.k+'</div><div class="cz-mini '+sd.mini+'">'+cells+'</div>'+(sd.badge?('<span class="badge">'+sd.badge+'</span>'):'')+'<div class="inf">'+sd.info+'</div></div>';
     }
     b+='</div>';
-    if(czTamanho==='A1'||czTamanho==='A2'||czTamanho==='A3'){
+    }
+    if(czModelo!=='deitado' && (czTamanho==='A1'||czTamanho==='A2'||czTamanho==='A3')){
       var nf={A1:8,A2:4,A3:2}[czTamanho];
       b+='<div class="cz-imp"><div class="cz-impt">Opções de impressão</div>'
        +'<label class="cz-impo '+(czImpressao==='multi'?'on':'')+'"><input type="radio" name="czimp" value="multi"'+(czImpressao==='multi'?' checked':'')+'><span><b>Múltiplas A4</b><span>'+nf+' folhas A4 por cartaz — imprima e emende (cole) as folhas</span></span></label>'
@@ -6493,7 +6536,7 @@ function renderCartaz(){
        +'</div>';
     }
     b+='<div class="cz-opc"><label>Início da oferta <input type="date" id="czValIni" value="'+czEsc(czValIni)+'"></label><label>Fim da oferta <input type="date" id="czValidade" value="'+czEsc(czValidade)+'"></label><label>Limite por cliente <input type="number" min="0" id="czLimite" value="'+czEsc(czLimite)+'" style="width:66px;"></label></div><div class="cz-preview">';
-    var LAY={A4:{cols:1,rows:1},A5:{cols:1,rows:2,rotCell:1},A6:{cols:2,rows:2},A7:{cols:4,rows:2,land:1}}[czTamanho];
+    var LAY=(czModelo==='deitado')?{cols:1,rows:2,cardL:1}:{A4:{cols:1,rows:1},A5:{cols:1,rows:2,rotCell:1},A6:{cols:2,rows:2},A7:{cols:4,rows:2,land:1}}[czTamanho];
     var itensPrev=[]; for(var k=0;k<czProdutos.length;k++){ var qq=Math.max(1,parseInt(czProdutos[k].qtd,10)||1); for(var k2=0;k2<qq;k2++) itensPrev.push(czProdutos[k]); }
     if(LAY){
       var per=LAY.cols*LAY.rows;
@@ -6501,7 +6544,8 @@ function renderCartaz(){
       for(var pg=0;pg<nfol;pg++){
         b+='<div class="cz-folhaWrap"><div class="cz-folha'+(LAY.land?' land':'')+(per>1?' multi':'')+'" style="grid-template-columns:repeat('+LAY.cols+',1fr);grid-template-rows:repeat('+LAY.rows+',1fr);">';
         for(var ce=0;ce<per;ce++){ var it=itensPrev[pg*per+ce];
-          b+= it ? ('<div class="cz-cel'+(LAY.rotCell?' rot':'')+'"><div class="ctz">'+czInner(it)+'</div></div>') : ('<div class="cz-cel'+(LAY.rotCell?' rot':'')+'"></div>');
+          var celIn = it ? (LAY.cardL?('<div class="ctzL" style="width:94%;">'+czInnerL(it)+'</div>'):('<div class="ctz">'+czInner(it)+'</div>')) : '';
+          b+='<div class="cz-cel'+(LAY.rotCell?' rot':'')+'">'+celIn+'</div>';
         }
         b+='</div><div class="cz-folhaLbl">Folha '+(pg+1)+'</div></div>';
       }
@@ -6555,6 +6599,25 @@ function czInput(e){
 function czImprimir(){
   var itens=[]; for(var i=0;i<czProdutos.length;i++){ var q=Math.max(1,parseInt(czProdutos[i].qtd,10)||1); for(var k=0;k<q;k++) itens.push(czProdutos[i]); }
   if(!itens.length) return;
+  // ===== MODELO DEITADO: 2 por folha A4 =====
+  if(czModelo==='deitado'){
+    var pagesL='';
+    for(var iL=0;iL<itens.length;iL+=2){
+      var clL='';
+      for(var jL=iL;jL<iL+2;jL++){ clL+='<div class="cellL">'+(itens[jL]?('<div class="ctzL">'+czInnerL(itens[jL])+'</div>'):'')+'</div>'; }
+      pagesL+='<div class="pg">'+clL+'</div>';
+    }
+    var cssL='<style>:root{color-scheme:light only;}@page{size:A4;margin:6mm;}*{margin:0;padding:0;box-sizing:border-box;font-family:"Bangers",cursive;}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+     +'.pg{width:100%;height:265mm;overflow:hidden;break-inside:avoid;display:grid;grid-template-rows:repeat(2,minmax(0,1fr));}.pg+.pg{page-break-before:always;}'
+     +'.cellL{display:flex;align-items:center;justify-content:center;overflow:hidden;}.cellL+.cellL{border-top:1px dashed #bbb;}'
+     +'.cellL .ctzL{width:196mm;height:128mm;}'
+     +CZLCSS
+     +'@media screen{html{background:#3c4043;}body{zoom:.45;background:#3c4043;padding:30px 0;}.pg{background:#fff;width:794px;box-sizing:content-box;padding:30px 24px 44px;margin:0 auto 30px;box-shadow:0 8px 30px rgba(0,0,0,.45);}}</style>';
+    var wL=window.open('','_blank'); if(!wL){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return; }
+    wL.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">'+cssL+'</head><body>'+pagesL+'<scr'+'ipt>(function(){function go(){setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
+    wL.document.close();
+    return;
+  }
   var CZPCSS='.poster{position:absolute;container-type:inline-size;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;overflow:hidden;font-family:"Bangers",cursive;box-sizing:border-box;}.poster .ctz-top,.poster .ctz-mid,.poster .ctz-bot{width:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;padding:0 4cqw;}.poster .ctz-top{padding-top:1.5cqw;}.poster .ctz-bot{padding-bottom:1cqw;}.poster .of{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;font-size:calc(var(--k,1)*31.4cqw);line-height:1;padding:.8cqw 5.6cqw;transform:rotate(-1.5deg);}.poster .nm{color:#111;font-size:calc(var(--k,1)*25.4cqw);line-height:.85;margin-top:2cqw;white-space:nowrap;}.poster .mc{color:#111;font-size:calc(var(--k,1)*17.4cqw);line-height:.9;white-space:nowrap;}.poster .gr{color:#111;font-size:calc(var(--k,1)*8.6cqw);margin-top:1.5cqw;border-bottom:.55cqw solid #111;padding:0 1.9cqw .55cqw;white-space:nowrap;}.poster .d{font-size:9.9cqw;margin:1.5cqw 0 1cqw;line-height:1;}.poster .d .d1{color:#111;}.poster .d .d2{color:#8a8a8a;text-decoration:line-through;}.poster .d .d3{color:#ef1b1b;}.poster .pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-top:1cqw;padding:2.1cqw 5.6cqw;transform:rotate(-1.5deg);}.poster .pr .rs{font-size:11.2cqw;align-self:flex-start;margin-top:1.1cqw;margin-right:.8cqw;}.poster .pr .in{font-size:calc(var(--k,1)*33.2cqw);}.poster .pr .cm{font-size:calc(var(--k,1)*22.2cqw);align-self:flex-end;margin:0 .4cqw 1.9cqw;}.poster .pr .ce{font-size:calc(var(--k,1)*22.2cqw);align-self:flex-start;margin-top:.8cqw;}.poster .ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:calc(var(--k,1)*2.4cqw);margin-top:1.5cqw;line-height:1.25;white-space:nowrap;}.poster .ofimg{width:100%;height:auto;display:block;border-radius:1.5cqw;}';
   // ===== POSTERS A1/A2/A3 (multiplas folhas A4 pra emendar, ou folha unica) =====
   var POSTERS={A1:{w:594,h:841,tiles:{cols:2,rows:4,tw:297,th:210.25,rot:1}},
