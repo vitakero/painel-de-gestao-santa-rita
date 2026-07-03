@@ -1429,6 +1429,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-cel{display:flex;align-items:center;justify-content:center;overflow:hidden;min-width:0;min-height:0;}
         #page-cartaz .cz-folha.multi .cz-cel{border:1px dashed #cfd6de;}
         #page-cartaz .cz-cel .ctz{height:96%;width:auto;aspect-ratio:210/297;border:1px solid #f0f2f5;border-radius:0;box-shadow:none;flex:none;}
+        #page-cartaz .cz-cel.rot .ctz{height:138%;transform:rotate(90deg);}
         #page-cartaz .cz-folhaLbl{font-size:12.5px;color:#8a97a8;margin-top:7px;font-weight:700;}
         #page-cartaz .cz-poster{position:relative;width:300px;}
         #page-cartaz .cz-poster .ctz{width:100%;}
@@ -6447,7 +6448,7 @@ function renderCartaz(){
        +'</div>';
     }
     b+='<div class="cz-opc"><label>Início da oferta <input type="date" id="czValIni" value="'+czEsc(czValIni)+'"></label><label>Fim da oferta <input type="date" id="czValidade" value="'+czEsc(czValidade)+'"></label><label>Limite por cliente <input type="number" min="0" id="czLimite" value="'+czEsc(czLimite)+'" style="width:66px;"></label></div><div class="cz-preview">';
-    var LAY={A4:{cols:1,rows:1},A5:{cols:1,rows:2},A6:{cols:2,rows:2},A7:{cols:4,rows:2,land:1}}[czTamanho];
+    var LAY={A4:{cols:1,rows:1},A5:{cols:1,rows:2,rotCell:1},A6:{cols:2,rows:2},A7:{cols:4,rows:2,land:1}}[czTamanho];
     var itensPrev=[]; for(var k=0;k<czProdutos.length;k++){ var qq=Math.max(1,parseInt(czProdutos[k].qtd,10)||1); for(var k2=0;k2<qq;k2++) itensPrev.push(czProdutos[k]); }
     if(LAY){
       var per=LAY.cols*LAY.rows;
@@ -6455,7 +6456,7 @@ function renderCartaz(){
       for(var pg=0;pg<nfol;pg++){
         b+='<div class="cz-folhaWrap"><div class="cz-folha'+(LAY.land?' land':'')+(per>1?' multi':'')+'" style="grid-template-columns:repeat('+LAY.cols+',1fr);grid-template-rows:repeat('+LAY.rows+',1fr);">';
         for(var ce=0;ce<per;ce++){ var it=itensPrev[pg*per+ce];
-          b+= it ? ('<div class="cz-cel"><div class="ctz">'+czInner(it)+'</div></div>') : '<div class="cz-cel"></div>';
+          b+= it ? ('<div class="cz-cel'+(LAY.rotCell?' rot':'')+'"><div class="ctz">'+czInner(it)+'</div></div>') : ('<div class="cz-cel'+(LAY.rotCell?' rot':'')+'"></div>');
         }
         b+='</div><div class="cz-folhaLbl">Folha '+(pg+1)+'</div></div>';
       }
