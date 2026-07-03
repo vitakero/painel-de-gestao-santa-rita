@@ -1430,6 +1430,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-folha.multi .cz-cel{border:1px dashed #cfd6de;}
         #page-cartaz .cz-cel .ctz{aspect-ratio:auto;height:100%;width:100%;border:none;border-radius:0;box-shadow:none;}
         #page-cartaz .cz-folhaLbl{font-size:12.5px;color:#8a97a8;margin-top:7px;font-weight:700;}
+        #page-cartaz .cz-poster{position:relative;width:300px;}
+        #page-cartaz .cz-poster .ctz{width:100%;}
+        #page-cartaz .cz-emenda{position:absolute;inset:0;display:grid;pointer-events:none;z-index:3;}
+        #page-cartaz .cz-emenda i{border:1px dashed rgba(110,122,140,.5);}
         .ctz{container-type:inline-size;background:#fff;border:1px solid #eceef1;border-radius:18px;box-shadow:0 3px 14px rgba(0,0,0,.09);aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:0;overflow:hidden;font-family:'Bangers',cursive;}
         .ctz .ctz-top,.ctz .ctz-mid,.ctz .ctz-bot{width:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;padding:0 4cqw;}
         .ctz .ctz-top{padding-top:1.5cqw;}
@@ -6456,7 +6460,13 @@ function renderCartaz(){
         b+='</div><div class="cz-folhaLbl">Folha '+(pg+1)+'</div></div>';
       }
     } else {
-      for(var k3=0;k3<czProdutos.length;k3++){ b+='<div class="ctz">'+czInner(czProdutos[k3])+'</div>'; }
+      var PDEF={A1:{cols:2,rows:4},A2:{cols:2,rows:2},A3:{cols:1,rows:2}}[czTamanho];
+      var nfp=PDEF.cols*PDEF.rows;
+      for(var k3=0;k3<itensPrev.length;k3++){
+        var emen='';
+        if(czImpressao==='multi'){ emen='<div class="cz-emenda" style="grid-template-columns:repeat('+PDEF.cols+',1fr);grid-template-rows:repeat('+PDEF.rows+',1fr);">'; for(var ee=0;ee<nfp;ee++) emen+='<i></i>'; emen+='</div>'; }
+        b+='<div class="cz-folhaWrap"><div class="cz-poster"><div class="ctz">'+czInner(itensPrev[k3])+'</div>'+emen+'</div><div class="cz-folhaLbl">'+(czImpressao==='multi'?('Cartaz '+czTamanho+' · '+nfp+' folhas A4'):('Folha única '+czTamanho))+'</div></div>';
+      }
     }
     b+='</div>';
     if(!LAY){ var _nf={A1:8,A2:4,A3:2}[czTamanho]; if(czImpressao==='multi'){ b+='<p class="cz-sub" style="margin-top:10px;">Cada cartaz será impresso em <b>'+_nf+' folhas A4 numeradas</b> — é só imprimir e emendar (colar) as folhas.</p>'; } else { b+='<p class="cz-sub" style="margin-top:10px;">Será gerada uma folha única '+czTamanho+' (imprima em gráfica ou salve como PDF).</p>'; } }
