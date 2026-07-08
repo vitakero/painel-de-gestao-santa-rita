@@ -28,6 +28,14 @@ async function timed(c,nome,sql,params){
 }
 
 (async()=>{
+  // TRAVA ANTI-DUPLICATA: se outra rodada terminou ha menos de 8 min (robo duplicado
+  // rodando junto), esta PULA em silencio — so um trabalha por vez, sem pesar o VR.
+  const lockF=path.join(__dirname,"..","output","last-vendas-run.txt");
+  try{
+    const last=Number(fs.readFileSync(lockF,"utf8"))||0;
+    if(Date.now()-last < 8*60*1000){ console.log("Outra rodada acabou de terminar (robo duplicado?). Pulando esta pra nao pesar o VR."); process.exit(0); }
+  }catch(e){}
+
   const c=new Client(cfg); await c.connect();
   console.log("Conectado. Gerando resumos (pode levar ~2-3 min)...\n");
 
@@ -115,6 +123,7 @@ async function timed(c,nome,sql,params){
   const file=path.join(outDir,"vr-data.json");
   fs.writeFileSync(file, JSON.stringify(data));
   const mb=(fs.statSync(file).size/1048576).toFixed(2);
+  try{ fs.writeFileSync(lockF, String(Date.now())); }catch(e){}
   console.log("\nOK -> output/vr-data.json ("+mb+" MB)");
   console.log("Linhas: DIA="+DIA.length+" HORA="+HORA.length+" OP="+OP.length+" PAG="+PAG.length+" SETOR="+SETOR.length+" MESPROD="+MESPROD.length);
   console.log("Periodo: "+(DIA[0]&&DIA[0].d)+" a "+(DIA[DIA.length-1]&&DIA[DIA.length-1].d));
