@@ -4,9 +4,18 @@
 const fs=require("fs");
 const path=require("path");
 const { Client }=require("pg");
+const https=require("https");
 const env=fs.readFileSync(path.join(__dirname,"..",".env"),"utf8");
 const get=k=>{const m=env.match(new RegExp("^"+k+"=(.*)$","m"));return m?m[1].trim():"";};
 const cfg={ host:get("PG_HOST"), port:+get("PG_PORT"), database:get("PG_DATABASE"), user:get("PG_USER"), password:get("PG_PASSWORD"), connectionTimeoutMillis:20000, query_timeout:240000 };
+
+// ---- Sync de produtos/estoque do VR -> Supabase (nuvem), pra aba Loja/Deposito ----
+// So LE o VR; ESCREVE na nuvem. NAO apaga a coluna "loja" (bipados) graças ao merge-duplicates.
+// PEGADINHA: codigobarras no VR e NUMERIC -> usar ::text em tudo pra nao dar erro de "numeric".
+const SB_HOST="uabhsmculsfwzcrhyhch.supabase.co", SB_KEY=get("SUPABASE_SERVICE_KEY");
+const PROD_SYNC_MS=3*3600*1000; // no maximo 1x a cada 3h (produto novo aparece em ate 3h)
+const PROD_SYNC_SQL="SELECT DISTINCT ON (p.id) pa.codigobarras::text cod, p.descricaocompleta nome, e.estoque::text total FROM public.produto p JOIN public.produtoautomacao pa ON pa.id_produto::text=p.id::text LEFT JOIN public.estoque e ON e.id_produto::text=p.id::text AND e.id_loja::text='1' WHERE pa.codigobarras IS NOT NULL AND trim(pa.codigobarras::text)<>'' ORDER BY p.id, pa.qtdembalagem";
+function sbUpsertProdutos(rows){return new Promise((res,rej)=>{const body=JSON.stringify(rows);const req=https.request({host:SB_HOST,path:"/rest/v1/estoque_produtos?on_conflict=cod",method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal","Content-Length":Buffer.byteLength(body)}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>r.statusCode<300?res():rej(new Error("HTTP "+r.statusCode+" "+d)))});req.on("error",rej);req.write(body);req.end();});}
 
 const d10=v=> (v instanceof Date) ? v.toISOString().slice(0,10) : String(v).slice(0,10);
 const num=v=> Math.round(Number(v||0)*100)/100;
@@ -98,6 +107,16 @@ async function timed(c,nome,sql,params){
   }
   const MESPROD=mp.map(r=>({m:r.mes,id:String(r.id_produto),nome:nomeProd[r.id_produto]||("Prod "+r.id_produto),qtd:num(r.qtd),fat:num(r.fat)}));
 
+  // ---- SYNC de produtos/estoque pra nuvem (throttle 3h; nunca derruba o robo) ----
+  const markF=path.join(__dirname,"..","output","last-produto-sync.txt");
+  let prodRows=null;
+  try{
+    let ultima=0; try{ ultima=Number(fs.readFileSync(markF,"utf8"))||0; }catch(e){}
+    if(!SB_KEY){ console.log("  (sync produtos: sem SUPABASE_SERVICE_KEY no .env - pulando)"); }
+    else if(Date.now()-ultima < PROD_SYNC_MS){ console.log("  (sync produtos: feito ha < 3h - pulando)"); }
+    else { prodRows=(await timed(c,"SYNC produtos (VR->nuvem)",PROD_SYNC_SQL)); }
+  }catch(e){ console.log("  (sync produtos: erro lendo VR - "+e.message+" - segue o robo normal)"); prodRows=null; }
+
   await c.end();
 
   const data={ gerado:new Date().toISOString(), DIA, HORA, OP, PAG, SETOR, MESPROD };
@@ -109,4 +128,15 @@ async function timed(c,nome,sql,params){
   console.log("\nOK -> output/vr-data.json ("+mb+" MB)");
   console.log("Linhas: DIA="+DIA.length+" HORA="+HORA.length+" OP="+OP.length+" PAG="+PAG.length+" SETOR="+SETOR.length+" MESPROD="+MESPROD.length);
   console.log("Periodo: "+(DIA[0]&&DIA[0].d)+" a "+(DIA[DIA.length-1]&&DIA[DIA.length-1].d));
+
+  // ---- Envia os produtos pra nuvem (depois de salvar as vendas; erro aqui nao derruba o robo) ----
+  if(prodRows){
+    try{
+      const dados=prodRows.map(r=>({cod:String(r.cod).trim().replace(/\.0+$/,""),nome:r.nome||"",total:Math.round(parseFloat(String(r.total==null?"":r.total).replace(",","."))||0)}));
+      let ok=0;
+      for(let i=0;i<dados.length;i+=500){ await sbUpsertProdutos(dados.slice(i,i+500)); ok+=Math.min(500,dados.length-i); }
+      try{ fs.writeFileSync(markF, String(Date.now())); }catch(e){}
+      console.log("Sync produtos: "+ok+" produtos enviados pra nuvem (Loja/Deposito).");
+    }catch(e){ console.log("Sync produtos: erro enviando pra nuvem - "+e.message+" (robo segue normal)."); }
+  }
 })().catch(e=>{ console.log("ERRO: "+e.message); process.exit(1); });
