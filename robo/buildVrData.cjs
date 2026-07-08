@@ -107,16 +107,6 @@ async function timed(c,nome,sql,params){
   }
   const MESPROD=mp.map(r=>({m:r.mes,id:String(r.id_produto),nome:nomeProd[r.id_produto]||("Prod "+r.id_produto),qtd:num(r.qtd),fat:num(r.fat)}));
 
-  // ---- SYNC de produtos/estoque pra nuvem (throttle 3h; nunca derruba o robo) ----
-  const markF=path.join(__dirname,"..","output","last-produto-sync.txt");
-  let prodRows=null;
-  try{
-    let ultima=0; try{ ultima=Number(fs.readFileSync(markF,"utf8"))||0; }catch(e){}
-    if(!SB_KEY){ console.log("  (sync produtos: sem SUPABASE_SERVICE_KEY no .env - pulando)"); }
-    else if(Date.now()-ultima < PROD_SYNC_MS){ console.log("  (sync produtos: feito ha < 3h - pulando)"); }
-    else { prodRows=(await timed(c,"SYNC produtos (VR->nuvem)",PROD_SYNC_SQL)); }
-  }catch(e){ console.log("  (sync produtos: erro lendo VR - "+e.message+" - segue o robo normal)"); prodRows=null; }
-
   await c.end();
 
   const data={ gerado:new Date().toISOString(), DIA, HORA, OP, PAG, SETOR, MESPROD };
@@ -129,14 +119,24 @@ async function timed(c,nome,sql,params){
   console.log("Linhas: DIA="+DIA.length+" HORA="+HORA.length+" OP="+OP.length+" PAG="+PAG.length+" SETOR="+SETOR.length+" MESPROD="+MESPROD.length);
   console.log("Periodo: "+(DIA[0]&&DIA[0].d)+" a "+(DIA[DIA.length-1]&&DIA[DIA.length-1].d));
 
-  // ---- Envia os produtos pra nuvem (depois de salvar as vendas; erro aqui nao derruba o robo) ----
-  if(prodRows){
-    try{
+  // ---- SYNC de produtos/estoque pra nuvem (conexao NOVA e separada, no fim; throttle 3h; nunca derruba o robo) ----
+  // Fica por ultimo e em conexao propria pra nao competir com as consultas de vendas (que sao a prioridade).
+  const markF=path.join(__dirname,"..","output","last-produto-sync.txt");
+  try{
+    let ultima=0; try{ ultima=Number(fs.readFileSync(markF,"utf8"))||0; }catch(e){}
+    if(!SB_KEY){ console.log("Sync produtos: sem SUPABASE_SERVICE_KEY no .env - pulando."); }
+    else if(Date.now()-ultima < PROD_SYNC_MS){ console.log("Sync produtos: feito ha < 3h - pulando."); }
+    else {
+      console.log("\nSync produtos: lendo o catalogo do VR (conexao nova, pode levar 1-2 min)...");
+      const c2=new Client({ ...cfg, query_timeout:600000, statement_timeout:600000 });
+      await c2.connect();
+      const prodRows=(await c2.query(PROD_SYNC_SQL)).rows;
+      await c2.end();
       const dados=prodRows.map(r=>({cod:String(r.cod).trim().replace(/\.0+$/,""),nome:r.nome||"",total:Math.round(parseFloat(String(r.total==null?"":r.total).replace(",","."))||0)}));
       let ok=0;
       for(let i=0;i<dados.length;i+=500){ await sbUpsertProdutos(dados.slice(i,i+500)); ok+=Math.min(500,dados.length-i); }
       try{ fs.writeFileSync(markF, String(Date.now())); }catch(e){}
       console.log("Sync produtos: "+ok+" produtos enviados pra nuvem (Loja/Deposito).");
-    }catch(e){ console.log("Sync produtos: erro enviando pra nuvem - "+e.message+" (robo segue normal)."); }
-  }
+    }
+  }catch(e){ console.log("Sync produtos: erro ("+e.message+") - robo segue normal, produtos na proxima."); }
 })().catch(e=>{ console.log("ERRO: "+e.message); process.exit(1); });
