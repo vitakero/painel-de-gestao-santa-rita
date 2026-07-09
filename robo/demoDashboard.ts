@@ -7808,17 +7808,21 @@ try{ pxAtualizaBadge(); }catch(e){}
 try{ negAtualizaBadge(); }catch(e){}
 try{ manAtualizaBadge(); }catch(e){}
 
-// Restaura a última página aberta após recarregar (Cmd+R) e sempre vai pro topo
+// Restaura a última página aberta após recarregar (Cmd+R) e sempre vai pro topo.
+// setTimeout(0): espera o script INTEIRO terminar de carregar antes de clicar na aba —
+// senão abas definidas mais abaixo (Loja/Depósito, Pedidos...) abrem vazias/quebradas.
 (function(){
   try{ if("scrollRestoration" in history) history.scrollRestoration="manual"; }catch(e){}
-  try{
-    const pg=localStorage.getItem("ui_pagina_atual");
-    if(pg && pg!=="vendas"){
-      const b=document.querySelector('.nav-item[data-page="'+pg+'"]');
-      if(b) b.click();
-    }
-  }catch(e){}
-  window.scrollTo(0,0);
+  setTimeout(function(){
+    try{
+      const pg=localStorage.getItem("ui_pagina_atual");
+      if(pg && pg!=="vendas"){
+        const b=document.querySelector('.nav-item[data-page="'+pg+'"]');
+        if(b) b.click();
+      }
+    }catch(e){}
+    window.scrollTo(0,0);
+  },0);
 })();
 
 /* ===== Sincronizador por TABELA (Supabase) =====
