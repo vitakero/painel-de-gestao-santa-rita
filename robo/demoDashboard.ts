@@ -8210,10 +8210,16 @@ function renderEstLD(){
     lista=lista.slice(0,200);
   } else {
     lista=eldData.filter(function(x){ return (+x.loja||0)>0; });
-    if(lista.length){ if(lista.length>200){ nota="Mostrando 200 de "+lista.length.toLocaleString("pt-BR")+" produtos com estoque na loja."; lista=lista.slice(0,200); } }
+    if(lista.length){ if(lista.length>200){ nota="Mostrando 200 de "+lista.length.toLocaleString("pt-BR")+" produtos com estoque na loja."; lista=lista.slice(0,200); } else { nota="Mostrando só o que está NA LOJA ("+lista.length+"). Os outros "+eldData.length.toLocaleString("pt-BR")+" produtos continuam aqui — é só usar a busca acima."; } }
     else { lista=eldData.slice(0,50); if(eldData.length>50) nota="Mostrando 50 de "+eldData.length.toLocaleString("pt-BR")+" produtos — use a busca pra achar qualquer um. Os produtos bipados pra loja vão aparecer aqui."; }
   }
-  tb.innerHTML=lista.map(function(x){ var s=eldSit(x); return '<tr><td><div style="font-weight:600;">'+eldEsc(x.nome)+'</div><div class="eld-cod">'+eldEsc(x.cod)+'</div></td><td class="c">'+(+x.total||0)+'</td><td class="c eld-loja">'+(+x.loja||0)+'</td><td class="c eld-depo">'+eldDepo(x)+'</td><td><span class="eld-badge '+s.cls+'">'+s.txt+'</span></td></tr>'; }).join('')+(nota?'<tr><td colspan="5" style="text-align:center;color:#8a97a8;font-size:12px;padding:12px;">'+nota+'</td></tr>':'');
+  tb.innerHTML=lista.map(function(x){ var s=eldSit(x); var lj=(+x.loja||0); return '<tr><td><div style="font-weight:600;">'+eldEsc(x.nome)+'</div><div class="eld-cod">'+eldEsc(x.cod)+'</div></td><td class="c">'+(+x.total||0)+'</td><td class="c eld-loja">'+lj+'</td><td class="c eld-depo">'+eldDepo(x)+'</td><td><span class="eld-badge '+s.cls+'">'+s.txt+'</span>'+(lj>0?' <button class="eld-dev" data-cod="'+eldEsc(""+x.cod)+'" title="Devolver 1 pro depósito" style="border:1px solid #cfd8e3;background:#fff;color:#5b6b7f;border-radius:8px;padding:3px 10px;margin-left:8px;cursor:pointer;font-size:12px;">↩ devolver</button>':'')+'</td></tr>'; }).join('')+(nota?'<tr><td colspan="5" style="text-align:center;color:#8a97a8;font-size:12px;padding:12px;">'+nota+'</td></tr>':'');
+}
+function eldDevolver(cod){
+  var x=eldData.find(function(p){ return p.cod===cod; }); var fd=document.getElementById("eldFeed");
+  if(!x||(+x.loja||0)<=0) return;
+  x.loja=(+x.loja||0)-1; eldSave(); renderEstLD(); eldCloudUpsert(x);
+  if(fd){ fd.innerHTML='<span style="color:#b07d1a;font-weight:700;">↩ '+eldEsc(x.nome)+' → 1 devolvido pro depósito</span> <span style="color:#8a97a8;">(loja: '+x.loja+' · depósito: '+eldDepo(x)+')</span>'; }
 }
 function eldBipar(cod){
   cod=(""+cod).trim(); var fd=document.getElementById("eldFeed"); if(!cod) return;
@@ -8267,6 +8273,7 @@ function eldImportar(){
   var inp=document.getElementById("eldInp"), btn=document.getElementById("eldBipBtn");
   var imp=document.getElementById("eldImpBtn"); if(imp) imp.addEventListener("click",eldImportar);
   var bs=document.getElementById("eldBusca"); if(bs) bs.addEventListener("input",renderEstLD);
+  var tbd=document.getElementById("eldTbody"); if(tbd) tbd.addEventListener("click",function(ev){ var t=ev.target; while(t&&t!==tbd&&!(t.classList&&t.classList.contains("eld-dev"))) t=t.parentNode; if(t&&t!==tbd) eldDevolver(t.getAttribute("data-cod")); });
   function fire(){ if(inp){ eldBipar(inp.value); inp.value=""; inp.focus(); } }
   if(inp) inp.addEventListener("keydown",function(ev){ if(ev.key==="Enter"){ ev.preventDefault(); fire(); } });
   if(btn) btn.addEventListener("click",fire);
