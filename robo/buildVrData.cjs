@@ -28,12 +28,14 @@ async function timed(c,nome,sql,params){
 }
 
 (async()=>{
-  // TRAVA ANTI-DUPLICATA: se outra rodada terminou ha menos de 8 min (robo duplicado
+  // TRAVA ANTI-DUPLICATA: se outra rodada terminou ha menos de 4 min (robo duplicado
   // rodando junto), esta PULA em silencio — so um trabalha por vez, sem pesar o VR.
+  // (4 min combina com o loop de 5 min do robo-loop.vbs: a propria rodada seguinte
+  //  chega com ~5-6 min de idade e passa; um duplicado colado no meio e barrado.)
   const lockF=path.join(__dirname,"..","output","last-vendas-run.txt");
   try{
     const last=Number(fs.readFileSync(lockF,"utf8"))||0;
-    if(Date.now()-last < 8*60*1000){ console.log("Outra rodada acabou de terminar (robo duplicado?). Pulando esta pra nao pesar o VR."); process.exit(0); }
+    if(Date.now()-last < 4*60*1000){ console.log("Outra rodada acabou de terminar (robo duplicado?). Pulando esta pra nao pesar o VR."); process.exit(0); }
   }catch(e){}
 
   const c=new Client(cfg); await c.connect();
