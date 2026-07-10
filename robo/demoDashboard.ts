@@ -1722,15 +1722,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         </div>
         <div class="eld-kpis" id="eldKpis"></div>
         <div style="margin:14px 0 10px;"><input class="eld-inp" id="eldBusca" placeholder="Buscar produto por nome ou código de barras" autocomplete="off" style="width:100%;max-width:430px;box-sizing:border-box;"></div>
+        <div id="eldFiltros" style="margin:0 0 12px;display:flex;gap:8px;flex-wrap:wrap;"></div>
         <div class="eld-tb-wrap"><table class="eld-tb"><thead><tr><th>Produto</th><th style="text-align:center;">Total</th><th style="text-align:center;">Na loja</th><th style="text-align:center;">No depósito</th><th>Situação</th></tr></thead><tbody id="eldTbody"></tbody></table></div>
-        <details style="margin-top:16px;">
-          <summary style="cursor:pointer;font-size:13px;color:#157a35;font-weight:700;">📥 Importar lista de produtos (do VR)</summary>
-          <div style="margin-top:10px;">
-            <p style="font-size:12px;color:#8a97a8;margin:0 0 6px;">Cole a lista, <b>um produto por linha</b>: código de barras · nome · estoque total. Pode colar direto do Excel (separado por tabulação, ; ou vírgula).</p>
-            <textarea id="eldImpTxt" rows="6" placeholder="7891910000197   Arroz Tio João 5kg   120&#10;7894900011517   Coca-Cola 2L   200" style="width:100%;box-sizing:border-box;border:1px solid #d4dde6;border-radius:8px;padding:9px 11px;font:inherit;color:#1d2733;line-height:1.5;"></textarea>
-            <div style="margin-top:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;"><button class="eld-btn" id="eldImpBtn" type="button">Importar</button><span id="eldImpFeed" style="font-size:13px;"></span></div>
-          </div>
-        </details>
       </div>
     </section>
 
@@ -2969,8 +2962,20 @@ function srHydrateImgs(root){
 /* --- Pontos extras na NUVEM (Supabase): tabela "pontos" + bucket "pontos" (contratos/comprovantes) --- */
 function pxSB(){ return window.__SB||null; }
 var pxCloudOK=false, pxCarregando=false, pxRT=null, pxPushT=null;
-function pxRowFromP(p){ return {id:p.id,numero:p.numero||0,abertura:p.abertura||"",vencimento:p.vencimento||"",mes_pag:p.mesPag||"",status:p.status||"",fornecedor:p.fornecedor||"",vendedor:p.vendedor||"",valor:+p.valor||0,pagamento:p.pagamento||"",contrato:p.contrato||"",venc_contrato:p.vencContrato||"",obs:p.obs||"",manuais:p.manuais||null,comprovantes:p.comprovantes||null,contrato_url:(p.contratoArquivo&&p.contratoArquivo.indexOf("data:")!==0)?p.contratoArquivo:"",contrato_nome:p.contratoNome||"",atualizado_em:new Date().toISOString()}; }
-function pxPFromRow(r){ var p={id:r.id,numero:r.numero,abertura:r.abertura||"",vencimento:r.vencimento||"",mesPag:r.mes_pag||"",status:r.status||"",fornecedor:r.fornecedor||"",vendedor:r.vendedor||"",valor:+r.valor||0,pagamento:r.pagamento||"",contrato:r.contrato||"",vencContrato:r.venc_contrato||"",obs:r.obs||""}; if(r.manuais)p.manuais=r.manuais; if(r.comprovantes)p.comprovantes=r.comprovantes; if(r.contrato_url){p.contratoArquivo=r.contrato_url;p.contratoNome=r.contrato_nome||"";} return p; }
+function pxRowFromP(p){ return {id:p.id,numero:p.numero||0,abertura:p.abertura||"",vencimento:p.vencimento||"",mes_pag:p.mesPag||"",status:p.status||"",fornecedor:p.fornecedor||"",cnpj:p.cnpj||"",razao_social:p.razaoSocial||"",contato:p.contato||"",email:p.email||"",endereco:p.endereco||"",vendedor:p.vendedor||"",valor:+p.valor||0,pagamento:p.pagamento||"",contrato:p.contrato||"",venc_contrato:p.vencContrato||"",obs:p.obs||"",manuais:p.manuais||null,comprovantes:p.comprovantes||null,contrato_url:(p.contratoArquivo&&p.contratoArquivo.indexOf("data:")!==0)?p.contratoArquivo:"",contrato_nome:p.contratoNome||"",atualizado_em:new Date().toISOString()}; }
+function pxPFromRow(r){ var p={id:r.id,numero:r.numero,abertura:r.abertura||"",vencimento:r.vencimento||"",mesPag:r.mes_pag||"",status:r.status||"",fornecedor:r.fornecedor||"",cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",vendedor:r.vendedor||"",valor:+r.valor||0,pagamento:r.pagamento||"",contrato:r.contrato||"",vencContrato:r.venc_contrato||"",obs:r.obs||""}; if(r.manuais)p.manuais=r.manuais; if(r.comprovantes)p.comprovantes=r.comprovantes; if(r.contrato_url){p.contratoArquivo=r.contrato_url;p.contratoNome=r.contrato_nome||"";} return p; }
+// Colunas novas na nuvem (cnpj etc). Se o SQL ainda não rodou no Supabase, o upsert
+// falharia inteiro em silêncio — então, nesse caso, reenvia SEM as colunas novas.
+var PX_COLS_NOVAS=["cnpj","razao_social","contato","email","endereco"];
+function pxUpsertSeguro(sb,rows){
+  sb.from("pontos_extras").upsert(rows).then(function(r){
+    if(r && r.error && /column|cnpj|razao_social|contato|email|endereco|schema/i.test(String(r.error.message||""))){
+      var enxutas=rows.map(function(row){ var c={}; for(var k in row){ if(PX_COLS_NOVAS.indexOf(k)<0) c[k]=row[k]; } return c; });
+      sb.from("pontos_extras").upsert(enxutas).then(function(){},function(){});
+      try{ console.warn("Pontos: nuvem sem as colunas novas (rode o SQL pix_cobrancas.sql no Supabase)."); }catch(e){}
+    }
+  },function(){});
+}
 function pxUploadDataUrl(nome,dataUrl){
   var sb=pxSB(); if(!sb||!dataUrl||dataUrl.indexOf("data:")!==0) return Promise.resolve("");
   try{
@@ -2996,7 +3001,7 @@ function pxCloudPush(){
   var lista=pontosG.slice();
   Promise.all(lista.map(pxSubirArquivos)).then(function(){
     try{ localStorage.setItem("pontos_gondola",JSON.stringify(pontosG)); }catch(e){}
-    sb.from("pontos_extras").upsert(lista.map(pxRowFromP)).then(function(){},function(){});
+    pxUpsertSeguro(sb, lista.map(pxRowFromP));
   }).catch(function(){});
 }
 function pxCloudDelPonto(id){ var sb=pxSB(); if(!sb||!pxCloudOK) return; sb.from("pontos_extras").delete().eq("id",id).then(function(){},function(){}); }
@@ -3036,6 +3041,35 @@ function pxCloudLoad(){
     pxRealtime();
   },function(){ pxCarregando=false; });
 }
+/* --- Cobrança Pix REAL (Sicredi) na nuvem: tabela "pix_cobrancas" ---
+   O painel só PEDE a cobrança (insert); quem fala com o banco é o ROBÔ da loja
+   (as senhas do banco nunca ficam no site). Estados de cada parcela:
+   pedido (robô vai gerar) -> gerado (QR pronto) -> pago (baixa automática). */
+var pixCobs={}, pixCobsRT=null, pixCobT=null;
+function pixCobKey(pid,key){ return pid+"|"+key; }
+function pixCobDe(p,key){ var c=pixCobs[pixCobKey(p.id,key)]; return (c && c.status!=="cancelado") ? c : null; }
+function pixCobPaga(p,key){ var c=pixCobDe(p,key); return !!(c && c.status==="pago"); }
+function pixCobLoad(){
+  var sb=pxSB(); if(!sb) return;
+  if(!(window.__PERFIL && window.__PERFIL.is_master)) return; // mesma regra dos pontos (financeiro)
+  sb.from("pix_cobrancas").select("*").order("id",{ascending:false}).limit(1000).then(function(res){
+    if(res.error || !res.data) return;
+    var m={};
+    res.data.forEach(function(r){ var k=pixCobKey(r.ponto_id,r.parcela_key); if(!m[k] || r.id>m[k].id) m[k]=r; });
+    pixCobs=m;
+    try{
+      if(typeof renderPontosG==="function"){
+        // guarda as linhas de detalhe abertas pra não fecharem na cara do usuário
+        var abertos=[].filter.call(document.querySelectorAll("#pxTabela tr.px-det"),function(tr){ return tr.style.display!=="none"; }).map(function(tr){ return tr.id.slice(4); });
+        renderPontosG(); pxAtualizaBadge();
+        abertos.forEach(function(id){ try{ pxReabrir(id); }catch(e2){} });
+      }
+    }catch(e){}
+  },function(){});
+  if(!pixCobsRT){
+    try{ pixCobsRT=sb.channel("pix_cobrancas_sync").on("postgres_changes",{event:"*",schema:"public",table:"pix_cobrancas"},function(){ clearTimeout(pixCobT); pixCobT=setTimeout(pixCobLoad,700); }).subscribe(); }catch(e){}
+  }
+}
 function savePontosG(){ try{ localStorage.setItem("pontos_gondola", JSON.stringify(pontosG)); }catch(e){} clearTimeout(pxPushT); pxPushT=setTimeout(pxCloudPush,800); }
 let pxEditId = null;
 
@@ -3064,7 +3098,7 @@ function pxAnoMesAtual(){ return HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)
 function pxQuitado(p,key){
   const comps=p.comprovantes||{};
   const man=p.manuais||{};
-  return !!comps[key] || man[key]==="autorizado";
+  return !!comps[key] || man[key]==="autorizado" || pixCobPaga(p,key);
 }
 function pxPagoMes(p){
   const ym=pxAnoMesAtual();
@@ -3160,10 +3194,21 @@ function pxAgendaHtml(p){
         '<input type="file" data-compfile="'+ref+'" accept="application/pdf,image/*" style="display:none;">';
     const man=(p.manuais||{})[key];
     const quit = pxQuitado(p,key);
+    const cob = pixCobDe(p,key); // cobrança REAL no banco (via robô), se existir
     const pixCell = quit
-      ? '<span class="px-quitado" title="Mensalidade quitada"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'+(man==="autorizado"?"Pago (autorizado)":"Quitado")+'</span>'+(man==="autorizado"?' <button type="button" class="px-rec" data-desfazerpago="'+ref+'" title="Desfazer pagamento (precisa senha master)">✕</button>':'')
+      ? '<span class="px-quitado" title="Mensalidade quitada"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'+(man==="autorizado"?"Pago (autorizado)":(pixCobPaga(p,key)?"Pago (Pix banco)":"Quitado"))+'</span>'+(man==="autorizado"?' <button type="button" class="px-rec" data-desfazerpago="'+ref+'" title="Desfazer pagamento (precisa senha master)">✕</button>':'')
       : man==="pendente"
       ? '<span class="px-aguard" title="Aguardando autorização do administrador">⏳ Aguardando</span> <button type="button" class="px-aut" data-autorizar="'+ref+'">Autorizar</button> <button type="button" class="px-rec" data-recusar="'+ref+'" title="Recusar">✕</button>'
+      : cob && (cob.status==="pedido"||cob.status==="gerando")
+      ? (function(){ var idadeH=Math.floor((Date.now()-new Date(cob.criado_em||Date.now()).getTime())/3600000); return idadeH>=1
+          ? '<span class="px-aguard" title="O pedido está esperando há mais de 1 hora. O computador da loja (robô) parece desligado — ligue-o para a cobrança sair.">⏳ Pedido há '+idadeH+'h — robô parado?</span>'
+          : '<span class="px-aguard" title="O robô da loja está registrando a cobrança no Sicredi. O QR fica pronto em alguns minutos.">⏳ Preparando Pix...</span>'; })()
+      : cob && cob.status==="cancelar"
+      ? '<span class="px-aguard" title="O robô vai dar baixa (cancelar) este boleto no Sicredi. Depois disso dá para gerar outra cobrança.">⏳ Cancelando...</span>'
+      : cob && cob.status==="gerado"
+      ? '<button type="button" class="px-pix-btn" data-pixver="'+ref+'" title="Cobrança registrada no Sicredi — ver o QR Code">💠 Ver Pix</button> <button type="button" class="px-mark" data-marcarpago="'+ref+'" title="Registrar pagamento feito por fora (precisa autorização do master)">Marcar pago</button> <button type="button" class="px-rec" data-pixcancel="'+ref+'" title="Cancelar esta cobrança no banco (libera gerar outra)">✕</button>'
+      : cob && cob.status==="erro"
+      ? '<span class="px-aguard" title="'+String(cob.erro_msg||"O banco recusou a cobrança").slice(0,180).replace(/[<>]/g,"").replace(/"/g,"&quot;")+'">⚠️ Erro no banco</span> <button type="button" class="px-aut" data-pixretry="'+ref+'" title="Corrija o cadastro (ex: CNPJ) e peça de novo">Tentar de novo</button>'
       : '<button type="button" class="px-pix-btn" data-pix="'+ref+'">Gerar Pix</button> <button type="button" class="px-mark" data-marcarpago="'+ref+'" title="Registrar pagamento feito por fora (precisa autorização do master)">Marcar pago</button>';
     return '<tr'+passou+'><td>'+(i+1)+'</td><td>'+pxDataChip(d)+'</td><td>'+brl(p.valor||0)+'</td><td class="px-pix-cell">'+pixCell+'</td><td class="px-comp-cell">'+cell+'</td></tr>';
   }).join("");
@@ -3220,13 +3265,56 @@ function pixPayload(cfg,valor,txid){
   return p+pixCrc16(p);
 }
 function pxGerarPix(p,key){
-  const cfg=pixGetCfg();
-  if(!cfg.chave){ const box=document.getElementById("pixCfgBox"); if(box) box.open=true; uiConfirm({ titulo:"Configure a chave Pix", msg:"Antes de gerar a cobrança, salve a chave Pix do supermercado no topo da página (botão \\u201cCobrança via Pix\\u201d).", ok:"Entendi", cancel:"" }); return; }
-  const valor=+p.valor||0;
+  // Cobrança REAL registrada no Sicredi: o painel grava o PEDIDO na nuvem e o robô
+  // da loja gera o boleto híbrido (QR Pix). Baixa automática quando o fornecedor pagar.
+  const sb=pxSB();
+  if(!sb || !window.__PERFIL){ uiConfirm({ titulo:"Entre no painel", msg:"Faça login para gerar a cobrança.", ok:"Entendi", cancel:"" }); return; }
+  const jaTem=pixCobDe(p,key);
+  if(jaTem){ if(jaTem.status==="gerado") pixVerCob(p,key); return; }
+  const doc=String(p.cnpj||"").replace(/\\D/g,"");
+  if(doc.length!==11 && doc.length!==14){ uiConfirm({ titulo:"Falta o CNPJ do fornecedor", msg:"A cobrança registrada no banco precisa do CPF/CNPJ do pagador. Edite o ponto (botão de lápis), preencha o campo CNPJ e salve. Depois clique em Gerar Pix de novo.", ok:"Entendi", cancel:"" }); return; }
+  const valor=Math.round((+p.valor||0)*100)/100;
+  if(!(valor>0)){ uiConfirm({ titulo:"Valor inválido", msg:"O ponto está sem valor de mensalidade. Edite o ponto e preencha o valor.", ok:"Entendi", cancel:"" }); return; }
   const dt=key.split("-");
-  const ref="P"+(p.numero||"")+dt[0].slice(2)+dt[1];
-  const cod=pixPayload(cfg,valor,ref);
-  pixAbrirModal({ valor:valor, codigo:cod, ponto:p.numero, forn:p.fornecedor, data:dt[2]+"/"+dt[1]+"/"+dt[0] });
+  const hj=pxDateKey(new Date());
+  const venc=(key<hj)?hj:key; // banco não aceita vencimento no passado
+  uiConfirm({ titulo:"Gerar cobrança Pix no banco", msg:"Gerar cobrança REAL de "+brl(valor)+" para "+(p.fornecedor||"o fornecedor")+" (parcela de "+dt[2]+"/"+dt[1]+"/"+dt[0]+")? O robô registra no Sicredi e o QR Code aparece aqui em alguns minutos.", ok:"Gerar cobrança", cancel:"Cancelar" }).then(function(sim){
+    if(!sim) return;
+    sb.from("pix_cobrancas").insert({ ponto_id:p.id, parcela_key:key, fornecedor:p.fornecedor||"", documento:doc, valor:valor, vencimento:venc, status:"pedido", pedido_por:window.__EMAIL||"" }).then(function(res){
+      if(res.error){
+        if(res.error.code==="23505" || String(res.error.message||"").indexOf("duplicate key")>=0){ uiConfirm({ titulo:"Já foi pedida", msg:"Alguém já pediu esta cobrança agorinha — atualizando a tela.", ok:"Ok", cancel:"" }); pixCobLoad(); return; }
+        uiConfirm({ titulo:"Não deu para pedir", msg:"Erro ao registrar o pedido: "+(res.error.message||"a tabela pix_cobrancas existe? (rode o SQL no Supabase)"), ok:"Ok", cancel:"" }); return;
+      }
+      pixCobs[pixCobKey(p.id,key)]={ id:0, ponto_id:p.id, parcela_key:key, status:"pedido" };
+      renderPontosG(); pxReabrir(p.id);
+      pixCobLoad();
+    },function(){ uiConfirm({ titulo:"Sem conexão", msg:"Não consegui falar com a nuvem. Tenta de novo.", ok:"Ok", cancel:"" }); });
+  });
+}
+function pixVerCob(p,key){
+  const c=pixCobDe(p,key);
+  if(!c || !c.qr_code){ uiConfirm({ titulo:"QR ainda não está pronto", msg:"O robô ainda está registrando esta cobrança no banco. Tenta de novo em alguns minutos.", ok:"Ok", cancel:"" }); return; }
+  const dv=String(c.vencimento||key).slice(0,10).split("-");
+  pixAbrirModal({ valor:(+c.valor||(+p.valor||0)), codigo:c.qr_code, ponto:p.numero, forn:p.fornecedor, data:dv[2]+"/"+dv[1]+"/"+dv[0], nosso:c.nosso_numero||"", linha:c.linha_digitavel||"" });
+}
+function pixCobRetry(pid,key){
+  // Reenvia o pedido JÁ COM os dados atuais do cadastro (CNPJ/valor corrigidos contam!)
+  const sb=pxSB(); const c=pixCobs[pixCobKey(pid,key)];
+  if(!sb||!c||!c.id) return;
+  const p=pontosG.find(function(x){ return x.id===pid; });
+  const doc=String((p&&p.cnpj)||c.documento||"").replace(/\\D/g,"");
+  if(doc.length!==11 && doc.length!==14){ uiConfirm({ titulo:"Falta o CNPJ do fornecedor", msg:"Edite o ponto (botão de lápis), preencha o campo CNPJ e salve. Depois clique em Tentar de novo.", ok:"Entendi", cancel:"" }); return; }
+  const campos={ status:"pedido", erro_msg:null, documento:doc, criado_em:new Date().toISOString() };
+  if(p){ campos.fornecedor=p.fornecedor||c.fornecedor||""; campos.valor=Math.round((+p.valor||+c.valor||0)*100)/100; }
+  sb.from("pix_cobrancas").update(campos).eq("id",c.id).eq("status","erro").then(function(){ pixCobLoad(); },function(){});
+}
+function pixCobCancel(pid,key){
+  const sb=pxSB(); const c=pixCobs[pixCobKey(pid,key)];
+  if(!sb||!c||!c.id||c.status!=="gerado") return;
+  uiConfirm({ titulo:"Cancelar cobrança no banco", msg:"O robô vai dar baixa neste boleto no Sicredi (o QR deixa de valer). Depois disso dá para gerar uma nova cobrança para a parcela. Cancelar agora?", ok:"Cancelar cobrança", cancel:"Voltar" }).then(function(sim){
+    if(!sim) return;
+    sb.from("pix_cobrancas").update({ status:"cancelar" }).eq("id",c.id).eq("status","gerado").then(function(){ pixCobLoad(); },function(){});
+  });
 }
 function pixAbrirModal(o){
   let m=document.getElementById("pixModal");
@@ -3253,7 +3341,9 @@ function pixAbrirModal(o){
   pixFichaAtual={ o:o, qr:durl };
   document.getElementById("pixQrImg").src=durl;
   document.getElementById("pixCC").value=o.codigo;
-  document.getElementById("pixSub").innerHTML="Ponto nº "+(o.ponto||"")+(o.forn?" · "+o.forn:"")+"<br>Vencimento "+o.data+" · <b>"+brl(o.valor)+"</b>";
+  document.getElementById("pixSub").innerHTML="Ponto nº "+(o.ponto||"")+(o.forn?" · "+o.forn:"")+"<br>Vencimento "+o.data+" · <b>"+brl(o.valor)+"</b>"
+    +(o.nosso?'<br><span style="font-size:11px;color:#8a97a3;">Registrada no Sicredi · nosso nº '+o.nosso+'</span>':"")
+    +(o.linha?'<br><span style="font-size:10.5px;color:#8a97a3;word-break:break-all;">Linha digitável: '+o.linha+'</span>':"");
   m.classList.add("show");
 }
 let pixFichaAtual=null;
@@ -3857,6 +3947,12 @@ async function pixTravaClick(){
     if(cbtn){ const inp=document.querySelector('[data-cfile="'+cbtn.dataset.cfileBtn+'"]'); if(inp) inp.click(); return; }
     const pixb=e.target.closest("[data-pix]");
     if(pixb){ const pr=pixb.dataset.pix.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p) pxGerarPix(p,pr[1]); return; }
+    const pixv=e.target.closest("[data-pixver]");
+    if(pixv){ const pr=pixv.dataset.pixver.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p) pixVerCob(p,pr[1]); return; }
+    const pixr=e.target.closest("[data-pixretry]");
+    if(pixr){ const pr=pixr.dataset.pixretry.split("|"); pixCobRetry(pr[0],pr[1]); return; }
+    const pixc=e.target.closest("[data-pixcancel]");
+    if(pixc){ const pr=pixc.dataset.pixcancel.split("|"); pixCobCancel(pr[0],pr[1]); return; }
     const mark=e.target.closest("[data-marcarpago]");
     if(mark){ const pr=mark.dataset.marcarpago.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p){ p.manuais=p.manuais||{}; p.manuais[pr[1]]="pendente"; savePontosG(); renderPontosG(); pxReabrir(p.id); uiConfirm({titulo:"Enviado para autorização",msg:"Pagamento marcado. Está AGUARDANDO a autorização do administrador (senha master) para ficar pago.",ok:"Ok",cancel:""}); } return; }
     const aut=e.target.closest("[data-autorizar]");
@@ -7774,7 +7870,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="estld"){ renderEstLD(); eldCloudLoad(); var _ei=document.getElementById("eldInp"); if(_ei) _ei.focus(); }
     if(btn.dataset.page==="pedidos"){ renderPedidos(); pedCloudLoad(); pedRealtime(); }
     if(btn.dataset.page==="config") renderConfig();
-    if(btn.dataset.page==="pontos"||btn.dataset.page==="mapa"){ pxCloudLoad(); }
+    if(btn.dataset.page==="pontos"||btn.dataset.page==="mapa"){ pxCloudLoad(); try{ if(typeof pixCobLoad==="function") pixCobLoad(); }catch(e){} }
     if(btn.dataset.page==="epi") renderEPI();
     if(btn.dataset.page==="fardamento") renderFardamento();
     if(btn.dataset.page==="acessos") renderAcessos();
@@ -8196,28 +8292,45 @@ var ELD_SEED=[
  {cod:"7891000053508", nome:"Leite Integral 1L", total:60}
 ];
 var eldData=(function(){ try{ var a=JSON.parse(localStorage.getItem("estld_demo")||"null"); if(Array.isArray(a)&&a.length) return a; }catch(e){} return ELD_SEED.map(function(x){ return {cod:x.cod,nome:x.nome,total:x.total,loja:0}; }); })();
+var eldPagina=1, eldFiltro="todos";
+eldData.sort(function(a,b){ return (a.nome||"")<(b.nome||"")?-1:1; });
 function eldSave(){ if(eldData.length>5000){ try{ localStorage.removeItem("estld_demo"); }catch(e){} return; } try{ localStorage.setItem("estld_demo", JSON.stringify(eldData)); }catch(e){} }
 function eldEsc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
 function eldDepo(x){ return Math.max(0,(+x.total||0)-(+x.loja||0)); }
 function eldSit(x){ var l=+x.loja||0, d=eldDepo(x); if(l>0) return {cls:"ok",txt:"Na loja"}; if(d>0) return {cls:"repor",txt:"Repor (tem no depósito)"}; return {cls:"comprar",txt:"Comprar (sem no depósito)"}; }
 function renderEstLD(){
   var kp=document.getElementById("eldKpis"), tb=document.getElementById("eldTbody"); if(!tb) return;
-  var totLoja=0,totDepo=0,repor=0,comprar=0;
-  eldData.forEach(function(x){ totLoja+=(+x.loja||0); totDepo+=eldDepo(x); var s=eldSit(x); if(s.cls==="repor")repor++; else if(s.cls==="comprar")comprar++; });
+  var totLoja=0,totDepo=0,repor=0,comprar=0,nLoja=0;
+  eldData.forEach(function(x){ totLoja+=(+x.loja||0); totDepo+=eldDepo(x); var s=eldSit(x); if(s.cls==="repor")repor++; else if(s.cls==="comprar")comprar++; else nLoja++; });
+  var fl=document.getElementById("eldFiltros");
+  if(fl){
+    var chip=function(f,rotulo,qtd){ var on=(eldFiltro===f); return '<button class="eld-flt" data-f="'+f+'" style="border:1px solid '+(on?'#157a35':'#cfd8e3')+';border-radius:999px;padding:6px 14px;font-size:12.5px;cursor:pointer;background:'+(on?'#157a35':'#fff')+';color:'+(on?'#fff':'#31405a')+';'+(on?'font-weight:600;':'')+'">'+rotulo+' ('+qtd.toLocaleString("pt-BR")+')</button>'; };
+    fl.innerHTML=chip("todos","Todos",eldData.length)+chip("loja","Na loja",nLoja)+chip("repor","Repor — tem no depósito",repor)+chip("comprar","Comprar — sem estoque",comprar);
+  }
   if(kp) kp.innerHTML=[["Produtos",eldData.length.toLocaleString("pt-BR")],["Total na loja",totLoja.toLocaleString("pt-BR")],["Total no depósito",totDepo.toLocaleString("pt-BR")],["Pra repor / comprar",(repor+comprar).toLocaleString("pt-BR")]].map(function(c){ return '<div class="eld-kpi"><div class="v">'+c[1]+'</div><div class="l">'+c[0]+'</div></div>'; }).join('');
   var q=""; var bi=document.getElementById("eldBusca"); if(bi) q=(bi.value||"").trim().toLowerCase();
   var lista, nota="";
-  if(q){
-    lista=eldData.filter(function(x){ return (x.nome||"").toLowerCase().indexOf(q)>=0 || (""+x.cod).indexOf(q)>=0; });
-    if(!lista.length) nota="Nenhum produto encontrado.";
-    else if(lista.length>200) nota="Mostrando 200 de "+lista.length.toLocaleString("pt-BR")+" resultados — refine a busca.";
-    lista=lista.slice(0,200);
-  } else {
-    lista=eldData.filter(function(x){ return (+x.loja||0)>0; });
-    if(lista.length){ if(lista.length>200){ nota="Mostrando 200 de "+lista.length.toLocaleString("pt-BR")+" produtos com estoque na loja."; lista=lista.slice(0,200); } else { nota="Mostrando só o que está NA LOJA ("+lista.length+"). Os outros "+eldData.length.toLocaleString("pt-BR")+" produtos continuam aqui — é só usar a busca acima."; } }
-    else { lista=eldData.slice(0,50); if(eldData.length>50) nota="Mostrando 50 de "+eldData.length.toLocaleString("pt-BR")+" produtos — use a busca pra achar qualquer um. Os produtos bipados pra loja vão aparecer aqui."; }
+  if(q){ lista=eldData.filter(function(x){ return (x.nome||"").toLowerCase().indexOf(q)>=0 || (""+x.cod).indexOf(q)>=0; }); }
+  else { lista=eldData; }
+  if(eldFiltro==="loja"){ lista=lista.filter(function(x){ return (+x.loja||0)>0; }); }
+  else if(eldFiltro==="repor"||eldFiltro==="comprar"){ lista=lista.filter(function(x){ return eldSit(x).cls===eldFiltro; }); }
+  if(!lista.length) nota=q?"Nenhum produto encontrado.":"Nenhum produto nesse filtro.";
+  var comLoja=[], semLoja=[];
+  lista.forEach(function(x){ if((+x.loja||0)>0) comLoja.push(x); else semLoja.push(x); });
+  lista=comLoja.concat(semLoja);
+  var POR=50, tot=lista.length, pgs=Math.max(1,Math.ceil(tot/POR));
+  if(eldPagina>pgs) eldPagina=pgs; if(eldPagina<1) eldPagina=1;
+  var ini=(eldPagina-1)*POR, fim=Math.min(ini+POR,tot), pagAtual=lista.slice(ini,fim);
+  var btnCss='border:1px solid #cfd8e3;background:#fff;color:#31405a;border-radius:8px;padding:5px 14px;cursor:pointer;font-size:12px;';
+  var rodape='';
+  if(tot>POR){
+    rodape='<tr><td colspan="5" style="text-align:center;padding:10px;">'
+      +'<button class="eld-pg" data-d="-1"'+(eldPagina<=1?' disabled style="'+btnCss+'opacity:.4;cursor:default;"':' style="'+btnCss+'"')+'>‹ Anterior</button>'
+      +'<span style="color:#5b6b7f;font-size:12px;margin:0 12px;">Página '+eldPagina.toLocaleString("pt-BR")+' de '+pgs.toLocaleString("pt-BR")+' · mostrando '+(ini+1).toLocaleString("pt-BR")+'–'+fim.toLocaleString("pt-BR")+' de '+tot.toLocaleString("pt-BR")+' produtos</span>'
+      +'<button class="eld-pg" data-d="1"'+(eldPagina>=pgs?' disabled style="'+btnCss+'opacity:.4;cursor:default;"':' style="'+btnCss+'"')+'>Próxima ›</button>'
+      +'</td></tr>';
   }
-  tb.innerHTML=lista.map(function(x){ var s=eldSit(x); var lj=(+x.loja||0); return '<tr><td><div style="font-weight:600;">'+eldEsc(x.nome)+'</div><div class="eld-cod">'+eldEsc(x.cod)+'</div></td><td class="c">'+(+x.total||0)+'</td><td class="c eld-loja">'+lj+'</td><td class="c eld-depo">'+eldDepo(x)+'</td><td><span class="eld-badge '+s.cls+'">'+s.txt+'</span>'+(lj>0?' <button class="eld-dev" data-cod="'+eldEsc(""+x.cod)+'" title="Devolver 1 pro depósito" style="border:1px solid #cfd8e3;background:#fff;color:#5b6b7f;border-radius:8px;padding:3px 10px;margin-left:8px;cursor:pointer;font-size:12px;">↩ devolver</button>':'')+'</td></tr>'; }).join('')+(nota?'<tr><td colspan="5" style="text-align:center;color:#8a97a8;font-size:12px;padding:12px;">'+nota+'</td></tr>':'');
+  tb.innerHTML=pagAtual.map(function(x){ var s=eldSit(x); var lj=(+x.loja||0); return '<tr><td><div style="font-weight:600;">'+eldEsc(x.nome)+'</div><div class="eld-cod">'+eldEsc(x.cod)+'</div></td><td class="c">'+(+x.total||0)+'</td><td class="c eld-loja">'+lj+'</td><td class="c eld-depo">'+eldDepo(x)+'</td><td><span class="eld-badge '+s.cls+'">'+s.txt+'</span>'+(lj>0?' <button class="eld-dev" data-cod="'+eldEsc(""+x.cod)+'" title="Devolver 1 pro depósito" style="border:1px solid #cfd8e3;background:#fff;color:#5b6b7f;border-radius:8px;padding:3px 10px;margin-left:8px;cursor:pointer;font-size:12px;">↩ devolver</button>':'')+'</td></tr>'; }).join('')+(nota?'<tr><td colspan="5" style="text-align:center;color:#8a97a8;font-size:12px;padding:12px;">'+nota+'</td></tr>':'')+rodape;
 }
 function eldDevolver(cod){
   var x=eldData.find(function(p){ return p.cod===cod; }); var fd=document.getElementById("eldFeed");
@@ -8238,46 +8351,28 @@ function eldSB(){ return window.__SB||null; }
 function eldCloudLoad(){
   var sb=eldSB(); if(!sb) return;
   var fd=document.getElementById("eldFeed"); if(fd) fd.innerHTML='<span style="color:#8a97a8;">Carregando produtos da nuvem...</span>';
+  var avisoLogin='<span style="color:#c0392b;font-weight:600;">⚠️ Não consegui carregar os produtos da nuvem. Confira se você está logado — atualize a página e entre de novo. (Enquanto isso, a lista abaixo é só de EXEMPLO.)</span>';
   sb.from("estoque_produtos").select("cod",{count:"exact",head:true}).then(function(h){
     var n=(h&&!h.error&&h.count)?h.count:0;
-    if(!n){ if(fd) fd.innerHTML=''; return; }
+    if(!n){ if(fd) fd.innerHTML=avisoLogin; return; }
     var pags=[]; for(var i=0;i<n;i+=1000){ pags.push(sb.from("estoque_produtos").select("cod,nome,total,loja").order("cod").range(i,Math.min(i+999,n-1))); }
     Promise.all(pags).then(function(rs){
-      var todos=[]; for(var j=0;j<rs.length;j++){ if(rs[j].error||!rs[j].data){ if(fd) fd.innerHTML=''; return; } todos=todos.concat(rs[j].data); }
-      if(!todos.length){ if(fd) fd.innerHTML=''; return; }
+      var todos=[]; for(var j=0;j<rs.length;j++){ if(rs[j].error||!rs[j].data){ if(fd) fd.innerHTML=avisoLogin; return; } todos=todos.concat(rs[j].data); }
+      if(!todos.length){ if(fd) fd.innerHTML=avisoLogin; return; }
       eldCloudOK=true;
       eldData=todos.map(function(x){ return {cod:""+x.cod,nome:x.nome||"",total:+x.total||0,loja:+x.loja||0}; });
+      eldData.sort(function(a,b){ return (a.nome||"")<(b.nome||"")?-1:1; }); eldPagina=1;
       eldSave(); renderEstLD();
       if(fd) fd.innerHTML='<span style="color:#157a35;font-weight:600;">'+todos.length.toLocaleString("pt-BR")+' produtos carregados da nuvem</span>';
-    },function(){ if(fd) fd.innerHTML=''; });
-  },function(){ if(fd) fd.innerHTML=''; });
+    },function(){ if(fd) fd.innerHTML=avisoLogin; });
+  },function(){ if(fd) fd.innerHTML=avisoLogin; });
 }
 function eldCloudUpsert(x){ var sb=eldSB(); if(!sb||!eldCloudOK) return; sb.from("estoque_produtos").upsert({cod:x.cod,nome:x.nome,total:+x.total||0,loja:+x.loja||0,atualizado_em:new Date().toISOString()}).then(function(){},function(){}); }
-function eldCloudUpsertMany(arr){ var sb=eldSB(); if(!sb) return Promise.resolve(false); var agora=new Date().toISOString(); var rows=arr.map(function(x){ return {cod:x.cod,nome:x.nome,total:+x.total||0,loja:+x.loja||0,atualizado_em:agora}; }); return sb.from("estoque_produtos").upsert(rows).then(function(r){ return !r.error; },function(){ return false; }); }
-function eldImportar(){
-  var ta=document.getElementById("eldImpTxt"), fd=document.getElementById("eldImpFeed"); if(!ta) return;
-  var linhas=(ta.value||"").split("\\n"), novos=[], erros=0;
-  linhas.forEach(function(ln){
-    ln=ln.trim(); if(!ln) return;
-    var p=ln.split(/\\t|;|,/).map(function(s){return s.trim();}).filter(function(s){return s!=="";});
-    if(p.length<2){ erros++; return; }
-    var cod=p[0], nome=p[1], total=parseInt(p[2],10); if(isNaN(total)) total=0;
-    if(!/^[0-9]+$/.test(cod)){ erros++; return; }
-    novos.push({cod:cod,nome:nome,total:total});
-  });
-  if(!novos.length){ if(fd){ fd.innerHTML='<span style="color:#c0392b;font-weight:700;">Nada pra importar. Confira o formato.</span>'; } return; }
-  var subir=[];
-  novos.forEach(function(n){ var ex=eldData.find(function(x){return x.cod===n.cod;}); if(ex){ ex.nome=n.nome; ex.total=n.total; subir.push(ex); } else { var nv={cod:n.cod,nome:n.nome,total:n.total,loja:0}; eldData.push(nv); subir.push(nv); } });
-  eldSave(); renderEstLD();
-  if(fd){ fd.innerHTML='<span style="color:#157a35;font-weight:700;">✓ '+novos.length+' produto(s) importado(s)'+(erros?(' · '+erros+' linha(s) ignorada(s)'):'')+'</span>'; }
-  eldCloudUpsertMany(subir).then(function(ok){ if(fd&&ok){ fd.innerHTML+=' <span style="color:#8a97a8;">(salvo na nuvem)</span>'; eldCloudOK=true; } });
-  ta.value="";
-}
 (function initEstLD(){
   var inp=document.getElementById("eldInp"), btn=document.getElementById("eldBipBtn");
-  var imp=document.getElementById("eldImpBtn"); if(imp) imp.addEventListener("click",eldImportar);
-  var bs=document.getElementById("eldBusca"); if(bs) bs.addEventListener("input",renderEstLD);
-  var tbd=document.getElementById("eldTbody"); if(tbd) tbd.addEventListener("click",function(ev){ var t=ev.target; while(t&&t!==tbd&&!(t.classList&&t.classList.contains("eld-dev"))) t=t.parentNode; if(t&&t!==tbd) eldDevolver(t.getAttribute("data-cod")); });
+  var bs=document.getElementById("eldBusca"); if(bs) bs.addEventListener("input",function(){ eldPagina=1; renderEstLD(); });
+  var flc=document.getElementById("eldFiltros"); if(flc) flc.addEventListener("click",function(ev){ var t=ev.target; while(t&&t!==flc&&!(t.classList&&t.classList.contains("eld-flt"))) t=t.parentNode; if(t&&t!==flc){ eldFiltro=t.getAttribute("data-f")||"todos"; eldPagina=1; renderEstLD(); } });
+  var tbd=document.getElementById("eldTbody"); if(tbd) tbd.addEventListener("click",function(ev){ var t=ev.target; while(t&&t!==tbd&&!(t.classList&&(t.classList.contains("eld-dev")||t.classList.contains("eld-pg")))) t=t.parentNode; if(t&&t!==tbd){ if(t.classList.contains("eld-dev")){ eldDevolver(t.getAttribute("data-cod")); } else if(!t.disabled){ eldPagina+=(parseInt(t.getAttribute("data-d"),10)||0); renderEstLD(); } } });
   function fire(){ if(inp){ eldBipar(inp.value); inp.value=""; inp.focus(); } }
   if(inp) inp.addEventListener("keydown",function(ev){ if(ev.key==="Enter"){ ev.preventDefault(); fire(); } });
   if(btn) btn.addEventListener("click",fire);
@@ -8589,6 +8684,7 @@ function pedEnviar(){
       fimChecagem(); applyPerms(perfil); showUser(perfil,email); ov.style.display="none";
       try{ if(typeof manCloudLoad==="function") manCloudLoad(); }catch(e){}
       try{ if(typeof pxCloudLoad==="function") pxCloudLoad(); }catch(e){}
+      try{ if(typeof pixCobLoad==="function") pixCobLoad(); }catch(e){}
       try{ if(typeof entCloudLoad==="function") entCloudLoad(); }catch(e){}
       try{ if(window.__syncPull) window.__syncPull(); }catch(e){}
       try{
