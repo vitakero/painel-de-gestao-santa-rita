@@ -55,9 +55,11 @@ async function pixToken(){ const r=await fetch(PIX_BASE+"/auth/openapi/token",{m
       const r=await fetch(PIX_BASE+"/cobranca/boleto/v1/boletos/"+encodeURIComponent(cc.nosso_numero)+"/baixa",{method:"PATCH",headers:{"Content-Type":"application/json","x-api-key":PIX_KEY,Authorization:"Bearer "+(await pegaTok()),cooperativa:PIX_COOP,posto:PIX_POSTO,codigoBeneficiario:PIX_BENEF},body:"{}",signal:PIX_TIMEOUT()});
       const txt=await r.text();
       let msg=""; try{ msg=JSON.parse(txt).message||""; }catch(e2){}
-      if(r.status===202 || msg.indexOf("baixado")>=0){ await pixSbPatch("id=eq."+cc.id,{status:"cancelado"}); console.log("Pix: cobranca #"+cc.id+" CANCELADA (baixa no banco)."); }
-      else if(msg.indexOf("liquidado")>=0){ await pixSbPatch("id=eq."+cc.id,{status:"gerado"}); console.log("Pix: cobranca #"+cc.id+" ja foi PAGA - cancelamento ignorado."); }
-      else if(msg.indexOf("processamento")>=0){ console.log("Pix: cancelamento #"+cc.id+" em processamento no banco - proxima rodada."); }
+      const ml=msg.toLowerCase();
+      if(r.status===202 || ml.indexOf("baixado")>=0){ await pixSbPatch("id=eq."+cc.id,{status:"cancelado"}); console.log("Pix: cobranca #"+cc.id+" CANCELADA (baixa no banco)."); }
+      else if(ml.indexOf("liquidado")>=0){ await pixSbPatch("id=eq."+cc.id,{status:"gerado"}); console.log("Pix: cobranca #"+cc.id+" ja foi PAGA - cancelamento ignorado."); }
+      // "aguardando confirmacao" = titulo recem-criado ainda assentando no banco; "processamento" = baixa anterior rodando. Insiste (mantem status "cancelar").
+      else if(ml.indexOf("processamento")>=0 || ml.indexOf("aguardando")>=0 || ml.indexOf("confirma")>=0){ console.log("Pix: cancelamento #"+cc.id+" o banco ainda esta liberando (\""+String(msg).slice(0,60)+"\") - insiste na proxima rodada."); }
       else if(r.status===401 || r.status===429 || r.status>=500){ pixTok=null; console.log("Pix: cancelamento #"+cc.id+" banco instavel (HTTP "+r.status+") - proxima rodada."); }
       else { await pixSbPatch("id=eq."+cc.id,{status:"gerado"}); console.log("Pix: cancelamento #"+cc.id+" recusado pelo banco: "+String(msg||("HTTP "+r.status)).slice(0,120)); }
     }catch(e){ console.log("Pix: cancelamento #"+cc.id+" falhou ("+e.message+")."); }
