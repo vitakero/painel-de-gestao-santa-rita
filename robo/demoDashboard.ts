@@ -3210,11 +3210,11 @@ function pxAgendaHtml(p){
       : cob && (cob.status==="pedido"||cob.status==="gerando")
       ? (function(){ var idadeH=Math.floor((Date.now()-new Date(cob.criado_em||Date.now()).getTime())/3600000); return idadeH>=1
           ? '<span class="px-aguard" title="O pedido está esperando há mais de 1 hora. O computador da loja (robô) parece desligado — ligue-o para a cobrança sair.">⏳ Pedido há '+idadeH+'h — robô parado?</span>'
-          : '<span class="px-aguard" title="O robô da loja está registrando a cobrança no Sicredi. O QR fica pronto em alguns minutos.">⏳ Preparando Pix...</span>'; })()
+          : '<span class="px-aguard" title="A cobrança está sendo registrada no Sicredi. O QR Code fica pronto em instantes.">⏳ Gerando QR Code…</span>'; })()
       : cob && cob.status==="cancelar"
       ? '<span class="px-aguard" title="O banco (Sicredi) exige de 1 a 3 minutos para liberar o cancelamento de uma cobrança recém-criada. É normal. Pode fechar a tela — vira \\u201cGerar Pix\\u201d sozinho quando terminar.">⏳ Cancelando…</span>'
       : cob && cob.status==="gerado"
-      ? '<button type="button" class="px-pix-btn" data-pixver="'+ref+'" title="Cobrança registrada no Sicredi — ver o QR Code">💠 Ver Pix</button> <button type="button" class="px-mark" data-marcarpago="'+ref+'" title="Registrar pagamento feito por fora (precisa autorização do master)">Marcar pago</button> <button type="button" class="px-rec" data-pixcancel="'+ref+'" title="Cancelar esta cobrança no banco (libera gerar outra)">✕</button>'
+      ? '<button type="button" class="px-pix-btn" data-pixver="'+ref+'" title="Cobrança registrada no Sicredi — ver o QR Code">💠 Ver QR Code</button> <button type="button" class="px-mark" data-marcarpago="'+ref+'" title="Registrar pagamento feito por fora (precisa autorização do master)">Marcar pago</button> <button type="button" class="px-rec" data-pixcancel="'+ref+'" title="Cancelar esta cobrança no banco (libera gerar outra)">✕</button>'
       : cob && cob.status==="erro"
       ? '<span class="px-aguard" title="'+String(cob.erro_msg||"O banco recusou a cobrança").slice(0,180).replace(/[<>]/g,"").replace(/"/g,"&quot;")+'">⚠️ Erro no banco</span> <button type="button" class="px-aut" data-pixretry="'+ref+'" title="Corrija o cadastro (ex: CNPJ) e peça de novo">Tentar de novo</button>'
       : '<button type="button" class="px-pix-btn" data-pix="'+ref+'">Gerar Pix</button> <button type="button" class="px-mark" data-marcarpago="'+ref+'" title="Registrar pagamento feito por fora (precisa autorização do master)">Marcar pago</button>';
