@@ -3333,7 +3333,7 @@ function pixAbrirModal(o){
     m=document.createElement("div");
     m.id="pixModal"; m.className="modal-bg";
     m.innerHTML='<div class="modal-cx pix-cx">'+
-      '<div class="modal-top"><div class="modal-ic pix-ic">💠</div><div class="modal-tit">Cobrança via Pix</div></div>'+
+      '<div class="modal-top"><div class="modal-ic pix-ic"><svg width="26" height="26" viewBox="0 0 512 512"><g fill="#32BCAD"><path d="M112.57 391.19c20.056 0 38.928-7.808 53.12-22l76.693-76.692c5.385-5.404 14.765-5.384 20.15 0l76.989 76.989c14.191 14.172 33.045 21.98 53.12 21.98h15.098l-97.138 97.139c-30.326 30.344-79.505 30.344-109.85 0l-97.415-97.416h9.232z"></path><path d="M419.759 120.816c-20.056 0-38.929 7.809-53.12 22l-76.99 76.99c-5.551 5.53-14.6 5.568-20.15-.02l-76.711-76.693c-14.192-14.191-33.046-21.999-53.12-21.999h-9.234l97.416-97.416c30.344-30.344 79.523-30.344 109.867 0l97.138 97.138h-15.096z"></path><path d="M28.222 200.081l58.9-58.9h25.446c13.847 0 27.418 5.605 37.192 15.398l76.712 76.693c7.164 7.163 16.585 10.745 26.007 10.745 9.42 0 18.842-3.582 26.006-10.726l76.99-76.99c9.792-9.811 23.362-15.416 37.209-15.416h29.183l59.187 59.187c30.344 30.344 30.344 79.523 0 109.867l-59.187 59.187h-29.183c-13.847 0-27.417-5.605-37.21-15.416l-76.989-76.99c-13.902-13.88-38.11-13.9-52.013.02l-76.712 76.693c-9.774 9.793-23.345 15.398-37.192 15.398H87.122l-58.9-58.9c-30.343-30.344-30.343-79.523 0-109.867z"></path></g></svg></div><div class="modal-tit">Cobrança via Pix</div></div>'+
       '<div class="pix-body"><div class="pix-sub" id="pixSub"></div>'+
       '<div class="pix-qr"><img id="pixQrImg" alt="QR Code Pix"></div>'+
       '<div class="pix-cc-lbl">Pix copia e cola</div>'+
