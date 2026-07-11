@@ -32,7 +32,7 @@ const PIX_BENEF=PIX_SANDBOX?"12345":get("SICREDI_BENEFICIARIO"); // mesmo numero
 const PIX_AUTH_BODY=PIX_SANDBOX
   ? "grant_type=password&username=123456789&password=teste123&scope=cobranca" // credenciais de TESTE fixas do manual
   : "grant_type=password&username="+encodeURIComponent(get("SICREDI_BENEFICIARIO")+get("SICREDI_COOPERATIVA"))+"&password="+encodeURIComponent(get("SICREDI_API_PASSWORD"))+"&scope=cobranca";
-const PIX_CONC_MS=45*60*1000; // conciliacao (quem pagou?) no maximo 1x a cada 45 min
+const PIX_CONC_MS=60*1000; // conciliacao no reserva: 1x/min (so age se o mini-robo estiver morto)
 const PIX_TIMEOUT=()=>AbortSignal.timeout(30000); // nenhum fetch do worker pode travar a rodada
 async function pixSbGet(q){ const r=await fetch("https://"+SB_HOST+"/rest/v1/"+q,{headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY},signal:PIX_TIMEOUT()}); if(!r.ok) throw new Error("Supabase GET HTTP "+r.status); return r.json(); }
 // filtro = query string do PostgREST (ex: "id=eq.5" ou "id=eq.5&status=eq.pedido")
