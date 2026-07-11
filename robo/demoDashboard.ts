@@ -3209,7 +3209,7 @@ function pxAgendaHtml(p){
       ? '<span class="px-aguard" title="Aguardando autorização do administrador">⏳ Aguardando</span> <button type="button" class="px-aut" data-autorizar="'+ref+'">Autorizar</button> <button type="button" class="px-rec" data-recusar="'+ref+'" title="Recusar">✕</button>'
       : cob && (cob.status==="pedido"||cob.status==="gerando")
       ? (function(){ var idadeH=Math.floor((Date.now()-new Date(cob.criado_em||Date.now()).getTime())/3600000); return idadeH>=1
-          ? '<span class="px-aguard" title="O pedido está esperando há mais de 1 hora. O computador da loja (robô) parece desligado — ligue-o para a cobrança sair.">⏳ Pedido há '+idadeH+'h — robô parado?</span>'
+          ? '<span class="px-aguard" title="O pedido está esperando há mais de 1 hora. O computador da loja parece estar desligado — ligue-o para a cobrança sair.">⏳ Aguardando há '+idadeH+'h</span>'
           : '<span class="px-aguard" title="A cobrança está sendo registrada no Sicredi. O QR Code fica pronto em instantes.">⏳ Gerando QR Code…</span>'; })()
       : cob && cob.status==="cancelar"
       ? '<span class="px-aguard" title="O banco (Sicredi) exige de 1 a 3 minutos para liberar o cancelamento de uma cobrança recém-criada. É normal. Pode fechar a tela — vira \\u201cGerar Pix\\u201d sozinho quando terminar.">⏳ Cancelando…</span>'
@@ -3301,7 +3301,7 @@ function pxGerarPix(p,key){
 }
 function pixVerCob(p,key){
   const c=pixCobDe(p,key);
-  if(!c || !c.qr_code){ uiConfirm({ titulo:"QR ainda não está pronto", msg:"O robô ainda está registrando esta cobrança no banco. Tenta de novo em alguns minutos.", ok:"Ok", cancel:"" }); return; }
+  if(!c || !c.qr_code){ uiConfirm({ titulo:"QR Code ainda não está pronto", msg:"A cobrança ainda está sendo registrada no Sicredi. Tente de novo em instantes.", ok:"Ok", cancel:"" }); return; }
   const dv=String(c.vencimento||key).slice(0,10).split("-");
   pixAbrirModal({ valor:(+c.valor||(+p.valor||0)), codigo:c.qr_code, ponto:p.numero, forn:p.fornecedor, data:dv[2]+"/"+dv[1]+"/"+dv[0], nosso:c.nosso_numero||"", linha:c.linha_digitavel||"" });
 }
@@ -3319,7 +3319,7 @@ function pixCobRetry(pid,key){
 function pixCobCancel(pid,key){
   const sb=pxSB(); const c=pixCobs[pixCobKey(pid,key)];
   if(!sb||!c||!c.id||c.status!=="gerado") return;
-  uiConfirm({ titulo:"Cancelar cobrança no banco", msg:"O robô vai dar baixa neste boleto no Sicredi (o QR deixa de valer). Depois disso dá para gerar uma nova cobrança para a parcela. Cancelar agora?", ok:"Cancelar cobrança", cancel:"Voltar" }).then(function(sim){
+  uiConfirm({ titulo:"Cancelar cobrança", msg:"Esta cobrança será cancelada no Sicredi e o QR Code deixa de valer. Depois disso você pode gerar uma nova cobrança para a parcela. Cancelar agora?", ok:"Cancelar cobrança", cancel:"Voltar" }).then(function(sim){
     if(!sim) return;
     sb.from("pix_cobrancas").update({ status:"cancelar" }).eq("id",c.id).eq("status","gerado").then(function(){ pixCobLoad(); },function(){});
   });
