@@ -3206,15 +3206,15 @@ function pxAgendaHtml(p){
     const pixCell = quit
       ? '<span class="px-quitado" title="Mensalidade quitada"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'+(man==="autorizado"?"Pago (autorizado)":(pixCobPaga(p,key)?"Pago (Pix banco)":"Quitado"))+'</span>'+(man==="autorizado"?' <button type="button" class="px-rec" data-desfazerpago="'+ref+'" title="Desfazer pagamento (precisa senha master)">✕</button>':'')
       : man==="pendente"
-      ? '<span class="px-aguard" title="Aguardando autorização do administrador">⏳ Aguardando</span> <button type="button" class="px-aut" data-autorizar="'+ref+'">Autorizar</button> <button type="button" class="px-rec" data-recusar="'+ref+'" title="Recusar">✕</button>'
+      ? '<span class="px-aguard" title="Aguardando autorização do administrador">Aguardando</span> <button type="button" class="px-aut" data-autorizar="'+ref+'">Autorizar</button> <button type="button" class="px-rec" data-recusar="'+ref+'" title="Recusar">✕</button>'
       : cob && (cob.status==="pedido"||cob.status==="gerando")
       ? (function(){ var idadeH=Math.floor((Date.now()-new Date(cob.criado_em||Date.now()).getTime())/3600000); return idadeH>=1
-          ? '<span class="px-aguard" title="O pedido está esperando há mais de 1 hora. O computador da loja parece estar desligado — ligue-o para a cobrança sair.">⏳ Aguardando há '+idadeH+'h</span>'
-          : '<span class="px-aguard" title="A cobrança está sendo registrada no Sicredi. O QR Code fica pronto em instantes.">⏳ Gerando QR Code…</span>'; })()
+          ? '<span class="px-aguard" title="O pedido está esperando há mais de 1 hora. O computador da loja parece estar desligado — ligue-o para a cobrança sair.">Aguardando há '+idadeH+'h</span>'
+          : '<span class="px-aguard" title="A cobrança está sendo registrada no Sicredi. O QR Code fica pronto em instantes.">Gerando QR Code…</span>'; })()
       : cob && cob.status==="cancelar"
-      ? '<span class="px-aguard" title="O banco (Sicredi) exige de 1 a 3 minutos para liberar o cancelamento de uma cobrança recém-criada. É normal. Pode fechar a tela — vira \\u201cGerar Pix\\u201d sozinho quando terminar.">⏳ Cancelando…</span>'
+      ? '<span class="px-aguard" title="O banco (Sicredi) exige de 1 a 3 minutos para liberar o cancelamento de uma cobrança recém-criada. É normal. Pode fechar a tela — vira \\u201cGerar Pix\\u201d sozinho quando terminar.">Cancelando…</span>'
       : cob && cob.status==="gerado"
-      ? '<button type="button" class="px-pix-btn" data-pixver="'+ref+'" title="Cobrança registrada no Sicredi — ver o QR Code">💠 Ver QR Code</button> <button type="button" class="px-mark" data-marcarpago="'+ref+'" title="Registrar pagamento feito por fora (precisa autorização do master)">Marcar pago</button> <button type="button" class="px-rec" data-pixcancel="'+ref+'" title="Cancelar esta cobrança no banco (libera gerar outra)">✕</button>'
+      ? '<button type="button" class="px-pix-btn" data-pixver="'+ref+'" title="Cobrança registrada no Sicredi — ver o QR Code">Ver QR Code</button> <button type="button" class="px-mark" data-marcarpago="'+ref+'" title="Registrar pagamento feito por fora (precisa autorização do master)">Marcar pago</button> <button type="button" class="px-rec" data-pixcancel="'+ref+'" title="Cancelar esta cobrança no banco (libera gerar outra)">✕</button>'
       : cob && cob.status==="erro"
       ? '<span class="px-aguard" title="'+String(cob.erro_msg||"O banco recusou a cobrança").slice(0,180).replace(/[<>]/g,"").replace(/"/g,"&quot;")+'">⚠️ Erro no banco</span> <button type="button" class="px-aut" data-pixretry="'+ref+'" title="Corrija o cadastro (ex: CNPJ) e peça de novo">Tentar de novo</button>'
       : '<button type="button" class="px-pix-btn" data-pix="'+ref+'">Gerar Pix</button> <button type="button" class="px-mark" data-marcarpago="'+ref+'" title="Registrar pagamento feito por fora (precisa autorização do master)">Marcar pago</button>';
