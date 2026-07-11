@@ -729,11 +729,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
               <button type="button" class="btn-s" id="pxCnpjBuscar">Buscar</button>
             </span>
           </div>
-          <div class="campo" style="flex:1;min-width:170px;"><label for="pxForn">Fornecedor</label><input type="text" id="pxForn" placeholder="preenchido pelo CNPJ" readonly style="background:#f3f6fa;color:#46535f;cursor:not-allowed;"><input type="hidden" id="pxRazao"><span id="pxCnpjMsg" style="font-size:11px;display:block;margin-top:4px;line-height:1.25;"></span></div>
+          <div class="campo" style="flex:1;min-width:170px;"><label for="pxForn">Fornecedor</label><input type="text" id="pxForn" placeholder="busque pelo CNPJ ou digite"><input type="hidden" id="pxRazao"><span id="pxCnpjMsg" style="font-size:11px;display:block;margin-top:4px;line-height:1.25;"></span></div>
           <div class="campo"><label for="pxVend">Vendedor</label><input type="text" id="pxVend" placeholder="ex: Josinaldo"></div>
           <div class="campo"><label for="pxTel">Contato</label><input type="tel" id="pxTel" placeholder="ex: (84) 99999-0000" style="width:160px;"></div>
           <div class="campo"><label for="pxEmail">E-mail (p/ cobrança)</label><input type="email" id="pxEmail" placeholder="ex: financeiro@empresa.com" style="width:230px;"></div>
-          <div class="campo" style="flex:1;min-width:200px;"><label for="pxEndereco">Endereço</label><input type="text" id="pxEndereco" placeholder="preenchido pelo CNPJ" readonly style="background:#f3f6fa;color:#46535f;cursor:not-allowed;"></div>
+          <div class="campo" style="flex:1;min-width:200px;"><label for="pxEndereco">Endereço</label><input type="text" id="pxEndereco" placeholder="busque pelo CNPJ ou digite"></div>
           <div class="campo"><label for="pxValor">Valor (R$)</label><input type="number" id="pxValor" step="0.01" min="0" style="width:120px;"></div>
           <div class="campo"><label for="pxPag">Modo de pagamento</label>
             <input type="text" id="pxPag" list="pxPagList" style="width:150px;" placeholder="Boleto">
@@ -3889,7 +3889,7 @@ async function pixTravaClick(){
     ["pxNum","pxCnpj","pxForn","pxVend","pxTel","pxValor","pxPag","pxAbertura","pxVenc"].forEach(id=>document.getElementById(id).classList.remove("campo-erro"));
     const faltando=[];
     if(dados.numero==="") faltando.push(["pxNum","Nº do ponto"]);
-    if(!dados.fornecedor) faltando.push(["pxCnpj","Fornecedor (busque pelo CNPJ)"]);
+    if(!dados.fornecedor) faltando.push(["pxForn","Fornecedor (busque pelo CNPJ ou digite o nome)"]);
     if(!dados.vendedor) faltando.push(["pxVend","Vendedor"]);
     if(!dados.contato) faltando.push(["pxTel","Contato"]);
     if(!(dados.valor>0)) faltando.push(["pxValor","Valor"]);
