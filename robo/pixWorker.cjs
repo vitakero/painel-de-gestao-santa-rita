@@ -20,7 +20,7 @@ const PIX_BENEF=PIX_SANDBOX?"12345":get("SICREDI_BENEFICIARIO");
 const PIX_AUTH_BODY=PIX_SANDBOX
   ? "grant_type=password&username=123456789&password=teste123&scope=cobranca" // teste fixo do manual
   : "grant_type=password&username="+encodeURIComponent(get("SICREDI_BENEFICIARIO")+get("SICREDI_COOPERATIVA"))+"&password="+encodeURIComponent(get("SICREDI_API_PASSWORD"))+"&scope=cobranca";
-const PIX_CONC_MS=5*60*1000; // conciliacao (quem pagou?) no maximo 1x a cada 5 min
+const PIX_CONC_MS=10*1000; // conciliacao (quem pagou?) a cada ~10s (so consulta status = leitura, sem risco)
 const PIX_TIMEOUT=()=>AbortSignal.timeout(30000);
 async function pixSbGet(q){ const r=await fetch("https://"+SB_HOST+"/rest/v1/"+q,{headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY},signal:PIX_TIMEOUT()}); if(!r.ok) throw new Error("Supabase GET HTTP "+r.status); return r.json(); }
 async function pixSbPatch(filtro,campos){ const r=await fetch("https://"+SB_HOST+"/rest/v1/pix_cobrancas?"+filtro,{method:"PATCH",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(campos),signal:PIX_TIMEOUT()}); if(!r.ok) throw new Error("Supabase PATCH HTTP "+r.status+" "+(await r.text()).slice(0,200)); }
