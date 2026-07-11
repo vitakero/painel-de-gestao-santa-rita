@@ -3286,7 +3286,7 @@ function pxGerarPix(p,key){
   const dt=key.split("-");
   const hj=pxDateKey(new Date());
   const venc=(key<hj)?hj:key; // banco não aceita vencimento no passado
-  uiConfirm({ titulo:"Gerar cobrança Pix no banco", msg:"Gerar cobrança REAL de "+brl(valor)+" para "+(p.fornecedor||"o fornecedor")+" (parcela de "+dt[2]+"/"+dt[1]+"/"+dt[0]+")? O robô registra no Sicredi e o QR Code aparece aqui em alguns minutos.", ok:"Gerar cobrança", cancel:"Cancelar" }).then(function(sim){
+  uiConfirm({ titulo:"Gerar cobrança Pix", msg:"Gerar a cobrança de "+brl(valor)+" para "+(p.fornecedor||"o fornecedor")+", com vencimento em "+dt[2]+"/"+dt[1]+"/"+dt[0]+"? Ela será registrada no Sicredi e o QR Code aparece aqui em instantes.", ok:"Gerar cobrança", cancel:"Cancelar" }).then(function(sim){
     if(!sim) return;
     sb.from("pix_cobrancas").insert({ ponto_id:p.id, parcela_key:key, fornecedor:p.fornecedor||"", documento:doc, valor:valor, vencimento:venc, status:"pedido", pedido_por:window.__EMAIL||"" }).then(function(res){
       if(res.error){
