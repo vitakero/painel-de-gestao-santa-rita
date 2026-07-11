@@ -3045,7 +3045,7 @@ function pxCloudLoad(){
    O painel só PEDE a cobrança (insert); quem fala com o banco é o ROBÔ da loja
    (as senhas do banco nunca ficam no site). Estados de cada parcela:
    pedido (robô vai gerar) -> gerado (QR pronto) -> pago (baixa automática). */
-var pixCobs={}, pixCobsRT=null, pixCobT=null;
+var pixCobs={}, pixCobsRT=null, pixCobT=null, pixCobsSig="", pixPollTimer=null;
 function pixCobKey(pid,key){ return pid+"|"+key; }
 function pixCobDe(p,key){ var c=pixCobs[pixCobKey(p.id,key)]; return (c && c.status!=="cancelado") ? c : null; }
 function pixCobPaga(p,key){ var c=pixCobDe(p,key); return !!(c && c.status==="pago"); }
@@ -3057,6 +3057,11 @@ function pixCobLoad(){
     var m={};
     res.data.forEach(function(r){ var k=pixCobKey(r.ponto_id,r.parcela_key); if(!m[k] || r.id>m[k].id) m[k]=r; });
     pixCobs=m;
+    // assinatura do que a tela mostra (id+status+tem QR); se nada mudou, NÃO re-renderiza
+    // (deixa o polling de 8s barato e sem "piscar" a tela à toa)
+    var sig=Object.keys(m).sort().map(function(k){ var c=m[k]; return k+"="+c.status+(c.qr_code?"Q":""); }).join("|");
+    if(sig===pixCobsSig) return;
+    pixCobsSig=sig;
     try{
       if(typeof renderPontosG==="function"){
         // guarda as linhas de detalhe abertas pra não fecharem na cara do usuário
@@ -3067,8 +3072,11 @@ function pixCobLoad(){
     }catch(e){}
   },function(){});
   if(!pixCobsRT){
-    try{ pixCobsRT=sb.channel("pix_cobrancas_sync").on("postgres_changes",{event:"*",schema:"public",table:"pix_cobrancas"},function(){ clearTimeout(pixCobT); pixCobT=setTimeout(pixCobLoad,700); }).subscribe(); }catch(e){}
+    try{ pixCobsRT=sb.channel("pix_cobrancas_sync").on("postgres_changes",{event:"*",schema:"public",table:"pix_cobrancas"},function(){ clearTimeout(pixCobT); pixCobT=setTimeout(pixCobLoad,600); }).subscribe(); }catch(e){}
   }
+  // REDE DE SEGURANÇA: mesmo se o realtime não conectar, confere a cada 8s enquanto
+  // o master está com a aba aberta — garante que 💠/⏳/✓Pago/Gerar Pix mudem sozinhos.
+  if(!pixPollTimer){ pixPollTimer=setInterval(function(){ try{ if(document.visibilityState!=="hidden" && window.__PERFIL && window.__PERFIL.is_master) pixCobLoad(); }catch(e){} }, 8000); }
 }
 function savePontosG(){ try{ localStorage.setItem("pontos_gondola", JSON.stringify(pontosG)); }catch(e){} clearTimeout(pxPushT); pxPushT=setTimeout(pxCloudPush,800); }
 let pxEditId = null;
