@@ -262,41 +262,28 @@ async function timed(c,nome,sql,params){
       const concF=path.join(__dirname,"..","output","last-pix-concilia.txt");
       let ultC=0; try{ ultC=Number(fs.readFileSync(concF,"utf8"))||0; }catch(e){}
       if(Date.now()-ultC >= PIX_CONC_MS){
-        // inclui as "erro" com seu_numero: se o boleto chegou a nascer no banco e for pago,
-        // a baixa automatica acontece mesmo assim (casamos por nosso numero OU seu numero)
-        const abertas=await pixSbGet("pix_cobrancas?status=in.(gerado,erro)&select=id,nosso_numero,seu_numero&limit=1000");
-        if(abertas.length){
-          const diasVolta=Math.min(30, Math.max(4, ultC ? Math.ceil((Date.now()-ultC)/86400000)+2 : 8));
-          const pagosNN={}, pagosSN={};
-          for(let volta=0;volta<diasVolta;volta++){
-            const d=new Date(Date.now()-volta*86400000);
-            const dia=String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear();
-            let pag=0,mais=true;
-            while(mais){
-              const r=await fetch(PIX_BASE+"/cobranca/boleto/v1/boletos/liquidados/dia?codigoBeneficiario="+encodeURIComponent(PIX_BENEF)+"&dia="+encodeURIComponent(dia)+"&pagina="+pag,{headers:{"x-api-key":PIX_KEY,Authorization:"Bearer "+(await pegaTok()),cooperativa:PIX_COOP,posto:PIX_POSTO},signal:PIX_TIMEOUT()});
-              if(r.status===404) break; // nada pago nesse dia
-              if(!r.ok) throw new Error("liquidados "+dia+" HTTP "+r.status);
-              const j=await r.json();
-              (j.items||[]).forEach(it=>{ if(it.nossoNumero) pagosNN[String(it.nossoNumero)]=it; if(it.seuNumero) pagosSN[String(it.seuNumero).trim()]=it; });
-              mais=String(j.hasNext)==="true"; pag++;
-              if(pag>40) break; // trava de seguranca
+        // Consulta CADA cobranca aberta por NOSSO NUMERO ("essa foi paga?") — mostra
+        // "LIQUIDADO PIX" na hora. (NAO uso liquidados/dia: Pix so aparece la no proximo dia util.)
+        const abertas=await pixSbGet("pix_cobrancas?status=in.(gerado,erro)&nosso_numero=not.is.null&select=id,nosso_numero&limit=1000");
+        let baixas=0;
+        for(const ab of abertas){
+          try{
+            const r=await fetch(PIX_BASE+"/cobranca/boleto/v1/boletos?codigoBeneficiario="+encodeURIComponent(PIX_BENEF)+"&nossoNumero="+encodeURIComponent(ab.nosso_numero),{headers:{"x-api-key":PIX_KEY,Authorization:"Bearer "+(await pegaTok()),cooperativa:PIX_COOP,posto:PIX_POSTO},signal:PIX_TIMEOUT()});
+            if(r.status===404) continue;
+            if(!r.ok){ if(r.status===401) pixTok=null; continue; }
+            const j=await r.json();
+            const sit=String(j.situacao||"").toUpperCase();
+            const dl=j.dadosLiquidacao;
+            if(sit.indexOf("LIQUIDADO")>=0 || dl){
+              let tipo="PIX"; if(sit.indexOf("REDE")>=0)tipo="REDE"; else if(sit.indexOf("COMPE")>=0)tipo="COMPE";
+              const pagoEm=(dl&&dl.data)?String(dl.data).slice(0,10):null;
+              const valorLiq=(dl&&dl.valor!=null)?Math.round(Number(dl.valor)*100)/100:null;
+              await pixSbPatch("id=eq."+ab.id,{status:"pago",pago_em:pagoEm,valor_liquidado:valorLiq,tipo_liquidacao:tipo,erro_msg:null});
+              baixas++; console.log("Pix: cobranca #"+ab.id+" PAGA ("+tipo+") - baixa automatica.");
             }
-          }
-          let baixas=0;
-          for(const ab of abertas){
-            let it=ab.nosso_numero?pagosNN[String(ab.nosso_numero)]:null;
-            if(!it && ab.seu_numero) it=pagosSN[String(ab.seu_numero).trim()];
-            if(!it) continue;
-            try{
-              // dataPagamento pode vir "YYYY-MM-DD hh:mm" ou "DD/MM/YYYY" - normaliza pros dois
-              const dp=String(it.dataPagamento||""); const mBr=dp.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
-              const pagoEm=mBr?(mBr[3]+"-"+mBr[2]+"-"+mBr[1]):(dp.slice(0,10)||null);
-              await pixSbPatch("id=eq."+ab.id,{status:"pago",pago_em:pagoEm,valor_liquidado:Math.round(Number(it.valorLiquidado||0)*100)/100,tipo_liquidacao:it.tipoLiquidacao||null,nosso_numero:ab.nosso_numero||String(it.nossoNumero||"")||null,erro_msg:null});
-              baixas++; console.log("Pix: cobranca #"+ab.id+" PAGA ("+(it.tipoLiquidacao||"?")+") - baixa automatica.");
-            }catch(e){ console.log("Pix: baixa da cobranca #"+ab.id+" falhou ("+e.message+") - proxima rodada."); }
-          }
-          if(!baixas) console.log("Pix: conciliacao ok, nenhum pagamento novo ("+abertas.length+" em aberto).");
+          }catch(e){ console.log("Pix: conciliacao #"+ab.id+" erro ("+e.message+") - proxima rodada."); }
         }
+        console.log("Pix: conciliacao ok, "+baixas+" paga(s) nova(s) de "+abertas.length+" em aberto.");
         try{ fs.writeFileSync(concF, String(Date.now())); }catch(e){}
       }
     }
