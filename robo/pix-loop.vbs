@@ -19,5 +19,5 @@ Dim sh
 Set sh = CreateObject("WScript.Shell")
 Do
   sh.Run """C:\vr-robo\pix.bat""", 0, True  ' 0 = janela invisivel, True = espera terminar
-  WScript.Sleep 60000                        ' dorme 60 segundos
+  WScript.Sleep 15000                        ' dorme 15 segundos (quase instantaneo)
 Loop
