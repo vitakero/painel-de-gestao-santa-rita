@@ -32,7 +32,7 @@ async function pixToken(){ const r=await fetch(PIX_BASE+"/auth/openapi/token",{m
   // (o pix-loop.vbs espera cada rodada terminar antes de dormir, entao nao ha
   //  duas rodadas expressas ao mesmo tempo; a trava protege contra o buildVrData)
   const pixLockF=path.join(__dirname,"..","output","last-pix-start.txt");
-  try{ const lst=Number(fs.readFileSync(pixLockF,"utf8"))||0; if(Date.now()-lst < 50*1000){ console.log("Pix: rodada de ha pouco ainda vale - pulando."); return; } }catch(e){}
+  try{ const lst=Number(fs.readFileSync(pixLockF,"utf8"))||0; if(Date.now()-lst < 12*1000){ console.log("Pix: rodada de ha pouco ainda vale - pulando."); return; } }catch(e){}
   if(!SB_KEY){ console.log("Pix: sem SUPABASE_SERVICE_KEY no .env - pulando."); return; }
   if(!PIX_KEY || !PIX_COOP || !PIX_POSTO || !PIX_BENEF || (!PIX_SANDBOX && !get("SICREDI_API_PASSWORD"))){ console.log("Pix: bloco SICREDI incompleto no .env - pulando."); return; }
   try{ fs.writeFileSync(pixLockF, String(Date.now())); }catch(e){}
