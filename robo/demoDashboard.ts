@@ -747,21 +747,6 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         </div>
       </div>
 
-      <div class="card">
-        <details id="pixCfgBox">
-          <summary class="pix-cfg-sum"><span class="ico">💠</span> Cobrança via Pix — chave do supermercado <span id="pixCfgStatus" class="pix-cfg-st"></span></summary>
-          <div class="pix-cfg-grid">
-            <div class="campo"><label for="pixChave">Chave Pix</label><input type="text" id="pixChave" placeholder="CPF/CNPJ, e-mail, telefone ou aleatória"></div>
-            <div class="campo"><label for="pixNome">Nome do recebedor</label><input type="text" id="pixNome" placeholder="ex: Supermercado Santa Rita" maxlength="25"></div>
-          </div>
-          <div class="pix-cfg-acoes">
-            <button class="btn-p" id="pixSalvarCfg">Salvar chave</button>
-            <button class="btn-s" id="pixTravaBtn">Desbloquear (admin)</button>
-          </div>
-          <p id="pixTravaNota" class="pix-trava-nota"></p>
-          <p class="pix-cfg-aviso">Esses dados ficam salvos só neste navegador e são usados para gerar o QR Code e o código copia e cola de cada parcela. O dinheiro cai direto na conta da chave Pix informada — não passa por nenhum sistema externo.</p>
-        </details>
-      </div>
 
       <div class="card">
         <div class="esc-top">
@@ -3880,16 +3865,21 @@ async function pixTravaClick(){
   document.getElementById("pxCnpjBuscar").addEventListener("click", pxBuscarCnpj);
   pixSetCfgUI();
   pixAtualizarTrava();
-  document.getElementById("pixTravaBtn").addEventListener("click", pixTravaClick);
-  document.getElementById("pixSalvarCfg").addEventListener("click", function(){
-    const cfg={ chave:document.getElementById("pixChave").value.trim(), nome:document.getElementById("pixNome").value.trim(), cidade:"Caicó" };
-    if(!cfg.chave){ uiConfirm({ titulo:"Informe a chave Pix", msg:"Digite a chave Pix do supermercado para salvar.", ok:"Entendi", cancel:"" }); return; }
-    localStorage.setItem("pix_config", JSON.stringify(cfg));
-    pixCfgStatusUpd();
-    const box=document.getElementById("pixCfgBox"); if(box) box.open=false;
-    pixDesbloqueado=false; pixAtualizarTrava();
-    uiConfirm({ titulo:"Chave Pix salva", msg:"Pronto! Agora é só clicar em \\u201cGerar Pix\\u201d em cada parcela.", ok:"Ok", cancel:"" });
-  });
+  // Config antiga da "chave Pix do supermercado" (Pix estático) foi REMOVIDA — agora a
+  // cobrança é registrada no Sicredi pelo robô. Guarda: se o bloco não existir, não faz nada.
+  var _pixTravaBtn=document.getElementById("pixTravaBtn");
+  if(_pixTravaBtn){
+    _pixTravaBtn.addEventListener("click", pixTravaClick);
+    document.getElementById("pixSalvarCfg").addEventListener("click", function(){
+      const cfg={ chave:document.getElementById("pixChave").value.trim(), nome:document.getElementById("pixNome").value.trim(), cidade:"Caicó" };
+      if(!cfg.chave){ uiConfirm({ titulo:"Informe a chave Pix", msg:"Digite a chave Pix do supermercado para salvar.", ok:"Entendi", cancel:"" }); return; }
+      localStorage.setItem("pix_config", JSON.stringify(cfg));
+      pixCfgStatusUpd();
+      const box=document.getElementById("pixCfgBox"); if(box) box.open=false;
+      pixDesbloqueado=false; pixAtualizarTrava();
+      uiConfirm({ titulo:"Chave Pix salva", msg:"Pronto!", ok:"Ok", cancel:"" });
+    });
+  }
   document.getElementById("pxCnpj").addEventListener("keydown", function(ev){ if(ev.key==="Enter"){ ev.preventDefault(); pxBuscarCnpj(); } });
   // Ao escolher o número do ponto, preenche automaticamente o valor fixo daquele ponto.
   document.getElementById("pxNum").addEventListener("input", function(){
