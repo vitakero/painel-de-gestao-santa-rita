@@ -20,7 +20,7 @@ const PIX_BENEF=PIX_SANDBOX?"12345":get("SICREDI_BENEFICIARIO");
 const PIX_AUTH_BODY=PIX_SANDBOX
   ? "grant_type=password&username=123456789&password=teste123&scope=cobranca" // teste fixo do manual
   : "grant_type=password&username="+encodeURIComponent(get("SICREDI_BENEFICIARIO")+get("SICREDI_COOPERATIVA"))+"&password="+encodeURIComponent(get("SICREDI_API_PASSWORD"))+"&scope=cobranca";
-const PIX_CONC_MS=45*60*1000; // conciliacao (quem pagou?) no maximo 1x a cada 45 min
+const PIX_CONC_MS=5*60*1000; // conciliacao (quem pagou?) no maximo 1x a cada 5 min
 const PIX_TIMEOUT=()=>AbortSignal.timeout(30000);
 async function pixSbGet(q){ const r=await fetch("https://"+SB_HOST+"/rest/v1/"+q,{headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY},signal:PIX_TIMEOUT()}); if(!r.ok) throw new Error("Supabase GET HTTP "+r.status); return r.json(); }
 async function pixSbPatch(filtro,campos){ const r=await fetch("https://"+SB_HOST+"/rest/v1/pix_cobrancas?"+filtro,{method:"PATCH",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(campos),signal:PIX_TIMEOUT()}); if(!r.ok) throw new Error("Supabase PATCH HTTP "+r.status+" "+(await r.text()).slice(0,200)); }
@@ -32,7 +32,7 @@ async function pixToken(){ const r=await fetch(PIX_BASE+"/auth/openapi/token",{m
   // (o pix-loop.vbs espera cada rodada terminar antes de dormir, entao nao ha
   //  duas rodadas expressas ao mesmo tempo; a trava protege contra o buildVrData)
   const pixLockF=path.join(__dirname,"..","output","last-pix-start.txt");
-  try{ const lst=Number(fs.readFileSync(pixLockF,"utf8"))||0; if(Date.now()-lst < 12*1000){ console.log("Pix: rodada de ha pouco ainda vale - pulando."); return; } }catch(e){}
+  try{ const lst=Number(fs.readFileSync(pixLockF,"utf8"))||0; if(Date.now()-lst < 6*1000){ console.log("Pix: rodada de ha pouco ainda vale - pulando."); return; } }catch(e){}
   if(!SB_KEY){ console.log("Pix: sem SUPABASE_SERVICE_KEY no .env - pulando."); return; }
   if(!PIX_KEY || !PIX_COOP || !PIX_POSTO || !PIX_BENEF || (!PIX_SANDBOX && !get("SICREDI_API_PASSWORD"))){ console.log("Pix: bloco SICREDI incompleto no .env - pulando."); return; }
   try{ fs.writeFileSync(pixLockF, String(Date.now())); }catch(e){}
