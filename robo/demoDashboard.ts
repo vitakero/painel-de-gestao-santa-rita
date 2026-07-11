@@ -3212,7 +3212,7 @@ function pxAgendaHtml(p){
           ? '<span class="px-aguard" title="O pedido está esperando há mais de 1 hora. O computador da loja (robô) parece desligado — ligue-o para a cobrança sair.">⏳ Pedido há '+idadeH+'h — robô parado?</span>'
           : '<span class="px-aguard" title="O robô da loja está registrando a cobrança no Sicredi. O QR fica pronto em alguns minutos.">⏳ Preparando Pix...</span>'; })()
       : cob && cob.status==="cancelar"
-      ? '<span class="px-aguard" title="O banco (Sicredi) exige de 1 a 3 minutos para liberar o cancelamento de uma cobrança recém-criada. É normal. Pode fechar a tela — vira \\u201cGerar Pix\\u201d sozinho quando terminar.">⏳ Cancelando (o banco leva 1-3 min)…</span>'
+      ? '<span class="px-aguard" title="O banco (Sicredi) exige de 1 a 3 minutos para liberar o cancelamento de uma cobrança recém-criada. É normal. Pode fechar a tela — vira \\u201cGerar Pix\\u201d sozinho quando terminar.">⏳ Cancelando…</span>'
       : cob && cob.status==="gerado"
       ? '<button type="button" class="px-pix-btn" data-pixver="'+ref+'" title="Cobrança registrada no Sicredi — ver o QR Code">💠 Ver Pix</button> <button type="button" class="px-mark" data-marcarpago="'+ref+'" title="Registrar pagamento feito por fora (precisa autorização do master)">Marcar pago</button> <button type="button" class="px-rec" data-pixcancel="'+ref+'" title="Cancelar esta cobrança no banco (libera gerar outra)">✕</button>'
       : cob && cob.status==="erro"
