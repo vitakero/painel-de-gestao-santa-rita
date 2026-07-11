@@ -261,7 +261,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .pix-qr { text-align:center; }
   .pix-qr img { width:210px; height:210px; image-rendering:pixelated; border:1px solid #eef2f6; border-radius:8px; }
   .pix-cc-lbl { font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:#6b7787; font-weight:700; margin:14px 0 4px; }
-  .pix-cc { width:100%; box-sizing:border-box; font-family:monospace; font-size:11px; color:#2a3340; border:1px solid #cdd6e0; border-radius:8px; padding:8px; resize:none; word-break:break-all; }
+  .pix-cc { width:100%; box-sizing:border-box; font-family:monospace; font-size:11px; line-height:1.5; color:#2a3340; border:1px solid #cdd6e0; border-radius:8px; padding:8px; resize:none; word-break:break-all; max-height:340px; overflow-y:auto; }
   .pix-copiar { width:100%; margin-top:10px; display:inline-flex; align-items:center; justify-content:center; gap:8px; height:44px; border:0; border-radius:10px; background:#157a35; color:#fff; font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 2px 6px rgba(21,122,53,.28); transition:background .15s, box-shadow .15s, transform .05s; }
   .pix-copiar:hover { background:#12692e; box-shadow:0 3px 10px rgba(21,122,53,.34); }
   .pix-copiar:active { transform:translateY(1px); box-shadow:0 1px 3px rgba(21,122,53,.28); }
@@ -3337,7 +3337,7 @@ function pixAbrirModal(o){
       '<div class="pix-body"><div class="pix-sub" id="pixSub"></div>'+
       '<div class="pix-qr"><img id="pixQrImg" alt="QR Code Pix"></div>'+
       '<div class="pix-cc-lbl">Pix copia e cola</div>'+
-      '<textarea id="pixCC" class="pix-cc" readonly rows="3"></textarea>'+
+      '<textarea id="pixCC" class="pix-cc" readonly rows="2"></textarea>'+
       '<button type="button" class="pix-copiar" id="pixCopiar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copiar código</span></button></div>'+
       '<div class="modal-acts"><button type="button" class="btn-s" id="pixBaixar">Gerar cobrança</button><button type="button" class="btn-s" id="pixFechar">Fechar</button></div>'+
       '</div>';
@@ -3351,11 +3351,15 @@ function pixAbrirModal(o){
   const durl=qr.createDataURL(6,4);
   pixFichaAtual={ o:o, qr:durl };
   document.getElementById("pixQrImg").src=durl;
-  document.getElementById("pixCC").value=o.codigo;
+  var _cc=document.getElementById("pixCC");
+  _cc.value=o.codigo;
   document.getElementById("pixSub").innerHTML="Ponto nº "+(o.ponto||"")+(o.forn?" · "+o.forn:"")+"<br>Vencimento "+o.data+" · <b>"+brl(o.valor)+"</b>"
     +(o.nosso?'<br><span style="font-size:11px;color:#8a97a3;">Registrada no Sicredi · nosso nº '+o.nosso+'</span>':"")
     +(o.linha?'<br><span style="font-size:10.5px;color:#8a97a3;word-break:break-all;">Linha digitável: '+o.linha+'</span>':"");
   m.classList.add("show");
+  // cresce o campo pra mostrar o código inteiro. requestAnimationFrame garante que o layout
+  // já foi calculado (medir cedo demais dá largura errada e altura gigante); teto de 340px por segurança.
+  requestAnimationFrame(function(){ _cc.style.height="auto"; _cc.style.height=Math.min(_cc.scrollHeight+2,340)+"px"; });
 }
 let pixFichaAtual=null;
 function pixRR(x,a,b,w,h,r){ x.beginPath(); x.moveTo(a+r,b); x.arcTo(a+w,b,a+w,b+h,r); x.arcTo(a+w,b+h,a,b+h,r); x.arcTo(a,b+h,a,b,r); x.arcTo(a,b,a+w,b,r); x.closePath(); }
