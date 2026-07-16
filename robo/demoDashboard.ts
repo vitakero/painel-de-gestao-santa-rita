@@ -881,7 +881,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
             </span>
           </div>
           <div class="campo" style="flex:1;min-width:170px;"><label for="glLoc">Fornecedor</label><input type="text" id="glLoc" placeholder="busque pelo CNPJ ou digite"><input type="hidden" id="glRazao"><span id="glCnpjMsg" style="font-size:11px;display:block;margin-top:4px;line-height:1.25;"></span></div>
-          <div class="campo"><label for="glVend">Vendedor</label><input type="text" id="glVend" placeholder="ex: Josinaldo"></div>
+          <div class="campo"><label for="glVend">Inquilino</label><input type="text" id="glVend" placeholder="ex: João da Silva"></div>
           <div class="campo"><label for="glTel">Contato</label><input type="tel" id="glTel" placeholder="ex: (84) 99999-0000" style="width:160px;"></div>
           <div class="campo"><label for="glEmail">E-mail (p/ cobrança)</label><input type="email" id="glEmail" placeholder="ex: financeiro@empresa.com" style="width:230px;"></div>
           <div class="campo" style="flex:1;min-width:200px;"><label for="glEnd">Endereço</label><input type="text" id="glEnd" placeholder="busque pelo CNPJ ou digite"></div>
@@ -3438,13 +3438,13 @@ function renderGalpoes(){
         pxDetItem("CNPJ", g.cnpj ? pxFmtCnpj(g.cnpj) : "—")+
         pxDetItem("Razão Social", g.razaoSocial||"—")+
         pxDetItem("Endereço", g.endereco?pxEsc(g.endereco):"—")+
-        pxDetItem("Vendedor", g.vendedor||"—")+
+        pxDetItem("Inquilino", g.vendedor||"—")+
         pxDetItem("Contato", g.contato?pxFmtTel(g.contato):"—")+
         pxDetItem("E-mail", g.email ? ('<a href="mailto:'+pxEsc(g.email)+'">'+pxEsc(g.email)+'</a>') : "—")+
         pxDetItem("Pagamento", btnPago)+
       '</div></div></td></tr>';
   }).join("");
-  tb.innerHTML='<table><thead><tr><th style="width:34px;"></th><th>Nº</th><th>Fornecedor</th><th>Vendedor</th><th>Valor</th><th>Pagamento</th><th>Abertura</th><th>Vencimento</th><th>Status</th><th>Observação</th><th></th></tr></thead><tbody>'+
+  tb.innerHTML='<table><thead><tr><th style="width:34px;"></th><th>Nº</th><th>Fornecedor</th><th>Inquilino</th><th>Valor</th><th>Pagamento</th><th>Abertura</th><th>Vencimento</th><th>Status</th><th>Observação</th><th></th></tr></thead><tbody>'+
     (linhas || '<tr><td colspan="11" class="vazio">Nenhum ponto.</td></tr>')+'</tbody></table>';
 }
 (function initGalpoes(){
