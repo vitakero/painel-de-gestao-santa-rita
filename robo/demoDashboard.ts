@@ -874,9 +874,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <h2 id="glFormTitulo">Adicionar galpão</h2>
         <div class="filtros" style="box-shadow:none;padding:0;flex-wrap:wrap;align-items:flex-start;">
           <div class="campo"><label for="glNum">Nº do galpão</label><input type="number" id="glNum" min="1" style="width:90px;"></div>
-          <div class="campo"><label for="glCnpj">CNPJ (busca o nome)</label>
+          <div class="campo"><label for="glCnpj">CNPJ ou CPF</label>
             <span style="display:inline-flex;gap:6px;align-items:center;">
-              <input type="text" id="glCnpj" placeholder="00.000.000/0000-00" style="width:175px;">
+              <input type="text" id="glCnpj" placeholder="CNPJ (busca o nome) ou CPF" style="width:200px;">
               <button type="button" class="btn-s" id="glCnpjBuscar">Buscar</button>
             </span>
           </div>
@@ -3367,10 +3367,17 @@ function glPreencherCnpj(d,msg){
   msg.textContent="\\u2713 "+(fantasia?("Fantasia: "+fantasia):"")+((fantasia&&razao)?"  \\u00b7  ":"")+(razao?("Razão: "+razao):"");
   return nome;
 }
+// Formata e rotula o documento do inquilino: 11 dígitos = CPF, 14 = CNPJ.
+function glFmtDoc(d){
+  var s=String(d||"").replace(/\\D/g,"");
+  if(s.length===11) return {label:"CPF", valor:s.replace(/(\\d{3})(\\d{3})(\\d{3})(\\d{2})/,"$1.$2.$3-$4")};
+  if(s.length===14) return {label:"CNPJ", valor:pxFmtCnpj(s)};
+  return {label:"CNPJ / CPF", valor:(d||"—")};
+}
 function glBuscarCnpj(){
   var el=document.getElementById("glCnpj"), msg=document.getElementById("glCnpjMsg"), btn=document.getElementById("glCnpjBuscar");
   var cnpj=(el.value||"").replace(/\\D/g,"");
-  if(cnpj.length===11){ msg.style.color="#8a6d1a"; msg.textContent="Isso é um CPF (pessoa física). O nome não pode ser buscado por lei — digite o nome do locatário à mão. A cobrança funciona normalmente."; return; }
+  if(cnpj.length===11){ el.value=cnpj.replace(/(\\d{3})(\\d{3})(\\d{3})(\\d{2})/,"$1.$2.$3-$4"); msg.style.color="#0e6b2c"; msg.textContent="\\u2713 CPF reconhecido (pessoa física). Digite o nome do inquilino à mão no campo ao lado — pelo CPF o nome não pode ser buscado por lei. O CPF fica registrado."; return; }
   if(cnpj.length!==14){ msg.style.color="#c0392b"; msg.textContent="Digite o CNPJ (14 números) para buscar o nome. Se for pessoa física, digite o nome à mão."; return; }
   btn.disabled=true; var txt=btn.textContent; btn.textContent="Buscando...";
   msg.style.color="#6b7787"; msg.textContent="Consultando a Receita Federal...";
@@ -3432,7 +3439,7 @@ function renderGalpoes(){
       '<td style="white-space:nowrap"><span class="esc-nome" data-gledit="'+g.id+'">editar</span> &nbsp;<span class="esc-del" data-glrem="'+g.id+'" title="Remover">✕</span></td>'+
       '</tr>'+
       '<tr class="px-det" id="gdet-'+g.id+'" style="display:none;"><td colspan="11"><div class="px-det-wrap"><div class="px-det-box">'+
-        pxDetItem("CNPJ", g.cnpj ? pxFmtCnpj(g.cnpj) : "—")+
+        pxDetItem(g.cnpj?glFmtDoc(g.cnpj).label:"CNPJ / CPF", g.cnpj ? glFmtDoc(g.cnpj).valor : "—")+
         pxDetItem("Razão Social", g.razaoSocial||"—")+
         pxDetItem("Endereço do galpão", g.endereco?pxEsc(g.endereco):"—")+
         pxDetItem("Inquilino", g.vendedor||"—")+
