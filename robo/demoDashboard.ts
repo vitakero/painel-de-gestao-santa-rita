@@ -884,7 +884,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <div class="campo"><label for="glVend">Inquilino</label><input type="text" id="glVend" placeholder="ex: João da Silva"></div>
           <div class="campo"><label for="glTel">Contato</label><input type="tel" id="glTel" placeholder="ex: (84) 99999-0000" style="width:160px;"></div>
           <div class="campo"><label for="glEmail">E-mail (p/ cobrança)</label><input type="email" id="glEmail" placeholder="ex: financeiro@empresa.com" style="width:230px;"></div>
-          <div class="campo" style="flex:1;min-width:200px;"><label for="glEnd">Endereço</label><input type="text" id="glEnd" placeholder="busque pelo CNPJ ou digite"></div>
+          <div class="campo" style="flex:1;min-width:200px;"><label for="glEnd">Endereço do galpão</label><input type="text" id="glEnd" placeholder="ex: Av. Central, 500 - onde o galpão fica"></div>
           <div class="campo"><label for="glValor">Valor (R$)</label><input type="number" id="glValor" step="0.01" min="0" style="width:120px;"></div>
           <div class="campo"><label for="glPag">Modo de pagamento</label>
             <select id="glPag" class="px-filtro" style="width:150px;">
@@ -3362,12 +3362,7 @@ function glPreencherCnpj(d,msg){
   document.getElementById("glRazao").value=razao;
   var emEl=document.getElementById("glEmail"); if(d.email && !emEl.value.trim()) emEl.value=String(d.email).toLowerCase();
   var telEl=document.getElementById("glTel"); if(d.ddd_telefone_1 && !telEl.value.trim()) telEl.value=pxFmtTel(String(d.ddd_telefone_1).replace(/\\D/g,""));
-  var endEl=document.getElementById("glEnd"), partes=[];
-  if(d.logradouro) partes.push(d.logradouro+(d.numero?(", "+d.numero):""));
-  if(d.bairro) partes.push(d.bairro);
-  if(d.municipio) partes.push(d.municipio+(d.uf?("/"+d.uf):""));
-  if(d.cep) partes.push("CEP "+String(d.cep).replace(/(\\d{5})(\\d{3})/,"$1-$2"));
-  var endereco=partes.join(" - "); if(endereco) endEl.value=endereco;
+  // NÃO preenche o endereço pelo CNPJ: aqui o campo é o endereço DO GALPÃO (onde a empresa fica), não o endereço registrado da empresa.
   msg.style.color="#1b9e4b";
   msg.textContent="\\u2713 "+(fantasia?("Fantasia: "+fantasia):"")+((fantasia&&razao)?"  \\u00b7  ":"")+(razao?("Razão: "+razao):"");
   return nome;
@@ -3437,7 +3432,7 @@ function renderGalpoes(){
       '<tr class="px-det" id="gdet-'+g.id+'" style="display:none;"><td colspan="11"><div class="px-det-wrap"><div class="px-det-box">'+
         pxDetItem("CNPJ", g.cnpj ? pxFmtCnpj(g.cnpj) : "—")+
         pxDetItem("Razão Social", g.razaoSocial||"—")+
-        pxDetItem("Endereço", g.endereco?pxEsc(g.endereco):"—")+
+        pxDetItem("Endereço do galpão", g.endereco?pxEsc(g.endereco):"—")+
         pxDetItem("Inquilino", g.vendedor||"—")+
         pxDetItem("Contato", g.contato?pxFmtTel(g.contato):"—")+
         pxDetItem("E-mail", g.email ? ('<a href="mailto:'+pxEsc(g.email)+'">'+pxEsc(g.email)+'</a>') : "—")+
