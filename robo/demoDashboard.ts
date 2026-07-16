@@ -906,9 +906,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .mpl-frente{display:flex;align-items:stretch;gap:14px;}
         .mpl-porta{flex:0 0 130px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1.5px dashed #c8d2de;border-radius:10px;padding:7px 6px;color:#8a96a5;font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;background:#fff;}
         .mpl-porta svg{width:15px;height:15px;color:#aab5c2;}
-        .mpl-caixas{flex:1;display:flex;align-items:center;gap:8px;border:1px solid #e6ebf1;background:#fff;border-radius:10px;padding:9px 14px;}
-        .mpl-caixas i{width:26px;height:13px;border-radius:4px;background:linear-gradient(180deg,#eef2f6,#dfe6ee);box-shadow:inset 0 -1px 0 rgba(20,40,70,.08);}
-        .mpl-caixas span{margin-left:auto;color:#8a96a5;font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;}
+        .mpl-caixas{flex:1;display:flex;align-items:center;gap:16px;border:1px solid #e6ebf1;background:#fff;border-radius:10px;padding:10px 18px;}
+        .mpl-cxrow{flex:1;display:flex;align-items:center;justify-content:space-between;}
+        .mpl-caixas i{width:14px;height:28px;border-radius:4px;background:linear-gradient(90deg,#eef2f6,#dfe6ee);box-shadow:inset -1px 0 0 rgba(20,40,70,.08);flex:0 0 auto;}
+        .mpl-caixas span{flex:0 0 auto;color:#8a96a5;font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;}
         .mpl-corr{display:flex;align-items:center;gap:10px;margin:15px 0;color:#a7b2bf;font-size:9.5px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;white-space:nowrap;}
         .mpl-corr:before,.mpl-corr:after{content:"";height:1px;flex:1;background:linear-gradient(90deg,transparent,#dce3eb 25%,#dce3eb 75%,transparent);}
         .mpl-fileira{display:flex;align-items:stretch;}
@@ -4993,7 +4994,7 @@ function renderMapa(){
   const icoPorta='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 13 12 18 17 13"></polyline><polyline points="7 6 12 11 17 6"></polyline></svg>';
   let html='<div class="mpl-frente">'+
     '<div class="mpl-porta">'+icoPorta+'Entrada</div>'+
-    '<div class="mpl-caixas"><i></i><i></i><i></i><i></i><i></i><span>Frente de caixa</span></div>'+
+    '<div class="mpl-caixas"><div class="mpl-cxrow">'+'<i></i>'.repeat(13)+'</div><span>Frente de caixa</span></div>'+
     '</div>';
   html+='<div class="mpl-corr">Corredor da entrada</div>';
   html+=mapaFileiraHtml(MAPA_GRUPOS[0]);
