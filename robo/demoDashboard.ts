@@ -871,7 +871,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       <div id="glInad"></div>
 
       <div class="card" id="glFormCard">
-        <h2 id="glFormTitulo">Adicionar ponto extra</h2>
+        <h2 id="glFormTitulo">Adicionar galpão</h2>
         <div class="filtros" style="box-shadow:none;padding:0;flex-wrap:wrap;align-items:flex-start;">
           <div class="campo"><label for="glNum">Nº do ponto</label><input type="number" id="glNum" min="1" max="21" style="width:90px;"></div>
           <div class="campo"><label for="glCnpj">CNPJ (busca o nome)</label>
