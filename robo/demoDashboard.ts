@@ -879,8 +879,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px;">
           <h2 id="glFormTitulo" style="margin:0;">Adicionar galpão</h2>
           <div class="gl-doctog" id="glDocTog" style="margin-bottom:0;">
-            <button type="button" class="gl-dt on" data-doctipo="cnpj">Inquilino é empresa (CNPJ)</button>
-            <button type="button" class="gl-dt" data-doctipo="cpf">Inquilino é pessoa física (CPF)</button>
+            <button type="button" class="gl-dt on" data-doctipo="cnpj">CNPJ</button>
+            <button type="button" class="gl-dt" data-doctipo="cpf">CPF</button>
           </div>
         </div>
         <div class="filtros" style="box-shadow:none;padding:0;flex-wrap:wrap;align-items:flex-start;">
