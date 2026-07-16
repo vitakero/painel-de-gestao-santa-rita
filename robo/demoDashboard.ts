@@ -891,7 +891,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
               <button type="button" class="btn-s" id="glCnpjBuscar">Buscar</button>
             </span>
           </div>
-          <div class="campo" style="flex:1;min-width:170px;"><label for="glLoc">Fornecedor</label><input type="text" id="glLoc" placeholder="busque pelo CNPJ ou digite"><input type="hidden" id="glRazao"><span id="glCnpjMsg" style="font-size:11px;display:block;margin-top:4px;line-height:1.25;"></span></div>
+          <div class="campo" style="flex:1;min-width:170px;"><label for="glLoc">Empresa</label><input type="text" id="glLoc" placeholder="nome da empresa (busca pelo CNPJ)"><input type="hidden" id="glRazao"><span id="glCnpjMsg" style="font-size:11px;display:block;margin-top:4px;line-height:1.25;"></span></div>
           <div class="campo"><label for="glVend">Inquilino</label><input type="text" id="glVend" placeholder="ex: João da Silva"></div>
           <div class="campo"><label for="glTel">Contato</label><input type="tel" id="glTel" placeholder="ex: (84) 99999-0000" style="width:160px;"></div>
           <div class="campo"><label for="glEmail">E-mail (p/ cobrança)</label><input type="email" id="glEmail" placeholder="ex: financeiro@empresa.com" style="width:230px;"></div>
@@ -3383,16 +3383,14 @@ function glSetDocTipo(t){
   var tog=document.getElementById("glDocTog"); if(!tog) return;
   var bts=tog.querySelectorAll(".gl-dt"); for(var i=0;i<bts.length;i++){ bts[i].classList.toggle("on", bts[i].getAttribute("data-doctipo")===t); }
   window.__glDocTipo=t;
-  var buscar=document.getElementById("glCnpjBuscar"), inp=document.getElementById("glCnpj"), msg=document.getElementById("glCnpjMsg"), forn=document.getElementById("glLoc");
+  var buscar=document.getElementById("glCnpjBuscar"), inp=document.getElementById("glCnpj"), msg=document.getElementById("glCnpjMsg");
   if(t==="cpf"){
     if(buscar) buscar.style.display="none";
     if(inp) inp.placeholder="000.000.000-00";
-    if(forn) forn.placeholder="digite o nome completo";
     if(msg) msg.textContent="";
   } else {
     if(buscar) buscar.style.display="";
     if(inp) inp.placeholder="00.000.000/0000-00";
-    if(forn) forn.placeholder="busque pelo CNPJ ou digite";
     if(msg) msg.textContent="";
   }
 }
@@ -3430,8 +3428,8 @@ function renderGalpoes(){
   var gi=document.getElementById("glInad");
   if(gi) gi.innerHTML = inad.length ? (
     '<div class="px-inad"><div class="px-inad-top"><span class="px-inad-tit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Locatários em atraso ('+inad.length+')</span><span class="px-inad-tot">Total em atraso: '+brl(totDev)+'</span></div>'+
-    '<table class="px-inad-tb"><thead><tr><th>Fornecedor</th><th>Parcelas atrasadas</th><th>Valor devido</th><th>Atraso</th></tr></thead><tbody>'+
-    inad.map(function(x){ return '<tr><td>'+(prdEsc(x.g.locatario)||"—")+'</td><td>'+x.n+'</td><td>'+brl(x.valor)+'</td><td>'+x.dias+' dia'+(x.dias===1?'':'s')+'</td></tr>'; }).join('')+
+    '<table class="px-inad-tb"><thead><tr><th>Inquilino</th><th>Parcelas atrasadas</th><th>Valor devido</th><th>Atraso</th></tr></thead><tbody>'+
+    inad.map(function(x){ return '<tr><td>'+(prdEsc(x.g.vendedor||x.g.locatario)||"—")+'</td><td>'+x.n+'</td><td>'+brl(x.valor)+'</td><td>'+x.dias+' dia'+(x.dias===1?'':'s')+'</td></tr>'; }).join('')+
     '</tbody></table></div>'
   ) : "";
   // Tabela (com filtros — espelha os pontos extras)
@@ -3477,7 +3475,7 @@ function renderGalpoes(){
         pxDetItem("Pagamento", btnPago)+
       '</div></div></td></tr>';
   }).join("");
-  tb.innerHTML='<table><thead><tr><th style="width:34px;"></th><th>Nº</th><th>Fornecedor</th><th>Inquilino</th><th>Valor</th><th>Pagamento</th><th>Abertura</th><th>Vencimento</th><th>Status</th><th>Observação</th><th></th></tr></thead><tbody>'+
+  tb.innerHTML='<table><thead><tr><th style="width:34px;"></th><th>Nº</th><th>Empresa</th><th>Inquilino</th><th>Valor</th><th>Pagamento</th><th>Abertura</th><th>Vencimento</th><th>Status</th><th>Observação</th><th></th></tr></thead><tbody>'+
     (linhas || '<tr><td colspan="11" class="vazio">Nenhum ponto.</td></tr>')+'</tbody></table>';
 }
 (function initGalpoes(){
