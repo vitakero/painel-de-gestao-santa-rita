@@ -876,14 +876,16 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       <div id="glInad"></div>
 
       <div class="card" id="glFormCard">
-        <h2 id="glFormTitulo">Adicionar galpão</h2>
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px;">
+          <h2 id="glFormTitulo" style="margin:0;">Adicionar galpão</h2>
+          <div class="gl-doctog" id="glDocTog" style="margin-bottom:0;">
+            <button type="button" class="gl-dt on" data-doctipo="cnpj">Inquilino é empresa (CNPJ)</button>
+            <button type="button" class="gl-dt" data-doctipo="cpf">Inquilino é pessoa física (CPF)</button>
+          </div>
+        </div>
         <div class="filtros" style="box-shadow:none;padding:0;flex-wrap:wrap;align-items:flex-start;">
           <div class="campo"><label for="glNum">Nº do galpão</label><input type="number" id="glNum" min="1" style="width:90px;"></div>
           <div class="campo"><label for="glCnpj">Documento do inquilino</label>
-            <div class="gl-doctog" id="glDocTog">
-              <button type="button" class="gl-dt on" data-doctipo="cnpj">CNPJ</button>
-              <button type="button" class="gl-dt" data-doctipo="cpf">CPF</button>
-            </div>
             <span style="display:inline-flex;gap:6px;align-items:center;">
               <input type="text" id="glCnpj" placeholder="00.000.000/0000-00" style="width:175px;">
               <button type="button" class="btn-s" id="glCnpjBuscar">Buscar</button>
