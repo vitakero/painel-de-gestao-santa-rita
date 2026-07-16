@@ -3344,7 +3344,7 @@ function glRealtime(){ var sb=glSB(); if(!sb||glRT) return; try{ var deb=null; f
 function glCloudLoad(){ var sb=glSB(); if(!sb||glCarregando) return;
   if(!(window.__PERFIL && window.__PERFIL.is_master)){ galpoesG=[]; try{ localStorage.removeItem("galpoes_dados"); }catch(e){} return; }
   glCarregando=true;
-  sb.from("galpoes").select("*").then(function(r){ glCarregando=false; if(r.error) return; glCloudOK=true;
+  sb.from("galpoes").select("*").then(function(r){ glCarregando=false; if(r.error){ renderGalpoes(); return; } glCloudOK=true;
     var now=Date.now();
     galpoesG=(r.data||[]).map(glGFromRow).filter(function(g){ return !(glPendDel[g.id]&&glPendDel[g.id]>now); });
     try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){}
@@ -3383,7 +3383,9 @@ function glBuscarCnpj(){
 }
 function renderGalpoes(){
   var tb=document.getElementById("glTabela"); if(!tb) return;
-  var master=!!(window.__PERFIL&&window.__PERFIL.is_master);
+  // Login ainda carregando: mostra "Carregando…" e tenta de novo em vez de já dizer "Área restrita".
+  if(window.__PERFIL==null){ tb.innerHTML='<div style="padding:22px 12px;color:#8a97a8;font-style:italic;">Carregando…</div>'; var _gc=document.getElementById("glInad"); if(_gc) _gc.innerHTML=""; if(!window.__glRetry){ window.__glRetry=setTimeout(function(){ window.__glRetry=null; renderGalpoes(); },700); } return; }
+  var master=!!window.__PERFIL.is_master;
   if(!master){ tb.innerHTML='<div style="padding:26px;text-align:center;color:#8a97a8;">Área restrita — só o administrador (login master) vê os galpões.</div>'; var _gi=document.getElementById("glInad"); if(_gi) _gi.innerHTML=""; return; }
   // Inadimplentes (reaproveita pxInadimplencia)
   var inad=[]; galpoesG.forEach(function(g){ var x=pxInadimplencia(g); if(x){ x.g=g; inad.push(x); } });
@@ -10559,7 +10561,7 @@ function pedEnviar(){
       fimChecagem(); applyPerms(perfil); showUser(perfil,email); ov.style.display="none";
       try{ if(typeof manCloudLoad==="function") manCloudLoad(); }catch(e){}
       try{ if(typeof pxCloudLoad==="function") pxCloudLoad(); }catch(e){}
-      try{ if(typeof glCloudLoad==="function"){ glCloudLoad(); glRealtime(); } }catch(e){}
+      try{ if(typeof glCloudLoad==="function"){ glCloudLoad(); glRealtime(); var _gp=document.getElementById('page-galpoes'); if(_gp && _gp.classList.contains('ativo')) renderGalpoes(); } }catch(e){}
       try{ if(typeof pixCobLoad==="function") pixCobLoad(); }catch(e){}
       try{ if(typeof entCloudLoad==="function") entCloudLoad(); }catch(e){}
       try{ if(window.__syncPull) window.__syncPull(); }catch(e){}
