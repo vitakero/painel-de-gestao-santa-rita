@@ -93,8 +93,6 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .hdir { margin-left:auto; display:flex; align-items:center; gap:10px; min-width:0; }
   .hchip { display:inline-flex; align-items:center; gap:7px; background:#f8fafc; border:1px solid #e8ecf1; padding:0 10px; height:26px; border-radius:8px; flex:none; font-size:11px; font-weight:500; color:#56606d; letter-spacing:.2px; transition:background .15s ease, border-color .15s ease; }
   .hchip:hover { background:#f2f5f8; border-color:#dde3ea; }
-  .hstatus .hst-dot { width:6px; height:6px; border-radius:50%; background:#1f9d3f; animation:pulseDotHdr 2.4s infinite; }
-  @keyframes pulseDotHdr { 0%{box-shadow:0 0 0 0 rgba(31,157,63,.35);} 70%{box-shadow:0 0 0 5px rgba(31,157,63,0);} 100%{box-shadow:0 0 0 0 rgba(31,157,63,0);} }
   .hver { font-variant-numeric:tabular-nums; }
   .hmeta { text-align:right; line-height:1.4; flex:none; }
   .hmeta .hdata { display:block; font-size:11px; font-weight:500; color:#56606d; }
@@ -110,7 +108,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #hUser:hover .hu-ch { color:#56606d; transform:translateX(1px); }
   @media (max-width:1020px){ .hver, .hmeta .hdata { display:none; } }
   @media (max-width:840px){ .hmeta, .hsep-r { display:none; } }
-  @media (max-width:600px){ header { padding:0 12px; } header .htxt p { display:none; } .hstatus-t { display:none; } .hstatus { padding:0 8px; } #hUser .hu-tx, #hUser .hu-ch { display:none; } }
+  @media (max-width:600px){ header { padding:0 12px; } header .htxt p { display:none; } #hUser .hu-tx, #hUser .hu-ch { display:none; } }
   .tag { display:inline-flex; align-items:center; gap:6px; background:#ffffff22; border:1px solid #ffffff55; padding:3px 11px; border-radius:20px; font-size:11px; font-weight:600; letter-spacing:.3px; vertical-align:middle; }
   .tag .dot { width:7px; height:7px; border-radius:50%; background:#5df08a; animation:pulseDot 1.8s infinite; }
   @keyframes pulseDot { 0%{box-shadow:0 0 0 0 rgba(93,240,138,.6);} 70%{box-shadow:0 0 0 7px rgba(93,240,138,0);} 100%{box-shadow:0 0 0 0 rgba(93,240,138,0);} }
@@ -496,7 +494,6 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <p>Centro de Inteligência Operacional</p>
       </div>
       <div class="hdir">
-        <span class="hchip hstatus" title="Sistema no ar"><span class="hst-dot"></span><span class="hstatus-t">Operacional</span></span>
         <div class="hmeta">
           <span class="hdata" id="hDataHoje"></span>
           <span class="hupd" title="Última leitura dos dados da loja">Atualizado ${geradoEmCurto}</span>
