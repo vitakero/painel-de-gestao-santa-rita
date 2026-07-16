@@ -112,6 +112,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .tag { display:inline-flex; align-items:center; gap:6px; background:#ffffff22; border:1px solid #ffffff55; padding:3px 11px; border-radius:20px; font-size:11px; font-weight:600; letter-spacing:.3px; vertical-align:middle; }
   .tag .dot { width:7px; height:7px; border-radius:50%; background:#5df08a; animation:pulseDot 1.8s infinite; }
   @keyframes pulseDot { 0%{box-shadow:0 0 0 0 rgba(93,240,138,.6);} 70%{box-shadow:0 0 0 7px rgba(93,240,138,0);} 100%{box-shadow:0 0 0 0 rgba(93,240,138,0);} }
+  .gl-doctog{display:inline-flex;border:1px solid #cdd6e0;border-radius:8px;overflow:hidden;margin-bottom:7px;}
+  .gl-doctog .gl-dt{background:#fff;border:0;padding:5px 16px;font-size:12.5px;font-weight:600;color:#6b7787;cursor:pointer;transition:background .12s,color .12s;}
+  .gl-doctog .gl-dt+.gl-dt{border-left:1px solid #cdd6e0;}
+  .gl-doctog .gl-dt.on{background:#157a35;color:#fff;}
+  .gl-doctog .gl-dt:not(.on):hover{background:#eef2f7;}
   .gl-tb{width:100%;border-collapse:collapse;font-size:13.5px;}
   .gl-tb th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#8a97a8;font-weight:600;padding:9px 12px;border-bottom:1px solid #e6ebf1;white-space:nowrap;}
   .gl-tb td{padding:11px 12px;border-bottom:1px solid #eef2f6;color:#33404f;vertical-align:middle;}
@@ -874,9 +879,13 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <h2 id="glFormTitulo">Adicionar galpão</h2>
         <div class="filtros" style="box-shadow:none;padding:0;flex-wrap:wrap;align-items:flex-start;">
           <div class="campo"><label for="glNum">Nº do galpão</label><input type="number" id="glNum" min="1" style="width:90px;"></div>
-          <div class="campo"><label for="glCnpj">CNPJ ou CPF</label>
+          <div class="campo"><label for="glCnpj">Documento do inquilino</label>
+            <div class="gl-doctog" id="glDocTog">
+              <button type="button" class="gl-dt on" data-doctipo="cnpj">CNPJ</button>
+              <button type="button" class="gl-dt" data-doctipo="cpf">CPF</button>
+            </div>
             <span style="display:inline-flex;gap:6px;align-items:center;">
-              <input type="text" id="glCnpj" placeholder="CNPJ (busca o nome) ou CPF" style="width:200px;">
+              <input type="text" id="glCnpj" placeholder="00.000.000/0000-00" style="width:175px;">
               <button type="button" class="btn-s" id="glCnpjBuscar">Buscar</button>
             </span>
           </div>
@@ -3353,7 +3362,7 @@ function glCloudLoad(){ var sb=glSB(); if(!sb||glCarregando) return;
 }
 // Chave da parcela do MÊS ATUAL (pra marcar pago). Usa o mesmo calendário dos pontos.
 function glKeyMesAtual(g){ var ym=pxAnoMesAtual(); var ag=pxAgenda(g); for(var i=0;i<ag.length;i++){ var k=pxDateKey(ag[i]); if(k.indexOf(ym)===0) return k; } return ag.length?pxDateKey(ag[ag.length-1]):""; }
-function glLimparForm(){ ["glNum","glCnpj","glRazao","glLoc","glVend","glTel","glEmail","glEnd","glValor","glAbertura","glVenc","glObs"].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=""; }); var pg=document.getElementById("glPag"); if(pg) pg.value=""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; var t=document.getElementById("glFormTitulo"); if(t) t.textContent="Adicionar galpão"; var s=document.getElementById("glSalvar"); if(s){ s.textContent="Adicionar"; delete s.dataset.edit; } var c=document.getElementById("glCancelar"); if(c) c.style.display="none"; }
+function glLimparForm(){ ["glNum","glCnpj","glRazao","glLoc","glVend","glTel","glEmail","glEnd","glValor","glAbertura","glVenc","glObs"].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=""; }); var pg=document.getElementById("glPag"); if(pg) pg.value=""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; var t=document.getElementById("glFormTitulo"); if(t) t.textContent="Adicionar galpão"; var s=document.getElementById("glSalvar"); if(s){ s.textContent="Adicionar"; delete s.dataset.edit; } var c=document.getElementById("glCancelar"); if(c) c.style.display="none"; try{ glSetDocTipo("cnpj"); }catch(e){} }
 // Busca de CNPJ do locatário (reaproveita os normalizadores dos pontos).
 function glPreencherCnpj(d,msg){
   var fantasia=d.nome_fantasia||"", razao=d.razao_social||"", nome=fantasia||razao;
@@ -3366,6 +3375,24 @@ function glPreencherCnpj(d,msg){
   msg.style.color="#1b9e4b";
   msg.textContent="\\u2713 "+(fantasia?("Fantasia: "+fantasia):"")+((fantasia&&razao)?"  \\u00b7  ":"")+(razao?("Razão: "+razao):"");
   return nome;
+}
+// Interruptor CNPJ/CPF: no CNPJ mostra o botão "Buscar"; no CPF esconde (não dá pra buscar nome por lei) e pede o nome à mão.
+function glSetDocTipo(t){
+  var tog=document.getElementById("glDocTog"); if(!tog) return;
+  var bts=tog.querySelectorAll(".gl-dt"); for(var i=0;i<bts.length;i++){ bts[i].classList.toggle("on", bts[i].getAttribute("data-doctipo")===t); }
+  window.__glDocTipo=t;
+  var buscar=document.getElementById("glCnpjBuscar"), inp=document.getElementById("glCnpj"), msg=document.getElementById("glCnpjMsg"), forn=document.getElementById("glLoc");
+  if(t==="cpf"){
+    if(buscar) buscar.style.display="none";
+    if(inp) inp.placeholder="000.000.000-00";
+    if(forn) forn.placeholder="digite o nome completo";
+    if(msg){ msg.style.color="#6b7787"; msg.textContent="Pessoa física: digite o CPF e o nome completo do inquilino à mão (pelo CPF o nome não pode ser buscado por lei)."; }
+  } else {
+    if(buscar) buscar.style.display="";
+    if(inp) inp.placeholder="00.000.000/0000-00";
+    if(forn) forn.placeholder="busque pelo CNPJ ou digite";
+    if(msg) msg.textContent="";
+  }
 }
 // Formata e rotula o documento do inquilino: 11 dígitos = CPF, 14 = CNPJ.
 function glFmtDoc(d){
@@ -3477,6 +3504,7 @@ function renderGalpoes(){
     glSave(); glLimparForm(); renderGalpoes();
   };
   var cancelar=document.getElementById("glCancelar"); if(cancelar) cancelar.onclick=glLimparForm;
+  var docTog=document.getElementById("glDocTog"); if(docTog){ var dbts=docTog.querySelectorAll(".gl-dt"); for(var _i=0;_i<dbts.length;_i++){ (function(b){ b.addEventListener("click",function(){ glSetDocTipo(b.getAttribute("data-doctipo")); }); })(dbts[_i]); } }
   var cnpjBtn=document.getElementById("glCnpjBuscar"); if(cnpjBtn) cnpjBtn.addEventListener("click",glBuscarCnpj);
   var cnpjInp=document.getElementById("glCnpj"); if(cnpjInp) cnpjInp.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); glBuscarCnpj(); } });
   ["glBusca","glFiltroStatus","glFiltroPagamento","glFiltroVenc"].forEach(function(id){ var el=document.getElementById(id); if(el){ el.addEventListener(id==="glBusca"?"input":"change",renderGalpoes); } });
@@ -3487,7 +3515,7 @@ function renderGalpoes(){
     var pago=e.target.closest("[data-glpago]");
     if(pago){ var g=galpoesG.find(function(x){ return x.id===pago.dataset.glpago; }); if(g){ var k=glKeyMesAtual(g); if(!k){ uiConfirm({titulo:"Informe as datas",msg:"Preencha a abertura e o vencimento do contrato pra controlar os pagamentos por mês.",ok:"OK",cancel:""}); return; } g.manuais=g.manuais||{}; if(pago.dataset.on){ delete g.manuais[k]; } else { g.manuais[k]="autorizado"; } glSave(); renderGalpoes(); } return; }
     var ed=e.target.closest("[data-gledit]");
-    if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNum").value=g2.numero||""; document.getElementById("glCnpj").value=g2.cnpj||""; document.getElementById("glRazao").value=g2.razaoSocial||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glVend").value=g2.vendedor||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; document.getElementById("glEnd").value=g2.endereco||""; document.getElementById("glValor").value=g2.valor||""; document.getElementById("glPag").value=g2.pagamento||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glVenc").value=g2.vencimento||""; document.getElementById("glObs").value=g2.obs||""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
+    if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNum").value=g2.numero||""; document.getElementById("glCnpj").value=g2.cnpj||""; document.getElementById("glRazao").value=g2.razaoSocial||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glVend").value=g2.vendedor||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; document.getElementById("glEnd").value=g2.endereco||""; document.getElementById("glValor").value=g2.valor||""; document.getElementById("glPag").value=g2.pagamento||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glVenc").value=g2.vencimento||""; document.getElementById("glObs").value=g2.obs||""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; try{ glSetDocTipo(((g2.cnpj||"").replace(/\\D/g,"").length===11)?"cpf":"cnpj"); }catch(e){} var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
     var rem=e.target.closest("[data-glrem]");
     if(rem){ var id=rem.dataset.glrem; var g3=galpoesG.find(function(x){ return x.id===id; }); uiConfirm({titulo:"Remover galpão",msg:"Apagar \\u201c"+((g3&&g3.nome)||"este galpão")+"\\u201d e todo o histórico dele?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; galpoesG=galpoesG.filter(function(x){ return x.id!==id; }); glCloudDel(id); glSave(); renderGalpoes(); }); return; }
   });
