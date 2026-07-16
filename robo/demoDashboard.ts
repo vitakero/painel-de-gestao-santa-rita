@@ -112,6 +112,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .tag { display:inline-flex; align-items:center; gap:6px; background:#ffffff22; border:1px solid #ffffff55; padding:3px 11px; border-radius:20px; font-size:11px; font-weight:600; letter-spacing:.3px; vertical-align:middle; }
   .tag .dot { width:7px; height:7px; border-radius:50%; background:#5df08a; animation:pulseDot 1.8s infinite; }
   @keyframes pulseDot { 0%{box-shadow:0 0 0 0 rgba(93,240,138,.6);} 70%{box-shadow:0 0 0 7px rgba(93,240,138,0);} 100%{box-shadow:0 0 0 0 rgba(93,240,138,0);} }
+  .gl-tb{width:100%;border-collapse:collapse;font-size:13.5px;}
+  .gl-tb th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#8a97a8;font-weight:600;padding:9px 12px;border-bottom:1px solid #e6ebf1;white-space:nowrap;}
+  .gl-tb td{padding:11px 12px;border-bottom:1px solid #eef2f6;color:#33404f;vertical-align:middle;}
+  .gl-tb tbody tr:hover,.gl-tb tbody tr:hover{background:#f7f9fb;}
   .layout { display:flex; align-items:flex-start; max-width:none; margin:0; }
   .sidebar { width:210px; flex:none; padding:22px 14px; position:sticky; top:57px; }
   .sidebar .titulo { font-size:11px; color:#8a97a8; text-transform:uppercase; letter-spacing:.5px; padding:0 12px 8px; }
@@ -519,6 +523,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="ferias"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg></span> Férias</button>
     <button class="nav-item" data-page="pontos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span> Pontos extras<span class="nav-badge" id="pxNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="mapa"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span> Mapa dos pontos</button>
+    <button class="nav-item nav-mo" data-page="galpoes" style="display:none;"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-6 9 6v12"/><path d="M3 21h18"/><path d="M9 21v-6h6v6"/></svg></span> Galpões</button>
     <button class="nav-item" data-page="layout"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></span> Layout da loja</button>
     <button class="nav-item" data-page="organograma"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="5" rx="1"/><rect x="2" y="17" width="6" height="5" rx="1"/><rect x="16" y="17" width="6" height="5" rx="1"/><path d="M12 7v6"/><path d="M5 17v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/></svg></span> Organograma</button>
     <button class="nav-item" data-page="fluxograma"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg></span> Fluxograma</button>
@@ -859,6 +864,45 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <span class="periodo-info" id="pxInfo" style="margin-left:auto;"></span>
         </div>
         <div class="esc-scroll"><div id="pxTabela"></div></div>
+      </div>
+    </section>
+
+    <section id="page-galpoes" class="page">
+      <div id="glInad"></div>
+
+      <div class="card" id="glFormCard">
+        <h2 id="glFormTitulo">Adicionar galpão</h2>
+        <p style="margin:-4px 0 14px;font-size:12.5px;color:#8a97a8;">Controle particular dos seus galpões logísticos (à parte do supermercado). Visível só pra você.</p>
+        <div class="filtros" style="box-shadow:none;padding:0;flex-wrap:wrap;align-items:flex-start;">
+          <div class="campo" style="flex:1;min-width:200px;"><label for="glNome">Identificação do galpão</label><input type="text" id="glNome" placeholder="ex: Galpão 1 - Av. Central, 500"></div>
+          <div class="campo" style="flex:1;min-width:180px;"><label for="glLoc">Locatário (quem aluga)</label><input type="text" id="glLoc" placeholder="ex: Transportadora XYZ ou nome da pessoa"></div>
+          <div class="campo"><label for="glTel">Contato</label><input type="tel" id="glTel" placeholder="ex: (84) 99999-0000" style="width:160px;"></div>
+          <div class="campo"><label for="glEmail">E-mail (p/ cobrança)</label><input type="email" id="glEmail" placeholder="ex: contato@empresa.com" style="width:220px;"></div>
+          <div class="campo"><label for="glValor">Aluguel (R$/mês)</label><input type="number" id="glValor" step="0.01" min="0" style="width:130px;"></div>
+          <div class="campo"><label for="glPag">Modo de pagamento</label>
+            <select id="glPag" class="px-filtro" style="width:150px;">
+              <option value="">Selecione...</option>
+              <option value="Boleto">Boleto</option>
+              <option value="Pix">Pix</option>
+              <option value="Transferência">Transferência</option>
+              <option value="Dinheiro">Dinheiro</option>
+            </select>
+          </div>
+          <div class="campo"><label for="glAbertura">Início do contrato</label><input type="date" id="glAbertura"></div>
+          <div class="campo"><label for="glVenc">Vencimento do contrato</label><input type="date" id="glVenc"></div>
+          <div class="campo" style="flex:1;min-width:180px;"><label for="glObs">Observação</label><input type="text" id="glObs" placeholder="ex: Vence todo dia 5"></div>
+          <button class="btn-p" id="glSalvar" style="margin-top:18px;">Adicionar</button>
+          <button class="btn-s" id="glCancelar" style="display:none;margin-top:18px;">Cancelar</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="esc-top">
+          <h2 style="margin:0;">Meus galpões</h2>
+          <input type="text" id="glBusca" placeholder="Buscar galpão / locatário" style="padding:8px 11px;border:1px solid #cdd6e0;border-radius:8px;font-size:14px;min-width:210px;">
+          <span class="periodo-info" id="glInfo" style="margin-left:auto;"></span>
+        </div>
+        <div class="esc-scroll"><div id="glTabela"></div></div>
       </div>
     </section>
 
@@ -3255,6 +3299,114 @@ function loadPontosG(){
   return [];
 }
 let pontosG = loadPontosG();
+
+/* ===================================================================
+   GALPÕES (patrimônio pessoal do dono — pessoa física, à parte da loja).
+   Reaproveita os MESMOS helpers de status/inadimplência dos pontos extras
+   (pxStatusMes, pxAtrasado, pxPagoMes, pxInadimplencia, pxAgenda...),
+   porque o objeto do galpão tem o mesmo formato (abertura, vencimento,
+   valor, pagamento, manuais). SÓ MASTER vê. Boleto/Pix (conta pessoa
+   física) entram na Etapa 2 — aqui é o controle.
+   =================================================================== */
+function glLoad(){ try{ var s=localStorage.getItem("galpoes_dados"); if(s) return JSON.parse(s); }catch(e){} return []; }
+let galpoesG = glLoad();
+function glSB(){ return window.__SB||null; }
+var glCloudOK=false, glCarregando=false, glRT=null, glPushT=null, glPendDel={};
+function glRowFromG(g){ return {id:g.id,nome:g.nome||"",locatario:g.locatario||"",contato:g.contato||"",email:g.email||"",valor:+g.valor||0,pagamento:g.pagamento||"",abertura:g.abertura||"",vencimento:g.vencimento||"",obs:g.obs||"",manuais:g.manuais||null,atualizado_em:new Date().toISOString()}; }
+function glGFromRow(r){ var g={id:r.id,nome:r.nome||"",locatario:r.locatario||"",contato:r.contato||"",email:r.email||"",valor:+r.valor||0,pagamento:r.pagamento||"",abertura:r.abertura||"",vencimento:r.vencimento||"",obs:r.obs||""}; if(r.manuais)g.manuais=r.manuais; return g; }
+function glSave(){ try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){} clearTimeout(glPushT); glPushT=setTimeout(glCloudPush,700); }
+function glCloudPush(){ var sb=glSB(); if(!sb||!glCloudOK) return; try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){} sb.from("galpoes").upsert(galpoesG.map(glRowFromG)).then(function(){},function(){}); }
+function glCloudDel(id){ glPendDel[id]=Date.now()+30000; var sb=glSB(); if(!sb||!glCloudOK) return; sb.from("galpoes").delete().eq("id",id).then(function(r){ if(r&&r.error){ setTimeout(function(){ try{ sb.from("galpoes").delete().eq("id",id).then(function(){},function(){}); }catch(e){} },1500); } },function(){}); }
+function glRealtime(){ var sb=glSB(); if(!sb||glRT) return; try{ var deb=null; function rec(){ clearTimeout(deb); deb=setTimeout(glCloudLoad,700); } glRT=sb.channel("galpoes_sync").on("postgres_changes",{event:"*",schema:"public",table:"galpoes"},rec).subscribe(); }catch(e){} }
+function glCloudLoad(){ var sb=glSB(); if(!sb||glCarregando) return;
+  if(!(window.__PERFIL && window.__PERFIL.is_master)){ galpoesG=[]; try{ localStorage.removeItem("galpoes_dados"); }catch(e){} return; }
+  glCarregando=true;
+  sb.from("galpoes").select("*").then(function(r){ glCarregando=false; if(r.error) return; glCloudOK=true;
+    var now=Date.now();
+    galpoesG=(r.data||[]).map(glGFromRow).filter(function(g){ return !(glPendDel[g.id]&&glPendDel[g.id]>now); });
+    try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){}
+    renderGalpoes();
+  },function(){ glCarregando=false; });
+}
+// Chave da parcela do MÊS ATUAL (pra marcar pago). Usa o mesmo calendário dos pontos.
+function glKeyMesAtual(g){ var ym=pxAnoMesAtual(); var ag=pxAgenda(g); for(var i=0;i<ag.length;i++){ var k=pxDateKey(ag[i]); if(k.indexOf(ym)===0) return k; } return ag.length?pxDateKey(ag[ag.length-1]):""; }
+function glLimparForm(){ ["glNome","glLoc","glTel","glEmail","glValor","glAbertura","glVenc","glObs"].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=""; }); var pg=document.getElementById("glPag"); if(pg) pg.value=""; var t=document.getElementById("glFormTitulo"); if(t) t.textContent="Adicionar galpão"; var s=document.getElementById("glSalvar"); if(s){ s.textContent="Adicionar"; delete s.dataset.edit; } var c=document.getElementById("glCancelar"); if(c) c.style.display="none"; }
+function renderGalpoes(){
+  var tb=document.getElementById("glTabela"); if(!tb) return;
+  var master=!!(window.__PERFIL&&window.__PERFIL.is_master);
+  if(!master){ tb.innerHTML='<div style="padding:26px;text-align:center;color:#8a97a8;">Área restrita — só o administrador (login master) vê os galpões.</div>'; var _gi=document.getElementById("glInad"); if(_gi) _gi.innerHTML=""; return; }
+  // Inadimplentes (reaproveita pxInadimplencia)
+  var inad=[]; galpoesG.forEach(function(g){ var x=pxInadimplencia(g); if(x){ x.g=g; inad.push(x); } });
+  inad.sort(function(a,b){ return b.dias-a.dias; });
+  var totDev=inad.reduce(function(a,x){ return a+x.valor; },0);
+  var gi=document.getElementById("glInad");
+  if(gi) gi.innerHTML = inad.length ? (
+    '<div class="px-inad"><div class="px-inad-top"><span class="px-inad-tit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Locatários em atraso ('+inad.length+')</span><span class="px-inad-tot">Total em atraso: '+brl(totDev)+'</span></div>'+
+    '<table class="px-inad-tb"><thead><tr><th>Galpão</th><th>Locatário</th><th>Parcelas atrasadas</th><th>Valor devido</th><th>Atraso</th></tr></thead><tbody>'+
+    inad.map(function(x){ return '<tr><td>'+(prdEsc(x.g.nome)||"—")+'</td><td>'+(prdEsc(x.g.locatario)||"—")+'</td><td>'+x.n+'</td><td>'+brl(x.valor)+'</td><td>'+x.dias+' dia'+(x.dias===1?'':'s')+'</td></tr>'; }).join('')+
+    '</tbody></table></div>'
+  ) : "";
+  // Tabela
+  var busca=((document.getElementById("glBusca")||{}).value||"").trim().toLowerCase();
+  var lista=galpoesG.slice().sort(function(a,b){ return (a.nome||"").localeCompare(b.nome||""); });
+  if(busca) lista=lista.filter(function(g){ return (g.nome||"").toLowerCase().indexOf(busca)>=0 || (g.locatario||"").toLowerCase().indexOf(busca)>=0; });
+  var info=document.getElementById("glInfo"); if(info) info.textContent=lista.length+" galpão(ões)";
+  if(!lista.length){ tb.innerHTML='<div style="padding:30px 20px;text-align:center;color:#8a97a8;">Nenhum galpão cadastrado ainda. Use o formulário acima para adicionar o primeiro.</div>'; return; }
+  var linhas=lista.map(function(g){
+    var st=pxStatusMes(g);
+    var cor=st==="PAGO"?"#1b9e4b":(st==="ATRASADO"?"#c0392b":"#e8a800");
+    var rot=st==="PAGO"?"Pago":(st==="ATRASADO"?"Atrasado":"Em aberto");
+    var pago=pxPagoMes(g);
+    var acaoPago=pago
+      ? '<button type="button" class="btn-s" data-glpago="'+g.id+'" data-on="1" style="padding:6px 10px;font-size:12px;">Desfazer pago</button>'
+      : '<button type="button" class="btn-p" data-glpago="'+g.id+'" style="padding:6px 10px;font-size:12px;">Marcar pago</button>';
+    return '<tr>'+
+      '<td><b>'+(prdEsc(g.nome)||"—")+'</b></td>'+
+      '<td>'+(prdEsc(g.locatario)||"—")+'</td>'+
+      '<td>'+(prdEsc(g.contato)||"—")+'</td>'+
+      '<td>'+brl(+g.valor||0)+'</td>'+
+      '<td>'+(prdEsc(g.pagamento)||"—")+'</td>'+
+      '<td>'+(pxFmtData(g.vencimento)||"—")+'</td>'+
+      '<td><span style="display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:12.5px;color:'+cor+';"><span style="width:8px;height:8px;border-radius:50%;background:'+cor+';"></span>'+rot+'</span></td>'+
+      '<td style="white-space:nowrap;">'+acaoPago+' <button type="button" class="btn-s" data-gledit="'+g.id+'" style="padding:6px 10px;font-size:12px;">Editar</button> <button type="button" class="btn-s" data-glrem="'+g.id+'" style="padding:6px 10px;font-size:12px;">Remover</button></td>'+
+      '</tr>';
+  }).join("");
+  tb.innerHTML='<table class="gl-tb"><thead><tr><th>Galpão</th><th>Locatário</th><th>Contato</th><th>Valor</th><th>Pagamento</th><th>Vencimento</th><th>Status</th><th>Ações</th></tr></thead><tbody>'+linhas+'</tbody></table>';
+}
+(function initGalpoes(){
+  var salvar=document.getElementById("glSalvar"); if(!salvar) return;
+  function coleta(){ return {
+    nome:(document.getElementById("glNome").value||"").trim(),
+    locatario:(document.getElementById("glLoc").value||"").trim(),
+    contato:(document.getElementById("glTel").value||"").trim(),
+    email:(document.getElementById("glEmail").value||"").trim(),
+    valor:parseFloat(document.getElementById("glValor").value||"0")||0,
+    pagamento:(document.getElementById("glPag").value||""),
+    abertura:(document.getElementById("glAbertura").value||""),
+    vencimento:(document.getElementById("glVenc").value||""),
+    obs:(document.getElementById("glObs").value||"").trim()
+  }; }
+  salvar.onclick=function(){
+    var d=coleta();
+    if(!d.nome){ uiConfirm({titulo:"Falta o nome",msg:"Dê um nome/identificação ao galpão (ex: Galpão 1 - Av. Central).",ok:"OK",cancel:""}); return; }
+    var editId=salvar.dataset.edit;
+    if(editId){ var g=galpoesG.find(function(x){ return x.id===editId; }); if(g){ Object.assign(g,d); } }
+    else { galpoesG.push(Object.assign({id:"g"+Date.now().toString(36)+Math.round(Math.random()*1e5).toString(36),manuais:{}},d)); }
+    glSave(); glLimparForm(); renderGalpoes();
+  };
+  var cancelar=document.getElementById("glCancelar"); if(cancelar) cancelar.onclick=glLimparForm;
+  var busca=document.getElementById("glBusca"); if(busca) busca.addEventListener("input",renderGalpoes);
+  var tb=document.getElementById("glTabela");
+  if(tb) tb.addEventListener("click",function(e){
+    var pago=e.target.closest("[data-glpago]");
+    if(pago){ var g=galpoesG.find(function(x){ return x.id===pago.dataset.glpago; }); if(g){ var k=glKeyMesAtual(g); if(!k){ uiConfirm({titulo:"Informe as datas",msg:"Preencha a abertura e o vencimento do contrato pra controlar os pagamentos por mês.",ok:"OK",cancel:""}); return; } g.manuais=g.manuais||{}; if(pago.dataset.on){ delete g.manuais[k]; } else { g.manuais[k]="autorizado"; } glSave(); renderGalpoes(); } return; }
+    var ed=e.target.closest("[data-gledit]");
+    if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNome").value=g2.nome||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; document.getElementById("glValor").value=g2.valor||""; document.getElementById("glPag").value=g2.pagamento||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glVenc").value=g2.vencimento||""; document.getElementById("glObs").value=g2.obs||""; var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
+    var rem=e.target.closest("[data-glrem]");
+    if(rem){ var id=rem.dataset.glrem; var g3=galpoesG.find(function(x){ return x.id===id; }); uiConfirm({titulo:"Remover galpão",msg:"Apagar \\u201c"+((g3&&g3.nome)||"este galpão")+"\\u201d e todo o histórico dele?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; galpoesG=galpoesG.filter(function(x){ return x.id!==id; }); glCloudDel(id); glSave(); renderGalpoes(); }); return; }
+  });
+})();
+
 /* --- Arquivos PRIVADOS (Storage): gera link temporário autorizado (só quem tem login abre) --- */
 function srSignedUrl(bucket, stored, cb){
   if(!stored){ cb(""); return; }
@@ -8417,7 +8569,7 @@ function lixRestaurar(reg){
 }
 
 /* ===== Configurações (só master) ===== */
-var CFG_TABELAS=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas","banco_horas"];
+var CFG_TABELAS=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas","banco_horas","galpoes"];
 function cfgEhMaster(){ return !!(window.__PERFIL && window.__PERFIL.is_master); }
 function renderConfig(){
   var el=document.getElementById("cfgConteudo"); if(!el) return;
@@ -8484,7 +8636,7 @@ function bkpRestaurar(file){
     uiConfirm({titulo:"Restaurar backup",msg:"Isso vai repor os dados com a cópia do dia "+(pacote._data?pacote._data.slice(0,10).split("-").reverse().join("/"):"?")+" ("+qtd+" registros). O que foi adicionado depois dessa data pode ser substituído. Continuar?",ok:"Restaurar",cancel:"Cancelar"}).then(function(ok){
       if(!ok) return;
       var msg=document.getElementById("bkpMsg"); if(msg){ msg.textContent="Restaurando..."; msg.style.color="#7a8696"; }
-      var ordem=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas","banco_horas"];
+      var ordem=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas","banco_horas","galpoes"];
       var cadeia=Promise.resolve();
       ordem.forEach(function(t){
         var linhas=pacote.tabelas[t]; if(!linhas||!linhas.length) return;
@@ -9511,6 +9663,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="pedidos"){ renderPedidos(); pedCloudLoad(); pedRealtime(); }
     if(btn.dataset.page==="config") renderConfig();
     if(btn.dataset.page==="pontos"||btn.dataset.page==="mapa"){ pxCloudLoad(); try{ if(typeof pixCobLoad==="function") pixCobLoad(); }catch(e){} }
+    if(btn.dataset.page==="galpoes"){ try{ glCloudLoad(); glRealtime(); renderGalpoes(); }catch(e){} }
     if(btn.dataset.page==="jornada"){ try{ jorCloudLoad(); jorRealtime(); renderJornada(); }catch(e){} }
     if(btn.dataset.page==="epi") renderEPI();
     if(btn.dataset.page==="fardamento") renderFardamento();
@@ -10296,6 +10449,8 @@ function pedEnviar(){
     if(!perfil || perfil.is_master){ navs.forEach(function(b){ b.style.display=''; b.classList.remove('nav-locked'); }); return; }
     var ok=perfil.paginas||[], first=null;
     navs.forEach(function(b){
+      // Abas "só master" (ex: Galpões = patrimônio pessoal do dono) ficam OCULTAS pra qualquer não-master.
+      if(b.classList.contains('nav-mo')){ b.style.display='none'; return; }
       var allow=ok.indexOf(b.dataset.page)>=0;
       b.style.display='';
       b.classList.toggle('nav-locked',!allow);
@@ -10327,6 +10482,7 @@ function pedEnviar(){
       fimChecagem(); applyPerms(perfil); showUser(perfil,email); ov.style.display="none";
       try{ if(typeof manCloudLoad==="function") manCloudLoad(); }catch(e){}
       try{ if(typeof pxCloudLoad==="function") pxCloudLoad(); }catch(e){}
+      try{ if(typeof glCloudLoad==="function"){ glCloudLoad(); glRealtime(); } }catch(e){}
       try{ if(typeof pixCobLoad==="function") pixCobLoad(); }catch(e){}
       try{ if(typeof entCloudLoad==="function") entCloudLoad(); }catch(e){}
       try{ if(window.__syncPull) window.__syncPull(); }catch(e){}
