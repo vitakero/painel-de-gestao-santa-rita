@@ -43,6 +43,10 @@ const dataMax = DIA.length ? DIA[DIA.length - 1].d : "";
 // Data inicial padrão = dia de hoje (o dia mais recente com dados). Abre mostrando só o dia atual.
 const defaultDe = dataMax || dataMin;
 const geradoEm = new Date().toLocaleString("pt-BR");
+// Cabeçalho: hora curta da geração + versão automática por build (CalVer: ano.mês.dia)
+const _agoraHdr = new Date();
+const geradoEmCurto = _agoraHdr.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) + " às " + _agoraHdr.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+const versaoPainel = _agoraHdr.getFullYear() + "." + String(_agoraHdr.getMonth() + 1).padStart(2, "0") + "." + String(_agoraHdr.getDate()).padStart(2, "0");
 
 // Lista unica de produtos (codigo + nome) a partir do ranking - para o autocompletar.
 const produtosUnicos = [...new Map(MESPROD.map((p) => [p.id, p.nome] as [string, string])).entries()]
@@ -74,18 +78,38 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 <style>
   * { box-sizing: border-box; }
   body { font-family: system-ui, -apple-system, sans-serif; margin:0; background:#eef1f6; color:#1a2233; }
-  header { background:linear-gradient(120deg,#0a4d21 0%,#157a35 55%,#1f9d3f 100%); color:#fff; padding:18px 32px; border-bottom:3px solid #e11b0e; }
-  header .hwrap { display:flex; align-items:center; gap:16px; max-width:none; margin:0; }
+  header { background:#fff; color:#1a2233; padding:0 20px; border-bottom:1px solid #e4e9f0; position:sticky; top:0; z-index:40; font-family:'Inter',system-ui,-apple-system,sans-serif; }
+  header .hwrap { display:flex; align-items:center; gap:14px; max-width:none; margin:0; height:58px; }
   header .logo { flex:none; display:flex; align-items:center; justify-content:center; }
-  header .logo img { height:56px; width:auto; display:block; filter:drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
-  header .htxt { flex:1; min-width:0; }
-  header h1 { margin:0; font-size:22px; letter-spacing:.2px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-  header p { margin:4px 0 0; opacity:.9; font-size:12.5px; }
+  header .logo img { height:34px; width:auto; display:block; }
+  .hsep { width:1px; height:26px; background:#e4e9f0; flex:none; }
+  header .htxt { min-width:0; }
+  header h1 { margin:0; font-size:14.5px; font-weight:700; color:#0f1724; letter-spacing:-.1px; line-height:1.3; white-space:nowrap; }
+  header p { margin:1px 0 0; font-size:11px; color:#6b7787; letter-spacing:.15px; line-height:1.3; white-space:nowrap; }
+  .hdir { margin-left:auto; display:flex; align-items:center; gap:12px; min-width:0; }
+  .hstatus { display:inline-flex; align-items:center; gap:7px; background:#eef7f1; border:1px solid #d8ecdf; padding:5px 11px 5px 9px; border-radius:20px; flex:none; }
+  .hstatus .hst-dot { width:7px; height:7px; border-radius:50%; background:#1f9d3f; animation:pulseDotHdr 2.2s infinite; }
+  @keyframes pulseDotHdr { 0%{box-shadow:0 0 0 0 rgba(31,157,63,.4);} 70%{box-shadow:0 0 0 6px rgba(31,157,63,0);} 100%{box-shadow:0 0 0 0 rgba(31,157,63,0);} }
+  .hstatus .hstatus-t { font-size:11.5px; font-weight:600; color:#0e6b2c; letter-spacing:.2px; }
+  .hmeta { text-align:right; line-height:1.35; flex:none; }
+  .hmeta .hdata { display:block; font-size:11.5px; font-weight:600; color:#55606e; }
+  .hmeta .hupd { display:block; font-size:10.5px; color:#6b7787; }
+  .hver { font-size:10px; font-weight:600; color:#56606d; border:1px solid #e4e9f0; background:#f7f9fb; padding:2px 7px; border-radius:6px; flex:none; letter-spacing:.3px; }
+  #hUser { display:none; align-items:center; gap:9px; background:none; border:0; cursor:pointer; padding:5px 7px; border-radius:9px; font:inherit; text-align:left; max-width:220px; transition:background .13s; }
+  #hUser:hover { background:#f2f5f8; }
+  #hUser .hu-av { width:30px; height:30px; border-radius:50%; background:#e3f0e8; color:#0c5a26; font-size:12px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; flex:none; letter-spacing:.3px; }
+  #hUser .hu-tx { min-width:0; line-height:1.25; }
+  #hUser .hu-tx b { display:block; font-size:12.5px; font-weight:600; color:#1a2233; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #hUser .hu-tx i { display:block; font-style:normal; font-size:10.5px; color:#6b7787; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #hUser .hu-ch { color:#aeb8c2; font-size:15px; flex:none; }
+  @media (max-width:1020px){ .hver, .hmeta .hdata { display:none; } }
+  @media (max-width:840px){ .hmeta, .hsep-r { display:none; } }
+  @media (max-width:600px){ header { padding:0 12px; } header .htxt p { display:none; } .hstatus-t { display:none; } .hstatus { padding:6px; } #hUser .hu-tx, #hUser .hu-ch { display:none; } }
   .tag { display:inline-flex; align-items:center; gap:6px; background:#ffffff22; border:1px solid #ffffff55; padding:3px 11px; border-radius:20px; font-size:11px; font-weight:600; letter-spacing:.3px; vertical-align:middle; }
   .tag .dot { width:7px; height:7px; border-radius:50%; background:#5df08a; animation:pulseDot 1.8s infinite; }
   @keyframes pulseDot { 0%{box-shadow:0 0 0 0 rgba(93,240,138,.6);} 70%{box-shadow:0 0 0 7px rgba(93,240,138,0);} 100%{box-shadow:0 0 0 0 rgba(93,240,138,0);} }
   .layout { display:flex; align-items:flex-start; max-width:none; margin:0; }
-  .sidebar { width:210px; flex:none; padding:22px 14px; position:sticky; top:0; }
+  .sidebar { width:210px; flex:none; padding:22px 14px; position:sticky; top:58px; }
   .sidebar .titulo { font-size:11px; color:#8a97a8; text-transform:uppercase; letter-spacing:.5px; padding:0 12px 8px; }
   .nav-item { display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:none; border:0; cursor:pointer; padding:11px 12px; border-radius:9px; font-size:14px; color:#33404f; font-weight:500; margin-bottom:3px; }
   .nav-item:hover { background:#e2e8f1; }
@@ -450,10 +474,6 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .pw-eye:hover{color:#157a35;}
   .pw-eye svg{display:block;width:20px;height:20px;}
   #authResetBtn{width:100%;border:0;background:linear-gradient(135deg,#23a847,#0c5a26);color:#fff;border-radius:11px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;margin-top:4px;}
-  #authUser{display:flex;align-items:center;gap:8px;padding:10px 11px;margin:0 8px 12px;background:#eef4ef;border-radius:10px;font-size:12.5px;color:#0c5a26;font-weight:700;cursor:pointer;transition:.12s;}
-  #authUser:hover{background:#e0ece3;}
-  #authUser span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  #authUser .ach{flex:none;color:#8aa596;font-size:16px;}
   #authSair{margin-left:auto;border:1px solid #cdd6e0;background:#fff;border-radius:7px;padding:4px 9px;font-size:12px;cursor:pointer;color:#56606d;font-weight:600;}
 </style><link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body>
@@ -464,15 +484,29 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       <div class="logo">
         <img src="${logoDataUri}" alt="Supermercado Santa Rita">
       </div>
+      <div class="hsep"></div>
       <div class="htxt">
-        <h1>Painel Santa Rita <span class="tag"><span class="dot"></span> dados reais do VR</span></h1>
-        <p>Visão geral de vendas · lido do sistema VR da loja · gerado em ${geradoEm}</p>
+        <h1>Painel Santa Rita</h1>
+        <p>Centro de Inteligência Operacional</p>
+      </div>
+      <div class="hdir">
+        <span class="hstatus" title="Sistema no ar"><span class="hst-dot"></span><span class="hstatus-t">Operacional</span></span>
+        <div class="hmeta">
+          <span class="hdata" id="hDataHoje"></span>
+          <span class="hupd" title="Última leitura dos dados da loja">Dados atualizados em ${geradoEmCurto}</span>
+        </div>
+        <span class="hver" title="Versão do painel — gerada em ${geradoEm}">v${versaoPainel}</span>
+        <div class="hsep hsep-r"></div>
+        <button id="hUser" type="button"></button>
       </div>
     </div>
   </header>
+  <script>
+  (function(){ var el=document.getElementById("hDataHoje"); if(!el) return; try{ var d=new Date(); var s=d.toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"}); el.textContent=s.charAt(0).toUpperCase()+s.slice(1); }catch(e){} })();
+  </script>
   <div class="layout">
   <nav class="sidebar">
-    <div class="titulo">Painel Santa Rita</div>
+    <div class="titulo">Navegação</div>
     <button class="nav-item ativo" data-page="vendas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Vendas</button>
     <button class="nav-item" data-page="analise"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span> Análise</button>
     <button class="nav-item" data-page="estoque"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Estoque</button>
@@ -10273,11 +10307,13 @@ function pedEnviar(){
   }
   function showUser(perfil,email){
     window.__PERFIL=perfil; window.__EMAIL=email;
-    var sbar=document.querySelector('.sidebar'); if(!sbar) return;
-    var u=document.getElementById('authUser');
-    if(!u){ u=document.createElement('div'); u.id='authUser'; sbar.insertBefore(u,sbar.firstChild); }
-    var nm=(perfil&&perfil.nome)?perfil.nome:(email||'Conectado');
-    u.innerHTML='<span>'+nm+''+'</span><span class="ach">›</span>';
+    var u=document.getElementById('hUser'); if(!u) return;
+    var nm=String((perfil&&perfil.nome)?perfil.nome:(email||'Conectado')).replace(/[<>&]/g,'');
+    var st=String((perfil&&perfil.setor)?perfil.setor:'').replace(/[<>&]/g,'');
+    if(perfil&&perfil.is_master&&!st) st='Master';
+    var ini=nm.trim().split(/\\s+/).map(function(p){return p.charAt(0);}).slice(0,2).join('').toUpperCase()||'?';
+    u.innerHTML='<span class="hu-av">'+ini+'</span><span class="hu-tx"><b>'+nm+'</b><i>'+(st||'—')+'</i></span><span class="hu-ch">›</span>';
+    u.style.display='flex';
     u.title="Ver meu perfil";
     u.onclick=function(){ if(typeof showPerfil==="function") showPerfil(); };
   }
