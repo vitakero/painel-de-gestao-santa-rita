@@ -800,7 +800,6 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     </section>
 
     <section id="page-pontos" class="page">
-      <div class="mpk-grid" id="pxKpis"></div>
       <div id="pxInadimplentes"></div>
 
       <div class="card">
@@ -4397,36 +4396,7 @@ function pxFmtCnpj(c){
 }
 function renderPontosG(){
   const hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
-  // KPIs (sobre TODOS os pontos)
-  const total=pontosG.length;
-  const valorTotal=pontosG.reduce((a,p)=>a+(+p.valor||0),0);
-  const recebido=pontosG.filter(p=>pxPagoMes(p)).reduce((a,p)=>a+(+p.valor||0),0);
-  const aReceber=valorTotal-recebido;
-  let vencidos=0;
-  pontosG.forEach(p=>{ const d=pxParseData(p.vencimento); if(d){ const dias=(d-hoje)/86400000; if(dias<=0) vencidos++; } });
-  const pctRec=valorTotal? Math.round(recebido/valorTotal*100) : 0;
-  const pctAReceber=valorTotal? Math.round(aReceber/valorTotal*100) : 0;
-  const pxIcPin='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
-  const pxIcCifra='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>';
-  const pxIcCheck='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
-  const pxIcRelogio='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7.5 12 12 15 13.5"></polyline></svg>';
-  const pxIcAlerta='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
-  document.getElementById("pxKpis").innerHTML=
-    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Pontos</span><span class="mpk-ico b">'+pxIcPin+'</span></div>'+
-      '<div class="mpk-v">'+num(total)+'</div>'+
-      '<div class="mpk-sub">com negociação cadastrada</div></div>'+
-    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Valor negociado</span><span class="mpk-ico b">'+pxIcCifra+'</span></div>'+
-      '<div class="mpk-v">'+brl(valorTotal)+'</div>'+
-      '<div class="mpk-sub">soma de todos os contratos</div></div>'+
-    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Recebido</span><span class="mpk-ico g">'+pxIcCheck+'</span></div>'+
-      '<div class="mpk-v">'+brl(recebido)+'</div>'+
-      '<div class="mpk-sub"><b>'+pctRec+'%</b> do negociado</div></div>'+
-    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">A receber</span><span class="mpk-ico b">'+pxIcRelogio+'</span></div>'+
-      '<div class="mpk-v">'+brl(aReceber)+'</div>'+
-      '<div class="mpk-sub"><b>'+pctAReceber+'%</b> do negociado</div></div>'+
-    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Vencidos</span><span class="mpk-ico '+(vencidos?"r":"g")+'">'+(vencidos?pxIcAlerta:pxIcCheck)+'</span></div>'+
-      '<div class="mpk-v"'+(vencidos?' style="color:#b03222"':'')+'>'+num(vencidos)+'</div>'+
-      '<div class="mpk-sub">'+(vencidos?'<span class="bad">'+vencidos+' ponto'+(vencidos===1?'':'s')+' vencido'+(vencidos===1?'':'s')+'</span>':'<span class="ok">Nenhum vencido</span>')+'</div></div>';
+  // Os KPIs financeiros vivem na tela "Mapa dos pontos" (visão executiva) — aqui é só a lista de trabalho.
   // Lista de inadimplentes (quem deve, quanto e há quantos dias)
   const inad=[];
   pontosG.forEach(function(p){ const x=pxInadimplencia(p); if(x){ x.p=p; inad.push(x); } });
