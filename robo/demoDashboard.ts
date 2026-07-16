@@ -68,7 +68,7 @@ const pontosSeed = [{"numero":1,"abertura":"2026-02-20","vencimento":"2027-01-20
 
 const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Painel — Supermercado Santa Rita</title>
+<title>Painel Santa Rita</title>
 <link rel="icon" type="image/png" href="${faviconDataUri}">
 <link rel="apple-touch-icon" href="${faviconDataUri}">
 <style>
@@ -121,13 +121,15 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .btn-s:active { transform:translateY(1px); background:#d6e9de; }
   .periodo-info { margin-left:auto; font-size:12px; color:#6b7787; }
   .modal-bg { position:fixed; inset:0; background:rgba(20,28,38,.45); display:none; align-items:center; justify-content:center; z-index:9999; padding:20px; }
+  /* alerta e prompt de senha sempre POR CIMA de qualquer outra janelinha (ex: registrar bonificação) */
+  #uiModal, #uiPromptModal { z-index:100000; }
   .modal-bg.show { display:flex; }
   .modal-cx { background:#fff; border-radius:14px; max-width:430px; width:100%; box-shadow:0 18px 50px rgba(0,0,0,.28); overflow:hidden; animation:modalIn .15s ease; }
   @keyframes modalIn { from { transform:translateY(10px); opacity:0; } to { transform:none; opacity:1; } }
   .modal-top { display:flex; align-items:center; gap:12px; padding:20px 24px 0; }
   .modal-ic { width:40px; height:40px; border-radius:50%; background:#fff4e0; color:#e08600; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
   .modal-tit { font-size:16px; font-weight:700; color:#1a2233; }
-  .modal-msg { padding:12px 24px 4px; color:#46535f; font-size:14px; line-height:1.5; }
+  .modal-msg { padding:12px 24px 4px; color:#46535f; font-size:14px; line-height:1.5; white-space:pre-line; }
   .modal-acts { display:flex; justify-content:flex-end; gap:10px; padding:18px 24px 20px; }
   .modal-acts .btn-p { padding:9px 18px; border-radius:9px; font-weight:600; transition:filter .15s; }
   .modal-acts .btn-p:hover { filter:brightness(1.08); }
@@ -162,19 +164,22 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .px-exp.aberto svg { transform:rotate(90deg); }
   .px-det > td { background:#f7f9fc; padding:0; border-top:0; }
   .px-det-wrap { border-left:3px solid #157a35; }
-  .px-det-box { padding:14px 20px; display:grid; grid-template-columns:repeat(5, auto); justify-content:center; gap:14px 56px; align-items:center; }
-  .px-det-box .px-det-item { max-width:300px; }
+  .px-det-box { padding:16px 20px; display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:16px 28px; align-items:start; }
+  .px-det-box .px-det-item { min-width:0; }
+  .px-ct-sec { padding:14px 20px 16px; border-top:1px solid #eef2f6; }
+  .px-ct-lbl { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:#6b7787; font-weight:700; margin-bottom:8px; }
+  .px-ct-acoes { display:flex; gap:12px; align-items:stretch; flex-wrap:wrap; }
   .px-det-item { display:flex; flex-direction:column; gap:2px; }
   .px-det-contrato { justify-self:end; width:210px; }
   .px-det-contrato .px-arq-link { max-width:130px; }
   .px-det-item b { font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:#6b7787; font-weight:700; }
   .px-det-item span { font-size:14px; color:#2a3340; }
-  .px-arq { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .px-arq { display:flex; align-items:center; gap:8px; flex-wrap:wrap; width:100%; }
   .px-arq-link { display:inline-flex; align-items:center; gap:6px; max-width:240px; padding:5px 12px; background:#e3f0e8; color:#157a35; border-radius:7px; font-size:13px; font-weight:600; text-decoration:none; }
   .px-arq-link span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#157a35; font-size:13px; }
   .px-arq-link:hover { background:#d3e8dc; }
-  .px-arq-anexar { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:#157a35; color:#fff; border:0; border-radius:7px; font-size:13px; font-weight:600; cursor:pointer; }
-  .px-arq-anexar:hover { background:#11652b; }
+  .px-arq-anexar { display:inline-flex; align-items:center; justify-content:center; gap:7px; box-sizing:border-box; width:100%; max-width:200px; min-width:0; min-height:46px; padding:11px 16px; background:transparent; color:#33404f; border:1px dashed #b9c3cf; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; text-align:center; }
+  .px-arq-anexar:hover { background:#f6f8fb; border-color:#8fa0b3; }
   .px-arq-btn { padding:5px 11px; background:#fff; color:#46535f; border:1px solid #cdd6e0; border-radius:7px; font-size:12px; font-weight:600; cursor:pointer; }
   .px-arq-btn:hover { background:#f3f6fa; }
   .px-arq-icon { display:inline-flex; align-items:center; justify-content:center; padding:5px 8px; background:#fff; color:#46535f; border:1px solid #cdd6e0; border-radius:7px; cursor:pointer; }
@@ -183,7 +188,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .px-arq-icon.rem:hover { background:#fbeae8; }
   .px-arq-rem { color:#c0392b; border-color:#e3b7b1; }
   .px-arq-rem:hover { background:#fbeae8; }
-  .px-gerar-ct { align-self:flex-start; display:inline-flex; align-items:center; gap:6px; margin-top:8px; padding:6px 14px; background:#157a35; color:#fff; border:0; border-radius:7px; font-size:13px; font-weight:600; cursor:pointer; }
+  .px-gerar-ct { display:inline-flex; align-items:center; justify-content:center; gap:7px; box-sizing:border-box; width:100%; max-width:200px; min-width:0; min-height:46px; padding:11px 16px; background:#157a35; color:#fff; border:0; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
   .px-gerar-ct:hover { background:#11652b; }
   .px-filtro { padding:8px 34px 8px 12px; border:1px solid #cdd6e0; border-radius:8px; font-size:14px; color:#2a3340; background-color:#fff; -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2346535f' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 11px center; cursor:pointer; }
   .px-filtro:hover { border-color:#9aa6b2; }
@@ -241,6 +246,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .px-mark { display:inline-flex; align-items:center; padding:3px 10px; background:#fff; color:#56606d; border:1px solid #cdd6e0; border-radius:6px; font-size:11.5px; font-weight:600; cursor:pointer; margin-left:5px; }
   .px-mark:hover { background:#f4f7fb; }
   .px-aguard { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; background:#fff4d6; color:#9a6b00; border:1px solid #f0d68a; border-radius:6px; font-size:11.5px; font-weight:700; }
+  .bonif-c { font-size:12.5px; color:#46535f; }
+  .bonif-vazio { color:#c3ccd6; }
   .px-aut { display:inline-flex; align-items:center; padding:3px 11px; background:#157a35; color:#fff; border:0; border-radius:6px; font-size:11.5px; font-weight:700; cursor:pointer; margin-left:5px; }
   .px-aut:hover { background:#0c5a26; }
   .px-rec { display:inline-flex; align-items:center; padding:3px 8px; background:#fff; color:#c0392b; border:1px solid #e3b4ad; border-radius:6px; font-size:11.5px; font-weight:700; cursor:pointer; margin-left:4px; }
@@ -257,9 +264,48 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .pix-cx { max-width:380px; }
   .pix-ic { background:#e3f0e8; color:#157a35; }
   .pix-body { padding:6px 24px 4px; }
+  .pix-cx { position:relative; }
+  .pix-x { position:absolute; top:12px; right:12px; width:32px; height:32px; border:0; border-radius:50%; background:#f2f5f8; color:#6b7787; font-size:15px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s, color .15s; }
+  .pix-x:hover { background:#e4eaf0; color:#3a4652; }
+  .pix-pago { display:none; flex-direction:column; align-items:center; justify-content:center; gap:11px; padding:18px 14px 6px; text-align:center; }
+  .pix-pago.on { display:flex; }
+  .pix-pago-bola { width:104px; height:104px; border-radius:50%; background:#53ca73; color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(83,202,115,.4); animation:pixPagoPop .7s cubic-bezier(.25,1.1,.45,1) both; }
+  .pix-pago-bola svg { width:56px; height:56px; }
+  .pix-pago-bola svg polyline { stroke-dasharray:26; stroke-dashoffset:26; animation:pixPagoCheck .55s .45s ease-out forwards; }
+  @keyframes pixPagoPop { 0%{ transform:scale(0); opacity:0; } 55%{ transform:scale(1.06); opacity:1; } 100%{ transform:scale(1); } }
+  @keyframes pixPagoCheck { to{ stroke-dashoffset:0; } }
+  .pix-pago-tit { font-size:21px; font-weight:800; color:#1f2b3a; margin-top:2px; }
+  .pix-pago-valor { font-size:38px; font-weight:800; color:#2e7d46; letter-spacing:-.5px; line-height:1; margin:2px 0; }
+  .pix-pago-sub { font-size:14px; color:#5c6b7a; line-height:1.55; }
+  .pix-pago-sub b { color:#2e7d46; }
+  .pix-pago-quem { font-size:15px; font-weight:700; color:#33404f; }
+  .pix-pago-tag { display:inline-block; margin-top:6px; font-size:12px; font-weight:700; color:#8a6d1a; background:#fdf3d7; border-radius:20px; padding:4px 12px; }
+  .pix-pago-linha { font-size:13px; color:#8a97a8; }
+  @keyframes pixConfPop { 0%{ transform:scale(.9); opacity:0; } 100%{ transform:scale(1); opacity:1; } }
+  @keyframes pixVistoDraw { 0%{ transform:scale(.4); opacity:0; } 60%{ transform:scale(1.12); } 100%{ transform:scale(1); opacity:1; } }
+  .pix-pago .btn-p { margin-top:8px; }
   .pix-sub { font-size:13px; color:#46535f; line-height:1.5; margin-bottom:12px; }
   .pix-qr { text-align:center; }
   .pix-qr img { width:210px; height:210px; image-rendering:pixelated; border:1px solid #eef2f6; border-radius:8px; }
+  .pix-qr-pago { display:none; min-height:210px; box-sizing:border-box; margin:0 auto; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:10px 0; animation:pixConfPop .38s ease-out both; }
+  .pix-qr-pago.on { display:flex; }
+  .pix-qr-pago-bola { width:92px; height:92px; flex-shrink:0; border-radius:50%; background:#53ca73; color:#fff; display:flex; align-items:center; justify-content:center; animation:pixVistoDraw .45s ease-out both; }
+  .pix-qr-pago-bola svg { width:52px; height:52px; }
+  .pix-qr-pago-tit { font-size:19px; font-weight:800; color:#242c37; line-height:1.2; text-align:center; }
+  .pix-qr-pago-sub { font-size:12.5px; font-weight:700; color:#1e7a3c; background:#eaf7ee; border-radius:999px; padding:7px 16px; text-align:center; line-height:1.4; max-width:90%; }
+  .pix-qr-pago.teste .pix-qr-pago-sub { color:#8a6d1a; background:#fdf6e3; }
+  /* modo boleto: a linha digitável é a estrela; o QR Pix fica escondido atrás do botãozinho */
+  .pix-cx.semqr .pix-qr { display:none; }
+  .pix-verqr { display:none; margin:10px auto 0; background:none; border:0; color:#157a35; font-size:12.5px; font-weight:700; cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+  .pix-verqr:hover { color:#0f5c27; }
+  .pix-cx.boleto .pix-verqr { display:block; }
+  .pix-cx.pago .pix-verqr { display:none; }
+  /* depois de pago: some o copia e cola, mas a janela NÃO encolhe (min-height travado por JS);
+     o visto centraliza no espaço que sobrou e o Fechar continua no pé */
+  .pix-cx.pago { display:flex; flex-direction:column; }
+  .pix-cx.pago .pix-body { flex:1; display:flex; flex-direction:column; }
+  .pix-cx.pago .pix-qr { flex:1; display:flex; align-items:center; justify-content:center; }
+  .pix-cx.pago .pix-cc-lbl, .pix-cx.pago .pix-cc, .pix-cx.pago .pix-copiar, .pix-cx.pago .modal-acts, .pix-cx.pago .pix-qr-hint { display:none; }
   .pix-cc-lbl { font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:#6b7787; font-weight:700; margin:14px 0 4px; }
   .pix-cc { width:100%; box-sizing:border-box; font-family:monospace; font-size:11px; line-height:1.5; color:#2a3340; border:1px solid #cdd6e0; border-radius:8px; padding:8px; resize:none; word-break:break-all; max-height:340px; overflow-y:auto; }
   .pix-copiar { width:100%; margin-top:10px; display:inline-flex; align-items:center; justify-content:center; gap:8px; height:44px; border:0; border-radius:10px; background:#157a35; color:#fff; font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 2px 6px rgba(21,122,53,.28); transition:background .15s, box-shadow .15s, transform .05s; }
@@ -409,7 +455,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #authUser span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #authUser .ach{flex:none;color:#8aa596;font-size:16px;}
   #authSair{margin-left:auto;border:1px solid #cdd6e0;background:#fff;border-radius:7px;padding:4px 9px;font-size:12px;cursor:pointer;color:#56606d;font-weight:600;}
-</style><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
+</style><link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body>
 <div id="authOv" style="display:flex"><div id="authCard"><img id="authLogo" alt=""><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div id="authChecando" style="text-align:center;color:#8a97a8;font-size:13.5px;padding:14px 0 6px;">Verificando acesso...</div><div id="authLoginBox" style="display:none"><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar acesso</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld" id="fldSetor" style="display:none"><label>Setor</label><select id="authSetor"><option value="">Selecione...</option><option>Frente de Loja</option><option>Açougue</option><option>Padaria</option><option>Hortifruti</option><option>Mercearia</option><option>Estoque</option><option>Financeiro</option><option>RH</option><option>Compras</option><option>Administração</option><option>Diretoria</option><option>Outro</option></select></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><div class="pw-wrap"><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld" id="fldRepetir" style="display:none"><label>Repetir senha</label><div class="pw-wrap"><input id="authRepetir" type="password" placeholder="digite a senha de novo" autocomplete="new-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authForgot">Esqueci minha senha</span></div><div id="authReset" style="display:none"><div class="auth-fld"><label>Nova senha</label><div class="pw-wrap"><input id="authNovaSenha" type="password" placeholder="mínimo 6 caracteres"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld"><label>Repetir nova senha</label><div class="pw-wrap"><input id="authNovaRepetir" type="password" placeholder="digite a senha de novo"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authResetBtn" type="button">Salvar nova senha</button><div id="authResetMsg" style="font-size:13px;margin-top:10px;text-align:center;"></div></div><div id="authWait" style="display:none"><div style="font-size:44px;margin:4px 0 8px;">⏳</div><p style="font-size:14.5px;color:#33404f;line-height:1.65;margin:0 0 6px;"><b>Conta confirmada!</b><br>Falta o administrador liberar o seu acesso ao painel.</p><p style="font-size:12.5px;color:#8a97a8;margin:0 0 16px;">Avise o responsável. Assim que ele liberar, você entra automaticamente.</p><button id="authWaitSair" type="button" style="background:#eef1f5;color:#33404f;border:0;border-radius:10px;padding:10px 22px;font-weight:700;cursor:pointer;">Sair</button></div></div></div>
 <script>try{var _o=document.getElementById("authOv");var _s=(location.hash||"")+(location.search||"");var _rec=(_s.indexOf("type=recovery")>=0)||(window.sessionStorage&&sessionStorage.getItem("sr_recovery")==="1");var _exp=(!_rec)&&(_s.indexOf("otp_expired")>=0||_s.indexOf("access_denied")>=0||_s.indexOf("error_code")>=0);if(_o&&(_rec||_exp)){_o.style.display="flex";var _lb=document.getElementById("authLoginBox");var _rb=document.getElementById("authReset");if(_rec){if(_lb)_lb.style.display="none";if(_rb)_rb.style.display="";}else{if(_rb)_rb.style.display="none";if(_lb)_lb.style.display="";var _m=document.getElementById("authMsg");if(_m){_m.textContent="Este link de senha já foi usado ou expirou. Toque em Esqueci minha senha para receber um novo.";_m.style.color="#c0392b";}}}}catch(e){}</script>
@@ -419,14 +465,14 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <img src="${logoDataUri}" alt="Supermercado Santa Rita">
       </div>
       <div class="htxt">
-        <h1>Painel de Gestão <span class="tag"><span class="dot"></span> dados reais do VR</span></h1>
+        <h1>Painel Santa Rita <span class="tag"><span class="dot"></span> dados reais do VR</span></h1>
         <p>Visão geral de vendas · lido do sistema VR da loja · gerado em ${geradoEm}</p>
       </div>
     </div>
   </header>
   <div class="layout">
   <nav class="sidebar">
-    <div class="titulo">Painel de controle</div>
+    <div class="titulo">Painel Santa Rita</div>
     <button class="nav-item ativo" data-page="vendas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Vendas</button>
     <button class="nav-item" data-page="analise"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span> Análise</button>
     <button class="nav-item" data-page="estoque"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Estoque</button>
@@ -448,6 +494,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="estld"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg></span> Loja / Depósito<span class="soon">novo</span></button>
     <button class="nav-item" data-page="pedidos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span> Pedidos<span class="soon">novo</span><span class="nav-badge" id="pedNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="cargos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4V10H4zM10 20h4V4h-4zM16 20h4v-7h-4z"/></svg></span> Cargos e Salários</button>
+    <button class="nav-item" data-page="jornada"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span> Banco de Horas<span class="soon">novo</span></button>
     <button class="nav-item" data-page="manutencoes"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.3-.6-.6-2.3 2.6-2.6z"/></svg></span> Manutenções<span class="nav-badge" id="manNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="negociar"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span> Negociar<span class="nav-badge" id="negNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="metas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span> Metas <span class="soon">em breve</span></button>
@@ -736,8 +783,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <div class="campo" style="flex:1;min-width:200px;"><label for="pxEndereco">Endereço</label><input type="text" id="pxEndereco" placeholder="busque pelo CNPJ ou digite"></div>
           <div class="campo"><label for="pxValor">Valor (R$)</label><input type="number" id="pxValor" step="0.01" min="0" style="width:120px;"></div>
           <div class="campo"><label for="pxPag">Modo de pagamento</label>
-            <input type="text" id="pxPag" list="pxPagList" style="width:150px;" placeholder="Boleto">
-            <datalist id="pxPagList"><option value="Boleto"></option><option value="Bonificação"></option><option value="Pix"></option></datalist>
+            <select id="pxPag" class="px-filtro" style="width:150px;">
+              <option value="">Selecione...</option>
+              <option value="Boleto">Boleto</option>
+              <option value="Bonificação">Bonificação</option>
+              <option value="Pix">Pix</option>
+            </select>
           </div>
           <div class="campo"><label for="pxAbertura">Abertura do contrato</label><input type="date" id="pxAbertura"></div>
           <div class="campo"><label for="pxVenc">Vencimento do contrato</label><input type="date" id="pxVenc"></div>
@@ -777,71 +828,308 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 
     <section id="page-mapa" class="page">
       <style>
-        .mapa-legenda{display:flex;gap:8px;flex-wrap:wrap;font-size:12px;align-items:center;}
-        .mapa-legenda span{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #e6ebf1;border-radius:20px;padding:4px 11px;color:#56606d;font-weight:600;}
-        .mapa-legenda i{width:11px;height:11px;border-radius:50%;display:inline-block;}
-        .mapa-wrap{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;margin-top:16px;}
-        .mapa-loja{position:relative;background:linear-gradient(160deg,#fbfcfe,#eef2f7);border:1px solid #e2e8f1;border-radius:16px;padding:26px 26px 30px;flex:1;min-width:520px;box-shadow:inset 0 1px 0 #fff,0 1px 3px rgba(20,40,70,.05);}
-        .mapa-entrada{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:18px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#90a0b2;}
-        .mapa-entrada:before,.mapa-entrada:after{content:"";height:1px;flex:1;background:linear-gradient(90deg,transparent,#d4dde7,transparent);}
-        .mapa-espaco{height:30px;}
-        .mapa-grupo{display:grid;grid-template-columns:repeat(5,1fr);column-gap:30px;row-gap:16px;margin-bottom:38px;}
-        .mapa-gond{display:flex;flex-direction:column;gap:6px;}
-        .mapa-cap{position:relative;border:0;cursor:pointer;color:#fff;font-weight:700;font-size:14px;border-radius:8px;padding:10px 0;text-align:center;letter-spacing:.3px;text-shadow:0 1px 1px rgba(0,0,0,.18);box-shadow:0 2px 4px rgba(20,40,70,.12);transition:transform .1s ease,box-shadow .14s ease,filter .14s;}
-        .mapa-cap:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(20,40,70,.22);filter:brightness(1.04);}
-        .mapa-cap.livre{background:linear-gradient(180deg,#aab6c4,#8d9bab);color:#f4f7fb;}
-        .mapa-cap.pago{background:linear-gradient(180deg,#23ad57,#15913f);}
-        .mapa-cap.naopago{background:linear-gradient(180deg,#d6452f,#b5331f);}
-        .mapa-cap.venc{box-shadow:0 0 0 2px #fff,0 0 0 5px #f5901e,0 2px 6px rgba(245,144,30,.45);}
-        .mapa-cap.sel{outline:3px solid #157a35;outline-offset:2px;transform:translateY(-2px);box-shadow:0 6px 16px rgba(21,122,53,.3);}
-        .mapa-body{background:linear-gradient(180deg,#d7dee7,#c4cdd8);border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:9px;box-shadow:inset 0 1px 3px rgba(20,40,70,.12);}
-        .mapa-body i{background:linear-gradient(180deg,#eef2f6,#c9d2dc);border-radius:3px;height:30px;display:block;box-shadow:inset 0 -3px 0 rgba(20,40,70,.07);}
-        .mapa-detalhe{background:#fff;border:1px solid #e2e8f1;border-radius:16px;padding:0;flex:0 0 300px;min-width:260px;overflow:hidden;box-shadow:0 1px 3px rgba(20,40,70,.06);}
-        .mapa-detalhe .det-vazio{padding:24px 20px;color:#7a8794;font-size:14px;line-height:1.5;text-align:center;}
-        .mapa-det-head{padding:16px 18px;color:#fff;background:linear-gradient(135deg,#157a35,#1b9e4b);}
-        .mapa-det-head.off{background:linear-gradient(135deg,#c0392b,#d6452f);}
-        .mapa-det-head.free{background:linear-gradient(135deg,#8d9bab,#aab6c4);}
-        .mapa-det-head .pnum{font-size:12px;font-weight:600;opacity:.85;letter-spacing:.5px;text-transform:uppercase;}
-        .mapa-det-head .pforn{font-size:19px;font-weight:800;margin-top:2px;line-height:1.15;}
-        .mapa-det-badge{display:inline-flex;align-items:center;gap:5px;margin-top:9px;background:rgba(255,255,255,.22);border-radius:20px;padding:3px 11px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
-        .mapa-det-badge + .mapa-det-badge{margin-left:7px;}
-        .mapa-det-body{padding:6px 18px 16px;}
-        .mapa-detalhe .lin{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #f0f3f7;font-size:14px;}
-        .mapa-detalhe .lin:last-child{border-bottom:0;}
-        .mapa-detalhe .lin b{color:#33404f;font-weight:600;}
-        .mapa-detalhe .lin span{color:#5a6678;text-align:right;}
-        .mapa-cfg{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #d7dee7;border-radius:9px;padding:6px 12px;font-size:12.5px;font-weight:600;color:#56606d;cursor:pointer;transition:background .14s,border-color .14s,color .14s;}
+        #page-mapa{font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;}
+        /* ===== KPIs executivos ===== */
+        .mpk-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(216px,1fr));gap:14px;margin-bottom:16px;}
+        .mpk{background:#fff;border-radius:14px;padding:15px 18px 14px;box-shadow:0 1px 4px rgba(0,0,0,.07);transition:transform .16s ease,box-shadow .16s ease;min-width:0;}
+        .mpk:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(16,24,40,.1);}
+        .mpk-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+        .mpk-lbl{font-size:11px;font-weight:600;letter-spacing:.7px;text-transform:uppercase;color:#8a94a3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .mpk-ico{width:30px;height:30px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+        .mpk-ico svg{width:15px;height:15px;}
+        .mpk-ico.g{background:#e7f4ec;color:#157a35;}
+        .mpk-ico.b{background:#eaf1fb;color:#2c62b8;}
+        .mpk-ico.r{background:#fdeeec;color:#c0392b;}
+        .mpk-v{font-size:24px;font-weight:800;color:#17202b;margin-top:9px;line-height:1.05;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+        .mpk-v .un{font-size:13px;font-weight:600;color:#94a0ae;letter-spacing:0;margin-left:1px;}
+        .mpk-sub{font-size:12px;color:#7d8794;margin-top:5px;line-height:1.4;}
+        .mpk-sub b{color:#475462;font-weight:600;}
+        .mpk-sub .ok{color:#157a35;font-weight:600;}
+        .mpk-sub .warn{color:#b06c00;font-weight:600;}
+        .mpk-sub .bad{color:#c0392b;font-weight:600;}
+        .mpk-bar{height:5px;background:#edf1f5;border-radius:99px;margin-top:11px;overflow:hidden;}
+        .mpk-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#1b9e4b,#157a35);transition:width .6s cubic-bezier(.2,.7,.3,1);}
+        /* ===== cabeçalho / legenda ===== */
+        .mapa-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+        .mapa-sub{font-size:13px;color:#7d8794;margin-top:3px;}
+        .mapa-toolbar{display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;margin-top:13px;}
+        .mapa-legenda{display:flex;gap:5px 15px;flex-wrap:wrap;font-size:12px;align-items:center;color:#5d6875;}
+        .mapa-legenda span{display:inline-flex;align-items:center;gap:6px;font-weight:500;}
+        .mapa-legenda i{width:11px;height:11px;border-radius:3.5px;display:inline-block;box-sizing:border-box;}
+        .mapa-legenda i.dot{border-radius:50%;width:9px;height:9px;}
+        .mapa-cfg{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #d7dee7;border-radius:9px;padding:7px 13px;font-size:12.5px;font-weight:600;color:#56606d;cursor:pointer;transition:background .14s,border-color .14s,color .14s;font-family:inherit;}
         .mapa-cfg:hover{background:#f4f7fb;border-color:#c2cdda;}
         .mapa-cfg svg{width:15px;height:15px;}
         .mapa-cfg.ativo{background:#157a35;border-color:#157a35;color:#fff;}
+        .mapa-aviso{display:flex;align-items:center;gap:9px;background:#fdf3d9;border:1px solid #efdfae;color:#7a5b00;border-radius:10px;padding:9px 13px;font-size:13px;margin-top:12px;}
+        .mapa-aviso svg{width:15px;height:15px;flex-shrink:0;}
+        /* ===== planta da loja ===== */
+        .mapa-wrap{display:flex;gap:16px;align-items:flex-start;margin-top:14px;}
+        .mapa-loja-scroll{flex:1;min-width:0;max-width:100%;overflow-x:auto;}
+        .mapa-loja{position:relative;min-width:600px;background:#fbfcfd;border:1px solid #eaeef3;border-radius:16px;padding:20px 22px 24px;}
+        .mpl-frente{display:flex;align-items:stretch;gap:14px;}
+        .mpl-porta{flex:0 0 130px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1.5px dashed #c8d2de;border-radius:10px;padding:7px 6px;color:#8a96a5;font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;background:#fff;}
+        .mpl-porta svg{width:15px;height:15px;color:#aab5c2;}
+        .mpl-caixas{flex:1;display:flex;align-items:center;gap:8px;border:1px solid #e6ebf1;background:#fff;border-radius:10px;padding:9px 14px;}
+        .mpl-caixas i{width:26px;height:13px;border-radius:4px;background:linear-gradient(180deg,#eef2f6,#dfe6ee);box-shadow:inset 0 -1px 0 rgba(20,40,70,.08);}
+        .mpl-caixas span{margin-left:auto;color:#8a96a5;font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;}
+        .mpl-corr{display:flex;align-items:center;gap:10px;margin:15px 0;color:#a7b2bf;font-size:9.5px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;white-space:nowrap;}
+        .mpl-corr:before,.mpl-corr:after{content:"";height:1px;flex:1;background:linear-gradient(90deg,transparent,#dce3eb 25%,#dce3eb 75%,transparent);}
+        .mpl-fileira{display:flex;align-items:stretch;}
+        .mpl-rodape{display:flex;align-items:stretch;margin-top:2px;}
+        .mpl-slot{flex:1 1 0;min-width:0;}
+        .mpl-gap{flex:0 0 52px;}
+        .gnd{display:flex;flex-direction:column;filter:drop-shadow(0 2px 3px rgba(20,40,70,.09));min-width:0;flex:1 1 0;}
+        .mpl-aisle{flex:0 0 52px;position:relative;align-self:stretch;}
+        .mpl-aisle:before{content:"";position:absolute;left:50%;top:34px;bottom:34px;border-left:1px dashed #ccd5df;}
+        .gnd-corpo{height:88px;border-left:1px solid #d5dde6;border-right:1px solid #d5dde6;background:linear-gradient(180deg,#fafcfe,#eef2f7);display:flex;align-items:stretch;padding:5px;box-shadow:inset 0 1px 2px rgba(20,40,70,.06);}
+        .gnd-shelf{flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:3px;min-width:0;}
+        .gnd-spine{flex:0 0 3px;align-self:stretch;margin:0 6px;background:linear-gradient(180deg,#c6d0db,#aeb9c7);border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.55);}
+        .gnd-face{background:linear-gradient(180deg,#ffffff,#eaeff5);border:1px solid #dfe6ee;border-radius:2px;box-shadow:inset -1px 0 0 rgba(20,40,70,.04);}
+        .gnd.ilha .gnd-corpo{height:30px;border-bottom:1px solid #d5dde6;border-radius:0 0 9px 9px;}
+        .gnd.ilha-h{flex-direction:row;align-items:stretch;height:70px;}
+        .gnd-corpo-h{flex:1;position:relative;border:1px solid #d5dde6;border-left:0;border-radius:0 9px 9px 0;background:linear-gradient(180deg,#fafcfe,#eef2f7);box-shadow:inset 0 1px 2px rgba(20,40,70,.06);min-width:0;}
+        .gnd-spine-h{position:absolute;top:50%;left:6px;right:6px;height:3px;transform:translateY(-1.5px);background:linear-gradient(90deg,#c6d0db,#aeb9c7);border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.55);}
+        .gnd-cap.esq{flex:0 0 40px;height:auto;align-self:stretch;border-radius:9px 3px 3px 9px;}
+        .gnd-cap{position:relative;border:1px solid transparent;cursor:pointer;font-family:inherit;font-weight:700;font-size:13.5px;height:35px;display:flex;align-items:center;justify-content:center;gap:6px;transition:transform .13s ease,box-shadow .13s ease;font-variant-numeric:tabular-nums;padding:0;}
+        .gnd-cap.topo{border-radius:9px 9px 3px 3px;}
+        .gnd-cap.base{border-radius:3px 3px 9px 9px;}
+        .gnd-cap:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(20,40,70,.16);z-index:3;}
+        .gnd-cap:focus-visible{outline:2px solid #157a35;outline-offset:2px;}
+        .gnd-cap.livre{background:#fff;border:1.5px dashed #c8d2de;color:#9aa5b3;font-weight:600;}
+        .gnd-cap.livre:hover{border-color:#9fc4ab;color:#157a35;}
+        .gnd-cap.pago{background:linear-gradient(180deg,#e9f7ef,#dcf0e4);border-color:#b9dfc7;color:#0e6b2c;}
+        .gnd-cap.aberto{background:linear-gradient(180deg,#fdf6e2,#f9edca);border-color:#e7d19a;color:#8a5f00;}
+        .gnd-cap.atrasado{background:linear-gradient(180deg,#fbe9e5,#f6d6cf);border-color:#e5a99d;color:#a02c1c;}
+        .gnd-cap.sel{box-shadow:0 0 0 2px #fff,0 0 0 4px #157a35;z-index:2;}
+        .gnd-cap .st{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.8;}
+        .gnd-flag{position:absolute;top:-5px;right:-5px;width:13px;height:13px;border-radius:50%;border:2px solid #fff;box-sizing:border-box;}
+        .gnd-flag.vencendo{background:#f0a726;}
+        .gnd-flag.vencido{background:#e05d0e;}
+        /* ===== tooltip ===== */
+        .mapa-tip{position:fixed;z-index:80;pointer-events:none;background:#fff;border:1px solid #e6ebf1;border-radius:12px;box-shadow:0 12px 32px rgba(16,24,40,.18);padding:12px 14px;min-width:200px;max-width:260px;opacity:0;transform:translateY(4px);transition:opacity .13s ease,transform .13s ease;}
+        .mapa-tip.on{opacity:1;transform:none;}
+        .mapa-tip .t-eyebrow{font-size:9.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:#98a3b1;}
+        .mapa-tip .t-nome{font-size:14px;font-weight:700;color:#1a2330;margin-top:2px;}
+        .mapa-tip .t-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;}
+        .mapa-tip .t-lin{display:flex;justify-content:space-between;gap:14px;font-size:12px;margin-top:6px;color:#7b8694;}
+        .mapa-tip .t-lin b{color:#333f4d;font-weight:600;text-align:right;}
+        /* ===== pills de status ===== */
+        .mdp-pill{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700;letter-spacing:.3px;}
+        .mdp-pill.pago{background:#e3f4e9;color:#0e6b2c;}
+        .mdp-pill.aberto{background:#fdf3d9;color:#8a5f00;}
+        .mdp-pill.atrasado{background:#fbe4e0;color:#a02c1c;}
+        .mdp-pill.livre{background:#eef2f6;color:#6b7787;}
+        .mdp-pill.vencendo{background:#fdf0dc;color:#b06c00;}
+        .mdp-pill.vencido{background:#fce8dc;color:#b1470e;}
+        .mdp-pill.pagto{background:#eaf1fb;color:#2c62b8;}
+        /* ===== painel lateral ===== */
+        .mapa-detalhe{flex:0 0 320px;min-width:280px;background:#fff;border:1px solid #eaeef3;border-radius:16px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+        .mdp-vazio{padding:34px 22px;text-align:center;color:#8a96a5;font-size:13.5px;line-height:1.6;}
+        .mdp-vazio svg{width:36px;height:36px;color:#c3ccd7;margin-bottom:8px;}
+        .mdp-head{padding:16px 18px 13px;border-bottom:1px solid #f0f3f7;}
+        .mdp-eyebrow{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#98a3b1;}
+        .mdp-nome{font-size:17px;font-weight:800;color:#17202b;margin-top:3px;line-height:1.2;letter-spacing:-.01em;}
+        .mdp-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px;}
+        .mdp-valor{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:13px 18px;border-bottom:1px solid #f0f3f7;background:#fbfcfd;}
+        .mdp-valor .v{font-size:20px;font-weight:800;color:#0c5a26;font-variant-numeric:tabular-nums;}
+        .mdp-valor .per{font-size:11.5px;color:#8a96a5;font-weight:500;text-align:right;}
+        .mdp-vig{padding:12px 18px;border-bottom:1px solid #f0f3f7;}
+        .mdp-vig .datas{display:flex;justify-content:space-between;font-size:12px;color:#5d6875;font-weight:600;}
+        .mdp-vig .bar{height:4px;background:#edf1f5;border-radius:99px;margin-top:7px;overflow:hidden;}
+        .mdp-vig .bar i{display:block;height:100%;background:#157a35;border-radius:99px;}
+        .mdp-vig .resta{font-size:11.5px;color:#8a96a5;margin-top:6px;}
+        .mdp-info{padding:6px 18px 9px;border-bottom:1px solid #f0f3f7;}
+        .mdp-lin{display:flex;justify-content:space-between;gap:12px;padding:7px 0;font-size:13px;border-bottom:1px dashed #f2f5f8;}
+        .mdp-lin:last-child{border-bottom:0;}
+        .mdp-lin b{color:#5d6875;font-weight:600;flex-shrink:0;}
+        .mdp-lin span{color:#2a3542;text-align:right;word-break:break-word;min-width:0;}
+        .mdp-hist{padding:10px 18px 12px;border-bottom:1px solid #f0f3f7;}
+        .mdp-hist .h-tit{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#98a3b1;margin-bottom:5px;}
+        .mdp-hist .h-lin{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:4px 0;color:#4b5866;}
+        .mdp-hist .h-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+        .mdp-hist .h-val{margin-left:auto;color:#8a96a5;font-variant-numeric:tabular-nums;}
+        .mdp-actions{padding:14px 18px 16px;display:flex;flex-direction:column;gap:9px;}
+        .mdp-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:38px;border-radius:9px;font-size:13.5px;font-weight:600;cursor:pointer;border:1px solid #dbe2ea;background:#fff;color:#3a4756;transition:background .14s,border-color .14s,transform .06s;font-family:inherit;padding:0 10px;}
+        .mdp-btn:hover{background:#f4f7fa;}
+        .mdp-btn:active{transform:translateY(1px);}
+        .mdp-btn svg{width:14px;height:14px;flex-shrink:0;}
+        .mdp-btn-primary{background:#157a35;border-color:#157a35;color:#fff;box-shadow:0 1px 2px rgba(21,122,53,.3);}
+        .mdp-btn-primary:hover{background:#12692e;}
+        .mdp-btn-danger{color:#b03222;border-color:#ecd0cb;}
+        .mdp-btn-danger:hover{background:#fdf1ef;border-color:#e3b3aa;}
+        .mdp-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
         .mapa-val-edit{display:flex;align-items:center;gap:6px;}
-        .mapa-val-edit input{width:108px;border:1px solid #c2cdda;border-radius:7px;padding:5px 8px;font-size:13px;text-align:right;color:#1d2733;}
+        .mapa-val-edit input{width:100px;border:1px solid #c2cdda;border-radius:7px;padding:6px 8px;font-size:13px;text-align:right;color:#1d2733;font-family:inherit;}
         .mapa-val-edit input:focus{outline:none;border-color:#157a35;box-shadow:0 0 0 2px rgba(21,122,53,.15);}
-        .mapa-val-edit button{border:0;background:#157a35;color:#fff;font-weight:700;font-size:12px;border-radius:7px;padding:6px 10px;cursor:pointer;}
+        .mapa-val-edit button{border:0;background:#157a35;color:#fff;font-weight:700;font-size:12px;border-radius:7px;padding:7px 11px;cursor:pointer;font-family:inherit;}
         .mapa-val-edit button:hover{background:#12692e;}
-        .mapa-detalhe .lin.editando{background:#f6fbf7;margin:0 -18px;padding:9px 18px;}
-        @media (max-width:860px){ .mapa-loja{min-width:0;} }
+        @media (max-width:1080px){ .mapa-wrap{flex-direction:column;align-items:stretch;} .mapa-detalhe{flex:1 1 auto;width:100%;min-width:0;} }
       </style>
+      <div class="mpk-grid" id="mapaKpis"></div>
       <div class="card">
-        <div class="esc-top">
-          <h2 style="margin:0;">Mapa dos pontos de gôndola</h2>
-          <div class="mapa-legenda">
-            <span><i style="background:#c0392b"></i> Não pago</span>
-            <span><i style="background:#1b9e4b"></i> Pago</span>
-            <span><i style="background:#9aa7b5"></i> Livre</span>
-            <span><i style="background:#f5901e"></i> Vencendo/vencido</span>
+        <div class="mapa-head">
+          <div>
+            <h2 style="margin:0;">Mapa dos pontos de gôndola</h2>
+            <div class="mapa-sub">Planta da loja — passe o mouse por uma ponta para o resumo, clique para ver tudo</div>
           </div>
-          <span class="periodo-info" id="mapaInfo" style="margin-left:auto;"></span>
           <button class="mapa-cfg" id="mapaCfgBtn" type="button" title="Editar preços (somente administrador)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
             <span id="mapaCfgLbl">Editar preços</span>
           </button>
         </div>
+        <div class="mapa-toolbar">
+          <div class="mapa-legenda">
+            <span><i style="background:#fff;border:1.5px dashed #c8d2de;"></i> Livre</span>
+            <span><i style="background:#dcf0e4;border:1px solid #b9dfc7;"></i> Pago</span>
+            <span><i style="background:#f9edca;border:1px solid #e7d19a;"></i> Em aberto</span>
+            <span><i style="background:#f6d6cf;border:1px solid #e5a99d;"></i> Atrasado</span>
+            <span><i class="dot" style="background:#f0a726;"></i> Contrato vencendo</span>
+            <span><i class="dot" style="background:#e05d0e;"></i> Contrato vencido</span>
+          </div>
+          <span class="periodo-info" id="mapaInfo" style="margin-left:auto;"></span>
+        </div>
+        <div id="mapaAviso"></div>
         <div class="mapa-wrap">
-          <div class="mapa-loja" id="mapaLoja"></div>
-          <div class="mapa-detalhe" id="mapaDetalhe"><div class="det-vazio">Clique em um ponto no mapa pra ver os detalhes do fornecedor.</div></div>
+          <div class="mapa-loja-scroll"><div class="mapa-loja" id="mapaLoja"></div></div>
+          <div class="mapa-detalhe" id="mapaDetalhe"></div>
         </div>
       </div>
+      <div class="mapa-tip" id="mapaTip"></div>
+    </section>
+
+    <section id="page-jornada" class="page">
+      <style>
+        #page-jornada{font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;}
+        .jor-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:16px;}
+        .jk{background:#fff;border-radius:14px;padding:15px 18px 14px;box-shadow:0 1px 4px rgba(0,0,0,.07);min-width:0;transition:transform .16s,box-shadow .16s;}
+        .jk:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(16,24,40,.1);}
+        .jk-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+        .jk-lbl{font-size:11px;font-weight:600;letter-spacing:.7px;text-transform:uppercase;color:#8a94a3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .jk-ico{width:30px;height:30px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+        .jk-ico svg{width:15px;height:15px;}
+        .jk-ico.g{background:#e7f4ec;color:#157a35;} .jk-ico.b{background:#eaf1fb;color:#2c62b8;} .jk-ico.r{background:#fdeeec;color:#c0392b;} .jk-ico.a{background:#fbf1dd;color:#b06c00;}
+        .jk-v{font-size:24px;font-weight:800;color:#17202b;margin-top:9px;line-height:1.05;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+        .jk-v.pos{color:#0e6b2c;} .jk-v.neg{color:#b03222;}
+        .jk-sub{font-size:12px;color:#7d8794;margin-top:5px;line-height:1.4;}
+        .jk-sub b{color:#475462;font-weight:600;}
+        .jor-imp{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#f6fbf7;border:1px solid #d9ecdf;border-radius:12px;padding:14px 16px;margin-bottom:16px;}
+        .jor-imp .txt{flex:1;min-width:200px;}
+        .jor-imp .txt h3{margin:0 0 3px;font-size:14.5px;color:#17202b;font-weight:600;}
+        .jor-imp .txt p{margin:0;font-size:12.5px;color:#6f7b88;line-height:1.5;}
+        .jor-imp-btn{display:inline-flex;align-items:center;gap:8px;background:#157a35;color:#fff;border:0;border-radius:9px;padding:11px 18px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 1px 2px rgba(21,122,53,.3);}
+        .jor-imp-btn:hover{background:#12692e;}
+        .jor-imp-btn svg{width:16px;height:16px;}
+        .jor-imp .valh{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#5d6875;}
+        .jor-imp .valh input{width:82px;border:1px solid #c2cdda;border-radius:7px;padding:7px 9px;font-size:13px;text-align:right;font-family:inherit;color:#1d2733;}
+        .jor-imp .valh input:focus{outline:none;border-color:#157a35;box-shadow:0 0 0 2px rgba(21,122,53,.15);}
+        .jor-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+        @media (max-width:820px){ .jor-cols{grid-template-columns:1fr;} }
+        .jor-card{background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;}
+        .jor-card h3{margin:0;padding:15px 18px 12px;font-size:15px;color:#17202b;border-bottom:1px solid #f0f3f7;display:flex;align-items:center;gap:8px;}
+        .jor-card h3 .tag{margin-left:auto;font-size:11px;font-weight:700;padding:2px 9px;border-radius:99px;}
+        .jor-card h3 .tag.pos{background:#e3f4e9;color:#0e6b2c;} .jor-card h3 .tag.neg{background:#fbe4e0;color:#a02c1c;}
+        .jrow{display:flex;align-items:center;gap:10px;padding:9px 18px;border-bottom:1px solid #f5f7f9;font-size:13.5px;}
+        .jrow:last-child{border-bottom:0;}
+        .jrow .nm{flex:1;min-width:0;color:#2a3542;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .jrow .st{font-size:11.5px;color:#94a0ae;white-space:nowrap;}
+        .jrow .sd{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;}
+        .jrow .sd.pos{color:#0e6b2c;} .jrow .sd.neg{color:#b03222;}
+        .jor-empty{padding:26px 18px;text-align:center;color:#8a96a5;font-size:13px;line-height:1.5;}
+        .jor-setor{background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;margin-bottom:16px;}
+        .jor-setor h3{margin:0;padding:15px 18px 12px;font-size:15px;color:#17202b;border-bottom:1px solid #f0f3f7;}
+        .jor-setor table{width:100%;border-collapse:collapse;font-size:13.5px;}
+        .jor-setor th{text-align:left;padding:9px 18px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#8a94a3;background:#fbfcfd;border-bottom:1px solid #eef1f5;}
+        .jor-setor th.num,.jor-setor td.num{text-align:right;font-variant-numeric:tabular-nums;}
+        .jor-setor td{padding:10px 18px;border-bottom:1px solid #f5f7f9;color:#2a3542;}
+        .jor-setor tr:last-child td{border-bottom:0;}
+        .jor-setor .barcell{min-width:120px;}
+        .jor-setor .bar{height:6px;border-radius:99px;background:#eef1f5;overflow:hidden;position:relative;}
+        .jor-setor .bar i{position:absolute;top:0;bottom:0;border-radius:99px;}
+        .jor-setor .sd.pos{color:#0e6b2c;font-weight:700;} .jor-setor .sd.neg{color:#b03222;font-weight:700;}
+        .jor-tabela{background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;}
+        .jor-tb-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid #f0f3f7;}
+        .jor-tb-top h3{margin:0;font-size:15px;color:#17202b;}
+        .jor-tb-top input{padding:8px 11px;border:1px solid #cdd6e0;border-radius:8px;font-size:14px;min-width:200px;font-family:inherit;}
+        .jor-tb-top input:focus{outline:none;border-color:#157a35;box-shadow:0 0 0 2px rgba(21,122,53,.15);}
+        .jor-tb-top .cnt{margin-left:auto;font-size:12.5px;color:#8a96a5;}
+        .jor-tb-scroll{overflow-x:auto;}
+        .jor-tabela table{width:100%;border-collapse:collapse;font-size:13.5px;}
+        .jor-tabela th{text-align:left;padding:10px 18px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#8a94a3;background:#fbfcfd;border-bottom:1px solid #eef1f5;white-space:nowrap;}
+        .jor-tabela th.num,.jor-tabela td.num{text-align:right;font-variant-numeric:tabular-nums;}
+        .jor-tabela td{padding:10px 18px;border-bottom:1px solid #f5f7f9;color:#2a3542;white-space:nowrap;}
+        .jor-tabela tr:last-child td{border-bottom:0;}
+        .jor-tabela .sd.pos{color:#0e6b2c;font-weight:700;} .jor-tabela .sd.neg{color:#b03222;font-weight:700;}
+        .jor-tabela .setag{font-size:11.5px;color:#6f7b88;}
+        .jor-tabela tbody tr{cursor:pointer;} .jor-tabela tbody tr:hover{background:#f6fbf7;}
+        .jrow{cursor:pointer;} .jrow:hover{background:#f6fbf7;}
+        /* alertas */
+        .jor-alertas{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-bottom:16px;}
+        .jal{display:flex;gap:12px;align-items:flex-start;border-radius:12px;padding:13px 15px;border:1px solid;}
+        .jal svg{width:18px;height:18px;flex-shrink:0;margin-top:1px;}
+        .jal .tt{font-size:13.5px;font-weight:600;line-height:1.3;}
+        .jal .ds{font-size:12px;margin-top:2px;line-height:1.4;opacity:.85;}
+        .jal.r{background:#fdeeec;border-color:#f3d0ca;color:#a02c1c;}
+        .jal.a{background:#fbf3df;border-color:#eeddb2;color:#8a5f00;}
+        .jal.g{background:#eef7f0;border-color:#cfe8d6;color:#1a6d33;}
+        /* modal detalhe funcionário */
+        .jmodal-bg{position:fixed;inset:0;background:rgba(16,22,30,.5);display:none;align-items:center;justify-content:center;z-index:120;padding:20px;}
+        .jmodal-bg.show{display:flex;}
+        .jmodal{background:#fff;border-radius:16px;width:480px;max-width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(16,24,40,.28);}
+        .jm-head{padding:18px 20px 14px;border-bottom:1px solid #f0f3f7;position:relative;}
+        .jm-eyebrow{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#98a3b1;}
+        .jm-nome{font-size:19px;font-weight:800;color:#17202b;margin-top:3px;line-height:1.2;padding-right:30px;}
+        .jm-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;}
+        .jm-pill{display:inline-flex;align-items:center;border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700;background:#eef2f6;color:#5d6875;}
+        .jm-x{position:absolute;top:16px;right:16px;width:28px;height:28px;border:0;background:#f2f5f8;border-radius:8px;cursor:pointer;color:#5d6875;font-size:16px;display:inline-flex;align-items:center;justify-content:center;}
+        .jm-x:hover{background:#e6ebf1;}
+        .jm-saldo{padding:16px 20px;text-align:center;border-bottom:1px solid #f0f3f7;}
+        .jm-saldo .v{font-size:36px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+        .jm-saldo .v.pos{color:#0e6b2c;} .jm-saldo .v.neg{color:#b03222;}
+        .jm-saldo .l{font-size:12px;color:#8a96a5;margin-top:6px;}
+        .jm-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#f0f3f7;border-bottom:1px solid #f0f3f7;}
+        .jm-cell{background:#fff;padding:12px 20px;}
+        .jm-cell .cl{font-size:11px;color:#8a96a5;font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+        .jm-cell .cv{font-size:16px;font-weight:700;color:#2a3542;margin-top:3px;font-variant-numeric:tabular-nums;}
+        .jm-cell .cv.pos{color:#0e6b2c;} .jm-cell .cv.neg{color:#b03222;}
+        .jm-sec{padding:15px 20px;border-bottom:1px solid #f0f3f7;}
+        .jm-sec h4{margin:0 0 10px;font-size:13px;color:#17202b;display:flex;align-items:center;gap:7px;}
+        .jm-sec h4 svg{width:15px;height:15px;color:#157a35;}
+        .jm-sim{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+        .jm-sim input[type=range]{flex:1;min-width:140px;accent-color:#157a35;}
+        .jm-sim .val{font-size:13px;color:#5d6875;white-space:nowrap;}
+        .jm-sim-out{margin-top:12px;background:#f6fbf7;border:1px solid #d9ecdf;border-radius:10px;padding:11px 13px;font-size:13px;color:#2a3542;line-height:1.5;}
+        .jm-sim-out b{font-variant-numeric:tabular-nums;}
+        .jm-horas{display:flex;gap:7px;flex-wrap:wrap;}
+        .jm-hchip{background:#eef4ff;color:#2c62b8;border-radius:8px;padding:6px 11px;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;}
+        .jm-dica{font-size:12px;color:#7d8794;margin-top:9px;line-height:1.5;}
+      </style>
+      <div class="jor-kpis" id="jorKpis"></div>
+      <div class="jor-alertas" id="jorAlertas"></div>
+      <div class="jor-imp">
+        <span class="jk-ico g" style="width:38px;height:38px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:19px;height:19px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></span>
+        <div class="txt">
+          <h3>Importar banco de horas</h3>
+          <p id="jorImpInfo">Gere o relatório <b>Extrato por Período</b> no Control iD (<b>PDF ou CSV</b>) e solte aqui. O painel lê sozinho e atualiza tudo.</p>
+        </div>
+        <div class="valh">Valor da hora: R$ <input type="text" id="jorValHora" value="8,00" title="Usado para estimar o custo do banco de horas"></div>
+        <button type="button" class="jor-imp-btn" id="jorImpBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>Escolher arquivo</button>
+        <input type="file" id="jorImpFile" accept=".csv,.txt,.pdf,text/csv,text/plain,application/pdf" style="display:none;">
+      </div>
+      <div class="jor-cols">
+        <div class="jor-card"><h3>Maiores saldos positivos <span class="tag pos" id="jorPosTag"></span></h3><div id="jorPos"></div></div>
+        <div class="jor-card"><h3>Maiores saldos negativos <span class="tag neg" id="jorNegTag"></span></h3><div id="jorNeg"></div></div>
+      </div>
+      <div class="jor-setor"><h3>Banco de horas por setor</h3><div class="jor-tb-scroll"><div id="jorSetor"></div></div></div>
+      <div class="jor-tabela">
+        <div class="jor-tb-top">
+          <h3>Todos os funcionários</h3>
+          <input type="text" id="jorBusca" placeholder="Buscar funcionário / setor">
+          <span class="cnt" id="jorCnt"></span>
+        </div>
+        <div class="jor-tb-scroll"><div id="jorTabela"></div></div>
+      </div>
+      <div class="jmodal-bg" id="jorModalBg"><div class="jmodal" id="jorModal"></div></div>
     </section>
 
     <section id="page-organograma" class="page">
@@ -1147,7 +1435,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       </div>
       <div class="card" id="desCard" style="margin-bottom:18px;">
         <h2 style="margin:0 0 3px;font-size:18px;color:#0c5a26;">Desossa / Rendimento do boi</h2>
-        <p style="margin:0 0 16px;font-size:13px;color:#6b7787;">Lance o peso e o custo do boi e quanto saiu de cada corte. O sistema calcula o rendimento, a perda no osso e o <b>custo real do kg</b> — e o lucro de cada corte pelo preço de venda que você puser.</p>
+        <p style="margin:0 0 16px;font-size:13px;color:#6b7787;">Lance o peso e o custo do boi e quanto saiu de cada corte. O painel calcula o rendimento, a perda no osso e o <b>custo real do kg</b> — e o lucro de cada corte pelo preço de venda que você puser.</p>
         <div class="des-top">
           <div class="prd-fld"><label>Peso total do boi</label><span class="uf uf-sfx"><input id="desPeso" type="text" inputmode="decimal" placeholder="Ex: 250"><span class="sfx">kg</span></span></div>
           <div class="prd-fld"><label>Custo total do boi</label><span class="uf uf-pfx"><span class="pfx">R$</span><input id="desCusto" type="text" inputmode="decimal" placeholder="Ex: 5.000,00"></span></div>
@@ -2924,7 +3212,9 @@ const PONTOS_SEED = ${JSON.stringify(pontosSeed)};
 const VALOR_FIXO = (function(){ const m={}; PONTOS_SEED.forEach(function(p){ if(p.valor>0) m[String(p.numero)]=p.valor; }); return m; })();
 function loadPontosG(){
   try{ const s=localStorage.getItem("pontos_gondola"); if(s) return JSON.parse(s); }catch(e){}
-  return PONTOS_SEED.map((x,i)=>Object.assign({id:"pg"+i}, x));
+  // SEM fallback pra planilha antiga: a fonte da verdade é a nuvem. O fallback
+  // ressuscitava fornecedores apagados (a semente voltava e era re-enviada pra nuvem).
+  return [];
 }
 let pontosG = loadPontosG();
 /* --- Arquivos PRIVADOS (Storage): gera link temporário autorizado (só quem tem login abre) --- */
@@ -2989,7 +3279,14 @@ function pxCloudPush(){
     pxUpsertSeguro(sb, lista.map(pxRowFromP));
   }).catch(function(){});
 }
-function pxCloudDelPonto(id){ var sb=pxSB(); if(!sb||!pxCloudOK) return; sb.from("pontos_extras").delete().eq("id",id).then(function(){},function(){}); }
+var pxPendDel={}; // APAGADOS há pouco (pra a sincronização não trazê-los de volta antes de propagar)
+function pxCloudDelPonto(id){
+  pxPendDel[id]=Date.now()+30000; // trava por 30s
+  var sb=pxSB(); if(!sb||!pxCloudOK) return;
+  sb.from("pontos_extras").delete().eq("id",id).then(function(r){
+    if(r&&r.error){ setTimeout(function(){ try{ sb.from("pontos_extras").delete().eq("id",id).then(function(){},function(){}); }catch(e){} },1500); } // 1 retry se falhar
+  },function(){ setTimeout(function(){ try{ sb.from("pontos_extras").delete().eq("id",id).then(function(){},function(){}); }catch(e){} },1500); });
+}
 var pxPendAdd={}; // restaurados há pouco (pra não sumirem antes da nuvem propagar)
 function pxReapplyPend(){ var now=Date.now(); for(var k in pxPendAdd){ if(pxPendAdd[k].exp<now){ delete pxPendAdd[k]; continue; } if(!pontosG.some(function(p){return p.id===k;})) pontosG.push(pxPendAdd[k].obj); } pontosG.sort(function(a,b){ return (a.numero||0)-(b.numero||0); }); }
 function pxRealtime(){
@@ -3010,19 +3307,18 @@ function pxCloudLoad(){
     pxCarregando=false;
     if(r.error) return; // sem tabela / sem login -> segue local
     pxCloudOK=true;
-    var jaMigrou=false; try{ jaMigrou=localStorage.getItem("px_migrado")==="1"; }catch(e){}
-    if(!r.data.length && pontosG.length && !jaMigrou){
-      pxCloudPush();
-      try{ localStorage.setItem("px_migrado","1"); }catch(e){}
-      pxRealtime(); return;
-    }
-    if(r.data.length){
-      pontosG=r.data.map(pxPFromRow).sort(function(a,b){ return (a.numero||0)-(b.numero||0); });
-      pxReapplyPend();
-      try{ localStorage.setItem("pontos_gondola",JSON.stringify(pontosG)); }catch(e){}
-      try{ localStorage.setItem("px_migrado","1"); }catch(e){}
-      try{ if(typeof renderPontosG==="function") renderPontosG(); }catch(e){}
-    }
+    // A nuvem é SEMPRE a fonte da verdade — inclusive quando está VAZIA (tudo apagado).
+    // (Antes havia uma "primeira migração" que re-enviava a planilha embutida quando a
+    // nuvem estava vazia — era isso que ressuscitava fornecedores apagados.)
+    var _now=Date.now(); for(var _k in pxPendDel){ if(pxPendDel[_k]<_now) delete pxPendDel[_k]; } // limpa travas vencidas
+    pontosG=(r.data||[]).map(pxPFromRow).filter(function(p){ return !pxPendDel[p.id]; }).sort(function(a,b){ return (a.numero||0)-(b.numero||0); }); // não ressuscita o que foi apagado agorinha
+    pxReapplyPend();
+    try{ localStorage.setItem("pontos_gondola",JSON.stringify(pontosG)); }catch(e){}
+    try{ if(typeof renderPontosG==="function"){
+      var _ab=[].filter.call(document.querySelectorAll("#pxTabela tr.px-det"),function(tr){ return tr.style.display!=="none"; }).map(function(tr){ return tr.id.slice(4); });
+      renderPontosG();
+      _ab.forEach(function(id){ try{ pxReabrir(id); }catch(e2){} }); // mantém abertas as linhas que já estavam abertas
+    } }catch(e){}
     pxRealtime();
   },function(){ pxCarregando=false; });
 }
@@ -3042,6 +3338,7 @@ function pixCobLoad(){
     var m={};
     res.data.forEach(function(r){ var k=pixCobKey(r.ponto_id,r.parcela_key); if(!m[k] || r.id>m[k].id) m[k]=r; });
     pixCobs=m;
+    try{ pixModalChecaPago(); }catch(e){} // se o modal do QR está aberto e a cobrança virou "pago", mostra a confirmação verde
     // assinatura do que a tela mostra (id+status+tem QR); se nada mudou, NÃO re-renderiza
     // (deixa o polling de 8s barato e sem "piscar" a tela à toa)
     var sig=Object.keys(m).sort().map(function(k){ var c=m[k]; return k+"="+c.status+(c.qr_code?"Q":""); }).join("|");
@@ -3086,17 +3383,54 @@ function pxFmtData(s){
 }
 // Ano-mês atual no formato "YYYY-MM" (base do status mensal).
 function pxAnoMesAtual(){ return HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2); }
+// O manuais[key] pode ser: string "pendente"/"autorizado" (Marcar pago) OU um objeto de
+// BONIFICAÇÃO {t:"bonif", st:"pendente"|"parcial"|"autorizado", tot, pend, hist} — estes
+// helpers leem o estado dos dois formatos sem quebrar os registros antigos.
+function pxManSt(man){ return (typeof man==="string") ? man : ((man&&man.st)||""); }
+function pxManBonif(man){ return !!(man && typeof man==="object" && man.t==="bonif"); }
+// Extrai nº da nota e mercadoria (o que veio) do estado atual da bonificação, pra colunas próprias
+function bonifCampos(man){
+  if(!pxManBonif(man)) return {nota:"",desc:""};
+  var arr=(man.hist||[]).slice(); if(man.pend) arr.push(man.pend);
+  var notas=arr.map(function(x){ return x&&x.nota; }).filter(Boolean).join(", ").replace(/[<>"]/g,"");
+  var descs=arr.map(function(x){ return x&&x.desc; }).filter(Boolean).join(" · ").replace(/[<>"]/g,"");
+  return {nota:notas, desc:descs};
+}
 // PAGO se houver comprovante anexado para a cobrança DESTE mês; vira NÃO PAGO sozinho quando o mês muda.
 // Uma parcela está QUITADA se: tem comprovante, OU pagamento manual AUTORIZADO, OU (futuro) confirmado pelo banco.
 function pxQuitado(p,key){
   const comps=p.comprovantes||{};
-  const man=p.manuais||{};
-  return !!comps[key] || man[key]==="autorizado" || pixCobPaga(p,key);
+  const man=(p.manuais||{})[key];
+  // bonificação em andamento: o anexo da nota é só PROVA, não quita — quem quita é a autorização do master
+  if(pxManBonif(man) && man.st!=="autorizado") return pixCobPaga(p,key);
+  return !!comps[key] || pxManSt(man)==="autorizado" || pixCobPaga(p,key);
+}
+// true se editar o ponto (com as datas novas) vai DESLOCAR as parcelas e orfanar alguma
+// parcela que já está PAGA/quitada (a data dela deixa de existir no calendário novo).
+function pxEdicaoDesalinha(pAntigo,dadosNovos){
+  try{
+    if(!pAntigo) return false;
+    var pNovo=Object.assign({},pAntigo,dadosNovos);
+    var novasKeys={}; pxAgenda(pNovo).forEach(function(d){ novasKeys[pxDateKey(d)]=1; });
+    return pxAgenda(pAntigo).some(function(d){
+      var k=pxDateKey(d); if(novasKeys[k]) return false;
+      if(pxQuitado(pAntigo,k)) return true;
+      // bonificação em andamento (parcial/pendente) também não pode ficar órfã — tem mercadoria registrada
+      var mk=(pAntigo.manuais||{})[k];
+      return pxManBonif(mk) && ((+mk.tot||0)>0 || mk.st==="pendente");
+    });
+  }catch(e){ return false; }
 }
 function pxPagoMes(p){
   const ym=pxAnoMesAtual();
   return pxAgenda(p).some(d=>{ const k=pxDateKey(d); return k.indexOf(ym)===0 && pxQuitado(p,k); })
-    || Object.keys(p.comprovantes||{}).some(k=>k.indexOf(ym)===0);
+    || Object.keys(p.comprovantes||{}).some(function(k){
+        const baseK=k.split("~e")[0]; // notas de bonif ficam em chaves compostas (parcela~eN)
+        if(baseK.indexOf(ym)!==0) return false;
+        const mk=(p.manuais||{})[baseK];
+        // bonificação: o anexo NUNCA quita o mês; quem quita é pxQuitado (autorização) no some() acima
+        return !pxManBonif(mk);
+      });
 }
 // ATRASADO = existe parcela vencida (data já passou) e ainda não quitada.
 function pxAtrasado(p){
@@ -3106,10 +3440,20 @@ function pxAtrasado(p){
 // Detalhe da inadimplência: nº de parcelas vencidas/não pagas, valor devido e desde quando.
 function pxInadimplencia(p){
   const hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
-  let n=0, desde=null;
-  pxAgenda(p).forEach(function(d){ if(d<hoje && !pxQuitado(p, pxDateKey(d))){ n++; if(!desde||d<desde) desde=d; } });
+  let n=0, desde=null, valor=0;
+  pxAgenda(p).forEach(function(d){
+    const k=pxDateKey(d);
+    if(d<hoje && !pxQuitado(p,k)){
+      n++;
+      let v=(+p.valor||0);
+      const mk=(p.manuais||{})[k];
+      if(pxManBonif(mk)) v=Math.max(0, Math.round((v-(+mk.tot||0))*100)/100); // desconta o que já veio em mercadoria
+      valor+=v;
+      if(!desde||d<desde) desde=d;
+    }
+  });
   if(!n) return null;
-  return { n:n, valor:n*(+p.valor||0), desde:desde, dias:Math.floor((hoje-desde)/86400000) };
+  return { n:n, valor:Math.round(valor*100)/100, desde:desde, dias:Math.floor((hoje-desde)/86400000) };
 }
 // Aviso no menu: nº de inadimplentes + pagamentos aguardando autorização.
 function pxAtualizaBadge(){
@@ -3118,7 +3462,7 @@ function pxAtualizaBadge(){
   pontosG.forEach(function(p){
     if(pxInadimplencia(p)) inad++;
     const man=p.manuais||{};
-    Object.keys(man).forEach(function(k){ if(man[k]==="pendente") pend++; });
+    Object.keys(man).forEach(function(k){ if(pxManSt(man[k])==="pendente") pend++; });
   });
   const tot=inad+pend;
   if(tot>0){ el.style.display=""; el.textContent=tot; el.title=inad+" inadimplente(s)"+(pend?" + "+pend+" aguardando autorização":""); }
@@ -3178,38 +3522,67 @@ function pxAgendaHtml(p){
   // ícones minimalistas de linha (pegam a cor do texto): relógio (em andamento) e QR Code (ver)
   const icoRelogio='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px;"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7.5 12 12 15 13.5"></polyline></svg>';
   const icoQr='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><line x1="14" y1="14.5" x2="14" y2="18"></line><line x1="17.5" y1="14" x2="17.5" y2="17.5"></line><line x1="21" y1="17.5" x2="21" y2="21"></line><line x1="14" y1="21" x2="17.5" y2="21"></line></svg>';
+  const icoAlerta='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
+  const icoBarras='<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px;margin-right:5px;"><rect x="2" y="4" width="2.4" height="16" rx="0.6"></rect><rect x="6" y="4" width="1.4" height="16" rx="0.6"></rect><rect x="9" y="4" width="3" height="16" rx="0.6"></rect><rect x="13.6" y="4" width="1.4" height="16" rx="0.6"></rect><rect x="16.5" y="4" width="1.1" height="16" rx="0.55"></rect><rect x="19.2" y="4" width="2.8" height="16" rx="0.6"></rect></svg>';
   const linhas=ag.map((d,i)=>{
     const passou = d<hoje ? ' style="color:#9aa6b2;"' : '';
     const key=pxDateKey(d);
     const ref=p.id+"|"+key;
     const c=comps[key];
-    const cell = c
-      ? '<a href="#" class="px-comp-link" data-compview="'+ref+'" title="Ver comprovante"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg><span>comprovante</span></a>'+
-        '<button type="button" class="px-comp-x" data-comprem="'+ref+'" title="Remover comprovante">✕</button>'
-      : '<button type="button" class="px-comp-add" data-compfile-btn="'+ref+'">Anexar</button>'+
-        '<input type="file" data-compfile="'+ref+'" accept="application/pdf,image/*" style="display:none;">';
+    const ehBonifComp = /bonif/i.test(String(p.pagamento||"")); // bonificação anexa a NOTA fiscal manualmente
+    const rotComp = ehBonifComp ? "nota fiscal" : "comprovante";
+    const icoClip='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>';
+    var cell;
+    if(ehBonifComp){
+      // bonif pode ter VÁRIAS notas (uma por entrega): mostra um link por nota
+      var _nk=Object.keys(comps).filter(function(k){ return k===key || k.indexOf(key+"~e")===0; }).sort();
+      cell = _nk.length
+        ? _nk.map(function(k,ix){ return '<a href="#" class="px-comp-link" data-compview="'+(p.id+"|"+k)+'" title="Ver nota fiscal">'+icoClip+'<span>nota'+(_nk.length>1?(' '+(ix+1)):'')+'</span></a>'; }).join(' ')
+        : '<span style="color:#c3ccd6;">—</span>';
+    } else {
+      cell = c
+        ? '<a href="#" class="px-comp-link" data-compview="'+ref+'" title="Ver '+rotComp+'">'+icoClip+'<span>'+rotComp+'</span></a>'+
+          '<button type="button" class="px-comp-x" data-comprem="'+ref+'" title="Remover '+rotComp+'">✕</button>'
+        : '<span style="color:#c3ccd6;">—</span>'; // boleto/Pix: o banco confirma sozinho
+    }
     const man=(p.manuais||{})[key];
+    const manSt=pxManSt(man), manBon=pxManBonif(man);
     const quit = pxQuitado(p,key);
     const cob = pixCobDe(p,key); // cobrança REAL no banco (via robô), se existir
+    const ehBoleto = /bolet/i.test(String(p.pagamento||"")); // modo de pagamento do cadastro
+    const ehBonif = /bonif/i.test(String(p.pagamento||"")); // bonificação: paga em mercadoria, sem banco
+    const rotuloPago = (cob&&cob.tipo_liquidacao==="TESTE") ? "Pago (teste)"
+      : (cob&&(cob.tipo_liquidacao==="COMPE"||cob.tipo_liquidacao==="REDE")) ? "Pago via boleto"
+      : "Pago via Pix";
+    // rastro da bonificação (aparece ao passar o mouse)
+    const bonTit = manBon ? (man.hist||[]).map(function(h){ return "Veio "+brl(h.valor||0)+(h.nota?(" (nota "+h.nota+")"):"")+(h.por?(" · registrado por "+h.por):"")+(h.autPor?(" · autorizado por "+h.autPor):""); }).join(" | ").replace(/[<>"]/g,"") : "";
+    const icoGift='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.79 0l-8-4a2 2 0 0 1-1.1-1.8V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"></path><polyline points="2.32 6.16 12 11 21.68 6.16"></polyline><line x1="12" y1="22.76" x2="12" y2="11"></line><line x1="7" y1="3.5" x2="17" y2="8.5"></line></svg>';
+    const bonFalta = manBon ? Math.max(0,Math.round(((+p.valor||0)-(+man.tot||0))*100)/100) : (+p.valor||0);
     const pixCell = quit
-      ? '<span class="px-quitado" title="Mensalidade quitada"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'+(man==="autorizado"?"Pago (autorizado)":(pixCobPaga(p,key)?"Pago (Pix banco)":"Quitado"))+'</span>'+(man==="autorizado"?' <button type="button" class="px-rec" data-desfazerpago="'+ref+'" title="Desfazer pagamento (precisa senha master)">✕</button>':'')
-      : man==="pendente"
-      ? '<span class="px-aguard" title="Aguardando autorização do administrador">'+icoRelogio+'Aguardando</span> <button type="button" class="px-aut" data-autorizar="'+ref+'">Autorizar</button> <button type="button" class="px-rec" data-recusar="'+ref+'" title="Recusar">✕</button>'
+      ? '<span class="px-quitado" title="'+(manBon?("Pago com mercadoria. "+bonTit):"Mensalidade quitada")+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'+(manSt==="autorizado"?(manBon?"Pago (bonificação)":"Pago (autorizado)"):(pixCobPaga(p,key)?rotuloPago:"Quitado"))+'</span>'+(manSt==="autorizado"?' <button type="button" class="px-rec" data-desfazerpago="'+ref+'" title="Desfazer pagamento (precisa senha master)">✕</button>':((cob&&cob.status==="pago"&&cob.tipo_liquidacao==="TESTE")?' <button type="button" class="px-rec" data-desfazerteste="'+ref+'" title="Desfazer simulação de teste">✕</button>':''))
+      : manSt==="pendente"
+      ? '<span class="px-aguard" title="'+(manBon?("Mercadoria registrada ("+brl((man.pend&&man.pend.valor)||0)+(man.pend&&man.pend.nota?(", nota "+String(man.pend.nota).replace(/[<>"]/g,"")):"")+") — aguardando autorização do administrador. Para autorizar, o arquivo da nota precisa estar anexado na coluna Comprovante."):"Aguardando autorização do administrador")+'">'+icoRelogio+(manBon?'Aguardando ('+brl((man.pend&&man.pend.valor)||0)+')':'Aguardando')+'</span> <button type="button" class="px-aut" data-autorizar="'+ref+'">Autorizar</button> <button type="button" class="px-rec" data-recusar="'+ref+'" title="Recusar">✕</button>'
+      : manSt==="parcial"
+      ? '<span class="px-aguard" title="Bonificação parcial: já veio '+brl(+man.tot||0)+' de '+brl(+p.valor||0)+'. '+bonTit+'">'+icoGift+'Parcial · faltam '+brl(bonFalta)+'</span> <button type="button" class="px-pix-btn" data-bonif="'+ref+'" title="Registrar o restante da mercadoria">'+icoGift+'Registrar restante</button>'
       : cob && (cob.status==="pedido"||cob.status==="gerando")
       ? (function(){ var idadeH=Math.floor((Date.now()-new Date(cob.criado_em||Date.now()).getTime())/3600000); return idadeH>=1
           ? '<span class="px-aguard" title="O pedido está esperando há mais de 1 hora. O computador da loja parece estar desligado — ligue-o para a cobrança sair.">'+icoRelogio+'Aguardando há '+idadeH+'h</span>'
-          : '<span class="px-aguard" title="A cobrança está sendo registrada no Sicredi. O QR Code fica pronto em instantes.">'+icoRelogio+'Gerando QR Code…</span>'; })()
+          : '<span class="px-aguard" title="A cobrança está sendo registrada no Sicredi. O '+(ehBoleto?"boleto":"QR Code")+' fica pronto em instantes.">'+icoRelogio+(ehBoleto?'Gerando boleto…':'Gerando QR Code…')+'</span>'; })()
       : cob && cob.status==="cancelar"
-      ? '<span class="px-aguard" title="O banco (Sicredi) exige de 1 a 3 minutos para liberar o cancelamento de uma cobrança recém-criada. É normal. Pode fechar a tela — vira \\u201cGerar Pix\\u201d sozinho quando terminar.">'+icoRelogio+'Cancelando…</span>'
+      ? '<span class="px-aguard" title="O banco (Sicredi) exige de 1 a 3 minutos para liberar o cancelamento de uma cobrança recém-criada. É normal. Pode fechar a tela — o botão de gerar volta sozinho quando terminar.">'+icoRelogio+'Cancelando…</span>'
       : cob && cob.status==="gerado"
-      ? '<button type="button" class="px-pix-btn" data-pixver="'+ref+'" title="Cobrança registrada no Sicredi — ver o QR Code">'+icoQr+'Ver QR Code</button> <button type="button" class="px-mark" data-marcarpago="'+ref+'" title="Registrar pagamento feito por fora (precisa autorização do master)">Marcar pago</button> <button type="button" class="px-rec" data-pixcancel="'+ref+'" title="Cancelar esta cobrança no banco (libera gerar outra)">✕</button>'
+      ? '<button type="button" class="px-pix-btn" data-pixver="'+ref+'" title="Cobrança registrada no Sicredi — '+(ehBoleto?"ver o boleto":"ver o QR Code")+'">'+(ehBoleto?icoBarras:icoQr)+(ehBoleto?'Ver boleto':'Ver QR Code')+'</button> <button type="button" class="px-rec" data-pixcancel="'+ref+'" title="Cancelar esta cobrança no banco (libera gerar outra)">✕</button>'
       : cob && cob.status==="erro"
-      ? '<span class="px-aguard" title="'+String(cob.erro_msg||"O banco recusou a cobrança").slice(0,180).replace(/[<>]/g,"").replace(/"/g,"&quot;")+'">⚠️ Erro no banco</span> <button type="button" class="px-aut" data-pixretry="'+ref+'" title="Corrija o cadastro (ex: CNPJ) e peça de novo">Tentar de novo</button>'
-      : '<button type="button" class="px-pix-btn" data-pix="'+ref+'">Gerar Pix</button> <button type="button" class="px-mark" data-marcarpago="'+ref+'" title="Registrar pagamento feito por fora (precisa autorização do master)">Marcar pago</button>';
-    return '<tr'+passou+'><td>'+(i+1)+'</td><td>'+pxDataChip(d)+'</td><td>'+brl(p.valor||0)+'</td><td class="px-pix-cell">'+pixCell+'</td><td class="px-comp-cell">'+cell+'</td></tr>';
+      ? '<span class="px-aguard" title="'+String(cob.erro_msg||"O banco recusou a cobrança").slice(0,180).replace(/[<>]/g,"").replace(/"/g,"&quot;")+'">'+icoAlerta+'Erro no banco</span> <button type="button" class="px-aut" data-pixretry="'+ref+'" title="Corrija o cadastro (ex: CNPJ) e peça de novo">Tentar de novo</button>'
+      : ehBonif
+      ? '<button type="button" class="px-pix-btn" data-bonif="'+ref+'" title="Chegou a mercadoria da bonificação? Registre aqui (precisa autorização do master pra valer)">'+icoGift+'Registrar bonificação</button>'
+      : '<button type="button" class="px-pix-btn" data-pix="'+ref+'">'+(ehBoleto?'Gerar boleto':'Gerar Pix')+'</button>';
+    var bonifCols="";
+    if(ehBonifComp){ var bc=bonifCampos(man); bonifCols='<td class="bonif-c">'+(bc.nota||'<span class="bonif-vazio">—</span>')+'</td><td class="bonif-c">'+(bc.desc||'<span class="bonif-vazio">—</span>')+'</td>'; }
+    return '<tr'+passou+'><td>'+(i+1)+'</td><td>'+pxDataChip(d)+'</td><td>'+brl(p.valor||0)+'</td><td class="px-pix-cell">'+pixCell+'</td>'+bonifCols+'<td class="px-comp-cell">'+cell+'</td></tr>';
   }).join("");
   return '<div class="px-agenda"><div class="px-agenda-tit">Calendário de cobranças — '+ag.length+' parcela(s), todo dia '+ag[0].getDate()+'</div>'+
-    '<table class="px-agenda-tb"><thead><tr><th>#</th><th>Data da cobrança</th><th>Valor</th><th>Cobrança Pix</th><th>Comprovante</th></tr></thead><tbody>'+linhas+'</tbody></table></div>';
+    '<table class="px-agenda-tb"><thead><tr><th>#</th><th>Data da cobrança</th><th>Valor</th><th>Cobrança</th>'+(/bonif/i.test(String(p.pagamento||""))?'<th>Nº da nota</th><th>Mercadoria</th><th>Nota fiscal</th>':'<th>Comprovante</th>')+'</tr></thead><tbody>'+linhas+'</tbody></table></div>';
 }
 function pxDataUrlToBlob(durl){
   const parts=durl.split(",");
@@ -3260,6 +3633,13 @@ function pixPayload(cfg,valor,txid){
   p+="6304";
   return p+pixCrc16(p);
 }
+// Regra: só cobra (Pix/boleto/bonificação) se o CONTRATO deste fornecedor estiver anexado.
+function pxContratoAnexado(p){ return !!(p && p.contratoArquivo); }
+function pxExigeContrato(p){
+  if(pxContratoAnexado(p)) return true;
+  uiConfirm({ titulo:"Gere e anexe o contrato primeiro", msg:"Para cobrar este fornecedor, o contrato precisa ser GERADO e ANEXADO.\\n\\nGere o contrato no botão \\u201cGerar contrato\\u201d, colha a assinatura e anexe no botão \\u201cAnexar contrato\\u201d (nos dados do fornecedor). Depois volte e gere a cobrança.", ok:"Entendi", cancel:"" });
+  return false;
+}
 function pxGerarPix(p,key){
   // Cobrança REAL registrada no Sicredi: o painel grava o PEDIDO na nuvem e o robô
   // da loja gera o boleto híbrido (QR Pix). Baixa automática quando o fornecedor pagar.
@@ -3267,14 +3647,16 @@ function pxGerarPix(p,key){
   if(!sb || !window.__PERFIL){ uiConfirm({ titulo:"Entre no painel", msg:"Faça login para gerar a cobrança.", ok:"Entendi", cancel:"" }); return; }
   const jaTem=pixCobDe(p,key);
   if(jaTem){ if(jaTem.status==="gerado") pixVerCob(p,key); return; }
+  if(!pxExigeContrato(p)) return; // sem contrato anexado, não gera cobrança
+  const ehBoleto=/bolet/i.test(String(p.pagamento||""));
   const doc=String(p.cnpj||"").replace(/\\D/g,"");
-  if(doc.length!==11 && doc.length!==14){ uiConfirm({ titulo:"Falta o CNPJ do fornecedor", msg:"A cobrança registrada no banco precisa do CPF/CNPJ do pagador. Edite o ponto (botão de lápis), preencha o campo CNPJ e salve. Depois clique em Gerar Pix de novo.", ok:"Entendi", cancel:"" }); return; }
+  if(doc.length!==11 && doc.length!==14){ uiConfirm({ titulo:"Falta o CNPJ do fornecedor", msg:"A cobrança registrada no banco precisa do CPF/CNPJ do pagador. Edite o ponto (botão de lápis), preencha o campo CNPJ e salve. Depois clique em "+(ehBoleto?"Gerar boleto":"Gerar Pix")+" de novo.", ok:"Entendi", cancel:"" }); return; }
   const valor=Math.round((+p.valor||0)*100)/100;
   if(!(valor>0)){ uiConfirm({ titulo:"Valor inválido", msg:"O ponto está sem valor de mensalidade. Edite o ponto e preencha o valor.", ok:"Entendi", cancel:"" }); return; }
   const dt=key.split("-");
   const hj=pxDateKey(new Date());
   const venc=(key<hj)?hj:key; // banco não aceita vencimento no passado
-  uiConfirm({ titulo:"Gerar cobrança Pix", msg:"Gerar a cobrança de "+brl(valor)+" para "+(p.fornecedor||"o fornecedor")+", com vencimento em "+dt[2]+"/"+dt[1]+"/"+dt[0]+"? Ela será registrada no Sicredi e o QR Code aparece aqui em instantes.", ok:"Gerar cobrança", cancel:"Cancelar" }).then(function(sim){
+  uiConfirm({ titulo:(ehBoleto?"Gerar boleto":"Gerar cobrança Pix"), msg:"Gerar a cobrança de "+brl(valor)+" para "+(p.fornecedor||"o fornecedor")+", com vencimento em "+dt[2]+"/"+dt[1]+"/"+dt[0]+"? Ela será registrada no Sicredi e "+(ehBoleto?"o boleto (com linha digitável e QR Pix)":"o QR Code")+" aparece aqui em instantes.", ok:(ehBoleto?"Gerar boleto":"Gerar cobrança"), cancel:"Cancelar" }).then(function(sim){
     if(!sim) return;
     sb.from("pix_cobrancas").insert({ ponto_id:p.id, parcela_key:key, fornecedor:p.fornecedor||"", documento:doc, valor:valor, vencimento:venc, status:"pedido", pedido_por:window.__EMAIL||"" }).then(function(res){
       if(res.error){
@@ -3291,7 +3673,7 @@ function pixVerCob(p,key){
   const c=pixCobDe(p,key);
   if(!c || !c.qr_code){ uiConfirm({ titulo:"QR Code ainda não está pronto", msg:"A cobrança ainda está sendo registrada no Sicredi. Tente de novo em instantes.", ok:"Ok", cancel:"" }); return; }
   const dv=String(c.vencimento||key).slice(0,10).split("-");
-  pixAbrirModal({ valor:(+c.valor||(+p.valor||0)), codigo:c.qr_code, ponto:p.numero, forn:p.fornecedor, data:dv[2]+"/"+dv[1]+"/"+dv[0], nosso:c.nosso_numero||"", linha:c.linha_digitavel||"" });
+  pixAbrirModal({ valor:(+c.valor||(+p.valor||0)), codigo:c.qr_code, ponto:p.numero, forn:p.fornecedor, data:dv[2]+"/"+dv[1]+"/"+dv[0], nosso:c.nosso_numero||"", linha:c.linha_digitavel||"", modo:(/bolet/i.test(String(p.pagamento||""))?"boleto":"pix"), cnpjPag:(p.cnpj||c.documento||""), razao:(p.razaoSocial||""), contato:(p.contato||""), refkey:pixCobKey(p.id,key) });
 }
 function pixCobRetry(pid,key){
   // Reenvia o pedido JÁ COM os dados atuais do cadastro (CNPJ/valor corrigidos contam!)
@@ -3318,150 +3700,442 @@ function pixAbrirModal(o){
     m=document.createElement("div");
     m.id="pixModal"; m.className="modal-bg";
     m.innerHTML='<div class="modal-cx pix-cx">'+
-      '<div class="modal-top"><div class="modal-ic pix-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="#32BCAD"><path d="M5.283 18.36a3.505 3.505 0 0 0 2.493-1.032l3.6-3.6a.684.684 0 0 1 .946 0l3.613 3.613a3.504 3.504 0 0 0 2.493 1.032h.71l-4.56 4.56a3.647 3.647 0 0 1-5.156 0L4.85 18.36ZM18.428 5.627a3.505 3.505 0 0 0-2.493 1.032l-3.613 3.614a.67.67 0 0 1-.946 0l-3.6-3.6A3.505 3.505 0 0 0 5.283 5.64h-.434l4.573-4.572a3.646 3.646 0 0 1 5.156 0l4.559 4.559ZM1.068 9.422 3.79 6.699h1.492a2.483 2.483 0 0 1 1.744.722l3.6 3.6a1.73 1.73 0 0 0 2.443 0l3.614-3.613a2.482 2.482 0 0 1 1.744-.723h1.767l2.737 2.737a3.646 3.646 0 0 1 0 5.156l-2.736 2.736h-1.768a2.482 2.482 0 0 1-1.744-.722l-3.613-3.613a1.77 1.77 0 0 0-2.444 0l-3.6 3.6a2.483 2.483 0 0 1-1.744.722H3.791l-2.723-2.723a3.646 3.646 0 0 1 0-5.156"></path></svg></div><div class="modal-tit">Cobrança via Pix</div></div>'+
+      '<button type="button" class="pix-x" id="pixFechar" title="Fechar">✕</button>'+
+      '<div class="modal-top"><div class="modal-ic pix-ic"><svg id="pixIcPix" width="26" height="26" viewBox="0 0 24 24" fill="#32BCAD"><path d="M5.283 18.36a3.505 3.505 0 0 0 2.493-1.032l3.6-3.6a.684.684 0 0 1 .946 0l3.613 3.613a3.504 3.504 0 0 0 2.493 1.032h.71l-4.56 4.56a3.647 3.647 0 0 1-5.156 0L4.85 18.36ZM18.428 5.627a3.505 3.505 0 0 0-2.493 1.032l-3.613 3.614a.67.67 0 0 1-.946 0l-3.6-3.6A3.505 3.505 0 0 0 5.283 5.64h-.434l4.573-4.572a3.646 3.646 0 0 1 5.156 0l4.559 4.559ZM1.068 9.422 3.79 6.699h1.492a2.483 2.483 0 0 1 1.744.722l3.6 3.6a1.73 1.73 0 0 0 2.443 0l3.614-3.613a2.482 2.482 0 0 1 1.744-.723h1.767l2.737 2.737a3.646 3.646 0 0 1 0 5.156l-2.736 2.736h-1.768a2.482 2.482 0 0 1-1.744-.722l-3.613-3.613a1.77 1.77 0 0 0-2.444 0l-3.6 3.6a2.483 2.483 0 0 1-1.744.722H3.791l-2.723-2.723a3.646 3.646 0 0 1 0-5.156"></path></svg><svg id="pixIcBol" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="2" y="5" width="2.2" height="14" rx="0.6"></rect><rect x="5.6" y="5" width="1.3" height="14" rx="0.6"></rect><rect x="8.3" y="5" width="2.8" height="14" rx="0.6"></rect><rect x="12.5" y="5" width="1.3" height="14" rx="0.6"></rect><rect x="15.2" y="5" width="1" height="14" rx="0.5"></rect><rect x="17.6" y="5" width="1.3" height="14" rx="0.6"></rect><rect x="20.3" y="5" width="1.7" height="14" rx="0.6"></rect></svg></div><div class="modal-tit" id="pixTit">Cobrança via Pix</div></div>'+
       '<div class="pix-body"><div class="pix-sub" id="pixSub"></div>'+
-      '<div class="pix-qr"><img id="pixQrImg" alt="QR Code Pix"></div>'+
-      '<div class="pix-cc-lbl">Pix copia e cola</div>'+
+      '<div class="pix-qr"><img id="pixQrImg" alt="QR Code Pix"><div class="pix-qr-pago" id="pixQrPago"><div class="pix-qr-pago-bola"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><div class="pix-qr-pago-tit" id="pixQrPagoTit">Pagamento confirmado</div><div class="pix-qr-pago-sub" id="pixQrPagoSub"></div></div></div>'+
+      '<div class="pix-cc-lbl" id="pixCCLbl">Pix copia e cola</div>'+
       '<textarea id="pixCC" class="pix-cc" readonly rows="2"></textarea>'+
-      '<button type="button" class="pix-copiar" id="pixCopiar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copiar código</span></button></div>'+
-      '<div class="modal-acts"><button type="button" class="btn-s" id="pixBaixar">Gerar cobrança</button><button type="button" class="btn-s" id="pixFechar">Fechar</button></div>'+
+      '<button type="button" class="pix-copiar" id="pixCopiar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span id="pixCopiarTxt">Copiar código</span></button>'+
+      '<button type="button" class="pix-verqr" id="pixVerQr">Prefere Pix? Ver QR Code</button></div>'+
+      '<div class="modal-acts"><button type="button" class="btn-s" id="pixBaixar">Gerar cobrança</button></div>'+
       '</div>';
     document.body.appendChild(m);
     m.addEventListener("click",function(e){ if(e.target===m) m.classList.remove("show"); });
     document.getElementById("pixFechar").addEventListener("click",function(){ m.classList.remove("show"); });
-    document.getElementById("pixCopiar").addEventListener("click",function(){ const t=document.getElementById("pixCC"); const val=t.value; let ok=false; if(navigator.clipboard&&navigator.clipboard.writeText){ try{ navigator.clipboard.writeText(val); ok=true; }catch(e){} } if(!ok){ t.select(); try{ document.execCommand("copy"); }catch(e){} } try{ t.setSelectionRange(0,0); t.blur(); }catch(e){} if(window.getSelection){ try{ window.getSelection().removeAllRanges(); }catch(e){} } const b=this; const orig=b.innerHTML; b.classList.add("ok"); b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Código copiado!</span>'; setTimeout(function(){ b.classList.remove("ok"); b.innerHTML=orig; },1600); });
+    document.getElementById("pixVerQr").addEventListener("click",function(){
+      var cx=m.querySelector(".pix-cx"); if(!cx) return;
+      var mostrando=!cx.classList.contains("semqr"); // estado atual do QR
+      cx.classList.toggle("semqr", mostrando);
+      this.textContent = mostrando ? "Prefere Pix? Ver QR Code" : "Esconder QR Code";
+    });
+    document.getElementById("pixCopiar").addEventListener("click",function(){ const t=document.getElementById("pixCC"); const val=t.value; let ok=false; if(navigator.clipboard&&navigator.clipboard.writeText){ try{ navigator.clipboard.writeText(val); ok=true; }catch(e){} } if(!ok){ t.select(); try{ document.execCommand("copy"); }catch(e){} } try{ t.setSelectionRange(0,0); t.blur(); }catch(e){} if(window.getSelection){ try{ window.getSelection().removeAllRanges(); }catch(e){} } const b=this; const orig=b.innerHTML; b.classList.add("ok"); b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Copiado!</span>'; setTimeout(function(){ b.classList.remove("ok"); b.innerHTML=orig; var sp=document.getElementById("pixCopiarTxt"); var fb=pixFichaAtual&&pixFichaAtual.o&&pixFichaAtual.o.modo==="boleto"&&pixFichaAtual.o.linha; if(sp) sp.textContent=fb?"Copiar linha digitável":"Copiar código"; },1600); });
     document.getElementById("pixBaixar").addEventListener("click",function(){ if(pixFichaAtual) pixBaixarFicha(pixFichaAtual.o, pixFichaAtual.qr); });
   }
   const qr=qrcode(0,"M"); qr.addData(o.codigo,"Byte"); qr.make();
   const durl=qr.createDataURL(6,4);
   pixFichaAtual={ o:o, qr:durl };
-  document.getElementById("pixQrImg").src=durl;
+  pixModalKey=o.refkey||null;
+  var _qp=document.getElementById("pixQrPago"); if(_qp) _qp.classList.remove("on","teste"); // começa sem o visto de pago
+  if(pixFechaTimer){ clearTimeout(pixFechaTimer); pixFechaTimer=null; }
+  var _cx=document.querySelector("#pixModal .pix-cx"); if(_cx){ _cx.classList.remove("pago"); _cx.style.minHeight=""; }
+  var _qi=document.getElementById("pixQrImg"); _qi.style.display=""; _qi.src=durl;
+  var ehBol=(o.modo==="boleto" && !!o.linha); // sem linha digitável não tem como ser boleto — cai pro visual Pix
+  var _tit=document.getElementById("pixTit"); if(_tit) _tit.textContent = ehBol ? "Cobrança via boleto" : "Cobrança via Pix";
+  var _ip=document.getElementById("pixIcPix"); if(_ip) _ip.style.display = ehBol ? "none" : "";
+  var _ib=document.getElementById("pixIcBol"); if(_ib) _ib.style.display = ehBol ? "" : "none";
+  var _lb=document.getElementById("pixCCLbl"); if(_lb) _lb.textContent = ehBol ? "Linha digitável do boleto" : "Pix copia e cola";
+  var _ct=document.getElementById("pixCopiarTxt"); if(_ct) _ct.textContent = ehBol ? "Copiar linha digitável" : "Copiar código";
+  var _cx2=document.querySelector("#pixModal .pix-cx");
+  if(_cx2){ _cx2.classList.toggle("boleto", ehBol); _cx2.classList.toggle("semqr", ehBol); } // boleto abre SEM o QR (linha digitável é a estrela)
+  var _vq=document.getElementById("pixVerQr"); if(_vq) _vq.textContent="Prefere Pix? Ver QR Code";
   var _cc=document.getElementById("pixCC");
-  _cc.value=o.codigo;
+  _cc.value=ehBol ? o.linha : o.codigo; // boleto: a caixa grande mostra a linha digitável
   document.getElementById("pixSub").innerHTML="Ponto nº "+(o.ponto||"")+(o.forn?" · "+o.forn:"")+"<br>Vencimento "+o.data+" · <b>"+brl(o.valor)+"</b>"
     +(o.nosso?'<br><span style="font-size:11px;color:#8a97a3;">Registrada no Sicredi · nosso nº '+o.nosso+'</span>':"")
-    +(o.linha?'<br><span style="font-size:10.5px;color:#8a97a3;word-break:break-all;">Linha digitável: '+o.linha+'</span>':"");
+    +((!ehBol && o.linha)?'<br><span style="font-size:10.5px;color:#8a97a3;word-break:break-all;">Linha digitável: '+o.linha+'</span>':"");
   m.classList.add("show");
   // cresce o campo pra mostrar o código inteiro. requestAnimationFrame garante que o layout
   // já foi calculado (medir cedo demais dá largura errada e altura gigante); teto de 340px por segurança.
   requestAnimationFrame(function(){ _cc.style.height="auto"; _cc.style.height=Math.min(_cc.scrollHeight+2,340)+"px"; });
 }
 let pixFichaAtual=null;
+var pixModalKey=null; // qual cobrança (ponto|parcela) o modal está mostrando agora
+var pixFechaTimer=null; // fecha a janelinha sozinha uns segundos depois do pagamento confirmado
+// O QR Code some e o visto verde entra NO MESMO lugar; mantém o copia-e-cola embaixo.
+function pixModalMostraPago(cob){
+  var qp=document.getElementById("pixQrPago"); if(!qp) return;
+  var jaTava=qp.classList.contains("on");
+  var teste=(cob&&cob.tipo_liquidacao==="TESTE");
+  var t=document.getElementById("pixQrPagoTit"); if(t) t.textContent = teste ? "Pagamento simulado" : "Pagamento confirmado";
+  var viaBoleto=(cob&&(cob.tipo_liquidacao==="COMPE"||cob.tipo_liquidacao==="REDE"));
+  var s=document.getElementById("pixQrPagoSub"); if(s) s.textContent = teste ? "🧪 Simulação de teste — nenhum dinheiro movimentado" : (viaBoleto ? "Recebido via boleto" : "Recebido via Pix");
+  // o QR e o copia e cola saem, mas a janela NÃO pode encolher: mede a altura atual
+  // e trava como mínimo ANTES de esconder as partes; o visto centraliza no espaço livre.
+  var cx=document.querySelector("#pixModal .pix-cx");
+  if(cx && !jaTava){ cx.style.minHeight=cx.offsetHeight+"px"; cx.classList.add("pago"); }
+  var qi=document.getElementById("pixQrImg"); if(qi) qi.style.display="none";
+  qp.classList.toggle("teste", !!teste);
+  qp.classList.add("on");
+  // uns segundos depois de confirmar, a janelinha fecha sozinha (o pagamento já foi)
+  if(!jaTava){
+    if(pixFechaTimer) clearTimeout(pixFechaTimer);
+    pixFechaTimer=setTimeout(function(){
+      pixFechaTimer=null;
+      var mm=document.getElementById("pixModal");
+      if(mm) mm.classList.remove("show");
+    },2800);
+  }
+}
+// Chamado pelo pixCobLoad: se o modal estiver aberto na cobrança que acabou de virar "pago", mostra a confirmação.
+function pixModalChecaPago(){
+  var mm=document.getElementById("pixModal");
+  if(!mm || !mm.classList.contains("show") || !pixModalKey) return;
+  var cob=pixCobs[pixModalKey];
+  if(cob && cob.status==="pago") pixModalMostraPago(cob);
+}
+// Desfaz uma simulação de teste (volta a cobrança pra "gerado" pra poder testar de novo).
+function pixDesfazerTeste(pid,key){
+  var sb=pxSB(); var c=pixCobs[pixCobKey(pid,key)];
+  if(!sb||!c||!c.id||c.status!=="pago"||c.tipo_liquidacao!=="TESTE") return;
+  sb.from("pix_cobrancas").update({ status:"gerado", pago_em:null, valor_liquidado:null, tipo_liquidacao:null }).eq("id",c.id).eq("status","pago").then(function(){ pixCobLoad(); },function(){});
+}
+// ===== BONIFICAÇÃO: fornecedor paga em mercadoria (sem banco) =====
+// Aceita "400", "400,50", "R$ 400,00" — vira número em reais.
+function bonifParseValor(s){
+  s=String(s||"").replace(/[^0-9,\\.]/g,"");
+  if(s.indexOf(",")>=0) s=s.replace(/\\./g,"").replace(",",".");
+  var v=parseFloat(s); return isNaN(v)?0:Math.round(v*100)/100;
+}
+var bonifCtx=null; // {pid,key} da parcela aberta na janelinha
+var bonifArquivo=null; // {arquivo:dataURL, nome} da nota anexada NOVA no modal
+var bonifArqVer=null;  // dataURL/URL do arquivo mostrado agora (pra o botão "Ver"), seja novo ou já salvo
+// Lê o arquivo escolhido (clique ou arraste): valida tamanho/tipo e mostra o card
+function bonifProcessaArquivo(f){
+  var prev=document.getElementById("bnfArqPrev");
+  var abtn=document.getElementById("bnfArqBtn"); if(abtn) abtn.classList.remove("campo-erro");
+  if(prev) prev.innerHTML="";
+  if(!f) return;
+  var tipoOk=/pdf$/i.test(f.type)||/^image\//i.test(f.type)||/\\.(pdf|png|jpe?g|webp|heic)$/i.test(f.name||"");
+  if(!tipoOk){ bonifArquivo=null; bonifArqTxt(false,""); if(prev) prev.textContent="Envie um PDF ou uma imagem da nota."; return; }
+  if(f.size>3*1024*1024){ bonifArquivo=null; bonifArqTxt(false,""); if(prev) prev.textContent="Arquivo muito grande (máx 3 MB). Tente um menor."; return; }
+  var reader=new FileReader();
+  reader.onload=function(){ bonifArquivo={ arquivo:reader.result, nome:f.name }; bonifArqTxt(true,f.name,reader.result); };
+  reader.readAsDataURL(f);
+}
+// Troca o conteúdo DENTRO da caixa pontilhada: vazio (clipe) ou anexado (card branco: doc + nome + ×)
+function bonifArqTxt(anexado,nome,durl){
+  var t=document.getElementById("bnfArqTxt"); if(!t) return;
+  var b=document.getElementById("bnfArqBtn");
+  bonifArqVer = anexado ? (durl||null) : null;
+  if(anexado){
+    t.style.width="100%";
+    t.innerHTML='<div data-bnf-ver title="Clique para ver o arquivo" style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e3e8ee;border-radius:10px;padding:11px 14px;width:100%;box-sizing:border-box;cursor:pointer;">'+
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1b9e4b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>'+
+      '<span style="flex:1;text-align:left;color:#2a3340;font-weight:700;font-size:13px;word-break:break-all;">'+pxEsc(nome||"nota")+'</span>'+
+      '<span data-bnf-remover title="Remover" style="flex-shrink:0;display:inline-flex;padding:3px;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9aa6b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>'+
+      '</div>';
+    if(b){ b.style.cursor="default"; }
+  } else {
+    t.style.width="";
+    t.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>Anexar nota fiscal';
+    if(b){ b.style.cursor="pointer"; }
+  }
+}
+function bonifAbrir(p,key){
+  if(!pxSB() || !window.__PERFIL){ uiConfirm({ titulo:"Entre no painel", msg:"Faça login para registrar a bonificação.", ok:"Entendi", cancel:"" }); return; }
+  if(!pxExigeContrato(p)) return; // sem contrato anexado, não registra bonificação
+  let m=document.getElementById("bonifModal");
+  if(!m){
+    m=document.createElement("div");
+    m.id="bonifModal"; m.className="modal-bg";
+    m.innerHTML='<div class="modal-cx" style="max-width:380px;">'+
+      '<div class="modal-top"><div class="modal-ic" style="background:#e3f0e8;color:#157a35;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.79 0l-8-4a2 2 0 0 1-1.1-1.8V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"></path><polyline points="2.32 6.16 12 11 21.68 6.16"></polyline><line x1="12" y1="22.76" x2="12" y2="11"></line><line x1="7" y1="3.5" x2="17" y2="8.5"></line></svg></div><div class="modal-tit">Registrar bonificação</div></div>'+
+      '<div class="pix-body"><div class="pix-sub" id="bnfSub"></div>'+
+      '<div class="pix-cc-lbl">Valor que chegou em mercadoria (R$)</div>'+
+      '<input type="text" id="bnfValor" inputmode="decimal" placeholder="ex: 400,00" style="width:100%;box-sizing:border-box;border:1px solid #cdd6e0;border-radius:8px;padding:9px 10px;font-size:14px;color:#2a3340;">'+
+      '<div class="pix-cc-lbl">Nº da nota fiscal</div>'+
+      '<input type="text" id="bnfNota" placeholder="ex: 123456" style="width:100%;box-sizing:border-box;border:1px solid #cdd6e0;border-radius:8px;padding:9px 10px;font-size:14px;color:#2a3340;">'+
+      '<div class="pix-cc-lbl">O que veio</div>'+
+      '<input type="text" id="bnfDesc" placeholder="ex: 20 fardos de refrigerante" style="width:100%;box-sizing:border-box;border:1px solid #cdd6e0;border-radius:8px;padding:9px 10px;font-size:14px;color:#2a3340;">'+
+      '<div class="pix-cc-lbl">Arquivo da nota fiscal (PDF)</div>'+
+      '<div id="bnfArqBtn" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;min-height:56px;border:1px dashed #b9c3cf;border-radius:8px;padding:12px 14px;text-align:center;font-size:13px;font-weight:700;color:#33404f;cursor:pointer;word-break:break-all;line-height:1.35;"><span id="bnfArqTxt" style="display:inline-flex;align-items:center;gap:7px;justify-content:center;flex-wrap:wrap;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>Anexar nota fiscal</span><input type="file" id="bnfArqFile" accept="application/pdf,image/*" style="display:none;"></div>'+
+      '<div id="bnfArqPrev" style="margin-top:6px;font-size:12px;color:#c0392b;"></div></div>'+
+      '<div class="modal-acts"><button type="button" class="btn-p" id="bnfOk" style="background:#157a35;color:#fff;border:0;">Registrar</button><button type="button" class="btn-s" id="bnfFechar">Cancelar</button></div>'+
+      '</div>';
+    document.body.appendChild(m);
+    m.addEventListener("click",function(e){ if(e.target===m) m.classList.remove("show"); });
+    document.getElementById("bnfFechar").addEventListener("click",function(){ m.classList.remove("show"); });
+    document.getElementById("bnfOk").addEventListener("click",bonifConfirmar);
+    document.getElementById("bnfNota").addEventListener("input",function(){ this.classList.remove("campo-erro"); });
+    document.getElementById("bnfDesc").addEventListener("input",function(){ this.classList.remove("campo-erro"); });
+    document.getElementById("bnfArqBtn").addEventListener("click",function(e){
+      if(e.target.closest("[data-bnf-remover]")){ bonifArquivo=null; document.getElementById("bnfArqFile").value=""; document.getElementById("bnfArqPrev").innerHTML=""; bonifArqTxt(false,""); return; } // × remove
+      if(e.target.closest("[data-bnf-ver]")){ if(bonifArqVer) pxAbrirArquivo(bonifArqVer); return; } // clique no card: abre o arquivo pra conferir
+      if(!bonifArqVer){ document.getElementById("bnfArqFile").click(); } // caixa vazia: qualquer clique abre o seletor
+    });
+    document.getElementById("bnfArqFile").addEventListener("change",function(){ bonifProcessaArquivo(this.files&&this.files[0]); });
+    // arrastar-e-soltar direto na caixa
+    var _cx=document.getElementById("bnfArqBtn");
+    ["dragenter","dragover"].forEach(function(ev){ _cx.addEventListener(ev,function(e){ e.preventDefault(); e.stopPropagation(); this.style.borderColor="#157a35"; this.style.background="#f2faf5"; }); });
+    ["dragleave","dragend"].forEach(function(ev){ _cx.addEventListener(ev,function(e){ e.preventDefault(); e.stopPropagation(); this.style.borderColor="#b9c3cf"; this.style.background=""; }); });
+    _cx.addEventListener("drop",function(e){ e.preventDefault(); e.stopPropagation(); this.style.borderColor="#b9c3cf"; this.style.background=""; var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) bonifProcessaArquivo(f); });
+  }
+  const man=(p.manuais||{})[key];
+  const tot=(pxManBonif(man)&&+man.tot)||0;
+  const falta=Math.max(0,Math.round(((+p.valor||0)-tot)*100)/100);
+  bonifCtx={ pid:p.id, key:key };
+  const dk=key.split("-");
+  document.getElementById("bnfSub").innerHTML="Ponto nº "+(p.numero||"")+" · "+(p.fornecedor||"")+"<br>Parcela "+dk[2]+"/"+dk[1]+"/"+dk[0]+" · combinado <b>"+brl(+p.valor||0)+"</b>"
+    +(tot>0?'<br><span style="font-size:11px;color:#8a6d1a;">Já veio '+brl(tot)+' — faltam '+brl(falta)+'</span>':"");
+  document.getElementById("bnfValor").value=falta>0?falta.toFixed(2).replace(".",","):"";
+  var _bn=document.getElementById("bnfNota"); _bn.value=""; _bn.classList.remove("campo-erro");
+  var _bd=document.getElementById("bnfDesc"); _bd.value=""; _bd.classList.remove("campo-erro");
+  // reseta o anexo: se a parcela JÁ tem comprovante, mostra o nome dentro da caixa; senão, vazio
+  bonifArquivo=null;
+  var _af=document.getElementById("bnfArqFile"); if(_af) _af.value="";
+  var _ab=document.getElementById("bnfArqBtn"); if(_ab) _ab.classList.remove("campo-erro");
+  document.getElementById("bnfArqPrev").innerHTML="";
+  // só mostra a nota já anexada se for o rascunho PENDENTE desta entrega; no "registrar restante" começa vazio (nota nova)
+  var _pend=pxManBonif(man) && man.pend;
+  var _ja=_pend?(p.comprovantes||{})[key]:null;
+  bonifArqTxt(!!_ja, _ja?(_ja.nome||"nota"):"", _ja?(_ja.arquivo||""):"");
+  m.classList.add("show");
+}
+function bonifConfirmar(){
+  if(!bonifCtx) return;
+  const p=pontosG.find(function(x){ return x.id===bonifCtx.pid; }); if(!p) return;
+  const key=bonifCtx.key;
+  const valor=bonifParseValor(document.getElementById("bnfValor").value);
+  if(!(valor>0)){ uiConfirm({ titulo:"Valor inválido", msg:"Preencha quanto veio em mercadoria (ex: 400,00).", ok:"Ok", cancel:"" }); return; }
+  // sem aspas/sinais de tag: esses textos entram em atributos title no HTML da tabela
+  var bnfN=document.getElementById("bnfNota");
+  const nota=bnfN.value.trim().replace(/[<>"']/g,"").slice(0,40);
+  if(!nota){ bnfN.classList.add("campo-erro"); bnfN.focus(); uiConfirm({ titulo:"Falta o nº da nota fiscal", msg:"Digite o número da nota fiscal da mercadoria para registrar a bonificação.", ok:"Ok", cancel:"" }); return; }
+  bnfN.classList.remove("campo-erro");
+  var bnfD=document.getElementById("bnfDesc");
+  const desc=bnfD.value.trim().replace(/[<>"']/g,"").slice(0,120);
+  if(!desc){ bnfD.classList.add("campo-erro"); bnfD.focus(); uiConfirm({ titulo:"Falta descrever a mercadoria", msg:"Escreva o que veio na bonificação (ex: 20 fardos de refrigerante).", ok:"Ok", cancel:"" }); return; }
+  bnfD.classList.remove("campo-erro");
+  // arquivo da nota obrigatório: bonifArqVer = tem algo anexado agora (novo ou já salvo e não removido)
+  if(!bonifArqVer){ var _ab=document.getElementById("bnfArqBtn"); if(_ab) _ab.classList.add("campo-erro"); uiConfirm({ titulo:"Falta a nota fiscal", msg:"Anexe a nota fiscal (PDF) para registrar a bonificação. É a prova que o master vai conferir.", ok:"Ok", cancel:"" }); return; }
+  const man0=(p.manuais||{})[key];
+  const velho=pxManBonif(man0)?man0:null;
+  p.manuais=p.manuais||{};
+  p.manuais[key]={ t:"bonif", st:"pendente", tot:(velho?(+velho.tot||0):0),
+    pend:{ valor:valor, nota:nota, desc:desc, por:(window.__EMAIL||""), em:new Date().toISOString() },
+    hist:(velho&&velho.hist)||[] };
+  if(bonifArquivo){
+    p.comprovantes=p.comprovantes||{};
+    // segurança p/ dados antigos: se sobrou uma nota na chave da parcela de uma entrega JÁ autorizada, preserva antes de sobrescrever
+    if(p.comprovantes[key] && velho && velho.hist && velho.hist.length){
+      var _mig=key+"~e"+velho.hist.length;
+      if(!p.comprovantes[_mig]) p.comprovantes[_mig]=p.comprovantes[key];
+    }
+    p.comprovantes[key]={ arquivo:bonifArquivo.arquivo, nome:bonifArquivo.nome };
+  } // anexa a nota desta entrega
+  bonifArqVer=null;
+  bonifArquivo=null;
+  document.getElementById("bonifModal").classList.remove("show");
+  savePontosG(); renderPontosG(); pxReabrir(p.id);
+  uiConfirm({ titulo:"Bonificação registrada", msg:"Nota anexada. Ficou AGUARDANDO a autorização do administrador para virar paga.", ok:"Entendi", cancel:"" });
+}
 function pixRR(x,a,b,w,h,r){ x.beginPath(); x.moveTo(a+r,b); x.arcTo(a+w,b,a+w,b+h,r); x.arcTo(a+w,b+h,a,b+h,r); x.arcTo(a,b+h,a,b,r); x.arcTo(a,b,a+w,b,r); x.closePath(); }
+// Converte a linha digitável (47 dígitos) no número do código de barras (44 dígitos) — padrão FEBRABAN.
+function pixLinhaParaBarras(linha){
+  var d=String(linha||"").replace(/\\D/g,"");
+  if(d.length!==47) return null;
+  return d.slice(0,4)+d.charAt(32)+d.slice(33,47)+d.slice(4,9)+d.slice(10,20)+d.slice(21,31);
+}
+// Desenha o código de barras ITF (Intercalado 2 de 5) — o formato dos boletos bancários.
+function pixBarrasITF(x2,dig,bx,by,bw,bh){
+  var pat={"0":"nnwwn","1":"wnnnw","2":"nwnnw","3":"wwnnn","4":"nnwnw","5":"wnwnn","6":"nwwnn","7":"nnnww","8":"wnnwn","9":"nwnwn"};
+  var seq=[{b:1,w:0},{b:0,w:0},{b:1,w:0},{b:0,w:0}]; // início
+  for(var i=0;i<dig.length;i+=2){
+    var pb=pat[dig.charAt(i)], ps=pat[dig.charAt(i+1)];
+    if(!pb||!ps) return;
+    for(var j=0;j<5;j++){ seq.push({b:1,w:(pb.charAt(j)==="w")?1:0}); seq.push({b:0,w:(ps.charAt(j)==="w")?1:0}); }
+  }
+  seq.push({b:1,w:1},{b:0,w:0},{b:1,w:0}); // fim
+  var nN=0,nW=0,k;
+  for(k=0;k<seq.length;k++){ if(seq[k].w) nW++; else nN++; }
+  var ratio=2.5, n=bw/(nN+nW*ratio), w=n*ratio, cx=bx;
+  x2.fillStyle="#111111";
+  for(k=0;k<seq.length;k++){ var ww=seq[k].w?w:n; if(seq[k].b) x2.fillRect(cx,by,ww,bh); cx+=ww; }
+}
+// Formata CPF/CNPJ com pontuação (11 -> CPF, 14 -> CNPJ; outro tamanho volta como veio)
+function pixFmtDoc(d){
+  d=String(d||"").replace(/\\D/g,"");
+  if(d.length===14) return d.slice(0,2)+"."+d.slice(2,5)+"."+d.slice(5,8)+"/"+d.slice(8,12)+"-"+d.slice(12);
+  if(d.length===11) return d.slice(0,3)+"."+d.slice(3,6)+"."+d.slice(6,9)+"-"+d.slice(9);
+  return d;
+}
 function pixBaixarFicha(o,qrDataUrl){
   const S=2, W=760;
   const cfg=pixGetCfg();
   const benef=(cfg&&cfg.nome)||"Supermercado Santa Rita";
-  // monta as linhas do código copia e cola (fonte monoespaçada)
   const cod=o.codigo||"", col=66, linhas=[];
   for(let i=0;i<cod.length;i+=col) linhas.push(cod.slice(i,i+col));
   const lineH=17;
-  const codBoxH=20+linhas.length*lineH+16;
-  const H=1210+codBoxH;
-  const cv=document.createElement("canvas"); cv.width=W*S; cv.height=H*S;
-  const x=cv.getContext("2d"); x.scale(S,S);
-  const F="-apple-system,'SF Pro Display','Inter','Segoe UI',Roboto,Arial,sans-serif";
+  const codBoxH=18+linhas.length*lineH+16;
+  const ehBol=(o.modo==="boleto" && o.linha);
+  const barras=ehBol?pixLinhaParaBarras(o.linha):null;
+  // paleta premium (fintech): tinta / secundário / apagado / fios / fundos / verde institucional
+  const INK="#111827", SEC="#6B7280", MUT="#9CA3AF", LIN="#E5E7EB", BG="#FAFAFA", VERDE="#157a35";
+  const F="'Inter','IBM Plex Sans','Manrope',-apple-system,'SF Pro Display','Segoe UI',Roboto,Arial,sans-serif";
   const FM="'SF Mono','Roboto Mono','Menlo',ui-monospace,'Courier New',monospace";
   const desenhar=function(logoImg,qrImg){
-    const L=52, R=W-52, cw=R-L;
-    const hoje=new Date().toLocaleDateString("pt-BR");
+    // desenha num canvas alto e corta na altura exata no final (nenhum espaço sobrando)
+    const BIG=2400;
+    const cv0=document.createElement("canvas"); cv0.width=W*S; cv0.height=BIG*S;
+    const x=cv0.getContext("2d"); x.scale(S,S);
+    const L=56, R=W-56, cw=R-L;
+    const agora=new Date();
+    const hoje=agora.toLocaleDateString("pt-BR");
+    const hora=String(agora.getHours()).padStart(2,"0")+":"+String(agora.getMinutes()).padStart(2,"0");
     const dParts=(o.data||"").split("/");
     const num="COB-"+String(o.ponto||0).padStart(2,"0")+"-"+((dParts[2]||"").slice(2))+(dParts[1]||"");
-    // cor do vencimento (sutil — sem selo de status alarmante)
-    const vencColor="#1a2233";
-    // helper: check verde minimalista
-    const check=function(px,py){ x.save(); x.strokeStyle="#157a35"; x.lineWidth=1.6; x.lineCap="round"; x.lineJoin="round"; x.beginPath(); x.moveTo(px,py); x.lineTo(px+3,py+3.4); x.lineTo(px+8.5,py-3.4); x.stroke(); x.restore(); };
-    // página branca + faixa de marca + borda sutil
-    x.fillStyle="#ffffff"; x.fillRect(0,0,W,H);
-    x.fillStyle="#157a35"; x.fillRect(0,0,W,5);
-    x.strokeStyle="#edf1f6"; x.lineWidth=1; x.strokeRect(0.5,0.5,W-1,H-1);
+    const check=function(px,py,cor){ x.save(); x.strokeStyle=cor||VERDE; x.lineWidth=1.5; x.lineCap="round"; x.lineJoin="round"; x.beginPath(); x.moveTo(px,py); x.lineTo(px+2.8,py+3.1); x.lineTo(px+8,py-3.1); x.stroke(); x.restore(); };
+    const rotulo=function(txt,rx,ry,alinha){ x.save(); try{ x.letterSpacing="1.3px"; }catch(e){} x.textAlign=alinha||"left"; x.fillStyle=MUT; x.font="600 9.5px "+F; x.fillText(txt.toUpperCase(),rx,ry); try{ x.letterSpacing="0px"; }catch(e){} x.restore(); x.textAlign="left"; };
+    const fio=function(fy){ x.strokeStyle=LIN; x.lineWidth=1; x.beginPath(); x.moveTo(L,fy); x.lineTo(R,fy); x.stroke(); };
+    // selo de status (pílula) — devolve a largura pra alinhar à direita
+    const selo=function(txt,bg2,bd2,fg2,sx2,sy2,soDireita){
+      x.font="700 9.5px "+F; var tw=x.measureText(txt.toUpperCase()).width;
+      var pw=tw+34, ph=22, px2=soDireita?(sx2-pw):sx2;
+      x.fillStyle=bg2; pixRR(x,px2,sy2,pw,ph,11); x.fill();
+      x.strokeStyle=bd2; x.lineWidth=1; pixRR(x,px2,sy2,pw,ph,11); x.stroke();
+      x.fillStyle=fg2; x.beginPath(); x.arc(px2+14,sy2+ph/2,2.6,0,6.2832); x.fill();
+      x.save(); try{ x.letterSpacing="0.8px"; }catch(e){} x.fillText(txt.toUpperCase(),px2+22,sy2+ph/2+3.5); try{ x.letterSpacing="0px"; }catch(e){} x.restore();
+      return pw;
+    };
+    // fundo
+    x.fillStyle="#ffffff"; x.fillRect(0,0,W,BIG);
+    x.fillStyle=VERDE; x.fillRect(0,0,W,4);
     x.textBaseline="alphabetic"; x.textAlign="left";
-    let cy=66;
-    // ===== HEADER =====
+    // ===== CABEÇALHO INSTITUCIONAL =====
+    let cy=46;
     let tx=L;
-    if(logoImg){ try{ const bw=94,bh=94,bx=L,by=cy-38; const iw=logoImg.naturalWidth||bw,ih=logoImg.naturalHeight||bh; const sc=Math.min(bw/iw,bh/ih),dw=iw*sc,dh=ih*sc; x.drawImage(logoImg,bx+(bw-dw)/2,by+(bh-dh)/2,dw,dh); tx=L+bw+22; }catch(e){} }
-    x.fillStyle="#0f1d33"; x.font="700 22px "+F; x.fillText("Supermercado Santa Rita",tx,cy+1);
-    x.fillStyle="#94a1ad"; x.font="500 11.5px "+F; x.fillText("Cobrança financeira · Pix",tx,cy+24);
-    cy+=84; x.strokeStyle="#edf1f6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=36;
-    // ===== META (3 colunas) =====
-    const colW=cw/3;
-    const meta=function(lb,vl,mx,vc){ x.textAlign="center"; x.fillStyle="#9aa6b2"; x.font="600 10px "+F; x.fillText(lb,mx,cy); x.fillStyle=vc||"#1a2233"; x.font="700 15px "+F; x.fillText(vl,mx,cy+24); x.textAlign="left"; };
-    meta("Nº DA COBRANÇA",num,L+colW*0.5); meta("EMISSÃO",hoje,L+colW*1.5); meta("VENCIMENTO",o.data||"—",L+colW*2.5,vencColor);
-    cy+=58; x.strokeStyle="#edf1f6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=32;
-    // ===== HERO: VALOR (cartão financeiro premium) =====
-    const heroH=142;
-    x.save(); x.shadowColor="rgba(20,30,45,0.06)"; x.shadowBlur=24; x.shadowOffsetY=9; x.fillStyle="#f7f9fc"; pixRR(x,L,cy,cw,heroH,20); x.fill(); x.restore();
-    x.strokeStyle="#edf1f6"; x.lineWidth=1; pixRR(x,L,cy,cw,heroH,20); x.stroke();
-    // barra de acento sutil à esquerda
-    x.save(); pixRR(x,L,cy,5,heroH,20); x.clip(); x.fillStyle="#157a35"; x.fillRect(L,cy,5,heroH); x.restore();
-    x.textAlign="left"; x.fillStyle="#8995a3"; x.font="600 11px "+F; x.fillText("VALOR A PAGAR",L+32,cy+42);
-    x.fillStyle="#0f1d33"; x.font="700 53px "+F; x.fillText(brl(o.valor),L+30,cy+97);
-    x.fillStyle="#9aa6b2"; x.font="500 11px "+F; x.fillText("Pagamento via Pix · processado instantaneamente",L+32,cy+122);
+    if(logoImg){ try{ const bw=88,bh=88,bx=L,by=cy-8; const iw=logoImg.naturalWidth||bw,ih=logoImg.naturalHeight||bh; const sc=Math.min(bw/iw,bh/ih),dw=iw*sc,dh=ih*sc; x.drawImage(logoImg,bx+(bw-dw)/2,by+(bh-dh)/2,dw,dh); tx=L+bw+22; }catch(e){} }
+    x.fillStyle=INK; x.font="700 23px "+F; x.fillText("Supermercado Santa Rita",tx,cy+24);
+    x.fillStyle=SEC; x.font="500 12px "+F; x.fillText(ehBol?"Cobrança financeira · Boleto (aceita Pix)":"Cobrança financeira · Pix",tx,cy+45);
+    x.fillStyle=MUT; x.font="400 10.5px "+F; x.fillText("CNPJ 12.988.127/0001-40 · Caicó, RN",tx,cy+63);
+    // bloco institucional à direita: status + identificação
+    selo("Em aberto","#FFFBEB","#FDE68A","#B45309",R,cy-2,true);
+    const infoDir=function(lb,vl,iy2){ x.textAlign="right"; x.fillStyle=MUT; x.font="500 9.5px "+F; var vw; x.font="600 11.5px "+F; vw=x.measureText(vl).width; x.fillStyle=INK; x.fillText(vl,R,iy2); x.fillStyle=MUT; x.font="500 9.5px "+F; x.fillText(lb.toUpperCase()+"  ",R-vw-6,iy2); x.textAlign="left"; };
+    infoDir("Nº da cobrança",num,cy+45);
+    infoDir("Emissão",hoje,cy+63);
+    cy+=92; fio(cy); cy+=34;
+    // ===== CARD PRINCIPAL: VALOR =====
+    const heroH=148;
+    x.save(); x.shadowColor="rgba(17,24,39,0.05)"; x.shadowBlur=18; x.shadowOffsetY=6; x.fillStyle=BG; pixRR(x,L,cy,cw,heroH,16); x.fill(); x.restore();
+    x.strokeStyle=LIN; x.lineWidth=1; pixRR(x,L,cy,cw,heroH,16); x.stroke();
+    // filete verde recortado pela moldura do PRÓPRIO card — curvatura igual em cima e embaixo
+    x.save(); pixRR(x,L,cy,cw,heroH,16); x.clip(); x.fillStyle=VERDE; x.fillRect(L,cy,4,heroH); x.restore();
+    rotulo("Valor a pagar",L+32,cy+38);
+    x.fillStyle=INK; x.font="700 46px "+F; x.fillText(brl(o.valor),L+30,cy+90);
+    selo("Em aberto","#FFFBEB","#FDE68A","#B45309",L+32,cy+106,false);
     x.textAlign="right";
-    x.fillStyle="#8995a3"; x.font="600 10px "+F; x.fillText("FORMA DE PAGAMENTO",R-30,cy+42);
-    x.fillStyle="#1a2233"; x.font="700 14px "+F; x.fillText("Pix",R-30,cy+61);
-    x.fillStyle="#8995a3"; x.font="600 10px "+F; x.fillText("BENEFICIÁRIO",R-30,cy+92);
-    x.fillStyle="#1a2233"; x.font="700 13px "+F; x.fillText(benef,R-30,cy+111);
-    x.textAlign="left"; cy+=heroH+30;
+    rotulo("Vencimento",R-30,cy+34,"right");
+    x.fillStyle=INK; x.font="600 13px "+F; x.textAlign="right"; x.fillText(o.data||"—",R-30,cy+52);
+    rotulo("Forma de pagamento",R-30,cy+75,"right");
+    x.fillStyle=INK; x.font="600 13px "+F; x.textAlign="right"; x.fillText(ehBol?"Boleto ou Pix":"Pix",R-30,cy+93);
+    rotulo("Beneficiário",R-30,cy+116,"right");
+    x.fillStyle=INK; x.font="600 12.5px "+F; x.textAlign="right"; x.fillText(benef,R-30,cy+134);
+    x.textAlign="left"; cy+=heroH+36;
     // ===== RESUMO FINANCEIRO =====
-    x.fillStyle="#9aa6b2"; x.font="600 11px "+F; x.fillText("RESUMO FINANCEIRO",L,cy); cy+=24;
-    const kv=function(k,v,kc,vc){ x.textAlign="left"; x.fillStyle=kc; x.font="400 13px "+F; x.fillText(k,L,cy); x.textAlign="right"; x.fillStyle=vc; x.font="600 13px "+F; x.fillText(v,R,cy); x.textAlign="left"; };
-    kv("Valor original",brl(o.valor),"#5a6675","#1a2233"); cy+=28;
-    kv("Multa por atraso","Isento","#5a6675","#9aa6b2"); cy+=28;
-    kv("Juros de mora","Isento","#5a6675","#9aa6b2"); cy+=20;
-    x.strokeStyle="#edf1f6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=30;
-    x.textAlign="left"; x.fillStyle="#0f1d33"; x.font="700 15px "+F; x.fillText("Total a pagar",L,cy);
-    x.textAlign="right"; x.fillStyle="#157a35"; x.font="700 21px "+F; x.fillText(brl(o.valor),R,cy+2); x.textAlign="left"; cy+=42;
-    // ===== PAGUE COM PIX =====
-    x.strokeStyle="#edf1f6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=30;
-    x.fillStyle="#9aa6b2"; x.font="600 11px "+F; x.fillText("PAGUE COM PIX",L,cy); cy+=16;
-    const qs=200, qpad=15, qbox=qs+qpad*2, qx=L, qy=cy;
-    // moldura do QR — fundo levemente cinza + sombra extremamente leve (estilo banco digital)
-    x.save(); x.shadowColor="rgba(20,30,45,0.06)"; x.shadowBlur=22; x.shadowOffsetY=8; x.fillStyle="#f7f9fb"; pixRR(x,qx,qy,qbox,qbox,18); x.fill(); x.restore();
-    x.strokeStyle="#e7edf3"; x.lineWidth=1; pixRR(x,qx,qy,qbox,qbox,18); x.stroke();
-    // QR sobre quadrado branco interno (respiro)
-    x.fillStyle="#ffffff"; pixRR(x,qx+qpad-4,qy+qpad-4,qs+8,qs+8,8); x.fill();
+    rotulo("Resumo financeiro",L,cy); cy+=24;
+    const kv=function(k,v,vc){ x.textAlign="left"; x.fillStyle=SEC; x.font="400 12.5px "+F; x.fillText(k,L+2,cy); x.textAlign="right"; x.fillStyle=vc||INK; x.font="600 12.5px "+F; x.fillText(v,R-2,cy); x.textAlign="left"; };
+    kv("Valor original",brl(o.valor)); cy+=10; x.strokeStyle="#F3F4F6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=20;
+    kv("Multa por atraso","Isento",MUT); cy+=10; x.strokeStyle="#F3F4F6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=20;
+    kv("Juros de mora","Isento",MUT); cy+=16;
+    fio(cy); cy+=28;
+    x.textAlign="left"; x.fillStyle=INK; x.font="700 14px "+F; x.fillText("Total a pagar",L+2,cy);
+    x.textAlign="right"; x.fillStyle=VERDE; x.font="700 20px "+F; x.fillText(brl(o.valor),R-2,cy+2); x.textAlign="left"; cy+=40;
+    fio(cy); cy+=34;
+    // ===== FORMAS DE PAGAMENTO (QR + como pagar) =====
+    rotulo(ehBol?"Formas de pagamento":"Pague com Pix",L,cy); cy+=18;
+    const qs=190, qpad=16, qbox=qs+qpad*2, qx=L, qy=cy;
+    x.save(); x.shadowColor="rgba(17,24,39,0.05)"; x.shadowBlur=16; x.shadowOffsetY=5; x.fillStyle="#ffffff"; pixRR(x,qx,qy,qbox,qbox,16); x.fill(); x.restore();
+    x.strokeStyle=LIN; x.lineWidth=1; pixRR(x,qx,qy,qbox,qbox,16); x.stroke();
     if(qrImg){ try{ x.imageSmoothingEnabled=false; x.drawImage(qrImg,qx+qpad,qy+qpad,qs,qs); x.imageSmoothingEnabled=true; }catch(e){} }
-    // legenda + ícone Pix discreto (losango) + validade
-    var capTxt="Escaneie para pagar"; x.font="600 11px "+F; var capW=x.measureText(capTxt).width; var capX=qx+(qbox-(capW+18))/2, capY=qy+qbox+24;
-    x.save(); x.translate(capX+5,capY-4); x.rotate(Math.PI/4); x.fillStyle="#157a35"; pixRR(x,-5,-5,10,10,2.6); x.fill(); x.restore();
-    x.textAlign="left"; x.fillStyle="#8995a3"; x.fillText(capTxt,capX+18,capY);
-    x.textAlign="center"; x.fillStyle="#aeb8c4"; x.font="500 10.5px "+F; x.fillText("Válido até "+(o.data||"—"),qx+qbox/2,capY+18); x.textAlign="left";
-    const ix=qx+qbox+58; let iy=qy+24;
-    x.fillStyle="#1a2233"; x.font="700 15px "+F; x.fillText("Como pagar",ix,iy); iy+=32;
-    x.font="400 13px "+F; x.fillStyle="#5a6675";
-    const passos=["1.   Abra o app do seu banco","2.   Escolha pagar com Pix / QR Code","3.   Aponte a câmera para o código"];
-    for(let pi=0;pi<passos.length;pi++){ x.fillText(passos[pi],ix,iy); iy+=27; }
-    iy+=8; x.fillStyle="#9aa6b2"; x.font="italic 12px "+F; x.fillText("ou use o Pix copia e cola abaixo.",ix,iy);
-    cy=qy+qbox+68;
-    // ===== COPIA E COLA (estilo código / terminal premium) =====
-    x.fillStyle="#94a1ad"; x.font="600 11px "+F; x.textAlign="left"; x.fillText("PIX COPIA E COLA",L,cy);
-    cy+=16;
-    x.fillStyle="#f6f8fb"; x.strokeStyle="#e7edf3"; x.lineWidth=1; pixRR(x,L,cy,cw,codBoxH,12); x.fill(); x.stroke();
-    // acento técnico à esquerda
-    x.save(); pixRR(x,L,cy,4,codBoxH,12); x.clip(); x.fillStyle="#cdd6e0"; x.fillRect(L,cy,4,codBoxH); x.restore();
-    x.fillStyle="#3a4a5c"; x.font="11.5px "+FM; let ly=cy+27;
-    for(let li=0;li<linhas.length;li++){ x.fillText(linhas[li],L+20,ly); ly+=lineH; }
+    var capTxt="Escaneie para pagar com Pix"; x.font="600 10.5px "+F; var capW=x.measureText(capTxt).width; var capX=qx+(qbox-(capW+16))/2, capY=qy+qbox+22;
+    x.save(); x.translate(capX+4.5,capY-3.5); x.rotate(Math.PI/4); x.fillStyle=VERDE; pixRR(x,-4.2,-4.2,8.4,8.4,2.2); x.fill(); x.restore();
+    x.textAlign="left"; x.fillStyle=SEC; x.fillText(capTxt,capX+16,capY);
+    x.textAlign="center"; x.fillStyle=MUT; x.font="400 10px "+F; x.fillText("Válido até "+(o.data||"—"),qx+qbox/2,capY+17); x.textAlign="left";
+    const ix=qx+qbox+50; let iy=qy+30;
+    x.fillStyle=INK; x.font="700 14px "+F; x.fillText("Como pagar",ix,iy); iy+=30;
+    const passos=ehBol
+      ? ["Abra o app do seu banco","Pague o boleto com a linha digitável","ou escaneie o QR Code (paga por Pix)"]
+      : ["Abra o app do seu banco","Escolha pagar com Pix / QR Code","Aponte a câmera para o código"];
+    for(let pi=0;pi<passos.length;pi++){
+      x.fillStyle="#F3F4F6"; x.beginPath(); x.arc(ix+9,iy-4,9,0,6.2832); x.fill();
+      x.fillStyle="#4B5563"; x.font="600 10px "+F; x.textAlign="center"; x.fillText(String(pi+1),ix+9,iy-0.5); x.textAlign="left";
+      x.fillStyle="#374151"; x.font="400 12.5px "+F; x.fillText(passos[pi],ix+28,iy);
+      iy+=28;
+    }
+    iy+=4; x.fillStyle=MUT; x.font="italic 11px "+F; x.fillText(ehBol?"A linha digitável está logo abaixo.":"Ou use o Pix copia e cola abaixo.",ix,iy);
+    cy=qy+qbox+62;
+    // ===== LINHA DIGITÁVEL =====
+    if(ehBol){
+      rotulo("Linha digitável do boleto",L,cy); cy+=16;
+      x.save(); x.shadowColor="rgba(17,24,39,0.04)"; x.shadowBlur=10; x.shadowOffsetY=3; x.fillStyle="#ffffff"; pixRR(x,L,cy,cw,52,12); x.fill(); x.restore();
+      x.strokeStyle=LIN; x.lineWidth=1; pixRR(x,L,cy,cw,52,12); x.stroke();
+      x.fillStyle=INK; x.font="600 15px "+FM; x.textAlign="center"; x.fillText(String(o.linha),L+cw/2,cy+32); x.textAlign="left";
+      cy+=52+26;
+    }
+    // ===== CÓDIGO DE BARRAS =====
+    if(barras){
+      rotulo("Código de barras",L,cy); cy+=16;
+      pixBarrasITF(x,barras,L,cy,cw,72);
+      cy+=72+28;
+    }
+    // ===== PIX COPIA E COLA =====
+    rotulo("Pix copia e cola",L,cy); cy+=16;
+    x.fillStyle=BG; x.strokeStyle=LIN; x.lineWidth=1; pixRR(x,L,cy,cw,codBoxH,12); x.fill(); x.stroke();
+    x.fillStyle="#374151"; x.font="11.5px "+FM;
+    let ly=cy+codBoxH/2-((linhas.length-1)*lineH)/2+4; // centraliza o bloco de texto na caixa
+    for(let li=0;li<linhas.length;li++){ x.fillText(linhas[li],L+18,ly); ly+=lineH; }
     cy+=codBoxH+30;
-    // ===== AVISO (creme minimalista) =====
-    const aH=56;
-    x.fillStyle="#fdfbf6"; x.strokeStyle="#f0ead9"; x.lineWidth=1; pixRR(x,L,cy,cw,aH,14); x.fill(); x.stroke();
-    // ícone de relógio sutil
-    x.save(); x.strokeStyle="#cda859"; x.lineWidth=1.6; x.beginPath(); x.arc(L+27,cy+aH/2,8,0,6.2832); x.stroke(); x.beginPath(); x.moveTo(L+27,cy+aH/2); x.lineTo(L+27,cy+aH/2-4.5); x.moveTo(L+27,cy+aH/2); x.lineTo(L+31,cy+aH/2); x.stroke(); x.restore();
-    x.fillStyle="#8c6e36"; x.font="700 11.5px "+F; x.textAlign="left"; x.fillText("Pague até o vencimento",L+48,cy+24);
-    x.fillStyle="#917d58"; x.font="400 12px "+F; x.fillText("Efetue o pagamento até a data indicada para evitar o cancelamento do espaço.",L+48,cy+41);
-    cy+=aH+28;
-    // ===== AUTORIDADE / SELOS (microdetalhes bancários) =====
+    // ===== PAGADOR E BENEFICIÁRIO =====
+    rotulo("Pagador e beneficiário",L,cy); cy+=18;
+    const pbH=104, meio=L+cw/2;
+    x.fillStyle="#ffffff"; pixRR(x,L,cy,cw,pbH,12); x.fill();
+    x.strokeStyle=LIN; x.lineWidth=1; pixRR(x,L,cy,cw,pbH,12); x.stroke();
+    x.beginPath(); x.moveTo(meio,cy+16); x.lineTo(meio,cy+pbH-16); x.stroke();
+    const pessoa=function(px2,lb,nome,subs){
+      // centraliza o bloco na vertical: mede a altura das linhas e sobra igual em cima e embaixo
+      subs=subs.filter(function(s2){ return !!s2; });
+      var inner=10+20+(subs.length?18+(subs.length-1)*16:0);
+      var yy=cy+(pbH-inner)/2+10;
+      rotulo(lb,px2,yy);
+      yy+=20; x.fillStyle=INK; x.font="600 12.5px "+F; x.fillText(nome,px2,yy);
+      x.fillStyle=SEC; x.font="400 11px "+F;
+      for(var si2=0;si2<subs.length;si2++){ yy+=(si2===0?18:16); x.fillText(subs[si2],px2,yy); }
+    };
+    const docPag=pixFmtDoc(o.cnpjPag);
+    pessoa(L+24,"Pagador",(o.razao||o.forn||"—"),[(docPag?("CPF/CNPJ "+docPag):""),(o.contato?("Contato: "+o.contato):"")]);
+    pessoa(meio+24,"Beneficiário",benef,["CNPJ 12.988.127/0001-40","Banco 748 · Sicredi — Ag. 2207","Caicó, RN"]);
+    cy+=pbH+30;
+    // ===== AVISO =====
+    const aH=54;
+    x.fillStyle="#FFFBEB"; x.strokeStyle="#FDE68A"; x.lineWidth=1; pixRR(x,L,cy,cw,aH,12); x.fill(); x.stroke();
+    x.save(); x.strokeStyle="#D97706"; x.lineWidth=1.5; x.beginPath(); x.arc(L+26,cy+aH/2,7.5,0,6.2832); x.stroke(); x.beginPath(); x.moveTo(L+26,cy+aH/2); x.lineTo(L+26,cy+aH/2-4); x.moveTo(L+26,cy+aH/2); x.lineTo(L+29.5,cy+aH/2); x.stroke(); x.restore();
+    x.fillStyle="#92400E"; x.font="600 11.5px "+F; x.textAlign="left"; x.fillText("Pague até o vencimento",L+46,cy+23);
+    x.fillStyle="#B45309"; x.font="400 11px "+F; x.fillText("Efetue o pagamento até a data indicada para evitar o cancelamento do espaço.",L+46,cy+39);
+    cy+=aH+26;
+    // ===== SELOS =====
     const selos=["Transação protegida","Beneficiário verificado","Cobrança registrada"];
-    x.font="600 11px "+F; let sx=L;
-    for(let si=0;si<selos.length;si++){ check(sx,cy-1); x.fillStyle="#5a6675"; x.fillText(selos[si],sx+15,cy+3); sx+=15+x.measureText(selos[si]).width+26; }
-    cy+=24;
-    // ===== RODAPÉ =====
-    x.strokeStyle="#edf1f6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=24;
-    x.fillStyle="#9aa6b2"; x.font="11px "+F; x.textAlign="left"; x.fillText("Documento gerado eletronicamente em "+hoje+".",L,cy);
-    x.textAlign="right"; x.fillText("Pagamento via Pix · Banco Central do Brasil",R,cy); x.textAlign="left"; cy+=18;
-    x.fillStyle="#bcc5cf"; x.font="10px "+F; x.fillText("Ref.: "+num+"  ·  Ponto nº "+(o.ponto||"")+(o.forn?"  ·  "+o.forn:""),L,cy);
-    // abre como PDF na aba (visualizador com imprimir/baixar)
+    x.font="500 10.5px "+F;
+    // mede a largura total pra centralizar a fileira de selos na página
+    let selosW=0;
+    for(let sm=0;sm<selos.length;sm++){ selosW+=14+x.measureText(selos[sm]).width+(sm<selos.length-1?24:0); }
+    let sx=L+(cw-selosW)/2;
+    for(let si=0;si<selos.length;si++){ check(sx,cy-1); x.fillStyle=SEC; x.fillText(selos[si],sx+14,cy+3); sx+=14+x.measureText(selos[si]).width+24; }
+    cy+=26;
+    // ===== RODAPÉ INSTITUCIONAL =====
+    fio(cy); cy+=22;
+    x.fillStyle=MUT; x.font="400 10px "+F; x.textAlign="left";
+    x.fillText("Documento gerado eletronicamente em "+hoje+" às "+hora+" · Canal: Painel Santa Rita",L,cy);
+    x.textAlign="right"; x.fillText(ehBol?"Boleto registrado · Sicredi":"Pagamento via Pix · Banco Central do Brasil",R,cy); x.textAlign="left"; cy+=16;
+    x.fillStyle="#C4C9D0"; x.font="400 9.5px "+F;
+    x.fillText("Ref.: "+num+"  ·  Ponto nº "+(o.ponto||"")+(o.forn?"  ·  "+o.forn:""),L,cy);
+    x.textAlign="right"; x.fillText("Documento v2",R,cy); x.textAlign="left";
+    cy+=30;
+    // corta o canvas na altura exata do conteúdo
+    const cv=document.createElement("canvas"); cv.width=W*S; cv.height=Math.round(cy*S);
+    const g=cv.getContext("2d");
+    g.drawImage(cv0,0,0,W*S,Math.round(cy*S),0,0,W*S,Math.round(cy*S));
+    g.scale(S,S); g.strokeStyle=LIN; g.lineWidth=1; g.strokeRect(0.5,0.5,W-1,cy-1);
     pixFichaCanvas=cv;
     pixImprimirFicha(cv,o);
   };
@@ -3516,7 +4190,9 @@ var PX_LOCADOR={
   razao:"G JOAO DOS SANTOS INDÚSTRIA E COMÉRCIO LTDA",
   fantasia:"Supermercado Santa Rita",
   cnpj:"12.988.127/0001-40",
-  cidade:"Caicó/RN"
+  cidade:"Caicó/RN",
+  endereco:"Rua André Sales, 531 - Paulo VI, Caicó/RN - CEP 59300-000",
+  diretor:"Gilson João dos Santos"
 };
 function pxEsc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 // Número por extenso (reais) — pt-BR, até milhões.
@@ -3539,7 +4215,10 @@ function pxContratoDocHtml(p){
   var MES=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
   var L=PX_LOCADOR;
   var forn=pxEsc(p.razaoSocial||p.fornecedor||"[FORNECEDOR]");
-  var cnpjForn=pxEsc(p.cnpj?pxFmtCnpj(p.cnpj):"[CNPJ DO FORNECEDOR]");
+  var cnpjForn=pxEsc(p.cnpj?pixFmtDoc(p.cnpj):"[CPF/CNPJ DO FORNECEDOR]");
+  var enderecoForn=pxEsc(p.endereco||"");
+  var vendedor=pxEsc(p.vendedor||"");
+  var numeroPonto=pxEsc(String(p.numero||"—"));
   var ini=p.abertura, fim=p.vencimento;
   var iniFmt=pxEsc(ini?pxFmtData(ini):"____/____/______");
   var fimFmt=pxEsc(fim?pxFmtData(fim):"____/____/______");
@@ -3554,37 +4233,94 @@ function pxContratoDocHtml(p){
   var dataExt=dd.getDate()+" de "+MES[dd.getMonth()]+" de "+dd.getFullYear();
   var vigencia = meses>0 ? (", correspondendo a "+meses+(meses===1?" mês":" meses")+" de vigência") : "";
   var pagTxt="O valor será pago através de "+pagBase+", no valor total de "+valTotalFmt+", referente ao período contratado"+vigencia+", com valor mensal de "+mensalFmt+".";
-  var razao=pxEsc(L.razao), cnpjL=pxEsc(L.cnpj), fant=pxEsc(L.fantasia||L.razao), cidade=pxEsc(L.cidade||"Caicó/RN");
-  var css="*{box-sizing:border-box}html,body{background:#fff}body{font-family:'Times New Roman',Georgia,serif;color:#1a1a1a;max-width:760px;margin:0 auto;padding:48px 60px;line-height:1.75;font-size:15px}"+
-    "h1{text-align:center;font-size:17px;text-transform:uppercase;letter-spacing:.8px;line-height:1.35;margin:0 0 30px}"+
-    "p{margin:0 0 14px;text-align:justify}.lbl{font-weight:bold}.bloco-info{margin:18px 0}.clausula{margin-top:22px}.clausula .t{font-weight:bold}"+
-    ".assin{margin-top:60px}.assin .row{display:flex;gap:60px;justify-content:space-between;margin-top:56px}"+
+  var razao=pxEsc(L.razao), cnpjL=pxEsc(L.cnpj), fant=pxEsc(L.fantasia||L.razao), cidade=pxEsc(L.cidade||"Caicó/RN"), enderecoL=pxEsc(L.endereco||"");
+  // código do documento (mesma convenção do nº de cobrança da ficha de boleto: CT-<ponto>-<anomês>)
+  var dParts2=(ini||"").split("-");
+  var codigo="CT-"+String(p.numero||0).padStart(2,"0")+"-"+((dParts2[2]||String(HOJE.getFullYear()).slice(2))+(dParts2[1]||("0"+(HOJE.getMonth()+1)).slice(-2)));
+  var emissaoFmt=pxFmtData(pxDateKey(new Date()));
+  var barra=pxDocBarraHtml({ titulo:"Contrato Comercial", codigo:codigo, badge:"Gerado agora", emissao:emissaoFmt, printLabel:"Imprimir / Salvar PDF" });
+  var css=barra.css+
+    "*{box-sizing:border-box}html{background:#f4f5f6}body{margin:0;padding:0;background:#f4f5f6;font-family:'Times New Roman',Georgia,serif;color:#1a1a1a}"+
+    ".doc-page-wrap{padding:32px 20px 64px}"+
+    ".doc-page{max-width:760px;margin:0 auto;background:#fff;padding:44px 60px;line-height:1.62;font-size:14.5px;border-radius:10px;box-shadow:0 1px 3px rgba(16,24,32,.06),0 1px 2px rgba(16,24,32,.04)}"+
+    "h1{text-align:center;font-size:16.5px;text-transform:uppercase;letter-spacing:.8px;line-height:1.32;margin:0 0 22px}"+
+    "p{margin:0 0 11px;text-align:justify}.lbl{font-weight:bold}.bloco-info{margin:13px 0}.clausula{margin-top:16px}.clausula .t{font-weight:bold}"+
+    ".assin{margin-top:40px}.assin .row{display:flex;gap:60px;justify-content:space-between;margin-top:66px}"+
     ".assin .bloco{flex:1;text-align:center}.assin .linha{border-top:1px solid #1a1a1a;padding-top:6px}"+
     ".assin .papel{font-weight:bold;font-size:13px}.assin .dado{font-size:11.5px;color:#333;margin-top:2px}"+
-    ".barra{position:fixed;top:0;left:0;right:0;background:#157a35;color:#fff;padding:10px 16px;text-align:center;font-family:Arial,sans-serif}"+
-    ".barra button{font-size:14px;font-weight:700;padding:8px 18px;margin:0 4px;border:0;border-radius:6px;cursor:pointer;background:#fff;color:#157a35}"+
-    ".barra .sec{background:transparent;color:#fff;border:1px solid #fff}"+
-    "@page{margin:0}@media print{.barra{display:none}body{max-width:none;margin:0;padding:18mm 18mm 18mm}}";
-  var h="<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Acordo Comercial — "+forn+"</title><style>"+css+"</style></head><body>";
-  h+="<div class='barra'><button onclick='window.print()'>Imprimir / Salvar PDF</button><button class='sec' onclick='window.close()'>Fechar</button></div>";
-  h+="<div style='height:34px'></div>";
+    "@page{margin:0}@media print{.docbar{display:none}html,body{background:#fff}.doc-page-wrap{padding:0}.doc-page{box-shadow:none;border-radius:0;margin:0;max-width:none;padding:16mm 18mm 16mm}}";
+  var h="<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Contrato — "+forn+"</title>"+
+    "<link rel='preconnect' href='https://fonts.googleapis.com'><link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' rel='stylesheet'>"+
+    "<style>"+css+"</style></head><body>";
+  h+=barra.html;
+  h+="<div class='doc-page-wrap'><div class='doc-page'>";
   var logoSrc=""; try{ logoSrc=(typeof LOGO_URI!=="undefined"&&LOGO_URI)?LOGO_URI:((document.querySelector("header img")||{}).src||""); }catch(e){}
-  if(logoSrc) h+="<div style='text-align:center;margin:0 0 16px'><img src='"+logoSrc+"' alt='Supermercado Santa Rita' style='max-height:74px;width:auto'></div>";
+  if(logoSrc) h+="<div style='text-align:center;margin:0 0 12px'><img src='"+logoSrc+"' alt='Supermercado Santa Rita' style='max-height:60px;width:auto'></div>";
   h+="<h1>Acordo Comercial para Utilização de Espaço Promocional<br>(Ponto Extra)</h1>";
-  h+="<p>Por este instrumento particular, de um lado <b>"+forn+"</b>, inscrita no CNPJ sob o nº <b>"+cnpjForn+"</b>, doravante denominada <b>CONTRATANTE</b>, e de outro lado <b>"+razao+"</b> ("+fant+"), inscrita no CNPJ sob o nº <b>"+cnpjL+"</b>, doravante denominada <b>CONTRATADA</b>, têm entre si justo e acordado o presente Acordo Comercial, que se regerá pelas cláusulas e condições a seguir.</p>";
+  h+="<p>Por este instrumento particular, de um lado <b>"+forn+"</b>, inscrita no CPF/CNPJ sob o nº <b>"+cnpjForn+"</b>, doravante denominada <b>CONTRATANTE</b>, e de outro lado <b>"+razao+"</b> ("+fant+"), inscrita no CNPJ sob o nº <b>"+cnpjL+"</b>, doravante denominada <b>CONTRATADA</b>, têm entre si justo e acordado o presente Acordo Comercial, que se regerá pelas cláusulas e condições a seguir.</p>";
   h+="<div class='bloco-info'>";
+  h+="<p><span class='lbl'>ENDEREÇO DA CONTRATANTE:</span> "+(enderecoForn||"—")+"</p>";
+  h+="<p><span class='lbl'>ENDEREÇO DA CONTRATADA:</span> "+(enderecoL||"—")+"</p>";
+  h+="</div>";
+  h+="<div class='bloco-info'>";
+  h+="<p><span class='lbl'>OBJETO:</span> Cessão de uso, pela CONTRATADA à CONTRATANTE, do espaço promocional identificado como Ponto Extra nº "+numeroPonto+", localizado nas dependências do estabelecimento da CONTRATADA, destinado à exposição e comercialização de produtos.</p>";
   h+="<p><span class='lbl'>PERÍODO DA NEGOCIAÇÃO E QUITAÇÃO:</span> "+iniFmt+" a "+fimFmt+"</p>";
   h+="<p><span class='lbl'>VALOR DA QUITAÇÃO:</span> "+valTotalFmt+valTotalExt+"</p>";
   h+="<p><span class='lbl'>FORMA DE PAGAMENTO:</span> "+pagTxt+"</p>";
   h+="</div>";
   h+="<div class='clausula'><p><span class='t'>CLÁUSULA DE QUITAÇÃO:</span> Após a confirmação do pagamento integral do valor acordado, as partes concedem entre si plena, geral e irrevogável quitação referente ao objeto deste acordo, nada mais tendo a reclamar uma da outra a qualquer título.</p></div>";
+  h+="<div class='clausula'><p><span class='t'>CLÁUSULA DE FORO:</span> Fica eleito o Foro da Comarca de "+cidade+", com renúncia expressa a qualquer outro, por mais privilegiado que seja, para dirimir quaisquer dúvidas ou litígios oriundos do presente instrumento.</p></div>";
   h+="<p style='margin-top:26px'>"+cidade.toUpperCase()+", "+dataExt+".</p>";
   h+="<div class='assin'>";
-  h+="<div class='row'><div class='bloco'><div class='linha'><div class='papel'>CONTRATANTE</div><div class='dado'>"+forn+(p.cnpj?(" — CNPJ "+cnpjForn):"")+"</div></div></div>";
-  h+="<div class='bloco'><div class='linha'><div class='papel'>CONTRATADA</div><div class='dado'>"+razao+" — CNPJ "+cnpjL+"</div></div></div></div>";
+  h+="<div class='row'><div class='bloco'><div class='linha'><div class='papel'>CONTRATANTE</div><div class='dado'>"+forn+(p.cnpj?(" — CNPJ "+cnpjForn):"")+(vendedor?("<br>Vendedor(a): "+vendedor):"")+"</div></div></div>";
+  h+="<div class='bloco'><div class='linha'><div class='papel'>CONTRATADA</div><div class='dado'>"+razao+" — CNPJ "+cnpjL+(L.diretor?("<br>Diretor: "+pxEsc(L.diretor)):"")+"</div></div></div></div>";
   h+="</div>";
+  h+="</div></div>";
   h+="</body></html>";
   return h;
+}
+// ===== Componente reutilizável: barra superior de visualização de documentos =====
+// Usado por Contratos hoje; pronto para Recibos, Pedidos de Compra, etc. no futuro.
+// opts: {titulo, codigo, badge, emissao, printLabel} — todos textos já tratados (pxEsc quando vier de dado do usuário).
+function pxDocBarraHtml(opts){
+  opts=opts||{};
+  var arrowIc='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>';
+  var printIc='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>';
+  var css="*{font-family:'Inter',-apple-system,'Segoe UI',Roboto,Arial,sans-serif}"+
+    ".docbar{position:sticky;top:0;z-index:20;height:60px;background:#fff;border-bottom:1px solid #edeff1;display:flex;align-items:center;justify-content:space-between;padding:0 24px;gap:16px}"+
+    ".docbar-left{display:flex;align-items:center;min-width:0}"+
+    ".docbar-back{display:inline-flex;align-items:center;gap:6px;background:transparent;border:0;color:#4b5563;font-size:13.5px;font-weight:500;padding:7px 10px;border-radius:7px;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap;flex-shrink:0}"+
+    ".docbar-back:hover{background:#f3f4f6;color:#1f2937}"+
+    ".docbar-divider{width:1px;height:22px;background:#e5e7eb;margin:0 16px;flex-shrink:0}"+
+    ".docbar-titles{min-width:0}"+
+    ".docbar-title{font-size:17px;font-weight:500;color:#14181c;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"+
+    ".docbar-meta{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#8a929c;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"+
+    ".docbar-meta .dot{color:#d1d5db;flex-shrink:0}"+
+    ".docbar-badge{display:inline-flex;align-items:center;background:#eaf7ee;color:#1e7a3c;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:999px;flex-shrink:0}"+
+    ".docbar-right{display:flex;align-items:center;gap:10px;flex-shrink:0}"+
+    ".docbar-btn{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 16px;border-radius:8px;font-size:13.5px;font-weight:500;cursor:pointer;transition:background .15s,box-shadow .15s,transform .05s;white-space:nowrap;border:0;flex-shrink:0}"+
+    ".docbar-btn-primary{background:#157a35;color:#fff;box-shadow:0 1px 2px rgba(21,122,53,.25)}"+
+    ".docbar-btn-primary:hover{background:#12692e}"+
+    ".docbar-btn-primary:active{transform:translateY(1px)}"+
+    "@media (max-width:640px){.docbar{padding:0 12px;gap:8px}.docbar-back span,.docbar-btn span,.docbar-meta{display:none}.docbar-back{padding:8px}.docbar-btn{padding:0 12px}.docbar-divider{margin:0 10px}}";
+  var html="<div class='docbar'>"+
+    "<div class='docbar-left'>"+
+      "<button type='button' class='docbar-back' onclick='window.close()' title='Fechar'>"+arrowIc+"<span>Voltar</span></button>"+
+      "<div class='docbar-divider'></div>"+
+      "<div class='docbar-titles'>"+
+        "<div class='docbar-title'>"+(opts.titulo||"Documento")+"</div>"+
+        "<div class='docbar-meta'>"+
+          (opts.codigo?("<span>"+opts.codigo+"</span><span class='dot'>&middot;</span>"):"")+
+          (opts.badge?("<span class='docbar-badge'>"+opts.badge+"</span><span class='dot'>&middot;</span>"):"")+
+          (opts.emissao?("<span>Emitido em "+opts.emissao+"</span>"):"")+
+        "</div>"+
+      "</div>"+
+    "</div>"+
+    "<div class='docbar-right'>"+
+      "<button type='button' class='docbar-btn docbar-btn-primary' onclick='window.print()'>"+printIc+"<span>"+(opts.printLabel||"Imprimir")+"</span></button>"+
+    "</div>"+
+  "</div>";
+  return {css:css, html:html};
 }
 function pxGerarContrato(p){
   if(!p){ alert("Preencha os dados do ponto antes de gerar o contrato."); return; }
@@ -3597,18 +4333,19 @@ function pxContratoHtml(p){
   const clipIc='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>';
   let corpo;
   if(p.contratoArquivo){
-    const trocaIc='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>';
-    const lixoIc='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
-    corpo='<a class="px-arq-link" href="#" data-cview="'+p.id+'" title="Abrir contrato">'+docIc+'<span>'+(p.contratoNome||"Ver contrato")+'</span></a>'+
-      '<button type="button" class="px-arq-icon" data-cfile-btn="'+p.id+'" title="Trocar contrato">'+trocaIc+'</button>'+
-      '<button type="button" class="px-arq-icon rem" data-crem="'+p.id+'" title="Remover contrato">'+lixoIc+'</button>';
+    const xIc='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9aa6b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+    corpo='<div class="px-arq-card" data-cview="'+p.id+'" title="'+pxEsc(p.contratoNome||"contrato")+' — clique para ver" style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e3e8ee;border-radius:8px;padding:0 14px;width:100%;max-width:280px;box-sizing:border-box;min-height:46px;cursor:pointer;">'+
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1b9e4b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>'+
+      '<span style="flex:1; min-width:0; text-align:left;color:#2a3340;font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+pxEsc(p.contratoNome||"contrato")+'</span>'+
+      '<span data-crem="'+p.id+'" title="Remover contrato" style="flex-shrink:0;display:inline-flex;padding:3px;cursor:pointer;">'+xIc+'</span>'+
+      '</div>';
   } else {
     corpo='<button type="button" class="px-arq-anexar" data-cfile-btn="'+p.id+'">'+clipIc+'Anexar contrato</button>';
   }
   var gerarIc='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>';
-  return '<div class="px-det-item px-det-contrato"><b>Contrato</b><div class="px-arq">'+corpo+
-    '<input type="file" data-cfile="'+p.id+'" accept="application/pdf,image/*" style="display:none;"></div>'+
-    '<button type="button" class="px-gerar-ct" data-cgerar="'+p.id+'" title="Gerar contrato padrão com os dados deste ponto">'+gerarIc+'Gerar contrato</button></div>';
+  return '<div class="px-det-item"><b>Contrato</b><button type="button" class="px-gerar-ct" data-cgerar="'+p.id+'" title="Gerar contrato padrão com os dados deste ponto">'+gerarIc+'Gerar contrato</button></div>'+
+    '<div class="px-det-item"><b>&nbsp;</b><div class="px-arq">'+corpo+
+    '<input type="file" data-cfile="'+p.id+'" accept="application/pdf,image/*" style="display:none;"></div></div>';
 }
 function pxFmtCnpj(c){
   const d=(c||"").replace(/\\D/g,"");
@@ -3633,7 +4370,7 @@ function renderPontosG(){
   inad.sort(function(a,b){ return b.dias-a.dias; });
   const totDevido=inad.reduce(function(a,x){ return a+x.valor; },0);
   document.getElementById("pxInadimplentes").innerHTML = inad.length ? (
-    '<div class="px-inad"><div class="px-inad-top"><span class="px-inad-tit">⚠️ Inadimplentes ('+inad.length+')</span><span class="px-inad-tot">Total em atraso: '+brl(totDevido)+'</span></div>'+
+    '<div class="px-inad"><div class="px-inad-top"><span class="px-inad-tit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Inadimplentes ('+inad.length+')</span><span class="px-inad-tot">Total em atraso: '+brl(totDevido)+'</span></div>'+
     '<table class="px-inad-tb"><thead><tr><th>Fornecedor</th><th>Parcelas atrasadas</th><th>Valor devido</th><th>Atraso</th></tr></thead><tbody>'+
     inad.map(function(x){ return '<tr><td>'+(x.p.fornecedor||"—")+'</td><td>'+x.n+'</td><td>'+brl(x.valor)+'</td><td>'+x.dias+' dia'+(x.dias===1?'':'s')+' <span class="px-inad-desde">(desde '+x.desde.toLocaleDateString("pt-BR")+')</span></td></tr>'; }).join('')+
     '</tbody></table></div>'
@@ -3670,10 +4407,10 @@ function renderPontosG(){
       '<tr class="px-det" id="det-'+p.id+'" style="display:none;"><td colspan="11"><div class="px-det-wrap"><div class="px-det-box">'+
         pxDetItem("CNPJ", p.cnpj ? pxFmtCnpj(p.cnpj) : "—")+
         pxDetItem("Razão Social", p.razaoSocial||"—")+
+        pxDetItem("Endereço", p.endereco?pxEsc(p.endereco):"—")+
         pxDetItem("Vendedor", p.vendedor||"—")+
         pxDetItem("Contato", p.contato?pxFmtTel(p.contato):"—")+
         pxDetItem("E-mail", p.email ? ('<a href="mailto:'+pxEsc(p.email)+'">'+pxEsc(p.email)+'</a>') : "—")+
-        pxDetItem("Endereço", p.endereco?pxEsc(p.endereco):"—")+
         pxContratoHtml(p)+
       '</div>'+pxAgendaHtml(p)+'</div></td></tr>';
   }).join("");
@@ -3723,46 +4460,91 @@ function pxLimparForm(){
   document.getElementById("pxSalvar").textContent="Adicionar";
   document.getElementById("pxCancelar").style.display="none";
 }
+// normaliza a resposta da publica.cnpj.ws pro mesmo formato da BrasilAPI
+function pxCnpjNormWs(d){
+  var e=d.estabelecimento||{};
+  return {
+    nome_fantasia:e.nome_fantasia||"",
+    razao_social:d.razao_social||"",
+    email:e.email||"",
+    ddd_telefone_1:(e.ddd1&&e.telefone1)?(e.ddd1+e.telefone1):"",
+    logradouro:((e.tipo_logradouro?e.tipo_logradouro+" ":"")+(e.logradouro||"")).trim(),
+    numero:e.numero||"", bairro:e.bairro||"",
+    municipio:(e.cidade&&e.cidade.nome)||"", uf:(e.estado&&e.estado.sigla)||"", cep:e.cep||""
+  };
+}
+// preenche o formulário do ponto com os dados do CNPJ (formato BrasilAPI). Retorna o nome achado (ou "").
+function pxPreencherCnpj(d,msg){
+  var fantasia=d.nome_fantasia||"", razao=d.razao_social||"", nome=fantasia||razao;
+  if(!nome) return "";
+  document.getElementById("pxForn").value=nome;
+  document.getElementById("pxRazao").value=razao;
+  var emEl=document.getElementById("pxEmail");
+  if(d.email && !emEl.value.trim()) emEl.value=String(d.email).toLowerCase();
+  var telEl=document.getElementById("pxTel");
+  if(d.ddd_telefone_1 && !telEl.value.trim()) telEl.value=pxFmtTel(String(d.ddd_telefone_1).replace(/\\D/g,""));
+  var endEl=document.getElementById("pxEndereco"), partes=[];
+  if(d.logradouro) partes.push(d.logradouro+(d.numero?(", "+d.numero):""));
+  if(d.bairro) partes.push(d.bairro);
+  if(d.municipio) partes.push(d.municipio+(d.uf?("/"+d.uf):""));
+  if(d.cep) partes.push("CEP "+String(d.cep).replace(/(\\d{5})(\\d{3})/,"$1-$2"));
+  var endereco=partes.join(" - "); if(endereco) endEl.value=endereco;
+  msg.style.color="#1b9e4b";
+  msg.textContent="\\u2713 "+(fantasia?("Fantasia: "+fantasia):"")+((fantasia&&razao)?"  \\u00b7  ":"")+(razao?("Razão: "+razao):"")+(d.email?("  \\u00b7  \\u2709 "+String(d.email).toLowerCase()):"");
+  return nome;
+}
 function pxBuscarCnpj(){
   const el=document.getElementById("pxCnpj");
   const msg=document.getElementById("pxCnpjMsg");
   const btn=document.getElementById("pxCnpjBuscar");
   const cnpj=(el.value||"").replace(/\\D/g,"");
-  if(cnpj.length!==14){ msg.style.color="#c0392b"; msg.textContent="Digite os 14 números do CNPJ."; return; }
+  if(cnpj.length===11){ msg.style.color="#8a6d1a"; msg.textContent="Isso é um CPF (pessoa física). O nome não pode ser buscado por lei — digite o nome do fornecedor à mão no campo ao lado. A cobrança funciona normalmente."; return; }
+  if(cnpj.length!==14){ msg.style.color="#c0392b"; msg.textContent="Digite o CNPJ (14 números) para buscar o nome. Se for pessoa física, digite o nome à mão."; return; }
   btn.disabled=true; const txt=btn.textContent; btn.textContent="Buscando...";
   msg.style.color="#6b7787"; msg.textContent="Consultando a Receita Federal...";
+  // tenta a BrasilAPI; se falhar (ex: 500/503 nesse CNPJ), cai na publica.cnpj.ws sozinho
   fetch("https://brasilapi.com.br/api/cnpj/v1/"+cnpj)
     .then(function(r){ if(!r.ok) throw new Error("nf"); return r.json(); })
+    .then(function(d){ return d; })
+    .catch(function(){
+      return fetch("https://publica.cnpj.ws/cnpj/"+cnpj).then(function(r){ if(!r.ok) throw new Error("nf2"); return r.json(); }).then(pxCnpjNormWs);
+    })
     .then(function(d){
-      const fantasia=d.nome_fantasia||"";
-      const razao=d.razao_social||"";
-      const nome=fantasia||razao;
-      if(nome){
-        document.getElementById("pxForn").value=nome;
-        document.getElementById("pxRazao").value=razao;
-        // email: preenche se a Receita tiver e o campo estiver vazio
-        var emEl=document.getElementById("pxEmail");
-        if(d.email && !emEl.value.trim()) emEl.value=String(d.email).toLowerCase();
-        // telefone: preenche se vier e o campo estiver vazio
-        var telEl=document.getElementById("pxTel");
-        if(d.ddd_telefone_1 && !telEl.value.trim()) telEl.value=pxFmtTel(String(d.ddd_telefone_1).replace(/\\D/g,""));
-        // endereço: monta a partir dos campos da Receita
-        var endEl=document.getElementById("pxEndereco");
-        var partes=[];
-        if(d.logradouro) partes.push(d.logradouro+(d.numero?(", "+d.numero):""));
-        if(d.bairro) partes.push(d.bairro);
-        if(d.municipio) partes.push(d.municipio+(d.uf?("/"+d.uf):""));
-        if(d.cep) partes.push("CEP "+String(d.cep).replace(/(\\d{5})(\\d{3})/,"$1-$2"));
-        var endereco=partes.join(" - ");
-        if(endereco) endEl.value=endereco;
-        msg.style.color="#1b9e4b";
-        msg.textContent="\\u2713 "+(fantasia?("Fantasia: "+fantasia):"")+((fantasia&&razao)?"  \\u00b7  ":"")+(razao?("Razão: "+razao):"")+(d.email?("  \\u00b7  \\u2709 "+String(d.email).toLowerCase()):"");
-      } else { msg.style.color="#c0392b"; msg.textContent="CNPJ encontrado, mas sem nome cadastrado."; }
+      var nome=pxPreencherCnpj(d,msg);
+      if(!nome){ msg.style.color="#c0392b"; msg.textContent="CNPJ encontrado, mas sem nome cadastrado."; }
     })
     .catch(function(){ msg.style.color="#c0392b"; msg.textContent="Não encontrei esse CNPJ. Confira o número e a internet."; })
     .finally(function(){ btn.disabled=false; btn.textContent=txt; });
 }
 // Janela de confirmação estilizada (substitui o confirm() do navegador). Retorna Promise<boolean>.
+// Vigia de janela fantasma: um fundo de modal preso SEM conteúdo visível (resto de um
+// fluxo interrompido) bloqueia todos os cliques da tela. Aqui ele se limpa sozinho.
+function pxLimparFantasmas(){
+  var achou=false;
+  document.querySelectorAll(".modal-bg.show").forEach(function(bg){
+    var cx=bg.firstElementChild;
+    if(!cx || cx.offsetParent===null){ bg.classList.remove("show"); achou=true; }
+  });
+  return achou;
+}
+// varre ao carregar e de tempos em tempos (barato: só olha os .modal-bg abertos)
+try{ pxLimparFantasmas(); }catch(e){}
+setInterval(function(){ try{ pxLimparFantasmas(); }catch(e){} }, 2000);
+document.addEventListener("click",function(e){
+  var bg=e.target.closest?e.target.closest(".modal-bg.show"):null;
+  if(bg && e.target===bg){
+    var cx=bg.firstElementChild;
+    if(!cx || cx.offsetParent===null) bg.classList.remove("show"); // fantasma: some
+  }
+},true);
+document.addEventListener("keydown",function(e){
+  if(e.key==="Escape"){
+    document.querySelectorAll(".modal-bg.show").forEach(function(bg){
+      var cx=bg.firstElementChild;
+      if(!cx || cx.offsetParent===null) bg.classList.remove("show");
+    });
+  }
+});
 function uiConfirm(opts){
   opts=opts||{};
   return new Promise(function(resolve){
@@ -3862,6 +4644,9 @@ async function pixTravaClick(){
   else uiConfirm({ titulo:"Senha incorreta", msg:"A senha não confere. A chave Pix continua bloqueada.", ok:"Entendi", cancel:"" });
 }
 (function initPontosG(){
+  // BLINDAGEM: se qualquer preparo abaixo falhar, os botões da LISTA (editar/×) ainda são
+  // ligados no fim. Por isso o preparo fica num try — um erro aqui não pode travar a lista.
+  try{
   document.getElementById("pxCnpjBuscar").addEventListener("click", pxBuscarCnpj);
   pixSetCfgUI();
   pixAtualizarTrava();
@@ -3891,12 +4676,13 @@ async function pixTravaClick(){
   document.getElementById("pxSalvar").addEventListener("click",()=>{
     const dados=pxLerForm();
     // Campos obrigatórios: todos, menos a Observação.
-    ["pxNum","pxCnpj","pxForn","pxVend","pxTel","pxValor","pxPag","pxAbertura","pxVenc"].forEach(id=>document.getElementById(id).classList.remove("campo-erro"));
+    ["pxNum","pxCnpj","pxForn","pxVend","pxTel","pxEmail","pxValor","pxPag","pxAbertura","pxVenc"].forEach(id=>document.getElementById(id).classList.remove("campo-erro"));
     const faltando=[];
     if(dados.numero==="") faltando.push(["pxNum","Nº do ponto"]);
     if(!dados.fornecedor) faltando.push(["pxForn","Fornecedor (busque pelo CNPJ ou digite o nome)"]);
     if(!dados.vendedor) faltando.push(["pxVend","Vendedor"]);
     if(!dados.contato) faltando.push(["pxTel","Contato"]);
+    if(!dados.email) faltando.push(["pxEmail","E-mail (p/ cobrança)"]);
     if(!(dados.valor>0)) faltando.push(["pxValor","Valor"]);
     if(!dados.pagamento) faltando.push(["pxPag","Modo de pagamento"]);
     if(!dados.abertura) faltando.push(["pxAbertura","Abertura do contrato"]);
@@ -3934,18 +4720,35 @@ async function pixTravaClick(){
       });
       return;
     }
-    if(pxEditId){ const p=pontosG.find(x=>x.id===pxEditId); if(p) Object.assign(p, dados); }
-    else { pontosG.push(Object.assign({id:"pg"+Date.now(), contrato:"", vencContrato:"", status:"NÃO PAGO"}, dados)); }
-    savePontosG(); pxLimparForm(); renderPontosG();
+    function pxFinalizarSave(){
+      if(pxEditId){ const p=pontosG.find(x=>x.id===pxEditId); if(p) Object.assign(p, dados); }
+      else { pontosG.push(Object.assign({id:"pg"+Date.now(), contrato:"", vencContrato:"", status:"NÃO PAGO"}, dados)); }
+      savePontosG(); pxLimparForm(); renderPontosG();
+    }
+    // AVISO: se mudar a data de abertura (o dia das parcelas) de um ponto que já tem
+    // parcela PAGA, as datas deslocam e os pagamentos desalinham. Confirma antes.
+    const pAntigo = pxEditId ? pontosG.find(x=>x.id===pxEditId) : null;
+    if(pAntigo && pxEdicaoDesalinha(pAntigo, dados)){
+      uiConfirm({
+        titulo:"Mantenha o mesmo dia",
+        msg:"Você mudou o dia da cobrança. Com isso, as parcelas que já foram PAGAS deixam de aparecer como pagas. Para adicionar mais meses, é só mudar o Vencimento do contrato e manter o dia igual. Mudar o dia mesmo assim?",
+        ok:"Mudar mesmo assim", cancel:"Voltar"
+      }).then(function(sim){ if(sim) pxFinalizarSave(); });
+      return;
+    }
+    pxFinalizarSave();
   });
   document.getElementById("pxCancelar").addEventListener("click", pxLimparForm);
   document.getElementById("pxBusca").addEventListener("input", renderPontosG);
   document.getElementById("pxFiltroStatus").addEventListener("change", renderPontosG);
   document.getElementById("pxFiltroPagamento").addEventListener("change", renderPontosG);
   document.getElementById("pxFiltroVenc").addEventListener("change", renderPontosG);
+  }catch(_eInit){ try{ console.warn("preparo de Pontos parcial (segue mesmo assim):",_eInit); }catch(_x){} }
   document.getElementById("pxTabela").addEventListener("click",(e)=>{
     const exp=e.target.closest("[data-exp]");
     if(exp){ const det=document.getElementById("det-"+exp.dataset.exp); if(det){ const ab=det.style.display==="none"; det.style.display=ab?"table-row":"none"; exp.classList.toggle("aberto",ab); } return; }
+    const cremEarly=e.target.closest("[data-crem]"); // × dentro do card do contrato: checa ANTES de data-cview (o × está dentro do card clicável)
+    if(cremEarly){ const p=pontosG.find(x=>x.id===cremEarly.dataset.crem); if(p){ uiConfirm({ titulo:"Remover contrato", msg:"Remover o arquivo do contrato deste ponto?", ok:"Remover", cancel:"Cancelar" }).then(function(sim){ if(!sim) return; delete p.contratoArquivo; delete p.contratoNome; savePontosG(); renderPontosG(); pxReabrir(p.id); }); } return; }
     const cview=e.target.closest("[data-cview]");
     if(cview){ e.preventDefault(); pxAbrirContrato(pontosG.find(x=>x.id===cview.dataset.cview)); return; }
     const cbtn=e.target.closest("[data-cfile-btn]");
@@ -3958,22 +4761,71 @@ async function pixTravaClick(){
     if(pixr){ const pr=pixr.dataset.pixretry.split("|"); pixCobRetry(pr[0],pr[1]); return; }
     const pixc=e.target.closest("[data-pixcancel]");
     if(pixc){ const pr=pixc.dataset.pixcancel.split("|"); pixCobCancel(pr[0],pr[1]); return; }
+    const pixdt=e.target.closest("[data-desfazerteste]");
+    if(pixdt){ const pr=pixdt.dataset.desfazerteste.split("|"); pixDesfazerTeste(pr[0],pr[1]); return; }
+    const bnf=e.target.closest("[data-bonif]");
+    if(bnf){ const pr=bnf.dataset.bonif.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p) bonifAbrir(p,pr[1]); return; }
     const mark=e.target.closest("[data-marcarpago]");
     if(mark){ const pr=mark.dataset.marcarpago.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p){ p.manuais=p.manuais||{}; p.manuais[pr[1]]="pendente"; savePontosG(); renderPontosG(); pxReabrir(p.id); uiConfirm({titulo:"Enviado para autorização",msg:"Pagamento marcado. Está AGUARDANDO a autorização do administrador (senha master) para ficar pago.",ok:"Ok",cancel:""}); } return; }
     const aut=e.target.closest("[data-autorizar]");
-    if(aut){ const pr=aut.dataset.autorizar.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p){ pxExigeMaster("Digite a senha master para AUTORIZAR este pagamento.").then(function(ok){ if(!ok) return; p.manuais=p.manuais||{}; p.manuais[pr[1]]="autorizado"; savePontosG(); renderPontosG(); pxReabrir(p.id); }); } return; }
+    if(aut){ const pr=aut.dataset.autorizar.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p){
+      const kk=pr[1]; const manA=(p.manuais||{})[kk];
+      if(pxManBonif(manA)){
+        // BONIFICAÇÃO: só autoriza com o arquivo da nota anexado (a prova é obrigatória)
+        if(!((p.comprovantes||{})[kk])){ uiConfirm({titulo:"Falta o arquivo da nota",msg:"Para autorizar a bonificação, anexe primeiro o ARQUIVO da nota fiscal (PDF) no botão Anexar, na coluna Comprovante desta parcela.",ok:"Entendi",cancel:""}); return; }
+        // o realtime pode trocar pontosG durante os diálogos — sempre rebuscar pelo id na hora de mexer
+        const pega=function(){ const pF=pontosG.find(function(x){ return x.id===pr[0]; }); const mF=pF&&(pF.manuais||{})[kk]; return (pF&&pxManBonif(mF)&&mF.st==="pendente"&&mF.pend)?{p:pF,man:mF}:null; };
+        const fecha=function(quitado){
+          const fr=pega(); if(!fr){ uiConfirm({titulo:"Nada para autorizar",msg:"Este registro mudou ou já foi tratado em outra tela. A lista foi atualizada.",ok:"Ok",cancel:""}); renderPontosG(); return; }
+          const nt=Math.round(((+fr.man.tot||0)+(+fr.man.pend.valor||0))*100)/100;
+          fr.man.hist=fr.man.hist||[];
+          var _n=fr.man.hist.length+1; // sequência desta entrega (1ª, 2ª, ...)
+          fr.man.hist.push(Object.assign({},fr.man.pend,{autPor:(window.__EMAIL||""),autEm:new Date().toISOString(),notaKey:kk+"~e"+_n}));
+          // guarda a nota DESTA entrega numa chave própria (preserva todas) e libera a chave da parcela pra próxima nota
+          if(fr.p.comprovantes && fr.p.comprovantes[kk]){ fr.p.comprovantes[kk+"~e"+_n]=fr.p.comprovantes[kk]; delete fr.p.comprovantes[kk]; }
+          fr.man.pend=null; fr.man.tot=nt;
+          fr.man.st=(quitado || nt>=((+fr.p.valor||0)-0.005))?"autorizado":"parcial";
+          savePontosG(); renderPontosG(); pxReabrir(fr.p.id);
+        };
+        pxExigeMaster("Digite a senha master para AUTORIZAR esta bonificação.").then(function(ok){ if(!ok) return;
+          const fr0=pega(); if(!fr0){ uiConfirm({titulo:"Nada para autorizar",msg:"Este registro mudou ou já foi tratado em outra tela. A lista foi atualizada.",ok:"Ok",cancel:""}); renderPontosG(); return; }
+          const novoTot=Math.round(((+fr0.man.tot||0)+(+fr0.man.pend.valor||0))*100)/100;
+          const falta=Math.round(((+fr0.p.valor||0)-novoTot)*100)/100;
+          if(falta>0.005){
+            // 1º diálogo: dá pra ABORTAR sem autorizar nada (fechar/clicar fora também aborta)
+            uiConfirm({titulo:"Veio menos que o combinado",msg:"Chegou "+brl(novoTot)+" de "+brl(+fr0.p.valor||0)+" — faltam "+brl(falta)+". Continuar com a autorização?",ok:"Continuar",cancel:"Voltar (não autorizar)"}).then(function(cont){
+              if(!cont) return;
+              // 2º diálogo: como fechar a conta (fechar/clicar fora = escolha conservadora: fica em aberto)
+              uiConfirm({titulo:"Como fechar esta parcela?",msg:"Aceitar os "+brl(novoTot)+" como QUITADO, ou deixar os "+brl(falta)+" que faltam EM ABERTO (continua aparecendo como devendo)?",ok:"Aceitar como quitado",cancel:"Deixar restante em aberto"}).then(function(sim){ fecha(!!sim); });
+            });
+          } else fecha(true);
+        });
+        return;
+      }
+      pxExigeMaster("Digite a senha master para AUTORIZAR este pagamento.").then(function(ok){ if(!ok) return; const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return; pA.manuais=pA.manuais||{}; pA.manuais[kk]="autorizado"; savePontosG(); renderPontosG(); pxReabrir(pA.id); });
+    } return; }
     const rec=e.target.closest("[data-recusar]");
-    if(rec){ const pr=rec.dataset.recusar.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p&&p.manuais){ uiConfirm({titulo:"Recusar pagamento",msg:"Remover esta marcação de pagamento pendente?",ok:"Recusar",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; delete p.manuais[pr[1]]; savePontosG(); renderPontosG(); pxReabrir(p.id); }); } return; }
+    if(rec){ const pr=rec.dataset.recusar.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p&&p.manuais){
+      const kk=pr[1]; const manR=p.manuais[kk]; const ehBonR=pxManBonif(manR);
+      uiConfirm({titulo:ehBonR?"Recusar bonificação":"Recusar pagamento",msg:ehBonR?"Remover este registro de mercadoria pendente? (o que já foi autorizado antes não é mexido)":"Remover esta marcação de pagamento pendente?",ok:"Recusar",cancel:"Cancelar"}).then(function(sim){ if(!sim) return;
+        const pR=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pR||!pR.manuais) return; // rebusca: o realtime pode ter trocado pontosG
+        const mR=pR.manuais[kk];
+        if(pxManBonif(mR) && (+mR.tot||0)>0){ mR.pend=null; mR.st="parcial"; if(pR.comprovantes) delete pR.comprovantes[kk]; } // tira só a nota do rascunho recusado; as entregas já autorizadas (kk~eN) ficam
+        else { const eraBon=pxManBonif(mR); delete pR.manuais[kk]; if(eraBon && pR.comprovantes){ Object.keys(pR.comprovantes).forEach(function(k){ if(k===kk || k.indexOf(kk+"~e")===0) delete pR.comprovantes[k]; }); } } // tira todas as notas junto, senão a parcela fica "Quitado" órfã
+        savePontosG(); renderPontosG(); pxReabrir(pR.id);
+      });
+    } return; }
     const desf=e.target.closest("[data-desfazerpago]");
-    if(desf){ const pr=desf.dataset.desfazerpago.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p&&p.manuais){ pxExigeMaster("Digite a senha master para DESFAZER este pagamento.").then(function(ok){ if(!ok) return; delete p.manuais[pr[1]]; savePontosG(); renderPontosG(); pxReabrir(p.id); }); } return; }
+    if(desf){ const pr=desf.dataset.desfazerpago.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p&&p.manuais){
+      const kk=pr[1]; const ehBonD=pxManBonif(p.manuais[kk]);
+      pxExigeMaster("Digite a senha master para DESFAZER este "+(ehBonD?"registro de bonificação":"pagamento")+".").then(function(ok){ if(!ok) return; const pD=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pD||!pD.manuais) return; delete pD.manuais[kk]; if(ehBonD && pD.comprovantes){ Object.keys(pD.comprovantes).forEach(function(k){ if(k===kk || k.indexOf(kk+"~e")===0) delete pD.comprovantes[k]; }); } savePontosG(); renderPontosG(); pxReabrir(pD.id); }); // bonif: remove TODAS as notas junto, senão fica "Quitado" órfão
+    } return; }
     const cpbtn=e.target.closest("[data-compfile-btn]");
     if(cpbtn){ const inp=document.querySelector('[data-compfile="'+cpbtn.dataset.compfileBtn+'"]'); if(inp) inp.click(); return; }
     const cpview=e.target.closest("[data-compview]");
     if(cpview){ e.preventDefault(); const pr=cpview.dataset.compview.split("|"); const p=pontosG.find(x=>x.id===pr[0]); const c=p&&p.comprovantes?p.comprovantes[pr[1]]:null; if(c) pxAbrirArquivo(c.arquivo); return; }
     const cprem=e.target.closest("[data-comprem]");
     if(cprem){ const pr=cprem.dataset.comprem.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p&&p.comprovantes&&p.comprovantes[pr[1]]){ uiConfirm({ titulo:"Remover comprovante", msg:"Remover o comprovante desta parcela?", ok:"Remover", cancel:"Cancelar" }).then(function(sim){ if(!sim) return; delete p.comprovantes[pr[1]]; savePontosG(); renderPontosG(); pxReabrir(p.id); }); } return; }
-    const crem=e.target.closest("[data-crem]");
-    if(crem){ const p=pontosG.find(x=>x.id===crem.dataset.crem); if(p){ uiConfirm({ titulo:"Remover contrato", msg:"Remover o arquivo do contrato deste ponto?", ok:"Remover", cancel:"Cancelar" }).then(function(sim){ if(!sim) return; delete p.contratoArquivo; delete p.contratoNome; savePontosG(); renderPontosG(); pxReabrir(p.id); }); } return; }
     const cger=e.target.closest("[data-cgerar]");
     if(cger){ pxGerarContrato(pontosG.find(x=>x.id===cger.dataset.cgerar)); return; }
     const ed=e.target.closest("[data-edit]");
@@ -3983,22 +4835,44 @@ async function pixTravaClick(){
       document.getElementById("pxCancelar").style.display="";
       window.scrollTo({top:0,behavior:"smooth"}); } return; }
     const del=e.target.closest("[data-del]");
-    if(del){ const p=pontosG.find(x=>x.id===del.dataset.del); if(p){ uiConfirm({ titulo:"Remover ponto", msg:"Remover o ponto nº "+(p.numero||"")+" ("+(p.fornecedor||"sem fornecedor")+")?", ok:"Remover", cancel:"Cancelar" }).then(function(sim){ if(!sim) return; lixAdd("Ponto extra","Nº "+(p.numero||"?")+" · "+(p.fornecedor||"sem fornecedor"),"ponto",p); pontosG=pontosG.filter(x=>x.id!==del.dataset.del); savePontosG(); pxCloudDelPonto(del.dataset.del); if(pxEditId===del.dataset.del) pxLimparForm(); renderPontosG(); }); } return; }
+    if(del){ const p=pontosG.find(x=>x.id===del.dataset.del); if(p){
+      var _msg="Apaga o fornecedor \\u201c"+(p.fornecedor||"sem fornecedor")+"\\u201d (nº "+(p.numero||"?")+") e tudo dele: cobranças, pagamentos, notas e contrato.";
+      uiConfirm({ titulo:"Apagar este fornecedor?", msg:_msg, ok:"Sim, apagar", cancel:"Não, cancelar" }).then(function(sim){ if(!sim) return; lixAdd("Ponto extra","Nº "+(p.numero||"?")+" · "+(p.fornecedor||"sem fornecedor"),"ponto",p); pontosG=pontosG.filter(x=>x.id!==del.dataset.del); savePontosG(); pxCloudDelPonto(del.dataset.del); if(pxEditId===del.dataset.del) pxLimparForm(); renderPontosG(); }); } return; }
+  });
+  // processa o arquivo do contrato (usado tanto pelo clique/seletor quanto pelo arrastar-e-soltar)
+  function pxProcessaContratoArquivo(id,f){
+    if(!f) return;
+    if(f.size > 3*1024*1024){ uiConfirm({ titulo:"Arquivo muito grande", msg:"O contrato precisa ter no máximo 3 MB. Tente um PDF ou foto menor.", ok:"Entendi", cancel:"" }); return; }
+    const reader=new FileReader();
+    reader.onload=function(){
+      const p=pontosG.find(x=>x.id===id);
+      if(p){ p.contratoArquivo=reader.result; p.contratoNome=f.name; savePontosG(); renderPontosG(); pxReabrir(id); }
+    };
+    reader.readAsDataURL(f);
+  }
+  // arrastar-e-soltar direto na caixa "Anexar contrato" (delegado: a lista é redesenhada o tempo todo)
+  var _pxTab=document.getElementById("pxTabela");
+  ["dragenter","dragover"].forEach(function(ev){
+    _pxTab.addEventListener(ev,function(e){
+      var box=e.target.closest&&e.target.closest(".px-arq-anexar"); if(!box) return;
+      e.preventDefault(); e.stopPropagation(); box.style.borderColor="#157a35"; box.style.background="#f2faf5";
+    });
+  });
+  ["dragleave","dragend"].forEach(function(ev){
+    _pxTab.addEventListener(ev,function(e){
+      var box=e.target.closest&&e.target.closest(".px-arq-anexar"); if(!box) return;
+      e.preventDefault(); e.stopPropagation(); box.style.borderColor=""; box.style.background="";
+    });
+  });
+  _pxTab.addEventListener("drop",function(e){
+    var box=e.target.closest&&e.target.closest(".px-arq-anexar"); if(!box) return;
+    e.preventDefault(); e.stopPropagation(); box.style.borderColor=""; box.style.background="";
+    var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];
+    if(f) pxProcessaContratoArquivo(box.dataset.cfileBtn,f);
   });
   document.getElementById("pxTabela").addEventListener("change",(e)=>{
     const inp=e.target.closest("[data-cfile]");
-    if(inp && inp.files && inp.files[0]){
-      const f=inp.files[0];
-      const id=inp.dataset.cfile;
-      if(f.size > 3*1024*1024){ inp.value=""; uiConfirm({ titulo:"Arquivo muito grande", msg:"O contrato precisa ter no máximo 3 MB. Tente um PDF ou foto menor.", ok:"Entendi", cancel:"" }); return; }
-      const reader=new FileReader();
-      reader.onload=function(){
-        const p=pontosG.find(x=>x.id===id);
-        if(p){ p.contratoArquivo=reader.result; p.contratoNome=f.name; savePontosG(); renderPontosG(); pxReabrir(id); }
-      };
-      reader.readAsDataURL(f);
-      return;
-    }
+    if(inp && inp.files && inp.files[0]){ pxProcessaContratoArquivo(inp.dataset.cfile, inp.files[0]); return; }
     const cinp=e.target.closest("[data-compfile]");
     if(cinp && cinp.files && cinp.files[0]){
       const f=cinp.files[0];
@@ -4023,77 +4897,297 @@ function pxReabrir(id){
 
 // ---- Mapa dos pontos de gôndola (planta da loja) ----
 function mapaPonto(num){ return pontosG.find(p=>(+p.numero)===num); }
-function mapaVencendo(p){
-  if(!p) return false;
+// dias até o fim do contrato (negativo = já venceu); null = sem data
+function mapaDiasContrato(p){
+  if(!p) return null;
+  const d=pxParseData(p.vencimento); if(!d) return null;
   const hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
-  const d=pxParseData(p.vencimento); if(!d) return false;
-  return (d-hoje)/86400000 <= 15;
+  return Math.floor((d-hoje)/86400000);
 }
-function mapaClasse(num){
+function mapaStatusDe(p){
+  if(!p || !(p.fornecedor||"").trim()) return "livre";
+  const st=pxStatusMes(p);
+  return st==="PAGO" ? "pago" : (st==="ATRASADO" ? "atrasado" : "aberto");
+}
+function mapaFlagDe(p){
+  if(!p || !(p.fornecedor||"").trim()) return "";
+  const dias=mapaDiasContrato(p);
+  if(dias===null) return "";
+  if(dias<0) return "vencido";
+  if(dias<=15) return "vencendo";
+  return "";
+}
+// função (e não const) de propósito: renderMapa roda no load, antes desta linha ser alcançada
+function mapaRotulo(k){ return {livre:"Livre",pago:"Pago",aberto:"Em aberto",atrasado:"Atrasado",vencendo:"Contrato vencendo",vencido:"Contrato vencido"}[k]||k; }
+function mapaLocal(num){
+  if(num===21) return "Ilha · fundo da loja";
+  const fileira=num<=10?1:2;
+  const col=((num-1)%5)+1;
+  const frente=(num<=5)||(num>=11&&num<=15);
+  return "Fileira "+fileira+" · Gôndola "+col+" · ponta "+(frente?"da frente":"do fundo");
+}
+function mapaCap(num,pos){
   const p=mapaPonto(num);
-  let c="mapa-cap ";
-  if(!p || !(p.fornecedor||"").trim()) c+="livre";
-  else c+=(pxPagoMes(p)?"pago":"naopago");
-  if(mapaVencendo(p)) c+=" venc";
-  if(mapaSel===num) c+=" sel";
-  return c;
+  const st=mapaStatusDe(p);
+  const flag=mapaFlagDe(p);
+  let cls="gnd-cap "+pos+" "+st;
+  if(mapaSel===num) cls+=" sel";
+  return '<button type="button" class="'+cls+'" data-num="'+num+'" aria-label="Ponto '+num+'">'+
+    (st!=="livre"?'<span class="st"></span>':'')+num+
+    (flag?'<span class="gnd-flag '+flag+'" title="'+mapaRotulo(flag)+'"></span>':'')+
+    '</button>';
 }
-function mapaShelves(n){ let s=""; for(let i=0;i<n;i++) s+="<i></i>"; return s; }
-function mapaCap(num){ return '<button class="'+mapaClasse(num)+'" data-num="'+num+'">'+num+'</button>'; }
+// "produtos" em pé dos dois lados da gôndola, com a espinha central (vista de cima)
+function mapaFaces(n){ var s=""; for(var i=0;i<n;i++) s+='<i class="gnd-face"></i>'; return s; }
+function mapaCorpo(porLado){ return '<div class="gnd-corpo"><div class="gnd-shelf">'+mapaFaces(porLado)+'</div><span class="gnd-spine"></span><div class="gnd-shelf">'+mapaFaces(porLado)+'</div></div>'; }
 function mapaGondola(top,bot){
-  return '<div class="mapa-gond">'+mapaCap(top)+
-    '<div class="mapa-body">'+mapaShelves(8)+'</div>'+mapaCap(bot)+'</div>';
+  return '<div class="gnd">'+mapaCap(top,"topo")+mapaCorpo(0)+mapaCap(bot,"base")+'</div>';
+}
+// Uma fileira de 5 gôndolas, com corredor (espaço de circulação) entre cada uma.
+function mapaFileiraHtml(g){
+  var out='<div class="mpl-fileira">';
+  for(var i=0;i<5;i++){
+    out+=mapaGondola(g.topo[i], g.base[i]);
+    if(i<4) out+='<div class="mpl-aisle" title="Corredor"></div>';
+  }
+  out+='</div>';
+  return out;
 }
 function renderMapa(){
   const wrap=document.getElementById("mapaLoja");
   if(!wrap) return;
-  let html='<div class="mapa-entrada">Frente da loja · entrada e caixas</div>';
-  html+='<div class="mapa-espaco"></div>';
-  MAPA_GRUPOS.forEach(g=>{
-    html+='<div class="mapa-grupo">';
-    for(let i=0;i<g.topo.length;i++) html+=mapaGondola(g.topo[i], g.base[i]);
-    html+='</div>';
-  });
-  // ponto 21 isolado, no canto direito
-  html+='<div class="mapa-grupo"><div></div><div></div><div></div><div></div>'+
-    '<div class="mapa-gond">'+mapaCap(21)+'<div class="mapa-body" style="grid-template-columns:1fr;">'+mapaShelves(1)+'</div></div></div>';
+  mapaTipEsconde(); // re-render invalida o hover — evita tooltip preso
+  const icoPorta='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 13 12 18 17 13"></polyline><polyline points="7 6 12 11 17 6"></polyline></svg>';
+  let html='<div class="mpl-frente">'+
+    '<div class="mpl-porta">'+icoPorta+'Entrada</div>'+
+    '<div class="mpl-caixas"><i></i><i></i><i></i><i></i><i></i><span>Frente de caixa</span></div>'+
+    '</div>';
+  html+='<div class="mpl-corr">Corredor da entrada</div>';
+  html+=mapaFileiraHtml(MAPA_GRUPOS[0]);
+  html+='<div class="mpl-corr">Corredor central</div>';
+  html+=mapaFileiraHtml(MAPA_GRUPOS[1]);
+  html+='<div class="mpl-corr">Fundo da loja</div>';
+  html+='<div class="mpl-rodape">'+
+    '<div class="mpl-slot"></div><div class="mpl-gap"></div>'+
+    '<div class="mpl-slot"></div><div class="mpl-gap"></div>'+
+    '<div class="mpl-slot"></div><div class="mpl-gap"></div>'+
+    '<div class="mpl-slot"></div><div class="mpl-gap"></div>'+
+    '<div class="gnd ilha-h">'+mapaCap(21,"esq")+'<div class="gnd-corpo-h"><span class="gnd-spine-h"></span></div></div></div>';
   wrap.innerHTML=html;
-  const ocup=pontosG.filter(p=>(p.fornecedor||"").trim()).length;
-  document.getElementById("mapaInfo").textContent=ocup+" de 21 pontos ocupados";
+  const nums={};
+  pontosG.forEach(p=>{ const n=+p.numero; if(n>=1&&n<=21&&(p.fornecedor||"").trim()) nums[n]=1; });
+  const ocup=Object.keys(nums).length;
+  const info=document.getElementById("mapaInfo");
+  if(info) info.textContent=ocup+" de 21 pontos ocupados";
+  mapaKpis(ocup);
+  const aviso=document.getElementById("mapaAviso");
+  if(aviso) aviso.innerHTML = pontosG.length ? "" :
+    '<div class="mapa-aviso"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Os dados dos pontos são restritos. Se o mapa está todo livre, confira se você entrou com um login que tem permissão.</div>';
+}
+function mapaKpis(ocup){
+  const el=document.getElementById("mapaKpis");
+  if(!el) return;
+  const TOT=21;
+  const livres=TOT-ocup;
+  const taxa=Math.round(ocup/TOT*100);
+  let receita=0, recebido=0, ativos=0, venc30=0, vencidos=0, pendVal=0, pendN=0;
+  pontosG.forEach(p=>{
+    if(!(p.fornecedor||"").trim()) return;
+    receita+=(+p.valor||0);
+    if(pxPagoMes(p)) recebido+=(+p.valor||0);
+    const dias=mapaDiasContrato(p);
+    if(dias===null) ativos++;
+    else if(dias<0) vencidos++;
+    else { ativos++; if(dias<=30) venc30++; }
+    const x=pxInadimplencia(p);
+    if(x){ pendN++; pendVal+=x.valor; }
+  });
+  const icGrid='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>';
+  const icCifra='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>';
+  const icDoc='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>';
+  const icAlerta='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
+  const icCheck='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
+  el.innerHTML=
+    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Taxa de ocupação</span><span class="mpk-ico g">'+icGrid+'</span></div>'+
+      '<div class="mpk-v">'+taxa+'<span class="un">%</span></div>'+
+      '<div class="mpk-sub"><b>'+ocup+' de '+TOT+'</b> pontos ocupados · '+livres+' livre'+(livres===1?'':'s')+'</div>'+
+      '<div class="mpk-bar"><i style="width:'+taxa+'%"></i></div></div>'+
+    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Receita mensal</span><span class="mpk-ico g">'+icCifra+'</span></div>'+
+      '<div class="mpk-v">'+brl(receita)+'</div>'+
+      '<div class="mpk-sub">recebido este mês: <b>'+brl(recebido)+'</b></div></div>'+
+    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Contratos ativos</span><span class="mpk-ico b">'+icDoc+'</span></div>'+
+      '<div class="mpk-v">'+ativos+'</div>'+
+      '<div class="mpk-sub">'+(venc30?'<span class="warn">'+venc30+' vencendo em 30 dias</span>':'nenhum vencendo em 30 dias')+(vencidos?' · <span class="bad">'+vencidos+' vencido'+(vencidos===1?'':'s')+'</span>':'')+'</div></div>'+
+    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Pendências financeiras</span><span class="mpk-ico '+(pendN?'r':'g')+'">'+(pendN?icAlerta:icCheck)+'</span></div>'+
+      '<div class="mpk-v"'+(pendN?' style="color:#b03222"':'')+'>'+brl(pendVal)+'</div>'+
+      '<div class="mpk-sub">'+(pendN?'<span class="bad">'+pendN+' fornecedor'+(pendN===1?'':'es')+' em atraso</span>':'<span class="ok">Tudo em dia</span>')+'</div></div>';
+}
+function mapaTipHtml(num){
+  const p=mapaPonto(num);
+  const st=mapaStatusDe(p), flag=mapaFlagDe(p);
+  let h='<div class="t-eyebrow">Ponto '+num+' · '+mapaLocal(num)+'</div>';
+  if(st==="livre"){
+    h+='<div class="t-nome">Ponto livre</div>';
+    h+='<div class="t-badges"><span class="mdp-pill livre">Disponível</span></div>';
+    if(p&&+p.valor) h+='<div class="t-lin"><span>Valor de tabela</span><b>'+brl(+p.valor)+'/mês</b></div>';
+    h+='<div class="t-lin"><span>Clique para cadastrar um fornecedor</span></div>';
+  } else {
+    h+='<div class="t-nome">'+pxEsc(p.fornecedor)+'</div>';
+    h+='<div class="t-badges"><span class="mdp-pill '+st+'">'+mapaRotulo(st)+'</span>'+(flag?'<span class="mdp-pill '+flag+'">'+mapaRotulo(flag)+'</span>':'')+'</div>';
+    h+='<div class="t-lin"><span>Valor</span><b>'+(p.valor?brl(+p.valor)+'/mês':'—')+'</b></div>';
+    h+='<div class="t-lin"><span>Vigência</span><b>'+(pxFmtData(p.abertura)||'?')+' – '+(pxFmtData(p.vencimento)||'?')+'</b></div>';
+    if(p.vendedor) h+='<div class="t-lin"><span>Vendedor</span><b>'+pxEsc(p.vendedor)+'</b></div>';
+  }
+  return h;
+}
+function mapaTipMostra(cap){
+  const tip=document.getElementById("mapaTip");
+  if(!tip) return;
+  tip.innerHTML=mapaTipHtml(+cap.dataset.num);
+  tip.classList.add("on");
+  tip.style.left="0px"; tip.style.top="0px";
+  const r=cap.getBoundingClientRect();
+  const tw=tip.offsetWidth, th=tip.offsetHeight;
+  let x=r.left+r.width/2-tw/2;
+  x=Math.max(8,Math.min(x,window.innerWidth-tw-8));
+  let y=r.top-th-10;
+  if(y<8) y=r.bottom+10;
+  tip.style.left=x+"px"; tip.style.top=y+"px";
+}
+function mapaTipEsconde(){ const tip=document.getElementById("mapaTip"); if(tip) tip.classList.remove("on"); }
+function mapaDetalheVazio(){
+  const el=document.getElementById("mapaDetalhe");
+  if(!el) return;
+  el.innerHTML='<div class="mdp-vazio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg><br><b style="color:#5d6875;">Nenhum ponto selecionado</b><br>Clique numa ponta de gôndola no mapa para ver fornecedor, contrato e cobranças.</div>';
+}
+function mapaHistHtml(p){
+  const ag=pxAgenda(p);
+  if(!ag.length) return "";
+  const hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
+  let idx=ag.findIndex(d=>d>=hoje); if(idx<0) idx=ag.length;
+  const ini=Math.max(0,idx-2), fim=Math.min(ag.length,idx+2);
+  let h='<div class="mdp-hist"><div class="h-tit">Cobranças · '+ag.length+' parcela'+(ag.length===1?'':'s')+'</div>';
+  for(let i=ini;i<fim;i++){
+    const d=ag[i], k=pxDateKey(d), quit=pxQuitado(p,k), passada=d<hoje;
+    const cor=quit?"#1b9e4b":(passada?"#c0392b":"#c3ccd6");
+    const rot=quit?"Pago":(passada?"Em atraso":"A vencer");
+    h+='<div class="h-lin"><span class="h-dot" style="background:'+cor+'"></span>'+d.toLocaleDateString("pt-BR")+' · '+rot+'<span class="h-val">'+(p.valor?brl(+p.valor):'')+'</span></div>';
+  }
+  h+='</div>';
+  return h;
 }
 function mapaDetalhe(num){
   const el=document.getElementById("mapaDetalhe");
+  if(!el) return;
   const p=mapaPonto(num);
-  if(!p || !(p.fornecedor||"").trim()){
-    el.innerHTML='<div class="mapa-det-head free"><div class="pnum">Ponto '+num+'</div><div class="pforn">Ponto livre</div></div>'+
-      '<div class="det-vazio">Nenhum fornecedor cadastrado neste ponto.</div>';
+  const st=mapaStatusDe(p), flag=mapaFlagDe(p);
+  const icoDoc='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>';
+  const icoPlus='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+  if(st==="livre"){
+    const valLin = mapaEdit
+      ? '<div class="mdp-valor"><span class="mapa-val-edit"><input type="text" id="mapaValInput" value="'+(p&&p.valor?(+p.valor).toFixed(2).replace(".",","):"")+'" placeholder="0,00"><button type="button" data-valsave="'+num+'">Salvar</button></span><span class="per">valor de tabela / mês</span></div>'
+      : (p&&+p.valor?'<div class="mdp-valor"><span class="v">'+brl(+p.valor)+'</span><span class="per">valor de tabela / mês</span></div>':'');
+    el.innerHTML='<div class="mdp-head"><div class="mdp-eyebrow">Ponto '+num+' · '+mapaLocal(num)+'</div>'+
+      '<div class="mdp-nome">Ponto livre</div>'+
+      '<div class="mdp-badges"><span class="mdp-pill livre">Disponível para negociação</span></div></div>'+
+      valLin+
+      '<div class="mdp-vazio" style="padding:20px 18px;">Nenhum fornecedor neste ponto. Cadastre uma negociação para começar a cobrar.</div>'+
+      '<div class="mdp-actions"><button type="button" class="mdp-btn mdp-btn-primary" data-mact="novo" data-num="'+num+'">'+icoPlus+'Cadastrar fornecedor</button></div>';
     return;
   }
-  const stMes=pxStatusMes(p);
-  const pago=stMes==="PAGO";
-  const venc=mapaVencendo(p);
-  const badge=venc?'<span class="mapa-det-badge">⚠ Vencendo</span>':'';
-  const valLin=mapaEdit
-    ? '<div class="lin editando"><b>Valor</b><span class="mapa-val-edit"><input type="text" id="mapaValInput" value="'+(p.valor?(+p.valor).toFixed(2).replace(".",","):"")+'" placeholder="0,00"><button type="button" data-valsave="'+num+'">Salvar</button></span></div>'
-    : '<div class="lin"><b>Valor</b><span>'+(p.valor?brl(+p.valor):"—")+'</span></div>';
-  el.innerHTML='<div class="mapa-det-head'+(pago?'':' off')+'">'+
-      '<div class="pnum">Ponto '+num+'</div>'+
-      '<div class="pforn">'+(p.fornecedor||"—")+'</div>'+
-      '<span class="mapa-det-badge">'+(pago?'✓ Pago':'● Não pago')+'</span>'+badge+
-    '</div>'+
-    '<div class="mapa-det-body">'+
-    '<div class="lin"><b>CNPJ</b><span>'+(p.cnpj?pxFmtCnpj(p.cnpj):"—")+'</span></div>'+
-    '<div class="lin"><b>Razão social</b><span>'+(p.razaoSocial||"—")+'</span></div>'+
-    '<div class="lin"><b>Vendedor</b><span>'+(p.vendedor||"—")+'</span></div>'+
-    '<div class="lin"><b>Contato</b><span>'+(p.contato?pxFmtTel(p.contato):"—")+'</span></div>'+
-    '<div class="lin"><b>E-mail</b><span>'+(p.email?('<a href="mailto:'+pxEsc(p.email)+'">'+pxEsc(p.email)+'</a>'):"—")+'</span></div>'+
-    '<div class="lin"><b>Endereço</b><span>'+(p.endereco?pxEsc(p.endereco):"—")+'</span></div>'+
-    valLin+
-    '<div class="lin"><b>Pagamento</b><span>'+(p.pagamento||"—")+'</span></div>'+
-    '<div class="lin"><b>Abertura</b><span>'+(pxFmtData(p.abertura)||"—")+'</span></div>'+
-    '<div class="lin"><b>Venc. contrato</b><span>'+(pxFmtData(p.vencimento)||"—")+'</span></div>'+
-    '<div class="lin"><b>Obs.</b><span>'+(p.obs||"—")+'</span></div>'+
-    '</div>';
+  const dias=mapaDiasContrato(p);
+  const ini=pxParseData(p.abertura), fim=pxParseData(p.vencimento);
+  let vig="";
+  if(ini&&fim&&fim>ini){
+    const hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
+    let pct=Math.round(((hoje-ini)/(fim-ini))*100); pct=Math.max(0,Math.min(100,pct));
+    const resta = dias<0
+      ? 'Contrato vencido há '+Math.abs(dias)+' dia'+(Math.abs(dias)===1?'':'s')+' — renove ou encerre.'
+      : 'Faltam '+dias+' dia'+(dias===1?'':'s')+' para o fim do contrato.';
+    vig='<div class="mdp-vig"><div class="datas"><span>'+(pxFmtData(p.abertura)||'—')+'</span><span>'+(pxFmtData(p.vencimento)||'—')+'</span></div>'+
+      '<div class="bar"><i style="width:'+pct+'%;'+(dias<0?'background:#e05d0e;':'')+'"></i></div>'+
+      '<div class="resta"'+(dias<0?' style="color:#b1470e;font-weight:600;"':'')+'>'+resta+'</div></div>';
+  }
+  const valLin = mapaEdit
+    ? '<div class="mdp-valor"><span class="mapa-val-edit"><input type="text" id="mapaValInput" value="'+(p.valor?(+p.valor).toFixed(2).replace(".",","):"")+'" placeholder="0,00"><button type="button" data-valsave="'+num+'">Salvar</button></span><span class="per">por mês</span></div>'
+    : '<div class="mdp-valor"><span class="v">'+(p.valor?brl(+p.valor):'—')+'</span><span class="per">'+(p.pagamento?pxEsc(p.pagamento)+' · ':'')+'por mês</span></div>';
+  const linhas=[
+    ["CNPJ", p.cnpj?pixFmtDoc(p.cnpj):"—"],
+    ["Razão social", p.razaoSocial?pxEsc(p.razaoSocial):"—"],
+    ["Vendedor", p.vendedor?pxEsc(p.vendedor):"—"],
+    ["Contato", p.contato?pxFmtTel(p.contato):"—"],
+    ["E-mail", p.email?('<a href="mailto:'+pxEsc(p.email)+'">'+pxEsc(p.email)+'</a>'):"—"],
+    ["Endereço", p.endereco?pxEsc(p.endereco):"—"]
+  ];
+  if(p.obs) linhas.push(["Obs.", pxEsc(p.obs)]);
+  el.innerHTML='<div class="mdp-head">'+
+    '<div class="mdp-eyebrow">Ponto '+num+' · '+mapaLocal(num)+'</div>'+
+    '<div class="mdp-nome">'+pxEsc(p.fornecedor)+'</div>'+
+    '<div class="mdp-badges"><span class="mdp-pill '+st+'">'+mapaRotulo(st)+'</span>'+
+      (flag?'<span class="mdp-pill '+flag+'">'+mapaRotulo(flag)+'</span>':'')+
+      (p.pagamento?'<span class="mdp-pill pagto">'+pxEsc(p.pagamento)+'</span>':'')+'</div></div>'+
+    valLin+vig+
+    '<div class="mdp-info">'+linhas.map(l=>'<div class="mdp-lin"><b>'+l[0]+'</b><span>'+l[1]+'</span></div>').join('')+'</div>'+
+    mapaHistHtml(p)+
+    '<div class="mdp-actions">'+
+      '<button type="button" class="mdp-btn mdp-btn-primary" data-mact="contrato" data-num="'+num+'">'+icoDoc+(p.contratoArquivo?'Ver contrato anexado':'Gerar contrato')+'</button>'+
+      '<div class="mdp-row">'+
+        '<button type="button" class="mdp-btn" data-mact="editar" data-num="'+num+'">Editar</button>'+
+        '<button type="button" class="mdp-btn" data-mact="renovar" data-num="'+num+'">Renovar</button>'+
+        '<button type="button" class="mdp-btn mdp-btn-danger" data-mact="encerrar" data-num="'+num+'">Encerrar</button>'+
+      '</div></div>';
+}
+function mapaIrParaPontos(){
+  const nav=document.querySelector('.nav-item[data-page="pontos"]');
+  if(nav) nav.click();
+}
+function mapaAcao(act,num){
+  const p=mapaPonto(num);
+  if(act==="novo"){
+    mapaIrParaPontos();
+    pxLimparForm();
+    const elNum=document.getElementById("pxNum"); if(elNum) elNum.value=num;
+    window.scrollTo({top:0,behavior:"smooth"});
+    const forn=document.getElementById("pxForn");
+    if(forn) setTimeout(function(){ forn.focus(); },300);
+    return;
+  }
+  if(!p) return;
+  if(act==="contrato"){
+    if(p.contratoArquivo) pxAbrirContrato(p); else pxGerarContrato(p);
+    return;
+  }
+  if(act==="editar" || act==="renovar"){
+    mapaIrParaPontos();
+    pxEditId=p.id;
+    pxPreencherForm(p);
+    if(act==="renovar"){
+      const ini=pxParseData(p.abertura), fim=pxParseData(p.vencimento);
+      if(fim){
+        const dur=(ini&&fim>ini)?(fim.getTime()-ini.getTime()):31536000000;
+        document.getElementById("pxAbertura").value=pxDateKey(fim);
+        document.getElementById("pxVenc").value=pxDateKey(new Date(fim.getTime()+dur));
+      }
+      document.getElementById("pxFormTitulo").textContent="Renovar ponto nº "+(p.numero||"")+" — confira as novas datas";
+    } else {
+      document.getElementById("pxFormTitulo").textContent="Editar ponto nº "+(p.numero||"");
+    }
+    document.getElementById("pxSalvar").textContent="Salvar alterações";
+    document.getElementById("pxCancelar").style.display="";
+    window.scrollTo({top:0,behavior:"smooth"});
+    return;
+  }
+  if(act==="encerrar"){
+    uiConfirm({ titulo:"Encerrar o ponto "+(p.numero||"?")+"?", msg:"O ponto fica LIVRE no mapa e o cadastro de \\u201c"+(p.fornecedor||"sem fornecedor")+"\\u201d vai para a Lixeira (dá para desfazer em Configurações), junto com cobranças, notas e contrato.", ok:"Sim, encerrar", cancel:"Cancelar" }).then(function(sim){
+      if(!sim) return;
+      lixAdd("Ponto extra","Nº "+(p.numero||"?")+" · "+(p.fornecedor||"sem fornecedor"),"ponto",p);
+      pontosG=pontosG.filter(function(x){ return x.id!==p.id; });
+      savePontosG(); pxCloudDelPonto(p.id);
+      if(pxEditId===p.id) pxLimparForm();
+      renderPontosG();
+      mapaDetalhe(num);
+    });
+  }
 }
 function mapaParseValor(s){
   s=(s||"").toString().trim().replace(/[^0-9.,]/g,"");
@@ -4140,11 +5234,12 @@ function mapaSalvarValor(num){
   if(!inp) return;
   const v=mapaParseValor(inp.value);
   if(v===null || v<0){ uiConfirm({ titulo:"Valor inválido", msg:"Digite um valor válido, por exemplo 350,00.", ok:"Entendi", cancel:"" }); return; }
-  let p=mapaPonto(num);
-  if(!p){ return; }
-  // garante que o ponto exista no pontosG (não só no seed) antes de salvar
-  if(!pontosG.some(function(x){ return +x.numero===+num; })){ p=Object.assign({}, p); pontosG.push(p); }
-  p=pontosG.find(function(x){ return +x.numero===+num; });
+  let p=pontosG.find(function(x){ return +x.numero===+num; });
+  // ponto livre sem registro nenhum: cria um registro só com o preço de tabela
+  if(!p){
+    p={id:"pg"+Date.now(),numero:num,abertura:"",vencimento:"",mesPag:"",status:"NÃO PAGO",fornecedor:"",vendedor:"",valor:v,pagamento:"",contrato:"",vencContrato:"",obs:""};
+    pontosG.push(p);
+  }
   p.valor=v;
   savePontosG();
   if(typeof renderPontosG==="function") renderPontosG();
@@ -4153,21 +5248,527 @@ function mapaSalvarValor(num){
 }
 (function initMapa(){
   const wrap=document.getElementById("mapaLoja");
-  if(wrap) wrap.addEventListener("click",(e)=>{
-    const cap=e.target.closest("[data-num]");
-    if(!cap) return;
-    mapaSel=+cap.dataset.num; renderMapa(); mapaDetalhe(mapaSel);
-  });
+  if(wrap){
+    wrap.addEventListener("click",(e)=>{
+      const cap=e.target.closest("[data-num]");
+      if(!cap) return;
+      mapaTipEsconde();
+      mapaSel=+cap.dataset.num; renderMapa(); mapaDetalhe(mapaSel);
+    });
+    wrap.addEventListener("mouseover",(e)=>{
+      const cap=e.target.closest(".gnd-cap");
+      if(cap) mapaTipMostra(cap);
+    });
+    wrap.addEventListener("mouseout",(e)=>{
+      const cap=e.target.closest(".gnd-cap");
+      if(cap) mapaTipEsconde();
+    });
+  }
+  window.addEventListener("scroll", mapaTipEsconde, true);
   const cfg=document.getElementById("mapaCfgBtn");
   if(cfg) cfg.addEventListener("click", mapaToggleEdit);
   const det=document.getElementById("mapaDetalhe");
   if(det) det.addEventListener("click",(e)=>{
     const b=e.target.closest("[data-valsave]");
-    if(!b) return;
-    mapaSalvarValor(+b.dataset.valsave);
+    if(b){ mapaSalvarValor(+b.dataset.valsave); return; }
+    const a=e.target.closest("[data-mact]");
+    if(a) mapaAcao(a.dataset.mact, +a.dataset.num);
   });
   mapaAtualizarBtn();
+  mapaDetalheVazio();
   renderMapa();
+})();
+
+// ---- Banco de Horas (Centro de Inteligência da Jornada) ----
+// Espelha o "Extrato por Período" do Control iD (RHiD). NÃO recalcula nada:
+// lê o Saldo Banco pronto e transforma em dashboard. Dado sensível => só master.
+var jorReg = (function(){ try{ var a=JSON.parse(localStorage.getItem("jornada_reg")||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } })();
+var jorAtualizadoEm = localStorage.getItem("jornada_atualizado") || "";
+var jorCloudOK=false;
+function jorSB(){ return window.__SB||null; }
+function jorEsc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function jorNorm(s){ return String(s==null?"":s).toUpperCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").trim(); }
+function jorSetorLabel(s){ s=(s||"").trim(); return s?s:"Sem setor"; }
+// "±HH:MM" -> minutos (com sinal). Vazio/"-" -> 0.
+function jorParseHM(s){
+  s=String(s==null?"":s).trim().replace(/\\s/g,"");
+  if(!s||s==="-"||s==="--") return 0;
+  var neg=/^-/.test(s); s=s.replace(/^[-+]/,"");
+  var m=s.match(/^(\\d+):(\\d{1,2})\$/);
+  if(m){ var v=(+m[1])*60+(+m[2]); return neg?-v:v; }
+  var d=s.replace(",",".");
+  if(/^\\d+(\\.\\d+)?\$/.test(d)){ var v2=Math.round(parseFloat(d)*60); return neg?-v2:v2; } // decimal (fallback)
+  return 0;
+}
+function jorFmtHM(min){
+  min=Math.round(+min||0); var neg=min<0; min=Math.abs(min);
+  var h=Math.floor(min/60), m=min%60;
+  return (neg?"-":"")+h+":"+("0"+m).slice(-2);
+}
+function jorValHora(){
+  var el=document.getElementById("jorValHora");
+  var raw=el?el.value:(localStorage.getItem("jornada_valhora")||"8,00");
+  var v=parseFloat(String(raw).replace(/[^0-9,.-]/g,"").replace(/\\./g,"").replace(",",".").replace(/(\\..*)\\./g,"$1"));
+  return isNaN(v)?0:v;
+}
+function jorSave(){ try{ localStorage.setItem("jornada_reg",JSON.stringify(jorReg)); localStorage.setItem("jornada_atualizado",jorAtualizadoEm); }catch(e){} }
+// ---- Nuvem (Supabase, tabela "banco_horas") — só master. Funciona local mesmo sem a tabela. ----
+function jorRowFromR(r){ return {pis:r.pis||"",nome:r.nome||"",cargo:r.cargo||"",setor:r.setor||"",saldo_min:+r.saldo||0,pos_min:+r.pos||0,neg_min:+r.neg||0,dia_min:+r.saldoDia||0,ref:jorAtualizadoEm||"",atualizado_em:new Date().toISOString()}; }
+function jorRFromRow(x){ return {pis:x.pis||"",nome:x.nome||"",cargo:x.cargo||"",setor:x.setor||"",saldo:+x.saldo_min||0,pos:+x.pos_min||0,neg:+x.neg_min||0,saldoDia:+x.dia_min||0}; }
+function jorCloudLoad(){
+  var sb=jorSB(); if(!sb) return;
+  if(!(window.__PERFIL && window.__PERFIL.is_master)){ jorReg=[]; try{ localStorage.removeItem("jornada_reg"); }catch(e){} return; }
+  sb.from("banco_horas").select("*").then(function(r){
+    if(r.error||!r.data) return; // sem tabela -> segue local
+    jorCloudOK=true;
+    if(r.data.length){
+      jorReg=r.data.map(jorRFromRow);
+      if(r.data[0] && r.data[0].ref) jorAtualizadoEm=r.data[0].ref;
+      jorSave();
+    }
+    var pg=document.getElementById("page-jornada"); if(pg&&pg.classList.contains("ativo")) renderJornada();
+  },function(){});
+}
+function jorCloudReplace(){
+  var sb=jorSB(); if(!sb||!jorCloudOK) return;
+  // snapshot: apaga tudo e regrava (poucas linhas, só master)
+  sb.from("banco_horas").delete().neq("pis","___nada___").then(function(){
+    if(jorReg.length) sb.from("banco_horas").insert(jorReg.map(jorRowFromR)).then(function(){},function(){});
+  },function(){});
+}
+function jorRealtime(){
+  var sb=jorSB(); if(!sb||window.__jorRT) return;
+  try{ var deb=null; window.__jorRT=sb.channel("banco_horas_sync").on("postgres_changes",{event:"*",schema:"public",table:"banco_horas"},function(){ clearTimeout(deb); deb=setTimeout(jorCloudLoad,600); }).subscribe(); }catch(e){}
+}
+// ---- Leitura do CSV (ou texto colado) do Extrato por Período ----
+function jorDetectDelim(linha){
+  var c={";":0,",":0,"\\t":0}; for(var i=0;i<linha.length;i++){ if(c[linha[i]]!=null) c[linha[i]]++; }
+  var best=";", bv=-1; for(var k in c){ if(c[k]>bv){ bv=c[k]; best=k; } }
+  return bv>0?best:";";
+}
+function jorSplitLinha(linha,delim){
+  var out=[], cur="", q=false;
+  for(var i=0;i<linha.length;i++){ var ch=linha[i];
+    if(ch==='"'){ if(q && linha[i+1]==='"'){ cur+='"'; i++; } else q=!q; }
+    else if(ch===delim && !q){ out.push(cur); cur=""; }
+    else cur+=ch;
+  }
+  out.push(cur); return out.map(function(s){ return s.trim(); });
+}
+function jorAchaCol(heads,alvos,evita){
+  for(var i=0;i<heads.length;i++){ var h=jorNorm(heads[i]);
+    var ok=alvos.every(function(a){ return h.indexOf(a)>=0; });
+    if(ok && (!evita || !evita.some(function(e){ return h.indexOf(e)>=0; }))) return i;
+  }
+  return -1;
+}
+function jorParseCSV(texto){
+  var linhas=String(texto||"").split(/\\r?\\n/).filter(function(l){ return l.trim()!==""; });
+  if(!linhas.length) return {erro:"Arquivo vazio."};
+  // acha a linha de cabeçalho (a que tem "NOME")
+  var hi=-1, delim=";";
+  for(var i=0;i<Math.min(linhas.length,15);i++){ if(jorNorm(linhas[i]).indexOf("NOME")>=0){ hi=i; delim=jorDetectDelim(linhas[i]); break; } }
+  if(hi<0){ return {erro:"Não achei o cabeçalho (uma linha com a coluna NOME). Confira se é o Extrato por Período."}; }
+  var heads=jorSplitLinha(linhas[hi],delim);
+  var cNome=jorAchaCol(heads,["NOME"],["EMPRESA","CARGO","DEPARTAMENTO","DEPART"]);
+  if(cNome<0) cNome=jorAchaCol(heads,["FUNCION"],["PIS"]);
+  var cPis=jorAchaCol(heads,["PIS"]);
+  var cCargo=jorAchaCol(heads,["CARGO"]);
+  var cSetor=jorAchaCol(heads,["DEPART"]); if(cSetor<0) cSetor=jorAchaCol(heads,["SETOR"]);
+  var cSaldo=jorAchaCol(heads,["SALDO","BANCO"]); if(cSaldo<0) cSaldo=jorAchaCol(heads,["SALDO"],["DIA"]);
+  var cPos=jorAchaCol(heads,["POSITIVO"]);
+  var cNeg=jorAchaCol(heads,["NEGATIVO"]);
+  var cDia=jorAchaCol(heads,["SALDO","DIA"]);
+  if(cNome<0||cSaldo<0){ return {erro:"Não encontrei as colunas NOME e SALDO BANCO no arquivo. Se possível, exporte em CSV pelo Control iD."}; }
+  var regs=[];
+  for(var j=hi+1;j<linhas.length;j++){
+    var cols=jorSplitLinha(linhas[j],delim);
+    var nome=(cols[cNome]||"").trim();
+    var nn=jorNorm(nome);
+    if(!nome) continue;
+    if(nn.indexOf("TOTAL")===0 || nn.indexOf("FUNCIONARIO")>=0 && nn.indexOf(":")>=0) continue; // linha de total
+    if(nn==="NOME DO FUNCIONARIO"||nn==="NOME") continue;
+    regs.push({
+      pis:cPis>=0?(cols[cPis]||"").replace(/\\D/g,""):"",
+      nome:nome,
+      cargo:cCargo>=0?(cols[cCargo]||"").trim():"",
+      setor:cSetor>=0?(cols[cSetor]||"").trim():"",
+      saldo:jorParseHM(cols[cSaldo]),
+      pos:cPos>=0?jorParseHM(cols[cPos]):0,
+      neg:cNeg>=0?jorParseHM(cols[cNeg]):0,
+      saldoDia:cDia>=0?jorParseHM(cols[cDia]):0
+    });
+  }
+  if(!regs.length) return {erro:"Li o arquivo mas não encontrei nenhum funcionário. Confira o conteúdo."};
+  return {regs:regs, temSetor:cSetor>=0, temPis:cPis>=0};
+}
+// ---- PDF: carrega o pdf.js sob demanda (só quando importa um PDF) ----
+var jorPdfPronto=null;
+function jorLoadPdfJs(){
+  if(window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if(jorPdfPronto) return jorPdfPronto;
+  jorPdfPronto=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    s.onload=function(){ try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; res(window.pdfjsLib); }catch(e){ rej(e); } };
+    s.onerror=function(){ rej(new Error("Não consegui carregar o leitor de PDF. Confira sua internet e tente de novo.")); };
+    document.head.appendChild(s);
+  });
+  return jorPdfPronto;
+}
+// Lê o PDF e devolve {texto, linhas}. Cada linha guarda os pedaços com a POSIÇÃO x
+// (coluna) — essencial pra saber qual horário é o "Saldo Banco" quando há colunas em branco.
+function jorLerPdf(buf){
+  return jorLoadPdfJs().then(function(pdfjsLib){
+    return pdfjsLib.getDocument({data:buf}).promise.then(function(pdf){
+      var todas=[];
+      var seq=Promise.resolve();
+      var _loop=function(p){
+        seq=seq.then(function(){
+          return pdf.getPage(p).then(function(page){
+            return page.getTextContent().then(function(tc){
+              var mapa={};
+              tc.items.forEach(function(it){
+                if(!it.str||!it.str.trim()) return;
+                var y=Math.round(it.transform[5]/3)*3;
+                if(!mapa[y]) mapa[y]={y:y,toks:[]};
+                mapa[y].toks.push({x:it.transform[4],s:it.str.trim()});
+              });
+              var arr=Object.keys(mapa).map(function(k){ return mapa[k]; });
+              arr.sort(function(a,b){ return b.y-a.y; });
+              arr.forEach(function(l){ l.toks.sort(function(a,b){ return a.x-b.x; }); todas.push(l); });
+            });
+          });
+        });
+      };
+      for(var p=1;p<=pdf.numPages;p++) _loop(p);
+      return seq.then(function(){
+        // junta pedaços de número quebrados dentro de cada linha ("92",":","16" -> "92:16")
+        todas.forEach(function(l){
+          var s=l.toks.map(function(t){ return t.s; }).join(" ").replace(/(\\d)\\s*:\\s*(\\d)/g,"$1:$2").replace(/-\\s+(\\d)/g,"-$1");
+          l.texto=s;
+        });
+        var texto=todas.map(function(l){ return l.texto; }).join("\\n");
+        return {texto:texto, linhas:todas};
+      });
+    });
+  });
+}
+// Consolidado por POSIÇÃO: ancora no x da coluna "SALDO BANCO" (cabeçalho) e pega
+// só o horário que cai nessa coluna — evita confundir com Falta/Atraso quando o Saldo está em branco.
+function jorParseConsolidadoPos(linhas){
+  var bancoX=null;
+  for(var i=0;i<Math.min(linhas.length,25);i++){
+    linhas[i].toks.forEach(function(t){ if(jorNorm(t.s).indexOf("BANCO")>=0){ if(bancoX===null||t.x>bancoX) bancoX=t.x; } });
+  }
+  var regs=[];
+  linhas.forEach(function(l){
+    var toks=l.toks; if(!toks.length) return;
+    var firstT=-1;
+    for(var j=0;j<toks.length;j++){ if(/^-?\\d+:\\d{2}\$/.test(toks[j].s)){ firstT=j; break; } }
+    if(firstT<0) return;
+    var nome=toks.slice(0,firstT).map(function(t){ return t.s; }).join(" ").replace(/\\s+\\d+\\s*\$/,"").trim();
+    if(!nome) return;
+    if(/\\/|\\d{4}/.test(nome)) return;
+    var nn=jorNorm(nome);
+    if(nn.indexOf("TOTAL")>=0||nn.indexOf("FUNCIONARIO")>=0||nn.indexOf("NOME DO")>=0||nn.indexOf("EMITIDO")>=0||nn.indexOf("EXTRATO")>=0||nn.indexOf("CONTROL")>=0||nn.indexOf("PERIODO")>=0) return;
+    // horário mais à direita, e só vale como Saldo Banco se estiver na coluna (perto do bancoX)
+    var saldoTok=null;
+    toks.forEach(function(t){ if(/^-?\\d+:\\d{2}\$/.test(t.s)){ if(!saldoTok||t.x>saldoTok.x) saldoTok=t; } });
+    var saldo=0;
+    if(saldoTok && bancoX!==null && Math.abs(saldoTok.x-bancoX)<=40) saldo=jorParseHM(saldoTok.s);
+    regs.push({pis:"",nome:nome,cargo:"",setor:"",saldo:saldo,pos:0,neg:0,saldoDia:0});
+  });
+  return regs;
+}
+function jorImportarPdf(d){
+  var regs, temSetor;
+  if(/PIS DO FUNCION/i.test(d.texto)){ regs=jorParsePorFuncionario(d.texto); temSetor=true; }
+  else { regs=jorParseConsolidadoPos(d.linhas); temSetor=false; }
+  if(!regs||!regs.length){ uiConfirm({titulo:"Não consegui ler o PDF",msg:"Não encontrei os funcionários. Gere o \\u201cExtrato por Período\\u201d ou \\u201cExtrato Banco Horas\\u201d no Control iD.",ok:"Entendi",cancel:""}); return; }
+  jorAplicarRegs(regs,temSetor);
+}
+// Relatório "Extrato Banco Horas" (uma página por funcionário, com PIS/cargo/depto).
+function jorParsePorFuncionario(texto){
+  function todos(re){ var out=[],m; while((m=re.exec(texto))!==null) out.push(m); return out; }
+  var nomes=todos(/NOME DO FUNCION[\\u00c1A]RIO:\\s*(.+?)\\s+PIS DO FUNCION[\\u00c1A]RIO:\\s*(\\d+)/gi);
+  var cargos=todos(/NOME DO CARGO:\\s*([^\\n]+)/gi);
+  var deptos=todos(/NOME DO DEPARTAMENTO:\\s*([^\\n]+)/gi);
+  var totais=todos(/TOTAL\\s+(-?\\d+:\\d{2})\\s+(-?\\d+:\\d{2})\\s+(-?\\d+:\\d{2})\\s+(-?\\d+:\\d{2})\\s+(-?\\d+:\\d{2})/gi);
+  var regs=[];
+  for(var i=0;i<nomes.length;i++){
+    var t=totais[i]; if(!t) continue;
+    regs.push({
+      pis:(nomes[i][2]||"").replace(/\\D/g,""),
+      nome:(nomes[i][1]||"").trim(),
+      cargo:cargos[i]?cargos[i][1].trim():"",
+      setor:deptos[i]?deptos[i][1].trim():"",
+      pos:jorParseHM(t[2]), neg:jorParseHM(t[3]), saldoDia:jorParseHM(t[1]), saldo:jorParseHM(t[5])
+    });
+  }
+  return regs;
+}
+// Relatório "Extrato por Período" em texto plano (consolidado; nome + horas por coluna).
+function jorParseConsolidado(linhas){
+  var hi=-1;
+  for(var i=0;i<Math.min(linhas.length,25);i++){ var nn=jorNorm(linhas[i]); if(nn.indexOf("NOME")>=0 && nn.indexOf("SALDO")>=0){ hi=i; break; } }
+  var regs=[];
+  for(var j=(hi>=0?hi+1:0); j<linhas.length; j++){
+    var ln=linhas[j]; if(!ln.trim()) continue;
+    var times=ln.match(/-?\\d+:\\d{2}/g);
+    if(!times||!times.length) continue;
+    var nome=ln.slice(0, ln.indexOf(times[0])).trim();
+    nome=nome.replace(/\\s+\\d+\\s*\$/,"").trim(); // tira o contador "DIA FALTA" que fica entre o nome e o 1º horário
+    if(!nome) continue;
+    // cabeçalho/rodapé tem data/ano (Emitido em 15/07/2026, DE .../...) — nome de gente não.
+    if(/\\/|\\d{4}/.test(nome)) continue;
+    var nnome=jorNorm(nome);
+    if(nnome.indexOf("TOTAL")>=0 || nnome.indexOf("FUNCIONARIO")>=0 || nnome.indexOf("NOME DO")>=0 || nnome.indexOf("EMITIDO")>=0 || nnome.indexOf("EXTRATO")>=0 || nnome.indexOf("CONTROL")>=0 || nnome.indexOf("PERIODO")>=0) continue;
+    regs.push({pis:"",nome:nome,cargo:"",setor:"",saldo:jorParseHM(times[times.length-1]),pos:0,neg:0,saldoDia:times.length>=2?jorParseHM(times[times.length-2]):0});
+  }
+  return regs;
+}
+// Decide o formato e devolve {regs, temSetor, temPis} ou {erro}.
+function jorParseConteudo(texto){
+  if(/PIS DO FUNCION/i.test(texto) && /NOME DO FUNCION/i.test(texto)){
+    var rf=jorParsePorFuncionario(texto);
+    if(rf.length) return {regs:rf, temSetor:true, temPis:true};
+  }
+  var linhas=String(texto||"").split(/\\r?\\n/).filter(function(l){ return l.trim()!==""; });
+  var headerLine=null;
+  for(var i=0;i<Math.min(linhas.length,20);i++){ if(jorNorm(linhas[i]).indexOf("NOME")>=0){ headerLine=linhas[i]; break; } }
+  if(headerLine){
+    var d=jorDetectDelim(headerLine);
+    if((d===";"||d===","||d==="\\t") && headerLine.split(d).length>=3){
+      var rc=jorParseCSV(texto); if(rc.regs) return rc;
+    }
+  }
+  var rr=jorParseConsolidado(linhas);
+  if(rr.length) return {regs:rr, temSetor:false, temPis:false};
+  return {erro:"Não reconheci o formato do arquivo. Gere o \\u201cExtrato por Período\\u201d (CSV ou PDF) no Control iD e tente de novo."};
+}
+function jorAplicarRegs(regs,temSetor){
+  jorReg=regs;
+  var hj=new Date();
+  jorAtualizadoEm=("0"+hj.getDate()).slice(-2)+"/"+("0"+(hj.getMonth()+1)).slice(-2)+"/"+hj.getFullYear();
+  jorSave();
+  jorCloudReplace();
+  renderJornada();
+  var av=temSetor?"":" (o arquivo não trazia o setor — pra ver o ranking por setor, exporte o \\u201cExtrato Banco Horas\\u201d, que inclui o departamento)";
+  uiConfirm({titulo:"Importado!",msg:regs.length+" funcionário(s) carregado(s) com sucesso."+av,ok:"Ótimo",cancel:""});
+}
+function jorImportarTexto(texto){
+  var r=jorParseConteudo(texto);
+  if(r.erro){ uiConfirm({titulo:"Não consegui ler",msg:r.erro,ok:"Entendi",cancel:""}); return; }
+  jorAplicarRegs(r.regs, r.temSetor);
+}
+function renderJornada(){
+  var kpis=document.getElementById("jorKpis"); if(!kpis) return;
+  try{ localStorage.setItem("jornada_valhora", (document.getElementById("jorValHora")||{}).value||"8,00"); }catch(e){}
+  var info=document.getElementById("jorImpInfo");
+  if(info && jorAtualizadoEm) info.innerHTML='Última importação: <b>'+jorEsc(jorAtualizadoEm)+'</b>. Para atualizar, gere o <b>Extrato por Período</b> no Control iD (PDF ou CSV) e solte aqui.';
+  var n=jorReg.length;
+  if(!n){
+    kpis.innerHTML='';
+    document.getElementById("jorPos").innerHTML='<div class="jor-empty">Importe o relatório do Control iD para começar.</div>';
+    document.getElementById("jorNeg").innerHTML='<div class="jor-empty">Sem dados ainda.</div>';
+    document.getElementById("jorSetor").innerHTML='<div class="jor-empty">Sem dados ainda.</div>';
+    document.getElementById("jorTabela").innerHTML='<div class="jor-empty">Nenhum funcionário. Use o botão \\u201cEscolher arquivo\\u201d acima.</div>';
+    document.getElementById("jorPosTag").textContent=''; document.getElementById("jorNegTag").textContent=''; document.getElementById("jorCnt").textContent='';
+    return;
+  }
+  var saldoGeral=0, posN=0, negN=0, posH=0, negH=0;
+  jorReg.forEach(function(r){ saldoGeral+=r.saldo; if(r.saldo>0){ posN++; posH+=r.saldo; } else if(r.saldo<0){ negN++; negH+=r.saldo; } });
+  var custo=(posH/60)*jorValHora();
+  var icRel='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>';
+  var icUp='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>';
+  var icDown='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+  var icCash='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>';
+  kpis.innerHTML=
+    '<div class="jk"><div class="jk-top"><span class="jk-lbl">Saldo geral</span><span class="jk-ico '+(saldoGeral>=0?'g':'r')+'">'+icRel+'</span></div>'+
+      '<div class="jk-v '+(saldoGeral>=0?'pos':'neg')+'">'+jorFmtHM(saldoGeral)+'</div>'+
+      '<div class="jk-sub"><b>'+n+'</b> funcionários no banco de horas</div></div>'+
+    '<div class="jk"><div class="jk-top"><span class="jk-lbl">Saldo positivo</span><span class="jk-ico g">'+icUp+'</span></div>'+
+      '<div class="jk-v pos">'+posN+'</div>'+
+      '<div class="jk-sub">somam <b>'+jorFmtHM(posH)+'</b> h a compensar</div></div>'+
+    '<div class="jk"><div class="jk-top"><span class="jk-lbl">Saldo negativo</span><span class="jk-ico r">'+icDown+'</span></div>'+
+      '<div class="jk-v neg">'+negN+'</div>'+
+      '<div class="jk-sub">devem <b>'+jorFmtHM(negH)+'</b> h à empresa</div></div>'+
+    '<div class="jk"><div class="jk-top"><span class="jk-lbl">Custo estimado</span><span class="jk-ico a">'+icCash+'</span></div>'+
+      '<div class="jk-v">'+brl(custo)+'</div>'+
+      '<div class="jk-sub">horas positivas × R$ '+jorValHora().toLocaleString("pt-BR",{minimumFractionDigits:2})+'/h</div></div>';
+  // maiores positivos / negativos
+  var ord=jorReg.slice().sort(function(a,b){ return b.saldo-a.saldo; });
+  var tops=ord.filter(function(r){ return r.saldo>0; }).slice(0,8);
+  var bots=ord.filter(function(r){ return r.saldo<0; }).slice(-8).reverse();
+  function linhaFunc(r){ return '<div class="jrow" data-pis="'+jorEsc(r.pis)+'"><span class="nm">'+jorEsc(r.nome)+'</span>'+(r.setor?'<span class="st">'+jorEsc(jorSetorLabel(r.setor))+'</span>':'')+'<span class="sd '+(r.saldo>=0?'pos':'neg')+'">'+jorFmtHM(r.saldo)+'</span></div>'; }
+  document.getElementById("jorPos").innerHTML = tops.length ? tops.map(linhaFunc).join('') : '<div class="jor-empty">Ninguém com saldo positivo.</div>';
+  document.getElementById("jorNeg").innerHTML = bots.length ? bots.map(linhaFunc).join('') : '<div class="jor-empty">Ninguém com saldo negativo.</div>';
+  document.getElementById("jorPosTag").textContent=posN;
+  document.getElementById("jorNegTag").textContent=negN;
+  // ranking por setor
+  var setores={};
+  jorReg.forEach(function(r){ var s=jorSetorLabel(r.setor); if(!setores[s]) setores[s]={nome:s,n:0,soma:0}; setores[s].n++; setores[s].soma+=r.saldo; });
+  var arr=Object.keys(setores).map(function(k){ return setores[k]; });
+  var maxAbs=1; arr.forEach(function(s){ maxAbs=Math.max(maxAbs,Math.abs(s.soma)); });
+  arr.sort(function(a,b){ return b.soma-a.soma; });
+  var setHtml='<table><thead><tr><th>Setor</th><th class="num">Func.</th><th class="num">Saldo total</th><th class="num">Média</th><th>Situação</th></tr></thead><tbody>';
+  arr.forEach(function(s){
+    var media=Math.round(s.soma/s.n);
+    var pct=Math.round(Math.abs(s.soma)/maxAbs*100);
+    var cor=s.soma>=0?'#1b9e4b':'#d6452f';
+    setHtml+='<tr><td>'+jorEsc(s.nome)+'</td><td class="num">'+s.n+'</td>'+
+      '<td class="num sd '+(s.soma>=0?'pos':'neg')+'">'+jorFmtHM(s.soma)+'</td>'+
+      '<td class="num sd '+(media>=0?'pos':'neg')+'">'+jorFmtHM(media)+'</td>'+
+      '<td class="barcell"><div class="bar"><i style="'+(s.soma>=0?'left:50%;':'right:50%;')+'width:'+(pct/2)+'%;background:'+cor+';"></i></div></td></tr>';
+  });
+  setHtml+='</tbody></table>';
+  document.getElementById("jorSetor").innerHTML=setHtml;
+  jorRenderAlertas(arr);
+  // tabela completa (com busca)
+  renderJornadaTabela();
+}
+// Alertas automáticos (regras sobre o retrato atual). Limiares em minutos.
+var JOR_LIM_POS=20*60;   // banco positivo alto (20h) — risco de custo/vencimento
+var JOR_LIM_NEG=-8*60;   // devendo muito (8h) — risco de desconto
+var JOR_LIM_SETOR=15*60; // setor com média alta por pessoa
+function jorRenderAlertas(setoresArr){
+  var el=document.getElementById("jorAlertas"); if(!el) return;
+  var altosPos=jorReg.filter(function(r){ return r.saldo>=JOR_LIM_POS; }).sort(function(a,b){ return b.saldo-a.saldo; });
+  var altosNeg=jorReg.filter(function(r){ return r.saldo<=JOR_LIM_NEG; }).sort(function(a,b){ return a.saldo-b.saldo; });
+  var setCrit=(setoresArr||[]).filter(function(s){ return s.n>1 && Math.round(s.soma/s.n)>=JOR_LIM_SETOR; }).sort(function(a,b){ return (b.soma/b.n)-(a.soma/a.n); });
+  var icA='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
+  var icOk='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
+  var cards=[];
+  if(altosPos.length){
+    var nomes=altosPos.slice(0,3).map(function(r){ return r.nome.split(" ")[0]+" ("+jorFmtHM(r.saldo)+")"; }).join(", ");
+    cards.push('<div class="jal r">'+icA+'<div><div class="tt">'+altosPos.length+' com banco acima de 20h</div><div class="ds">'+jorEsc(nomes)+(altosPos.length>3?"…":"")+" — considere liberar/compensar antes de virar custo.</div></div></div>");
+  }
+  if(altosNeg.length){
+    var nomesN=altosNeg.slice(0,3).map(function(r){ return r.nome.split(" ")[0]+" ("+jorFmtHM(r.saldo)+")"; }).join(", ");
+    cards.push('<div class="jal a">'+icA+'<div><div class="tt">'+altosNeg.length+' devendo mais de 8h</div><div class="ds">'+jorEsc(nomesN)+(altosNeg.length>3?"…":"")+" — risco de desconto em folha se não repor.</div></div></div>");
+  }
+  if(setCrit.length){
+    var s0=setCrit[0];
+    cards.push('<div class="jal a">'+icA+'<div><div class="tt">Setor '+jorEsc(s0.nome)+' acumulando banco</div><div class="ds">média de '+jorFmtHM(Math.round(s0.soma/s0.n))+" por pessoa — vale revisar a escala desse setor.</div></div></div>");
+  }
+  if(!cards.length) cards.push('<div class="jal g">'+icOk+'<div><div class="tt">Tudo sob controle</div><div class="ds">Nenhum funcionário ou setor com banco de horas em nível crítico.</div></div></div>');
+  el.innerHTML=cards.join("");
+}
+// Movimento médio por hora do dia, vindo do VR (menor = melhor pra liberar).
+function jorMovimentoPorHora(){
+  try{
+    if(typeof HORA==="undefined"||!HORA||!HORA.length) return [];
+    var soma={}, cont={};
+    HORA.forEach(function(x){ var h=x.h; if(h==null) return; soma[h]=(soma[h]||0)+(+x.fat||0); cont[h]=(cont[h]||0)+1; });
+    var arr=Object.keys(soma).map(function(h){ return {h:h, med:soma[h]/(cont[h]||1)}; });
+    // só horas de FUNCIONAMENTO: descarta madrugada/loja fechada (movimento < 12% do pico).
+    // Sem isso a sugestão cairia em 02h-05h, que não serve pra liberar ninguém.
+    var pico=0; arr.forEach(function(m){ if(m.med>pico) pico=m.med; });
+    var aberto=arr.filter(function(m){ return m.med >= pico*0.12; });
+    aberto.sort(function(a,b){ return a.med-b.med; });
+    return aberto;
+  }catch(e){ return []; }
+}
+function jorDetalhe(pis){
+  var r=jorReg.find(function(x){ return x.pis===pis; }); if(!r) return;
+  var bg=document.getElementById("jorModalBg"), md=document.getElementById("jorModal"); if(!bg||!md) return;
+  var setor=jorSetorLabel(r.setor);
+  var icSim='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0H5a2 2 0 0 1-2-2v-4m6 6h10a2 2 0 0 0 2-2v-4"></path></svg>';
+  var icClk='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>';
+  // range do simulador: de -abs até +abs (2x o saldo), passo 30min
+  var lim=Math.max(4*60, Math.abs(r.saldo)); lim=Math.ceil(lim/60)*60;
+  var h='<div class="jm-head"><div class="jm-eyebrow">'+jorEsc(setor)+'</div><div class="jm-nome">'+jorEsc(r.nome)+'</div>'+
+    '<div class="jm-badges">'+(r.cargo?'<span class="jm-pill">'+jorEsc(r.cargo)+'</span>':'')+(r.pis?'<span class="jm-pill">PIS '+jorEsc(r.pis)+'</span>':'')+'</div>'+
+    '<button type="button" class="jm-x" data-jmclose="1" title="Fechar">✕</button></div>'+
+    '<div class="jm-saldo"><div class="v '+(r.saldo>=0?'pos':'neg')+'">'+jorFmtHM(r.saldo)+'</div><div class="l">saldo do banco de horas (acumulado)</div></div>'+
+    '<div class="jm-grid">'+
+      '<div class="jm-cell"><div class="cl">Horas positivas</div><div class="cv pos">'+(r.pos?jorFmtHM(r.pos):"—")+'</div></div>'+
+      '<div class="jm-cell"><div class="cl">Horas negativas</div><div class="cv neg">'+(r.neg?jorFmtHM(r.neg):"—")+'</div></div>'+
+    '</div>'+
+    '<div class="jm-sec"><h4>'+icSim+'Simulador — e se mexer na jornada?</h4>'+
+      '<div class="jm-sim"><input type="range" id="jorSimRange" min="'+(-lim)+'" max="'+lim+'" step="30" value="0" data-pis="'+jorEsc(pis)+'"><span class="val" id="jorSimVal">0h</span></div>'+
+      '<div class="jm-sim-out" id="jorSimOut"></div>'+
+      '<div class="jm-dica">Arraste para simular horas a mais (trabalhou/hora extra, →) ou a menos (folgou/saiu mais cedo, ←) e veja o novo saldo.</div>'+
+    '</div>';
+  // sugestão pelo movimento (só faz sentido se está positivo — liberar em hora fraca)
+  if(r.saldo>0){
+    var mov=jorMovimentoPorHora();
+    if(mov.length){
+      var top=mov.slice(0,4).map(function(m){ return '<span class="jm-hchip">'+m.h+':00</span>'; }).join("");
+      h+='<div class="jm-sec" style="border-bottom:0;"><h4>'+icClk+'Melhores horários pra liberar (menor movimento)</h4>'+
+        '<div class="jm-horas">'+top+'</div>'+
+        '<div class="jm-dica">Baseado no movimento de vendas da loja por hora (dados do VR). Liberar '+jorEsc(r.nome.split(" ")[0])+' num desses horários reduz o banco sem pesar no atendimento.</div></div>';
+    }
+  }
+  md.innerHTML=h;
+  bg.classList.add("show");
+  jorSimAtualiza(pis,0);
+}
+function jorSimAtualiza(pis,delta){
+  var r=jorReg.find(function(x){ return x.pis===pis; }); if(!r) return;
+  var novo=r.saldo+delta;
+  var out=document.getElementById("jorSimOut"); if(!out) return;
+  var sinal=delta>0?"+":"";
+  var custo=(novo>0?(novo/60)*jorValHora():0);
+  out.innerHTML='Ajuste de <b>'+sinal+jorFmtHM(delta)+'</b> → novo saldo: <b class="'+(novo>=0?'':'')+'" style="color:'+(novo>=0?'#0e6b2c':'#b03222')+'">'+jorFmtHM(novo)+'</b>'+
+    (novo>0?(' · custo estimado <b>'+brl(custo)+'</b>'):(novo<0?' · '+jorEsc(r.nome.split(" ")[0])+' passa a dever essas horas':' · zerado, quitado'));
+}
+function jorFecharModal(){ var bg=document.getElementById("jorModalBg"); if(bg) bg.classList.remove("show"); }
+function renderJornadaTabela(){
+  var alvo=document.getElementById("jorTabela"); if(!alvo) return;
+  var busca=jorNorm((document.getElementById("jorBusca")||{}).value||"");
+  var lista=jorReg.slice().sort(function(a,b){ return a.saldo-b.saldo; }); // mais negativos primeiro (quem precisa de atenção)
+  if(busca) lista=lista.filter(function(r){ return jorNorm(r.nome).indexOf(busca)>=0 || jorNorm(r.setor).indexOf(busca)>=0 || jorNorm(r.cargo).indexOf(busca)>=0; });
+  var cnt=document.getElementById("jorCnt"); if(cnt) cnt.textContent=lista.length+" de "+jorReg.length;
+  if(!lista.length){ alvo.innerHTML='<div class="jor-empty">Nenhum funcionário encontrado.</div>'; return; }
+  var h='<table><thead><tr><th>Funcionário</th><th>Setor</th><th>Cargo</th><th class="num">Positivo</th><th class="num">Negativo</th><th class="num">Saldo banco</th></tr></thead><tbody>';
+  lista.forEach(function(r){
+    h+='<tr data-pis="'+jorEsc(r.pis)+'"><td>'+jorEsc(r.nome)+'</td><td class="setag">'+jorEsc(jorSetorLabel(r.setor))+'</td><td class="setag">'+jorEsc(r.cargo||"—")+'</td>'+
+      '<td class="num">'+(r.pos?jorFmtHM(r.pos):"—")+'</td>'+
+      '<td class="num">'+(r.neg?jorFmtHM(r.neg):"—")+'</td>'+
+      '<td class="num sd '+(r.saldo>=0?'pos':'neg')+'">'+jorFmtHM(r.saldo)+'</td></tr>';
+  });
+  h+='</tbody></table>';
+  alvo.innerHTML=h;
+}
+(function initJornada(){
+  var vh=document.getElementById("jorValHora");
+  if(vh){ var sv=localStorage.getItem("jornada_valhora"); if(sv) vh.value=sv; vh.addEventListener("input",function(){ try{ localStorage.setItem("jornada_valhora",vh.value); }catch(e){} renderJornada(); }); }
+  var btn=document.getElementById("jorImpBtn"), file=document.getElementById("jorImpFile");
+  if(btn&&file){
+    btn.addEventListener("click",function(){ file.click(); });
+    file.addEventListener("change",function(){
+      var f=file.files&&file.files[0]; if(!f) return;
+      var ehPdf=/\\.pdf\$/i.test(f.name) || f.type==="application/pdf";
+      if(ehPdf){
+        var rdb=new FileReader();
+        rdb.onload=function(){
+          jorLerPdf(new Uint8Array(rdb.result))
+            .then(function(d){ jorImportarPdf(d); })
+            .catch(function(e){ uiConfirm({titulo:"Não consegui ler o PDF",msg:(e&&e.message)||"Tente exportar em CSV pelo Control iD.",ok:"Entendi",cancel:""}); });
+          file.value="";
+        };
+        rdb.readAsArrayBuffer(f);
+      } else {
+        var rd=new FileReader();
+        rd.onload=function(){ jorImportarTexto(rd.result); file.value=""; };
+        rd.readAsText(f,"utf-8");
+      }
+    });
+  }
+  var bs=document.getElementById("jorBusca"); if(bs) bs.addEventListener("input",renderJornadaTabela);
+  // clique numa linha (tabela ou listas pos/neg) abre o detalhe do funcionário
+  function ligaClique(id){ var c=document.getElementById(id); if(c) c.addEventListener("click",function(ev){ var t=ev.target; while(t&&t!==c&&!t.getAttribute("data-pis")) t=t.parentNode; if(t&&t!==c){ var p=t.getAttribute("data-pis"); if(p) jorDetalhe(p); } }); }
+  ligaClique("jorTabela"); ligaClique("jorPos"); ligaClique("jorNeg");
+  // simulador + fechar modal
+  var mb=document.getElementById("jorModalBg");
+  if(mb){
+    mb.addEventListener("click",function(ev){ if(ev.target===mb||ev.target.getAttribute("data-jmclose")){ jorFecharModal(); } });
+    mb.addEventListener("input",function(ev){ var el=ev.target; if(el&&el.id==="jorSimRange"){ var d=parseInt(el.value,10)||0; var v=document.getElementById("jorSimVal"); if(v) v.textContent=(d>0?"+":"")+jorFmtHM(d); jorSimAtualiza(el.getAttribute("data-pis"),d); } });
+  }
+  document.addEventListener("keydown",function(ev){ if(ev.key==="Escape") jorFecharModal(); });
+  renderJornada();
 })();
 
 // ---- Organograma / Fluxograma (editor visual) ----
@@ -5568,7 +7169,7 @@ function fluxExemplo(){
   renderFlux();
 })();
 
-// Painel de controle: troca a página visível ao clicar no menu lateral.
+// Painel Santa Rita: troca a página visível ao clicar no menu lateral.
 // ---- Entregas (dashboard de entregas — dados diários por entregador) ----
 const ENT_META1=600, ENT_META2=850;
 const ENT_SEED=["Anderson","Josinaldo","Lucas","Joseildo","Francisco","Nilton"];
@@ -6782,7 +8383,7 @@ function lixRestaurar(reg){
 }
 
 /* ===== Configurações (só master) ===== */
-var CFG_TABELAS=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas"];
+var CFG_TABELAS=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas","banco_horas"];
 function cfgEhMaster(){ return !!(window.__PERFIL && window.__PERFIL.is_master); }
 function renderConfig(){
   var el=document.getElementById("cfgConteudo"); if(!el) return;
@@ -6849,7 +8450,7 @@ function bkpRestaurar(file){
     uiConfirm({titulo:"Restaurar backup",msg:"Isso vai repor os dados com a cópia do dia "+(pacote._data?pacote._data.slice(0,10).split("-").reverse().join("/"):"?")+" ("+qtd+" registros). O que foi adicionado depois dessa data pode ser substituído. Continuar?",ok:"Restaurar",cancel:"Cancelar"}).then(function(ok){
       if(!ok) return;
       var msg=document.getElementById("bkpMsg"); if(msg){ msg.textContent="Restaurando..."; msg.style.color="#7a8696"; }
-      var ordem=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas"];
+      var ordem=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas","banco_horas"];
       var cadeia=Promise.resolve();
       ordem.forEach(function(t){
         var linhas=pacote.tabelas[t]; if(!linhas||!linhas.length) return;
@@ -7228,7 +8829,7 @@ function manImprimirAgenda(){
     +'<table><thead><tr><th>Equipamento</th><th>Serviço</th><th>Último</th><th>Próxima</th><th>Situação</th><th>Peso conferido / divergência</th><th>Feito</th><th>Assinatura (quem fez)</th><th>Conferido por (supervisor)</th></tr></thead><tbody>'
     +linhas
     +'</tbody></table>'
-    +'<div class="rod">Quem executou marca "Feito" e assina · o supervisor confere e assina em "Conferido por". — Painel de Gestão Santa Rita</div>'
+    +'<div class="rod">Quem executou marca "Feito" e assina · o supervisor confere e assina em "Conferido por". — Painel Santa Rita</div>'
     +'</body></html>';
   var w=window.open("","_blank");
   if(!w){ uiConfirm({titulo:"Pop-up bloqueado",msg:"Libere os pop-ups do site para imprimir a agenda.",ok:"OK",cancel:""}); return; }
@@ -7876,6 +9477,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="pedidos"){ renderPedidos(); pedCloudLoad(); pedRealtime(); }
     if(btn.dataset.page==="config") renderConfig();
     if(btn.dataset.page==="pontos"||btn.dataset.page==="mapa"){ pxCloudLoad(); try{ if(typeof pixCobLoad==="function") pixCobLoad(); }catch(e){} }
+    if(btn.dataset.page==="jornada"){ try{ jorCloudLoad(); jorRealtime(); renderJornada(); }catch(e){} }
     if(btn.dataset.page==="epi") renderEPI();
     if(btn.dataset.page==="fardamento") renderFardamento();
     if(btn.dataset.page==="acessos") renderAcessos();
@@ -8739,7 +10341,14 @@ function pedEnviar(){
     if(m.indexOf("not confirmed")>=0) return "Confirme o email antes de entrar (veja a caixa de entrada do setor).";
     if(m.indexOf("already registered")>=0) return "Esse email já tem acesso. Use a aba Entrar.";
     if(m.indexOf("weak")>=0) return "Senha muito fraca, escolha outra.";
-    return "Erro: "+m;
+    // muitas tentativas seguidas (limite do Supabase)
+    if(m.indexOf("rate limit")>=0 || m.indexOf("over_email_send")>=0 || m.indexOf("too many")>=0)
+      return "Você pediu recuperação de senha muitas vezes seguidas. Aguarde alguns minutos e tente de novo.";
+    if(m.indexOf("security purposes")>=0 || (m.indexOf("after")>=0 && m.indexOf("second")>=0))
+      return "Aguarde um pouquinho antes de pedir de novo (por segurança).";
+    // erro vazio/desconhecido: quase sempre é limite/instabilidade momentânea
+    if(!m || m==="{}" || m==="[object object]") return "Não consegui enviar agora — provavelmente muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.";
+    return "Não consegui enviar: "+m;
   }
   document.getElementById("tabLogin").onclick=function(){ modo="login"; this.classList.add("on"); document.getElementById("tabCad").classList.remove("on"); document.getElementById("fldNome").style.display="none"; document.getElementById("fldSetor").style.display="none"; document.getElementById("fldRepetir").style.display="none"; document.getElementById("authForgot").style.display=""; document.getElementById("authBtn").textContent="Entrar"; setMsg(""); };
   document.getElementById("tabCad").onclick=function(){ modo="cad"; this.classList.add("on"); document.getElementById("tabLogin").classList.remove("on"); document.getElementById("fldNome").style.display=""; document.getElementById("fldSetor").style.display=""; document.getElementById("fldRepetir").style.display=""; document.getElementById("authForgot").style.display="none"; document.getElementById("authBtn").textContent="Criar acesso"; setMsg(""); };
@@ -8747,10 +10356,16 @@ function pedEnviar(){
     var email=(document.getElementById("authEmail").value||"").trim();
     if(!email){ setMsg("Digite o email do setor primeiro."); return; }
     setMsg("Enviando link...","#7a8696");
+    function _msgErro(er){
+      var st=(er&&(er.status||er.code))||0; var nm=(er&&er.name||"")+""; var em=((er&&(er.message||er.msg||er.error_description))||"")+"";
+      if(st==500 || st>=500 || nm.indexOf("Retryable")>=0 || /fetch|network|timeout/i.test(em+nm))
+        return "O serviço de e-mail está com um problema momentâneo. Tente de novo daqui a pouco.";
+      return traduzErro(em);
+    }
     SB.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname}).then(function(r){
-      if(r&&r.error){ setMsg(traduzErro(r.error.message)); }
+      if(r&&r.error){ setMsg(_msgErro(r.error)); }
       else { setMsg("Link enviado! Veja o email de "+email+" e clique pra criar a nova senha.","#1b9e4b"); }
-    });
+    }).catch(function(e){ setMsg(_msgErro(e)); });
   };
   document.getElementById("authResetBtn").onclick=function(){
     var s=document.getElementById("authNovaSenha").value||""; var r=document.getElementById("authNovaRepetir").value||""; var m=document.getElementById("authResetMsg");
@@ -8925,7 +10540,7 @@ function renderPerfil(){
     '<div class="perfil-head"><div class="perfil-av">'+ini+'</div><div><div class="perfil-nome">'+nome+'</div>'+badge+'</div></div>'+
     '<div class="perfil-lin"><span>Setor</span><b>'+(p.setor||'—')+'</b></div>'+
     '<div class="perfil-lin"><span>Email</span><b>'+(email||'—')+'</b></div>'+
-    '<div class="perfil-acoes"><button id="perfilTrocar" type="button" class="perfil-btn">Trocar senha</button><button id="perfilSair" type="button" class="perfil-sair">Sair do sistema</button></div>'+
+    '<div class="perfil-acoes"><button id="perfilTrocar" type="button" class="perfil-btn">Trocar senha</button><button id="perfilSair" type="button" class="perfil-sair">Sair do painel</button></div>'+
     '<div id="perfilSenha" class="perfil-senha" style="display:none"><label style="font-size:12px;color:#7a8696;font-weight:600;display:block;margin-bottom:6px;">Nova senha</label><input id="perfilNovaSenha" type="password" placeholder="mínimo 6 caracteres"><button id="perfilSalvarSenha" type="button" class="perfil-btn" style="background:#157a35;color:#fff;border:0;">Salvar nova senha</button><div id="perfilSenhaMsg" style="font-size:12.5px;margin-top:8px;"></div></div>';
   document.getElementById("perfilSair").onclick=function(){ if(window.__SB){ window.__SB.auth.signOut().then(function(){ location.reload(); }); } else { location.reload(); } };
   document.getElementById("perfilTrocar").onclick=function(){ var bx=document.getElementById("perfilSenha"); bx.style.display=(bx.style.display==="none")?"":"none"; };
