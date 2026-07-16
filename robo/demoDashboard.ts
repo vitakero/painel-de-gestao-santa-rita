@@ -3412,30 +3412,40 @@ function renderGalpoes(){
   if(fstatus) lista=lista.filter(function(g){ return pxStatusMes(g)===fstatus; });
   if(fpag) lista=lista.filter(function(g){ return (g.pagamento||"")===fpag; });
   if(fvenc) lista=lista.filter(function(g){ var d=pxParseData(g.vencimento); if(!d) return false; var dias=(d-hoje)/86400000; return fvenc==="vencidos"?dias<=0:dias>0; });
-  var info=document.getElementById("glInfo"); if(info) info.textContent=lista.length+" galpão(ões)";
-  if(!lista.length){ tb.innerHTML='<div style="padding:22px 12px;color:#8a97a8;font-style:italic;">'+(galpoesG.length?"Nenhum ponto com esse filtro.":"Nenhum ponto.")+'</div>'; return; }
+  var info=document.getElementById("glInfo"); if(info) info.textContent=lista.length+" ponto(s)";
   var linhas=lista.map(function(g){
-    var st=pxStatusMes(g);
-    var cor=st==="PAGO"?"#1b9e4b":(st==="ATRASADO"?"#c0392b":"#e8a800");
-    var rot=st==="PAGO"?"Pago":(st==="ATRASADO"?"Atrasado":"Em aberto");
+    var d=pxParseData(g.vencimento); var vcls="";
+    if(d){ var dias=(d-hoje)/86400000; if(dias<0) vcls="px-venc-vencido"; else if(dias<=15) vcls="px-venc-prox"; }
+    var seta='<button class="px-exp" data-glexp="'+g.id+'" title="Ver dados da empresa"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>';
     var pago=pxPagoMes(g);
-    var acaoPago=pago
-      ? '<button type="button" class="btn-s" data-glpago="'+g.id+'" data-on="1" style="padding:6px 10px;font-size:12px;">Desfazer pago</button>'
-      : '<button type="button" class="btn-p" data-glpago="'+g.id+'" style="padding:6px 10px;font-size:12px;">Marcar pago</button>';
+    var btnPago=pago
+      ? '<button type="button" class="btn-s" data-glpago="'+g.id+'" data-on="1" style="padding:5px 10px;font-size:12px;">Desfazer pago (mês atual)</button>'
+      : '<button type="button" class="btn-p" data-glpago="'+g.id+'" style="padding:5px 10px;font-size:12px;">Marcar pago (mês atual)</button>';
     return '<tr>'+
-      '<td><b>'+(g.numero?g.numero:"—")+'</b></td>'+
-      '<td>'+(prdEsc(g.locatario)||"—")+'</td>'+
-      '<td>'+(prdEsc(g.vendedor)||"—")+'</td>'+
-      '<td>'+brl(+g.valor||0)+'</td>'+
-      '<td>'+(prdEsc(g.pagamento)||"—")+'</td>'+
-      '<td>'+(pxFmtData(g.abertura)||"—")+'</td>'+
-      '<td>'+(pxFmtData(g.vencimento)||"—")+'</td>'+
-      '<td><span style="display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:12.5px;color:'+cor+';"><span style="width:8px;height:8px;border-radius:50%;background:'+cor+';"></span>'+rot+'</span></td>'+
-      '<td style="max-width:200px;color:#7d8794;font-size:12.5px;">'+(prdEsc(g.obs)||"—")+'</td>'+
-      '<td style="white-space:nowrap;">'+acaoPago+' <button type="button" class="btn-s" data-gledit="'+g.id+'" style="padding:6px 10px;font-size:12px;">Editar</button> <button type="button" class="btn-s" data-glrem="'+g.id+'" style="padding:6px 10px;font-size:12px;">Remover</button></td>'+
-      '</tr>';
+      '<td class="px-exp-cell">'+seta+'</td>'+
+      '<td>'+(g.numero||"")+'</td>'+
+      '<td>'+pxEsc(g.locatario)+'</td>'+
+      '<td>'+pxEsc(g.vendedor)+'</td>'+
+      '<td>'+(g.valor? brl(+g.valor) : "—")+'</td>'+
+      '<td>'+pxEsc(g.pagamento)+'</td>'+
+      '<td>'+pxFmtData(g.abertura)+'</td>'+
+      '<td class="'+vcls+'">'+pxFmtData(g.vencimento)+'</td>'+
+      '<td>'+pxBadge(g)+'</td>'+
+      '<td>'+pxEsc(g.obs)+'</td>'+
+      '<td style="white-space:nowrap"><span class="esc-nome" data-gledit="'+g.id+'">editar</span> &nbsp;<span class="esc-del" data-glrem="'+g.id+'" title="Remover">✕</span></td>'+
+      '</tr>'+
+      '<tr class="px-det" id="gdet-'+g.id+'" style="display:none;"><td colspan="11"><div class="px-det-wrap"><div class="px-det-box">'+
+        pxDetItem("CNPJ", g.cnpj ? pxFmtCnpj(g.cnpj) : "—")+
+        pxDetItem("Razão Social", g.razaoSocial||"—")+
+        pxDetItem("Endereço", g.endereco?pxEsc(g.endereco):"—")+
+        pxDetItem("Vendedor", g.vendedor||"—")+
+        pxDetItem("Contato", g.contato?pxFmtTel(g.contato):"—")+
+        pxDetItem("E-mail", g.email ? ('<a href="mailto:'+pxEsc(g.email)+'">'+pxEsc(g.email)+'</a>') : "—")+
+        pxDetItem("Pagamento", btnPago)+
+      '</div></div></td></tr>';
   }).join("");
-  tb.innerHTML='<table class="gl-tb"><thead><tr><th>Nº</th><th>Fornecedor</th><th>Vendedor</th><th>Valor</th><th>Pagamento</th><th>Abertura</th><th>Vencimento</th><th>Status</th><th>Observação</th><th>Ações</th></tr></thead><tbody>'+linhas+'</tbody></table>';
+  tb.innerHTML='<table><thead><tr><th style="width:34px;"></th><th>Nº</th><th>Fornecedor</th><th>Vendedor</th><th>Valor</th><th>Pagamento</th><th>Abertura</th><th>Vencimento</th><th>Status</th><th>Observação</th><th></th></tr></thead><tbody>'+
+    (linhas || '<tr><td colspan="11" class="vazio">Nenhum ponto.</td></tr>')+'</tbody></table>';
 }
 (function initGalpoes(){
   var salvar=document.getElementById("glSalvar"); if(!salvar) return;
@@ -3468,6 +3478,8 @@ function renderGalpoes(){
   ["glBusca","glFiltroStatus","glFiltroPagamento","glFiltroVenc"].forEach(function(id){ var el=document.getElementById(id); if(el){ el.addEventListener(id==="glBusca"?"input":"change",renderGalpoes); } });
   var tb=document.getElementById("glTabela");
   if(tb) tb.addEventListener("click",function(e){
+    var expb=e.target.closest("[data-glexp]");
+    if(expb){ var xid=expb.dataset.glexp; var det=document.getElementById("gdet-"+xid); if(det){ var open=det.style.display==="none"; det.style.display=open?"":"none"; expb.classList.toggle("aberto",open); } return; }
     var pago=e.target.closest("[data-glpago]");
     if(pago){ var g=galpoesG.find(function(x){ return x.id===pago.dataset.glpago; }); if(g){ var k=glKeyMesAtual(g); if(!k){ uiConfirm({titulo:"Informe as datas",msg:"Preencha a abertura e o vencimento do contrato pra controlar os pagamentos por mês.",ok:"OK",cancel:""}); return; } g.manuais=g.manuais||{}; if(pago.dataset.on){ delete g.manuais[k]; } else { g.manuais[k]="autorizado"; } glSave(); renderGalpoes(); } return; }
     var ed=e.target.closest("[data-gledit]");
