@@ -3384,14 +3384,21 @@ function glSetDocTipo(t){
   var bts=tog.querySelectorAll(".gl-dt"); for(var i=0;i<bts.length;i++){ bts[i].classList.toggle("on", bts[i].getAttribute("data-doctipo")===t); }
   window.__glDocTipo=t;
   var buscar=document.getElementById("glCnpjBuscar"), inp=document.getElementById("glCnpj"), msg=document.getElementById("glCnpjMsg");
+  var empCampo=document.getElementById("glLoc") ? document.getElementById("glLoc").parentElement : null;
   if(t==="cpf"){
-    // o campo do CPF ESTICA e ocupa o lugar do Buscar → nada fica vazio e o layout não pula
-    if(buscar){ if(!window.__glBW){ window.__glBW=buscar.offsetWidth||66; } buscar.style.display="none"; }
-    if(inp){ inp.style.width=(175+6+(window.__glBW||66))+"px"; inp.placeholder="000.000.000-00"; }
+    // CPF fica no tamanho natural; a folga do Buscar vai pro campo EMPRESA (que é longo) → nada vazio, nada distorcido
+    if(buscar && buscar.style.display!=="none"){
+      window.__glBW=buscar.offsetWidth||66;
+      if(empCampo) window.__glEW=empCampo.offsetWidth||0;
+      buscar.style.display="none";
+    }
+    if(inp) inp.placeholder="000.000.000-00";
+    if(empCampo && window.__glEW){ empCampo.style.minWidth=(window.__glEW+6+(window.__glBW||66))+"px"; }
     if(msg) msg.textContent="";
   } else {
     if(buscar) buscar.style.display="";
-    if(inp){ inp.style.width="175px"; inp.placeholder="00.000.000/0000-00"; }
+    if(inp) inp.placeholder="00.000.000/0000-00";
+    if(empCampo) empCampo.style.minWidth="170px";
     if(msg) msg.textContent="";
   }
 }
