@@ -78,38 +78,41 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 <style>
   * { box-sizing: border-box; }
   body { font-family: system-ui, -apple-system, sans-serif; margin:0; background:#eef1f6; color:#1a2233; }
-  header { background:#fff; color:#1a2233; padding:0 20px; border-bottom:1px solid #e4e9f0; position:sticky; top:0; z-index:40; font-family:'Inter',system-ui,-apple-system,sans-serif; }
-  header .hwrap { display:flex; align-items:center; gap:14px; max-width:none; margin:0; height:58px; }
-  header .logo { flex:none; display:flex; align-items:center; justify-content:center; }
-  header .logo img { height:34px; width:auto; display:block; }
-  .hsep { width:1px; height:26px; background:#e4e9f0; flex:none; }
+  /* ===== Cabeçalho — Design System: raio 8px · escala de 4px · pesos 600/500/400 · sombra única 4% ===== */
+  header { background:#fff; color:#1a2233; padding:0 24px; border-bottom:1px solid #e8ecf1; box-shadow:0 1px 2px rgba(16,24,40,.04); position:sticky; top:0; z-index:40; font-family:'Inter',system-ui,-apple-system,sans-serif; -webkit-font-smoothing:antialiased; }
+  header .hwrap { display:flex; align-items:center; gap:12px; max-width:none; margin:0; height:56px; }
+  header .logo { flex:none; display:flex; align-items:center; }
+  header .logo img { height:28px; width:auto; display:block; }
+  .hsep { width:1px; height:22px; background:#e8ecf1; flex:none; }
   header .htxt { min-width:0; }
-  header h1 { margin:0; font-size:14.5px; font-weight:700; color:#0f1724; letter-spacing:-.1px; line-height:1.3; white-space:nowrap; }
-  header p { margin:1px 0 0; font-size:11px; color:#6b7787; letter-spacing:.15px; line-height:1.3; white-space:nowrap; }
-  .hdir { margin-left:auto; display:flex; align-items:center; gap:12px; min-width:0; }
-  .hstatus { display:inline-flex; align-items:center; gap:7px; background:#eef7f1; border:1px solid #d8ecdf; padding:5px 11px 5px 9px; border-radius:20px; flex:none; }
-  .hstatus .hst-dot { width:7px; height:7px; border-radius:50%; background:#1f9d3f; animation:pulseDotHdr 2.2s infinite; }
-  @keyframes pulseDotHdr { 0%{box-shadow:0 0 0 0 rgba(31,157,63,.4);} 70%{box-shadow:0 0 0 6px rgba(31,157,63,0);} 100%{box-shadow:0 0 0 0 rgba(31,157,63,0);} }
-  .hstatus .hstatus-t { font-size:11.5px; font-weight:600; color:#0e6b2c; letter-spacing:.2px; }
-  .hmeta { text-align:right; line-height:1.35; flex:none; }
-  .hmeta .hdata { display:block; font-size:11.5px; font-weight:600; color:#55606e; }
-  .hmeta .hupd { display:block; font-size:10.5px; color:#6b7787; }
-  .hver { font-size:10px; font-weight:600; color:#56606d; border:1px solid #e4e9f0; background:#f7f9fb; padding:2px 7px; border-radius:6px; flex:none; letter-spacing:.3px; }
-  #hUser { display:none; align-items:center; gap:9px; background:none; border:0; cursor:pointer; padding:5px 7px; border-radius:9px; font:inherit; text-align:left; max-width:220px; transition:background .13s; }
+  header h1 { margin:0; font-size:14.5px; font-weight:600; color:#101828; letter-spacing:-.1px; line-height:1.25; white-space:nowrap; }
+  header p { margin:2px 0 0; font-size:10.5px; font-weight:500; color:#6b7787; letter-spacing:.2px; line-height:1.2; white-space:nowrap; }
+  .hdir { margin-left:auto; display:flex; align-items:center; gap:10px; min-width:0; }
+  .hchip { display:inline-flex; align-items:center; gap:7px; background:#f8fafc; border:1px solid #e8ecf1; padding:0 10px; height:26px; border-radius:8px; flex:none; font-size:11px; font-weight:500; color:#56606d; letter-spacing:.2px; transition:background .15s ease, border-color .15s ease; }
+  .hchip:hover { background:#f2f5f8; border-color:#dde3ea; }
+  .hstatus .hst-dot { width:6px; height:6px; border-radius:50%; background:#1f9d3f; animation:pulseDotHdr 2.4s infinite; }
+  @keyframes pulseDotHdr { 0%{box-shadow:0 0 0 0 rgba(31,157,63,.35);} 70%{box-shadow:0 0 0 5px rgba(31,157,63,0);} 100%{box-shadow:0 0 0 0 rgba(31,157,63,0);} }
+  .hver { font-variant-numeric:tabular-nums; }
+  .hmeta { text-align:right; line-height:1.4; flex:none; }
+  .hmeta .hdata { display:block; font-size:11px; font-weight:500; color:#56606d; }
+  .hmeta .hupd { display:block; font-size:10.5px; font-weight:400; color:#6b7787; }
+  #hUser { display:none; align-items:center; gap:8px; background:none; border:0; cursor:pointer; padding:4px 8px; border-radius:8px; font:inherit; text-align:left; max-width:220px; transition:background .15s ease; }
   #hUser:hover { background:#f2f5f8; }
-  #hUser .hu-av { width:30px; height:30px; border-radius:50%; background:#e3f0e8; color:#0c5a26; font-size:12px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; flex:none; letter-spacing:.3px; }
-  #hUser .hu-tx { min-width:0; line-height:1.25; }
-  #hUser .hu-tx b { display:block; font-size:12.5px; font-weight:600; color:#1a2233; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  #hUser .hu-tx i { display:block; font-style:normal; font-size:10.5px; color:#6b7787; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  #hUser .hu-ch { color:#aeb8c2; font-size:15px; flex:none; }
+  #hUser:active { background:#eceff4; }
+  #hUser .hu-av { width:28px; height:28px; border-radius:50%; background:#e3f0e8; color:#0c5a26; font-size:11px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; flex:none; letter-spacing:.3px; }
+  #hUser .hu-tx { min-width:0; line-height:1.3; }
+  #hUser .hu-tx b { display:block; font-size:12.5px; font-weight:600; color:#101828; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #hUser .hu-tx i { display:block; font-style:normal; font-size:10.5px; font-weight:400; color:#6b7787; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #hUser .hu-ch { color:#98a2b3; font-size:14px; flex:none; transition:color .15s ease, transform .15s ease; }
+  #hUser:hover .hu-ch { color:#56606d; transform:translateX(1px); }
   @media (max-width:1020px){ .hver, .hmeta .hdata { display:none; } }
   @media (max-width:840px){ .hmeta, .hsep-r { display:none; } }
-  @media (max-width:600px){ header { padding:0 12px; } header .htxt p { display:none; } .hstatus-t { display:none; } .hstatus { padding:6px; } #hUser .hu-tx, #hUser .hu-ch { display:none; } }
+  @media (max-width:600px){ header { padding:0 12px; } header .htxt p { display:none; } .hstatus-t { display:none; } .hstatus { padding:0 8px; } #hUser .hu-tx, #hUser .hu-ch { display:none; } }
   .tag { display:inline-flex; align-items:center; gap:6px; background:#ffffff22; border:1px solid #ffffff55; padding:3px 11px; border-radius:20px; font-size:11px; font-weight:600; letter-spacing:.3px; vertical-align:middle; }
   .tag .dot { width:7px; height:7px; border-radius:50%; background:#5df08a; animation:pulseDot 1.8s infinite; }
   @keyframes pulseDot { 0%{box-shadow:0 0 0 0 rgba(93,240,138,.6);} 70%{box-shadow:0 0 0 7px rgba(93,240,138,0);} 100%{box-shadow:0 0 0 0 rgba(93,240,138,0);} }
   .layout { display:flex; align-items:flex-start; max-width:none; margin:0; }
-  .sidebar { width:210px; flex:none; padding:22px 14px; position:sticky; top:58px; }
+  .sidebar { width:210px; flex:none; padding:22px 14px; position:sticky; top:57px; }
   .sidebar .titulo { font-size:11px; color:#8a97a8; text-transform:uppercase; letter-spacing:.5px; padding:0 12px 8px; }
   .nav-item { display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:none; border:0; cursor:pointer; padding:11px 12px; border-radius:9px; font-size:14px; color:#33404f; font-weight:500; margin-bottom:3px; }
   .nav-item:hover { background:#e2e8f1; }
@@ -490,12 +493,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <p>Centro de Inteligência Operacional</p>
       </div>
       <div class="hdir">
-        <span class="hstatus" title="Sistema no ar"><span class="hst-dot"></span><span class="hstatus-t">Operacional</span></span>
+        <span class="hchip hstatus" title="Sistema no ar"><span class="hst-dot"></span><span class="hstatus-t">Operacional</span></span>
         <div class="hmeta">
           <span class="hdata" id="hDataHoje"></span>
-          <span class="hupd" title="Última leitura dos dados da loja">Dados atualizados em ${geradoEmCurto}</span>
+          <span class="hupd" title="Última leitura dos dados da loja">Atualizado ${geradoEmCurto}</span>
         </div>
-        <span class="hver" title="Versão do painel — gerada em ${geradoEm}">v${versaoPainel}</span>
+        <span class="hchip hver" title="Versão do painel — gerada em ${geradoEm}">v${versaoPainel}</span>
         <div class="hsep hsep-r"></div>
         <button id="hUser" type="button"></button>
       </div>
