@@ -3385,11 +3385,11 @@ function glSetDocTipo(t){
   window.__glDocTipo=t;
   var buscar=document.getElementById("glCnpjBuscar"), inp=document.getElementById("glCnpj"), msg=document.getElementById("glCnpjMsg");
   if(t==="cpf"){
-    if(buscar) buscar.style.display="none";
+    if(buscar){ buscar.style.visibility="hidden"; buscar.style.pointerEvents="none"; } // some da vista mas mantém o espaço → layout não pula
     if(inp) inp.placeholder="000.000.000-00";
     if(msg) msg.textContent="";
   } else {
-    if(buscar) buscar.style.display="";
+    if(buscar){ buscar.style.visibility="visible"; buscar.style.pointerEvents="auto"; }
     if(inp) inp.placeholder="00.000.000/0000-00";
     if(msg) msg.textContent="";
   }
