@@ -3385,12 +3385,13 @@ function glSetDocTipo(t){
   window.__glDocTipo=t;
   var buscar=document.getElementById("glCnpjBuscar"), inp=document.getElementById("glCnpj"), msg=document.getElementById("glCnpjMsg");
   if(t==="cpf"){
-    if(buscar){ buscar.style.visibility="hidden"; buscar.style.pointerEvents="none"; } // some da vista mas mantém o espaço → layout não pula
-    if(inp) inp.placeholder="000.000.000-00";
+    // o campo do CPF ESTICA e ocupa o lugar do Buscar → nada fica vazio e o layout não pula
+    if(buscar){ if(!window.__glBW){ window.__glBW=buscar.offsetWidth||66; } buscar.style.display="none"; }
+    if(inp){ inp.style.width=(175+6+(window.__glBW||66))+"px"; inp.placeholder="000.000.000-00"; }
     if(msg) msg.textContent="";
   } else {
-    if(buscar){ buscar.style.visibility="visible"; buscar.style.pointerEvents="auto"; }
-    if(inp) inp.placeholder="00.000.000/0000-00";
+    if(buscar) buscar.style.display="";
+    if(inp){ inp.style.width="175px"; inp.placeholder="00.000.000/0000-00"; }
     if(msg) msg.textContent="";
   }
 }
