@@ -904,8 +904,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 
       <div class="card">
         <div class="esc-top">
-          <h2 style="margin:0;">Pontos extras</h2>
-          <input type="text" id="glBusca" placeholder="Buscar fornecedor / vendedor" style="padding:8px 11px;border:1px solid #cdd6e0;border-radius:8px;font-size:14px;min-width:210px;">
+          <h2 style="margin:0;">Meus galpões</h2>
+          <input type="text" id="glBusca" placeholder="Buscar galpão / inquilino" style="padding:8px 11px;border:1px solid #cdd6e0;border-radius:8px;font-size:14px;min-width:210px;">
           <select id="glFiltroStatus" class="px-filtro">
             <option value="">Todos os status</option>
             <option value="PAGO">Pago</option>
