@@ -871,33 +871,32 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       <div id="glInad"></div>
 
       <div class="card" id="glFormCard">
-        <h2 id="glFormTitulo">Adicionar galpão</h2>
-        <p style="margin:-4px 0 14px;font-size:12.5px;color:#8a97a8;">Controle particular dos seus galpões logísticos (à parte do supermercado). Visível só pra você.</p>
+        <h2 id="glFormTitulo">Adicionar ponto extra</h2>
         <div class="filtros" style="box-shadow:none;padding:0;flex-wrap:wrap;align-items:flex-start;">
-          <div class="campo"><label for="glNum">Nº do galpão</label><input type="number" id="glNum" min="1" style="width:90px;"></div>
+          <div class="campo"><label for="glNum">Nº do ponto</label><input type="number" id="glNum" min="1" max="21" style="width:90px;"></div>
           <div class="campo"><label for="glCnpj">CNPJ (busca o nome)</label>
             <span style="display:inline-flex;gap:6px;align-items:center;">
               <input type="text" id="glCnpj" placeholder="00.000.000/0000-00" style="width:175px;">
               <button type="button" class="btn-s" id="glCnpjBuscar">Buscar</button>
             </span>
           </div>
-          <div class="campo" style="flex:1;min-width:170px;"><label for="glLoc">Locatário (quem aluga)</label><input type="text" id="glLoc" placeholder="busque pelo CNPJ ou digite"><input type="hidden" id="glRazao"><span id="glCnpjMsg" style="font-size:11px;display:block;margin-top:4px;line-height:1.25;"></span></div>
+          <div class="campo" style="flex:1;min-width:170px;"><label for="glLoc">Fornecedor</label><input type="text" id="glLoc" placeholder="busque pelo CNPJ ou digite"><input type="hidden" id="glRazao"><span id="glCnpjMsg" style="font-size:11px;display:block;margin-top:4px;line-height:1.25;"></span></div>
+          <div class="campo"><label for="glVend">Vendedor</label><input type="text" id="glVend" placeholder="ex: Josinaldo"></div>
           <div class="campo"><label for="glTel">Contato</label><input type="tel" id="glTel" placeholder="ex: (84) 99999-0000" style="width:160px;"></div>
-          <div class="campo"><label for="glEmail">E-mail (p/ cobrança)</label><input type="email" id="glEmail" placeholder="ex: contato@empresa.com" style="width:230px;"></div>
+          <div class="campo"><label for="glEmail">E-mail (p/ cobrança)</label><input type="email" id="glEmail" placeholder="ex: financeiro@empresa.com" style="width:230px;"></div>
           <div class="campo" style="flex:1;min-width:200px;"><label for="glEnd">Endereço</label><input type="text" id="glEnd" placeholder="busque pelo CNPJ ou digite"></div>
-          <div class="campo"><label for="glValor">Valor (R$/mês)</label><input type="number" id="glValor" step="0.01" min="0" style="width:120px;"></div>
+          <div class="campo"><label for="glValor">Valor (R$)</label><input type="number" id="glValor" step="0.01" min="0" style="width:120px;"></div>
           <div class="campo"><label for="glPag">Modo de pagamento</label>
             <select id="glPag" class="px-filtro" style="width:150px;">
               <option value="">Selecione...</option>
               <option value="Boleto">Boleto</option>
+              <option value="Bonificação">Bonificação</option>
               <option value="Pix">Pix</option>
-              <option value="Transferência">Transferência</option>
-              <option value="Dinheiro">Dinheiro</option>
             </select>
           </div>
           <div class="campo"><label for="glAbertura">Abertura do contrato</label><input type="date" id="glAbertura"></div>
           <div class="campo"><label for="glVenc">Vencimento do contrato</label><input type="date" id="glVenc"></div>
-          <div class="campo" style="flex:1;min-width:180px;"><label for="glObs">Observação</label><input type="text" id="glObs" placeholder="ex: Mensalmente todo dia 5"></div>
+          <div class="campo" style="flex:1;min-width:180px;"><label for="glObs">Observação</label><input type="text" id="glObs" placeholder="ex: Mensalmente todo dia 20"></div>
           <button class="btn-p" id="glSalvar" style="margin-top:18px;">Adicionar</button>
           <button class="btn-s" id="glCancelar" style="display:none;margin-top:18px;">Cancelar</button>
         </div>
@@ -905,8 +904,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 
       <div class="card">
         <div class="esc-top">
-          <h2 style="margin:0;">Meus galpões</h2>
-          <input type="text" id="glBusca" placeholder="Buscar galpão / locatário" style="padding:8px 11px;border:1px solid #cdd6e0;border-radius:8px;font-size:14px;min-width:210px;">
+          <h2 style="margin:0;">Pontos extras</h2>
+          <input type="text" id="glBusca" placeholder="Buscar fornecedor / vendedor" style="padding:8px 11px;border:1px solid #cdd6e0;border-radius:8px;font-size:14px;min-width:210px;">
           <select id="glFiltroStatus" class="px-filtro">
             <option value="">Todos os status</option>
             <option value="PAGO">Pago</option>
@@ -917,8 +916,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
             <option value="">Todos os pagamentos</option>
             <option value="Pix">Pix</option>
             <option value="Boleto">Boleto</option>
-            <option value="Transferência">Transferência</option>
-            <option value="Dinheiro">Dinheiro</option>
+            <option value="Bonificação">Bonificação</option>
           </select>
           <select id="glFiltroVenc" class="px-filtro">
             <option value="">Todos os vencimentos</option>
@@ -3337,8 +3335,8 @@ function glLoad(){ try{ var s=localStorage.getItem("galpoes_dados"); if(s) retur
 let galpoesG = glLoad();
 function glSB(){ return window.__SB||null; }
 var glCloudOK=false, glCarregando=false, glRT=null, glPushT=null, glPendDel={};
-function glRowFromG(g){ return {id:g.id,numero:g.numero||0,cnpj:g.cnpj||"",razao_social:g.razaoSocial||"",locatario:g.locatario||"",contato:g.contato||"",email:g.email||"",endereco:g.endereco||"",valor:+g.valor||0,pagamento:g.pagamento||"",abertura:g.abertura||"",vencimento:g.vencimento||"",obs:g.obs||"",manuais:g.manuais||null,atualizado_em:new Date().toISOString()}; }
-function glGFromRow(r){ var g={id:r.id,numero:r.numero||0,cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",locatario:r.locatario||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",valor:+r.valor||0,pagamento:r.pagamento||"",abertura:r.abertura||"",vencimento:r.vencimento||"",obs:r.obs||""}; if(r.manuais)g.manuais=r.manuais; return g; }
+function glRowFromG(g){ return {id:g.id,numero:g.numero||0,cnpj:g.cnpj||"",razao_social:g.razaoSocial||"",locatario:g.locatario||"",vendedor:g.vendedor||"",contato:g.contato||"",email:g.email||"",endereco:g.endereco||"",valor:+g.valor||0,pagamento:g.pagamento||"",abertura:g.abertura||"",vencimento:g.vencimento||"",obs:g.obs||"",manuais:g.manuais||null,atualizado_em:new Date().toISOString()}; }
+function glGFromRow(r){ var g={id:r.id,numero:r.numero||0,cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",locatario:r.locatario||"",vendedor:r.vendedor||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",valor:+r.valor||0,pagamento:r.pagamento||"",abertura:r.abertura||"",vencimento:r.vencimento||"",obs:r.obs||""}; if(r.manuais)g.manuais=r.manuais; return g; }
 function glSave(){ try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){} clearTimeout(glPushT); glPushT=setTimeout(glCloudPush,700); }
 function glCloudPush(){ var sb=glSB(); if(!sb||!glCloudOK) return; try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){} sb.from("galpoes").upsert(galpoesG.map(glRowFromG)).then(function(){},function(){}); }
 function glCloudDel(id){ glPendDel[id]=Date.now()+30000; var sb=glSB(); if(!sb||!glCloudOK) return; sb.from("galpoes").delete().eq("id",id).then(function(r){ if(r&&r.error){ setTimeout(function(){ try{ sb.from("galpoes").delete().eq("id",id).then(function(){},function(){}); }catch(e){} },1500); } },function(){}); }
@@ -3355,7 +3353,7 @@ function glCloudLoad(){ var sb=glSB(); if(!sb||glCarregando) return;
 }
 // Chave da parcela do MÊS ATUAL (pra marcar pago). Usa o mesmo calendário dos pontos.
 function glKeyMesAtual(g){ var ym=pxAnoMesAtual(); var ag=pxAgenda(g); for(var i=0;i<ag.length;i++){ var k=pxDateKey(ag[i]); if(k.indexOf(ym)===0) return k; } return ag.length?pxDateKey(ag[ag.length-1]):""; }
-function glLimparForm(){ ["glNum","glCnpj","glRazao","glLoc","glTel","glEmail","glEnd","glValor","glAbertura","glVenc","glObs"].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=""; }); var pg=document.getElementById("glPag"); if(pg) pg.value=""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; var t=document.getElementById("glFormTitulo"); if(t) t.textContent="Adicionar galpão"; var s=document.getElementById("glSalvar"); if(s){ s.textContent="Adicionar"; delete s.dataset.edit; } var c=document.getElementById("glCancelar"); if(c) c.style.display="none"; }
+function glLimparForm(){ ["glNum","glCnpj","glRazao","glLoc","glVend","glTel","glEmail","glEnd","glValor","glAbertura","glVenc","glObs"].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=""; }); var pg=document.getElementById("glPag"); if(pg) pg.value=""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; var t=document.getElementById("glFormTitulo"); if(t) t.textContent="Adicionar galpão"; var s=document.getElementById("glSalvar"); if(s){ s.textContent="Adicionar"; delete s.dataset.edit; } var c=document.getElementById("glCancelar"); if(c) c.style.display="none"; }
 // Busca de CNPJ do locatário (reaproveita os normalizadores dos pontos).
 function glPreencherCnpj(d,msg){
   var fantasia=d.nome_fantasia||"", razao=d.razao_social||"", nome=fantasia||razao;
@@ -3399,8 +3397,8 @@ function renderGalpoes(){
   var gi=document.getElementById("glInad");
   if(gi) gi.innerHTML = inad.length ? (
     '<div class="px-inad"><div class="px-inad-top"><span class="px-inad-tit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Locatários em atraso ('+inad.length+')</span><span class="px-inad-tot">Total em atraso: '+brl(totDev)+'</span></div>'+
-    '<table class="px-inad-tb"><thead><tr><th>Galpão</th><th>Locatário</th><th>Parcelas atrasadas</th><th>Valor devido</th><th>Atraso</th></tr></thead><tbody>'+
-    inad.map(function(x){ return '<tr><td>'+(x.g.numero?("Nº "+x.g.numero):"—")+'</td><td>'+(prdEsc(x.g.locatario)||"—")+'</td><td>'+x.n+'</td><td>'+brl(x.valor)+'</td><td>'+x.dias+' dia'+(x.dias===1?'':'s')+'</td></tr>'; }).join('')+
+    '<table class="px-inad-tb"><thead><tr><th>Fornecedor</th><th>Parcelas atrasadas</th><th>Valor devido</th><th>Atraso</th></tr></thead><tbody>'+
+    inad.map(function(x){ return '<tr><td>'+(prdEsc(x.g.locatario)||"—")+'</td><td>'+x.n+'</td><td>'+brl(x.valor)+'</td><td>'+x.dias+' dia'+(x.dias===1?'':'s')+'</td></tr>'; }).join('')+
     '</tbody></table></div>'
   ) : "";
   // Tabela (com filtros — espelha os pontos extras)
@@ -3410,12 +3408,12 @@ function renderGalpoes(){
   var fpag=((document.getElementById("glFiltroPagamento")||{}).value)||"";
   var fvenc=((document.getElementById("glFiltroVenc")||{}).value)||"";
   var lista=galpoesG.slice().sort(function(a,b){ return (+a.numero||0)-(+b.numero||0); });
-  if(busca) lista=lista.filter(function(g){ return (g.locatario||"").toLowerCase().indexOf(busca)>=0 || String(g.numero||"").indexOf(busca)>=0; });
+  if(busca) lista=lista.filter(function(g){ return (g.locatario||"").toLowerCase().indexOf(busca)>=0 || (g.vendedor||"").toLowerCase().indexOf(busca)>=0 || String(g.numero||"").indexOf(busca)>=0; });
   if(fstatus) lista=lista.filter(function(g){ return pxStatusMes(g)===fstatus; });
   if(fpag) lista=lista.filter(function(g){ return (g.pagamento||"")===fpag; });
   if(fvenc) lista=lista.filter(function(g){ var d=pxParseData(g.vencimento); if(!d) return false; var dias=(d-hoje)/86400000; return fvenc==="vencidos"?dias<=0:dias>0; });
   var info=document.getElementById("glInfo"); if(info) info.textContent=lista.length+" galpão(ões)";
-  if(!lista.length){ tb.innerHTML='<div style="padding:30px 20px;text-align:center;color:#8a97a8;">'+(galpoesG.length?"Nenhum galpão com esse filtro.":"Nenhum galpão cadastrado ainda. Use o formulário acima para adicionar o primeiro.")+'</div>'; return; }
+  if(!lista.length){ tb.innerHTML='<div style="padding:22px 12px;color:#8a97a8;font-style:italic;">'+(galpoesG.length?"Nenhum ponto com esse filtro.":"Nenhum ponto.")+'</div>'; return; }
   var linhas=lista.map(function(g){
     var st=pxStatusMes(g);
     var cor=st==="PAGO"?"#1b9e4b":(st==="ATRASADO"?"#c0392b":"#e8a800");
@@ -3427,6 +3425,7 @@ function renderGalpoes(){
     return '<tr>'+
       '<td><b>'+(g.numero?g.numero:"—")+'</b></td>'+
       '<td>'+(prdEsc(g.locatario)||"—")+'</td>'+
+      '<td>'+(prdEsc(g.vendedor)||"—")+'</td>'+
       '<td>'+brl(+g.valor||0)+'</td>'+
       '<td>'+(prdEsc(g.pagamento)||"—")+'</td>'+
       '<td>'+(pxFmtData(g.abertura)||"—")+'</td>'+
@@ -3436,7 +3435,7 @@ function renderGalpoes(){
       '<td style="white-space:nowrap;">'+acaoPago+' <button type="button" class="btn-s" data-gledit="'+g.id+'" style="padding:6px 10px;font-size:12px;">Editar</button> <button type="button" class="btn-s" data-glrem="'+g.id+'" style="padding:6px 10px;font-size:12px;">Remover</button></td>'+
       '</tr>';
   }).join("");
-  tb.innerHTML='<table class="gl-tb"><thead><tr><th>Nº</th><th>Locatário</th><th>Valor</th><th>Pagamento</th><th>Abertura</th><th>Vencimento</th><th>Status</th><th>Observação</th><th>Ações</th></tr></thead><tbody>'+linhas+'</tbody></table>';
+  tb.innerHTML='<table class="gl-tb"><thead><tr><th>Nº</th><th>Fornecedor</th><th>Vendedor</th><th>Valor</th><th>Pagamento</th><th>Abertura</th><th>Vencimento</th><th>Status</th><th>Observação</th><th>Ações</th></tr></thead><tbody>'+linhas+'</tbody></table>';
 }
 (function initGalpoes(){
   var salvar=document.getElementById("glSalvar"); if(!salvar) return;
@@ -3445,6 +3444,7 @@ function renderGalpoes(){
     cnpj:(document.getElementById("glCnpj").value||"").trim(),
     razaoSocial:(document.getElementById("glRazao").value||"").trim(),
     locatario:(document.getElementById("glLoc").value||"").trim(),
+    vendedor:(document.getElementById("glVend").value||"").trim(),
     contato:(document.getElementById("glTel").value||"").trim(),
     email:(document.getElementById("glEmail").value||"").trim(),
     endereco:(document.getElementById("glEnd").value||"").trim(),
@@ -3471,7 +3471,7 @@ function renderGalpoes(){
     var pago=e.target.closest("[data-glpago]");
     if(pago){ var g=galpoesG.find(function(x){ return x.id===pago.dataset.glpago; }); if(g){ var k=glKeyMesAtual(g); if(!k){ uiConfirm({titulo:"Informe as datas",msg:"Preencha a abertura e o vencimento do contrato pra controlar os pagamentos por mês.",ok:"OK",cancel:""}); return; } g.manuais=g.manuais||{}; if(pago.dataset.on){ delete g.manuais[k]; } else { g.manuais[k]="autorizado"; } glSave(); renderGalpoes(); } return; }
     var ed=e.target.closest("[data-gledit]");
-    if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNum").value=g2.numero||""; document.getElementById("glCnpj").value=g2.cnpj||""; document.getElementById("glRazao").value=g2.razaoSocial||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; document.getElementById("glEnd").value=g2.endereco||""; document.getElementById("glValor").value=g2.valor||""; document.getElementById("glPag").value=g2.pagamento||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glVenc").value=g2.vencimento||""; document.getElementById("glObs").value=g2.obs||""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
+    if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNum").value=g2.numero||""; document.getElementById("glCnpj").value=g2.cnpj||""; document.getElementById("glRazao").value=g2.razaoSocial||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glVend").value=g2.vendedor||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; document.getElementById("glEnd").value=g2.endereco||""; document.getElementById("glValor").value=g2.valor||""; document.getElementById("glPag").value=g2.pagamento||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glVenc").value=g2.vencimento||""; document.getElementById("glObs").value=g2.obs||""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
     var rem=e.target.closest("[data-glrem]");
     if(rem){ var id=rem.dataset.glrem; var g3=galpoesG.find(function(x){ return x.id===id; }); uiConfirm({titulo:"Remover galpão",msg:"Apagar \\u201c"+((g3&&g3.nome)||"este galpão")+"\\u201d e todo o histórico dele?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; galpoesG=galpoesG.filter(function(x){ return x.id!==id; }); glCloudDel(id); glSave(); renderGalpoes(); }); return; }
   });
