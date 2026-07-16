@@ -3388,7 +3388,7 @@ function glSetDocTipo(t){
     if(buscar) buscar.style.display="none";
     if(inp) inp.placeholder="000.000.000-00";
     if(forn) forn.placeholder="digite o nome completo";
-    if(msg){ msg.style.color="#6b7787"; msg.textContent="Pessoa física: digite o CPF e o nome completo do inquilino à mão (pelo CPF o nome não pode ser buscado por lei)."; }
+    if(msg) msg.textContent="";
   } else {
     if(buscar) buscar.style.display="";
     if(inp) inp.placeholder="00.000.000/0000-00";
