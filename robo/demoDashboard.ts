@@ -989,7 +989,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .gp.pago{background:#dcf0e4;border-color:#b9dfc7;}
         .gp.aberto{background:#f9edca;border-color:#e7d19a;}
         .gp.atrasado{background:#f6d6cf;border-color:#e5a99d;}
-        .gp.sel{outline:2.5px solid #157a35;outline-offset:1px;}
+        /* contorno POR DENTRO + z-index: como os galpões são colados, por fora o vizinho cobria e a borda do terreno cortava */
+        .gp.sel{outline:2.5px solid #157a35;outline-offset:-2px;z-index:3;}
         .gp.gp-frente{min-height:98px;}
         /* o galpão da frente-esquerda é meio quadradão na planta (mais fundo que os outros, mas sem exagero) */
         .gp.gp-quadrado{aspect-ratio:1.55;}
