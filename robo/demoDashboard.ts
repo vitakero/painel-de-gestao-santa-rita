@@ -3385,20 +3385,24 @@ function glSetDocTipo(t){
   window.__glDocTipo=t;
   var buscar=document.getElementById("glCnpjBuscar"), inp=document.getElementById("glCnpj"), msg=document.getElementById("glCnpjMsg");
   var empCampo=document.getElementById("glLoc") ? document.getElementById("glLoc").parentElement : null;
+  var inqCampo=document.getElementById("glVend") ? document.getElementById("glVend").parentElement : null;
   if(t==="cpf"){
-    // CPF fica no tamanho natural; a folga do Buscar vai pro campo EMPRESA (que é longo) → nada vazio, nada distorcido
+    // CPF fica no tamanho natural; a folga do Buscar vai pro campo INQUILINO → nada vazio, nada distorcido
     if(buscar && buscar.style.display!=="none"){
       window.__glBW=buscar.offsetWidth||66;
       if(empCampo) window.__glEW=empCampo.offsetWidth||0;
+      if(inqCampo) window.__glIW=inqCampo.offsetWidth||0;
       buscar.style.display="none";
     }
     if(inp) inp.placeholder="000.000.000-00";
-    if(empCampo && window.__glEW){ empCampo.style.minWidth=(window.__glEW+6+(window.__glBW||66))+"px"; }
+    if(empCampo && window.__glEW){ empCampo.style.minWidth=window.__glEW+"px"; empCampo.style.maxWidth=window.__glEW+"px"; } // Empresa fica do MESMO tamanho do modo CNPJ
+    if(inqCampo && window.__glIW){ inqCampo.style.minWidth=(window.__glIW+6+(window.__glBW||66))+"px"; } // Inquilino cresce e absorve a folga
     if(msg) msg.textContent="";
   } else {
     if(buscar) buscar.style.display="";
     if(inp) inp.placeholder="00.000.000/0000-00";
-    if(empCampo) empCampo.style.minWidth="170px";
+    if(empCampo){ empCampo.style.minWidth="170px"; empCampo.style.maxWidth=""; }
+    if(inqCampo) inqCampo.style.minWidth="";
     if(msg) msg.textContent="";
   }
 }
