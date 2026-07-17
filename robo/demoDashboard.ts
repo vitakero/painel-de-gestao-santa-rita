@@ -529,6 +529,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="pontos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span> Pontos extras<span class="nav-badge" id="pxNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="mapa"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span> Mapa dos pontos</button>
     <button class="nav-item nav-mo" data-page="galpoes" style="display:none;"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-6 9 6v12"/><path d="M3 21h18"/><path d="M9 21v-6h6v6"/></svg></span> Galpões</button>
+    <button class="nav-item nav-mo" data-page="planta" style="display:none;"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 9v12"/></svg></span> Planta dos galpões</button>
     <button class="nav-item" data-page="layout"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></span> Layout da loja</button>
     <button class="nav-item" data-page="organograma"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="5" rx="1"/><rect x="2" y="17" width="6" height="5" rx="1"/><rect x="16" y="17" width="6" height="5" rx="1"/><path d="M12 7v6"/><path d="M5 17v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/></svg></span> Organograma</button>
     <button class="nav-item" data-page="fluxograma"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg></span> Fluxograma</button>
@@ -937,6 +938,83 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <span class="periodo-info" id="glInfo" style="margin-left:auto;"></span>
         </div>
         <div class="esc-scroll"><div id="glTabela"></div></div>
+      </div>
+    </section>
+
+    <section id="page-planta" class="page">
+      <style>
+        #page-planta{font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;}
+        .plt-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+        .plt-sub{font-size:12.5px;color:#8a97a8;margin-top:3px;}
+        .plt-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0 4px;}
+        .plt-leg{display:flex;gap:5px 15px;flex-wrap:wrap;font-size:12px;align-items:center;color:#5d6875;}
+        .plt-leg span{display:inline-flex;align-items:center;gap:6px;font-weight:500;}
+        .plt-leg i{width:11px;height:11px;border-radius:3.5px;display:inline-block;box-sizing:border-box;}
+        .plt-wrap{display:flex;gap:16px;align-items:flex-start;margin-top:14px;}
+        .plt-scroll{flex:1;min-width:0;max-width:100%;overflow-x:auto;}
+        /* ===== o TERRENO (o retângulo todo é nosso) ===== */
+        .plt-terreno{min-width:640px;background:#fbfcfd;border:2px solid #d3dbe4;border-radius:14px;overflow:hidden;}
+        .plt-br{background:#eceff4;border-bottom:2px dashed #b9c4d0;color:#788492;font-size:9.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;text-align:center;padding:10px 8px;}
+        .plt-frente{display:flex;align-items:stretch;gap:10px;padding:14px 14px 4px;}
+        .plt-portao{flex:0 0 78px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:2px dashed #cfa93f;background:#fdf9ec;border-radius:9px;color:#8c6d16;font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;padding:6px 4px;text-align:center;}
+        .plt-portao svg{width:15px;height:15px;}
+        .plt-corpo{display:flex;align-items:stretch;padding:0 14px;}
+        .plt-lado{display:flex;flex-direction:column;gap:9px;flex:1 1 0;min-width:0;}
+        .plt-rua{flex:0 0 78px;position:relative;display:flex;align-items:center;justify-content:center;}
+        .plt-rua:before{content:"";position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:2px;background:repeating-linear-gradient(180deg,#c3ccd7 0 11px,transparent 11px 22px);}
+        .plt-rua span{writing-mode:vertical-rl;transform:rotate(180deg);color:#95a1af;font-size:9px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;background:#fbfcfd;padding:10px 3px;}
+        .plt-vazio{flex:1;min-height:26px;}
+        .plt-crescer{margin:12px 14px 14px;border:2px dashed #dce3eb;border-radius:10px;color:#aab5c2;font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;text-align:center;padding:20px 8px;}
+        /* ===== cada galpão ===== */
+        .gp{border:1.5px solid #cdd6e0;background:#fff;border-radius:8px;padding:10px 8px;cursor:pointer;transition:transform .13s,box-shadow .13s;min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;text-align:center;}
+        .gp:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(16,24,40,.13);}
+        .gp b{font-size:14.5px;font-weight:800;color:#33404f;letter-spacing:.3px;line-height:1.1;}
+        .gp small{font-size:10.5px;color:#8a97a8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;line-height:1.2;}
+        .gp.livre{border-style:dashed;border-color:#c8d2de;background:#fff;}
+        .gp.pago{background:#dcf0e4;border-color:#b9dfc7;}
+        .gp.aberto{background:#f9edca;border-color:#e7d19a;}
+        .gp.atrasado{background:#f6d6cf;border-color:#e5a99d;}
+        .gp.sel{outline:2.5px solid #157a35;outline-offset:1px;}
+        .gp.gp-frente{min-height:74px;}
+        /* setinha da porta: mostra pra onde o galpão está virado */
+        .gp:after{content:"";position:absolute;width:0;height:0;}
+        .gp.vira-cima:after{top:-7px;left:50%;transform:translateX(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:6px solid #9aa7b5;}
+        .gp.vira-dir:after{right:-7px;top:50%;transform:translateY(-50%);border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:6px solid #9aa7b5;}
+        .gp.vira-esq:after{left:-7px;top:50%;transform:translateY(-50%);border-top:5px solid transparent;border-bottom:5px solid transparent;border-right:6px solid #9aa7b5;}
+        .plt-bloco{display:flex;flex-direction:column;gap:5px;border:1.5px solid #dfe6ee;border-radius:9px;padding:6px;background:#f6f8fa;}
+        /* ===== painel lateral ===== */
+        .plt-det{flex:0 0 300px;background:#fff;border:1px solid #e6ebf1;border-radius:14px;padding:16px 18px;min-height:220px;}
+        .plt-det-vazio{color:#8a97a8;font-size:13px;text-align:center;line-height:1.7;padding:26px 6px;}
+        .plt-det-vazio svg{width:34px;height:34px;color:#c7d0da;}
+        .plt-det h3{margin:0 0 2px;font-size:17px;color:#0f172a;}
+        .plt-det .plt-det-st{font-size:12px;font-weight:700;}
+        .plt-det-lin{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #f0f3f7;font-size:12.5px;}
+        .plt-det-lin span{color:#8a97a8;} .plt-det-lin b{color:#33404f;font-weight:600;text-align:right;}
+        .plt-det-btn{width:100%;margin-top:12px;background:#157a35;color:#fff;border:0;border-radius:9px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+        .plt-det-btn:hover{background:#12692e;}
+        @media (max-width:1080px){ .plt-wrap{flex-direction:column;align-items:stretch;} .plt-det{flex:1 1 auto;width:100%;} }
+      </style>
+      <div class="card">
+        <div class="plt-head">
+          <div>
+            <h2 style="margin:0;">Planta dos galpões</h2>
+            <div class="plt-sub">O terreno todo é seu — clique num galpão para ver o inquilino, o contrato e as cobranças.</div>
+          </div>
+        </div>
+        <div class="plt-toolbar">
+          <div class="plt-leg">
+            <span><i style="background:#fff;border:1.5px dashed #c8d2de;"></i> Livre</span>
+            <span><i style="background:#dcf0e4;border:1px solid #b9dfc7;"></i> Pago</span>
+            <span><i style="background:#f9edca;border:1px solid #e7d19a;"></i> Em aberto</span>
+            <span><i style="background:#f6d6cf;border:1px solid #e5a99d;"></i> Atrasado</span>
+            <span style="color:#95a1af;">▲ = lado da porta</span>
+          </div>
+          <span class="periodo-info" id="pltInfo" style="margin-left:auto;"></span>
+        </div>
+        <div class="plt-wrap">
+          <div class="plt-scroll"><div class="plt-terreno" id="pltTerreno"></div></div>
+          <div class="plt-det" id="pltDetalhe"></div>
+        </div>
       </div>
     </section>
 
@@ -3359,7 +3437,7 @@ function glCloudLoad(){ var sb=glSB(); if(!sb||glCarregando) return;
     var now=Date.now();
     galpoesG=(r.data||[]).map(glGFromRow).filter(function(g){ return !(glPendDel[g.id]&&glPendDel[g.id]>now); });
     try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){}
-    renderGalpoes();
+    renderGalpoes(); try{ renderPlanta(); }catch(e){}
   },function(){ glCarregando=false; });
 }
 // Chave da parcela do MÊS ATUAL (pra marcar pago). Usa o mesmo calendário dos pontos.
@@ -3406,6 +3484,102 @@ function glSetDocTipo(t){
     if(msg) msg.textContent="";
   }
 }
+/* ===================================================================
+   PLANTA DOS GALPÕES — a estrutura do terreno.
+   O retângulo todo é o terreno (é tudo nosso). Em cima fica a RUA
+   PRINCIPAL (a BR, calçada): só os 3 galpões da esquina são virados
+   PRA FORA (pra BR). Onde a rua interna encontra a BR tem um PORTÃO.
+   A rua interna desce pelo meio dividindo esquerda/direita e vai até o
+   fundo (área pra crescer) — todo o resto é virado PRA DENTRO (pra ela).
+   Os códigos abaixo são provisórios (o Victor vai numerar "102 A"...).
+   =================================================================== */
+var PLT_FRENTE=["?","E","F"];        // viram pra RUA PRINCIPAL (BR) — esquina
+var PLT_ESQ=["A","B"];               // lado esquerdo, viram pra rua interna
+var PLT_DIR=["C","D"];               // lado direito, viram pra rua interna
+var PLT_FUNDO=["G","H","I","J"];     // bloco lá atrás, viram pra rua interna
+var PLT_FUNDO2=["M"];                // o do fundo
+var pltSel=null;
+// Acha o galpão cadastrado pelo "Nº do galpão" (ex: "102 A") que bate com o código da planta.
+function pltGalpaoDe(cod){
+  var alvo=String(cod||"").trim().toLowerCase();
+  for(var i=0;i<galpoesG.length;i++){ if(String(galpoesG[i].numero||"").trim().toLowerCase()===alvo) return galpoesG[i]; }
+  return null;
+}
+function pltStatusDe(cod){
+  var g=pltGalpaoDe(cod); if(!g) return "livre";
+  var st=pxStatusMes(g);
+  return st==="PAGO"?"pago":(st==="ATRASADO"?"atrasado":"aberto");
+}
+function pltBox(cod,vira,extra){
+  var g=pltGalpaoDe(cod), st=pltStatusDe(cod);
+  var nome=g?String(g.vendedor||g.locatario||"").trim():"";
+  return '<div class="gp '+st+' vira-'+vira+(extra?(' '+extra):'')+(pltSel===cod?' sel':'')+'" data-gp="'+prdEsc(cod)+'" title="Galpão '+prdEsc(cod)+'">'+
+    '<b>'+prdEsc(cod)+'</b><small>'+(nome?prdEsc(nome):"livre")+'</small></div>';
+}
+function renderPlanta(){
+  var el=document.getElementById("pltTerreno"); if(!el) return;
+  if(!(window.__PERFIL&&window.__PERFIL.is_master)){ el.innerHTML='<div style="padding:28px;text-align:center;color:#8a97a8;">Área restrita — só o administrador (login master) vê os galpões.</div>'; var _pd=document.getElementById("pltDetalhe"); if(_pd) _pd.innerHTML=""; return; }
+  var icoPortao='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="1"/><path d="M3 12h18M9 8v12M15 8v12M2 8h20"/></svg>';
+  var h='<div class="plt-br">Rua principal (BR) — calçamento</div>'+
+    // FRENTE: os 3 virados pra fora + o portão da rua interna
+    '<div class="plt-frente">'+
+      '<div class="plt-lado">'+pltBox(PLT_FRENTE[0],"cima","gp-frente")+'</div>'+
+      '<div class="plt-portao">'+icoPortao+'Portão</div>'+
+      '<div class="plt-lado" style="flex-direction:row;">'+pltBox(PLT_FRENTE[1],"cima","gp-frente")+pltBox(PLT_FRENTE[2],"cima","gp-frente")+'</div>'+
+    '</div>'+
+    // CORPO: esquerda | rua interna | direita — todos virados pra dentro
+    '<div class="plt-corpo">'+
+      '<div class="plt-lado">'+PLT_ESQ.map(function(c){ return pltBox(c,"dir"); }).join("")+'<div class="plt-vazio"></div></div>'+
+      '<div class="plt-rua"><span>Rua interna</span></div>'+
+      '<div class="plt-lado">'+PLT_DIR.map(function(c){ return pltBox(c,"esq"); }).join("")+
+        '<div class="plt-bloco">'+PLT_FUNDO.map(function(c){ return pltBox(c,"esq"); }).join("")+'</div>'+
+        PLT_FUNDO2.map(function(c){ return pltBox(c,"esq"); }).join("")+
+      '</div>'+
+    '</div>'+
+    '<div class="plt-crescer">Terreno para crescer — a rua interna segue até o fundo</div>';
+  el.innerHTML=h;
+  var todos=PLT_FRENTE.concat(PLT_ESQ,PLT_DIR,PLT_FUNDO,PLT_FUNDO2);
+  var ocup=todos.filter(function(c){ return !!pltGalpaoDe(c); }).length;
+  var info=document.getElementById("pltInfo"); if(info) info.textContent=ocup+" de "+todos.length+" galpões ocupados";
+  pltDetalhe();
+}
+function pltDetalhe(){
+  var el=document.getElementById("pltDetalhe"); if(!el) return;
+  if(!pltSel){ el.innerHTML='<div class="plt-det-vazio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-6 9 6v12"/><path d="M3 21h18"/><path d="M9 21v-6h6v6"/></svg><br><b style="color:#5d6875;">Nenhum galpão selecionado</b><br>Clique num galpão da planta para ver o inquilino, o contrato e as cobranças.</div>'; return; }
+  var g=pltGalpaoDe(pltSel), st=pltStatusDe(pltSel);
+  var cor=st==="pago"?"#1b9e4b":(st==="atrasado"?"#c0392b":(st==="aberto"?"#e8a800":"#8a97a8"));
+  var rot=st==="pago"?"Pago":(st==="atrasado"?"Atrasado":(st==="aberto"?"Em aberto":"Livre"));
+  var h='<h3>Galpão '+prdEsc(pltSel)+'</h3><div class="plt-det-st" style="color:'+cor+';">● '+rot+'</div>';
+  if(!g){
+    h+='<div class="plt-det-vazio" style="padding:18px 4px;">Nenhum inquilino cadastrado neste galpão.<br>Cadastre na aba <b>Galpões</b> usando o Nº <b>'+prdEsc(pltSel)+'</b>.</div>'+
+      '<button type="button" class="plt-det-btn" id="pltIrCadastro">Ir para o cadastro</button>';
+  } else {
+    var doc=g.cnpj?glFmtDoc(g.cnpj):null;
+    h+='<div style="margin-top:12px;">'+
+      '<div class="plt-det-lin"><span>Inquilino</span><b>'+(prdEsc(g.vendedor)||"—")+'</b></div>'+
+      '<div class="plt-det-lin"><span>Empresa</span><b>'+(prdEsc(g.locatario)||"—")+'</b></div>'+
+      (doc?('<div class="plt-det-lin"><span>'+doc.label+'</span><b>'+doc.valor+'</b></div>'):'')+
+      '<div class="plt-det-lin"><span>Contato</span><b>'+(g.contato?pxFmtTel(g.contato):"—")+'</b></div>'+
+      '<div class="plt-det-lin"><span>Aluguel</span><b>'+(g.valor?brl(+g.valor):"—")+'</b></div>'+
+      '<div class="plt-det-lin"><span>Pagamento</span><b>'+(prdEsc(g.pagamento)||"—")+'</b></div>'+
+      '<div class="plt-det-lin"><span>Contrato</span><b>'+(pxFmtData(g.abertura)||"—")+' → '+(pxFmtData(g.vencimento)||"—")+'</b></div>'+
+      (g.endereco?('<div class="plt-det-lin"><span>Endereço</span><b>'+prdEsc(g.endereco)+'</b></div>'):'')+
+      '</div>'+
+      '<button type="button" class="plt-det-btn" id="pltIrCadastro">Ver / editar no cadastro</button>';
+  }
+  el.innerHTML=h;
+  var btn=document.getElementById("pltIrCadastro");
+  if(btn) btn.onclick=function(){ var nav=document.querySelector('.nav-item[data-page="galpoes"]'); if(nav){ nav.click(); var b=document.getElementById("glBusca"); if(b){ b.value=pltSel; renderGalpoes(); } } };
+}
+(function initPlanta(){
+  var el=document.getElementById("pltTerreno"); if(!el) return;
+  el.addEventListener("click",function(e){
+    var box=e.target.closest("[data-gp]"); if(!box) return;
+    var cod=box.getAttribute("data-gp");
+    pltSel=(pltSel===cod)?null:cod;
+    renderPlanta();
+  });
+})();
 // Formata e rotula o documento do inquilino: 11 dígitos = CPF, 14 = CNPJ.
 function glFmtDoc(d){
   var s=String(d||"").replace(/\\D/g,"");
@@ -9791,6 +9965,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="config") renderConfig();
     if(btn.dataset.page==="pontos"||btn.dataset.page==="mapa"){ pxCloudLoad(); try{ if(typeof pixCobLoad==="function") pixCobLoad(); }catch(e){} }
     if(btn.dataset.page==="galpoes"){ try{ glCloudLoad(); glRealtime(); renderGalpoes(); }catch(e){} }
+    if(btn.dataset.page==="planta"){ try{ glCloudLoad(); glRealtime(); renderPlanta(); }catch(e){} }
     if(btn.dataset.page==="jornada"){ try{ jorCloudLoad(); jorRealtime(); renderJornada(); }catch(e){} }
     if(btn.dataset.page==="epi") renderEPI();
     if(btn.dataset.page==="fardamento") renderFardamento();
