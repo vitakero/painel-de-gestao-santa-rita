@@ -884,7 +884,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           </div>
         </div>
         <div class="filtros" style="box-shadow:none;padding:0;flex-wrap:wrap;align-items:flex-start;">
-          <div class="campo"><label for="glNum">Nº do galpão</label><input type="number" id="glNum" min="1" style="width:90px;"></div>
+          <div class="campo"><label for="glNum">Nº do galpão</label><input type="text" id="glNum" placeholder="ex: 102 A" style="width:110px;"></div>
           <div class="campo"><label for="glCnpj">Documento do inquilino</label>
             <span style="display:inline-flex;gap:6px;align-items:center;">
               <input type="text" id="glCnpj" placeholder="00.000.000/0000-00" style="width:175px;">
@@ -3346,8 +3346,8 @@ function glLoad(){ try{ var s=localStorage.getItem("galpoes_dados"); if(s) retur
 let galpoesG = glLoad();
 function glSB(){ return window.__SB||null; }
 var glCloudOK=false, glCarregando=false, glRT=null, glPushT=null, glPendDel={};
-function glRowFromG(g){ return {id:g.id,numero:g.numero||0,cnpj:g.cnpj||"",razao_social:g.razaoSocial||"",locatario:g.locatario||"",vendedor:g.vendedor||"",contato:g.contato||"",email:g.email||"",endereco:g.endereco||"",valor:+g.valor||0,pagamento:g.pagamento||"",abertura:g.abertura||"",vencimento:g.vencimento||"",obs:g.obs||"",manuais:g.manuais||null,atualizado_em:new Date().toISOString()}; }
-function glGFromRow(r){ var g={id:r.id,numero:r.numero||0,cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",locatario:r.locatario||"",vendedor:r.vendedor||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",valor:+r.valor||0,pagamento:r.pagamento||"",abertura:r.abertura||"",vencimento:r.vencimento||"",obs:r.obs||""}; if(r.manuais)g.manuais=r.manuais; return g; }
+function glRowFromG(g){ return {id:g.id,numero:String(g.numero||""),cnpj:g.cnpj||"",razao_social:g.razaoSocial||"",locatario:g.locatario||"",vendedor:g.vendedor||"",contato:g.contato||"",email:g.email||"",endereco:g.endereco||"",valor:+g.valor||0,pagamento:g.pagamento||"",abertura:g.abertura||"",vencimento:g.vencimento||"",obs:g.obs||"",manuais:g.manuais||null,atualizado_em:new Date().toISOString()}; }
+function glGFromRow(r){ var g={id:r.id,numero:String(r.numero||""),cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",locatario:r.locatario||"",vendedor:r.vendedor||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",valor:+r.valor||0,pagamento:r.pagamento||"",abertura:r.abertura||"",vencimento:r.vencimento||"",obs:r.obs||""}; if(r.manuais)g.manuais=r.manuais; return g; }
 function glSave(){ try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){} clearTimeout(glPushT); glPushT=setTimeout(glCloudPush,700); }
 function glCloudPush(){ var sb=glSB(); if(!sb||!glCloudOK) return; try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){} sb.from("galpoes").upsert(galpoesG.map(glRowFromG)).then(function(){},function(){}); }
 function glCloudDel(id){ glPendDel[id]=Date.now()+30000; var sb=glSB(); if(!sb||!glCloudOK) return; sb.from("galpoes").delete().eq("id",id).then(function(r){ if(r&&r.error){ setTimeout(function(){ try{ sb.from("galpoes").delete().eq("id",id).then(function(){},function(){}); }catch(e){} },1500); } },function(){}); }
@@ -3450,8 +3450,9 @@ function renderGalpoes(){
   var fstatus=((document.getElementById("glFiltroStatus")||{}).value)||"";
   var fpag=((document.getElementById("glFiltroPagamento")||{}).value)||"";
   var fvenc=((document.getElementById("glFiltroVenc")||{}).value)||"";
-  var lista=galpoesG.slice().sort(function(a,b){ return (+a.numero||0)-(+b.numero||0); });
-  if(busca) lista=lista.filter(function(g){ return (g.locatario||"").toLowerCase().indexOf(busca)>=0 || (g.vendedor||"").toLowerCase().indexOf(busca)>=0 || String(g.numero||"").indexOf(busca)>=0; });
+  // ordena por "102 A" de forma natural (102 A < 102 B < 103 A), sem transformar em número puro
+  var lista=galpoesG.slice().sort(function(a,b){ return String(a.numero||"").localeCompare(String(b.numero||""),"pt-BR",{numeric:true,sensitivity:"base"}); });
+  if(busca) lista=lista.filter(function(g){ return (g.locatario||"").toLowerCase().indexOf(busca)>=0 || (g.vendedor||"").toLowerCase().indexOf(busca)>=0 || String(g.numero||"").toLowerCase().indexOf(busca)>=0; });
   if(fstatus) lista=lista.filter(function(g){ return pxStatusMes(g)===fstatus; });
   if(fpag) lista=lista.filter(function(g){ return (g.pagamento||"")===fpag; });
   if(fvenc) lista=lista.filter(function(g){ var d=pxParseData(g.vencimento); if(!d) return false; var dias=(d-hoje)/86400000; return fvenc==="vencidos"?dias<=0:dias>0; });
@@ -3493,7 +3494,7 @@ function renderGalpoes(){
 (function initGalpoes(){
   var salvar=document.getElementById("glSalvar"); if(!salvar) return;
   function coleta(){ return {
-    numero:parseInt(document.getElementById("glNum").value||"0",10)||0,
+    numero:(document.getElementById("glNum").value||"").trim(),
     cnpj:(document.getElementById("glCnpj").value||"").trim(),
     razaoSocial:(document.getElementById("glRazao").value||"").trim(),
     locatario:(document.getElementById("glLoc").value||"").trim(),
