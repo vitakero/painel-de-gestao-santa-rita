@@ -3450,10 +3450,21 @@ function glLoad(){ try{ var s=localStorage.getItem("galpoes_dados"); if(s) retur
 let galpoesG = glLoad();
 function glSB(){ return window.__SB||null; }
 var glCloudOK=false, glCarregando=false, glRT=null, glPushT=null, glPendDel={};
-function glRowFromG(g){ return {id:g.id,numero:String(g.numero||""),cnpj:g.cnpj||"",razao_social:g.razaoSocial||"",locatario:g.locatario||"",vendedor:g.vendedor||"",contato:g.contato||"",email:g.email||"",endereco:g.endereco||"",valor:+g.valor||0,pagamento:g.pagamento||"",abertura:g.abertura||"",vencimento:g.vencimento||"",obs:g.obs||"",manuais:g.manuais||null,atualizado_em:new Date().toISOString()}; }
-function glGFromRow(r){ var g={id:r.id,numero:String(r.numero||""),cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",locatario:r.locatario||"",vendedor:r.vendedor||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",valor:+r.valor||0,pagamento:r.pagamento||"",abertura:r.abertura||"",vencimento:r.vencimento||"",obs:r.obs||""}; if(r.manuais)g.manuais=r.manuais; return g; }
+function glRowFromG(g){ return {id:g.id,numero:String(g.numero||""),cnpj:g.cnpj||"",razao_social:g.razaoSocial||"",locatario:g.locatario||"",vendedor:g.vendedor||"",contato:g.contato||"",email:g.email||"",endereco:g.endereco||"",valor:+g.valor||0,pagamento:g.pagamento||"",abertura:g.abertura||"",vencimento:g.vencimento||"",obs:g.obs||"",manuais:g.manuais||null,contrato_url:(g.contratoArquivo&&g.contratoArquivo.indexOf("data:")!==0)?g.contratoArquivo:"",contrato_nome:g.contratoNome||"",atualizado_em:new Date().toISOString()}; }
+function glGFromRow(r){ var g={id:r.id,numero:String(r.numero||""),cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",locatario:r.locatario||"",vendedor:r.vendedor||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",valor:+r.valor||0,pagamento:r.pagamento||"",abertura:r.abertura||"",vencimento:r.vencimento||"",obs:r.obs||""}; if(r.manuais)g.manuais=r.manuais; if(r.contrato_url){ g.contratoArquivo=r.contrato_url; g.contratoNome=r.contrato_nome||""; } return g; }
+// Sobe o contrato anexado pro Storage (bucket privado "pontos") antes de salvar — evita guardar base64 gigante no banco.
+function glSubirArquivos(g){
+  var jobs=[];
+  if(g.contratoArquivo && g.contratoArquivo.indexOf("data:")===0){ jobs.push(pxUploadDataUrl("galpao_"+g.id+"_contrato",g.contratoArquivo).then(function(u){ if(u) g.contratoArquivo=u; })); }
+  return Promise.all(jobs);
+}
 function glSave(){ try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){} clearTimeout(glPushT); glPushT=setTimeout(glCloudPush,700); }
-function glCloudPush(){ var sb=glSB(); if(!sb||!glCloudOK) return; try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){} sb.from("galpoes").upsert(galpoesG.map(glRowFromG)).then(function(){},function(){}); }
+function glCloudPush(){ var sb=glSB(); if(!sb||!glCloudOK) return;
+  Promise.all(galpoesG.map(glSubirArquivos)).then(function(){
+    try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){}
+    sb.from("galpoes").upsert(galpoesG.map(glRowFromG)).then(function(){},function(){});
+  }).catch(function(){});
+}
 function glCloudDel(id){ glPendDel[id]=Date.now()+30000; var sb=glSB(); if(!sb||!glCloudOK) return; sb.from("galpoes").delete().eq("id",id).then(function(r){ if(r&&r.error){ setTimeout(function(){ try{ sb.from("galpoes").delete().eq("id",id).then(function(){},function(){}); }catch(e){} },1500); } },function(){}); }
 function glRealtime(){ var sb=glSB(); if(!sb||glRT) return; try{ var deb=null; function rec(){ clearTimeout(deb); deb=setTimeout(glCloudLoad,700); } glRT=sb.channel("galpoes_sync").on("postgres_changes",{event:"*",schema:"public",table:"galpoes"},rec).subscribe(); }catch(e){} }
 function glCloudLoad(){ var sb=glSB(); if(!sb||glCarregando) return;
@@ -3623,6 +3634,30 @@ function pltDetalhe(){
     renderPlanta();
   });
 })();
+// Bloco do CONTRATO do galpão — mesmo padrão dos pontos extras (Gerar contrato + Anexar contrato).
+function glContratoHtml(g){
+  var clipIc='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>';
+  var gerarIc='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>';
+  var corpo;
+  if(g.contratoArquivo){
+    var xIc='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9aa6b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+    corpo='<div class="px-arq-card" data-glcview="'+g.id+'" title="'+pxEsc(g.contratoNome||"contrato")+' — clique para ver" style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e3e8ee;border-radius:8px;padding:0 14px;width:100%;max-width:280px;box-sizing:border-box;min-height:46px;cursor:pointer;">'+
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1b9e4b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>'+
+      '<span style="flex:1;min-width:0;text-align:left;color:#2a3340;font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+pxEsc(g.contratoNome||"contrato")+'</span>'+
+      '<span data-glcrem="'+g.id+'" title="Remover contrato" style="flex-shrink:0;display:inline-flex;padding:3px;cursor:pointer;">'+xIc+'</span>'+
+      '</div>';
+  } else {
+    corpo='<button type="button" class="px-arq-anexar" data-glcfile-btn="'+g.id+'">'+clipIc+'Anexar contrato</button>';
+  }
+  return '<div class="px-det-item"><b>Contrato</b><button type="button" class="px-gerar-ct" data-glcgerar="'+g.id+'" title="Gerar contrato padrão com os dados deste galpão">'+gerarIc+'Gerar contrato</button></div>'+
+    '<div class="px-det-item"><b>&nbsp;</b><div class="px-arq">'+corpo+
+    '<input type="file" data-glcfile="'+g.id+'" accept="application/pdf,image/*" style="display:none;"></div></div>';
+}
+// Abre o contrato anexado do galpão (arquivo privado → link temporário autorizado).
+function glAbrirContrato(g){
+  if(!g||!g.contratoArquivo) return;
+  srSignedUrl("pontos", g.contratoArquivo, function(u){ if(u) window.open(u,"_blank"); });
+}
 // Formata e rotula o documento do inquilino: 11 dígitos = CPF, 14 = CNPJ.
 function glFmtDoc(d){
   var s=String(d||"").replace(/\\D/g,"");
@@ -3703,6 +3738,7 @@ function renderGalpoes(){
         pxDetItem("Contato", g.contato?pxFmtTel(g.contato):"—")+
         pxDetItem("E-mail", g.email ? ('<a href="mailto:'+pxEsc(g.email)+'">'+pxEsc(g.email)+'</a>') : "—", "px-det-wide")+
         pxDetItem("Pagamento", btnPago)+
+        glContratoHtml(g)+
       '</div></div></td></tr>';
   }).join("");
   tb.innerHTML='<table><thead><tr><th style="width:34px;"></th><th>Nº</th><th>Empresa</th><th>Inquilino</th><th>Valor</th><th>Pagamento</th><th>Abertura</th><th>Vencimento</th><th>Status</th><th>Observação</th><th></th></tr></thead><tbody>'+
@@ -3742,6 +3778,15 @@ function renderGalpoes(){
   if(tb) tb.addEventListener("click",function(e){
     var expb=e.target.closest("[data-glexp]");
     if(expb){ var xid=expb.dataset.glexp; var det=document.getElementById("gdet-"+xid); if(det){ var open=det.style.display==="none"; det.style.display=open?"":"none"; expb.classList.toggle("aberto",open); } return; }
+    // --- CONTRATO (mesmo padrão dos pontos) ---
+    var cremG=e.target.closest("[data-glcrem]"); // o × fica DENTRO do card clicável → checar antes do "ver"
+    if(cremG){ var gr=galpoesG.find(function(x){ return x.id===cremG.dataset.glcrem; }); if(gr){ uiConfirm({titulo:"Remover contrato",msg:"Remover o arquivo do contrato deste galpão?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; delete gr.contratoArquivo; delete gr.contratoNome; glSave(); renderGalpoes(); glReabrir(gr.id); }); } return; }
+    var cviewG=e.target.closest("[data-glcview]");
+    if(cviewG){ e.preventDefault(); glAbrirContrato(galpoesG.find(function(x){ return x.id===cviewG.dataset.glcview; })); return; }
+    var cbtnG=e.target.closest("[data-glcfile-btn]");
+    if(cbtnG){ var inpG=document.querySelector('[data-glcfile="'+cbtnG.dataset.glcfileBtn+'"]'); if(inpG) inpG.click(); return; }
+    var cgerG=e.target.closest("[data-glcgerar]");
+    if(cgerG){ uiConfirm({titulo:"Contrato dos galpões",msg:"O modelo de contrato dos galpões ainda não foi cadastrado. Me mande o contrato padrão que vocês usam para os galpões que eu monto o gerador — igual funciona nos pontos extras.\\n\\nPor enquanto, use o botão \\u201cAnexar contrato\\u201d para guardar o arquivo aqui.",ok:"Entendi",cancel:""}); return; }
     var pago=e.target.closest("[data-glpago]");
     if(pago){ var g=galpoesG.find(function(x){ return x.id===pago.dataset.glpago; }); if(g){ var k=glKeyMesAtual(g); if(!k){ uiConfirm({titulo:"Informe as datas",msg:"Preencha a abertura e o vencimento do contrato pra controlar os pagamentos por mês.",ok:"OK",cancel:""}); return; } g.manuais=g.manuais||{}; if(pago.dataset.on){ delete g.manuais[k]; } else { g.manuais[k]="autorizado"; } glSave(); renderGalpoes(); } return; }
     var ed=e.target.closest("[data-gledit]");
@@ -3749,7 +3794,34 @@ function renderGalpoes(){
     var rem=e.target.closest("[data-glrem]");
     if(rem){ var id=rem.dataset.glrem; var g3=galpoesG.find(function(x){ return x.id===id; }); uiConfirm({titulo:"Remover galpão",msg:"Apagar \\u201c"+((g3&&g3.nome)||"este galpão")+"\\u201d e todo o histórico dele?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; galpoesG=galpoesG.filter(function(x){ return x.id!==id; }); glCloudDel(id); glSave(); renderGalpoes(); }); return; }
   });
+  // anexar contrato: escolher arquivo (mesma regra dos pontos — até 3 MB)
+  if(tb) tb.addEventListener("change",function(e){
+    var inp=e.target.closest("[data-glcfile]");
+    if(inp && inp.files && inp.files[0]) glProcessaContratoArquivo(inp.dataset.glcfile, inp.files[0]);
+  });
+  // arrastar-e-soltar direto na caixa "Anexar contrato"
+  if(tb){
+    ["dragenter","dragover"].forEach(function(ev){ tb.addEventListener(ev,function(e){ var box=e.target.closest&&e.target.closest(".px-arq-anexar"); if(!box||!box.dataset.glcfileBtn) return; e.preventDefault(); e.stopPropagation(); box.style.borderColor="#157a35"; box.style.background="#f2faf5"; }); });
+    ["dragleave","dragend"].forEach(function(ev){ tb.addEventListener(ev,function(e){ var box=e.target.closest&&e.target.closest(".px-arq-anexar"); if(!box||!box.dataset.glcfileBtn) return; e.preventDefault(); e.stopPropagation(); box.style.borderColor=""; box.style.background=""; }); });
+    tb.addEventListener("drop",function(e){ var box=e.target.closest&&e.target.closest(".px-arq-anexar"); if(!box||!box.dataset.glcfileBtn) return; e.preventDefault(); e.stopPropagation(); box.style.borderColor=""; box.style.background=""; var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) glProcessaContratoArquivo(box.dataset.glcfileBtn,f); });
+  }
 })();
+// Reabre a linha expandida do galpão depois de um redesenho
+function glReabrir(id){
+  var det=document.getElementById("gdet-"+id);
+  var exp=document.querySelector('#glTabela [data-glexp="'+id+'"]');
+  if(det){ det.style.display="table-row"; if(exp) exp.classList.add("aberto"); }
+}
+function glProcessaContratoArquivo(id,f){
+  if(!f) return;
+  if(f.size > 3*1024*1024){ uiConfirm({titulo:"Arquivo muito grande",msg:"O contrato precisa ter no máximo 3 MB. Tente um PDF ou foto menor.",ok:"Entendi",cancel:""}); return; }
+  var reader=new FileReader();
+  reader.onload=function(){
+    var g=galpoesG.find(function(x){ return x.id===id; });
+    if(g){ g.contratoArquivo=reader.result; g.contratoNome=f.name; glSave(); renderGalpoes(); glReabrir(id); }
+  };
+  reader.readAsDataURL(f);
+}
 
 /* --- Arquivos PRIVADOS (Storage): gera link temporário autorizado (só quem tem login abre) --- */
 function srSignedUrl(bucket, stored, cb){
