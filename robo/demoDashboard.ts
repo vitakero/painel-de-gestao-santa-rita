@@ -3711,7 +3711,7 @@ function renderGalpoes(){
   if(fstatus) lista=lista.filter(function(g){ return pxStatusMes(g)===fstatus; });
   if(fpag) lista=lista.filter(function(g){ return (g.pagamento||"")===fpag; });
   if(fvenc) lista=lista.filter(function(g){ var d=pxParseData(g.vencimento); if(!d) return false; var dias=(d-hoje)/86400000; return fvenc==="vencidos"?dias<=0:dias>0; });
-  var info=document.getElementById("glInfo"); if(info) info.textContent=lista.length+" ponto(s)";
+  var info=document.getElementById("glInfo"); if(info) info.textContent=lista.length+" galpão(ões)";
   var linhas=lista.map(function(g){
     var d=pxParseData(g.vencimento); var vcls="";
     if(d){ var dias=(d-hoje)/86400000; if(dias<0) vcls="px-venc-vencido"; else if(dias<=15) vcls="px-venc-prox"; }
@@ -3745,7 +3745,7 @@ function renderGalpoes(){
       '</div></div></td></tr>';
   }).join("");
   tb.innerHTML='<table><thead><tr><th style="width:34px;"></th><th>Nº</th><th>Empresa</th><th>Inquilino</th><th>Valor</th><th>Pagamento</th><th>Abertura</th><th>Vencimento</th><th>Status</th><th>Observação</th><th></th></tr></thead><tbody>'+
-    (linhas || '<tr><td colspan="11" class="vazio">Nenhum ponto.</td></tr>')+'</tbody></table>';
+    (linhas || '<tr><td colspan="11" class="vazio">Nenhum galpão.</td></tr>')+'</tbody></table>';
 }
 (function initGalpoes(){
   var salvar=document.getElementById("glSalvar"); if(!salvar) return;
