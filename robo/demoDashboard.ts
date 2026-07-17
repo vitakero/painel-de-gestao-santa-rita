@@ -210,7 +210,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .px-det-contrato { justify-self:end; width:210px; }
   .px-det-contrato .px-arq-link { max-width:130px; }
   .px-det-item b { font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:#6b7787; font-weight:700; }
-  .px-det-item span { font-size:14px; color:#2a3340; }
+  /* overflow-wrap:anywhere = e-mail longo (palavra só, sem espaço) nunca vaza por cima da coluna do lado */
+  .px-det-item span { font-size:14px; color:#2a3340; overflow-wrap:anywhere; }
+  /* e-mail ocupa 2 colunas: cabe numa linha só e empurra o "Gerar contrato" mais pro lado */
+  .px-det-box .px-det-item.px-det-wide { grid-column:span 2; }
+  @media (max-width:760px){ .px-det-box .px-det-item.px-det-wide { grid-column:auto; } }
   .px-arq { display:flex; align-items:center; gap:8px; flex-wrap:wrap; width:100%; }
   .px-arq-link { display:inline-flex; align-items:center; gap:6px; max-width:240px; padding:5px 12px; background:#e3f0e8; color:#157a35; border-radius:7px; font-size:13px; font-weight:600; text-decoration:none; }
   .px-arq-link span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#157a35; font-size:13px; }
@@ -3697,7 +3701,7 @@ function renderGalpoes(){
         pxDetItem("Endereço do galpão", g.endereco?pxEsc(g.endereco):"—")+
         pxDetItem("Inquilino", g.vendedor||"—")+
         pxDetItem("Contato", g.contato?pxFmtTel(g.contato):"—")+
-        pxDetItem("E-mail", g.email ? ('<a href="mailto:'+pxEsc(g.email)+'">'+pxEsc(g.email)+'</a>') : "—")+
+        pxDetItem("E-mail", g.email ? ('<a href="mailto:'+pxEsc(g.email)+'">'+pxEsc(g.email)+'</a>') : "—", "px-det-wide")+
         pxDetItem("Pagamento", btnPago)+
       '</div></div></td></tr>';
   }).join("");
@@ -4011,7 +4015,7 @@ function pxBadge(p){
   const txt = st==="NÃO PAGO" ? "EM ABERTO" : st;
   return '<span class="badge badge-status" style="background:'+cor+'" title="'+tit+'">'+ic+txt+'</span>';
 }
-function pxDetItem(label,val){ return '<div class="px-det-item"><b>'+label+'</b><span>'+val+'</span></div>'; }
+function pxDetItem(label,val,cls){ return '<div class="px-det-item'+(cls?(" "+cls):"")+'"><b>'+label+'</b><span>'+val+'</span></div>'; }
 function pxFmtTel(v){
   const d=(v||"").replace(/\\D/g,"").slice(0,11);
   if(!d) return "";
@@ -4936,7 +4940,7 @@ function renderPontosG(){
         pxDetItem("Endereço", p.endereco?pxEsc(p.endereco):"—")+
         pxDetItem("Vendedor", p.vendedor||"—")+
         pxDetItem("Contato", p.contato?pxFmtTel(p.contato):"—")+
-        pxDetItem("E-mail", p.email ? ('<a href="mailto:'+pxEsc(p.email)+'">'+pxEsc(p.email)+'</a>') : "—")+
+        pxDetItem("E-mail", p.email ? ('<a href="mailto:'+pxEsc(p.email)+'">'+pxEsc(p.email)+'</a>') : "—", "px-det-wide")+
         pxContratoHtml(p)+
       '</div>'+pxAgendaHtml(p)+'</div></td></tr>';
   }).join("");
