@@ -991,6 +991,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .gp.atrasado{background:#f6d6cf;border-color:#e5a99d;}
         .gp.sel{outline:2.5px solid #157a35;outline-offset:1px;}
         .gp.gp-frente{min-height:98px;}
+        /* o galpão da frente-esquerda é quase QUADRADO na planta (bem mais fundo que os outros) */
+        .gp.gp-quadrado{aspect-ratio:1.15;}
         /* do G até o M são um pouquinho mais curtos: ficam COLADOS NA PAREDE DIREITA e o corte é do lado esquerdo (o da rua) */
         .gp.gp-curto{width:90%;align-self:flex-end;}
         /* setinha da porta: mostra pra onde o galpão está virado */
@@ -3544,7 +3546,7 @@ function renderPlanta(){
     '<div class="plt-calcada">Calçada</div>'+
     // FRENTE: os 3 virados pra fora, colados entre si e nas paredes + o PORTÃO (linha) ligando o da esquerda ao E
     '<div class="plt-frente">'+
-      '<div class="plt-lado">'+pltBox(PLT_FRENTE[0],"cima","gp-frente")+'</div>'+
+      '<div class="plt-lado">'+pltBox(PLT_FRENTE[0],"cima","gp-frente gp-quadrado")+'</div>'+
       '<div class="plt-portao"><i class="plt-portao-linha"></i><span>Portão</span></div>'+
       '<div class="plt-lado plt-lado-row">'+pltBox(PLT_FRENTE[1],"cima","gp-frente")+pltBox(PLT_FRENTE[2],"cima","gp-frente")+'</div>'+
     '</div>'+
