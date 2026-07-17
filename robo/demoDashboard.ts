@@ -979,7 +979,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .plt-vazio{flex:1;min-height:26px;}
         .plt-crescer{margin:12px 14px 14px;border:2px dashed #dce3eb;border-radius:10px;color:#aab5c2;font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;text-align:center;padding:20px 8px;}
         /* ===== cada galpão ===== */
-        .gp{border:1.5px solid #cdd6e0;background:#fff;border-radius:8px;padding:10px 8px;cursor:pointer;transition:transform .13s,box-shadow .13s;min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;text-align:center;}
+        .gp{border:1.5px solid #cdd6e0;background:#fff;border-radius:8px;padding:10px 8px;cursor:pointer;transition:transform .13s,box-shadow .13s;min-height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;text-align:center;}
         .gp:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(16,24,40,.13);}
         .gp b{font-size:14.5px;font-weight:800;color:#33404f;letter-spacing:.3px;line-height:1.1;}
         .gp small{font-size:10.5px;color:#8a97a8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;line-height:1.2;}
@@ -988,13 +988,15 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .gp.aberto{background:#f9edca;border-color:#e7d19a;}
         .gp.atrasado{background:#f6d6cf;border-color:#e5a99d;}
         .gp.sel{outline:2.5px solid #157a35;outline-offset:1px;}
-        .gp.gp-frente{min-height:74px;}
+        .gp.gp-frente{min-height:98px;}
         /* setinha da porta: mostra pra onde o galpão está virado */
         .gp:after{content:"";position:absolute;width:0;height:0;}
         .gp.vira-cima:after{top:-7px;left:50%;transform:translateX(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:6px solid #9aa7b5;}
         .gp.vira-dir:after{right:-7px;top:50%;transform:translateY(-50%);border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:6px solid #9aa7b5;}
         .gp.vira-esq:after{left:-7px;top:50%;transform:translateY(-50%);border-top:5px solid transparent;border-bottom:5px solid transparent;border-right:6px solid #9aa7b5;}
-        .plt-bloco{display:flex;flex-direction:column;gap:5px;border:1.5px solid #dfe6ee;border-radius:9px;padding:6px;background:#f6f8fa;}
+        /* BLOCO = um prédio. Dentro dele os galpões ficam COLADOS (dividem parede); entre blocos fica um respiro. */
+        .plt-bloco{display:flex;flex-direction:column;gap:0;}
+        .plt-bloco .gp{border-radius:0;}
         /* ===== painel lateral ===== */
         .plt-det{flex:0 0 300px;background:#fff;border:1px solid #e6ebf1;border-radius:14px;padding:16px 18px;min-height:220px;}
         .plt-det-vazio{color:#8a97a8;font-size:13px;text-align:center;line-height:1.7;padding:26px 6px;}
@@ -3544,11 +3546,15 @@ function renderPlanta(){
     '</div>'+
     // CORPO: esquerda | rua interna | direita — todos virados pra dentro
     '<div class="plt-corpo">'+
-      '<div class="plt-lado">'+PLT_ESQ.map(function(c){ return pltBox(c,"dir"); }).join("")+'<div class="plt-vazio"></div></div>'+
+      '<div class="plt-lado">'+
+        '<div class="plt-bloco">'+PLT_ESQ.map(function(c){ return pltBox(c,"dir"); }).join("")+'</div>'+
+        '<div class="plt-vazio"></div>'+
+      '</div>'+
       '<div class="plt-rua"><span>Rua interna</span></div>'+
-      '<div class="plt-lado">'+PLT_DIR.map(function(c){ return pltBox(c,"esq"); }).join("")+
+      '<div class="plt-lado">'+
+        '<div class="plt-bloco">'+PLT_DIR.map(function(c){ return pltBox(c,"esq"); }).join("")+'</div>'+
         '<div class="plt-bloco">'+PLT_FUNDO.map(function(c){ return pltBox(c,"esq"); }).join("")+'</div>'+
-        PLT_FUNDO2.map(function(c){ return pltBox(c,"esq"); }).join("")+
+        '<div class="plt-bloco">'+PLT_FUNDO2.map(function(c){ return pltBox(c,"esq"); }).join("")+'</div>'+
       '</div>'+
     '</div>'+
     '<div class="plt-crescer">Terreno para crescer — a rua interna segue até o fundo</div>';
