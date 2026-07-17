@@ -965,7 +965,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .plt-lado.plt-lado-row{flex-direction:row;}
         .plt-lado.plt-lado-row .gp{flex:1 1 0;min-width:0;}
         /* PORTÃO = uma LINHA (visto de cima) ligando o galpão da esquerda ao da direita */
-        .plt-portao{flex:0 0 108px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;}
+        .plt-portao{flex:0 0 108px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;position:relative;}
+        /* o pontilhado da rua interna já começa aqui, logo abaixo do portão, e continua no .plt-rua */
+        .plt-portao:after{content:"";position:absolute;top:34px;bottom:0;left:50%;transform:translateX(-50%);width:2px;background:repeating-linear-gradient(180deg,#c3ccd7 0 11px,transparent 11px 22px);}
         .plt-portao-linha{display:block;flex:none;width:100%;height:4px;background:#cfa93f;border-radius:2px;position:relative;}
         .plt-portao-linha:before,.plt-portao-linha:after{content:"";position:absolute;top:-5px;width:3px;height:14px;background:#8c6d16;border-radius:1.5px;}
         .plt-portao-linha:before{left:0;}
@@ -976,8 +978,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .plt-rua{flex:0 0 108px;position:relative;display:flex;align-items:center;justify-content:center;}
         .plt-rua:before{content:"";position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:2px;background:repeating-linear-gradient(180deg,#c3ccd7 0 11px,transparent 11px 22px);}
         .plt-rua span{writing-mode:vertical-rl;transform:rotate(180deg);color:#95a1af;font-size:9px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;background:#fbfcfd;padding:10px 3px;}
-        .plt-vazio{flex:1;min-height:26px;}
-        .plt-crescer{margin:12px 14px 14px;border:2px dashed #dce3eb;border-radius:10px;color:#aab5c2;font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;text-align:center;padding:20px 8px;}
+        .plt-vazio{flex:1;min-height:46px;}
         /* ===== cada galpão ===== */
         .gp{border:1.5px solid #cdd6e0;background:#fff;border-radius:8px;padding:10px 8px;cursor:pointer;transition:transform .13s,box-shadow .13s;min-height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;text-align:center;}
         .gp:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(16,24,40,.13);}
@@ -3557,9 +3558,9 @@ function renderPlanta(){
         '<div class="plt-bloco">'+PLT_DIR.map(function(c){ return pltBox(c,"esq"); }).join("")+'</div>'+
         '<div class="plt-bloco">'+PLT_FUNDO.map(function(c){ return pltBox(c,"esq","gp-curto"); }).join("")+'</div>'+
         '<div class="plt-bloco">'+PLT_FUNDO2.map(function(c){ return pltBox(c,"esq","gp-curto"); }).join("")+'</div>'+
+        '<div class="plt-vazio"></div>'+
       '</div>'+
-    '</div>'+
-    '<div class="plt-crescer">Terreno para crescer — a rua interna segue até o fundo</div>';
+    '</div>';
   el.innerHTML=h;
   var todos=PLT_FRENTE.concat(PLT_ESQ,PLT_DIR,PLT_FUNDO,PLT_FUNDO2);
   var ocup=todos.filter(function(c){ return !!pltGalpaoDe(c); }).length;
