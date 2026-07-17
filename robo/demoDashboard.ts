@@ -989,6 +989,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .gp.atrasado{background:#f6d6cf;border-color:#e5a99d;}
         .gp.sel{outline:2.5px solid #157a35;outline-offset:1px;}
         .gp.gp-frente{min-height:98px;}
+        /* do G até o M são um pouquinho mais curtos (menos fundo): ficam colados na rua interna e cortam atrás */
+        .gp.gp-curto{width:90%;align-self:flex-start;}
         /* setinha da porta: mostra pra onde o galpão está virado */
         .gp:after{content:"";position:absolute;width:0;height:0;}
         .gp.vira-cima:after{top:-7px;left:50%;transform:translateX(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:6px solid #9aa7b5;}
@@ -3553,8 +3555,8 @@ function renderPlanta(){
       '<div class="plt-rua"><span>Rua interna</span></div>'+
       '<div class="plt-lado">'+
         '<div class="plt-bloco">'+PLT_DIR.map(function(c){ return pltBox(c,"esq"); }).join("")+'</div>'+
-        '<div class="plt-bloco">'+PLT_FUNDO.map(function(c){ return pltBox(c,"esq"); }).join("")+'</div>'+
-        '<div class="plt-bloco">'+PLT_FUNDO2.map(function(c){ return pltBox(c,"esq"); }).join("")+'</div>'+
+        '<div class="plt-bloco">'+PLT_FUNDO.map(function(c){ return pltBox(c,"esq","gp-curto"); }).join("")+'</div>'+
+        '<div class="plt-bloco">'+PLT_FUNDO2.map(function(c){ return pltBox(c,"esq","gp-curto"); }).join("")+'</div>'+
       '</div>'+
     '</div>'+
     '<div class="plt-crescer">Terreno para crescer — a rua interna segue até o fundo</div>';
