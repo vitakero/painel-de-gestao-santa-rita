@@ -977,8 +977,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .plt-lado{display:flex;flex-direction:column;gap:9px;flex:1 1 0;min-width:0;}
         .plt-rua{flex:0 0 108px;position:relative;display:flex;align-items:center;justify-content:center;}
         .plt-rua:before{content:"";position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:2px;background:repeating-linear-gradient(180deg,#c3ccd7 0 11px,transparent 11px 22px);}
-        /* margin-bottom = o trecho de pontilhado que desce do portão (64px), pra centralizar o nome na rua INTEIRA */
-        .plt-rua span{writing-mode:vertical-rl;transform:rotate(180deg);color:#95a1af;font-size:9px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;background:#fbfcfd;padding:10px 3px;margin-bottom:64px;}
+        /* o margin-bottom é calculado no JS (= trecho de pontilhado que desce do portão), pra centralizar o nome na linha INTEIRA */
+        .plt-rua span{writing-mode:vertical-rl;transform:rotate(180deg);color:#95a1af;font-size:9px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;background:#fbfcfd;padding:10px 3px;}
         .plt-vazio{flex:1;min-height:46px;}
         /* ===== cada galpão ===== */
         .gp{border:1.5px solid #cdd6e0;background:#fff;border-radius:8px;padding:10px 8px;cursor:pointer;transition:transform .13s,box-shadow .13s;min-height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;text-align:center;}
@@ -3566,11 +3566,22 @@ function renderPlanta(){
       '</div>'+
     '</div>';
   el.innerHTML=h;
+  pltCentralizaNomeRua();
   var todos=PLT_FRENTE.concat(PLT_ESQ,PLT_DIR,PLT_FUNDO,PLT_FUNDO2);
   var ocup=todos.filter(function(c){ return !!pltGalpaoDe(c); }).length;
   var info=document.getElementById("pltInfo"); if(info) info.textContent=ocup+" de "+todos.length+" galpões ocupados";
   pltDetalhe();
 }
+// Centraliza o nome "RUA INTERNA" no meio da LINHA PONTILHADA INTEIRA (que começa no portão e desce até o fundo).
+// O trecho que fica no portão muda de tamanho conforme os galpões da frente, então é calculado na hora.
+function pltCentralizaNomeRua(){
+  var portao=document.querySelector("#pltTerreno .plt-portao");
+  var lbl=document.querySelector("#pltTerreno .plt-rua span");
+  if(!portao||!lbl) return;
+  var trechoNoPortao=Math.max(0,(portao.offsetHeight||0)-34); // 34px = onde o pontilhado começa, abaixo do portão
+  lbl.style.marginBottom=trechoNoPortao+"px";
+}
+try{ window.addEventListener("resize",function(){ try{ pltCentralizaNomeRua(); }catch(e){} }); }catch(e){}
 function pltDetalhe(){
   var el=document.getElementById("pltDetalhe"); if(!el) return;
   if(!pltSel){ el.innerHTML='<div class="plt-det-vazio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-6 9 6v12"/><path d="M3 21h18"/><path d="M9 21v-6h6v6"/></svg><br><b style="color:#5d6875;">Nenhum galpão selecionado</b><br>Clique num galpão da planta para ver o inquilino, o contrato e as cobranças.</div>'; return; }
