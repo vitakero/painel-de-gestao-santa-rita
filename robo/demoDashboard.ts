@@ -990,8 +990,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .gp.atrasado{background:#f6d6cf;border-color:#e5a99d;}
         .gp.sel{outline:2.5px solid #157a35;outline-offset:1px;}
         .gp.gp-frente{min-height:98px;}
-        /* do G até o M são um pouquinho mais curtos (menos fundo): ficam colados na rua interna e cortam atrás */
-        .gp.gp-curto{width:90%;align-self:flex-start;}
+        /* do G até o M são um pouquinho mais curtos: ficam COLADOS NA PAREDE DIREITA e o corte é do lado esquerdo (o da rua) */
+        .gp.gp-curto{width:90%;align-self:flex-end;}
         /* setinha da porta: mostra pra onde o galpão está virado */
         .gp:after{content:"";position:absolute;width:0;height:0;}
         .gp.vira-cima:after{top:-7px;left:50%;transform:translateX(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:6px solid #9aa7b5;}
