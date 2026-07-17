@@ -3527,7 +3527,9 @@ function pltBox(cod,vira,extra){
 }
 function renderPlanta(){
   var el=document.getElementById("pltTerreno"); if(!el) return;
-  if(!(window.__PERFIL&&window.__PERFIL.is_master)){ el.innerHTML='<div style="padding:28px;text-align:center;color:#8a97a8;">Área restrita — só o administrador (login master) vê os galpões.</div>'; var _pd=document.getElementById("pltDetalhe"); if(_pd) _pd.innerHTML=""; return; }
+  // Login ainda carregando: espera e tenta de novo (em vez de já dizer "Área restrita").
+  if(window.__PERFIL==null){ el.innerHTML='<div style="padding:26px;text-align:center;color:#8a97a8;font-style:italic;">Carregando…</div>'; var _pc=document.getElementById("pltDetalhe"); if(_pc) _pc.innerHTML=""; if(!window.__pltRetry){ window.__pltRetry=setTimeout(function(){ window.__pltRetry=null; renderPlanta(); },700); } return; }
+  if(!window.__PERFIL.is_master){ el.innerHTML='<div style="padding:26px;text-align:center;color:#8a97a8;line-height:1.7;">Área restrita — só o <b>login master</b> vê os galpões.<br><span style="font-size:12px;">Seu login não está marcado como master. Vá na aba <b>Acessos</b>, abra o seu usuário e marque <b>“Master (vê tudo)”</b>.</span></div>'; var _pd=document.getElementById("pltDetalhe"); if(_pd) _pd.innerHTML=""; return; }
   var h='<div class="plt-br">Rua principal (BR) — calçamento</div>'+
     // FRENTE: os 3 virados pra fora, colados na rua + o PORTÃO (linha) ligando o da esquerda ao E
     '<div class="plt-frente">'+
@@ -3614,7 +3616,7 @@ function renderGalpoes(){
   // Login ainda carregando: mostra "Carregando…" e tenta de novo em vez de já dizer "Área restrita".
   if(window.__PERFIL==null){ tb.innerHTML='<div style="padding:22px 12px;color:#8a97a8;font-style:italic;">Carregando…</div>'; var _gc=document.getElementById("glInad"); if(_gc) _gc.innerHTML=""; if(!window.__glRetry){ window.__glRetry=setTimeout(function(){ window.__glRetry=null; renderGalpoes(); },700); } return; }
   var master=!!window.__PERFIL.is_master;
-  if(!master){ tb.innerHTML='<div style="padding:26px;text-align:center;color:#8a97a8;">Área restrita — só o administrador (login master) vê os galpões.</div>'; var _gi=document.getElementById("glInad"); if(_gi) _gi.innerHTML=""; return; }
+  if(!master){ tb.innerHTML='<div style="padding:26px;text-align:center;color:#8a97a8;line-height:1.7;">Área restrita — só o <b>login master</b> vê os galpões.<br><span style="font-size:12px;">Seu login não está marcado como master. Vá na aba <b>Acessos</b>, abra o seu usuário e marque <b>“Master (vê tudo)”</b>.</span></div>'; var _gi=document.getElementById("glInad"); if(_gi) _gi.innerHTML=""; return; }
   // Inadimplentes (reaproveita pxInadimplencia)
   var inad=[]; galpoesG.forEach(function(g){ var x=pxInadimplencia(g); if(x){ x.g=g; inad.push(x); } });
   inad.sort(function(a,b){ return b.dias-a.dias; });
