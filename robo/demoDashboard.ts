@@ -955,9 +955,18 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         /* ===== o TERRENO (o retângulo todo é nosso) ===== */
         .plt-terreno{min-width:640px;background:#fbfcfd;border:2px solid #d3dbe4;border-radius:14px;overflow:hidden;}
         .plt-br{background:#eceff4;border-bottom:2px dashed #b9c4d0;color:#788492;font-size:9.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;text-align:center;padding:10px 8px;}
-        .plt-frente{display:flex;align-items:stretch;gap:10px;padding:14px 14px 4px;}
-        .plt-portao{flex:0 0 78px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:2px dashed #cfa93f;background:#fdf9ec;border-radius:9px;color:#8c6d16;font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;padding:6px 4px;text-align:center;}
-        .plt-portao svg{width:15px;height:15px;}
+        /* frente COLADA na linha pontilhada da rua (padding-top:0) */
+        .plt-frente{display:flex;align-items:stretch;gap:10px;padding:0 14px 4px;}
+        /* E e F dividem o lado direito METADE/METADE (especificidade dupla p/ vencer o .plt-lado coluna) */
+        .plt-lado.plt-lado-row{flex-direction:row;}
+        .plt-lado.plt-lado-row .gp{flex:1 1 0;min-width:0;}
+        /* PORTÃO = uma LINHA (visto de cima) ligando o galpão da esquerda ao da direita */
+        .plt-portao{flex:0 0 86px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;}
+        .plt-portao-linha{display:block;flex:none;width:calc(100% + 20px);margin-left:-10px;height:4px;background:#cfa93f;border-radius:2px;position:relative;}
+        .plt-portao-linha:before,.plt-portao-linha:after{content:"";position:absolute;top:-5px;width:3px;height:14px;background:#8c6d16;border-radius:1.5px;}
+        .plt-portao-linha:before{left:0;}
+        .plt-portao-linha:after{right:0;}
+        .plt-portao span{font-size:8.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#8c6d16;margin-top:7px;}
         .plt-corpo{display:flex;align-items:stretch;padding:0 14px;}
         .plt-lado{display:flex;flex-direction:column;gap:9px;flex:1 1 0;min-width:0;}
         .plt-rua{flex:0 0 78px;position:relative;display:flex;align-items:center;justify-content:center;}
@@ -3519,13 +3528,12 @@ function pltBox(cod,vira,extra){
 function renderPlanta(){
   var el=document.getElementById("pltTerreno"); if(!el) return;
   if(!(window.__PERFIL&&window.__PERFIL.is_master)){ el.innerHTML='<div style="padding:28px;text-align:center;color:#8a97a8;">Área restrita — só o administrador (login master) vê os galpões.</div>'; var _pd=document.getElementById("pltDetalhe"); if(_pd) _pd.innerHTML=""; return; }
-  var icoPortao='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="1"/><path d="M3 12h18M9 8v12M15 8v12M2 8h20"/></svg>';
   var h='<div class="plt-br">Rua principal (BR) — calçamento</div>'+
-    // FRENTE: os 3 virados pra fora + o portão da rua interna
+    // FRENTE: os 3 virados pra fora, colados na rua + o PORTÃO (linha) ligando o da esquerda ao E
     '<div class="plt-frente">'+
       '<div class="plt-lado">'+pltBox(PLT_FRENTE[0],"cima","gp-frente")+'</div>'+
-      '<div class="plt-portao">'+icoPortao+'Portão</div>'+
-      '<div class="plt-lado" style="flex-direction:row;">'+pltBox(PLT_FRENTE[1],"cima","gp-frente")+pltBox(PLT_FRENTE[2],"cima","gp-frente")+'</div>'+
+      '<div class="plt-portao"><i class="plt-portao-linha"></i><span>Portão</span></div>'+
+      '<div class="plt-lado plt-lado-row">'+pltBox(PLT_FRENTE[1],"cima","gp-frente")+pltBox(PLT_FRENTE[2],"cima","gp-frente")+'</div>'+
     '</div>'+
     // CORPO: esquerda | rua interna | direita — todos virados pra dentro
     '<div class="plt-corpo">'+
