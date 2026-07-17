@@ -906,7 +906,6 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
             <select id="glPag" class="px-filtro" style="width:150px;">
               <option value="">Selecione...</option>
               <option value="Boleto">Boleto</option>
-              <option value="Bonificação">Bonificação</option>
               <option value="Pix">Pix</option>
             </select>
           </div>
@@ -932,7 +931,6 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
             <option value="">Todos os pagamentos</option>
             <option value="Pix">Pix</option>
             <option value="Boleto">Boleto</option>
-            <option value="Bonificação">Bonificação</option>
           </select>
           <select id="glFiltroVenc" class="px-filtro">
             <option value="">Todos os vencimentos</option>
