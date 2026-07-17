@@ -981,7 +981,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .plt-rua span{writing-mode:vertical-rl;transform:rotate(180deg);color:#95a1af;font-size:9px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;background:#fbfcfd;padding:10px 3px;margin-bottom:64px;}
         .plt-vazio{flex:1;min-height:46px;}
         /* ===== cada galpão ===== */
-        .gp{border:1.5px solid #cdd6e0;background:#fff;border-radius:8px;padding:10px 8px;cursor:pointer;transition:transform .13s,box-shadow .13s;min-height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;text-align:center;}
+        .gp{border:1.5px solid #cdd6e0;background:#fff;border-radius:8px;padding:10px 8px;cursor:pointer;transition:transform .13s,box-shadow .13s;min-height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;text-align:center;}
         .gp:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(16,24,40,.13);}
         .gp b{font-size:14.5px;font-weight:800;color:#33404f;letter-spacing:.3px;line-height:1.1;}
         .gp small{font-size:10.5px;color:#8a97a8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;line-height:1.2;}
