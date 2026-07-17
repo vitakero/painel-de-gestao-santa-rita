@@ -3468,7 +3468,10 @@ function glCloudPush(){ var sb=glSB(); if(!sb||!glCloudOK) return;
 function glCloudDel(id){ glPendDel[id]=Date.now()+30000; var sb=glSB(); if(!sb||!glCloudOK) return; sb.from("galpoes").delete().eq("id",id).then(function(r){ if(r&&r.error){ setTimeout(function(){ try{ sb.from("galpoes").delete().eq("id",id).then(function(){},function(){}); }catch(e){} },1500); } },function(){}); }
 function glRealtime(){ var sb=glSB(); if(!sb||glRT) return; try{ var deb=null; function rec(){ clearTimeout(deb); deb=setTimeout(glCloudLoad,700); } glRT=sb.channel("galpoes_sync").on("postgres_changes",{event:"*",schema:"public",table:"galpoes"},rec).subscribe(); }catch(e){} }
 function glCloudLoad(){ var sb=glSB(); if(!sb||glCarregando) return;
-  if(!(window.__PERFIL && window.__PERFIL.is_master)){ galpoesG=[]; try{ localStorage.removeItem("galpoes_dados"); }catch(e){} return; }
+  // ATENÇÃO: só apaga o que está guardado aqui se TIVER CERTEZA que o login não é master.
+  // Se o perfil ainda não carregou (__PERFIL null), NÃO apaga nada — senão o master perde os próprios dados.
+  if(window.__PERFIL==null) return;
+  if(!window.__PERFIL.is_master){ galpoesG=[]; try{ localStorage.removeItem("galpoes_dados"); }catch(e){} return; }
   glCarregando=true;
   sb.from("galpoes").select("*").then(function(r){ glCarregando=false; if(r.error){ renderGalpoes(); return; } glCloudOK=true;
     var now=Date.now();
@@ -3904,7 +3907,9 @@ function pxRealtime(){
 }
 function pxCloudLoad(){
   var sb=pxSB(); if(!sb||pxCarregando) return;
-  if(!(window.__PERFIL && window.__PERFIL.is_master)){ // Pontos = financeiro: só master carrega/vê
+  // Perfil ainda carregando? NÃO apaga nada (senão o master perde os próprios dados na janela do login).
+  if(window.__PERFIL==null) return;
+  if(!window.__PERFIL.is_master){ // Pontos = financeiro: só master carrega/vê
     pontosG=[]; try{ localStorage.removeItem("pontos_gondola"); }catch(e){}
     return;
   }
