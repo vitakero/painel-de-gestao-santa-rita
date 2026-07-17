@@ -3448,12 +3448,13 @@ function glLoad(){ try{ var s=localStorage.getItem("galpoes_dados"); if(s) retur
 let galpoesG = glLoad();
 function glSB(){ return window.__SB||null; }
 var glCloudOK=false, glCarregando=false, glRT=null, glPushT=null, glPendDel={};
-function glRowFromG(g){ return {id:g.id,numero:String(g.numero||""),cnpj:g.cnpj||"",razao_social:g.razaoSocial||"",locatario:g.locatario||"",vendedor:g.vendedor||"",contato:g.contato||"",email:g.email||"",endereco:g.endereco||"",valor:+g.valor||0,pagamento:g.pagamento||"",abertura:g.abertura||"",vencimento:g.vencimento||"",obs:g.obs||"",manuais:g.manuais||null,contrato_url:(g.contratoArquivo&&g.contratoArquivo.indexOf("data:")!==0)?g.contratoArquivo:"",contrato_nome:g.contratoNome||"",atualizado_em:new Date().toISOString()}; }
-function glGFromRow(r){ var g={id:r.id,numero:String(r.numero||""),cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",locatario:r.locatario||"",vendedor:r.vendedor||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",valor:+r.valor||0,pagamento:r.pagamento||"",abertura:r.abertura||"",vencimento:r.vencimento||"",obs:r.obs||""}; if(r.manuais)g.manuais=r.manuais; if(r.contrato_url){ g.contratoArquivo=r.contrato_url; g.contratoNome=r.contrato_nome||""; } return g; }
+function glRowFromG(g){ return {id:g.id,numero:String(g.numero||""),cnpj:g.cnpj||"",razao_social:g.razaoSocial||"",locatario:g.locatario||"",vendedor:g.vendedor||"",contato:g.contato||"",email:g.email||"",endereco:g.endereco||"",valor:+g.valor||0,pagamento:g.pagamento||"",abertura:g.abertura||"",vencimento:g.vencimento||"",obs:g.obs||"",manuais:g.manuais||null,comprovantes:g.comprovantes||null,contrato_url:(g.contratoArquivo&&g.contratoArquivo.indexOf("data:")!==0)?g.contratoArquivo:"",contrato_nome:g.contratoNome||"",atualizado_em:new Date().toISOString()}; }
+function glGFromRow(r){ var g={id:r.id,numero:String(r.numero||""),cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",locatario:r.locatario||"",vendedor:r.vendedor||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",valor:+r.valor||0,pagamento:r.pagamento||"",abertura:r.abertura||"",vencimento:r.vencimento||"",obs:r.obs||""}; if(r.manuais)g.manuais=r.manuais; if(r.comprovantes)g.comprovantes=r.comprovantes; if(r.contrato_url){ g.contratoArquivo=r.contrato_url; g.contratoNome=r.contrato_nome||""; } return g; }
 // Sobe o contrato anexado pro Storage (bucket privado "pontos") antes de salvar — evita guardar base64 gigante no banco.
 function glSubirArquivos(g){
   var jobs=[];
   if(g.contratoArquivo && g.contratoArquivo.indexOf("data:")===0){ jobs.push(pxUploadDataUrl("galpao_"+g.id+"_contrato",g.contratoArquivo).then(function(u){ if(u) g.contratoArquivo=u; })); }
+  if(g.comprovantes){ Object.keys(g.comprovantes).forEach(function(m){ var c=g.comprovantes[m]; if(c&&c.arquivo&&c.arquivo.indexOf("data:")===0){ jobs.push(pxUploadDataUrl("galpao_"+g.id+"_comp_"+m,c.arquivo).then(function(u){ if(u) c.arquivo=u; })); } }); }
   return Promise.all(jobs);
 }
 function glSave(){ try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){} clearTimeout(glPushT); glPushT=setTimeout(glCloudPush,700); }
@@ -3635,6 +3636,34 @@ function pltDetalhe(){
     renderPlanta();
   });
 })();
+// CALENDÁRIO DE COBRANÇAS do galpão — mesmo formato dos pontos extras (uma linha por mensalidade).
+// A cobrança automática (boleto/Pix) entra quando a conta PESSOA FÍSICA for ligada ao banco;
+// até lá o botão explica isso e deixa marcar o recebimento na mão.
+function glAgendaHtml(g){
+  var ag=pxAgenda(g);
+  if(!ag.length) return '<div class="px-agenda-vazia">Informe a abertura e o vencimento do contrato para ver o calendário de cobranças.</div>';
+  var hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
+  var comps=g.comprovantes||{};
+  var ehBoleto=/bolet/i.test(String(g.pagamento||""));
+  var icoClip='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>';
+  var icoBarras='<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px;margin-right:5px;"><rect x="2" y="4" width="2.4" height="16" rx="0.6"></rect><rect x="6" y="4" width="1.4" height="16" rx="0.6"></rect><rect x="9" y="4" width="3" height="16" rx="0.6"></rect><rect x="13.6" y="4" width="1.4" height="16" rx="0.6"></rect><rect x="16.5" y="4" width="1.1" height="16" rx="0.55"></rect><rect x="19.2" y="4" width="2.8" height="16" rx="0.6"></rect></svg>';
+  var icoQr='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><line x1="14" y1="14.5" x2="14" y2="18"></line><line x1="17.5" y1="14" x2="17.5" y2="17.5"></line><line x1="21" y1="17.5" x2="21" y2="21"></line><line x1="14" y1="21" x2="17.5" y2="21"></line></svg>';
+  var linhas=ag.map(function(d,i){
+    var passou = d<hoje ? ' style="color:#9aa6b2;"' : '';
+    var key=pxDateKey(d), ref=g.id+"|"+key;
+    var c=comps[key];
+    var quit=pxQuitado(g,key);
+    var cobCell = quit
+      ? '<span class="px-quitado" title="Mensalidade recebida"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>Pago</span> <button type="button" class="px-rec" data-gldesfazer="'+ref+'" title="Desfazer pagamento">✕</button>'
+      : '<button type="button" class="px-pix-btn" data-glcob="'+ref+'">'+(ehBoleto?icoBarras:icoQr)+(ehBoleto?'Gerar boleto':'Gerar Pix')+'</button>';
+    var compCell = c
+      ? '<a href="#" class="px-comp-link" data-glcompview="'+ref+'" title="Ver comprovante">'+icoClip+'<span>comprovante</span></a> <button type="button" class="px-comp-x" data-glcomprem="'+ref+'" title="Remover comprovante">✕</button>'
+      : '<button type="button" class="px-comp-x" data-glcompbtn="'+ref+'" title="Anexar comprovante" style="border:1px dashed #b9c3cf;border-radius:6px;padding:3px 9px;color:#6b7787;background:#fff;">'+icoClip+'</button><input type="file" data-glcompfile="'+ref+'" accept="application/pdf,image/*" style="display:none;">';
+    return '<tr'+passou+'><td>'+(i+1)+'</td><td>'+pxDataChip(d)+'</td><td>'+brl(g.valor||0)+'</td><td class="px-pix-cell">'+cobCell+'</td><td class="px-comp-cell">'+compCell+'</td></tr>';
+  }).join("");
+  return '<div class="px-agenda"><div class="px-agenda-tit">Calendário de cobranças — '+ag.length+' parcela(s), todo dia '+ag[0].getDate()+'</div>'+
+    '<table class="px-agenda-tb"><thead><tr><th>#</th><th>Data da cobrança</th><th>Valor</th><th>Cobrança</th><th>Comprovante</th></tr></thead><tbody>'+linhas+'</tbody></table></div>';
+}
 // Bloco do CONTRATO do galpão — mesmo padrão dos pontos extras (Gerar contrato + Anexar contrato).
 function glContratoHtml(g){
   var clipIc='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>';
@@ -3714,10 +3743,6 @@ function renderGalpoes(){
     var d=pxParseData(g.vencimento); var vcls="";
     if(d){ var dias=(d-hoje)/86400000; if(dias<0) vcls="px-venc-vencido"; else if(dias<=15) vcls="px-venc-prox"; }
     var seta='<button class="px-exp" data-glexp="'+g.id+'" title="Ver dados da empresa"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>';
-    var pago=pxPagoMes(g);
-    var btnPago=pago
-      ? '<button type="button" class="btn-s" data-glpago="'+g.id+'" data-on="1" style="padding:5px 10px;font-size:12px;">Desfazer pago (mês atual)</button>'
-      : '<button type="button" class="btn-p" data-glpago="'+g.id+'" style="padding:5px 10px;font-size:12px;">Marcar pago (mês atual)</button>';
     return '<tr>'+
       '<td class="px-exp-cell">'+seta+'</td>'+
       '<td>'+(g.numero||"")+'</td>'+
@@ -3738,9 +3763,8 @@ function renderGalpoes(){
         pxDetItem("Inquilino", g.vendedor||"—")+
         pxDetItem("Contato", g.contato?pxFmtTel(g.contato):"—")+
         pxDetItem("E-mail", g.email ? ('<a href="mailto:'+pxEsc(g.email)+'">'+pxEsc(g.email)+'</a>') : "—", "px-det-wide")+
-        pxDetItem("Pagamento", btnPago)+
         glContratoHtml(g)+
-      '</div></div></td></tr>';
+      '</div>'+glAgendaHtml(g)+'</div></td></tr>';
   }).join("");
   tb.innerHTML='<table><thead><tr><th style="width:34px;"></th><th>Nº</th><th>Empresa</th><th>Inquilino</th><th>Valor</th><th>Pagamento</th><th>Abertura</th><th>Vencimento</th><th>Status</th><th>Observação</th><th></th></tr></thead><tbody>'+
     (linhas || '<tr><td colspan="11" class="vazio">Nenhum galpão.</td></tr>')+'</tbody></table>';
@@ -3788,17 +3812,49 @@ function renderGalpoes(){
     if(cbtnG){ var inpG=document.querySelector('[data-glcfile="'+cbtnG.dataset.glcfileBtn+'"]'); if(inpG) inpG.click(); return; }
     var cgerG=e.target.closest("[data-glcgerar]");
     if(cgerG){ uiConfirm({titulo:"Contrato dos galpões",msg:"O modelo de contrato dos galpões ainda não foi cadastrado. Me mande o contrato padrão que vocês usam para os galpões que eu monto o gerador — igual funciona nos pontos extras.\\n\\nPor enquanto, use o botão \\u201cAnexar contrato\\u201d para guardar o arquivo aqui.",ok:"Entendi",cancel:""}); return; }
-    var pago=e.target.closest("[data-glpago]");
-    if(pago){ var g=galpoesG.find(function(x){ return x.id===pago.dataset.glpago; }); if(g){ var k=glKeyMesAtual(g); if(!k){ uiConfirm({titulo:"Informe as datas",msg:"Preencha a abertura e o vencimento do contrato pra controlar os pagamentos por mês.",ok:"OK",cancel:""}); return; } g.manuais=g.manuais||{}; if(pago.dataset.on){ delete g.manuais[k]; } else { g.manuais[k]="autorizado"; } glSave(); renderGalpoes(); } return; }
+    // --- CALENDÁRIO DE COBRANÇAS ---
+    var cobG=e.target.closest("[data-glcob]");
+    if(cobG){
+      var pr=cobG.dataset.glcob.split("|"); var gc=galpoesG.find(function(x){ return x.id===pr[0]; }); if(!gc) return;
+      var ehBol=/bolet/i.test(String(gc.pagamento||""));
+      uiConfirm({titulo:(ehBol?"Gerar boleto":"Gerar Pix")+" — banco ainda não conectado",
+        msg:"A cobrança automática dos galpões vai sair da sua conta PESSOA FÍSICA, que ainda não está ligada ao banco (aguardando a resposta do Sicredi).\\n\\nAssim que o convênio for liberado, este botão passa a gerar o "+(ehBol?"boleto":"Pix")+" de verdade, igual acontece nos pontos extras.\\n\\nJá recebeu esta mensalidade? Posso marcar como paga.",
+        ok:"Marcar como paga", cancel:"Agora não"}).then(function(sim){
+          if(!sim) return;
+          gc.manuais=gc.manuais||{}; gc.manuais[pr[1]]="autorizado"; glSave(); renderGalpoes(); glReabrir(gc.id);
+        });
+      return;
+    }
+    var desfG=e.target.closest("[data-gldesfazer]");
+    if(desfG){ var pd=desfG.dataset.gldesfazer.split("|"); var gd=galpoesG.find(function(x){ return x.id===pd[0]; }); if(gd){ uiConfirm({titulo:"Desfazer pagamento",msg:"Marcar esta mensalidade como NÃO paga de novo?",ok:"Desfazer",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; if(gd.manuais) delete gd.manuais[pd[1]]; glSave(); renderGalpoes(); glReabrir(gd.id); }); } return; }
+    // --- COMPROVANTES (um por mensalidade) ---
+    var compBtnG=e.target.closest("[data-glcompbtn]");
+    if(compBtnG){ var ci=document.querySelector('[data-glcompfile="'+compBtnG.dataset.glcompbtn+'"]'); if(ci) ci.click(); return; }
+    var compViewG=e.target.closest("[data-glcompview]");
+    if(compViewG){ e.preventDefault(); var pv=compViewG.dataset.glcompview.split("|"); var gv=galpoesG.find(function(x){ return x.id===pv[0]; }); var cv=gv&&(gv.comprovantes||{})[pv[1]]; if(cv&&cv.arquivo){ srSignedUrl("pontos", cv.arquivo, function(u){ if(u) window.open(u,"_blank"); }); } return; }
+    var compRemG=e.target.closest("[data-glcomprem]");
+    if(compRemG){ var prm=compRemG.dataset.glcomprem.split("|"); var grm=galpoesG.find(function(x){ return x.id===prm[0]; }); if(grm){ uiConfirm({titulo:"Remover comprovante",msg:"Apagar o comprovante desta mensalidade?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; if(grm.comprovantes) delete grm.comprovantes[prm[1]]; glSave(); renderGalpoes(); glReabrir(grm.id); }); } return; }
     var ed=e.target.closest("[data-gledit]");
     if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNum").value=g2.numero||""; document.getElementById("glCnpj").value=g2.cnpj||""; document.getElementById("glRazao").value=g2.razaoSocial||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glVend").value=g2.vendedor||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; document.getElementById("glEnd").value=g2.endereco||""; document.getElementById("glValor").value=g2.valor||""; document.getElementById("glPag").value=g2.pagamento||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glVenc").value=g2.vencimento||""; document.getElementById("glObs").value=g2.obs||""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; try{ glSetDocTipo(((g2.cnpj||"").replace(/\\D/g,"").length===11)?"cpf":"cnpj"); }catch(e){} var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
     var rem=e.target.closest("[data-glrem]");
     if(rem){ var id=rem.dataset.glrem; var g3=galpoesG.find(function(x){ return x.id===id; }); uiConfirm({titulo:"Remover galpão",msg:"Apagar \\u201c"+((g3&&g3.nome)||"este galpão")+"\\u201d e todo o histórico dele?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; galpoesG=galpoesG.filter(function(x){ return x.id!==id; }); glCloudDel(id); glSave(); renderGalpoes(); }); return; }
   });
-  // anexar contrato: escolher arquivo (mesma regra dos pontos — até 3 MB)
+  // anexar contrato / comprovante: escolher arquivo (mesma regra dos pontos — até 3 MB)
   if(tb) tb.addEventListener("change",function(e){
     var inp=e.target.closest("[data-glcfile]");
-    if(inp && inp.files && inp.files[0]) glProcessaContratoArquivo(inp.dataset.glcfile, inp.files[0]);
+    if(inp && inp.files && inp.files[0]){ glProcessaContratoArquivo(inp.dataset.glcfile, inp.files[0]); return; }
+    var cinp=e.target.closest("[data-glcompfile]");
+    if(cinp && cinp.files && cinp.files[0]){
+      var f=cinp.files[0], pr=cinp.dataset.glcompfile.split("|");
+      if(f.size > 3*1024*1024){ cinp.value=""; uiConfirm({titulo:"Arquivo muito grande",msg:"O comprovante precisa ter no máximo 3 MB. Tente um PDF ou foto menor.",ok:"Entendi",cancel:""}); return; }
+      var reader=new FileReader();
+      reader.onload=function(){
+        var g=galpoesG.find(function(x){ return x.id===pr[0]; });
+        if(g){ if(!g.comprovantes) g.comprovantes={}; g.comprovantes[pr[1]]={arquivo:reader.result,nome:f.name}; glSave(); renderGalpoes(); glReabrir(g.id); }
+      };
+      reader.readAsDataURL(f);
+      return;
+    }
   });
   // arrastar-e-soltar direto na caixa "Anexar contrato"
   if(tb){
