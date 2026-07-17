@@ -991,8 +991,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .gp.atrasado{background:#f6d6cf;border-color:#e5a99d;}
         .gp.sel{outline:2.5px solid #157a35;outline-offset:1px;}
         .gp.gp-frente{min-height:98px;}
-        /* o galpão da frente-esquerda é quase QUADRADO na planta (bem mais fundo que os outros) */
-        .gp.gp-quadrado{aspect-ratio:1.15;}
+        /* o galpão da frente-esquerda é meio quadradão na planta (mais fundo que os outros, mas sem exagero) */
+        .gp.gp-quadrado{aspect-ratio:1.55;}
         /* do G até o M são um pouquinho mais curtos: ficam COLADOS NA PAREDE DIREITA e o corte é do lado esquerdo (o da rua) */
         .gp.gp-curto{width:90%;align-self:flex-end;}
         /* setinha da porta: mostra pra onde o galpão está virado */
