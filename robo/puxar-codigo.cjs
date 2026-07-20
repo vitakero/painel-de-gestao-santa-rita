@@ -21,6 +21,7 @@ const FILES = [
   ["robo/buildVrData.cjs", "buildVrData.cjs", "vr-data.json"],
   ["robo/publicar.cjs", "publicar.cjs", "PUBLICADO"],
   ["robo/pixWorker.cjs", "pixWorker.cjs", "pix_cobrancas"],
+  ["robo/vr-descobrir-agendamento.cjs", "vr-descobrir-agendamento.cjs", "DETETIVE do VR"],
 ];
 
 const headers = {
