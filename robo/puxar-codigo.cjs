@@ -16,12 +16,15 @@ const OWNER = "vitakero";
 const REPO = "painel-de-gestao-santa-rita";
 
 // [arquivo no GitHub (pasta robo/), destino local em scripts/, marcador de validade]
+// IMPORTANTE: este arquivo baixa a SI MESMO por último — assim ele nunca fica desatualizado
+// sozinho (a rodada atual segue com o código antigo; a PRÓXIMA rodada já usa o novo).
 const FILES = [
   ["robo/demoDashboard.ts", "demoDashboard.ts", "vr-data.json"],
   ["robo/buildVrData.cjs", "buildVrData.cjs", "vr-data.json"],
   ["robo/publicar.cjs", "publicar.cjs", "PUBLICADO"],
   ["robo/pixWorker.cjs", "pixWorker.cjs", "pix_cobrancas"],
   ["robo/vr-descobrir-agendamento.cjs", "vr-descobrir-agendamento.cjs", "DETETIVE do VR"],
+  ["robo/puxar-codigo.cjs", "puxar-codigo.cjs", "Baixa o codigo mais recente do GitHub via API"],
 ];
 
 const headers = {
