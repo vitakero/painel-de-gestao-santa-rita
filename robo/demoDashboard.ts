@@ -112,6 +112,26 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .tag { display:inline-flex; align-items:center; gap:6px; background:#ffffff22; border:1px solid #ffffff55; padding:3px 11px; border-radius:20px; font-size:11px; font-weight:600; letter-spacing:.3px; vertical-align:middle; }
   .tag .dot { width:7px; height:7px; border-radius:50%; background:#5df08a; animation:pulseDot 1.8s infinite; }
   @keyframes pulseDot { 0%{box-shadow:0 0 0 0 rgba(93,240,138,.6);} 70%{box-shadow:0 0 0 7px rgba(93,240,138,0);} 100%{box-shadow:0 0 0 0 rgba(93,240,138,0);} }
+  .gl-salbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:#fff;border:1px solid #e4e9f0;border-radius:12px;padding:12px 18px;margin-bottom:14px;}
+  .gl-salbar-l{display:flex;align-items:baseline;gap:9px;}
+  .gl-salbar-lbl{font-size:11.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#6b7787;}
+  .gl-salbar-v{font-size:17px;font-weight:700;color:#0f172a;}
+  .gl-salbar-desde{font-size:12px;color:#6b7787;}
+  .gl-salbar-r{display:flex;align-items:center;gap:14px;margin-left:auto;flex-wrap:wrap;}
+  .gl-salbar-eq{font-size:12.5px;color:#56606d;}
+  .gl-salavis{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#fff8ec;border:1px solid #f2dcb3;border-radius:12px;padding:14px 18px;margin-bottom:14px;}
+  .gl-salavis-ic{flex:0 0 30px;height:30px;display:flex;align-items:center;justify-content:center;background:#f6e3bf;border-radius:8px;font-size:15px;font-weight:700;color:#8a5a12;}
+  .gl-salavis-tx{flex:1;min-width:240px;display:flex;flex-direction:column;gap:3px;}
+  .gl-salavis-tx b{font-size:13.5px;color:#0f172a;}
+  .gl-salavis-tx span{font-size:12.5px;color:#56606d;line-height:1.45;}
+  .gl-salavis-bt{display:flex;gap:8px;flex-wrap:wrap;}
+  .gl-salfut{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#eef4fd;border:1px solid #cbdcf3;border-radius:12px;padding:14px 18px;margin-bottom:14px;}
+  .gl-salfut-ic{flex:0 0 30px;height:30px;display:flex;align-items:center;justify-content:center;background:#d9e6fa;border-radius:8px;font-size:15px;}
+  .gl-salfut-tx{flex:1;min-width:240px;display:flex;flex-direction:column;gap:3px;}
+  .gl-salfut-tx b{font-size:13.5px;color:#0f172a;}
+  .gl-salfut-tx span{font-size:12.5px;color:#4a5566;line-height:1.45;}
+  .gl-salfut-bt{display:flex;gap:8px;flex-wrap:wrap;}
+  @media (max-width:760px){ .gl-salbar-r{margin-left:0;} }
   .gl-doctog{display:inline-flex;border:1px solid #cdd6e0;border-radius:8px;overflow:hidden;margin-bottom:7px;}
   .gl-doctog .gl-dt{background:#fff;border:0;padding:5px 16px;font-size:12.5px;font-weight:600;color:#6b7787;cursor:pointer;transition:background .12s,color .12s;}
   .gl-doctog .gl-dt+.gl-dt{border-left:1px solid #cdd6e0;}
@@ -545,6 +565,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="receitas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span> Receitas</button>
     <button class="nav-item" data-page="estld"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg></span> Loja / Depósito<span class="soon">novo</span></button>
     <button class="nav-item" data-page="pedidos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span> Pedidos<span class="soon">novo</span><span class="nav-badge" id="pedNavBadge" style="display:none;"></span></button>
+    <button class="nav-item" data-page="central"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Central Logística<span class="soon">novo</span></button>
     <button class="nav-item" data-page="cargos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4V10H4zM10 20h4V4h-4zM16 20h4v-7h-4z"/></svg></span> Cargos e Salários</button>
     <button class="nav-item" data-page="jornada"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span> Banco de Horas<span class="soon">novo</span></button>
     <button class="nav-item" data-page="manutencoes"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.3-.6-.6-2.3 2.6-2.6z"/></svg></span> Manutenções<span class="nav-badge" id="manNavBadge" style="display:none;"></span></button>
@@ -878,6 +899,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     </section>
 
     <section id="page-galpoes" class="page">
+      <div id="glSalAviso"></div>
+      <div id="glSalFuturo"></div>
+      <div id="glSalBar"></div>
       <div id="glInad"></div>
 
       <div class="card" id="glFormCard">
@@ -898,9 +922,18 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           </div>
           <div class="campo" style="flex:1;min-width:170px;"><label for="glLoc">Empresa</label><input type="text" id="glLoc" placeholder="nome da empresa (busca pelo CNPJ)"><input type="hidden" id="glRazao"><span id="glCnpjMsg" style="font-size:11px;display:block;margin-top:4px;line-height:1.25;"></span></div>
           <div class="campo"><label for="glVend">Inquilino</label><input type="text" id="glVend" placeholder="ex: João da Silva"></div>
+          <div class="campo"><label for="glRg">RG do inquilino</label><input type="text" id="glRg" placeholder="ex: 003.046.362" style="width:150px;"></div>
           <div class="campo"><label for="glTel">Contato</label><input type="tel" id="glTel" placeholder="ex: (84) 99999-0000" style="width:160px;"></div>
           <div class="campo"><label for="glEmail">E-mail (p/ cobrança)</label><input type="email" id="glEmail" placeholder="ex: financeiro@empresa.com" style="width:230px;"></div>
           <div class="campo" style="flex:1;min-width:200px;"><label for="glEnd">Endereço do galpão</label><input type="text" id="glEnd" placeholder="ex: Av. Central, 500 - onde o galpão fica"></div>
+          <div class="campo" style="flex:1;min-width:200px;"><label for="glEndInq">Endereço do inquilino</label><input type="text" id="glEndInq" placeholder="ex: R. Terezinha Leite, 77 - Penedo (onde ele mora)"></div>
+          <div class="campo"><label for="glAluguel">Aluguel no contrato</label>
+            <select id="glAluguel" class="px-filtro" style="width:190px;">
+              <option value="1">1 salário mínimo</option>
+              <option value="0.5">Meio salário mínimo</option>
+              <option value="fixo">Valor fixo em R$</option>
+            </select>
+          </div>
           <div class="campo"><label for="glValor">Valor (R$)</label><input type="number" id="glValor" step="0.01" min="0" style="width:120px;"></div>
           <div class="campo"><label for="glPag">Modo de pagamento</label>
             <select id="glPag" class="px-filtro" style="width:150px;">
@@ -909,6 +942,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
               <option value="Pix">Pix</option>
             </select>
           </div>
+          <div class="campo"><label for="glDiaPag">Pagar até o dia</label><input type="number" id="glDiaPag" min="1" max="28" placeholder="5" style="width:100px;"></div>
           <div class="campo"><label for="glAbertura">Abertura do contrato</label><input type="date" id="glAbertura"></div>
           <div class="campo"><label for="glVenc">Vencimento do contrato</label><input type="date" id="glVenc"></div>
           <div class="campo" style="flex:1;min-width:180px;"><label for="glObs">Observação</label><input type="text" id="glObs" placeholder="ex: Mensalmente todo dia 20"></div>
@@ -1018,6 +1052,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .plt-det-btn:hover{background:#12692e;}
         @media (max-width:1080px){ .plt-wrap{flex-direction:column;align-items:stretch;} .plt-det{flex:1 1 auto;width:100%;} }
       </style>
+      <div class="mpk-grid" id="pltKpis"></div>
       <div class="card">
         <div class="plt-head">
           <div>
@@ -2214,6 +2249,71 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div style="margin:14px 0 10px;"><input class="eld-inp" id="eldBusca" placeholder="Buscar produto por nome ou código de barras" autocomplete="off" style="width:100%;max-width:430px;box-sizing:border-box;"></div>
         <div id="eldFiltros" style="margin:0 0 12px;display:flex;gap:8px;flex-wrap:wrap;"></div>
         <div class="eld-tb-wrap"><table class="eld-tb"><thead><tr><th>Produto</th><th style="text-align:center;">Total</th><th style="text-align:center;">Na loja</th><th style="text-align:center;">No depósito</th><th>Situação</th></tr></thead><tbody id="eldTbody"></tbody></table></div>
+      </div>
+    </section>
+
+    <section id="page-central" class="page">
+      <style>
+      .cl-tabs{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap;}
+      .cl-tab{background:#fff;border:1px solid #d7dee7;border-radius:9px;padding:8px 16px;font-size:13.5px;font-weight:600;color:#56606d;cursor:pointer;font-family:inherit;}
+      .cl-tab.on{background:#157a35;border-color:#157a35;color:#fff;}
+      .cl-integ{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-radius:12px;padding:12px 18px;margin-bottom:16px;font-size:13px;line-height:1.45;}
+      .cl-integ.demo{background:#fff8ec;border:1px solid #f2dcb3;color:#8a5a12;}
+      .cl-integ.live{background:#e7f2ea;border:1px solid #bfe0cb;color:#0e5726;}
+      .cl-integ b{font-weight:700;}
+      .cl-integ .cl-atz{margin-left:auto;font-size:12px;color:#8a97a8;white-space:nowrap;}
+      .cl-tl{display:flex;flex-direction:column;}
+      .cl-tl-row{display:grid;grid-template-columns:104px 1fr auto;gap:14px;align-items:center;padding:11px 4px;border-top:1px solid #eef2f6;}
+      .cl-tl-row:first-child{border-top:0;}
+      .cl-tl-hora{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:#46535f;font-weight:600;}
+      .cl-tl-forn{font-size:14.5px;color:#1d2733;font-weight:600;}
+      .cl-tl-sub{font-size:12px;color:#8a97a8;margin-top:1px;}
+      .cl-tl-livre .cl-tl-forn{color:#aeb8c3;font-weight:500;font-style:italic;}
+      .cl-st{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;padding:3px 11px;border-radius:999px;white-space:nowrap;}
+      .cl-st::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none;}
+      .cl-st.concluido{background:#e3f3e8;color:#1b8f45;}
+      .cl-st.andamento{background:#e2ecf5;color:#2f6191;}
+      .cl-st.programado{background:#f8efd6;color:#9a6a00;}
+      .cl-st.atrasado{background:#f7e3df;color:#b8382a;}
+      .cl-st.cancelado{background:#eef1f4;color:#8a97a8;}
+      .cl-filtros{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 14px;}
+      .cl-filtros select{border:1px solid #cdd6e0;border-radius:8px;padding:7px 12px;font-size:13px;font-family:inherit;color:#2a3340;background:#fff;cursor:pointer;}
+      .cl-wknav{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+      .cl-wknav button{border:1px solid #d7dee7;background:#fff;border-radius:8px;height:32px;min-width:32px;cursor:pointer;font-size:15px;color:#46535f;font-family:inherit;}
+      .cl-wknav .lbl{font-weight:700;font-size:14.5px;color:#1d2733;}
+      .cl-wk-wrap{overflow-x:auto;}
+      .cl-wk{border-collapse:collapse;width:100%;min-width:720px;}
+      .cl-wk th{font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:#6b7787;font-weight:700;padding:7px 6px;text-align:center;border-bottom:1px solid #e6ebf1;line-height:1.35;}
+      .cl-wk th.hoje{color:#157a35;}
+      .cl-wk td{border:1px solid #eef2f6;height:44px;vertical-align:top;padding:3px;width:15%;}
+      .cl-wk td.hcol{width:52px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#9aa5b1;text-align:right;padding-right:8px;vertical-align:middle;border-left:0;border-right:0;}
+      .cl-wk-blk{font-size:11px;font-weight:700;border-radius:5px;padding:3px 7px;margin-bottom:2px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+      .cl-wk-blk.concluido{background:#1b8f45;}
+      .cl-wk-blk.andamento{background:#2f6191;}
+      .cl-wk-blk.programado{background:#c99a2e;}
+      .cl-wk-blk.atrasado{background:#b8382a;}
+      .cl-wk-blk.cancelado{background:#aeb8c3;}
+      .cl-vazio{padding:30px;text-align:center;color:#8a97a8;font-size:13.5px;}
+      </style>
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:2px;">
+          <h2 style="margin:0;display:flex;align-items:center;gap:9px;font-size:18px;color:#0c5a26;"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#157a35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Central Logística</h2>
+        </div>
+        <p style="font-size:12.5px;color:#8a97a8;margin:2px 0 16px;">Programação de recebimentos — os agendamentos vêm do sistema VR; aqui você enxerga o dia, a semana e os atrasos num relance.</p>
+        <div id="clIntegBanner"></div>
+        <div class="cl-tabs">
+          <button type="button" class="cl-tab on" data-clview="hoje">Visão de hoje</button>
+          <button type="button" class="cl-tab" data-clview="agenda">Agenda da semana</button>
+        </div>
+        <div id="clHoje">
+          <div class="mpk-grid" id="clKpis" style="margin-bottom:16px;"></div>
+          <div class="cl-filtros" id="clFiltros"></div>
+          <div id="clTimeline"></div>
+        </div>
+        <div id="clAgenda" style="display:none;">
+          <div class="cl-wknav"><button type="button" id="clWkPrev" title="Semana anterior">‹</button><span class="lbl" id="clWkLbl"></span><button type="button" id="clWkNext" title="Próxima semana">›</button><button type="button" id="clWkHoje" style="min-width:auto;padding:0 12px;font-size:12.5px;font-weight:600;">Esta semana</button></div>
+          <div class="cl-wk-wrap" id="clWeek"></div>
+        </div>
       </div>
     </section>
 
@@ -3448,8 +3548,8 @@ function glLoad(){ try{ var s=localStorage.getItem("galpoes_dados"); if(s) retur
 let galpoesG = glLoad();
 function glSB(){ return window.__SB||null; }
 var glCloudOK=false, glCarregando=false, glRT=null, glPushT=null, glPendDel={};
-function glRowFromG(g){ return {id:g.id,numero:String(g.numero||""),cnpj:g.cnpj||"",razao_social:g.razaoSocial||"",locatario:g.locatario||"",vendedor:g.vendedor||"",contato:g.contato||"",email:g.email||"",endereco:g.endereco||"",valor:+g.valor||0,pagamento:g.pagamento||"",abertura:g.abertura||"",vencimento:g.vencimento||"",obs:g.obs||"",manuais:g.manuais||null,comprovantes:g.comprovantes||null,contrato_url:(g.contratoArquivo&&g.contratoArquivo.indexOf("data:")!==0)?g.contratoArquivo:"",contrato_nome:g.contratoNome||"",atualizado_em:new Date().toISOString()}; }
-function glGFromRow(r){ var g={id:r.id,numero:String(r.numero||""),cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",locatario:r.locatario||"",vendedor:r.vendedor||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",valor:+r.valor||0,pagamento:r.pagamento||"",abertura:r.abertura||"",vencimento:r.vencimento||"",obs:r.obs||""}; if(r.manuais)g.manuais=r.manuais; if(r.comprovantes)g.comprovantes=r.comprovantes; if(r.contrato_url){ g.contratoArquivo=r.contrato_url; g.contratoNome=r.contrato_nome||""; } return g; }
+function glRowFromG(g){ return {id:g.id,numero:String(g.numero||""),cnpj:g.cnpj||"",razao_social:g.razaoSocial||"",locatario:g.locatario||"",vendedor:g.vendedor||"",rg:g.rg||"",contato:g.contato||"",email:g.email||"",endereco:g.endereco||"",endereco_inq:g.enderecoInq||"",aluguel:g.aluguel||"1",valor:+g.valor||0,pagamento:g.pagamento||"",dia_pag:+g.diaPag||0,abertura:g.abertura||"",vencimento:g.vencimento||"",obs:g.obs||"",manuais:g.manuais||null,comprovantes:g.comprovantes||null,contrato_url:(g.contratoArquivo&&g.contratoArquivo.indexOf("data:")!==0)?g.contratoArquivo:"",contrato_nome:g.contratoNome||"",atualizado_em:new Date().toISOString()}; }
+function glGFromRow(r){ var g={id:r.id,numero:String(r.numero||""),cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",locatario:r.locatario||"",vendedor:r.vendedor||"",rg:r.rg||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",enderecoInq:r.endereco_inq||"",aluguel:r.aluguel||"1",valor:+r.valor||0,pagamento:r.pagamento||"",diaPag:+r.dia_pag||0,abertura:r.abertura||"",vencimento:r.vencimento||"",obs:r.obs||""}; if(r.manuais)g.manuais=r.manuais; if(r.comprovantes)g.comprovantes=r.comprovantes; if(r.contrato_url){ g.contratoArquivo=r.contrato_url; g.contratoNome=r.contrato_nome||""; } return g; }
 // Sobe o contrato anexado pro Storage (bucket privado "pontos") antes de salvar — evita guardar base64 gigante no banco.
 function glSubirArquivos(g){
   var jobs=[];
@@ -3481,7 +3581,7 @@ function glCloudLoad(){ var sb=glSB(); if(!sb||glCarregando) return;
 }
 // Chave da parcela do MÊS ATUAL (pra marcar pago). Usa o mesmo calendário dos pontos.
 function glKeyMesAtual(g){ var ym=pxAnoMesAtual(); var ag=pxAgenda(g); for(var i=0;i<ag.length;i++){ var k=pxDateKey(ag[i]); if(k.indexOf(ym)===0) return k; } return ag.length?pxDateKey(ag[ag.length-1]):""; }
-function glLimparForm(){ ["glNum","glCnpj","glRazao","glLoc","glVend","glTel","glEmail","glEnd","glValor","glAbertura","glVenc","glObs"].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=""; }); var pg=document.getElementById("glPag"); if(pg) pg.value=""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; var t=document.getElementById("glFormTitulo"); if(t) t.textContent="Adicionar galpão"; var s=document.getElementById("glSalvar"); if(s){ s.textContent="Adicionar"; delete s.dataset.edit; } var c=document.getElementById("glCancelar"); if(c) c.style.display="none"; try{ glSetDocTipo("cnpj"); }catch(e){} }
+function glLimparForm(){ ["glNum","glCnpj","glRazao","glLoc","glVend","glRg","glTel","glEmail","glEnd","glEndInq","glValor","glDiaPag","glAbertura","glVenc","glObs"].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=""; }); var pg=document.getElementById("glPag"); if(pg) pg.value=""; var al=document.getElementById("glAluguel"); if(al) al.value="1"; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; var t=document.getElementById("glFormTitulo"); if(t) t.textContent="Adicionar galpão"; var s=document.getElementById("glSalvar"); if(s){ s.textContent="Adicionar"; delete s.dataset.edit; } var c=document.getElementById("glCancelar"); if(c) c.style.display="none"; try{ glSetDocTipo("cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} }
 // Busca de CNPJ do locatário (reaproveita os normalizadores dos pontos).
 function glPreencherCnpj(d,msg){
   var fantasia=d.nome_fantasia||"", razao=d.razao_social||"", nome=fantasia||razao;
@@ -3532,11 +3632,11 @@ function glSetDocTipo(t){
    fundo (área pra crescer) — todo o resto é virado PRA DENTRO (pra ela).
    Os códigos abaixo são provisórios (o Victor vai numerar "102 A"...).
    =================================================================== */
-var PLT_FRENTE=["?","E","F"];        // viram pra RUA PRINCIPAL (BR) — esquina
-var PLT_ESQ=["A","B"];               // lado esquerdo, viram pra rua interna
-var PLT_DIR=["C","D"];               // lado direito, viram pra rua interna
-var PLT_FUNDO=["G","H","I","J"];     // bloco lá atrás, viram pra rua interna
-var PLT_FUNDO2=["M"];                // o do fundo
+var PLT_FRENTE=["1470","1470 E","1470 F"];  // viram pra RUA PRINCIPAL (BR) — esquina
+var PLT_ESQ=["1470 A","1470 B"];            // lado esquerdo, viram pra rua interna
+var PLT_DIR=["1470 C","1470 D"];            // lado direito, viram pra rua interna
+var PLT_FUNDO=["1470 G","1470 H","1470 I","1470 J"]; // bloco lá atrás, viram pra rua interna
+var PLT_FUNDO2=["1470 M"];                  // o do fundo
 var pltSel=null;
 // Acha o galpão cadastrado pelo "Nº do galpão" (ex: "102 A") que bate com o código da planta.
 function pltGalpaoDe(cod){
@@ -3558,8 +3658,8 @@ function pltBox(cod,vira,extra){
 function renderPlanta(){
   var el=document.getElementById("pltTerreno"); if(!el) return;
   // Login ainda carregando: espera e tenta de novo (em vez de já dizer "Área restrita").
-  if(window.__PERFIL==null){ el.innerHTML='<div style="padding:26px;text-align:center;color:#8a97a8;font-style:italic;">Carregando…</div>'; var _pc=document.getElementById("pltDetalhe"); if(_pc) _pc.innerHTML=""; if(!window.__pltRetry){ window.__pltRetry=setTimeout(function(){ window.__pltRetry=null; renderPlanta(); },700); } return; }
-  if(!window.__PERFIL.is_master){ el.innerHTML='<div style="padding:26px;text-align:center;color:#8a97a8;line-height:1.7;">Área restrita — só o <b>login master</b> vê os galpões.<br><span style="font-size:12px;">Seu login não está marcado como master. Vá na aba <b>Acessos</b>, abra o seu usuário e marque <b>“Master (vê tudo)”</b>.</span></div>'; var _pd=document.getElementById("pltDetalhe"); if(_pd) _pd.innerHTML=""; return; }
+  if(window.__PERFIL==null){ el.innerHTML='<div style="padding:26px;text-align:center;color:#8a97a8;font-style:italic;">Carregando…</div>'; var _pc=document.getElementById("pltDetalhe"); if(_pc) _pc.innerHTML=""; var _pk=document.getElementById("pltKpis"); if(_pk) _pk.innerHTML=""; if(!window.__pltRetry){ window.__pltRetry=setTimeout(function(){ window.__pltRetry=null; renderPlanta(); },700); } return; }
+  if(!window.__PERFIL.is_master){ el.innerHTML='<div style="padding:26px;text-align:center;color:#8a97a8;line-height:1.7;">Área restrita — só o <b>login master</b> vê os galpões.<br><span style="font-size:12px;">Seu login não está marcado como master. Vá na aba <b>Acessos</b>, abra o seu usuário e marque <b>“Master (vê tudo)”</b>.</span></div>'; var _pd=document.getElementById("pltDetalhe"); if(_pd) _pd.innerHTML=""; var _pk2=document.getElementById("pltKpis"); if(_pk2) _pk2.innerHTML=""; return; }
   var h='<div class="plt-br">Rua principal (BR) — calçamento</div>'+
     '<div class="plt-calcada">Calçada</div>'+
     // FRENTE: os 3 virados pra fora, colados entre si e nas paredes + o PORTÃO (linha) ligando o da esquerda ao E
@@ -3587,7 +3687,45 @@ function renderPlanta(){
   var todos=PLT_FRENTE.concat(PLT_ESQ,PLT_DIR,PLT_FUNDO,PLT_FUNDO2);
   var ocup=todos.filter(function(c){ return !!pltGalpaoDe(c); }).length;
   var info=document.getElementById("pltInfo"); if(info) info.textContent=ocup+" de "+todos.length+" galpões ocupados";
+  pltKpis(ocup, todos.length);
   pltDetalhe();
+}
+// Faixa de indicadores da planta — mesma pegada do mapa dos pontos, com os dados dos galpões.
+function pltKpis(ocup, tot){
+  var el=document.getElementById("pltKpis"); if(!el) return;
+  var livres=tot-ocup;
+  var taxa=tot?Math.round(ocup/tot*100):0;
+  var receita=0, recebido=0, ativos=0, venc30=0, vencidos=0, pendVal=0, pendN=0;
+  galpoesG.forEach(function(g){
+    if(!(g.vendedor||g.locatario||"").trim()) return;
+    receita+=(+g.valor||0);
+    if(pxPagoMes(g)) recebido+=(+g.valor||0);
+    var dias=mapaDiasContrato(g);
+    if(dias===null) ativos++;
+    else if(dias<0) vencidos++;
+    else { ativos++; if(dias<=30) venc30++; }
+    var x=pxInadimplencia(g);
+    if(x){ pendN++; pendVal+=x.valor; }
+  });
+  var icGrid='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>';
+  var icCifra='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>';
+  var icDoc='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>';
+  var icAlerta='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
+  var icCheck='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
+  el.innerHTML=
+    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Taxa de ocupação</span><span class="mpk-ico g">'+icGrid+'</span></div>'+
+      '<div class="mpk-v">'+taxa+'<span class="un">%</span></div>'+
+      '<div class="mpk-sub"><b>'+ocup+' de '+tot+'</b> galpões ocupados · '+livres+' livre'+(livres===1?'':'s')+'</div>'+
+      '<div class="mpk-bar"><i style="width:'+taxa+'%"></i></div></div>'+
+    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Receita mensal</span><span class="mpk-ico g">'+icCifra+'</span></div>'+
+      '<div class="mpk-v">'+brl(receita)+'</div>'+
+      '<div class="mpk-sub">recebido este mês: <b>'+brl(recebido)+'</b></div></div>'+
+    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Contratos ativos</span><span class="mpk-ico b">'+icDoc+'</span></div>'+
+      '<div class="mpk-v">'+ativos+'</div>'+
+      '<div class="mpk-sub">'+(venc30?'<span class="warn">'+venc30+' vencendo em 30 dias</span>':'nenhum vencendo em 30 dias')+(vencidos?' · <span class="bad">'+vencidos+' vencido'+(vencidos===1?'':'s')+'</span>':'')+'</div></div>'+
+    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Pendências financeiras</span><span class="mpk-ico '+(pendN?'r':'g')+'">'+(pendN?icAlerta:icCheck)+'</span></div>'+
+      '<div class="mpk-v"'+(pendN?' style="color:#b03222"':'')+'>'+brl(pendVal)+'</div>'+
+      '<div class="mpk-sub">'+(pendN?'<span class="bad">'+pendN+' inquilino'+(pendN===1?'':'s')+' em atraso</span>':'<span class="ok">Tudo em dia</span>')+'</div></div>';
 }
 // Centraliza o nome "RUA INTERNA" no meio da LINHA PONTILHADA INTEIRA (que começa no portão e desce até o fundo).
 // O trecho que fica no portão muda de tamanho conforme os galpões da frente, então é calculado na hora.
@@ -3636,6 +3774,192 @@ function pltDetalhe(){
     renderPlanta();
   });
 })();
+
+// ===================== CENTRAL LOGÍSTICA — Programação de recebimentos (Fase 1: só leitura) =====================
+// Os agendamentos são do VR (loja, data, hora inicial/final, fornecedor). O painel APENAS EXIBE — não cria nem grava.
+// Enquanto o VR não está conectado, mostra dados de EXEMPLO com aviso. Quando o robô sincronizar a tabela
+// central_agendamentos na nuvem, os dados reais entram no lugar automaticamente (centralModo vira "live").
+var centralAg=[];
+var centralModo="demo";     // "demo" | "live"
+var centralAtz="";          // hora da última sincronização (modo live)
+var clView="hoje";          // "hoje" | "agenda"
+var clWkBase=null;          // segunda-feira da semana exibida na agenda
+var clFiltroForn="", clFiltroSt="";
+var CL_HINI=7, CL_HFIM=18;  // janela operacional do recebimento (07h às 18h)
+function clPad(n){ return (n<10?"0":"")+n; }
+function clDataISO(d){ return d.getFullYear()+"-"+clPad(d.getMonth()+1)+"-"+clPad(d.getDate()); }
+function clHM(min){ return clPad(Math.floor(min/60))+":"+clPad(min%60); }
+function clToMin(hm){ var p=String(hm||"").split(":"); return (+p[0]||0)*60+(+p[1]||0); }
+function clAgoraHM(){ var d=new Date(); return clPad(d.getHours())+":"+clPad(d.getMinutes()); }
+function clSegDa(d){ var x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); var wd=(x.getDay()+6)%7; x.setDate(x.getDate()-wd); return x; } // 2ª-feira da semana
+// Status: o oficial vem do VR; "atrasado/andamento/programado" o painel calcula pela hora (rótulo visual, não grava no VR).
+function clStatus(a){
+  if(a.situacao==="cancelado") return {k:"cancelado",t:"Cancelado"};
+  if(a.situacao==="concluido") return {k:"concluido",t:"Concluído"};
+  var agora=new Date(), hoje=clDataISO(agora);
+  if(a.data<hoje) return {k:"concluido",t:"Concluído"};
+  if(a.data>hoje) return {k:"programado",t:"Programado"};
+  var nowMin=agora.getHours()*60+agora.getMinutes(), ini=clToMin(a.hi), fim=clToMin(a.hf);
+  if(nowMin>fim+20) return {k:"atrasado",t:"Atrasado"};   // passou 20 min da janela e não concluiu
+  if(nowMin>=ini) return {k:"andamento",t:"Em andamento"};
+  return {k:"programado",t:"Programado"};
+}
+// Exemplos ancorados na hora ATUAL, pra sempre haver concluído/andamento/programado ao abrir.
+function clSeed(){
+  var agora=new Date(), hoje=clDataISO(agora);
+  var nowMin=agora.getHours()*60+agora.getMinutes();
+  function at(off){ var m=Math.max(CL_HINI*60, Math.min(CL_HFIM*60-60, Math.round((nowMin+off)/60)*60)); return clHM(m); }
+  var fs=["Coca-Cola FEMSA","Nestlé","Ambev","Friboi","Vigor","Piracanjuba","M. Dias Branco","Bettanin"];
+  function row(id,dISO,hi,forn,situ,ped){ return {id:id,vrId:id,loja:"Loja 1",data:dISO,hi:hi,hf:clHM(clToMin(hi)+60),fornecedor:forn,situacao:situ||"",pedido:ped||""}; }
+  var L=[];
+  L.push(row("cx1",hoje,at(-180),fs[0],"concluido","PC-10231"));
+  L.push(row("cx2",hoje,at(-120),fs[1],"concluido","PC-10244"));
+  L.push(row("cx3",hoje,at(-10),fs[2],"","PC-10250"));
+  L.push(row("cx4",hoje,at(95),fs[3],"","PC-10258"));
+  L.push(row("cx5",hoje,at(185),fs[4],"","PC-10261"));
+  var seg=clSegDa(agora);
+  for(var k=0;k<6;k++){ var dd=new Date(seg); dd.setDate(seg.getDate()+k); var di=clDataISO(dd);
+    if(di===hoje) continue;
+    if(k%2===0) L.push(row("wk"+k+"a",di,clHM((CL_HINI+1)*60),fs[(k+2)%fs.length],"",""));
+    L.push(row("wk"+k+"b",di,clHM((CL_HINI+3)*60),fs[(k+4)%fs.length],"",""));
+    if(k===2) L.push(row("wk"+k+"c",di,clHM((CL_HINI+5)*60),fs[(k+1)%fs.length],"",""));
+  }
+  return L;
+}
+function clSB(){ try{ return window.__SB||null; }catch(e){ return null; } }
+// Lê a tabela central_agendamentos (que o robô vai preencher com os dados do VR). Vazia/inexistente → exemplos.
+function clCloudLoad(){
+  var sb=clSB();
+  if(!sb){ centralAg=clSeed(); centralModo="demo"; renderCentral(); return; }
+  try{
+    sb.from("central_agendamentos").select("*").then(function(r){
+      if(r&&!r.error&&r.data&&r.data.length){
+        centralAg=r.data.map(function(x){ return {id:x.id,vrId:x.vr_id||x.id,loja:x.loja||"",data:x.data||"",hi:x.hi||"",hf:x.hf||"",fornecedor:x.fornecedor||"",situacao:x.situacao||"",pedido:x.pedido||""}; });
+        centralModo="live"; centralAtz=clAgoraHM();
+      } else { centralAg=clSeed(); centralModo="demo"; }
+      renderCentral();
+    }, function(){ centralAg=clSeed(); centralModo="demo"; renderCentral(); });
+  }catch(e){ centralAg=clSeed(); centralModo="demo"; renderCentral(); }
+}
+function renderCentral(){
+  if(!centralAg||!centralAg.length){ if(centralModo!=="live"){ centralAg=clSeed(); } }
+  renderClInteg();
+  var vh=document.getElementById("clHoje"), va=document.getElementById("clAgenda");
+  if(clView==="agenda"){ if(vh)vh.style.display="none"; if(va)va.style.display=""; renderClAgenda(); }
+  else { if(va)va.style.display="none"; if(vh)vh.style.display=""; renderClFiltros(); renderClKpis(); renderClTimeline(); }
+}
+function renderClInteg(){
+  var el=document.getElementById("clIntegBanner"); if(!el) return;
+  if(centralModo==="live"){
+    el.innerHTML='<div class="cl-integ live"><b>Conectado ao VR</b> — os agendamentos abaixo vêm do sistema VR.<span class="cl-atz">Atualizado '+pxEsc(centralAtz||"agora")+'</span></div>';
+  } else {
+    el.innerHTML='<div class="cl-integ demo"><b>Dados de exemplo</b> — a Central ainda não está ligada ao VR. Quando o robô sincronizar os agendamentos, os dados reais entram aqui sozinhos.</div>';
+  }
+}
+function clItensDoDia(){
+  var hoje=clDataISO(new Date());
+  return centralAg.filter(function(a){
+    if(a.data!==hoje) return false;
+    if(clFiltroForn && a.fornecedor!==clFiltroForn) return false;
+    if(clFiltroSt && clStatus(a).k!==clFiltroSt) return false;
+    return true;
+  }).sort(function(a,b){ return clToMin(a.hi)-clToMin(b.hi); });
+}
+function renderClFiltros(){
+  var el=document.getElementById("clFiltros"); if(!el) return;
+  var forns={}, hoje=clDataISO(new Date());
+  centralAg.forEach(function(a){ if(a.data===hoje) forns[a.fornecedor]=1; });
+  var opt='<option value="">Todos os fornecedores</option>';
+  Object.keys(forns).sort().forEach(function(f){ opt+='<option value="'+pxEsc(f)+'"'+(clFiltroForn===f?" selected":"")+'>'+pxEsc(f)+'</option>'; });
+  var sts=[["","Todos os status"],["programado","Programado"],["andamento","Em andamento"],["concluido","Concluído"],["atrasado","Atrasado"]];
+  var sopt=""; sts.forEach(function(s){ sopt+='<option value="'+s[0]+'"'+(clFiltroSt===s[0]?" selected":"")+'>'+s[1]+'</option>'; });
+  el.innerHTML='<select id="clSelForn">'+opt+'</select><select id="clSelSt">'+sopt+'</select>';
+  var sf=document.getElementById("clSelForn"); if(sf) sf.onchange=function(){ clFiltroForn=this.value; renderClTimeline(); };
+  var ss=document.getElementById("clSelSt"); if(ss) ss.onchange=function(){ clFiltroSt=this.value; renderClTimeline(); };
+}
+function renderClKpis(){
+  var el=document.getElementById("clKpis"); if(!el) return;
+  var hoje=clDataISO(new Date());
+  var doDia=centralAg.filter(function(a){ return a.data===hoje && clStatus(a).k!=="cancelado"; });
+  var conc=0,and=0,atr=0,prox=null;
+  doDia.forEach(function(a){ var k=clStatus(a).k;
+    if(k==="concluido")conc++; else if(k==="andamento")and++; else if(k==="atrasado")atr++;
+    else if(k==="programado"){ if(!prox||clToMin(a.hi)<clToMin(prox.hi)) prox=a; } });
+  var ocup={}; doDia.forEach(function(a){ ocup[Math.floor(clToMin(a.hi)/60)]=1; });
+  var livres=0, jan=CL_HFIM-CL_HINI; for(var hr=CL_HINI;hr<CL_HFIM;hr++){ if(!ocup[hr]) livres++; }
+  var icTruck='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>';
+  var icAlerta='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+  var icRelogio='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7.5 12 12 15 13.5"/></svg>';
+  var icCheck='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+  el.innerHTML=
+    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Previstos hoje</span><span class="mpk-ico g">'+icTruck+'</span></div>'+
+      '<div class="mpk-v">'+doDia.length+'</div>'+
+      '<div class="mpk-sub"><b>'+conc+'</b> concluído'+(conc===1?"":"s")+' · '+and+' em andamento</div></div>'+
+    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Atrasados</span><span class="mpk-ico '+(atr?"r":"g")+'">'+(atr?icAlerta:icCheck)+'</span></div>'+
+      '<div class="mpk-v"'+(atr?' style="color:#b03222"':'')+'>'+atr+'</div>'+
+      '<div class="mpk-sub">'+(atr?'<span class="bad">precisam de atenção</span>':'<span class="ok">nenhum atraso</span>')+'</div></div>'+
+    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Próximo recebimento</span><span class="mpk-ico b">'+icRelogio+'</span></div>'+
+      '<div class="mpk-v">'+(prox?prox.hi:"—")+'</div>'+
+      '<div class="mpk-sub">'+(prox?pxEsc(prox.fornecedor):"nada mais programado hoje")+'</div></div>'+
+    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Horários livres</span><span class="mpk-ico g">'+icTruck+'</span></div>'+
+      '<div class="mpk-v">'+livres+'</div>'+
+      '<div class="mpk-sub">de '+jan+' janelas ('+CL_HINI+'h–'+CL_HFIM+'h)</div></div>';
+}
+function renderClTimeline(){
+  var el=document.getElementById("clTimeline"); if(!el) return;
+  var itens=clItensDoDia();
+  var porHora={}; itens.forEach(function(a){ var h=Math.floor(clToMin(a.hi)/60); (porHora[h]=porHora[h]||[]).push(a); });
+  var temFiltro=clFiltroForn||clFiltroSt, algum=false, h='<div class="cl-tl">';
+  for(var hr=CL_HINI;hr<CL_HFIM;hr++){
+    var arr=porHora[hr]||[];
+    if(arr.length){
+      arr.forEach(function(a){ var st=clStatus(a); algum=true;
+        h+='<div class="cl-tl-row"><div class="cl-tl-hora">'+a.hi+'–'+a.hf+'</div>'+
+           '<div><div class="cl-tl-forn">'+pxEsc(a.fornecedor)+'</div><div class="cl-tl-sub">'+pxEsc(a.loja)+(a.pedido?(" · "+pxEsc(a.pedido)):"")+'</div></div>'+
+           '<div class="cl-st '+st.k+'">'+st.t+'</div></div>'; });
+    } else if(!temFiltro){
+      h+='<div class="cl-tl-row cl-tl-livre"><div class="cl-tl-hora">'+clPad(hr)+':00</div><div class="cl-tl-forn">horário livre</div><div></div></div>';
+    }
+  }
+  h+='</div>';
+  if(!algum && temFiltro) h='<div class="cl-vazio">Nenhum recebimento com esse filtro hoje.</div>';
+  el.innerHTML=h;
+}
+function renderClAgenda(){
+  if(!clWkBase) clWkBase=clSegDa(new Date());
+  var seg=clWkBase, dias=[]; for(var i=0;i<6;i++){ var d=new Date(seg); d.setDate(seg.getDate()+i); dias.push(d); }
+  var hojeISO=clDataISO(new Date());
+  var lbl=document.getElementById("clWkLbl");
+  if(lbl){ var f=dias[0], l=dias[5]; lbl.textContent=clPad(f.getDate())+"/"+clPad(f.getMonth()+1)+" a "+clPad(l.getDate())+"/"+clPad(l.getMonth()+1); }
+  var nomes=["Seg","Ter","Qua","Qui","Sex","Sáb"];
+  var h='<table class="cl-wk"><thead><tr><th class="hcol"></th>';
+  for(var j=0;j<6;j++){ var diso=clDataISO(dias[j]); h+='<th'+(diso===hojeISO?' class="hoje"':'')+'>'+nomes[j]+'<br>'+clPad(dias[j].getDate())+'/'+clPad(dias[j].getMonth()+1)+'</th>'; }
+  h+='</tr></thead><tbody>';
+  for(var hr=CL_HINI;hr<CL_HFIM;hr++){
+    h+='<tr><td class="hcol">'+clPad(hr)+':00</td>';
+    for(var j2=0;j2<6;j2++){
+      var diso2=clDataISO(dias[j2]), cell="";
+      var itens=centralAg.filter(function(a){ return a.data===diso2 && Math.floor(clToMin(a.hi)/60)===hr; });
+      itens.forEach(function(a){ var st=clStatus(a); cell+='<div class="cl-wk-blk '+st.k+'" title="'+pxEsc(a.fornecedor)+' — '+st.t+'">'+pxEsc(a.fornecedor)+'</div>'; });
+      h+='<td>'+cell+'</td>';
+    }
+    h+='</tr>';
+  }
+  h+='</tbody></table>';
+  var wk=document.getElementById("clWeek"); if(wk) wk.innerHTML=h;
+}
+(function initCentral(){
+  var sec=document.getElementById("page-central"); if(!sec) return;
+  var tabs=sec.querySelectorAll(".cl-tab");
+  for(var i=0;i<tabs.length;i++){ (function(b){ b.addEventListener("click",function(){
+    clView=b.getAttribute("data-clview");
+    var all=sec.querySelectorAll(".cl-tab"); for(var j=0;j<all.length;j++) all[j].classList.remove("on"); b.classList.add("on");
+    renderCentral();
+  }); })(tabs[i]); }
+  var p=document.getElementById("clWkPrev"); if(p) p.onclick=function(){ if(!clWkBase)clWkBase=clSegDa(new Date()); var d=new Date(clWkBase); d.setDate(d.getDate()-7); clWkBase=d; renderClAgenda(); };
+  var n=document.getElementById("clWkNext"); if(n) n.onclick=function(){ if(!clWkBase)clWkBase=clSegDa(new Date()); var d=new Date(clWkBase); d.setDate(d.getDate()+7); clWkBase=d; renderClAgenda(); };
+  var hj=document.getElementById("clWkHoje"); if(hj) hj.onclick=function(){ clWkBase=clSegDa(new Date()); renderClAgenda(); };
+})();
 // CALENDÁRIO DE COBRANÇAS do galpão — mesmo formato dos pontos extras (uma linha por mensalidade).
 // A cobrança automática (boleto/Pix) entra quando a conta PESSOA FÍSICA for ligada ao banco;
 // até lá o botão explica isso e deixa marcar o recebimento na mão.
@@ -3658,11 +3982,357 @@ function glAgendaHtml(g){
       : '<button type="button" class="px-pix-btn" data-glcob="'+ref+'">'+(ehBoleto?icoBarras:icoQr)+(ehBoleto?'Gerar boleto':'Gerar Pix')+'</button>';
     var compCell = c
       ? '<a href="#" class="px-comp-link" data-glcompview="'+ref+'" title="Ver comprovante">'+icoClip+'<span>comprovante</span></a> <button type="button" class="px-comp-x" data-glcomprem="'+ref+'" title="Remover comprovante">✕</button>'
-      : '<button type="button" class="px-comp-x" data-glcompbtn="'+ref+'" title="Anexar comprovante" style="border:1px dashed #b9c3cf;border-radius:6px;padding:3px 9px;color:#6b7787;background:#fff;">'+icoClip+'</button><input type="file" data-glcompfile="'+ref+'" accept="application/pdf,image/*" style="display:none;">';
+      : '<span style="color:#c3ccd6;">—</span>'; // igual aos pontos: quando o banco estiver ligado, ele confirma sozinho
     return '<tr'+passou+'><td>'+(i+1)+'</td><td>'+pxDataChip(d)+'</td><td>'+brl(g.valor||0)+'</td><td class="px-pix-cell">'+cobCell+'</td><td class="px-comp-cell">'+compCell+'</td></tr>';
   }).join("");
   return '<div class="px-agenda"><div class="px-agenda-tit">Calendário de cobranças — '+ag.length+' parcela(s), todo dia '+ag[0].getDate()+'</div>'+
     '<table class="px-agenda-tb"><thead><tr><th>#</th><th>Data da cobrança</th><th>Valor</th><th>Cobrança</th><th>Comprovante</th></tr></thead><tbody>'+linhas+'</tbody></table></div>';
+}
+// ===== SALÁRIO MÍNIMO — é a base do aluguel dos galpões =====
+// O contrato não cita R$: diz "correspondente a X salário mínimo vigente". Então quando
+// o mínimo muda, o aluguel muda junto sozinho, sem refazer contrato. Aqui o painel só
+// precisa saber quanto é o mínimo de hoje para calcular o R$ que vai no boleto/Pix.
+var GL_SAL_PADRAO=1621; // usado só enquanto o Banco Central nunca foi consultado
+function glSalGet(){
+  try{ var r=JSON.parse(localStorage.getItem("gl_salario")||"null"); if(r&&+r.valor>0) return r; }catch(e){}
+  return {valor:GL_SAL_PADRAO,desde:"",checadoEm:"",ignorado:0};
+}
+function glSalValor(){ return +glSalGet().valor||GL_SAL_PADRAO; }
+function glSalSet(valor,desde){
+  var r=glSalGet();
+  r.valor=+valor||r.valor; if(desde) r.desde=desde;
+  r.checadoEm=pxDateKey(new Date()); r.ignorado=0;
+  try{ localStorage.setItem("gl_salario",JSON.stringify(r)); }catch(e){}
+}
+// No formulário: se o aluguel é em salário mínimo, o R$ é conta pronta (não se digita).
+function glSincValorForm(){
+  var sel=document.getElementById("glAluguel"), inp=document.getElementById("glValor");
+  if(!sel||!inp) return;
+  var lb=document.querySelector('label[for="glValor"]');
+  if(sel.value==="fixo"){
+    inp.readOnly=false; inp.style.background=""; inp.style.color=""; inp.title="";
+    if(lb) lb.textContent="Valor (R$)";
+  } else {
+    var f=parseFloat(sel.value)||1;
+    inp.value=(Math.round(f*glSalValor()*100)/100).toFixed(2);
+    inp.readOnly=true; inp.style.background="#f4f6f9"; inp.style.color="#56606d";
+    inp.title="Calculado pelo salário mínimo ("+brl(glSalValor())+"). Muda sozinho quando o mínimo mudar.";
+    if(lb) lb.textContent="Valor (R$) — automático";
+  }
+}
+// Quanto do salário cada galpão paga: "1" = frente (virado pra BR), "0.5" = rua interna, "fixo" = R$ próprio.
+function glFracao(g){ var a=String(g.aluguel||"1"); return a==="fixo"?null:(parseFloat(a)||1); }
+// Recalcula o R$ de quem paga em salário mínimo. Quem é "fixo" nunca é tocado.
+function glAplicaSalario(){
+  var sm=glSalValor(), mudou=false;
+  galpoesG.forEach(function(g){
+    var f=glFracao(g); if(f==null) return;
+    var v=Math.round(f*sm*100)/100;
+    if((+g.valor||0)!==v){ g.valor=v; mudou=true; }
+  });
+  return mudou;
+}
+// O Banco Central publica o salário mínimo na série 1619 (API pública, sem senha).
+function glSalChecarBC(cb){
+  var url="https://api.bcb.gov.br/dados/serie/bcdata.sgs.1619/dados/ultimos/1?formato=json";
+  fetch(url).then(function(r){ return r.ok?r.json():null; }).then(function(j){
+    var it=j&&j[0];
+    var v=it?parseFloat(String(it.valor).replace(",",".")):0;
+    cb(v>0?{valor:v,desde:it.data||""}:null);
+  }).catch(function(){ cb(null); }); // sem internet/fora do ar: segue com o valor guardado
+}
+// Data em DD/MM/AAAA -> objeto Date (e o contrário).
+function glSalDataBR(s){ var p=String(s||"").split("/"); if(p.length!==3) return null; var d=new Date(+p[2],+p[1]-1,+p[0]); return isNaN(d)?null:d; }
+function glSalFmtBR(d){ return ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear(); }
+// Reajuste FUTURO já publicado pelo Banco Central: um mês à frente com valor diferente do vigente hoje.
+// O BC costuma publicar só uns dias antes de entrar em vigor (reajuste de janeiro sai no fim de dezembro).
+function glSalChecarFuturo(cb){
+  var hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
+  var ini=glSalFmtBR(new Date(HOJE.getFullYear(),HOJE.getMonth(),1));
+  var fim=glSalFmtBR(new Date(HOJE.getFullYear(),HOJE.getMonth()+8,1));
+  var url="https://api.bcb.gov.br/dados/serie/bcdata.sgs.1619/dados?formato=json&dataInicial="+ini+"&dataFinal="+fim;
+  fetch(url).then(function(r){ return r.ok?r.json():null; }).then(function(arr){
+    if(!arr||!arr.length){ cb(null); return; }
+    var vig=null, fut=null;
+    arr.forEach(function(it){
+      var dt=glSalDataBR(it.data); if(!dt) return;
+      var v=parseFloat(String(it.valor).replace(",","."));
+      if(dt<=hoje){ vig=v; }
+      else if(fut===null && vig!==null && Math.abs(v-vig)>=0.01){ fut={valor:v,desde:it.data,fonte:"bc"}; }
+    });
+    cb(fut);
+  }).catch(function(){ cb(null); });
+}
+// Guarda/lê o reajuste programado (do BC ou digitado à mão). Some sozinho quando a data chega.
+function glSalFuturoSet(f){ var r=glSalGet(); if(f){ r.futuro=f; } else { delete r.futuro; } try{ localStorage.setItem("gl_salario",JSON.stringify(r)); }catch(e){} }
+function glSalFuturoGet(){
+  var r=glSalGet(), f=r.futuro;
+  if(!f||!(+f.valor>0)||!f.desde) return null;
+  var dt=glSalDataBR(f.desde), hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
+  if(!dt||dt<=hoje) return null; // já chegou/passou: deixa o aviso normal (âmbar) cuidar
+  return f;
+}
+// Aviso ANTECIPADO (azul): "mês que vem o salário sobe pra X e o aluguel vai subir". Não muda nada.
+function renderSalFuturo(){
+  var el=document.getElementById("glSalFuturo"); if(!el) return;
+  var f=glSalFuturoGet(), r=glSalGet();
+  if(r.futuro&&!f){ delete r.futuro; try{ localStorage.setItem("gl_salario",JSON.stringify(r)); }catch(e){} } // já passou: limpa
+  // DEMONSTRAÇÃO: com ?demoreajuste na URL, mostra um exemplo do aviso (não salva nada, só pra ver).
+  if(!f && /[?&]demoreajuste/.test(location.search||"")){
+    var _at=glSalValor();
+    var _y=HOJE.getFullYear(), _d1=new Date(_y,0,1), _ho=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
+    if(_d1<=_ho) _d1=new Date(_y+1,0,1); // próximo 1º de janeiro
+    f={valor:Math.round(_at*1.065), desde:glSalFmtBR(_d1), fonte:"bc", demo:true};
+  }
+  if(!f){ el.innerHTML=""; return; }
+  var atual=glSalValor(), subiu=f.valor>atual;
+  var dt=glSalDataBR(f.desde), hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
+  var dias=Math.max(0,Math.round((dt-hoje)/86400000));
+  var meiaNova=Math.round(f.valor*50)/100, meiaAtual=Math.round(atual*50)/100;
+  el.innerHTML='<div class="gl-salfut">'+
+    '<div class="gl-salfut-ic">&#128197;</div>'+
+    '<div class="gl-salfut-tx">'+
+      '<b>Reajuste do salário mínimo marcado para '+pxEsc(f.desde)+(dias?(' — daqui a '+dias+' dia'+(dias===1?'':'s')):'')+(f.demo?' <span style="background:#d9e6fa;color:#2b5a9e;font-size:10px;font-weight:800;padding:1px 7px;border-radius:99px;vertical-align:1px;">EXEMPLO</span>':'')+'</b>'+
+      '<span>O salário mínimo vai '+(subiu?'subir':'baixar')+' de '+brl(atual)+' para '+brl(f.valor)+'. Quando chegar a data, o aluguel dos galpões passa de '+brl(atual)+' para '+brl(f.valor)+' (frente) e de '+brl(meiaAtual)+' para '+brl(meiaNova)+' (rua interna). Nada muda até lá — na data eu te aviso de novo pra confirmar. '+(f.fonte==="bc"?'Fonte: Banco Central.':'Programado por você.')+'</span>'+
+    '</div>'+
+    '<div class="gl-salfut-bt">'+
+      '<button type="button" class="btn-s" data-glavisos="1" data-avold="'+atual+'" data-avnew="'+f.valor+'" data-avdesde="'+pxEsc(f.desde||"")+'">Avisar inquilinos</button>'+
+      (f.fonte==="manual"?'<button type="button" class="btn-s" data-glfutrem="1">Remover</button>':'')+
+    '</div>'+
+  '</div>';
+}
+// Faixa fixa com o salário de hoje + o que ele significa em aluguel.
+function renderSalBar(){
+  var el=document.getElementById("glSalBar"); if(!el) return;
+  var r=glSalGet();
+  var meia=Math.round(r.valor*50)/100;
+  el.innerHTML='<div class="gl-salbar">'+
+    '<div class="gl-salbar-l">'+
+      '<span class="gl-salbar-lbl">Salário mínimo</span>'+
+      '<b class="gl-salbar-v">'+brl(r.valor)+'</b>'+
+      (r.desde?'<span class="gl-salbar-desde">desde '+pxEsc(r.desde)+'</span>':'')+
+    '</div>'+
+    '<div class="gl-salbar-r">'+
+      '<span class="gl-salbar-eq">Frente (BR) '+brl(r.valor)+' &nbsp;·&nbsp; Rua interna '+brl(meia)+'</span>'+
+      '<button type="button" class="btn-s" id="glSalSync" title="Buscar o valor oficial do salário mínimo no Banco Central">Atualizar do Banco Central</button>'+
+    '</div>'+
+  '</div>';
+}
+// Aviso de que o Banco Central mudou o mínimo. NÃO mexe no aluguel sozinho:
+// dinheiro só muda com o dono confirmando (e se a API vier errada, ele barra aqui).
+function renderSalAviso(nova){
+  var el=document.getElementById("glSalAviso"); if(!el) return;
+  if(!nova){ el.innerHTML=""; return; }
+  var atual=glSalValor();
+  var subiu=nova.valor>atual;
+  el.innerHTML='<div class="gl-salavis">'+
+    '<div class="gl-salavis-ic">'+(subiu?'&#8593;':'&#8595;')+'</div>'+
+    '<div class="gl-salavis-tx">'+
+      '<b>O salário mínimo '+(subiu?'subiu':'baixou')+' para '+brl(nova.valor)+'</b>'+
+      '<span>Estava '+brl(atual)+'. Os aluguéis em salário mínimo passam a '+brl(nova.valor)+' (frente) e '+brl(Math.round(nova.valor*50)/100)+' (rua interna). Fonte: Banco Central'+(nova.desde?', vigente desde '+pxEsc(nova.desde):'')+'.</span>'+
+    '</div>'+
+    '<div class="gl-salavis-bt">'+
+      '<button type="button" class="btn-p" data-glsalok="'+nova.valor+'" data-glsaldesde="'+pxEsc(nova.desde||"")+'">Atualizar aluguéis</button>'+
+      '<button type="button" class="btn-s" data-glavisos="1" data-avold="'+atual+'" data-avnew="'+nova.valor+'" data-avdesde="'+pxEsc(nova.desde||"")+'">Avisar inquilinos</button>'+
+      '<button type="button" class="btn-s" data-glsalnao="1">Agora não</button>'+
+    '</div>'+
+  '</div>';
+}
+// Checa o Banco Central no máximo 1x por dia.
+function glSalAutoChecar(){
+  var r=glSalGet(), hoje=pxDateKey(new Date());
+  if(r.checadoEm===hoje && !r.ignorado) return;
+  glSalChecarBC(function(nova){
+    if(!nova) return;
+    var g=glSalGet(); g.checadoEm=hoje;
+    try{ localStorage.setItem("gl_salario",JSON.stringify(g)); }catch(e){}
+    if(Math.abs(nova.valor-glSalValor())>=0.01) renderSalAviso(nova);
+  });
+  // Também procura um reajuste FUTURO já publicado pelo BC (não sobrescreve um programado à mão).
+  glSalChecarFuturo(function(fut){
+    var g=glSalGet();
+    if(g.futuro&&g.futuro.fonte==="manual") return; // respeita o que o dono digitou
+    if(fut&&Math.abs(fut.valor-glSalValor())>=0.01){ glSalFuturoSet(fut); }
+    else if(g.futuro&&g.futuro.fonte==="bc"){ glSalFuturoSet(null); } // BC não tem mais futuro: limpa
+    renderSalFuturo();
+  });
+}
+// LOCADOR dos galpões: é o dono como PESSOA FÍSICA (não o supermercado).
+// Por isso este contrato NÃO leva a logo da loja — o imóvel é patrimônio pessoal.
+var GL_LOCADOR={
+  nome:"GILSON JOÃO DOS SANTOS",
+  rg:"351.560",
+  cpf:"129.907.284-49",
+  endereco:"Rua André Sales, 531, Paulo VI, Caicó/RN",
+  cidade:"Caicó/RN",
+  comarca:"Caicó/RN"
+};
+function glGerarContrato(g){
+  if(!g){ alert("Preencha os dados do galpão antes de gerar o contrato."); return; }
+  var w=window.open("","_blank");
+  if(!w){ alert("Para gerar o contrato, permita pop-ups deste site no navegador."); return; }
+  w.document.open(); w.document.write(glContratoDocHtml(g)); w.document.close();
+}
+// Contrato de locação do galpão — segue o modelo em papel que o dono já usa (17 cláusulas).
+function glContratoDocHtml(g){
+  var MES=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+  var L=GL_LOCADOR;
+  var doc=String(g.cnpj||"").replace(/\\D/g,"");
+  var ehCnpj=doc.length===14;
+  // Se é empresa, quem assina é a razão social; se é pessoa, é o nome do inquilino.
+  var nomeInq=pxEsc((ehCnpj?(g.razaoSocial||g.locatario):(g.vendedor||g.locatario))||"[INQUILINO]");
+  var docFmt=pxEsc(doc?pixFmtDoc(g.cnpj):(ehCnpj?"[CNPJ]":"[CPF]"));
+  var endInq=pxEsc(g.enderecoInq||"[ENDEREÇO DO INQUILINO]");
+  var rgInq=pxEsc(g.rg||"");
+  var endGalpao=pxEsc(g.endereco||"[ENDEREÇO DO GALPÃO]");
+  var dia=(+g.diaPag||5);
+  // Aluguel: o padrão é salário mínimo (frente pra BR = 1, rua interna = meio).
+  var alu=String(g.aluguel||"1");
+  var aluTxt;
+  if(alu==="fixo"){
+    var v=+g.valor||0;
+    aluTxt="de "+(v?pxEsc(brl(v))+" ("+pxReaisExtenso(v)+")":"[VALOR]")+" mensais";
+  } else if(alu==="0.5"){
+    aluTxt="correspondente a meio (1/2) salário mínimo vigente no país na referida data do pagamento";
+  } else {
+    aluTxt="correspondente a 1 (um) salário mínimo vigente no país na referida data do pagamento";
+  }
+  var ini=g.abertura;
+  var dd=ini?new Date(+ini.split("-")[0],+ini.split("-")[1]-1,+ini.split("-")[2]):new Date(HOJE.getTime());
+  var dataExt=(ini? (dd.getDate()+" de "+MES[dd.getMonth()]+" de "+dd.getFullYear()) : "____ de ____________ de ______");
+  var codigo="CT-GAL-"+pxEsc(String(g.numero||"").replace(/\\s+/g,"").toUpperCase()||"SN");
+  var barra=pxDocBarraHtml({ titulo:"Contrato de Locação", codigo:codigo, badge:"Gerado agora", emissao:pxFmtData(pxDateKey(new Date())), printLabel:"Imprimir / Salvar PDF" });
+  var css=barra.css+
+    "*{box-sizing:border-box}html{background:#f4f5f6}body{margin:0;padding:0;background:#f4f5f6;font-family:'Times New Roman',Georgia,serif;color:#1a1a1a}"+
+    ".doc-page-wrap{padding:32px 20px 64px}"+
+    ".doc-page{max-width:760px;margin:0 auto;background:#fff;padding:44px 60px;line-height:1.62;font-size:14.5px;border-radius:10px;box-shadow:0 1px 3px rgba(16,24,32,.06),0 1px 2px rgba(16,24,32,.04)}"+
+    "h1{text-align:center;font-size:16.5px;text-transform:uppercase;letter-spacing:.8px;line-height:1.32;margin:0 0 22px}"+
+    "p{margin:0 0 11px;text-align:justify}"+
+    ".cl{margin:0 0 11px;text-align:justify;padding-left:30px;text-indent:-30px}.cl .n{font-weight:bold}"+
+    ".assin{margin-top:44px}.assin .row{display:flex;gap:60px;justify-content:space-between;margin-top:64px}"+
+    ".assin .bloco{flex:1;text-align:center}.assin .linha{border-top:1px solid #1a1a1a;padding-top:6px}"+
+    ".assin .papel{font-weight:bold;font-size:13px}"+
+    ".test{margin-top:52px}.test .t{font-weight:bold;margin-bottom:20px}"+
+    ".test .item{margin-bottom:26px;font-size:13px;line-height:1.9}.test .ln{display:inline-block;border-bottom:1px solid #1a1a1a;width:290px}"+
+    "@page{margin:0}@media print{.docbar{display:none}html,body{background:#fff}.doc-page-wrap{padding:0}.doc-page{box-shadow:none;border-radius:0;margin:0;max-width:none;padding:16mm 18mm 16mm}}";
+  var h="<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Contrato de Locação — "+nomeInq+"</title>"+
+    "<link rel='preconnect' href='https://fonts.googleapis.com'><link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' rel='stylesheet'>"+
+    "<style>"+css+"</style></head><body>";
+  h+=barra.html;
+  h+="<div class='doc-page-wrap'><div class='doc-page'>";
+  h+="<h1>Contrato de Locação de Imóvel para Fins Comerciais</h1>";
+  // Qualificação das partes
+  var qualInq=ehCnpj
+    ? "<b>"+nomeInq+"</b>, estabelecida na cidade de Caicó, Estado do RN, na "+endInq+", inscrita no CNPJ sob o nº <b>"+docFmt+"</b>"
+    : "<b>"+nomeInq+"</b>, estabelecida na cidade de Caicó, Estado do RN, na "+endInq+", inscrito no CPF sob o nº <b>"+docFmt+"</b>"+(rgInq?(" e RG "+rgInq):"");
+  h+="<p>Pelo presente instrumento particular, de um lado <b>"+pxEsc(L.nome)+"</b>, portador do RG nº "+pxEsc(L.rg)+", CPF nº "+pxEsc(L.cpf)+", residente e domiciliado nesta cidade, na "+pxEsc(L.endereco)+", doravante denominada <b>LOCADORA</b>, e de outro lado "+qualInq+", doravante denominada simplesmente <b>LOCATÁRIA</b>, têm entre si como justo e contratado o que segue:</p>";
+  var cl=[];
+  cl.push("A <b>LOCADORA</b>, por este instrumento, dá em locação à <b>LOCATÁRIA</b> o imóvel de sua propriedade, livre e desembaraçado de quaisquer ônus reais e em perfeitas condições de higiene e conservação, estabelecido na "+endGalpao+", nesta cidade, por prazo indeterminado, tendo por termo inicial a data de sua assinatura no dia "+dataExt+".");
+  cl.push("O aluguel ajustado entre as partes é "+aluTxt+".");
+  cl.push("O pagamento até o dia "+dia+" de cada mês, sob pena de incorrer a <b>LOCATÁRIA</b> em multa de 2% (dois por cento) sobre o valor do aluguel mensal, mais correção monetária e juros de mora pelo período em atraso.");
+  cl.push("A <b>LOCATÁRIA</b> arcará com o pagamento de todos os impostos e taxas, seja de que natureza forem, que incidam ou venham a incidir sobre o imóvel e eventuais multas decorrentes do inadimplemento ou atraso nos respectivos pagamentos e, ainda, por todas as despesas de água, energia elétrica, telefone, gás e outras ligadas ao imóvel.");
+  cl.push("Ficarão a cargo da <b>LOCATÁRIA</b> as obras que forem exigidas pelas autoridades municipais e sanitárias relativamente à segurança, conservação e higiene do prédio. A <b>LOCATÁRIA</b> poderá, ainda, realizar benfeitorias e modificações no imóvel, desde que com prévia anuência, por escrito, da <b>LOCADORA</b>, não lhe cabendo, porém, qualquer indenização ou retenção em função das mesmas.");
+  cl.push("Como forma de propagação de suas atividades comerciais, é permitido à <b>LOCATÁRIA</b> fixar letreiros ou faixas e instalar luminosos nas áreas externas do imóvel, desde que não o danifiquem.");
+  cl.push("A <b>LOCATÁRIA</b> se obriga, durante todo o período em que permanecer no imóvel, a zelar pela perfeita conservação e limpeza do mesmo, efetuando os reparos necessários e arcando com os custos decorrentes destes.");
+  cl.push("Quando findo ou rescindido o presente contrato de locação, caberá à <b>LOCATÁRIA</b> restituir o imóvel em condições adequadas de uso, pintura, conservação, higiene e manutenção, conforme recebido no dia da locação.");
+  cl.push("Ao término da locação, se houver danos ou deteriorações no imóvel, a <b>LOCATÁRIA</b> deverá providenciar os devidos reparos. Se assim não proceder, a <b>LOCADORA</b> poderá mandar executá-los às expensas da <b>LOCATÁRIA</b>, que, enquanto não concluídos esses serviços, continuará obrigada ao pagamento dos aluguéis e encargos que se vencerem, mesmo que não esteja ocupando o imóvel.");
+  cl.push("O presente contrato obriga também os sucessores das partes e os adquirentes do imóvel.");
+  cl.push("As benfeitorias e mudanças na estrutura física e instalações elétricas e hidráulicas eventualmente realizadas pela <b>LOCATÁRIA</b> no imóvel serão cedidas gratuitamente à <b>LOCADORA</b>, sem qualquer reembolso ou compensação no aluguel, sob prévia autorização da <b>LOCADORA</b>.");
+  cl.push("Não havendo interesse da <b>LOCATÁRIA</b> em permanecer no imóvel, deverá comunicar à <b>LOCADORA</b> sua intenção em dar por finda a locação e desocupar o imóvel, por escrito, e com antecedência de 30 (trinta) dias.");
+  cl.push("A presente locação destina-se exclusivamente para ocupação do estabelecimento comercial da <b>LOCATÁRIA</b>, vedada qualquer alteração desta destinação. À <b>LOCATÁRIA</b> também não será permitido emprestar, ceder ou sublocar o imóvel objeto da presente locação, sem prévia e expressa anuência da <b>LOCADORA</b>.");
+  cl.push("À <b>LOCADORA</b> fica facultado vistoriar e examinar o prédio em seu interior, sempre que lhe aprouver, em horário comercial e mediante prévio aviso.");
+  cl.push("Fica estipulada a multa equivalente a 2 (dois) meses de aluguel, na qual incorrerá a parte que infringir qualquer cláusula deste contrato, com a faculdade para a parte inocente de considerar simultaneamente rescindida a locação, independente de qualquer notificação.");
+  cl.push("No caso de morte ou insolvência do(s) fiador(es) a <b>LOCATÁRIA</b> ficará obrigada a dar-lhe(s) substituto(s) idôneo(s), dentro do prazo de 30 (trinta) dias, sob pena de rescisão contratual.");
+  cl.push("A tolerância das partes a respeito do descumprimento ou inobservância do disposto no presente instrumento não poderá ser considerada como novação ou alteração das cláusulas contratuais.");
+  cl.push("As partes elegem o foro da Comarca de "+pxEsc(L.comarca)+" para decidir qualquer questão judicial decorrente deste contrato, renunciando a qualquer outro, por mais privilegiado que seja.");
+  // A regra do dia de pagamento é subitem da cláusula do aluguel (2.1 no modelo em papel).
+  var n=0;
+  for(var i=0;i<cl.length;i++){
+    var num;
+    if(i===2){ num="2.1"; } else { n++; num=String(n)+"."; }
+    h+="<p class='cl'><span class='n'>"+num+"</span>&nbsp;&nbsp;"+cl[i]+"</p>";
+  }
+  h+="<p style='margin-top:20px'>E por estarem <b>LOCADORA</b> e <b>LOCATÁRIA</b> de pleno acordo com o disposto neste instrumento particular, assinam-no na presença das duas testemunhas abaixo, em DUAS vias de igual teor e forma, destinando-se uma via para cada uma das partes.</p>";
+  h+="<p>Local e data: "+pxEsc(L.cidade)+", "+dataExt+".</p>";
+  h+="<div class='assin'><div class='row'>"+
+     "<div class='bloco'><div class='linha'><div class='papel'>LOCADORA</div></div></div>"+
+     "<div class='bloco'><div class='linha'><div class='papel'>LOCATÁRIA</div></div></div>"+
+     "</div></div>";
+  h+="<div class='test'><div class='t'>Testemunhas:</div>"+
+     "<div class='item'>1. <span class='ln'></span><br>Nome:<br>RG:</div>"+
+     "<div class='item'>2. <span class='ln'></span><br>Nome:<br>RG:</div>"+
+     "</div>";
+  h+="</div></div></body></html>";
+  return h;
+}
+// AVISOS DE REAJUSTE pros inquilinos — quando o salário mínimo muda, gera pra cada inquilino
+// (que paga em salário mínimo) um texto de WhatsApp pronto pra copiar + uma carta formal pra imprimir.
+// Os de "valor fixo" não entram (o aluguel deles não muda com o salário).
+function glAvisosReajuste(oldVal, newVal, desdeBR){
+  var MES=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+  var afetados=galpoesG.filter(function(g){ return glFracao(g)!=null && String(g.vendedor||g.locatario||"").trim(); });
+  if(!afetados.length){ uiConfirm({titulo:"Nenhum inquilino pra avisar",msg:"Não há galpão com inquilino que paga em salário mínimo. (Os de valor fixo não mudam com o reajuste.)",ok:"OK",cancel:""}); return; }
+  var dt=glSalDataBR(desdeBR);
+  var quando = dt ? ("a partir de "+dt.getDate()+" de "+MES[dt.getMonth()]+" de "+dt.getFullYear()) : "a partir do próximo reajuste";
+  var w=window.open("","_blank");
+  if(!w){ uiConfirm({titulo:"Pop-up bloqueado",msg:"Libere os pop-ups deste site no navegador para gerar os avisos.",ok:"OK",cancel:""}); return; }
+  var barra=pxDocBarraHtml({ titulo:"Avisos de reajuste", codigo:"REAJUSTE-"+(dt?glSalFmtBR(dt).replace(/\\//g,""):""), badge:brl(oldVal)+" → "+brl(newVal), emissao:pxFmtData(pxDateKey(new Date())), printLabel:"Imprimir cartas / PDF" });
+  var css=barra.css+
+    "*{box-sizing:border-box}html{background:#f4f5f6}body{margin:0;padding:0;background:#f4f5f6;font-family:'Inter',-apple-system,'Segoe UI',Arial,sans-serif;color:#1a2230}"+
+    ".wrap{max-width:800px;margin:0 auto;padding:26px 18px 60px}"+
+    ".intro{font-size:13.5px;color:#56606d;margin:0 0 18px;line-height:1.5}"+
+    ".av{background:#fff;border:1px solid #e4e9f0;border-radius:12px;padding:18px 20px;margin-bottom:18px;box-shadow:0 1px 3px rgba(16,24,32,.05)}"+
+    ".av-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px}"+
+    ".av-h b{font-size:15px;color:#0f172a}.av-h .g{font-size:12px;color:#6b7787;font-weight:700}"+
+    ".av-val{font-size:13px;color:#2a3340;margin:2px 0 12px}.av-val s{color:#9aa6b2;text-decoration:line-through;margin-right:5px}.av-val b{color:#157a35}"+
+    ".zap-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7787;margin:0 0 6px}"+
+    ".zap{width:100%;border:1px solid #d7dee7;border-radius:9px;padding:11px 13px;font:inherit;font-size:13px;color:#26313d;line-height:1.5;background:#f8fafc;resize:vertical;min-height:118px}"+
+    ".btns{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}"+
+    ".cpbtn{border:0;background:#157a35;color:#fff;font-weight:700;font-size:12.5px;border-radius:8px;padding:8px 15px;cursor:pointer;font-family:inherit}"+
+    ".cpbtn.ok{background:#0d6b2b}"+
+    ".carta{display:none}"+
+    "@media print{ .docbar,.intro,.zap-lbl,.zap,.btns{display:none!important} .wrap{max-width:none;padding:0} .av{border:0;box-shadow:none;padding:0;margin:0} .carta{display:block;font-family:'Times New Roman',Georgia,serif;font-size:14px;line-height:1.7;padding:16mm 18mm;page-break-after:always} .carta:last-child{page-break-after:auto} .carta h2{text-align:center;font-size:15px;text-transform:uppercase;letter-spacing:.6px;margin:0 0 18px} .carta p{margin:0 0 11px;text-align:justify} .carta .ass{margin-top:44px;text-align:center} .carta .ass .ln{border-top:1px solid #1a1a1a;width:280px;margin:52px auto 5px} html,body{background:#fff} }";
+  var h="<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Avisos de reajuste</title>"+
+    "<link rel='preconnect' href='https://fonts.googleapis.com'><link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap' rel='stylesheet'>"+
+    "<style>"+css+"</style></head><body>";
+  h+=barra.html;
+  h+="<div class='wrap'>";
+  h+="<p class='intro'>Um aviso pronto para cada inquilino cujo aluguel é calculado pelo salário mínimo. Use o texto de <b>WhatsApp</b> (botão Copiar) ou clique em <b>Imprimir cartas / PDF</b> para as cartas formais. Os galpões de valor fixo não aparecem aqui.</p>";
+  afetados.forEach(function(g,ix){
+    var nome=String(g.vendedor||g.locatario||"inquilino").trim();
+    var num=String(g.numero||"—");
+    var f=glFracao(g);
+    var vAnt=Math.round(f*oldVal*100)/100, vNovo=Math.round(f*newVal*100)/100;
+    var zap="Olá, "+nome+"! Tudo bem?\\n\\n"+
+      "Passando para avisar que o salário mínimo foi reajustado para "+brl(newVal)+" "+quando+". "+
+      "Como o aluguel do galpão "+num+" é calculado com base no salário mínimo (conforme o contrato), a mensalidade passa de "+brl(vAnt)+" para "+brl(vNovo)+" "+quando+".\\n\\n"+
+      "Qualquer dúvida, estou à disposição.\\nAtenciosamente, "+GL_LOCADOR.nome+".";
+    var zapEsc=zap.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    h+="<div class='av'>"+
+        "<div class='av-h'><b>"+pxEsc(nome)+"</b><span class='g'>Galpão "+pxEsc(num)+"</span></div>"+
+        "<div class='av-val'>Mensalidade: <s>"+brl(vAnt)+"</s> <b>"+brl(vNovo)+"</b> "+quando+"</div>"+
+        "<div class='zap-lbl'>Mensagem de WhatsApp</div>"+
+        "<textarea class='zap' id='zap"+ix+"' readonly>"+zapEsc+"</textarea>"+
+        "<div class='btns'><button type='button' class='cpbtn' data-cp='zap"+ix+"'>Copiar mensagem</button></div>"+
+       "</div>";
+    // Carta formal (só aparece na impressão)
+    var hoje=new Date();
+    var dataHoje=hoje.getDate()+" de "+MES[hoje.getMonth()]+" de "+hoje.getFullYear();
+    h+="<div class='carta'>"+
+        "<h2>Aviso de Reajuste de Aluguel</h2>"+
+        "<p>"+pxEsc(GL_LOCADOR.cidade)+", "+dataHoje+".</p>"+
+        "<p>Prezado(a) <b>"+pxEsc(nome)+"</b>,</p>"+
+        "<p>Informamos que o salário mínimo nacional foi reajustado para <b>"+brl(newVal)+"</b>, "+quando+".</p>"+
+        "<p>Tendo em vista que o valor do aluguel do galpão <b>"+pxEsc(num)+"</b> é fixado com base no salário mínimo, conforme cláusula do contrato de locação, a mensalidade será reajustada de <b>"+brl(vAnt)+"</b> para <b>"+brl(vNovo)+"</b>, "+quando+".</p>"+
+        "<p>Permanecemos à disposição para quaisquer esclarecimentos.</p>"+
+        "<p>Atenciosamente,</p>"+
+        "<div class='ass'><div class='ln'></div><b>"+pxEsc(GL_LOCADOR.nome)+"</b><br>Locador</div>"+
+       "</div>";
+  });
+  h+="</div>";
+  h+="<scr"+"ipt>document.addEventListener('click',function(e){var b=e.target.closest('[data-cp]');if(!b)return;var t=document.getElementById(b.getAttribute('data-cp'));if(!t)return;t.select();var ok=false;try{ok=document.execCommand('copy');}catch(_){}if(navigator.clipboard){try{navigator.clipboard.writeText(t.value);ok=true;}catch(_){}}try{t.setSelectionRange(0,0);t.blur();}catch(_){}var o=b.textContent;b.textContent='Copiado!';b.classList.add('ok');setTimeout(function(){b.textContent=o;b.classList.remove('ok');},1500);});</scr"+"ipt>";
+  h+="</body></html>";
+  w.document.open(); w.document.write(h); w.document.close();
 }
 // Bloco do CONTRATO do galpão — mesmo padrão dos pontos extras (Gerar contrato + Anexar contrato).
 function glContratoHtml(g){
@@ -3714,7 +4384,11 @@ function renderGalpoes(){
   // Login ainda carregando: mostra "Carregando…" e tenta de novo em vez de já dizer "Área restrita".
   if(window.__PERFIL==null){ tb.innerHTML='<div style="padding:22px 12px;color:#8a97a8;font-style:italic;">Carregando…</div>'; var _gc=document.getElementById("glInad"); if(_gc) _gc.innerHTML=""; if(!window.__glRetry){ window.__glRetry=setTimeout(function(){ window.__glRetry=null; renderGalpoes(); },700); } return; }
   var master=!!window.__PERFIL.is_master;
-  if(!master){ tb.innerHTML='<div style="padding:26px;text-align:center;color:#8a97a8;line-height:1.7;">Área restrita — só o <b>login master</b> vê os galpões.<br><span style="font-size:12px;">Seu login não está marcado como master. Vá na aba <b>Acessos</b>, abra o seu usuário e marque <b>“Master (vê tudo)”</b>.</span></div>'; var _gi=document.getElementById("glInad"); if(_gi) _gi.innerHTML=""; return; }
+  if(!master){ tb.innerHTML='<div style="padding:26px;text-align:center;color:#8a97a8;line-height:1.7;">Área restrita — só o <b>login master</b> vê os galpões.<br><span style="font-size:12px;">Seu login não está marcado como master. Vá na aba <b>Acessos</b>, abra o seu usuário e marque <b>“Master (vê tudo)”</b>.</span></div>'; var _gi=document.getElementById("glInad"); if(_gi) _gi.innerHTML=""; var _gb=document.getElementById("glSalBar"); if(_gb) _gb.innerHTML=""; var _gf=document.getElementById("glSalFuturo"); if(_gf) _gf.innerHTML=""; var _ga=document.getElementById("glSalAviso"); if(_ga) _ga.innerHTML=""; return; }
+  renderSalBar();
+  renderSalFuturo();
+  // O R$ de quem paga em salário mínimo é sempre derivado do mínimo de hoje.
+  if(glAplicaSalario()) glSave();
   // Inadimplentes (reaproveita pxInadimplencia)
   var inad=[]; galpoesG.forEach(function(g){ var x=pxInadimplencia(g); if(x){ x.g=g; inad.push(x); } });
   inad.sort(function(a,b){ return b.dias-a.dias; });
@@ -3777,11 +4451,15 @@ function renderGalpoes(){
     razaoSocial:(document.getElementById("glRazao").value||"").trim(),
     locatario:(document.getElementById("glLoc").value||"").trim(),
     vendedor:(document.getElementById("glVend").value||"").trim(),
+    rg:(document.getElementById("glRg").value||"").trim(),
     contato:(document.getElementById("glTel").value||"").trim(),
     email:(document.getElementById("glEmail").value||"").trim(),
     endereco:(document.getElementById("glEnd").value||"").trim(),
+    enderecoInq:(document.getElementById("glEndInq").value||"").trim(),
+    aluguel:(document.getElementById("glAluguel").value||"1"),
     valor:parseFloat(document.getElementById("glValor").value||"0")||0,
     pagamento:(document.getElementById("glPag").value||""),
+    diaPag:parseInt(document.getElementById("glDiaPag").value||"0",10)||0,
     abertura:(document.getElementById("glAbertura").value||""),
     vencimento:(document.getElementById("glVenc").value||""),
     obs:(document.getElementById("glObs").value||"").trim()
@@ -3795,6 +4473,49 @@ function renderGalpoes(){
     glSave(); glLimparForm(); renderGalpoes();
   };
   var cancelar=document.getElementById("glCancelar"); if(cancelar) cancelar.onclick=glLimparForm;
+  // Quem paga em salário mínimo não tem R$ digitado à mão — o campo mostra a conta pronta.
+  var aluSel=document.getElementById("glAluguel");
+  if(aluSel){ aluSel.addEventListener("change",glSincValorForm); glSincValorForm(); }
+  // Faixa do salário: alterar à mão.
+  var salBar=document.getElementById("glSalBar");
+  if(salBar) salBar.addEventListener("click",function(e){
+    if(e.target.closest("#glSalSync")){
+      // O salário mínimo é definido pelo GOVERNO — não se digita à mão. Aqui só busca o valor
+      // oficial no Banco Central e, se estiver diferente, mostra o aviso pra confirmar a troca.
+      var btn=e.target.closest("#glSalSync"); var txtOrig=btn.textContent; btn.textContent="Consultando…"; btn.disabled=true;
+      glSalChecarBC(function(nova){
+        btn.textContent=txtOrig; btn.disabled=false;
+        if(!nova){ uiConfirm({titulo:"Sem conexão com o Banco Central",msg:"Não consegui consultar o valor oficial agora. Verifique a internet e tente de novo daqui a pouco.",ok:"OK",cancel:""}); return; }
+        var atual=glSalValor();
+        if(Math.abs(nova.valor-atual)<0.01){ uiConfirm({titulo:"Já está atualizado",msg:"O painel já está com o valor oficial do salário mínimo: "+brl(nova.valor)+".",ok:"OK",cancel:""}); return; }
+        renderSalAviso(nova); try{ window.scrollTo(0,0); }catch(e2){} // mostra o aviso âmbar pra confirmar
+      });
+      return;
+    }
+  });
+  // Gera os avisos de reajuste pros inquilinos (botão que aparece nos dois avisos).
+  function glAvisosDoBotao(av){
+    var oldV=parseFloat(av.dataset.avold)||glSalValor();
+    var newV=parseFloat(av.dataset.avnew)||0;
+    if(!(newV>0)){ return; }
+    glAvisosReajuste(oldV, newV, av.dataset.avdesde||"");
+  }
+  // Aviso antecipado (azul): remover reajuste manual / gerar avisos pros inquilinos.
+  var salFut=document.getElementById("glSalFuturo");
+  if(salFut) salFut.addEventListener("click",function(e){
+    var av=e.target.closest("[data-glavisos]"); if(av){ glAvisosDoBotao(av); return; }
+    if(e.target.closest("[data-glfutrem]")){ glSalFuturoSet(null); renderSalFuturo(); }
+  });
+  // Aviso do Banco Central: só muda o aluguel se o dono mandar.
+  var salAv=document.getElementById("glSalAviso");
+  if(salAv) salAv.addEventListener("click",function(e){
+    var av=e.target.closest("[data-glavisos]"); if(av){ glAvisosDoBotao(av); return; }
+    var ok=e.target.closest("[data-glsalok]");
+    if(ok){ glSalSet(parseFloat(ok.dataset.glsalok), ok.dataset.glsaldesde||""); renderSalAviso(null); if(glAplicaSalario()) glSave(); renderGalpoes(); glSincValorForm(); return; }
+    var nao=e.target.closest("[data-glsalnao]");
+    if(nao){ var r=glSalGet(); r.ignorado=1; try{ localStorage.setItem("gl_salario",JSON.stringify(r)); }catch(e2){} renderSalAviso(null); return; }
+  });
+  glSalAutoChecar();
   var docTog=document.getElementById("glDocTog"); if(docTog){ var dbts=docTog.querySelectorAll(".gl-dt"); for(var _i=0;_i<dbts.length;_i++){ (function(b){ b.addEventListener("click",function(){ glSetDocTipo(b.getAttribute("data-doctipo")); }); })(dbts[_i]); } }
   var cnpjBtn=document.getElementById("glCnpjBuscar"); if(cnpjBtn) cnpjBtn.addEventListener("click",glBuscarCnpj);
   var cnpjInp=document.getElementById("glCnpj"); if(cnpjInp) cnpjInp.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); glBuscarCnpj(); } });
@@ -3811,7 +4532,7 @@ function renderGalpoes(){
     var cbtnG=e.target.closest("[data-glcfile-btn]");
     if(cbtnG){ var inpG=document.querySelector('[data-glcfile="'+cbtnG.dataset.glcfileBtn+'"]'); if(inpG) inpG.click(); return; }
     var cgerG=e.target.closest("[data-glcgerar]");
-    if(cgerG){ uiConfirm({titulo:"Contrato dos galpões",msg:"O modelo de contrato dos galpões ainda não foi cadastrado. Me mande o contrato padrão que vocês usam para os galpões que eu monto o gerador — igual funciona nos pontos extras.\\n\\nPor enquanto, use o botão \\u201cAnexar contrato\\u201d para guardar o arquivo aqui.",ok:"Entendi",cancel:""}); return; }
+    if(cgerG){ var gg=galpoesG.find(function(x){ return x.id===cgerG.dataset.glcgerar; }); if(gg) glGerarContrato(gg); return; }
     // --- CALENDÁRIO DE COBRANÇAS ---
     var cobG=e.target.closest("[data-glcob]");
     if(cobG){
@@ -3828,33 +4549,21 @@ function renderGalpoes(){
     var desfG=e.target.closest("[data-gldesfazer]");
     if(desfG){ var pd=desfG.dataset.gldesfazer.split("|"); var gd=galpoesG.find(function(x){ return x.id===pd[0]; }); if(gd){ uiConfirm({titulo:"Desfazer pagamento",msg:"Marcar esta mensalidade como NÃO paga de novo?",ok:"Desfazer",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; if(gd.manuais) delete gd.manuais[pd[1]]; glSave(); renderGalpoes(); glReabrir(gd.id); }); } return; }
     // --- COMPROVANTES (um por mensalidade) ---
-    var compBtnG=e.target.closest("[data-glcompbtn]");
-    if(compBtnG){ var ci=document.querySelector('[data-glcompfile="'+compBtnG.dataset.glcompbtn+'"]'); if(ci) ci.click(); return; }
+    // Não há botão de anexar: igual aos pontos extras, quem confirma o pagamento é o banco.
+    // Ver/remover ficam para os comprovantes que já foram anexados antes dessa regra.
     var compViewG=e.target.closest("[data-glcompview]");
     if(compViewG){ e.preventDefault(); var pv=compViewG.dataset.glcompview.split("|"); var gv=galpoesG.find(function(x){ return x.id===pv[0]; }); var cv=gv&&(gv.comprovantes||{})[pv[1]]; if(cv&&cv.arquivo){ srSignedUrl("pontos", cv.arquivo, function(u){ if(u) window.open(u,"_blank"); }); } return; }
     var compRemG=e.target.closest("[data-glcomprem]");
     if(compRemG){ var prm=compRemG.dataset.glcomprem.split("|"); var grm=galpoesG.find(function(x){ return x.id===prm[0]; }); if(grm){ uiConfirm({titulo:"Remover comprovante",msg:"Apagar o comprovante desta mensalidade?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; if(grm.comprovantes) delete grm.comprovantes[prm[1]]; glSave(); renderGalpoes(); glReabrir(grm.id); }); } return; }
     var ed=e.target.closest("[data-gledit]");
-    if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNum").value=g2.numero||""; document.getElementById("glCnpj").value=g2.cnpj||""; document.getElementById("glRazao").value=g2.razaoSocial||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glVend").value=g2.vendedor||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; document.getElementById("glEnd").value=g2.endereco||""; document.getElementById("glValor").value=g2.valor||""; document.getElementById("glPag").value=g2.pagamento||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glVenc").value=g2.vencimento||""; document.getElementById("glObs").value=g2.obs||""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; try{ glSetDocTipo(((g2.cnpj||"").replace(/\\D/g,"").length===11)?"cpf":"cnpj"); }catch(e){} var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
+    if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNum").value=g2.numero||""; document.getElementById("glCnpj").value=g2.cnpj||""; document.getElementById("glRazao").value=g2.razaoSocial||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glVend").value=g2.vendedor||""; document.getElementById("glRg").value=g2.rg||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; document.getElementById("glEnd").value=g2.endereco||""; document.getElementById("glEndInq").value=g2.enderecoInq||""; document.getElementById("glAluguel").value=g2.aluguel||"1"; document.getElementById("glValor").value=g2.valor||""; document.getElementById("glPag").value=g2.pagamento||""; document.getElementById("glDiaPag").value=g2.diaPag||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glVenc").value=g2.vencimento||""; document.getElementById("glObs").value=g2.obs||""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; try{ glSetDocTipo(((g2.cnpj||"").replace(/\\D/g,"").length===11)?"cpf":"cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
     var rem=e.target.closest("[data-glrem]");
     if(rem){ var id=rem.dataset.glrem; var g3=galpoesG.find(function(x){ return x.id===id; }); uiConfirm({titulo:"Remover galpão",msg:"Apagar \\u201c"+((g3&&g3.nome)||"este galpão")+"\\u201d e todo o histórico dele?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; galpoesG=galpoesG.filter(function(x){ return x.id!==id; }); glCloudDel(id); glSave(); renderGalpoes(); }); return; }
   });
-  // anexar contrato / comprovante: escolher arquivo (mesma regra dos pontos — até 3 MB)
+  // anexar contrato: escolher arquivo (mesma regra dos pontos — até 3 MB)
   if(tb) tb.addEventListener("change",function(e){
     var inp=e.target.closest("[data-glcfile]");
     if(inp && inp.files && inp.files[0]){ glProcessaContratoArquivo(inp.dataset.glcfile, inp.files[0]); return; }
-    var cinp=e.target.closest("[data-glcompfile]");
-    if(cinp && cinp.files && cinp.files[0]){
-      var f=cinp.files[0], pr=cinp.dataset.glcompfile.split("|");
-      if(f.size > 3*1024*1024){ cinp.value=""; uiConfirm({titulo:"Arquivo muito grande",msg:"O comprovante precisa ter no máximo 3 MB. Tente um PDF ou foto menor.",ok:"Entendi",cancel:""}); return; }
-      var reader=new FileReader();
-      reader.onload=function(){
-        var g=galpoesG.find(function(x){ return x.id===pr[0]; });
-        if(g){ if(!g.comprovantes) g.comprovantes={}; g.comprovantes[pr[1]]={arquivo:reader.result,nome:f.name}; glSave(); renderGalpoes(); glReabrir(g.id); }
-      };
-      reader.readAsDataURL(f);
-      return;
-    }
   });
   // arrastar-e-soltar direto na caixa "Anexar contrato"
   if(tb){
@@ -10140,6 +10849,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="pontos"||btn.dataset.page==="mapa"){ pxCloudLoad(); try{ if(typeof pixCobLoad==="function") pixCobLoad(); }catch(e){} }
     if(btn.dataset.page==="galpoes"){ try{ glCloudLoad(); glRealtime(); renderGalpoes(); }catch(e){} }
     if(btn.dataset.page==="planta"){ try{ glCloudLoad(); glRealtime(); renderPlanta(); }catch(e){} }
+    if(btn.dataset.page==="central"){ try{ clCloudLoad(); }catch(e){} }
     if(btn.dataset.page==="jornada"){ try{ jorCloudLoad(); jorRealtime(); renderJornada(); }catch(e){} }
     if(btn.dataset.page==="epi") renderEPI();
     if(btn.dataset.page==="fardamento") renderFardamento();
@@ -10755,7 +11465,8 @@ function pedEnviar(){
     {chave:"layout_planta",       tabela:"layout",               modo:"doc", rowId:"planta"},
     {chave:"layout_plano",        tabela:"layout",               modo:"doc", rowId:"plano"},
     {chave:"pix_config",          tabela:"configuracoes",        modo:"doc", rowId:"pix_config", masterOnly:true},
-    {chave:"pix_master",          tabela:"configuracoes",        modo:"doc", rowId:"pix_master", masterOnly:true}
+    {chave:"pix_master",          tabela:"configuracoes",        modo:"doc", rowId:"pix_master", masterOnly:true},
+    {chave:"gl_salario",          tabela:"configuracoes",        modo:"doc", rowId:"gl_salario", masterOnly:true}
   ];
   function ehMaster(){ return !!(window.__PERFIL && window.__PERFIL.is_master); }
   function podeVer(m){ // dado sensível: só quem tem acesso baixa/sobe
@@ -10811,14 +11522,42 @@ function pedEnviar(){
     }
     if(rows.length){ s.from(m.tabela).upsert(rows).then(limparRemovidos,function(){}); } else { limparRemovidos(); }
   }
-  function toast(){
-    if(document.getElementById("syncToast")) return;
-    var t=document.createElement("div"); t.id="syncToast";
-    t.style.cssText="position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#157a35;color:#fff;padding:12px 20px;border-radius:12px;font-size:13.5px;font-weight:600;z-index:99999;box-shadow:0 10px 30px rgba(0,0,0,.3);cursor:pointer;";
-    t.innerHTML="\ud83d\udd04 Outra pessoa atualizou dados do painel \u2014 <u>clique para ver</u>";
-    t.onclick=function(){ location.reload(); };
-    document.body.appendChild(t);
+  // Descobre qual se\u00e7\u00e3o do painel mudou, a partir da tabela/linha que veio na sincroniza\u00e7\u00e3o.
+  function syncSecao(alvo){
+    if(!alvo) return {label:"dados do painel",page:null};
+    if(alvo.tabela==="configuracoes"){
+      if(alvo.rowId==="gl_salario") return {label:"Sal\u00e1rio m\u00ednimo (Galp\u00f5es)",page:"galpoes"};
+      return {label:"Configura\u00e7\u00f5es",page:"config"};
+    }
+    var TAB={
+      pontos_extras:{label:"Pontos extras",page:"pontos"},
+      galpoes:{label:"Galp\u00f5es",page:"galpoes"},
+      escala:{label:"Escala",page:"escala"},
+      ferias:{label:"F\u00e9rias",page:"ferias"},
+      perdas:{label:"Perdas / Quebras",page:"perdas"},
+      perdas_acougue:{label:"Perdas do a\u00e7ougue",page:"acougue"},
+      epi_catalogo:{label:"EPI",page:"epi"}, epi_entregas:{label:"EPI",page:"epi"},
+      fardamento_catalogo:{label:"Fardamento",page:"fardamento"}, fardamento_entregas:{label:"Fardamento",page:"fardamento"},
+      calendario_campanhas:{label:"Calend\u00e1rio",page:"calendario"},
+      negociacoes:{label:"Negocia\u00e7\u00f5es",page:"pontos"},
+      cartaz_temas:{label:"Cartaz de oferta",page:"cartaz"},
+      organogramas:{label:"Organograma",page:"organograma"},
+      fluxograma:{label:"Fluxograma",page:"fluxograma"},
+      layout:{label:"Layout da loja",page:"layout"},
+      cargos_salarios:{label:"Cargos e sal\u00e1rios",page:"cargos"},
+      material_uso:{label:"Material de uso",page:"material"},
+      receitas:{label:"Receitas",page:"receitas"},
+      banco_horas:{label:"Banco de horas",page:"jornada"},
+      manutencao_equipamentos:{label:"Manuten\u00e7\u00f5es",page:"manutencoes"}, manutencao_registros:{label:"Manuten\u00e7\u00f5es",page:"manutencoes"},
+      perfis:{label:"Acessos",page:"acessos"}
+    };
+    return TAB[alvo.tabela]||{label:"dados do painel",page:null};
   }
+  // Aviso de sincroniza\u00e7\u00e3o DESLIGADO a pedido do dono (18/07): os dados continuam
+  // sincronizando na nuvem em sil\u00eancio (o localStorage \u00e9 atualizado antes daqui),
+  // s\u00f3 n\u00e3o aparece mais o popup "outra pessoa atualizou". Deixado como no-op de
+  // prop\u00f3sito, pra reativar \u00e9 s\u00f3 voltar a montar o toast aqui.
+  function toast(sec){ /* silencioso: sem popup */ }
   function escutar(s,nomes){
     if(window.__syncRT) return;
     try{
@@ -10837,7 +11576,7 @@ function pedEnviar(){
               if(nv===loc) return;
               try{ _set.call(window.localStorage,alvo.chave,nv); }catch(e){}
               lastPush[alvo.chave]=nv;
-              toast();
+              toast(syncSecao(alvo));
             } else {
               // lista: recarrega a tabela toda (debounced) e compara
               clearTimeout(debs["rt_"+alvo.chave]);
@@ -10849,7 +11588,7 @@ function pedEnviar(){
                   if(nv===loc2) return;
                   try{ _set.call(window.localStorage,alvo.chave,nv); }catch(e){}
                   lastPush[alvo.chave]=nv;
-                  toast();
+                  toast(syncSecao(alvo));
                 },function(){});
               },700);
             }
