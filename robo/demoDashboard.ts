@@ -6137,6 +6137,59 @@ function uiPrompt(opts){
     setTimeout(function(){ inp.focus(); if(inp.value) inp.select(); }, 30);
   });
 }
+// ============================================================
+// TRAVA "SENHA DO MASTER" pra ações protegidas.
+// Confere a senha REAL de um login master, ao vivo no Supabase, SEM guardar nada e
+// SEM derrubar o login de quem está usando o painel (cliente temporário isolado).
+// - Se quem está mexendo JÁ é master, passa direto (não incomoda ele com a própria senha).
+// - Se for funcionário, abre a janelinha: só passa se digitarem e-mail + senha de um
+//   login que seja master de verdade.
+// Uso: autorizarMaster("motivo").then(function(ok){ if(!ok) return; /* faz a ação */ });
+function autorizarMaster(motivo){
+  return new Promise(function(resolve){
+    var perfil=window.__PERFIL||{};
+    if(perfil.is_master){ resolve(true); return; } // master não precisa autorizar a si mesmo
+    var bg=document.getElementById("smModal");
+    if(!bg){
+      bg=document.createElement("div"); bg.id="smModal"; bg.className="modal-bg";
+      bg.innerHTML='<div class="modal-cx"><div class="modal-top"><div class="modal-ic ui-ic-lock">🔒</div><div class="modal-tit" id="smTit">Ação protegida</div></div><div class="modal-msg" id="smMsg"></div><div style="padding:6px 24px 0;"><input type="email" id="smEmail" class="up-inp" placeholder="e-mail do master" autocomplete="off" autocapitalize="off" spellcheck="false"><input type="password" id="smSenha" class="up-inp" placeholder="senha do master" style="margin-top:10px;" autocomplete="off"></div><div id="smErro" style="display:none;color:#c0392b;font-size:13px;font-weight:600;padding:8px 24px 0;"></div><div class="modal-acts"><button class="btn-s" id="smCancel">Cancelar</button><button class="btn-p" id="smOk">Autorizar</button></div></div>';
+      document.body.appendChild(bg);
+    }
+    var msg=document.getElementById("smMsg"), em=document.getElementById("smEmail"), pw=document.getElementById("smSenha"), erro=document.getElementById("smErro"), ok=document.getElementById("smOk"), cancel=document.getElementById("smCancel");
+    msg.textContent=motivo||"Essa ação precisa da autorização do master. Peça pro responsável digitar a senha dele.";
+    try{ var le=sessionStorage.getItem("sm_last_email"); if(le) em.value=le; }catch(e){}
+    pw.value=""; erro.style.display="none"; ok.disabled=false; ok.textContent="Autorizar";
+    bg.classList.add("show");
+    function fechar(v){ bg.classList.remove("show"); ok.onclick=null; cancel.onclick=null; bg.onclick=null; pw.onkeydown=null; em.onkeydown=null; resolve(v); }
+    function falha(t){ erro.textContent=t; erro.style.display=""; ok.disabled=false; ok.textContent="Autorizar"; pw.value=""; pw.focus(); }
+    function tentar(){
+      var email=(em.value||"").trim().toLowerCase(), senha=pw.value||"";
+      if(!email || !senha){ falha("Preencha o e-mail e a senha do master."); return; }
+      ok.disabled=true; ok.textContent="Conferindo…"; erro.style.display="none";
+      var URL=window.__SUPA_URL||"https://uabhsmculsfwzcrhyhch.supabase.co";
+      var KEY=window.__SUPA_KEY||"sb_publishable_IPLbRjk89c666QkfcoVTiw_GXujUTZU";
+      var tmp;
+      try{ tmp=window.supabase.createClient(URL,KEY,{auth:{persistSession:false,autoRefreshToken:false,storageKey:"sb-mastercheck-tmp"}}); }
+      catch(e){ falha("Não consegui conferir agora. Tente de novo."); return; }
+      tmp.auth.signInWithPassword({email:email,password:senha}).then(function(res){
+        if(res.error || !res.data || !res.data.user){ falha("E-mail ou senha do master incorretos."); return; }
+        tmp.from("perfis").select("is_master").eq("id",res.data.user.id).maybeSingle().then(function(r){
+          var ehMaster=!!(r && r.data && r.data.is_master);
+          try{ tmp.auth.signOut(); }catch(e){}
+          if(!ehMaster){ falha("Esse login existe, mas não é master. Só o master pode autorizar."); return; }
+          try{ sessionStorage.setItem("sm_last_email",email); }catch(e){}
+          fechar(true);
+        }, function(){ try{ tmp.auth.signOut(); }catch(e){} falha("Não consegui conferir agora. Tente de novo."); });
+      }, function(){ falha("Não consegui conferir agora. Tente de novo."); });
+    }
+    ok.onclick=tentar;
+    cancel.onclick=function(){ fechar(false); };
+    bg.onclick=function(e){ if(e.target===bg) fechar(false); };
+    pw.onkeydown=function(e){ if(e.key==="Enter"){ e.preventDefault(); tentar(); } else if(e.key==="Escape"){ fechar(false); } };
+    em.onkeydown=function(e){ if(e.key==="Enter"){ e.preventDefault(); pw.focus(); } else if(e.key==="Escape"){ fechar(false); } };
+    setTimeout(function(){ if(em.value) pw.focus(); else em.focus(); }, 30);
+  });
+}
 let pixDesbloqueado=false;
 function pixHash(str){ let h1=0xdeadbeef,h2=0x41c6ce57; for(let i=0;i<str.length;i++){ const ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); } h1=Math.imul(h1^(h1>>>16),2246822507); h1^=Math.imul(h2^(h2>>>13),3266489909); h2=Math.imul(h2^(h2>>>16),2246822507); h2^=Math.imul(h1^(h1>>>13),3266489909); return (4294967296*(2097151&h2)+(h1>>>0)).toString(16); }
 function pixTemMaster(){ return !!localStorage.getItem("pix_master"); }
@@ -6377,7 +6430,7 @@ async function pixTravaClick(){
     const del=e.target.closest("[data-del]");
     if(del){ const p=pontosG.find(x=>x.id===del.dataset.del); if(p){
       var _msg="Apaga o fornecedor \\u201c"+(p.fornecedor||"sem fornecedor")+"\\u201d (nº "+(p.numero||"?")+") e tudo dele: cobranças, pagamentos, notas e contrato.";
-      uiConfirm({ titulo:"Apagar este fornecedor?", msg:_msg, ok:"Sim, apagar", cancel:"Não, cancelar" }).then(function(sim){ if(!sim) return; lixAdd("Ponto extra","Nº "+(p.numero||"?")+" · "+(p.fornecedor||"sem fornecedor"),"ponto",p); pontosG=pontosG.filter(x=>x.id!==del.dataset.del); savePontosG(); pxCloudDelPonto(del.dataset.del); if(pxEditId===del.dataset.del) pxLimparForm(); renderPontosG(); }); } return; }
+      uiConfirm({ titulo:"Apagar este fornecedor?", msg:_msg, ok:"Sim, apagar", cancel:"Não, cancelar" }).then(function(sim){ if(!sim) return; autorizarMaster("Apagar um ponto extra é uma ação protegida. Peça pro master autorizar com a senha dele.").then(function(aut){ if(!aut) return; lixAdd("Ponto extra","Nº "+(p.numero||"?")+" · "+(p.fornecedor||"sem fornecedor"),"ponto",p); pontosG=pontosG.filter(x=>x.id!==del.dataset.del); savePontosG(); pxCloudDelPonto(del.dataset.del); if(pxEditId===del.dataset.del) pxLimparForm(); renderPontosG(); }); }); } return; }
   });
   // processa o arquivo do contrato (usado tanto pelo clique/seletor quanto pelo arrastar-e-soltar)
   function pxProcessaContratoArquivo(id,f){
@@ -11822,6 +11875,7 @@ function pedEnviar(){
   if(_isRecovery){ ov.style.display="flex"; var _lbx=document.getElementById("authLoginBox"); if(_lbx) _lbx.style.display="none"; var _rbx=document.getElementById("authReset"); if(_rbx) _rbx.style.display=""; }
   var SB=window.supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{persistSession:true,autoRefreshToken:true,storage:window.sessionStorage}});
   window.__SB=SB;
+  window.__SUPA_URL=SUPA_URL; window.__SUPA_KEY=SUPA_KEY; // usados pela trava "senha do master" (cliente temporário)
   var lg=document.getElementById("authLogo");
   if(lg){ var _lsrc=(typeof SIMBOLO_URI!=="undefined"&&SIMBOLO_URI)?SIMBOLO_URI:((typeof LOGO_URI!=="undefined"&&LOGO_URI)?LOGO_URI:""); if(_lsrc){ lg.src=_lsrc; } else { lg.style.display="none"; } }
   var modo="login";
