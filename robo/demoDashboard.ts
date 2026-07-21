@@ -1949,6 +1949,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .acs-online{background:#eaf5ee;border:1px solid #cfe6d8;border-radius:10px;padding:11px 14px;margin-bottom:16px;font-size:13.5px;color:#0c5a26;line-height:1.6;}
         .acs-online b{font-weight:800;}
         .acs-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#22c55e;margin-right:6px;vertical-align:middle;box-shadow:0 0 0 3px rgba(34,197,94,.2);}
+        .acs-onl{display:inline-flex;align-items:center;gap:6px;margin-left:9px;padding:2px 10px;background:#eaf7ee;color:#0c7a34;border:1px solid #bfe6cd;border-radius:20px;font-size:11.5px;font-weight:700;vertical-align:middle;}
+        .acs-onl::before{content:"";width:7px;height:7px;border-radius:50%;background:#1fbf52;box-shadow:0 0 0 0 rgba(31,191,82,.5);animation:acsPulse 1.8s ease-out infinite;}
+        @keyframes acsPulse{0%{box-shadow:0 0 0 0 rgba(31,191,82,.5);}70%{box-shadow:0 0 0 6px rgba(31,191,82,0);}100%{box-shadow:0 0 0 0 rgba(31,191,82,0);}}
         .acs-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
         .acs-top b{font-size:15px;color:#1a2233;}
         .acs-email{font-size:12.5px;color:#8a97a8;}
@@ -12038,12 +12041,21 @@ function pedEnviar(){
 })();
 
 /* ===== Tela de Acessos (permissões por usuário) ===== */
+// quem está online agora (por email e por uid), a partir da presença do Supabase
+function acsOnlineSet(){
+  var st=window.__ONLINE||{}, s={};
+  for(var k in st){ if(k) s[k]=1; var e=st[k]&&st[k][0]; if(e&&e.email) s[String(e.email).toLowerCase()]=1; }
+  return s;
+}
+// Online agora aparece DENTRO do cartão de cada pessoa (não mais num aviso em cima).
 function renderOnline(){
-  var el=document.getElementById("acsOnline"); if(!el) return;
-  var st=window.__ONLINE||{}; var users=[];
-  for(var k in st){ if(st[k]&&st[k][0]) users.push(st[k][0]); }
-  if(!users.length){ el.innerHTML=''; return; }
-  el.innerHTML='<div class="acs-online"><span class="acs-dot"></span><b>'+users.length+' online agora:</b> '+users.map(function(u){ return prdEsc(u.nome||u.email||'?')+(u.setor?' ('+prdEsc(u.setor)+')':''); }).join(' · ')+'</div>';
+  var top=document.getElementById("acsOnline"); if(top) top.innerHTML=''; // aviso de cima removido
+  var OS=acsOnlineSet();
+  var dots=document.querySelectorAll('.acs-onl');
+  for(var i=0;i<dots.length;i++){
+    var d=dots[i], em=(d.getAttribute('data-em')||'').toLowerCase(), uid=d.getAttribute('data-uid')||'';
+    d.style.display=(OS[em]||OS[uid])?'':'none';
+  }
 }
 var _acsTries=0;
 function renderAcessos(){
@@ -12065,15 +12077,17 @@ function renderAcessos(){
     });
     var pend=perfis.filter(function(p){ return !p.is_master && !p.aprovado; }).length;
     var head=pend?('<div class="acs-pendaviso">⏳ <b>'+pend+' pessoa'+(pend>1?'s':'')+' aguardando liberação</b> — confira o nome e o setor, marque as páginas e clique em Liberar.</div>'):'';
+    var OS=acsOnlineSet();
     el.innerHTML=head+perfis.map(function(p){
       var liberado=p.is_master||p.aprovado;
+      var _onl=!!(OS[String(p.email||'').toLowerCase()]||OS[p.id]);
       var pgsHtml=pages.map(function(pg){ var on=(p.paginas||[]).indexOf(pg.key)>=0; return '<label class="acs-pg"><input type="checkbox" class="acs-pgchk" value="'+pg.key+'"'+(on?' checked':'')+(p.is_master?' disabled':'')+'> '+pg.label+'</label>'; }).join('');
       var acaoAcesso=p.is_master?'':(liberado
         ? '<button class="acs-bloquear" type="button" title="A pessoa volta pra tela de espera">Bloquear acesso</button>'
         : '<button class="acs-liberar" type="button">Liberar acesso</button>');
       if(!p.is_master) acaoAcesso+='<button class="acs-excluir" type="button" title="Apaga o login do banco de dados de vez">Excluir login</button>';
       return '<div class="acs-card'+(liberado?'':' pend')+'" data-uid="'+p.id+'">'+
-        '<div class="acs-header"><div class="acs-hleft"><b>'+(p.nome||'(sem nome)')+'</b>'+(p.setor?'<span class="acs-tag">'+prdEsc(p.setor)+'</span>':'')+(p.is_master?'<span class="acs-tag master">Master</span>':'')+(liberado?'':'<span class="acs-tag pend">⏳ aguardando liberação</span>')+'<div class="acs-email">'+(p.email||'')+(p.criado_em?' · pediu acesso em '+String(p.criado_em).slice(0,10).split('-').reverse().join('/'):'')+'</div></div><span class="acs-chevron">›</span></div>'+
+        '<div class="acs-header"><div class="acs-hleft"><b>'+(p.nome||'(sem nome)')+'</b>'+'<span class="acs-onl" data-em="'+prdEsc(String(p.email||'').toLowerCase())+'" data-uid="'+prdEsc(p.id||'')+'" style="display:'+(_onl?'':'none')+'">online agora</span>'+(p.setor?'<span class="acs-tag">'+prdEsc(p.setor)+'</span>':'')+(p.is_master?'<span class="acs-tag master">Master</span>':'')+(liberado?'':'<span class="acs-tag pend">⏳ aguardando liberação</span>')+'<div class="acs-email">'+(p.email||'')+(p.criado_em?' · pediu acesso em '+String(p.criado_em).slice(0,10).split('-').reverse().join('/'):'')+'</div></div><span class="acs-chevron">›</span></div>'+
         '<div class="acs-body" style="display:'+(liberado?'none':'')+'"><div class="acs-top"><label class="acs-master"><input type="checkbox" class="acs-ismaster"'+(p.is_master?' checked':'')+'> Master (vê tudo)</label><div class="acs-setorwrap">Setor: <input class="acs-setor" value="'+(p.setor||'')+'" placeholder="ex: Açougue"></div></div><div class="acs-pages">'+pgsHtml+'</div><div style="display:flex;gap:10px;flex-wrap:wrap;">'+acaoAcesso+'<button class="acs-salvar" type="button">Salvar acessos</button></div></div>'+
         '</div>';
     }).join('');
