@@ -4769,7 +4769,10 @@ function pxSB(){ return window.__SB||null; }
 // Quem pode ver/mexer nos Pontos extras (financeiro): o MASTER, OU o funcionário
 // que tiver a página "Pontos extras" liberada nos Acessos. Mesma regra vale no banco
 // (função pode_ver_pontos no Supabase) — os dois PRECISAM combinar.
-function pxPodeVer(){ var p=window.__PERFIL; return !!(p && (p.is_master || (p.paginas||[]).indexOf("pontos")>=0)); }
+// Regra geral de acesso por página: pode a página X quem for MASTER ou tiver a página X
+// liberada nos Acessos. Mesma regra vale no banco (função pode_pagina no Supabase).
+function podePagina(chave){ var p=window.__PERFIL; return !!(p && (p.is_master || (p.paginas||[]).indexOf(chave)>=0)); }
+function pxPodeVer(){ return podePagina("pontos"); }
 var pxCloudOK=false, pxCarregando=false, pxRT=null, pxPushT=null;
 function pxRowFromP(p){ return {id:p.id,numero:p.numero||0,abertura:p.abertura||"",vencimento:p.vencimento||"",mes_pag:p.mesPag||"",status:p.status||"",fornecedor:p.fornecedor||"",cnpj:p.cnpj||"",razao_social:p.razaoSocial||"",contato:p.contato||"",email:p.email||"",endereco:p.endereco||"",vendedor:p.vendedor||"",valor:+p.valor||0,pagamento:p.pagamento||"",contrato:p.contrato||"",venc_contrato:p.vencContrato||"",obs:p.obs||"",manuais:p.manuais||null,comprovantes:p.comprovantes||null,contrato_url:(p.contratoArquivo&&p.contratoArquivo.indexOf("data:")!==0)?p.contratoArquivo:"",contrato_nome:p.contratoNome||"",atualizado_em:new Date().toISOString()}; }
 function pxPFromRow(r){ var p={id:r.id,numero:r.numero,abertura:r.abertura||"",vencimento:r.vencimento||"",mesPag:r.mes_pag||"",status:r.status||"",fornecedor:r.fornecedor||"",cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",vendedor:r.vendedor||"",valor:+r.valor||0,pagamento:r.pagamento||"",contrato:r.contrato||"",vencContrato:r.venc_contrato||"",obs:r.obs||""}; if(r.manuais)p.manuais=r.manuais; if(r.comprovantes)p.comprovantes=r.comprovantes; if(r.contrato_url){p.contratoArquivo=r.contrato_url;p.contratoNome=r.contrato_nome||"";} return p; }
@@ -6910,7 +6913,7 @@ function jorRowFromR(r){ return {pis:r.pis||"",nome:r.nome||"",cargo:r.cargo||""
 function jorRFromRow(x){ return {pis:x.pis||"",nome:x.nome||"",cargo:x.cargo||"",setor:x.setor||"",saldo:+x.saldo_min||0,pos:+x.pos_min||0,neg:+x.neg_min||0,saldoDia:+x.dia_min||0}; }
 function jorCloudLoad(){
   var sb=jorSB(); if(!sb) return;
-  if(!(window.__PERFIL && window.__PERFIL.is_master)){ jorReg=[]; try{ localStorage.removeItem("jornada_reg"); }catch(e){} return; }
+  if(!podePagina("jornada")){ jorReg=[]; try{ localStorage.removeItem("jornada_reg"); }catch(e){} return; }
   sb.from("banco_horas").select("*").then(function(r){
     if(r.error||!r.data) return; // sem tabela -> segue local
     jorCloudOK=true;
