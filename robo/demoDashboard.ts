@@ -6142,11 +6142,11 @@ function uiPrompt(opts){
 }
 // ============================================================
 // TRAVA "SENHA DO MASTER" pra ações protegidas.
-// Confere a senha REAL de um login master, ao vivo no Supabase, SEM guardar nada e
-// SEM derrubar o login de quem está usando o painel (cliente temporário isolado).
+// Pede SÓ a senha (sem e-mail) e confere no banco, contra a senha de qualquer login
+// master, via função segura senha_master_ok (devolve só sim/não; não expõe nada, não
+// derruba o login de quem está usando o painel).
 // - Se quem está mexendo JÁ é master, passa direto (não incomoda ele com a própria senha).
-// - Se for funcionário, abre a janelinha: só passa se digitarem e-mail + senha de um
-//   login que seja master de verdade.
+// - Se for funcionário, abre a janelinha: só passa se a senha bater com a de um master.
 // Uso: autorizarMaster("motivo").then(function(ok){ if(!ok) return; /* faz a ação */ });
 function autorizarMaster(motivo){
   return new Promise(function(resolve){
@@ -6155,42 +6155,32 @@ function autorizarMaster(motivo){
     var bg=document.getElementById("smModal");
     if(!bg){
       bg=document.createElement("div"); bg.id="smModal"; bg.className="modal-bg";
-      bg.innerHTML='<div class="modal-cx"><div class="modal-top"><div class="modal-ic ui-ic-lock">🔒</div><div class="modal-tit" id="smTit">Ação protegida</div></div><div class="modal-msg" id="smMsg"></div><div style="padding:6px 24px 0;"><input type="email" id="smEmail" class="up-inp" placeholder="e-mail do master" autocomplete="off" autocapitalize="off" spellcheck="false"><input type="password" id="smSenha" class="up-inp" placeholder="senha do master" style="margin-top:10px;" autocomplete="off"></div><div id="smErro" style="display:none;color:#c0392b;font-size:13px;font-weight:600;padding:8px 24px 0;"></div><div class="modal-acts"><button class="btn-s" id="smCancel">Cancelar</button><button class="btn-p" id="smOk">Autorizar</button></div></div>';
+      bg.innerHTML='<div class="modal-cx"><div class="modal-top"><div class="modal-ic ui-ic-lock">🔒</div><div class="modal-tit" id="smTit">Ação protegida</div></div><div class="modal-msg" id="smMsg"></div><div style="padding:6px 24px 0;"><input type="password" id="smSenha" class="up-inp" placeholder="senha do master" autocomplete="off"></div><div id="smErro" style="display:none;color:#c0392b;font-size:13px;font-weight:600;padding:8px 24px 0;"></div><div class="modal-acts"><button class="btn-s" id="smCancel">Cancelar</button><button class="btn-p" id="smOk">Autorizar</button></div></div>';
       document.body.appendChild(bg);
     }
-    var msg=document.getElementById("smMsg"), em=document.getElementById("smEmail"), pw=document.getElementById("smSenha"), erro=document.getElementById("smErro"), ok=document.getElementById("smOk"), cancel=document.getElementById("smCancel");
+    var msg=document.getElementById("smMsg"), pw=document.getElementById("smSenha"), erro=document.getElementById("smErro"), ok=document.getElementById("smOk"), cancel=document.getElementById("smCancel");
     msg.textContent=motivo||"Essa ação precisa da autorização do master. Peça pro responsável digitar a senha dele.";
-    try{ var le=sessionStorage.getItem("sm_last_email"); if(le) em.value=le; }catch(e){}
     pw.value=""; erro.style.display="none"; ok.disabled=false; ok.textContent="Autorizar";
     bg.classList.add("show");
-    function fechar(v){ bg.classList.remove("show"); ok.onclick=null; cancel.onclick=null; bg.onclick=null; pw.onkeydown=null; em.onkeydown=null; resolve(v); }
+    function fechar(v){ bg.classList.remove("show"); ok.onclick=null; cancel.onclick=null; bg.onclick=null; pw.onkeydown=null; resolve(v); }
     function falha(t){ erro.textContent=t; erro.style.display=""; ok.disabled=false; ok.textContent="Autorizar"; pw.value=""; pw.focus(); }
     function tentar(){
-      var email=(em.value||"").trim().toLowerCase(), senha=pw.value||"";
-      if(!email || !senha){ falha("Preencha o e-mail e a senha do master."); return; }
+      var senha=pw.value||"";
+      if(!senha){ falha("Digite a senha do master."); return; }
+      var sb=window.__SB;
+      if(!sb){ falha("Não consegui conferir agora. Tente de novo."); return; }
       ok.disabled=true; ok.textContent="Conferindo…"; erro.style.display="none";
-      var URL=window.__SUPA_URL||"https://uabhsmculsfwzcrhyhch.supabase.co";
-      var KEY=window.__SUPA_KEY||"sb_publishable_IPLbRjk89c666QkfcoVTiw_GXujUTZU";
-      var tmp;
-      try{ tmp=window.supabase.createClient(URL,KEY,{auth:{persistSession:false,autoRefreshToken:false,storageKey:"sb-mastercheck-tmp"}}); }
-      catch(e){ falha("Não consegui conferir agora. Tente de novo."); return; }
-      tmp.auth.signInWithPassword({email:email,password:senha}).then(function(res){
-        if(res.error || !res.data || !res.data.user){ falha("E-mail ou senha do master incorretos."); return; }
-        tmp.from("perfis").select("is_master").eq("id",res.data.user.id).maybeSingle().then(function(r){
-          var ehMaster=!!(r && r.data && r.data.is_master);
-          try{ tmp.auth.signOut(); }catch(e){}
-          if(!ehMaster){ falha("Esse login existe, mas não é master. Só o master pode autorizar."); return; }
-          try{ sessionStorage.setItem("sm_last_email",email); }catch(e){}
-          fechar(true);
-        }, function(){ try{ tmp.auth.signOut(); }catch(e){} falha("Não consegui conferir agora. Tente de novo."); });
+      sb.rpc("senha_master_ok",{senha:senha}).then(function(r){
+        if(r && r.error){ falha("Não consegui conferir agora. Tente de novo."); return; }
+        if(r && r.data===true){ fechar(true); }
+        else { falha("Senha do master incorreta."); }
       }, function(){ falha("Não consegui conferir agora. Tente de novo."); });
     }
     ok.onclick=tentar;
     cancel.onclick=function(){ fechar(false); };
     bg.onclick=function(e){ if(e.target===bg) fechar(false); };
     pw.onkeydown=function(e){ if(e.key==="Enter"){ e.preventDefault(); tentar(); } else if(e.key==="Escape"){ fechar(false); } };
-    em.onkeydown=function(e){ if(e.key==="Enter"){ e.preventDefault(); pw.focus(); } else if(e.key==="Escape"){ fechar(false); } };
-    setTimeout(function(){ if(em.value) pw.focus(); else em.focus(); }, 30);
+    setTimeout(function(){ pw.focus(); }, 30);
   });
 }
 let pixDesbloqueado=false;
