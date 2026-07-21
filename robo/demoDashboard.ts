@@ -6423,7 +6423,7 @@ async function pixTravaClick(){
     const del=e.target.closest("[data-del]");
     if(del){ const p=pontosG.find(x=>x.id===del.dataset.del); if(p){
       var _msg="Apaga o fornecedor \\u201c"+(p.fornecedor||"sem fornecedor")+"\\u201d (nº "+(p.numero||"?")+") e tudo dele: cobranças, pagamentos, notas e contrato.";
-      uiConfirm({ titulo:"Apagar este fornecedor?", msg:_msg, ok:"Sim, apagar", cancel:"Não, cancelar" }).then(function(sim){ if(!sim) return; autorizarMaster("Apagar um ponto extra é uma ação protegida. Peça pro master autorizar com a senha dele.").then(function(aut){ if(!aut) return; lixAdd("Ponto extra","Nº "+(p.numero||"?")+" · "+(p.fornecedor||"sem fornecedor"),"ponto",p); pontosG=pontosG.filter(x=>x.id!==del.dataset.del); savePontosG(); pxCloudDelPonto(del.dataset.del); if(pxEditId===del.dataset.del) pxLimparForm(); renderPontosG(); }); }); } return; }
+      uiConfirm({ titulo:"Apagar este fornecedor?", msg:_msg, ok:"Sim, apagar", cancel:"Não, cancelar" }).then(function(sim){ if(!sim) return; lixAdd("Ponto extra","Nº "+(p.numero||"?")+" · "+(p.fornecedor||"sem fornecedor"),"ponto",p); pontosG=pontosG.filter(x=>x.id!==del.dataset.del); savePontosG(); pxCloudDelPonto(del.dataset.del); if(pxEditId===del.dataset.del) pxLimparForm(); renderPontosG(); }); } return; }
   });
   // processa o arquivo do contrato (usado tanto pelo clique/seletor quanto pelo arrastar-e-soltar)
   function pxProcessaContratoArquivo(id,f){
