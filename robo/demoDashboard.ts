@@ -514,7 +514,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #authSair{margin-left:auto;border:1px solid #cdd6e0;background:#fff;border-radius:7px;padding:4px 9px;font-size:12px;cursor:pointer;color:#56606d;font-weight:600;}
 </style><link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body>
-<div id="authOv" style="display:flex"><div id="authCard"><img id="authLogo" alt=""><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div id="authChecando" style="text-align:center;color:#8a97a8;font-size:13.5px;padding:14px 0 6px;">Verificando acesso...</div><div id="authLoginBox" style="display:none"><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar acesso</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld" id="fldSetor" style="display:none"><label>Setor</label><select id="authSetor"><option value="">Selecione...</option><option>Frente de Loja</option><option>Açougue</option><option>Padaria</option><option>Hortifruti</option><option>Mercearia</option><option>Estoque</option><option>Financeiro</option><option>RH</option><option>Compras</option><option>Administração</option><option>Diretoria</option><option>Outro</option></select></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><div class="pw-wrap"><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld" id="fldRepetir" style="display:none"><label>Repetir senha</label><div class="pw-wrap"><input id="authRepetir" type="password" placeholder="digite a senha de novo" autocomplete="new-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authForgot">Esqueci minha senha</span></div><div id="authReset" style="display:none"><div class="auth-fld"><label>Nova senha</label><div class="pw-wrap"><input id="authNovaSenha" type="password" placeholder="mínimo 6 caracteres"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld"><label>Repetir nova senha</label><div class="pw-wrap"><input id="authNovaRepetir" type="password" placeholder="digite a senha de novo"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authResetBtn" type="button">Salvar nova senha</button><div id="authResetMsg" style="font-size:13px;margin-top:10px;text-align:center;"></div></div><div id="authWait" style="display:none"><div style="font-size:44px;margin:4px 0 8px;">⏳</div><p style="font-size:14.5px;color:#33404f;line-height:1.65;margin:0 0 6px;"><b>Conta confirmada!</b><br>Falta o administrador liberar o seu acesso ao painel.</p><p style="font-size:12.5px;color:#8a97a8;margin:0 0 16px;">Avise o responsável. Assim que ele liberar, você entra automaticamente.</p><button id="authWaitSair" type="button" style="background:#eef1f5;color:#33404f;border:0;border-radius:10px;padding:10px 22px;font-weight:700;cursor:pointer;">Sair</button></div></div></div>
+<div id="authOv" style="display:flex"><div id="authCard"><img id="authLogo" alt=""><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div id="authChecando" style="text-align:center;color:#8a97a8;font-size:13.5px;padding:14px 0 6px;">Verificando acesso...</div><div id="authLoginBox" style="display:none"><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar conta</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld" id="fldSetor" style="display:none"><label>Setor</label><select id="authSetor"><option value="">Selecione...</option><option>Frente de Loja</option><option>Açougue</option><option>Padaria</option><option>Hortifruti</option><option>Mercearia</option><option>Estoque</option><option>Financeiro</option><option>RH</option><option>Compras</option><option>Administração</option><option>Diretoria</option><option>Outro</option></select></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><div class="pw-wrap"><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld" id="fldRepetir" style="display:none"><label>Repetir senha</label><div class="pw-wrap"><input id="authRepetir" type="password" placeholder="digite a senha de novo" autocomplete="new-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authForgot">Esqueci minha senha</span></div><div id="authReset" style="display:none"><div class="auth-fld"><label>Nova senha</label><div class="pw-wrap"><input id="authNovaSenha" type="password" placeholder="mínimo 6 caracteres"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld"><label>Repetir nova senha</label><div class="pw-wrap"><input id="authNovaRepetir" type="password" placeholder="digite a senha de novo"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authResetBtn" type="button">Salvar nova senha</button><div id="authResetMsg" style="font-size:13px;margin-top:10px;text-align:center;"></div></div><div id="authWait" style="display:none"><div style="font-size:44px;margin:4px 0 8px;">⏳</div><p style="font-size:14.5px;color:#33404f;line-height:1.65;margin:0 0 6px;"><b>Conta confirmada!</b><br>Falta o administrador liberar o seu acesso ao painel.</p><p style="font-size:12.5px;color:#8a97a8;margin:0 0 16px;">Avise o responsável. Assim que ele liberar, você entra automaticamente.</p><button id="authWaitSair" type="button" style="background:#eef1f5;color:#33404f;border:0;border-radius:10px;padding:10px 22px;font-weight:700;cursor:pointer;">Sair</button></div></div></div>
 <script>try{var _o=document.getElementById("authOv");var _s=(location.hash||"")+(location.search||"");var _rec=(_s.indexOf("type=recovery")>=0)||(window.sessionStorage&&sessionStorage.getItem("sr_recovery")==="1");var _exp=(!_rec)&&(_s.indexOf("otp_expired")>=0||_s.indexOf("access_denied")>=0||_s.indexOf("error_code")>=0);if(_o&&(_rec||_exp)){_o.style.display="flex";var _lb=document.getElementById("authLoginBox");var _rb=document.getElementById("authReset");if(_rec){if(_lb)_lb.style.display="none";if(_rb)_rb.style.display="";}else{if(_rb)_rb.style.display="none";if(_lb)_lb.style.display="";var _m=document.getElementById("authMsg");if(_m){_m.textContent="Este link de senha já foi usado ou expirou. Toque em Esqueci minha senha para receber um novo.";_m.style.color="#c0392b";}}}}catch(e){}</script>
   <header>
     <div class="hwrap">
@@ -842,13 +842,13 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <h2 id="pxFormTitulo">Adicionar ponto extra</h2>
         <div class="filtros" style="box-shadow:none;padding:0;flex-wrap:wrap;align-items:flex-start;">
           <div class="campo"><label for="pxNum">Nº do ponto</label><input type="number" id="pxNum" min="1" max="21" style="width:90px;"></div>
-          <div class="campo"><label for="pxCnpj">CNPJ (busca o nome)</label>
+          <div class="campo"><label for="pxCnpj">CNPJ</label>
             <span style="display:inline-flex;gap:6px;align-items:center;">
               <input type="text" id="pxCnpj" placeholder="00.000.000/0000-00" style="width:175px;">
               <button type="button" class="btn-s" id="pxCnpjBuscar">Buscar</button>
             </span>
           </div>
-          <div class="campo" style="flex:1;min-width:170px;"><label for="pxForn">Fornecedor</label><input type="text" id="pxForn" placeholder="busque pelo CNPJ ou digite"><input type="hidden" id="pxRazao"><span id="pxCnpjMsg" style="font-size:11px;display:block;margin-top:4px;line-height:1.25;"></span></div>
+          <div class="campo" style="flex:1;min-width:170px;"><label for="pxForn">Fornecedor</label><input type="text" id="pxForn" placeholder="preenchido pela busca do CNPJ" readonly style="background:#f4f6f9;color:#56606d;" title="Vem sozinho quando você busca o CNPJ."><input type="hidden" id="pxRazao"><span id="pxCnpjMsg" style="font-size:11px;display:block;margin-top:4px;line-height:1.25;"></span></div>
           <div class="campo"><label for="pxVend">Vendedor</label><input type="text" id="pxVend" placeholder="ex: Josinaldo"></div>
           <div class="campo"><label for="pxTel">Contato</label><input type="tel" id="pxTel" placeholder="ex: (84) 99999-0000" style="width:160px;"></div>
           <div class="campo"><label for="pxEmail">E-mail (p/ cobrança)</label><input type="email" id="pxEmail" placeholder="ex: financeiro@empresa.com" style="width:230px;"></div>
@@ -914,18 +914,18 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         </div>
         <div class="filtros" style="box-shadow:none;padding:0;flex-wrap:wrap;align-items:flex-start;">
           <div class="campo"><label for="glNum">Nº do galpão</label><input type="text" id="glNum" placeholder="ex: 102 A" style="width:110px;"></div>
-          <div class="campo"><label for="glCnpj">Documento do inquilino</label>
+          <div class="campo"><label for="glCnpj" id="glCnpjLbl">CNPJ</label>
             <span style="display:inline-flex;gap:6px;align-items:center;">
               <input type="text" id="glCnpj" placeholder="00.000.000/0000-00" style="width:175px;">
               <button type="button" class="btn-s" id="glCnpjBuscar">Buscar</button>
             </span>
           </div>
-          <div class="campo" style="flex:1;min-width:170px;"><label for="glLoc">Empresa</label><input type="text" id="glLoc" placeholder="nome da empresa (busca pelo CNPJ)"><input type="hidden" id="glRazao"><span id="glCnpjMsg" style="font-size:11px;display:block;margin-top:4px;line-height:1.25;"></span></div>
+          <div class="campo" style="flex:1;min-width:170px;"><label for="glLoc">Empresa</label><input type="text" id="glLoc" placeholder="nome da empresa"><input type="hidden" id="glRazao"><span id="glCnpjMsg" style="font-size:11px;display:block;margin-top:4px;line-height:1.25;"></span></div>
           <div class="campo"><label for="glVend">Inquilino</label><input type="text" id="glVend" placeholder="ex: João da Silva"></div>
           <div class="campo"><label for="glRg">RG do inquilino</label><input type="text" id="glRg" placeholder="ex: 003.046.362" style="width:150px;"></div>
           <div class="campo"><label for="glTel">Contato</label><input type="tel" id="glTel" placeholder="ex: (84) 99999-0000" style="width:160px;"></div>
           <div class="campo"><label for="glEmail">E-mail (p/ cobrança)</label><input type="email" id="glEmail" placeholder="ex: financeiro@empresa.com" style="width:230px;"></div>
-          <div class="campo" style="flex:1;min-width:200px;"><label for="glEnd">Endereço do galpão</label><input type="text" id="glEnd" placeholder="ex: Av. Central, 500 - onde o galpão fica"></div>
+          <div class="campo" style="flex:1;min-width:200px;"><label for="glEnd">Endereço do galpão — automático</label><input type="text" id="glEnd" readonly style="background:#f4f6f9;color:#56606d;" title="Montado sozinho: rua fixa + o Nº do galpão."></div>
           <div class="campo" style="flex:1;min-width:200px;"><label for="glEndInq">Endereço do inquilino</label><input type="text" id="glEndInq" placeholder="ex: R. Terezinha Leite, 77 - Penedo (onde ele mora)"></div>
           <div class="campo"><label for="glAluguel">Aluguel no contrato</label>
             <select id="glAluguel" class="px-filtro" style="width:190px;">
@@ -2257,6 +2257,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       .cl-tabs{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap;}
       .cl-tab{background:#fff;border:1px solid #d7dee7;border-radius:9px;padding:8px 16px;font-size:13.5px;font-weight:600;color:#56606d;cursor:pointer;font-family:inherit;}
       .cl-tab.on{background:#157a35;border-color:#157a35;color:#fff;}
+      .cl-tab.cl-print{display:flex;align-items:center;}
+      .cl-tab.cl-print:hover{background:#f4f6f9;}
       .cl-integ{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-radius:12px;padding:12px 18px;margin-bottom:16px;font-size:13px;line-height:1.45;}
       .cl-integ.demo{background:#fff8ec;border:1px solid #f2dcb3;color:#8a5a12;}
       .cl-integ.live{background:#e7f2ea;border:1px solid #bfe0cb;color:#0e5726;}
@@ -2281,6 +2283,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       .cl-wknav{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
       .cl-wknav button{border:1px solid #d7dee7;background:#fff;border-radius:8px;height:32px;min-width:32px;cursor:pointer;font-size:15px;color:#46535f;font-family:inherit;}
       .cl-wknav .lbl{font-weight:700;font-size:14.5px;color:#1d2733;}
+      .cl-datanav{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+      .cl-datanav button{border:1px solid #d7dee7;background:#fff;border-radius:8px;height:34px;min-width:34px;cursor:pointer;font-size:15px;color:#46535f;font-family:inherit;}
+      .cl-datanav input[type="date"]{border:1px solid #cdd6e0;border-radius:8px;padding:7px 10px;font-size:13.5px;font-family:inherit;color:#2a3340;background:#fff;height:34px;box-sizing:border-box;}
+      .cl-hoje-btn{padding:0 14px !important;min-width:auto !important;font-size:12.5px !important;font-weight:600;}
       .cl-wk-wrap{overflow-x:auto;}
       .cl-wk{border-collapse:collapse;width:100%;min-width:720px;}
       .cl-wk th{font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:#6b7787;font-weight:700;padding:7px 6px;text-align:center;border-bottom:1px solid #e6ebf1;line-height:1.35;}
@@ -2304,8 +2310,17 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div class="cl-tabs">
           <button type="button" class="cl-tab on" data-clview="hoje">Visão de hoje</button>
           <button type="button" class="cl-tab" data-clview="agenda">Agenda da semana</button>
+          <button type="button" class="cl-tab cl-print" id="clImprimirBtn" style="margin-left:auto;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir
+          </button>
         </div>
         <div id="clHoje">
+          <div class="cl-datanav">
+            <button type="button" id="clDiaPrev" title="Dia anterior">‹</button>
+            <input type="date" id="clDiaInp">
+            <button type="button" id="clDiaNext" title="Próximo dia">›</button>
+            <button type="button" id="clDiaHoje" class="cl-hoje-btn">Hoje</button>
+          </div>
           <div class="mpk-grid" id="clKpis" style="margin-bottom:16px;"></div>
           <div class="cl-filtros" id="clFiltros"></div>
           <div id="clTimeline"></div>
@@ -3581,7 +3596,7 @@ function glCloudLoad(){ var sb=glSB(); if(!sb||glCarregando) return;
 }
 // Chave da parcela do MÊS ATUAL (pra marcar pago). Usa o mesmo calendário dos pontos.
 function glKeyMesAtual(g){ var ym=pxAnoMesAtual(); var ag=pxAgenda(g); for(var i=0;i<ag.length;i++){ var k=pxDateKey(ag[i]); if(k.indexOf(ym)===0) return k; } return ag.length?pxDateKey(ag[ag.length-1]):""; }
-function glLimparForm(){ ["glNum","glCnpj","glRazao","glLoc","glVend","glRg","glTel","glEmail","glEnd","glEndInq","glValor","glDiaPag","glAbertura","glVenc","glObs"].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=""; }); var pg=document.getElementById("glPag"); if(pg) pg.value=""; var al=document.getElementById("glAluguel"); if(al) al.value="1"; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; var t=document.getElementById("glFormTitulo"); if(t) t.textContent="Adicionar galpão"; var s=document.getElementById("glSalvar"); if(s){ s.textContent="Adicionar"; delete s.dataset.edit; } var c=document.getElementById("glCancelar"); if(c) c.style.display="none"; try{ glSetDocTipo("cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} }
+function glLimparForm(){ ["glNum","glCnpj","glRazao","glLoc","glVend","glRg","glTel","glEmail","glEnd","glEndInq","glValor","glDiaPag","glAbertura","glVenc","glObs"].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=""; }); var pg=document.getElementById("glPag"); if(pg) pg.value=""; var al=document.getElementById("glAluguel"); if(al) al.value="1"; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; var t=document.getElementById("glFormTitulo"); if(t) t.textContent="Adicionar galpão"; var s=document.getElementById("glSalvar"); if(s){ s.textContent="Adicionar"; delete s.dataset.edit; } var c=document.getElementById("glCancelar"); if(c) c.style.display="none"; try{ glSetDocTipo("cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} try{ glSincEndereco(); }catch(e){} }
 // Busca de CNPJ do locatário (reaproveita os normalizadores dos pontos).
 function glPreencherCnpj(d,msg){
   var fantasia=d.nome_fantasia||"", razao=d.razao_social||"", nome=fantasia||razao;
@@ -3603,6 +3618,13 @@ function glSetDocTipo(t){
   var buscar=document.getElementById("glCnpjBuscar"), inp=document.getElementById("glCnpj"), msg=document.getElementById("glCnpjMsg");
   var empCampo=document.getElementById("glLoc") ? document.getElementById("glLoc").parentElement : null;
   var inqCampo=document.getElementById("glVend") ? document.getElementById("glVend").parentElement : null;
+  var lbl=document.getElementById("glCnpjLbl"); if(lbl) lbl.textContent=(t==="cpf")?"CPF":"CNPJ";
+  // Empresa: no CNPJ é preenchida sozinha pela busca (trava); no CPF não tem busca, então libera pra digitar.
+  var locInp=document.getElementById("glLoc");
+  if(locInp){
+    if(t==="cpf"){ locInp.readOnly=false; locInp.style.background=""; locInp.style.color=""; locInp.placeholder="nome da empresa"; locInp.title=""; }
+    else { locInp.readOnly=true; locInp.style.background="#f4f6f9"; locInp.style.color="#56606d"; locInp.placeholder="preenchido pela busca do CNPJ"; locInp.title="Vem sozinho quando você busca o CNPJ."; }
+  }
   if(t==="cpf"){
     // CPF fica no tamanho natural; a folga do Buscar vai pro campo INQUILINO → nada vazio, nada distorcido
     if(buscar && buscar.style.display!=="none"){
@@ -3757,7 +3779,7 @@ function pltDetalhe(){
       '<div class="plt-det-lin"><span>Aluguel</span><b>'+(g.valor?brl(+g.valor):"—")+'</b></div>'+
       '<div class="plt-det-lin"><span>Pagamento</span><b>'+(prdEsc(g.pagamento)||"—")+'</b></div>'+
       '<div class="plt-det-lin"><span>Contrato</span><b>'+(pxFmtData(g.abertura)||"—")+' → '+(pxFmtData(g.vencimento)||"—")+'</b></div>'+
-      (g.endereco?('<div class="plt-det-lin"><span>Endereço</span><b>'+prdEsc(g.endereco)+'</b></div>'):'')+
+      '<div class="plt-det-lin"><span>Endereço</span><b>'+prdEsc(glEnderecoDe(g.numero))+'</b></div>'+
       '</div>'+
       '<button type="button" class="plt-det-btn" id="pltIrCadastro">Ver / editar no cadastro</button>';
   }
@@ -3783,6 +3805,8 @@ var centralAg=[];
 var centralModo="demo";     // "demo" | "live"
 var centralAtz="";          // hora da última sincronização (modo live)
 var clView="hoje";          // "hoje" | "agenda"
+var clDiaSel=null;          // dia escolhido na "Visão de hoje" (YYYY-MM-DD); null = hoje de verdade
+function clDiaAtual(){ return clDiaSel||clDataISO(new Date()); }
 var clWkBase=null;          // segunda-feira da semana exibida na agenda
 var clFiltroForn="", clFiltroSt="";
 var CL_HINI=7, CL_HFIM=18;  // janela operacional do recebimento (07h às 18h)
@@ -3846,7 +3870,7 @@ function renderCentral(){
   renderClInteg();
   var vh=document.getElementById("clHoje"), va=document.getElementById("clAgenda");
   if(clView==="agenda"){ if(vh)vh.style.display="none"; if(va)va.style.display=""; renderClAgenda(); }
-  else { if(va)va.style.display="none"; if(vh)vh.style.display=""; renderClFiltros(); renderClKpis(); renderClTimeline(); }
+  else { if(va)va.style.display="none"; if(vh)vh.style.display=""; renderClDataNav(); renderClFiltros(); renderClKpis(); renderClTimeline(); }
 }
 function renderClInteg(){
   var el=document.getElementById("clIntegBanner"); if(!el) return;
@@ -3857,17 +3881,22 @@ function renderClInteg(){
   }
 }
 function clItensDoDia(){
-  var hoje=clDataISO(new Date());
+  var dia=clDiaAtual();
   return centralAg.filter(function(a){
-    if(a.data!==hoje) return false;
+    if(a.data!==dia) return false;
     if(clFiltroForn && a.fornecedor!==clFiltroForn) return false;
     if(clFiltroSt && clStatus(a).k!==clFiltroSt) return false;
     return true;
   }).sort(function(a,b){ return clToMin(a.hi)-clToMin(b.hi); });
 }
+// Faixa de navegação por dia: ‹ dia › + campo de data + botão "Hoje".
+function renderClDataNav(){
+  var inp=document.getElementById("clDiaInp"); if(inp) inp.value=clDiaAtual();
+  var hj=document.getElementById("clDiaHoje"); if(hj) hj.style.display=clDiaSel?"":"none";
+}
 function renderClFiltros(){
   var el=document.getElementById("clFiltros"); if(!el) return;
-  var forns={}, hoje=clDataISO(new Date());
+  var forns={}, hoje=clDiaAtual();
   centralAg.forEach(function(a){ if(a.data===hoje) forns[a.fornecedor]=1; });
   var opt='<option value="">Todos os fornecedores</option>';
   Object.keys(forns).sort().forEach(function(f){ opt+='<option value="'+pxEsc(f)+'"'+(clFiltroForn===f?" selected":"")+'>'+pxEsc(f)+'</option>'; });
@@ -3879,7 +3908,8 @@ function renderClFiltros(){
 }
 function renderClKpis(){
   var el=document.getElementById("clKpis"); if(!el) return;
-  var hoje=clDataISO(new Date());
+  var hoje=clDiaAtual(), ehHoje=(hoje===clDataISO(new Date()));
+  var rotDia=ehHoje?"hoje":("em "+hoje.split("-").reverse().slice(0,2).join("/"));
   var doDia=centralAg.filter(function(a){ return a.data===hoje && clStatus(a).k!=="cancelado"; });
   var conc=0,and=0,atr=0,prox=null;
   doDia.forEach(function(a){ var k=clStatus(a).k;
@@ -3892,7 +3922,7 @@ function renderClKpis(){
   var icRelogio='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7.5 12 12 15 13.5"/></svg>';
   var icCheck='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
   el.innerHTML=
-    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Previstos hoje</span><span class="mpk-ico g">'+icTruck+'</span></div>'+
+    '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Previstos '+rotDia+'</span><span class="mpk-ico g">'+icTruck+'</span></div>'+
       '<div class="mpk-v">'+doDia.length+'</div>'+
       '<div class="mpk-sub"><b>'+conc+'</b> concluído'+(conc===1?"":"s")+' · '+and+' em andamento</div></div>'+
     '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Atrasados</span><span class="mpk-ico '+(atr?"r":"g")+'">'+(atr?icAlerta:icCheck)+'</span></div>'+
@@ -3900,7 +3930,7 @@ function renderClKpis(){
       '<div class="mpk-sub">'+(atr?'<span class="bad">precisam de atenção</span>':'<span class="ok">nenhum atraso</span>')+'</div></div>'+
     '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Próximo recebimento</span><span class="mpk-ico b">'+icRelogio+'</span></div>'+
       '<div class="mpk-v">'+(prox?prox.hi:"—")+'</div>'+
-      '<div class="mpk-sub">'+(prox?pxEsc(prox.fornecedor):"nada mais programado hoje")+'</div></div>'+
+      '<div class="mpk-sub">'+(prox?pxEsc(prox.fornecedor):"nada mais programado "+rotDia)+'</div></div>'+
     '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Horários livres</span><span class="mpk-ico g">'+icTruck+'</span></div>'+
       '<div class="mpk-v">'+livres+'</div>'+
       '<div class="mpk-sub">de '+jan+' janelas ('+CL_HINI+'h–'+CL_HFIM+'h)</div></div>';
@@ -3922,7 +3952,7 @@ function renderClTimeline(){
     }
   }
   h+='</div>';
-  if(!algum && temFiltro) h='<div class="cl-vazio">Nenhum recebimento com esse filtro hoje.</div>';
+  if(!algum && temFiltro) h='<div class="cl-vazio">Nenhum recebimento com esse filtro neste dia.</div>';
   el.innerHTML=h;
 }
 function renderClAgenda(){
@@ -3948,6 +3978,58 @@ function renderClAgenda(){
   h+='</tbody></table>';
   var wk=document.getElementById("clWeek"); if(wk) wk.innerHTML=h;
 }
+// Lista pra IMPRIMIR — pro conferente ver quem chega em qual dia, sem precisar do painel na mão.
+// Imprime o DIA que está sendo visto (aba "Visão de hoje") ou a SEMANA inteira (aba "Agenda da semana").
+var CL_DIASEM=["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
+function clFmtDiaLongo(iso){ var d=new Date(iso+"T00:00:00"); return CL_DIASEM[d.getDay()]+", "+clPad(d.getDate())+"/"+clPad(d.getMonth()+1)+"/"+d.getFullYear(); }
+function clTabelaHtml(itens){
+  if(!itens.length) return '<p class="cl-p-vazio">Nenhum recebimento programado.</p>';
+  var h='<table class="cl-p-tb"><thead><tr><th>Horário</th><th>Fornecedor</th><th>Loja</th><th>Pedido</th><th>Status</th></tr></thead><tbody>';
+  itens.sort(function(a,b){ return clToMin(a.hi)-clToMin(b.hi); }).forEach(function(a){
+    var st=clStatus(a);
+    h+='<tr><td class="mono">'+a.hi+'–'+a.hf+'</td><td>'+pxEsc(a.fornecedor)+'</td><td>'+pxEsc(a.loja)+'</td><td>'+(a.pedido?pxEsc(a.pedido):'—')+'</td><td>'+st.t+'</td></tr>';
+  });
+  h+='</tbody></table>';
+  return h;
+}
+function clImprimir(){
+  var w=window.open("","_blank");
+  if(!w){ uiConfirm({titulo:"Pop-up bloqueado",msg:"Libere os pop-ups deste site no navegador para imprimir.",ok:"OK",cancel:""}); return; }
+  var ehSemana=(clView==="agenda");
+  var titulo, corpo;
+  if(ehSemana){
+    var seg=clWkBase||clSegDa(new Date()), dias=[]; for(var i=0;i<6;i++){ var d=new Date(seg); d.setDate(seg.getDate()+i); dias.push(clDataISO(d)); }
+    var f=new Date(dias[0]+"T00:00:00"), l=new Date(dias[5]+"T00:00:00");
+    titulo="Semana de "+clPad(f.getDate())+"/"+clPad(f.getMonth()+1)+" a "+clPad(l.getDate())+"/"+clPad(l.getMonth()+1)+"/"+l.getFullYear();
+    corpo=dias.map(function(diso){
+      var itens=centralAg.filter(function(a){ return a.data===diso; });
+      return '<div class="cl-p-dia"><h3>'+clFmtDiaLongo(diso)+'</h3>'+clTabelaHtml(itens)+'</div>';
+    }).join("");
+  } else {
+    var dia=clDiaAtual();
+    titulo=clFmtDiaLongo(dia);
+    var itens=centralAg.filter(function(a){ return a.data===dia; });
+    corpo='<div class="cl-p-dia">'+clTabelaHtml(itens)+'</div>';
+  }
+  var barra=pxDocBarraHtml({ titulo:"Programação de recebimentos", codigo:titulo, badge:"Fonte: sistema VR", emissao:pxFmtData(pxDateKey(new Date())), printLabel:"Imprimir" });
+  var css=barra.css+
+    "*{box-sizing:border-box}html{background:#f4f5f6}body{margin:0;padding:0;background:#f4f5f6;font-family:'Inter',-apple-system,'Segoe UI',Arial,sans-serif;color:#1a2230}"+
+    ".cl-p-wrap{max-width:820px;margin:0 auto;padding:26px 18px 60px}"+
+    ".cl-p-dia{margin-bottom:22px}.cl-p-dia h3{font-size:14.5px;color:#0c5a26;margin:0 0 8px;text-transform:capitalize}"+
+    ".cl-p-tb{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e4e9f0;border-radius:10px;overflow:hidden}"+
+    ".cl-p-tb th{background:#157a35;color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:.4px;font-weight:700;padding:9px 12px;text-align:left}"+
+    ".cl-p-tb td{padding:9px 12px;font-size:13.5px;color:#2a3340;border-top:1px solid #eef2f6}"+
+    ".cl-p-tb td.mono{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:#46535f}"+
+    ".cl-p-vazio{font-size:13px;color:#8a97a8;font-style:italic;margin:0 0 4px}"+
+    "@media print{ .docbar{display:none} html,body{background:#fff} .cl-p-wrap{max-width:none;padding:0} .cl-p-dia{page-break-inside:avoid} }";
+  var h="<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Programação de recebimentos</title>"+
+    "<link rel='preconnect' href='https://fonts.googleapis.com'><link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap' rel='stylesheet'>"+
+    "<style>"+css+"</style></head><body>";
+  h+=barra.html;
+  h+="<div class='cl-p-wrap'>"+corpo+"</div>";
+  h+="</body></html>";
+  w.document.open(); w.document.write(h); w.document.close();
+}
 (function initCentral(){
   var sec=document.getElementById("page-central"); if(!sec) return;
   var tabs=sec.querySelectorAll(".cl-tab");
@@ -3959,6 +4041,13 @@ function renderClAgenda(){
   var p=document.getElementById("clWkPrev"); if(p) p.onclick=function(){ if(!clWkBase)clWkBase=clSegDa(new Date()); var d=new Date(clWkBase); d.setDate(d.getDate()-7); clWkBase=d; renderClAgenda(); };
   var n=document.getElementById("clWkNext"); if(n) n.onclick=function(){ if(!clWkBase)clWkBase=clSegDa(new Date()); var d=new Date(clWkBase); d.setDate(d.getDate()+7); clWkBase=d; renderClAgenda(); };
   var hj=document.getElementById("clWkHoje"); if(hj) hj.onclick=function(){ clWkBase=clSegDa(new Date()); renderClAgenda(); };
+  // Navegação por dia na "Visão de hoje": ‹ dia › + campo de data + "Hoje".
+  function clMudaDia(iso){ clDiaSel=(iso===clDataISO(new Date()))?null:iso; renderClDataNav(); renderClFiltros(); renderClKpis(); renderClTimeline(); }
+  var dp=document.getElementById("clDiaPrev"); if(dp) dp.onclick=function(){ var d=new Date(clDiaAtual()+"T00:00:00"); d.setDate(d.getDate()-1); clMudaDia(clDataISO(d)); };
+  var dn=document.getElementById("clDiaNext"); if(dn) dn.onclick=function(){ var d=new Date(clDiaAtual()+"T00:00:00"); d.setDate(d.getDate()+1); clMudaDia(clDataISO(d)); };
+  var di=document.getElementById("clDiaInp"); if(di) di.onchange=function(){ if(this.value) clMudaDia(this.value); };
+  var dh=document.getElementById("clDiaHoje"); if(dh) dh.onclick=function(){ clMudaDia(clDataISO(new Date())); };
+  var ib=document.getElementById("clImprimirBtn"); if(ib) ib.addEventListener("click",clImprimir);
 })();
 // CALENDÁRIO DE COBRANÇAS do galpão — mesmo formato dos pontos extras (uma linha por mensalidade).
 // A cobrança automática (boleto/Pix) entra quando a conta PESSOA FÍSICA for ligada ao banco;
@@ -4019,6 +4108,19 @@ function glSincValorForm(){
     inp.title="Calculado pelo salário mínimo ("+brl(glSalValor())+"). Muda sozinho quando o mínimo mudar.";
     if(lb) lb.textContent="Valor (R$) — automático";
   }
+}
+// Endereço dos galpões: a rua e o bairro são FIXOS (o terreno é todo do dono, mesma rua);
+// só o número muda, e o número é o "Nº do galpão" (ex: 1470 A). Não se digita à mão.
+var GL_RUA_PADRAO="Av. Doutor Rui Mariz";
+var GL_BAIRRO_PADRAO="Alto da Boa Vista";
+function glEnderecoDe(numero){
+  var n=String(numero||"").trim();
+  return GL_RUA_PADRAO+(n?(", "+n):"")+" - "+GL_BAIRRO_PADRAO+", Caicó/RN";
+}
+// Mantém o campo "Endereço do galpão" (só leitura) sempre montado a partir do Nº do galpão.
+function glSincEndereco(){
+  var num=document.getElementById("glNum"), end=document.getElementById("glEnd");
+  if(end) end.value=glEnderecoDe(num?num.value:"");
 }
 // Quanto do salário cada galpão paga: "1" = frente (virado pra BR), "0.5" = rua interna, "fixo" = R$ próprio.
 function glFracao(g){ var a=String(g.aluguel||"1"); return a==="fixo"?null:(parseFloat(a)||1); }
@@ -4090,7 +4192,7 @@ function renderSalFuturo(){
   var dias=Math.max(0,Math.round((dt-hoje)/86400000));
   var meiaNova=Math.round(f.valor*50)/100, meiaAtual=Math.round(atual*50)/100;
   el.innerHTML='<div class="gl-salfut">'+
-    '<div class="gl-salfut-ic">&#128197;</div>'+
+    '<div class="gl-salfut-ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2f6091" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>'+
     '<div class="gl-salfut-tx">'+
       '<b>Reajuste do salário mínimo marcado para '+pxEsc(f.desde)+(dias?(' — daqui a '+dias+' dia'+(dias===1?'':'s')):'')+(f.demo?' <span style="background:#d9e6fa;color:#2b5a9e;font-size:10px;font-weight:800;padding:1px 7px;border-radius:99px;vertical-align:1px;">EXEMPLO</span>':'')+'</b>'+
       '<span>O salário mínimo vai '+(subiu?'subir':'baixar')+' de '+brl(atual)+' para '+brl(f.valor)+'. Quando chegar a data, o aluguel dos galpões passa de '+brl(atual)+' para '+brl(f.valor)+' (frente) e de '+brl(meiaAtual)+' para '+brl(meiaNova)+' (rua interna). Nada muda até lá — na data eu te aviso de novo pra confirmar. '+(f.fonte==="bc"?'Fonte: Banco Central.':'Programado por você.')+'</span>'+
@@ -4184,7 +4286,7 @@ function glContratoDocHtml(g){
   var docFmt=pxEsc(doc?pixFmtDoc(g.cnpj):(ehCnpj?"[CNPJ]":"[CPF]"));
   var endInq=pxEsc(g.enderecoInq||"[ENDEREÇO DO INQUILINO]");
   var rgInq=pxEsc(g.rg||"");
-  var endGalpao=pxEsc(g.endereco||"[ENDEREÇO DO GALPÃO]");
+  var endGalpao=pxEsc(glEnderecoDe(g.numero));
   var dia=(+g.diaPag||5);
   // Aluguel: o padrão é salário mínimo (frente pra BR = 1, rua interna = meio).
   var alu=String(g.aluguel||"1");
@@ -4274,46 +4376,63 @@ function glAvisosReajuste(oldVal, newVal, desdeBR){
   if(!afetados.length){ uiConfirm({titulo:"Nenhum inquilino pra avisar",msg:"Não há galpão com inquilino que paga em salário mínimo. (Os de valor fixo não mudam com o reajuste.)",ok:"OK",cancel:""}); return; }
   var dt=glSalDataBR(desdeBR);
   var quando = dt ? ("a partir de "+dt.getDate()+" de "+MES[dt.getMonth()]+" de "+dt.getFullYear()) : "a partir do próximo reajuste";
+  var codigo="REAJUSTE-"+(dt?glSalFmtBR(dt).replace(/\\//g,""):"");
   var w=window.open("","_blank");
   if(!w){ uiConfirm({titulo:"Pop-up bloqueado",msg:"Libere os pop-ups deste site no navegador para gerar os avisos.",ok:"OK",cancel:""}); return; }
-  var barra=pxDocBarraHtml({ titulo:"Avisos de reajuste", codigo:"REAJUSTE-"+(dt?glSalFmtBR(dt).replace(/\\//g,""):""), badge:brl(oldVal)+" → "+brl(newVal), emissao:pxFmtData(pxDateKey(new Date())), printLabel:"Imprimir cartas / PDF" });
+  var barra=pxDocBarraHtml({ titulo:"Avisos de reajuste", codigo:codigo, badge:brl(oldVal)+" → "+brl(newVal), emissao:pxFmtData(pxDateKey(new Date())), printLabel:"Imprimir cartas / PDF" });
   var css=barra.css+
     "*{box-sizing:border-box}html{background:#f4f5f6}body{margin:0;padding:0;background:#f4f5f6;font-family:'Inter',-apple-system,'Segoe UI',Arial,sans-serif;color:#1a2230}"+
     ".wrap{max-width:800px;margin:0 auto;padding:26px 18px 60px}"+
     ".intro{font-size:13.5px;color:#56606d;margin:0 0 18px;line-height:1.5}"+
     ".av{background:#fff;border:1px solid #e4e9f0;border-radius:12px;padding:18px 20px;margin-bottom:18px;box-shadow:0 1px 3px rgba(16,24,32,.05)}"+
+    ".av.avisado{border-color:#bfe0cb;box-shadow:0 0 0 1px #bfe0cb}"+
     ".av-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px}"+
     ".av-h b{font-size:15px;color:#0f172a}.av-h .g{font-size:12px;color:#6b7787;font-weight:700}"+
+    ".av-h .tel{font-size:12px;color:#6b7787}"+
+    ".av-ok{font-size:11px;font-weight:700;background:#e3f3e8;color:#157a35;padding:2px 10px;border-radius:99px;display:none;align-items:center;gap:4px}"+
+    ".av.avisado .av-ok{display:inline-flex}"+
     ".av-val{font-size:13px;color:#2a3340;margin:2px 0 12px}.av-val s{color:#9aa6b2;text-decoration:line-through;margin-right:5px}.av-val b{color:#157a35}"+
     ".zap-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7787;margin:0 0 6px}"+
-    ".zap{width:100%;border:1px solid #d7dee7;border-radius:9px;padding:11px 13px;font:inherit;font-size:13px;color:#26313d;line-height:1.5;background:#f8fafc;resize:vertical;min-height:118px}"+
+    ".zap{width:100%;border:1px solid #d7dee7;border-radius:9px;padding:11px 13px;font:inherit;font-size:13px;color:#26313d;line-height:1.5;background:#f8fafc;resize:none;min-height:118px}"+
     ".btns{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}"+
-    ".cpbtn{border:0;background:#157a35;color:#fff;font-weight:700;font-size:12.5px;border-radius:8px;padding:8px 15px;cursor:pointer;font-family:inherit}"+
+    ".cpbtn{border:0;background:#157a35;color:#fff;font-weight:700;font-size:12.5px;border-radius:8px;padding:8px 15px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;text-decoration:none;}"+
     ".cpbtn.ok{background:#0d6b2b}"+
+    ".cpbtn.wa{background:#1f9d5a}"+
+    ".cpbtn.sec2{background:#fff;color:#56606d;border:1px solid #d7dee7}"+
     ".carta{display:none}"+
-    "@media print{ .docbar,.intro,.zap-lbl,.zap,.btns{display:none!important} .wrap{max-width:none;padding:0} .av{border:0;box-shadow:none;padding:0;margin:0} .carta{display:block;font-family:'Times New Roman',Georgia,serif;font-size:14px;line-height:1.7;padding:16mm 18mm;page-break-after:always} .carta:last-child{page-break-after:auto} .carta h2{text-align:center;font-size:15px;text-transform:uppercase;letter-spacing:.6px;margin:0 0 18px} .carta p{margin:0 0 11px;text-align:justify} .carta .ass{margin-top:44px;text-align:center} .carta .ass .ln{border-top:1px solid #1a1a1a;width:280px;margin:52px auto 5px} html,body{background:#fff} }";
+    "@media print{ .docbar,.intro,.av{display:none!important} .wrap{max-width:none;padding:0} .carta{display:block;font-family:'Times New Roman',Georgia,serif;font-size:14px;line-height:1.7;padding:16mm 18mm;page-break-after:always} .carta:last-child{page-break-after:auto} .carta h2{text-align:center;font-size:15px;text-transform:uppercase;letter-spacing:.6px;margin:0 0 18px} .carta p{margin:0 0 11px;text-align:justify} .carta .ass{margin-top:44px;text-align:center} .carta .ass .ln{border-top:1px solid #1a1a1a;width:280px;margin:52px auto 5px} body.isolar .carta{display:none!important} body.isolar .carta.imprimir{display:block!important;page-break-after:auto} html,body{background:#fff} }";
   var h="<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Avisos de reajuste</title>"+
     "<link rel='preconnect' href='https://fonts.googleapis.com'><link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap' rel='stylesheet'>"+
     "<style>"+css+"</style></head><body>";
   h+=barra.html;
   h+="<div class='wrap'>";
-  h+="<p class='intro'>Um aviso pronto para cada inquilino cujo aluguel é calculado pelo salário mínimo. Use o texto de <b>WhatsApp</b> (botão Copiar) ou clique em <b>Imprimir cartas / PDF</b> para as cartas formais. Os galpões de valor fixo não aparecem aqui.</p>";
+  h+="<p class='intro'>Clique em <b>Preparar envio</b>: <b>1)</b> salve o PDF do inquilino (aparece o diálogo — escolha 'Salvar como PDF'); <b>2)</b> em seguida o WhatsApp abre com a mensagem — envie e anexe o PDF salvo (ícone de clipe). Os galpões de valor fixo não aparecem aqui.</p>";
+  var icEnviar='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+  var icWa='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.9-4.45 9.9-9.91C21.96 6.45 17.5 2 12.04 2m0 18.13c-1.48 0-2.93-.4-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.36c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.83 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.55-3.7 8.24-8.24 8.24m4.52-6.17c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.13-.17.24-.64.81-.78.97-.15.17-.29.19-.53.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.15.16-.25.25-.42.08-.16.04-.31-.02-.43-.06-.13-.56-1.35-.77-1.84-.2-.5-.41-.42-.56-.43-.14-.01-.31-.01-.47-.01-.17 0-.44.06-.67.31-.23.25-.87.86-.87 2.09 0 1.23.9 2.42 1.02 2.59.12.17 1.75 2.67 4.25 3.74.59.26 1.06.41 1.42.52.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.14-1.18-.06-.11-.23-.17-.48-.29"/></svg>';
   afetados.forEach(function(g,ix){
     var nome=String(g.vendedor||g.locatario||"inquilino").trim();
     var num=String(g.numero||"—");
     var f=glFracao(g);
     var vAnt=Math.round(f*oldVal*100)/100, vNovo=Math.round(f*newVal*100)/100;
+    var telFmt=g.contato?pxFmtTel(g.contato):"";
+    var telDig=String(g.contato||"").replace(/\\D/g,"");
+    var waHref="";
+    if(telDig.length===10||telDig.length===11) waHref="https://wa.me/55"+telDig;
     var zap="Olá, "+nome+"! Tudo bem?\\n\\n"+
       "Passando para avisar que o salário mínimo foi reajustado para "+brl(newVal)+" "+quando+". "+
       "Como o aluguel do galpão "+num+" é calculado com base no salário mínimo (conforme o contrato), a mensalidade passa de "+brl(vAnt)+" para "+brl(vNovo)+" "+quando+".\\n\\n"+
       "Qualquer dúvida, estou à disposição.\\nAtenciosamente, "+GL_LOCADOR.nome+".";
     var zapEsc=zap.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-    h+="<div class='av'>"+
-        "<div class='av-h'><b>"+pxEsc(nome)+"</b><span class='g'>Galpão "+pxEsc(num)+"</span></div>"+
+    if(waHref) waHref+="?text="+encodeURIComponent(zap);
+    h+="<div class='av' data-avid='"+pxEsc(g.id)+"' data-wa='"+pxEsc(waHref)+"'>"+
+        "<div class='av-h'><b>"+pxEsc(nome)+"</b><span class='g'>Galpão "+pxEsc(num)+"</span>"+(telFmt?("<span class='tel'>"+pxEsc(telFmt)+"</span>"):"")+"<span class='av-ok'>✓ Avisado</span></div>"+
         "<div class='av-val'>Mensalidade: <s>"+brl(vAnt)+"</s> <b>"+brl(vNovo)+"</b> "+quando+"</div>"+
         "<div class='zap-lbl'>Mensagem de WhatsApp</div>"+
         "<textarea class='zap' id='zap"+ix+"' readonly>"+zapEsc+"</textarea>"+
-        "<div class='btns'><button type='button' class='cpbtn' data-cp='zap"+ix+"'>Copiar mensagem</button></div>"+
+        "<div class='btns'>"+
+          "<button type='button' class='cpbtn prep' data-prep='1'>"+icEnviar+"Preparar envio</button>"+
+          "<button type='button' class='cpbtn sec2' data-cp='zap"+ix+"'>Copiar mensagem</button>"+
+        "</div>"+
        "</div>";
     // Carta formal (só aparece na impressão)
     var hoje=new Date();
@@ -4330,7 +4449,37 @@ function glAvisosReajuste(oldVal, newVal, desdeBR){
        "</div>";
   });
   h+="</div>";
-  h+="<scr"+"ipt>document.addEventListener('click',function(e){var b=e.target.closest('[data-cp]');if(!b)return;var t=document.getElementById(b.getAttribute('data-cp'));if(!t)return;t.select();var ok=false;try{ok=document.execCommand('copy');}catch(_){}if(navigator.clipboard){try{navigator.clipboard.writeText(t.value);ok=true;}catch(_){}}try{t.setSelectionRange(0,0);t.blur();}catch(_){}var o=b.textContent;b.textContent='Copiado!';b.classList.add('ok');setTimeout(function(){b.textContent=o;b.classList.remove('ok');},1500);});</scr"+"ipt>";
+  h+="<scr"+"ipt>"+
+    "var COD='"+codigo+"';"+
+    "function chaveEnv(id){ return 'gl_aviso_enviado_'+COD+'_'+id; }"+
+    // Marca um inquilino como AVISADO (só chamado por ação real: preparar envio ou imprimir).
+    "function marcaAvisado(card){ if(!card) return; card.classList.add('avisado'); var id=card.getAttribute('data-avid'); try{ localStorage.setItem(chaveEnv(id),'1'); }catch(_){} }"+
+    // Ao abrir, mostra quem já tinha sido avisado (do localStorage).
+    "document.querySelectorAll('.av').forEach(function(card){ var id=card.getAttribute('data-avid'); try{ if(localStorage.getItem(chaveEnv(id))==='1') card.classList.add('avisado'); }catch(_){} });"+
+    // PREPARAR ENVIO de UM inquilino: abre o WhatsApp com a mensagem + prepara o PDF só dele (isola a carta e imprime).
+    "var _isolando=false;"+
+    // Ordem: 1º salva o PDF (o print BLOQUEIA até fechar o diálogo no desktop), 2º abre o WhatsApp.
+    "function prepararEnvio(card){ if(!card) return; marcaAvisado(card);"+
+      "var carta=card.nextElementSibling;"+
+      "if(carta && carta.classList && carta.classList.contains('carta')){"+
+        "var tit=document.title; var nomeEl=card.querySelector('.av-h b'); if(nomeEl){ document.title='Aviso de reajuste - '+nomeEl.textContent; }"+
+        "_isolando=true; document.body.classList.add('isolar'); carta.classList.add('imprimir');"+
+        "try{ window.print(); }catch(_){}"+
+        "_isolando=false; document.body.classList.remove('isolar'); carta.classList.remove('imprimir'); document.title=tit;"+
+      "}"+
+      "var waHref=card.getAttribute('data-wa'); if(waHref){ try{ window.open(waHref,'_blank'); }catch(_){} }"+
+    "}"+
+    // Imprimir TODAS as cartas (botão do topo ou Ctrl+P) = avisou por carta → marca todos. (No envio individual, _isolando pula isso.)
+    "window.addEventListener('beforeprint',function(){ if(_isolando) return; document.querySelectorAll('.av').forEach(marcaAvisado); });"+
+    "document.addEventListener('click',function(e){"+
+      "var p=e.target.closest('[data-prep]'); if(p){ prepararEnvio(p.closest('.av')); return; }"+
+      "var b=e.target.closest('[data-cp]'); if(!b) return;"+
+      "var t=document.getElementById(b.getAttribute('data-cp')); if(!t) return;"+
+      "t.select(); var ok=false; try{ok=document.execCommand('copy');}catch(_){} if(navigator.clipboard){try{navigator.clipboard.writeText(t.value);ok=true;}catch(_){}}"+
+      "try{t.setSelectionRange(0,0);t.blur();}catch(_){}"+
+      "var o=b.textContent; b.textContent='Copiado!'; b.classList.add('ok'); setTimeout(function(){b.textContent=o;b.classList.remove('ok');},1500);"+
+    "});"+
+    "</scr"+"ipt>";
   h+="</body></html>";
   w.document.open(); w.document.write(h); w.document.close();
 }
@@ -4365,6 +4514,12 @@ function glFmtDoc(d){
   if(s.length===14) return {label:"CNPJ", valor:pxFmtCnpj(s)};
   return {label:"CNPJ / CPF", valor:(d||"—")};
 }
+// Empresa (galpões): travada quando a busca do CNPJ preenche; DESTRAVA pra digitar à mão se não achar.
+function glLockEmpresa(travar){
+  var f=document.getElementById("glLoc"); if(!f) return;
+  if(travar){ f.readOnly=true; f.style.background="#f4f6f9"; f.style.color="#56606d"; f.placeholder="preenchido pela busca do CNPJ"; f.title="Vem sozinho quando você busca o CNPJ."; }
+  else { f.readOnly=false; f.style.background=""; f.style.color=""; f.placeholder="digite o nome da empresa"; f.title=""; }
+}
 function glBuscarCnpj(){
   var el=document.getElementById("glCnpj"), msg=document.getElementById("glCnpjMsg"), btn=document.getElementById("glCnpjBuscar");
   var cnpj=(el.value||"").replace(/\\D/g,"");
@@ -4375,8 +4530,8 @@ function glBuscarCnpj(){
   fetch("https://brasilapi.com.br/api/cnpj/v1/"+cnpj)
     .then(function(r){ if(!r.ok) throw new Error("nf"); return r.json(); })
     .catch(function(){ return fetch("https://publica.cnpj.ws/cnpj/"+cnpj).then(function(r){ if(!r.ok) throw new Error("nf2"); return r.json(); }).then(pxCnpjNormWs); })
-    .then(function(d){ var nome=glPreencherCnpj(d,msg); if(!nome){ msg.style.color="#c0392b"; msg.textContent="CNPJ encontrado, mas sem nome cadastrado."; } })
-    .catch(function(){ msg.style.color="#c0392b"; msg.textContent="Não encontrei esse CNPJ. Confira o número e a internet."; })
+    .then(function(d){ var nome=glPreencherCnpj(d,msg); if(nome){ glLockEmpresa(true); } else { msg.style.color="#c0392b"; msg.textContent="CNPJ encontrado, mas sem nome cadastrado. Digite o nome da empresa à mão."; glLockEmpresa(false); document.getElementById("glLoc").focus(); } })
+    .catch(function(){ msg.style.color="#c0392b"; msg.textContent="Não encontrei esse CNPJ. Confira o número — ou digite o nome da empresa à mão."; glLockEmpresa(false); document.getElementById("glLoc").focus(); })
     .finally(function(){ btn.disabled=false; btn.textContent=txt; });
 }
 function renderGalpoes(){
@@ -4433,7 +4588,7 @@ function renderGalpoes(){
       '<tr class="px-det" id="gdet-'+g.id+'" style="display:none;"><td colspan="11"><div class="px-det-wrap"><div class="px-det-box">'+
         pxDetItem(g.cnpj?glFmtDoc(g.cnpj).label:"CNPJ / CPF", g.cnpj ? glFmtDoc(g.cnpj).valor : "—")+
         pxDetItem("Razão Social", g.razaoSocial||"—")+
-        pxDetItem("Endereço do galpão", g.endereco?pxEsc(g.endereco):"—")+
+        pxDetItem("Endereço do galpão", pxEsc(glEnderecoDe(g.numero)))+
         pxDetItem("Inquilino", g.vendedor||"—")+
         pxDetItem("Contato", g.contato?pxFmtTel(g.contato):"—")+
         pxDetItem("E-mail", g.email ? ('<a href="mailto:'+pxEsc(g.email)+'">'+pxEsc(g.email)+'</a>') : "—", "px-det-wide")+
@@ -4445,6 +4600,7 @@ function renderGalpoes(){
 }
 (function initGalpoes(){
   var salvar=document.getElementById("glSalvar"); if(!salvar) return;
+  try{ glSetDocTipo("cnpj"); }catch(e){} // aplica o travamento do campo Empresa já na 1ª vez que a página abre
   function coleta(){ return {
     numero:(document.getElementById("glNum").value||"").trim(),
     cnpj:(document.getElementById("glCnpj").value||"").trim(),
@@ -4454,7 +4610,7 @@ function renderGalpoes(){
     rg:(document.getElementById("glRg").value||"").trim(),
     contato:(document.getElementById("glTel").value||"").trim(),
     email:(document.getElementById("glEmail").value||"").trim(),
-    endereco:(document.getElementById("glEnd").value||"").trim(),
+    endereco:glEnderecoDe((document.getElementById("glNum").value||"").trim()),
     enderecoInq:(document.getElementById("glEndInq").value||"").trim(),
     aluguel:(document.getElementById("glAluguel").value||"1"),
     valor:parseFloat(document.getElementById("glValor").value||"0")||0,
@@ -4519,6 +4675,8 @@ function renderGalpoes(){
   var docTog=document.getElementById("glDocTog"); if(docTog){ var dbts=docTog.querySelectorAll(".gl-dt"); for(var _i=0;_i<dbts.length;_i++){ (function(b){ b.addEventListener("click",function(){ glSetDocTipo(b.getAttribute("data-doctipo")); }); })(dbts[_i]); } }
   var cnpjBtn=document.getElementById("glCnpjBuscar"); if(cnpjBtn) cnpjBtn.addEventListener("click",glBuscarCnpj);
   var cnpjInp=document.getElementById("glCnpj"); if(cnpjInp) cnpjInp.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); glBuscarCnpj(); } });
+  var numInp=document.getElementById("glNum"); if(numInp) numInp.addEventListener("input",glSincEndereco);
+  try{ glSincEndereco(); }catch(e){} // já mostra o endereço base ao abrir
   ["glBusca","glFiltroStatus","glFiltroPagamento","glFiltroVenc"].forEach(function(id){ var el=document.getElementById(id); if(el){ el.addEventListener(id==="glBusca"?"input":"change",renderGalpoes); } });
   var tb=document.getElementById("glTabela");
   if(tb) tb.addEventListener("click",function(e){
@@ -4556,7 +4714,7 @@ function renderGalpoes(){
     var compRemG=e.target.closest("[data-glcomprem]");
     if(compRemG){ var prm=compRemG.dataset.glcomprem.split("|"); var grm=galpoesG.find(function(x){ return x.id===prm[0]; }); if(grm){ uiConfirm({titulo:"Remover comprovante",msg:"Apagar o comprovante desta mensalidade?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; if(grm.comprovantes) delete grm.comprovantes[prm[1]]; glSave(); renderGalpoes(); glReabrir(grm.id); }); } return; }
     var ed=e.target.closest("[data-gledit]");
-    if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNum").value=g2.numero||""; document.getElementById("glCnpj").value=g2.cnpj||""; document.getElementById("glRazao").value=g2.razaoSocial||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glVend").value=g2.vendedor||""; document.getElementById("glRg").value=g2.rg||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; document.getElementById("glEnd").value=g2.endereco||""; document.getElementById("glEndInq").value=g2.enderecoInq||""; document.getElementById("glAluguel").value=g2.aluguel||"1"; document.getElementById("glValor").value=g2.valor||""; document.getElementById("glPag").value=g2.pagamento||""; document.getElementById("glDiaPag").value=g2.diaPag||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glVenc").value=g2.vencimento||""; document.getElementById("glObs").value=g2.obs||""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; try{ glSetDocTipo(((g2.cnpj||"").replace(/\\D/g,"").length===11)?"cpf":"cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
+    if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNum").value=g2.numero||""; document.getElementById("glCnpj").value=g2.cnpj||""; document.getElementById("glRazao").value=g2.razaoSocial||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glVend").value=g2.vendedor||""; document.getElementById("glRg").value=g2.rg||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; try{ glSincEndereco(); }catch(e){} document.getElementById("glEndInq").value=g2.enderecoInq||""; document.getElementById("glAluguel").value=g2.aluguel||"1"; document.getElementById("glValor").value=g2.valor||""; document.getElementById("glPag").value=g2.pagamento||""; document.getElementById("glDiaPag").value=g2.diaPag||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glVenc").value=g2.vencimento||""; document.getElementById("glObs").value=g2.obs||""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; try{ glSetDocTipo(((g2.cnpj||"").replace(/\\D/g,"").length===11)?"cpf":"cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
     var rem=e.target.closest("[data-glrem]");
     if(rem){ var id=rem.dataset.glrem; var g3=galpoesG.find(function(x){ return x.id===id; }); uiConfirm({titulo:"Remover galpão",msg:"Apagar \\u201c"+((g3&&g3.nome)||"este galpão")+"\\u201d e todo o histórico dele?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; galpoesG=galpoesG.filter(function(x){ return x.id!==id; }); glCloudDel(id); glSave(); renderGalpoes(); }); return; }
   });
@@ -4608,6 +4766,10 @@ function srHydrateImgs(root){
 }
 /* --- Pontos extras na NUVEM (Supabase): tabela "pontos" + bucket "pontos" (contratos/comprovantes) --- */
 function pxSB(){ return window.__SB||null; }
+// Quem pode ver/mexer nos Pontos extras (financeiro): o MASTER, OU o funcionário
+// que tiver a página "Pontos extras" liberada nos Acessos. Mesma regra vale no banco
+// (função pode_ver_pontos no Supabase) — os dois PRECISAM combinar.
+function pxPodeVer(){ var p=window.__PERFIL; return !!(p && (p.is_master || (p.paginas||[]).indexOf("pontos")>=0)); }
 var pxCloudOK=false, pxCarregando=false, pxRT=null, pxPushT=null;
 function pxRowFromP(p){ return {id:p.id,numero:p.numero||0,abertura:p.abertura||"",vencimento:p.vencimento||"",mes_pag:p.mesPag||"",status:p.status||"",fornecedor:p.fornecedor||"",cnpj:p.cnpj||"",razao_social:p.razaoSocial||"",contato:p.contato||"",email:p.email||"",endereco:p.endereco||"",vendedor:p.vendedor||"",valor:+p.valor||0,pagamento:p.pagamento||"",contrato:p.contrato||"",venc_contrato:p.vencContrato||"",obs:p.obs||"",manuais:p.manuais||null,comprovantes:p.comprovantes||null,contrato_url:(p.contratoArquivo&&p.contratoArquivo.indexOf("data:")!==0)?p.contratoArquivo:"",contrato_nome:p.contratoNome||"",atualizado_em:new Date().toISOString()}; }
 function pxPFromRow(r){ var p={id:r.id,numero:r.numero,abertura:r.abertura||"",vencimento:r.vencimento||"",mesPag:r.mes_pag||"",status:r.status||"",fornecedor:r.fornecedor||"",cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",vendedor:r.vendedor||"",valor:+r.valor||0,pagamento:r.pagamento||"",contrato:r.contrato||"",vencContrato:r.venc_contrato||"",obs:r.obs||""}; if(r.manuais)p.manuais=r.manuais; if(r.comprovantes)p.comprovantes=r.comprovantes; if(r.contrato_url){p.contratoArquivo=r.contrato_url;p.contratoNome=r.contrato_nome||"";} return p; }
@@ -4672,7 +4834,7 @@ function pxCloudLoad(){
   var sb=pxSB(); if(!sb||pxCarregando) return;
   // Perfil ainda carregando? NÃO apaga nada (senão o master perde os próprios dados na janela do login).
   if(window.__PERFIL==null) return;
-  if(!window.__PERFIL.is_master){ // Pontos = financeiro: só master carrega/vê
+  if(!pxPodeVer()){ // Pontos = financeiro: só master OU quem tem a página liberada
     pontosG=[]; try{ localStorage.removeItem("pontos_gondola"); }catch(e){}
     return;
   }
@@ -4706,7 +4868,7 @@ function pixCobDe(p,key){ var c=pixCobs[pixCobKey(p.id,key)]; return (c && c.sta
 function pixCobPaga(p,key){ var c=pixCobDe(p,key); return !!(c && c.status==="pago"); }
 function pixCobLoad(){
   var sb=pxSB(); if(!sb) return;
-  if(!(window.__PERFIL && window.__PERFIL.is_master)) return; // mesma regra dos pontos (financeiro)
+  if(!pxPodeVer()) return; // mesma regra dos pontos (financeiro)
   sb.from("pix_cobrancas").select("*").order("id",{ascending:false}).limit(1000).then(function(res){
     if(res.error || !res.data) return;
     var m={};
@@ -4732,7 +4894,7 @@ function pixCobLoad(){
   }
   // REDE DE SEGURANÇA: mesmo se o realtime não conectar, confere a cada 8s enquanto
   // o master está com a aba aberta — garante que 💠/⏳/✓Pago/Gerar Pix mudem sozinhos.
-  if(!pixPollTimer){ pixPollTimer=setInterval(function(){ try{ if(document.visibilityState!=="hidden" && window.__PERFIL && window.__PERFIL.is_master) pixCobLoad(); }catch(e){} }, 8000); }
+  if(!pixPollTimer){ pixPollTimer=setInterval(function(){ try{ if(document.visibilityState!=="hidden" && pxPodeVer()) pixCobLoad(); }catch(e){} }, 8000); }
 }
 function savePontosG(){ try{ localStorage.setItem("pontos_gondola", JSON.stringify(pontosG)); }catch(e){} clearTimeout(pxPushT); pxPushT=setTimeout(pxCloudPush,800); }
 let pxEditId = null;
@@ -5829,6 +5991,7 @@ function pxLimparForm(){
   document.getElementById("pxFormTitulo").textContent="Adicionar ponto extra";
   document.getElementById("pxSalvar").textContent="Adicionar";
   document.getElementById("pxCancelar").style.display="none";
+  try{ pxTravaForn(true); }catch(e){}
 }
 // normaliza a resposta da publica.cnpj.ws pro mesmo formato da BrasilAPI
 function pxCnpjNormWs(d){
@@ -5863,12 +6026,18 @@ function pxPreencherCnpj(d,msg){
   msg.textContent="\\u2713 "+(fantasia?("Fantasia: "+fantasia):"")+((fantasia&&razao)?"  \\u00b7  ":"")+(razao?("Razão: "+razao):"")+(d.email?("  \\u00b7  \\u2709 "+String(d.email).toLowerCase()):"");
   return nome;
 }
+// Fornecedor: travado quando a busca do CNPJ preenche; DESTRAVA pra digitar à mão se a busca não achar (ou for CPF).
+function pxTravaForn(travar){
+  var f=document.getElementById("pxForn"); if(!f) return;
+  if(travar){ f.readOnly=true; f.style.background="#f4f6f9"; f.style.color="#56606d"; f.placeholder="preenchido pela busca do CNPJ"; f.title="Vem sozinho quando você busca o CNPJ."; }
+  else { f.readOnly=false; f.style.background=""; f.style.color=""; f.placeholder="digite o nome do fornecedor"; f.title=""; }
+}
 function pxBuscarCnpj(){
   const el=document.getElementById("pxCnpj");
   const msg=document.getElementById("pxCnpjMsg");
   const btn=document.getElementById("pxCnpjBuscar");
   const cnpj=(el.value||"").replace(/\\D/g,"");
-  if(cnpj.length===11){ msg.style.color="#8a6d1a"; msg.textContent="Isso é um CPF (pessoa física). O nome não pode ser buscado por lei — digite o nome do fornecedor à mão no campo ao lado. A cobrança funciona normalmente."; return; }
+  if(cnpj.length===11){ msg.style.color="#8a6d1a"; msg.textContent="Isso é um CPF (pessoa física). O nome não pode ser buscado por lei — digite o nome do fornecedor à mão no campo ao lado. A cobrança funciona normalmente."; pxTravaForn(false); document.getElementById("pxForn").focus(); return; }
   if(cnpj.length!==14){ msg.style.color="#c0392b"; msg.textContent="Digite o CNPJ (14 números) para buscar o nome. Se for pessoa física, digite o nome à mão."; return; }
   btn.disabled=true; const txt=btn.textContent; btn.textContent="Buscando...";
   msg.style.color="#6b7787"; msg.textContent="Consultando a Receita Federal...";
@@ -5881,9 +6050,10 @@ function pxBuscarCnpj(){
     })
     .then(function(d){
       var nome=pxPreencherCnpj(d,msg);
-      if(!nome){ msg.style.color="#c0392b"; msg.textContent="CNPJ encontrado, mas sem nome cadastrado."; }
+      if(nome){ pxTravaForn(true); }
+      else { msg.style.color="#c0392b"; msg.textContent="CNPJ encontrado, mas sem nome cadastrado. Digite o nome à mão."; pxTravaForn(false); document.getElementById("pxForn").focus(); }
     })
-    .catch(function(){ msg.style.color="#c0392b"; msg.textContent="Não encontrei esse CNPJ. Confira o número e a internet."; })
+    .catch(function(){ msg.style.color="#c0392b"; msg.textContent="Não encontrei esse CNPJ. Confira o número — ou digite o nome do fornecedor à mão."; pxTravaForn(false); document.getElementById("pxForn").focus(); })
     .finally(function(){ btn.disabled=false; btn.textContent=txt; });
 }
 // Janela de confirmação estilizada (substitui o confirm() do navegador). Retorna Promise<boolean>.
@@ -9757,6 +9927,7 @@ var CFG_TABELAS=["perfis","manutencao_equipamentos","manutencao_registros","pont
 function cfgEhMaster(){ return !!(window.__PERFIL && window.__PERFIL.is_master); }
 function renderConfig(){
   var el=document.getElementById("cfgConteudo"); if(!el) return;
+  if(window.__PERFIL==null){ el.innerHTML='<div class="cfg-nao" style="font-style:italic;">Carregando…</div>'; if(!window.__cfgRetry){ window.__cfgRetry=setTimeout(function(){ window.__cfgRetry=null; renderConfig(); },700); } return; }
   if(!cfgEhMaster()){ el.innerHTML='<div class="cfg-nao">Esta página é só do administrador (master).</div>'; return; }
   var icoBackup='<svg class="cfg-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
   var icoLixeira='<svg class="cfg-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
@@ -9779,7 +9950,7 @@ function renderLixeira(){
   lixLoad(function(lista){
     var now=Date.now(); for(var k in lixPendDel){ if(lixPendDel[k]<now) delete lixPendDel[k]; }
     lista=(lista||[]).filter(function(r){ return !lixPendDel[r.id]; });
-    if(!lista.length){ el.innerHTML='<span class="cfg-msg">A lixeira está vazia. 🧹</span>'; return; }
+    if(!lista.length){ el.innerHTML='<span class="cfg-msg">A lixeira está vazia.</span>'; return; }
     el.innerHTML='<div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">'+lista.map(function(r){
       var quando=r.quando?(new Date(r.quando).toLocaleDateString("pt-BR")+" "+new Date(r.quando).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})):"";
       return '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid #eef1f5;border-radius:10px;padding:9px 12px;">'
@@ -11758,7 +11929,7 @@ function pedEnviar(){
     return "Não consegui enviar: "+m;
   }
   document.getElementById("tabLogin").onclick=function(){ modo="login"; this.classList.add("on"); document.getElementById("tabCad").classList.remove("on"); document.getElementById("fldNome").style.display="none"; document.getElementById("fldSetor").style.display="none"; document.getElementById("fldRepetir").style.display="none"; document.getElementById("authForgot").style.display=""; document.getElementById("authBtn").textContent="Entrar"; setMsg(""); };
-  document.getElementById("tabCad").onclick=function(){ modo="cad"; this.classList.add("on"); document.getElementById("tabLogin").classList.remove("on"); document.getElementById("fldNome").style.display=""; document.getElementById("fldSetor").style.display=""; document.getElementById("fldRepetir").style.display=""; document.getElementById("authForgot").style.display="none"; document.getElementById("authBtn").textContent="Criar acesso"; setMsg(""); };
+  document.getElementById("tabCad").onclick=function(){ modo="cad"; this.classList.add("on"); document.getElementById("tabLogin").classList.remove("on"); document.getElementById("fldNome").style.display=""; document.getElementById("fldSetor").style.display=""; document.getElementById("fldRepetir").style.display=""; document.getElementById("authForgot").style.display="none"; document.getElementById("authBtn").textContent="Criar conta"; setMsg(""); };
   document.getElementById("authForgot").onclick=function(){
     var email=(document.getElementById("authEmail").value||"").trim();
     if(!email){ setMsg("Digite o email do setor primeiro."); return; }
