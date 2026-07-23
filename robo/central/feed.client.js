@@ -76,6 +76,22 @@
     var msgEls = {};                     // (1.14) mapa mensagem.id -> nó .co-msg — barraDe/atualização O(1) (era O(n) por chamada)
     var urlsOtimistas = [];              // (1.14) blob: URLs das bolhas otimistas (foto/áudio) p/ revogar no reset (evita vazar RAM)
     var recTimer = null, nlGen = 0, recReacTs = 0;   // (1.14) debounce de reconexão + token do nao_lidas + coalesce da reconciliação de reações
+    // (2.0) Trabalho — work items. wiMapa é a fonte da verdade da lista: dedup por id,
+    // porque updated_at é chave MUTÁVEL (um item editado durante a paginação reapareceria).
+    var wiMapa = {}, wiOrdem = [], wiCarregando = false, wiTemMais = true;
+    var wiCursorAt = null, wiCursorId = null, wiGen = 0;
+    var wiAba = "meus", wiFStatus = "", wiFPrio = "", wiFTipo = "";
+    var itemAtual = null, itemGen = 0;   // detalhe aberto (guard contra resposta atrasada ao trocar de item)
+    var wiFormAberto = false;            // formulário de "Novo" na tela: nenhum render pode apagá-lo
+    var ENT_ROTULO = { estoque_produtos: "Produto", central_agendamentos: "Recebimento",
+                       manutencao_equipamentos: "Equipamento", topico: "Conversa",
+                       work_items: "Item", mensagens: "Mensagem" };
+    var WI_STATUS_LBL = { aberto: "Aberto", em_andamento: "Em andamento", bloqueado: "Bloqueado",
+                          concluido: "Concluído", cancelado: "Cancelado" };
+    var WI_TRANSICOES = { aberto: ["em_andamento", "cancelado"],
+                          em_andamento: ["bloqueado", "concluido", "cancelado"],
+                          bloqueado: ["em_andamento", "cancelado"],
+                          concluido: ["em_andamento"], cancelado: ["aberto"] };
     var naoLidas = {}, contadas = {};   // não-lidas por tópico (autoritativo via nao_lidas) + dedup do incremento otimista (Sprint 1.10)
     // observabilidade (1.14) — contadores internos; NUNCA sai do navegador. window.__CO_DEBUG=true liga os logs.
     var coStats = { reconexoes: 0, rpcOk: 0, rpcFalhas: 0, rpcMsTotal: 0, uploadOk: 0, uploadFalhas: 0, uploadMsTotal: 0, bcFalhas: 0,
@@ -149,6 +165,9 @@
       var t = String(tipo || "");
       var svg =
         t.indexOf("mensagem") === 0 ? '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' :
+        // (2.0) work_item.* é a família NOVA; o ramo 'ocorrencia' fica para os eventos
+        // históricos já gravados (o Feed lê linhas antigas e elas não são reescritas).
+        t.indexOf("work_item") === 0 ? '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' :
         t.indexOf("ocorrencia") === 0 ? '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>' :
         t.indexOf("recebimento") === 0 ? '<rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>' :
         t.indexOf("manutencao") === 0 ? '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.8-2.8z"/>' :
@@ -192,6 +211,48 @@
         ".co-typing{min-height:16px;font-size:12.5px;color:#6b7a86;font-style:italic;padding:1px 6px 3px;}",
         ".co-canais{display:flex;flex-direction:column;gap:2px;}",
         ".co-side-vazio{color:#9aa6ae;font-size:13px;padding:8px 11px;}",
+        /* ---- (2.0) Trabalho: lista de work items + detalhe ---- */
+        ".wi-abas{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}",
+        ".wi-aba{border:1px solid #e3eae6;background:#fff;color:#4a5560;border-radius:999px;padding:6px 13px;font-size:13px;font-weight:600;cursor:pointer;}",
+        ".wi-aba.on{background:#eaf5ee;border-color:#bfe0cb;color:#0c5a26;}",
+        ".wi-filtros{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}",
+        ".wi-filtros select{border:1px solid #e3eae6;border-radius:8px;padding:5px 8px;font-size:13px;color:#4a5560;background:#fff;}",
+        ".wi-lista{display:flex;flex-direction:column;gap:8px;}",
+        ".wi-card{border:1px solid #eef2f4;border-radius:12px;padding:11px 13px;cursor:pointer;background:#fff;}",
+        ".wi-card:hover{border-color:#cfe3d6;background:#fbfdfc;}",
+        ".wi-card.atrasado{border-left:3px solid #e07b39;}",
+        ".wi-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}",
+        ".wi-tit{font-weight:650;color:#26313a;font-size:14.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}",
+        ".wi-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:5px;font-size:12.5px;color:#7b8792;}",
+        ".wi-chip{border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:700;letter-spacing:.02em;}",
+        ".wi-st-aberto{background:#eef3f7;color:#4a5a68;}",
+        ".wi-st-em_andamento{background:#e7f1fd;color:#1f5fa8;}",
+        ".wi-st-bloqueado{background:#fdeeea;color:#b5502a;}",
+        ".wi-st-concluido{background:#e9f6ed;color:#1c7a3c;}",
+        ".wi-st-cancelado{background:#f2f3f4;color:#8b949c;}",
+        ".wi-pr-baixa{background:#f2f4f5;color:#7b8792;}",
+        ".wi-pr-normal{background:#f2f4f5;color:#5b6670;}",
+        ".wi-pr-alta{background:#fdf1e6;color:#a8631f;}",
+        ".wi-pr-urgente{background:#fdeaea;color:#b3261e;}",
+        ".wi-tipo{font-size:11.5px;color:#8b949c;text-transform:uppercase;letter-spacing:.06em;font-weight:700;}",
+        ".wi-atraso{color:#c0562a;font-weight:650;}",
+        ".wi-novo{border:0;background:#157a35;color:#fff;border-radius:9px;padding:8px 15px;font-size:13.5px;font-weight:650;cursor:pointer;}",
+        ".wi-det-sec{margin-top:16px;}",
+        ".wi-det-lbl{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9aa6ae;margin-bottom:6px;}",
+        ".wi-acoes{display:flex;gap:7px;flex-wrap:wrap;}",
+        ".wi-btn{border:1px solid #d9e2dc;background:#fff;color:#31506d;border-radius:9px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;}",
+        ".wi-btn:hover{background:#f4f8f5;}",
+        ".wi-btn.pri{background:#157a35;border-color:#157a35;color:#fff;}",
+        ".wi-ctx{display:flex;flex-direction:column;gap:5px;}",
+        ".wi-ctx-it{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#41505c;background:#f7faf8;border-radius:8px;padding:6px 10px;}",
+        ".wi-ctx-x{margin-left:auto;border:0;background:none;color:#9aa6ae;cursor:pointer;font-size:15px;line-height:1;}",
+        ".wi-form{display:flex;flex-direction:column;gap:9px;max-width:560px;}",
+        ".wi-form input,.wi-form textarea,.wi-form select{border:1px solid #e3eae6;border-radius:9px;padding:9px 11px;font:inherit;font-size:14px;color:#2c3740;width:100%;box-sizing:border-box;}",
+        ".wi-form textarea{min-height:76px;resize:vertical;}",
+        ".wi-form label{font-size:12.5px;font-weight:650;color:#6b7a86;}",
+        ".wi-row{display:flex;gap:9px;flex-wrap:wrap;}",
+        ".wi-row>div{flex:1;min-width:150px;}",
+        ".wi-erro{color:#b3261e;font-size:13px;}",
         ".co-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px;}",
         ".co-sub{font-size:13px;color:#7b8792;margin-top:2px;}",
         ".copf-refresh{border:1px solid #d9e2dc;background:#fff;color:#157a35;border-radius:8px;width:34px;height:34px;font-size:16px;cursor:pointer;flex:none;}",
@@ -299,6 +360,10 @@
       var div = document.createElement("div");
       div.className = "copf-item";
       var setor = ev.setor ? '<span class="copf-setor">' + esc(ev.setor) + "</span>" : "";
+      // (2.0) evento de work item SEM conversa vem com resumo genérico de propósito (o
+      // título vazaria: eventos_sel libera evento sem tópico p/ qualquer um com a página).
+      // Marco a linha para hidratar o título em lote, sob RLS, via work_items_por_ids.
+      if (ev.entity_type === "work_items" && ev.entity_id && !ev.topico_id) div.setAttribute("data-wient", ev.entity_id);
       div.innerHTML =
         '<div class="copf-ic">' + icone(ev.tipo) + "</div>" +
         '<div class="copf-body"><div class="copf-resumo">' + esc(ev.resumo || ev.tipo || "Evento") + "</div>" +
@@ -332,6 +397,7 @@
         var linhas = (r && r.data) || [];
         if (reset) { feedLista.innerHTML = ""; novos = 0; renderNovos(); }
         for (var i = 0; i < linhas.length; i++) feedLista.appendChild(feedLinha(linhas[i]));
+        wiHidratarFeed();   // (2.0) resolve os títulos dos work items desta página, em lote
         if (linhas.length) feedCursor = linhas[linhas.length - 1].id;
         feedTemMais = linhas.length >= TAM;
         if (feedMais) { feedMais.style.display = feedTemMais ? "" : "none"; feedMais.textContent = "Carregar mais"; }
@@ -395,8 +461,10 @@
     function mostrarFeed() {
       pararDigitar();        // saindo da conversa pelo Feed: avisa "parei de digitar" (antes de zerar canalAtual)
       limparTodosDigit();    // e limpa o indicador de "digitando" que estava na tela
-      viewAtual = "feed"; canalAtual = null;
+      viewAtual = "feed"; canalAtual = null; itemAtual = null;
       if (canalView) canalView.style.display = "none";
+      if (trabView) trabView.style.display = "none";                 // (2.0)
+      if (wiNavBtn) wiNavBtn.classList.remove("on");                 // (2.0)
       if (feedView) feedView.style.display = "";
       marcarAtivo(null);
       renderNaoLidas();   // sem tópico aberto: o badge do que estava aberto volta a aparecer se tiver não-lidas
@@ -405,8 +473,10 @@
     function abrirCanal(t) {
       pararDigitar();        // avisa que parei de digitar no tópico ANTERIOR (antes de trocar canalAtual)
       limparTodosDigit();    // limpa o indicador de "digitando" da conversa que estou saindo
-      viewAtual = "canal"; canalAtual = t.id;
+      viewAtual = "canal"; canalAtual = t.id; itemAtual = null;
       if (feedView) feedView.style.display = "none";
+      if (trabView) trabView.style.display = "none";                 // (2.0)
+      if (wiNavBtn) wiNavBtn.classList.remove("on");                 // (2.0)
       if (canalView) canalView.style.display = "";
       canalTitTxt = t.titulo || "Conversa";
       if (canalTitulo) canalTitulo.textContent = (t.tipo === "canal" ? "# " : "") + canalTitTxt;
@@ -1566,13 +1636,479 @@
       digitEl.innerHTML = txt;
     }
 
+    /* ============================================================
+       (2.0) TRABALHO — Work Items. O item é o centro; a conversa vira contexto dele.
+       A tela é montada sob demanda (ao lado do feedView) para não reescrever o montarUI.
+       ============================================================ */
+    var trabView = null, wiListaEl = null, wiStatusEl = null, wiMaisBtn = null, wiNavBtn = null;
+
+    function wiReqId() { try { return uuidv7(); } catch (e) { return null; } }
+
+    function wiGarantirView() {
+      if (trabView || !feedView || !feedView.parentNode) return trabView;
+      trabView = document.createElement("div");
+      trabView.className = "co-trab";
+      trabView.style.display = "none";
+      trabView.innerHTML =
+        '<div class="co-head"><div><b style="font-size:16px;">Trabalho</b>' +
+        '<div class="co-sub">Ocorrências e tarefas da operação.</div></div>' +
+        '<button type="button" class="wi-novo" data-winovo>Novo</button></div>' +
+        '<div class="wi-abas">' +
+        '<button type="button" class="wi-aba on" data-wiaba="meus">Meus</button>' +
+        '<button type="button" class="wi-aba" data-wiaba="abertos">Abertos</button>' +
+        '<button type="button" class="wi-aba" data-wiaba="todos">Todos</button></div>' +
+        '<div class="wi-filtros">' +
+        '<select data-wif="status"><option value="">Status: todos</option>' +
+        '<option value="aberto">Aberto</option><option value="em_andamento">Em andamento</option>' +
+        '<option value="bloqueado">Bloqueado</option><option value="concluido">Concluído</option>' +
+        '<option value="cancelado">Cancelado</option></select>' +
+        '<select data-wif="prioridade"><option value="">Prioridade: todas</option>' +
+        '<option value="urgente">Urgente</option><option value="alta">Alta</option>' +
+        '<option value="normal">Normal</option><option value="baixa">Baixa</option></select>' +
+        '<select data-wif="tipo"><option value="">Tipo: todos</option>' +
+        '<option value="ocorrencia">Ocorrência</option><option value="tarefa">Tarefa</option></select>' +
+        "</div>" +
+        '<div class="wi-lista" data-wilista></div>' +
+        '<div class="copf-status" data-wistatus></div>' +
+        '<div style="text-align:center;margin-top:12px;"><button type="button" class="copf-mais" data-wimais style="display:none;">Carregar mais</button></div>';
+      feedView.parentNode.insertBefore(trabView, feedView.nextSibling);
+      wiListaEl = trabView.querySelector("[data-wilista]");
+      wiStatusEl = trabView.querySelector("[data-wistatus]");
+      wiMaisBtn = trabView.querySelector("[data-wimais]");
+
+      trabView.addEventListener("click", function (e) {
+        var t = e.target;
+        var aba = t.closest ? t.closest("[data-wiaba]") : null;
+        if (aba) {
+          var ab = aba.getAttribute("data-wiaba");
+          if (ab === wiAba) return;
+          wiAba = ab;
+          var bs = trabView.querySelectorAll("[data-wiaba]");
+          for (var i = 0; i < bs.length; i++) bs[i].classList.toggle("on", bs[i] === aba);
+          carregarWi(true); return;
+        }
+        if (t.closest && t.closest("[data-winovo]")) { wiAbrirForm(); return; }
+        if (t.closest && t.closest("[data-wimais]")) { carregarWi(false); return; }
+        var card = t.closest ? t.closest("[data-wiid]") : null;
+        if (card) { abrirItem(card.getAttribute("data-wiid")); return; }
+      });
+      trabView.addEventListener("change", function (e) {
+        var s = e.target && e.target.getAttribute && e.target.getAttribute("data-wif");
+        if (!s) return;
+        if (s === "status") wiFStatus = e.target.value;
+        else if (s === "prioridade") wiFPrio = e.target.value;
+        else if (s === "tipo") wiFTipo = e.target.value;
+        carregarWi(true);
+      });
+      return trabView;
+    }
+
+    function wiSetStatus(txt) { if (wiStatusEl) wiStatusEl.innerHTML = txt || ""; }
+
+    function mostrarTrabalho() {
+      pararDigitar(); limparTodosDigit();
+      viewAtual = "trabalho"; canalAtual = null; itemAtual = null;
+      wiFormAberto = false; ++wiGen; ++itemGen;   // invalida página/detalhe em voo
+      wiGarantirView();
+      if (feedView) feedView.style.display = "none";
+      if (canalView) canalView.style.display = "none";
+      if (trabView) trabView.style.display = "";
+      marcarAtivo(null);
+      if (wiNavBtn) wiNavBtn.classList.add("on");
+      renderNaoLidas();
+      carregarWi(true);
+    }
+
+    // Filtros -> argumentos da RPC. "Meus" e "Abertos" são atalhos de filtro, não modos.
+    function wiArgs() {
+      var me = (perfil() || {}).id || null;
+      return {
+        p_status: wiFStatus || null,
+        // "Abertos" filtra NO SERVIDOR. Filtrar no cliente descartava a página inteira
+        // (concluir bumpa o updated_at, então os concluídos ficam no topo) e a tela dizia
+        // "Nada por aqui" sem botão de continuar — trabalho pendente sumia da vista.
+        p_status_in: (wiAba === "abertos" && !wiFStatus) ? ["aberto", "em_andamento", "bloqueado"] : null,
+        p_responsavel_id: wiAba === "meus" ? me : null,
+        p_prioridade: wiFPrio || null,
+        p_tipo: wiFTipo || null,
+        p_cursor_at: null, p_cursor_id: null, p_limite: 30
+      };
+    }
+
+    function carregarWi(reset) {
+      var sb = SB(); if (!sb || !wiListaEl) return;
+      if (!reset && wiCarregando) return;
+      wiCarregando = true;
+      var g = ++wiGen;
+      if (reset) {
+        wiMapa = {}; wiOrdem = []; wiCursorAt = null; wiCursorId = null; wiTemMais = true;
+        wiListaEl.innerHTML = ""; wiSetStatus('<div class="copf-skel"></div><div class="copf-skel"></div>');
+      }
+      var a = wiArgs();
+      a.p_cursor_at = reset ? null : wiCursorAt;
+      a.p_cursor_id = reset ? null : wiCursorId;
+      medirRpc("work_items_pagina", sb.rpc("work_items_pagina", a)).then(function (r) {
+        wiCarregando = false;
+        if (g !== wiGen) return;                       // troquei de aba/filtro no meio: descarto
+        if (!r || r.error) { wiSetStatus('<b>Não consegui carregar.</b><br><button class="copf-erro-btn" type="button" onclick="void 0">Tente reabrir a Central.</button>'); return; }
+        var linhas = (r.data) || [];   // (o agrupamento de "Abertos" agora vem filtrado do servidor)
+        for (var i = 0; i < linhas.length; i++) {
+          var w = linhas[i];
+          if (!wiMapa[w.id]) wiOrdem.push(w.id);       // dedup por id (updated_at é mutável)
+          wiMapa[w.id] = w;
+        }
+        var brutas = (r.data) || [];
+        if (brutas.length) {
+          var ult = brutas[brutas.length - 1];
+          wiCursorAt = ult.atualizado_em; wiCursorId = ult.id;
+        }
+        wiTemMais = brutas.length >= 30;
+        renderWiLista();
+      }, function () {
+        wiCarregando = false;
+        if (g === wiGen) wiSetStatus("<b>Não consegui carregar.</b>");
+      });
+    }
+
+    function wiChip(cls, txt) { return '<span class="wi-chip ' + cls + '">' + esc(txt) + "</span>"; }
+
+    function wiCard(w) {
+      var d = document.createElement("div");
+      d.className = "wi-card" + (w.atrasado ? " atrasado" : "");
+      d.setAttribute("data-wiid", w.id);
+      var prazo = w.prazo_em ? (w.atrasado ? '<span class="wi-atraso">Atrasado · ' + esc(tempoRel(w.prazo_em)) + "</span>"
+                                           : "Prazo " + esc(tempoRel(w.prazo_em))) : "";
+      d.innerHTML =
+        '<div class="wi-top"><span class="wi-tipo">' + (w.tipo === "tarefa" ? "Tarefa" : "Ocorrência") + "</span>" +
+        '<span class="wi-tit">' + esc(w.titulo || "(sem título)") + "</span>" +
+        wiChip("wi-st-" + w.status, WI_STATUS_LBL[w.status] || w.status) + "</div>" +
+        '<div class="wi-meta">' +
+        wiChip("wi-pr-" + w.prioridade, w.prioridade) +
+        (w.responsavel_nome ? "<span>" + esc(w.responsavel_nome) + "</span>" : '<span style="color:#b3bcc4;">sem responsável</span>') +
+        (prazo ? "<span>" + prazo + "</span>" : "") +
+        (w.topico_id ? '<span title="tem conversa ligada">💬</span>' : "") +
+        (w.vinculos ? "<span>" + w.vinculos + " contexto(s)</span>" : "") +
+        "</div>";
+      return d;
+    }
+
+    function renderWiLista() {
+      if (!wiListaEl) return;
+      if (wiFormAberto || itemAtual) return;   // formulário/detalhe na tela: não repinta a lista
+      wiListaEl.innerHTML = "";
+      for (var i = 0; i < wiOrdem.length; i++) {
+        var w = wiMapa[wiOrdem[i]];
+        if (w) wiListaEl.appendChild(wiCard(w));
+      }
+      wiSetStatus(wiOrdem.length ? "" : "<b>Nada por aqui.</b><br>Use o botão <b>Novo</b> para criar a primeira ocorrência ou tarefa.");
+      if (wiMaisBtn) wiMaisBtn.style.display = wiTemMais && wiOrdem.length ? "" : "none";
+    }
+
+    /* ---------- DETALHE ---------- */
+    function abrirItem(id) {
+      var sb = SB(); if (!sb || !id) return;
+      itemAtual = id;
+      wiFormAberto = false;
+      ++wiGen;                       // uma página da lista em voo não pode repintar por cima
+      var g = ++itemGen;
+      wiGarantirView();
+      if (trabView) trabView.style.display = "";
+      if (feedView) feedView.style.display = "none";
+      if (canalView) canalView.style.display = "none";
+      viewAtual = "item";
+      if (wiListaEl) wiListaEl.innerHTML = "";
+      wiSetStatus('<div class="copf-skel"></div><div class="copf-skel"></div>');
+      if (wiMaisBtn) wiMaisBtn.style.display = "none";
+      medirRpc("work_item_detalhe", sb.rpc("work_item_detalhe", { p_work_item_id: id })).then(function (r) {
+        if (g !== itemGen) return;                     // abri outro item no meio do caminho
+        var d = (r && r.data && r.data[0]) || null;
+        if (!d) { wiSetStatus("<b>Item não encontrado</b> (ou você não tem acesso a ele)."); return; }
+        renderItem(d);
+      }, function () { if (g === itemGen) wiSetStatus("<b>Não consegui abrir o item.</b>"); });
+    }
+
+    function renderItem(d) {
+      if (!wiListaEl) return;
+      wiSetStatus("");
+      var me = (perfil() || {}).id;
+      var trans = WI_TRANSICOES[d.status] || [];
+      var box = document.createElement("div");
+      var ctx = [];
+      try { ctx = typeof d.vinculos === "string" ? JSON.parse(d.vinculos) : (d.vinculos || []); } catch (e) { ctx = []; }
+
+      var acoes = '<button type="button" class="wi-btn" data-wivoltar>← Trabalho</button>';
+      if (d.responsavel_id !== me) acoes += '<button type="button" class="wi-btn" data-wiassumir>Assumir para mim</button>';
+      for (var i = 0; i < trans.length; i++) {
+        var s = trans[i];
+        acoes += '<button type="button" class="wi-btn' + (s === "em_andamento" || s === "concluido" ? " pri" : "") +
+                 '" data-witrans="' + s + '">' +
+                 (s === "em_andamento" ? "Iniciar" : s === "concluido" ? "Concluir" : s === "bloqueado" ? "Bloquear" :
+                  s === "cancelado" ? "Cancelar" : s === "aberto" ? "Reabrir" : s) + "</button>";
+      }
+
+      var ctxHtml = "";
+      for (var k = 0; k < ctx.length; k++) {
+        var c = ctx[k];
+        ctxHtml += '<div class="wi-ctx-it"><b>' + esc(ENT_ROTULO[c.tipo] || c.tipo) + "</b><span>" + esc(c.id) + "</span>" +
+                   (c.papel === "derivado_de" ? '<span style="color:#9aa6ae;font-size:12px;margin-left:6px;">origem</span>'
+                     : '<button type="button" class="wi-ctx-x" data-widesv="' + esc(c.tipo) + "|" + esc(c.id) + "|" + esc(c.papel) + '" title="remover">✕</button>') +
+                   "</div>";
+      }
+      if (!ctxHtml) ctxHtml = '<div style="color:#9aa6ae;font-size:13px;">Nenhum contexto ligado ainda.</div>';
+
+      box.innerHTML =
+        '<div class="co-head"><div>' +
+        '<span class="wi-tipo">' + (d.tipo === "tarefa" ? "Tarefa" : "Ocorrência") + "</span>" +
+        '<div style="font-size:17px;font-weight:650;color:#26313a;margin-top:3px;">' + esc(d.titulo || "") + "</div>" +
+        '<div class="wi-meta" style="margin-top:7px;">' +
+        wiChip("wi-st-" + d.status, WI_STATUS_LBL[d.status] || d.status) +
+        wiChip("wi-pr-" + d.prioridade, d.prioridade) +
+        (d.responsavel_nome ? "<span>" + esc(d.responsavel_nome) + "</span>" : '<span style="color:#b3bcc4;">sem responsável</span>') +
+        (d.prazo_em ? (d.atrasado ? '<span class="wi-atraso">Atrasado · ' + esc(tempoRel(d.prazo_em)) + "</span>" : "<span>Prazo " + esc(tempoRel(d.prazo_em)) + "</span>") : "") +
+        "</div></div></div>" +
+        '<div class="wi-det-sec"><div class="wi-acoes">' + acoes + "</div></div>" +
+        (d.descricao ? '<div class="wi-det-sec"><div class="wi-det-lbl">Descrição</div><div style="white-space:pre-wrap;color:#3c4750;font-size:14px;">' + esc(d.descricao) + "</div></div>" : "") +
+        '<div class="wi-det-sec"><div class="wi-det-lbl">Contexto</div><div class="wi-ctx">' + ctxHtml + "</div>" +
+        '<div style="margin-top:8px;"><button type="button" class="wi-btn" data-wiaddctx>+ Adicionar contexto</button></div></div>' +
+        '<div class="wi-det-sec"><div class="wi-det-lbl">Conversa</div>' +
+        (d.topico_id ? '<button type="button" class="wi-btn" data-wiconversa="' + esc(d.topico_id) + '">Abrir a conversa ligada</button>'
+                     : '<div style="color:#9aa6ae;font-size:13px;">Este item não tem conversa ligada.</div>') + "</div>" +
+        '<div data-wictxform style="margin-top:10px;"></div>';
+      wiListaEl.appendChild(box);
+      wiLigarDetalhe(box, d);
+    }
+
+    function wiLigarDetalhe(box, d) {
+      box.addEventListener("click", function (e) {
+        var t = e.target;
+        if (t.closest && t.closest("[data-wivoltar]")) { mostrarTrabalho(); return; }
+        if (t.closest && t.closest("[data-wiassumir]")) { wiEscrever("atualizar_work_item", { p_work_item_id: d.id, p_responsavel_id: (perfil() || {}).id }, d.id); return; }
+        var tr = t.closest ? t.closest("[data-witrans]") : null;
+        if (tr) {
+          var novo = tr.getAttribute("data-witrans");
+          if (novo === "cancelado" || novo === "concluido") {
+            if (!window.confirm(novo === "concluido" ? "Concluir este item?" : "Cancelar este item?")) return;
+          }
+          wiEscrever("transicionar_work_item", { p_work_item_id: d.id, p_novo_status: novo }, d.id); return;
+        }
+        var dv = t.closest ? t.closest("[data-widesv]") : null;
+        if (dv) {
+          var p = String(dv.getAttribute("data-widesv")).split("|");
+          wiEscrever("desvincular_work_item", { p_work_item_id: d.id, p_entidade_tipo: p[0], p_entidade_id: p[1], p_relacao: p[2] }, d.id); return;
+        }
+        var cv = t.closest ? t.closest("[data-wiconversa]") : null;
+        if (cv) { wiIrConversa(cv.getAttribute("data-wiconversa")); return; }
+        if (t.closest && t.closest("[data-wiaddctx]")) { wiFormContexto(box, d.id); return; }
+      });
+    }
+
+    // Abre a conversa ligada reusando 100% o motor de mensagens que já existe (1.2→1.14).
+    function wiIrConversa(topicoId) {
+      var sb = SB(); if (!sb || !topicoId) return;
+      medirRpc("listar_topicos", sb.rpc("listar_topicos")).then(function (r) {
+        var ts = (r && r.data) || [], alvo = null;
+        for (var i = 0; i < ts.length; i++) if (ts[i].id === topicoId) alvo = ts[i];
+        abrirCanal(alvo || { id: topicoId, titulo: "Conversa", tipo: "canal" });
+      }, function () { abrirCanal({ id: topicoId, titulo: "Conversa", tipo: "canal" }); });
+    }
+
+    // Escrita genérica. O request_id é cunhado UMA vez por INTENÇÃO e reusado enquanto ela
+    // não der certo — senão a idempotência do servidor era inerte: cada tentativa levava um
+    // id novo e o retry criava uma segunda tarefa/transição. A chave inclui a operação e os
+    // argumentos, então o mesmo id nunca é reaproveitado para uma operação diferente
+    // (o servidor devolveria "sucesso" de outra coisa).
+    var wiReqCache = {};
+    function wiEscrever(rpc, args, id) {
+      var sb = SB(); if (!sb) return;
+      var chave;
+      try { chave = rpc + "|" + id + "|" + JSON.stringify(args); } catch (e) { chave = rpc + "|" + id; }
+      var req = wiReqCache[chave] || wiReqId(); if (!req) return;
+      wiReqCache[chave] = req;
+      args.p_request_id = req;
+      comTimeout(medirRpc(rpc, sb.rpc(rpc, args)), 30000).then(function (r) {
+        if (r && r.error) { wiAvisar(r.error.message || "Não deu pra salvar."); return; }   // mantém o id p/ o retry
+        delete wiReqCache[chave];                                                            // deu certo: intenção encerrada
+        if (itemAtual === id) abrirItem(id); else wiAtualizarUm(id);
+      }, function () { wiAvisar("Não deu pra salvar. Tente de novo."); });
+    }
+
+    function wiAvisar(msg) {
+      if (!wiStatusEl) return;
+      wiStatusEl.innerHTML = '<div class="wi-erro">' + esc(msg) + "</div>";
+      setTimeout(function () { if (wiStatusEl && wiStatusEl.querySelector(".wi-erro")) wiStatusEl.innerHTML = ""; }, 4000);
+    }
+
+    // Atualiza SOMENTE o card afetado (tempo real e pós-escrita) — nunca recarrega a lista.
+    function wiAtualizarUm(id) {
+      var sb = SB(); if (!sb || !id) return;
+      medirRpc("work_items_por_ids", sb.rpc("work_items_por_ids", { p_ids: [id] })).then(function (r) {
+        var w = (r && r.data && r.data[0]) || null;
+        if (!w) {                                   // sumiu do meu alcance: tira da lista
+          if (wiMapa[id]) { delete wiMapa[id]; wiOrdem = wiOrdem.filter(function (x) { return x !== id; }); if (viewAtual === "trabalho" && !wiFormAberto && !itemAtual) renderWiLista(); }
+          return;
+        }
+        var jaTinha = !!wiMapa[id];
+        wiMapa[id] = w;
+        if (!jaTinha) { wiOrdem.unshift(id); }       // entrou no filtro atual
+        if (viewAtual === "trabalho" && !wiFormAberto && !itemAtual) renderWiLista();
+      }, function () { });
+    }
+
+    /* ---------- CRIAR ---------- */
+    function wiAbrirForm() {
+      wiGarantirView();
+      viewAtual = "trabalho"; itemAtual = null;
+      wiFormAberto = true; ++wiGen; ++itemGen;   // nada em voo pode apagar o formulário
+      if (!wiListaEl) return;
+      wiSetStatus(""); if (wiMaisBtn) wiMaisBtn.style.display = "none";
+      wiListaEl.innerHTML = "";
+      var f = document.createElement("div");
+      f.className = "wi-form";
+      f.innerHTML =
+        '<div class="wi-row"><div><label>Tipo</label><select data-wnew="tipo">' +
+        '<option value="tarefa">Tarefa</option><option value="ocorrencia">Ocorrência</option></select></div>' +
+        '<div><label>Prioridade</label><select data-wnew="prioridade">' +
+        '<option value="normal">Normal</option><option value="baixa">Baixa</option>' +
+        '<option value="alta">Alta</option><option value="urgente">Urgente</option></select></div></div>' +
+        '<div><label>Título</label><input data-wnew="titulo" maxlength="180" placeholder="O que precisa ser feito?"></div>' +
+        '<div><label>Descrição (opcional)</label><textarea data-wnew="descricao" maxlength="2000"></textarea></div>' +
+        '<div class="wi-row"><div><label>Responsável (opcional)</label><select data-wnew="responsavel"><option value="">— ninguém —</option></select></div>' +
+        '<div><label>Prazo (opcional)</label><input type="date" data-wnew="prazo"></div></div>' +
+        '<div class="wi-acoes" style="margin-top:4px;">' +
+        '<button type="button" class="wi-btn pri" data-wsalvar>Criar</button>' +
+        '<button type="button" class="wi-btn" data-wcancelar>Cancelar</button></div>' +
+        '<div data-wnewerro></div>';
+      wiListaEl.appendChild(f);
+      // popula responsáveis com o roster que a 1.13 já expõe
+      var sb = SB();
+      if (sb) medirRpc("participantes", sb.rpc("participantes")).then(function (r) {
+        var ps = (r && r.data) || [], sel = f.querySelector('[data-wnew="responsavel"]');
+        if (!sel) return;
+        for (var i = 0; i < ps.length; i++) {
+          var o = document.createElement("option"); o.value = ps[i].id; o.textContent = ps[i].nome || "?";
+          sel.appendChild(o);
+        }
+      }, function () { });
+      f.addEventListener("click", function (e) {
+        if (e.target.closest && e.target.closest("[data-wcancelar]")) { mostrarTrabalho(); return; }
+        if (e.target.closest && e.target.closest("[data-wsalvar]")) wiSalvarNovo(f);
+      });
+    }
+
+    function wiSalvarNovo(f) {
+      var sb = SB(); if (!sb) return;
+      function v(n) { var el = f.querySelector('[data-wnew="' + n + '"]'); return el ? String(el.value || "").trim() : ""; }
+      var erroEl = f.querySelector("[data-wnewerro]");
+      var tit = v("titulo");
+      if (!tit) { if (erroEl) erroEl.innerHTML = '<div class="wi-erro">Escreva um título.</div>'; return; }
+      // request_id preso ao FORMULÁRIO: se o envio falhar e a pessoa clicar de novo, é a
+      // MESMA intenção — o servidor devolve o mesmo item em vez de criar um segundo.
+      var req = f._wiReq || wiReqId(); if (!req) return;
+      f._wiReq = req;
+      var btn = f.querySelector("[data-wsalvar]"); if (btn) btn.disabled = true;
+      var prazo = v("prazo");
+      var args = {
+        p_request_id: req, p_tipo: v("tipo") || "tarefa", p_titulo: tit,
+        p_descricao: v("descricao") || null, p_prioridade: v("prioridade") || "normal",
+        p_responsavel_id: v("responsavel") || null,
+        p_prazo_em: prazo ? new Date(prazo + "T12:00:00").toISOString() : null,
+        p_topico_id: null, p_setor: null
+      };
+      comTimeout(medirRpc("criar_work_item", sb.rpc("criar_work_item", args)), 30000).then(function (r) {
+        if (btn) btn.disabled = false;
+        if (!r || r.error) { if (erroEl) erroEl.innerHTML = '<div class="wi-erro">' + esc((r && r.error && r.error.message) || "Não deu pra criar.") + "</div>"; return; }
+        var novoId = r.data;
+        f._wiReq = null;                     // intenção concluída
+        wiFormAberto = false;
+        mostrarTrabalho();
+        if (novoId) abrirItem(novoId);       // 2 toques: criar -> já cai no item
+      }, function () {
+        if (btn) btn.disabled = false;
+        if (erroEl) erroEl.innerHTML = '<div class="wi-erro">Não deu pra criar. Tente de novo.</div>';
+      });
+    }
+
+    /* ---------- ADICIONAR CONTEXTO (2 toques: escolher tipo -> escolher item) ---------- */
+    function wiFormContexto(box, id) {
+      var alvo = box.querySelector("[data-wictxform]"); if (!alvo) return;
+      if (alvo.innerHTML) { alvo.innerHTML = ""; return; }     // toggle
+      alvo.innerHTML =
+        '<div class="wi-form" style="max-width:420px;">' +
+        '<div class="wi-row"><div><label>Tipo</label><select data-wctipo>' +
+        '<option value="estoque_produtos">Produto</option>' +
+        '<option value="central_agendamentos">Recebimento</option>' +
+        '<option value="manutencao_equipamentos">Equipamento</option></select></div>' +
+        '<div><label>Buscar</label><input data-wcbusca placeholder="digite para buscar…"></div></div>' +
+        '<div data-wcres class="wi-ctx"></div></div>';
+      var sel = alvo.querySelector("[data-wctipo]"), inp = alvo.querySelector("[data-wcbusca]"), res = alvo.querySelector("[data-wcres]");
+      var tmr = null;
+      function buscar() {
+        var sb = SB(); if (!sb) return;
+        var q = String(inp.value || "").trim();
+        if (q.length < 2) { res.innerHTML = '<div style="color:#9aa6ae;font-size:13px;">Digite ao menos 2 letras.</div>'; return; }
+        medirRpc("entidades_vinculaveis", sb.rpc("entidades_vinculaveis", { p_tipo: sel.value, p_busca: q })).then(function (r) {
+          var ls = (r && r.data) || [];
+          if (!ls.length) { res.innerHTML = '<div style="color:#9aa6ae;font-size:13px;">Nada encontrado.</div>'; return; }
+          var h = "";
+          for (var i = 0; i < ls.length; i++) {
+            h += '<div class="wi-ctx-it" style="cursor:pointer;" data-wcpick="' + esc(ls[i].id) + '"><b>' + esc(ls[i].titulo || "?") +
+                 '</b><span style="color:#9aa6ae;">' + esc(ls[i].subtitulo || "") + "</span></div>";
+          }
+          res.innerHTML = h;
+        }, function () { res.innerHTML = '<div class="wi-erro">Erro na busca.</div>'; });
+      }
+      inp.addEventListener("input", function () { if (tmr) clearTimeout(tmr); tmr = setTimeout(buscar, 250); });
+      sel.addEventListener("change", buscar);
+      res.addEventListener("click", function (e) {
+        var p = e.target.closest ? e.target.closest("[data-wcpick]") : null;
+        if (!p) return;
+        wiEscrever("vincular_work_item", { p_work_item_id: id, p_entidade_tipo: sel.value,
+                                           p_entidade_id: p.getAttribute("data-wcpick"), p_relacao: "relacionado_a" }, id);
+      });
+    }
+
+    // (2.0) Hidrata os títulos dos work items do Feed em UMA chamada em lote (teto 100 casa
+    // com a página de 30). Sem isso o Feed mostraria uma fileira de "Nova tarefa" sem nome.
+    function wiHidratarFeed() {
+      var sb = SB(); if (!sb || !feedLista) return;
+      var els = feedLista.querySelectorAll("[data-wient]:not([data-wiok])");
+      if (!els.length) return;
+      var ids = [], vistos = {}, i;
+      for (i = 0; i < els.length && ids.length < 100; i++) {
+        var id = els[i].getAttribute("data-wient");
+        if (id && !vistos[id]) { vistos[id] = true; ids.push(id); }
+      }
+      if (!ids.length) return;
+      medirRpc("work_items_por_ids", sb.rpc("work_items_por_ids", { p_ids: ids })).then(function (r) {
+        // Falha de rede/permissão NÃO marca como resolvido — senão a linha genérica
+        // congelaria para sempre. E só marco os ids que entraram NESTE lote (o excedente
+        // acima de 100 fica para a próxima passada).
+        if (!r || r.error) return;
+        var linhas = (r && r.data) || [], mapa = {}, k;
+        for (k = 0; k < linhas.length; k++) mapa[linhas[k].id] = linhas[k];
+        for (k = 0; k < els.length; k++) {
+          var e2 = els[k], eid = e2.getAttribute("data-wient");
+          if (!vistos[eid]) continue;                       // não entrou no lote: tenta depois
+          var w = mapa[eid];
+          e2.setAttribute("data-wiok", "1");                // resolvido (ou invisível por RLS)
+          if (!w) continue;
+          var alvo = e2.querySelector(".copf-resumo");
+          if (alvo) alvo.textContent = (w.tipo === "tarefa" ? "Tarefa: " : "Ocorrência: ") + (w.titulo || "");
+          e2.style.cursor = "pointer";
+          e2.setAttribute("data-wiabrir", w.id);             // clicar no Feed abre o item
+        }
+      }, function () { });
+    }
+
     function assinarRealtime() {
       var sb = SB(); if (!sb || rtCanal) return;
       try {
         rtCanal = sb.channel(CANAL_RT, { config: { presence: { key: (perfil() || {}).id || "anon" } } });
         rtCanal.on("broadcast", { event: "novo" }, function (msg) {
           var p = (msg && msg.payload) || {};
-          var tipo = p.tipo, bastidor = (tipo === "audio.transcrito" || tipo === "mencao.criada" || tipo === "reacao.alterada");
+          var tipo = p.tipo, bastidor = (tipo === "audio.transcrito" || tipo === "mencao.criada" || tipo === "reacao.alterada"
+            // (2.0) vínculo é só roteamento — o servidor já o exclui do Feed; aqui evita inflar o "novos"
+            || tipo === "work_item.vinculo_adicionado" || tipo === "work_item.vinculo_removido");
           // Feed: conta "novos" só p/ eventos que aparecem no Feed (não os de bastidor)
           if (viewAtual === "feed" && !bastidor) { novos++; renderNovos(); }
           // conversa aberta: busca só a msg e insere; tópico fechado: incrementa não-lidas
@@ -1583,6 +2119,13 @@
           else if (tipo === "reacao.alterada") {
             // reação de OUTRO na conversa aberta: atualiza SÓ aquela mensagem (a minha já reconciliei no toggle)
             if (p.topico === canalAtual && p.autor !== (perfil() || {}).id) atualizarReacoes([p.ent]);
+          }
+          // (2.0) work item mudou em outro aparelho: atualiza SÓ o afetado, nunca a lista toda.
+          else if (tipo && tipo.indexOf("work_item.") === 0) {
+            if (p.ent && (viewAtual === "trabalho" || viewAtual === "item")) {
+              if (itemAtual && p.ent === itemAtual) abrirItem(itemAtual);   // detalhe aberto: recarrega o detalhe
+              else wiAtualizarUm(p.ent);                                    // lista: só aquele card
+            }
           }
           else if (tipo === "audio.transcrito" || !tipo) verificarTranscricoes();   // (1.14) só transcrição/fallback — não dispara RPC p/ todo evento de bastidor
         });
@@ -1729,8 +2272,25 @@
         carregarParticipantes();  // roster p/ a lista de presença
       });
       feedBtn.addEventListener("click", function () { mostrarFeed(); });
+      // (2.0) item "Trabalho" na navegação, inserido logo abaixo do Feed (sem reescrever o
+      // template do montarUI — só um irmão no DOM).
+      try {
+        wiNavBtn = document.createElement("button");
+        wiNavBtn.type = "button";
+        wiNavBtn.className = "co-nav-item";
+        wiNavBtn.innerHTML =
+          '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+          '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Trabalho</span>';
+        wiNavBtn.addEventListener("click", function () { mostrarTrabalho(); });
+        if (feedBtn.parentNode) feedBtn.parentNode.insertBefore(wiNavBtn, feedBtn.nextSibling);
+      } catch (e) { }
       elPage.querySelector(".copf-refresh").addEventListener("click", function () { carregarFeed(true); });
       feedMais.addEventListener("click", function () { carregarFeed(false); });
+      // (2.0) clicar numa linha de work item no Feed abre o item
+      feedLista.addEventListener("click", function (e) {
+        var l = e.target && e.target.closest ? e.target.closest("[data-wiabrir]") : null;
+        if (l) abrirItem(l.getAttribute("data-wiabrir"));
+      });
       feedPill.addEventListener("click", function () { novos = 0; renderNovos(); carregarFeed(true); });
       msgMais.addEventListener("click", function () { carregarMsgs(false); });
       // delegação nas mensagens (menção + reações). Pega msgs atuais e futuras.
