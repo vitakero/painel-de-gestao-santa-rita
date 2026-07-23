@@ -10703,12 +10703,13 @@ function czTemaUpload(inp){
   rd.onload=function(){
     var img=new Image();
     img.onload=function(){
-      var natural=img.width/img.height;
-      var W=1400,H,sx=0,sy=0,sw=img.width,sh=img.height;
-      if(natural<2.6){ H=Math.round(W*5/16); var alvo=16/5; if(natural>alvo){ sw=Math.round(sh*alvo); sx=Math.round((img.width-sw)/2); } else { sh=Math.round(sw/alvo); sy=Math.round((img.height-sh)/2); } }
-      else { H=Math.round(W/natural); }
+      // NÃO cortar a arte: preserva o cabeçalho INTEIRO. Só reduz proporcionalmente pra caber
+      // no localStorage (teto 1400x1200). Fundo branco = igual ao cartaz (JPEG é compacto).
+      var W=img.width||1, H=img.height||1;
+      var s=Math.min(1, 1400/W, 1200/H);
+      W=Math.max(1,Math.round(W*s)); H=Math.max(1,Math.round(H*s));
       var cv=document.createElement('canvas'); cv.width=W; cv.height=H;
-      var cx=cv.getContext('2d'); cx.fillStyle='#fff'; cx.fillRect(0,0,W,H); cx.drawImage(img,sx,sy,sw,sh,0,0,W,H);
+      var cx=cv.getContext('2d'); cx.fillStyle='#fff'; cx.fillRect(0,0,W,H); cx.drawImage(img,0,0,W,H);
       var data=cv.toDataURL('image/jpeg',0.85);
       var nome=(f.name||'Tema').replace(/\\.[^.]+$/,'');
       var l=czTemasGet(); l.push({n:nome,d:data});
