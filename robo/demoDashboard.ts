@@ -10704,13 +10704,37 @@ function czTemaUpload(inp){
     var img=new Image();
     img.onload=function(){
       // NÃO cortar a arte: preserva o cabeçalho INTEIRO. Só reduz proporcionalmente pra caber
-      // no localStorage (teto 1200x1000). PRESERVA TRANSPARÊNCIA (PNG) pra o fundo (verde) do
-      // cartaz aparecer atrás da arte — nada de fundo branco chapado.
+      // no localStorage (teto 1200x1000) e exporta PNG (transparência) pra o fundo verde aparecer.
       var W=img.width||1, H=img.height||1;
       var s=Math.min(1, 1200/W, 1000/H);
       W=Math.max(1,Math.round(W*s)); H=Math.max(1,Math.round(H*s));
       var cv=document.createElement('canvas'); cv.width=W; cv.height=H;
       var cx=cv.getContext('2d'); cx.clearRect(0,0,W,H); cx.drawImage(img,0,0,W,H);
+      // REMOÇÃO AUTOMÁTICA DE FUNDO BRANCO: se a arte NÃO já vier transparente (cantos opacos),
+      // apaga o branco a partir das BORDAS (flood-fill) — assim o fundo verde do cartaz aparece
+      // atrás do logo. Branco INTERNO do logo (ex.: "SEMANA", o sino) é preservado, pois não
+      // está ligado à borda. Se a arte já for transparente, não mexe.
+      try {
+        var _id=cx.getImageData(0,0,W,H), _px=_id.data, _N=W*H, _TH=235;
+        var _cantos=[0,(W-1),(H-1)*W,(_N-1)];
+        var _jaTransp=_cantos.some(function(p){ return _px[p*4+3]<20; });
+        if(!_jaTransp){
+          var _vis=new Uint8Array(_N), _st=[];
+          var _seed=function(i){ if(!_vis[i]){ _vis[i]=1; if(_px[i*4]>=_TH&&_px[i*4+1]>=_TH&&_px[i*4+2]>=_TH) _st.push(i); } };
+          var _x,_y;
+          for(_x=0;_x<W;_x++){ _seed(_x); _seed((H-1)*W+_x); }
+          for(_y=0;_y<H;_y++){ _seed(_y*W); _seed(_y*W+W-1); }
+          while(_st.length){
+            var _i=_st.pop(); _px[_i*4+3]=0;
+            var _xx=_i%W, _yy=(_i-_xx)/W;
+            if(_xx+1<W) _seed(_i+1);
+            if(_xx>0) _seed(_i-1);
+            if(_yy+1<H) _seed(_i+W);
+            if(_yy>0) _seed(_i-W);
+          }
+          cx.putImageData(_id,0,0);
+        }
+      } catch(_e){ /* getImageData pode falhar em casos raros; segue sem remover o fundo */ }
       var data=cv.toDataURL('image/png');
       var nome=(f.name||'Tema').replace(/\\.[^.]+$/,'');
       var l=czTemasGet(); l.push({n:nome,d:data});
