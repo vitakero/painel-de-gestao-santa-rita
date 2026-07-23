@@ -73,7 +73,33 @@
     // canais / mensagens
     var canaisCarregou = false, recebCarregou = false, canalAtual = null, msgCarregando = false, msgTs = null, msgId = null, msgTemMais = true;
     var msgIds = {}, msgFetching = {}, rtSubOk = false;   // dedup por mensagem.id + buscas "em voo" + reconexão (Sprint 1.9)
+    var msgEls = {};                     // (1.14) mapa mensagem.id -> nó .co-msg — barraDe/atualização O(1) (era O(n) por chamada)
+    var urlsOtimistas = [];              // (1.14) blob: URLs das bolhas otimistas (foto/áudio) p/ revogar no reset (evita vazar RAM)
+    var recTimer = null, nlGen = 0, recReacTs = 0;   // (1.14) debounce de reconexão + token do nao_lidas + coalesce da reconciliação de reações
     var naoLidas = {}, contadas = {};   // não-lidas por tópico (autoritativo via nao_lidas) + dedup do incremento otimista (Sprint 1.10)
+    // observabilidade (1.14) — contadores internos; NUNCA sai do navegador. window.__CO_DEBUG=true liga os logs.
+    var coStats = { reconexoes: 0, rpcOk: 0, rpcFalhas: 0, rpcMsTotal: 0, uploadOk: 0, uploadFalhas: 0, uploadMsTotal: 0, bcFalhas: 0,
+      rpcMedioMs: function () { return this.rpcOk ? Math.round(this.rpcMsTotal / this.rpcOk) : 0; },
+      uploadMedioMs: function () { return this.uploadOk ? Math.round(this.uploadMsTotal / this.uploadOk) : 0; } };
+    try { window.__CO_STATS = coStats; } catch (e) { }
+    function coLog() { if (window.__CO_DEBUG) { try { console.log.apply(console, ["[central]"].concat([].slice.call(arguments))); } catch (e) { } } }
+    // (nowMs() já existe — definido na Sprint 1.13)
+    // Mede uma RPC (tempo médio + falhas) sem mudar o comportamento — só observa e repassa.
+    function medirRpc(nome, p) {
+      var t0 = nowMs();
+      return p.then(function (r) {
+        if (r && r.error) { coStats.rpcFalhas++; coLog("rpc erro", nome, r.error && r.error.message); }
+        else { coStats.rpcOk++; coStats.rpcMsTotal += nowMs() - t0; }
+        return r;
+      }, function (e) { coStats.rpcFalhas++; coLog("rpc rejeitou", nome, e && e.message); throw e; });
+    }
+    // Rejeita a promessa se passar de ms (evita compositor preso em "enviando…" em rede ruim).
+    function comTimeout(p, ms) {
+      return new Promise(function (res, rej) {
+        var t = setTimeout(function () { rej(new Error("timeout")); }, ms);
+        p.then(function (v) { clearTimeout(t); res(v); }, function (e) { clearTimeout(t); rej(e); });
+      });
+    }
     // elementos
     var elPage, elNav, feedView, canalView, feedLista, feedStatus, feedMais, feedPill,
         canaisLista, recebLista, feedBtn, canalTitulo, msgLista, msgStatus, msgMais, coInp, coEnviar, rtCanal;
@@ -578,10 +604,9 @@
       return null;
     }
     function barraDe(mid) {
-      if (!msgLista || !mid) return null;
-      var msgs = msgLista.querySelectorAll(".co-msg"), i;
-      for (i = 0; i < msgs.length; i++) if (msgs[i].getAttribute("data-mid") === mid) return msgs[i].querySelector(".co-reacoes");
-      return null;
+      // (1.14) O(1) via mapa id->nó (era O(n) querySelectorAll por chamada => O(n²) na reconciliação).
+      var el = mid && msgEls[mid];
+      return (el && el.isConnected) ? el.querySelector(".co-reacoes") : null;
     }
     // Pintura otimista no clique (o servidor é a verdade; atualizarReacoes reconcilia logo depois).
     function reacaoOtimista(mid, emoji) {
@@ -607,7 +632,7 @@
       var sb = SB(); if (!sb || !mid || !emoji) return;
       reacaoOtimista(mid, emoji);
       var p;
-      try { p = sb.rpc("toggle_reacao", { p_mensagem_id: mid, p_emoji: emoji }); }
+      try { p = medirRpc("toggle_reacao", sb.rpc("toggle_reacao", { p_mensagem_id: mid, p_emoji: emoji })); }
       catch (e) { atualizarReacoes([mid]); return; }
       p.then(function () { atualizarReacoes([mid]); }, function () { atualizarReacoes([mid]); });   // verdade do servidor (sucesso OU erro)
     }
@@ -630,7 +655,7 @@
         if (redo.length) atualizarReacoes(redo);   // houve toggle/broadcast durante a busca => reconcilia de novo
       }
       var p;
-      try { p = sb.rpc("reacoes_de", { p_ids: alvos }); }
+      try { p = medirRpc("reacoes_de", sb.rpc("reacoes_de", { p_ids: alvos })); }
       catch (e) { terminar(null); return; }
       p.then(function (r) { terminar(r && !r.error && r.data ? r.data : null); }, function () { terminar(null); });
     }
@@ -651,8 +676,10 @@
     // reações de mensagens existentes não se atualiza sozinha — aqui eu forço a releitura.
     function reconciliarReacoesVisiveis() {
       if (!msgLista) return;
+      if (nowMs() - recReacTs < 2000) return;   // (1.14) coalesce: reconexão-flap + visibilitychange não disparam em rajada
+      recReacTs = nowMs();
       var ms = msgLista.querySelectorAll(".co-msg"), ids = [], i;
-      for (i = 0; i < ms.length; i++) { var id = ms[i].getAttribute("data-mid"); if (id) ids.push(id); }
+      for (i = 0; i < ms.length && ids.length < 100; i++) { var id = ms[i].getAttribute("data-mid"); if (id) ids.push(id); }   // teto 100 (as mais novas)
       if (ids.length) atualizarReacoes(ids);
     }
     // Seletor de emojis: abre DENTRO da mensagem (posicionado por CSS relativo), um por vez.
@@ -705,6 +732,7 @@
       }
       // reações (Sprint 1.12): barra de chips + botão "reagir" (hover no desktop / toque longo no mobile)
       adicionarReacoesUI(div, body, m.reacoes);
+      msgEls[m.id] = div;   // (1.14) mapa id->nó p/ barraDe O(1)
       return div;
     }
     function msgSetStatus(estado) {
@@ -722,15 +750,23 @@
       var sb = SB(); if (!sb) { msgSetStatus("erro"); return; }
       var alvo = canalAtual;
       msgCarregando = true;
-      if (reset) { msgTs = null; msgId = null; }
+      if (reset) {
+        msgTs = null; msgId = null;
+        // (1.14) LIMPA ANTES do rpc: pausa áudios tocando, revoga os blob: das bolhas otimistas
+        // (senão vaza RAM), zera lista/dedup/mapa. Antes isso só rodava no SUCESSO => se o rpc
+        // falhava/demorava, as mensagens do canal ANTERIOR ficavam misturadas no novo.
+        try { var aus = msgLista.querySelectorAll("audio"); for (var qa = 0; qa < aus.length; qa++) { try { aus[qa].pause(); } catch (e2) { } } } catch (e1) { }
+        for (var uu = 0; uu < urlsOtimistas.length; uu++) { try { URL.revokeObjectURL(urlsOtimistas[uu]); } catch (e3) { } }
+        urlsOtimistas = [];
+        msgLista.innerHTML = ""; transcrPend = {}; msgIds = {}; msgFetching = {}; msgEls = {};
+      }
       if (reset && msgLista.children.length === 0) msgSetStatus("carregando");
       if (!reset && msgMais) msgMais.textContent = "Carregando…";
-      sb.rpc("mensagens_pagina", { p_topico_id: alvo, p_antes_ts: reset ? null : msgTs, p_antes_id: reset ? null : msgId, p_limite: TAM }).then(function (r) {
+      medirRpc("mensagens_pagina", sb.rpc("mensagens_pagina", { p_topico_id: alvo, p_antes_ts: reset ? null : msgTs, p_antes_id: reset ? null : msgId, p_limite: TAM })).then(function (r) {
         msgCarregando = false;
         if (alvo !== canalAtual) return; // trocou de canal no meio do caminho
         if (r && r.error) { msgSetStatus("erro"); if (msgMais) msgMais.textContent = "Carregar mais"; return; }
         var linhas = (r && r.data) || [];
-        if (reset) { msgLista.innerHTML = ""; transcrPend = {}; msgIds = {}; msgFetching = {}; }   // zera transcrições pendentes + dedup
         for (var i = 0; i < linhas.length; i++) { if (!msgIds[linhas[i].id]) { msgLista.appendChild(msgLinha(linhas[i])); msgIds[linhas[i].id] = true; } }
         if (reset && linhas.length) marcarLidoAte(alvo, linhas[0].id);   // abriu => marca lido até a mais nova
         if (linhas.length) { msgTs = linhas[linhas.length - 1].created_at; msgId = linhas[linhas.length - 1].id; }
@@ -760,7 +796,10 @@
       if (!id || topico !== canalAtual || msgIds[id] || msgFetching[id]) return;   // outro tópico / já presente / já buscando
       var sb = SB(); if (!sb) return;
       msgFetching[id] = true;
-      sb.rpc("mensagens_por_ids", { p_ids: [id] }).then(function (r) {
+      var p;
+      try { p = medirRpc("mensagens_por_ids", sb.rpc("mensagens_por_ids", { p_ids: [id] })); }
+      catch (e) { delete msgFetching[id]; return; }   // (1.14) exceção síncrona não deixa o id travado
+      p.then(function (r) {
         delete msgFetching[id];
         if (!r || r.error || topico !== canalAtual) return;     // trocou de conversa durante o fetch => não renderiza
         var rows = (r.data) || [];
@@ -779,15 +818,21 @@
       if (!canalAtual || viewAtual !== "canal") return;
       var sb = SB(); if (!sb) return;
       var alvo = canalAtual;
-      sb.rpc("mensagens_pagina", { p_topico_id: alvo, p_antes_ts: null, p_antes_id: null, p_limite: TAM }).then(function (r) {
+      medirRpc("mensagens_pagina", sb.rpc("mensagens_pagina", { p_topico_id: alvo, p_antes_ts: null, p_antes_id: null, p_limite: TAM })).then(function (r) {
         if (!r || r.error || alvo !== canalAtual) return;
         var linhas = (r.data) || [];
+        // (1.14) offline longo: se a última página inteira é NOVA e cheia, provavelmente há um BURACO
+        // (>TAM msgs perdidas) — recarrega do zero (reset bounded) em vez de deixar lacuna invisível.
+        var conhecidas = 0;
+        for (var k = 0; k < linhas.length; k++) if (msgIds[linhas[k].id]) conhecidas++;
+        if (linhas.length >= TAM && conhecidas === 0 && msgLista.children.length) { carregarMsgs(true); return; }
         for (var i = 0; i < linhas.length; i++) {
           var m = linhas[i];
           if (msgIds[m.id]) continue;                           // dedup
           msgIds[m.id] = true;
           inserirMsgOrdenada(msgLinha(m), m.created_at, m.id);
         }
+        if (linhas.length) marcarLidoAte(alvo, linhas[0].id);   // (1.14) marca lido até a mais nova => sem badge fantasma
         if (msgLista.children.length) msgSetStatus("");
       }, function () { });
     }
@@ -816,11 +861,13 @@
     // Chamada ao montar/abrir a Central/reconectar => reconexão nunca dobra.
     function carregarNaoLidas() {
       var sb = SB(); if (!sb) return;
-      sb.rpc("nao_lidas").then(function (r) {
+      var g = ++nlGen;   // (1.14) token: resposta atrasada de uma chamada antiga não sobrescreve o estado novo
+      medirRpc("nao_lidas", sb.rpc("nao_lidas")).then(function (r) {
+        if (g !== nlGen) return;
         if (!r || r.error) return;
         var novo = {}, rows = (r.data) || [];
         for (var i = 0; i < rows.length; i++) novo[rows[i].topico_id] = rows[i].qtd;
-        naoLidas = novo; renderNaoLidas();
+        naoLidas = novo; contadas = {}; renderNaoLidas();   // reconciliou => zera o dedup otimista (não cresce sem limite)
       }, function () { });
     }
     // Incremento OTIMISTA do contador de um tópico FECHADO, a partir do Broadcast.
@@ -836,9 +883,10 @@
     // Marca lido até a mensagem X (reusa a RPC marcar_lido da Sprint 0) e zera o badge do tópico.
     function marcarLidoAte(topico, msgId) {
       if (!topico || !msgId) return;
+      if (document.visibilityState && document.visibilityState !== "visible") return;   // (1.14) não marca lido com a aba oculta
       naoLidas[topico] = 0; renderNaoLidas();
       var sb = SB(); if (!sb) return;
-      try { sb.rpc("marcar_lido", { p_topico_id: topico, p_ate_mensagem_id: msgId }).then(function () { }, function () { }); } catch (e) { }
+      try { medirRpc("marcar_lido", sb.rpc("marcar_lido", { p_topico_id: topico, p_ate_mensagem_id: msgId })).then(function () { }, function () { }); } catch (e) { }
     }
 
     /* ---------- COMPOSITOR DE TEXTO (Sprint 1.4) ---------- */
@@ -882,7 +930,8 @@
       var me = perfil() || {};
       var div = document.createElement("div");
       div.className = "co-msg"; div.setAttribute("data-mid", id); div.setAttribute("data-ts", new Date().toISOString());
-      msgIds[id] = true;   // dedup: o Broadcast da própria mensagem não vai duplicar
+      msgIds[id] = true; msgEls[id] = div;   // dedup + mapa id->nó (1.14)
+      if (fotoUrl || audioUrl) urlsOtimistas.push(fotoUrl || audioUrl);   // (1.14) rastreia o blob: p/ revogar no reset
       var inner =
         '<div class="co-av">' + esc(iniciais(me.nome)) + "</div>" +
         '<div class="co-msg-body"><div class="co-msg-top"><b>' + esc(me.nome || "Você") + '</b> · <span class="co-est enviando">enviando…</span></div>';
@@ -926,7 +975,7 @@
       estadoMsg(el, "enviando", id, topico, corpo, mencoes);
       if (coEnviar) coEnviar.disabled = true;
       var p;
-      try { p = sb.rpc("postar_mensagem", { p_mensagem_id: id, p_topico_id: topico, p_corpo: corpo, p_tipo: "texto", p_mencoes: mencoes || [] }); }
+      try { p = comTimeout(medirRpc("postar_mensagem", sb.rpc("postar_mensagem", { p_mensagem_id: id, p_topico_id: topico, p_corpo: corpo, p_tipo: "texto", p_mencoes: mencoes || [] })), 30000); }   // (1.14) 30s de teto
       catch (e) { falhou(); return; }   // rpc lançou síncrono => nunca deixa o botão travado
       p.then(function (r) {
         reabilita();
@@ -1055,8 +1104,20 @@
       function reabilita() { if (coEnviar) coEnviar.disabled = false; if (coFotoBtn) coFotoBtn.disabled = false; if (coAudioBtn) coAudioBtn.disabled = false; }
       function falhou(permanente) {
         reabilita();
-        // trocou de conversa: bolha detached (o objeto pode virar órfão — não apago). Sem misdelivery: tópico é o do pl.
-        if (el && el.isConnected === false) return;
+        // (1.14) bolha detached (troquei de conversa e o anexo falhou depois): NÃO some em silêncio.
+        // Se voltei pra MESMA conversa e a msg não está lá, recria a bolha em erro (retry idempotente
+        // pelo mesmo mensagem_id); senão, avisa no compositor. Antes: 'return' = perda silenciosa + órfão.
+        if (el && el.isConnected === false) {
+          if (canalAtual === pl.topico && !msgIds[pl.mensagem_id]) {
+            // (1.14) pl.url pode ter sido revogado pelo reset (troquei de conversa e voltei) => miniatura quebrada.
+            // Regenera um objectURL vivo a partir de pl.file (que segue válido; é o mesmo usado no upload/retry);
+            // msgOtimista re-registra o novo url em urlsOtimistas, então continua sendo revogado no próximo reset.
+            var reUrl = pl.file ? URL.createObjectURL(pl.file) : null;
+            var novo = msgOtimista(pl.mensagem_id, pl.corpo || "", pl.kind === "foto" ? reUrl : null, pl.kind === "audio" ? reUrl : null);
+            estadoAnexo(novo, permanente ? "perm" : "erro", pl);
+          } else { try { compErro("o envio do anexo falhou — tente de novo."); } catch (e) { } }
+          return;
+        }
         estadoAnexo(el, permanente ? "perm" : "erro", pl);
       }
       if (!sb || !sb.storage) { falhou(false); return; }
@@ -1065,16 +1126,17 @@
       if (coFotoBtn) coFotoBtn.disabled = true;
       if (coAudioBtn) coAudioBtn.disabled = true;
       estadoAnexo(el, "enviando", pl);
-      var up;
-      try { up = sb.storage.from(BUCKET).upload(pl.path, pl.file, { upsert: false, contentType: pl.mime }); }
-      catch (e) { falhou(false); return; }
+      var up, t0 = nowMs();
+      try { up = comTimeout(sb.storage.from(BUCKET).upload(pl.path, pl.file, { upsert: false, contentType: pl.mime }), 120000); }  // (1.14) 2min de teto
+      catch (e) { coStats.uploadFalhas++; falhou(false); return; }
       up.then(function (r) {
         if (r && r.error) {
           if (jaExiste(r.error)) { chamarRpcAnexo(pl, el, reabilita, falhou); return; } // já existe no MESMO caminho => possível replay => segue p/ RPC
-          falhou(false); return;                                                         // outro erro de upload => NÃO chama a RPC
+          coStats.uploadFalhas++; coLog("upload erro", pl.kind); falhou(false); return;  // outro erro de upload => NÃO chama a RPC
         }
+        coStats.uploadOk++; coStats.uploadMsTotal += nowMs() - t0;
         chamarRpcAnexo(pl, el, reabilita, falhou);
-      }, function () { falhou(false); });
+      }, function () { coStats.uploadFalhas++; coLog("upload timeout/erro", pl.kind); falhou(false); });
     }
     function chamarRpcAnexo(pl, el, reabilita, falhou) {
       var sb = SB(); if (!sb) { falhou(false); return; }
@@ -1082,7 +1144,7 @@
         ? { id: pl.anexo_id, tipo: "audio", storage_path: pl.path, mime: pl.mime, bytes: pl.bytes, duracao_ms: pl.duracao_ms }
         : { id: pl.anexo_id, tipo: "foto",  storage_path: pl.path, mime: pl.mime, bytes: pl.bytes, largura: pl.largura, altura: pl.altura };
       var p;
-      try { p = sb.rpc("postar_mensagem", { p_mensagem_id: pl.mensagem_id, p_topico_id: pl.topico, p_corpo: pl.corpo, p_tipo: pl.kind, p_anexos: [anexo], p_mencoes: pl.mencoes || [] }); }
+      try { p = comTimeout(medirRpc("postar_mensagem(anexo)", sb.rpc("postar_mensagem", { p_mensagem_id: pl.mensagem_id, p_topico_id: pl.topico, p_corpo: pl.corpo, p_tipo: pl.kind, p_anexos: [anexo], p_mencoes: pl.mencoes || [] })), 30000); }  // (1.14) 30s de teto
       catch (e) { falhou(false); return; }
       p.then(function (r) {
         reabilita();
@@ -1109,7 +1171,7 @@
       sb.storage.from(BUCKET).createSignedUrl(path, URL_TTL).then(function (r) {
         if (!r || r.error || !r.data || !r.data.signedUrl) { fallback(); return; }
         var cur = r.data.signedUrl, renovou = false;
-        var img = document.createElement("img"); img.alt = "foto";
+        var img = document.createElement("img"); img.alt = "foto"; img.loading = "lazy";   // (1.14) fotos fora da tela não baixam/decodificam eager
         img.onerror = function () {
           if (renovou) { fallback(); return; }               // expirou/renovou e ainda falhou
           renovou = true;
@@ -1117,7 +1179,15 @@
             if (r2 && r2.data && r2.data.signedUrl) { cur = r2.data.signedUrl; img.src = cur; } else fallback();
           }, function () { fallback(); });
         };
-        img.addEventListener("click", function () { try { window.open(cur, "_blank"); } catch (e) {} });
+        // (1.14) clique gera URL FRESCA (a 'cur' pode ter vencido depois de 15min); abre a janela já
+        // (preserva o gesto, sem bloqueio de popup) e aponta pra url nova.
+        img.addEventListener("click", function () {
+          var w; try { w = window.open("", "_blank"); } catch (e) { }
+          sb.storage.from(BUCKET).createSignedUrl(path, URL_TTL).then(function (r3) {
+            var u = r3 && r3.data && r3.data.signedUrl;
+            if (w && u) { try { w.location = u; } catch (e) { } } else if (w) { try { w.close(); } catch (e) { } }
+          }, function () { if (w) { try { w.close(); } catch (e) { } } });
+        });
         img.src = cur;
         wrap.innerHTML = ""; wrap.appendChild(img);
       }, function () { fallback(); });
@@ -1223,7 +1293,11 @@
       coAudioArea.querySelector(".co-rec-stop").addEventListener("click", function () { pararGravacao(); });
       var tEl = coAudioArea.querySelector(".co-rec-t");
       if (coRecTimer) clearInterval(coRecTimer);
-      coRecTimer = setInterval(function () { if (tEl) tEl.textContent = fmtDur(Date.now() - coRecStart); }, 250);
+      coRecTimer = setInterval(function () {
+        // (1.14) saiu da Central pra outra página no meio da gravação => desliga o microfone e o interval.
+        if (elPage && !elPage.classList.contains("ativo")) { limparAudio(); return; }
+        if (tEl) tEl.textContent = fmtDur(Date.now() - coRecStart);
+      }, 250);
     }
     function finalizarGravacao() {
       if (coRecTimer) { clearInterval(coRecTimer); coRecTimer = null; }
@@ -1510,7 +1584,7 @@
             // reação de OUTRO na conversa aberta: atualiza SÓ aquela mensagem (a minha já reconciliei no toggle)
             if (p.topico === canalAtual && p.autor !== (perfil() || {}).id) atualizarReacoes([p.ent]);
           }
-          else verificarTranscricoes();   // audio.transcrito / fallback sem tipo
+          else if (tipo === "audio.transcrito" || !tipo) verificarTranscricoes();   // (1.14) só transcrição/fallback — não dispara RPC p/ todo evento de bastidor
         });
         rtCanal.on("broadcast", { event: "digitando" }, onDigitando);
         rtCanal.on("presence", { event: "sync" }, onPresencaSync);
@@ -1518,9 +1592,21 @@
           if (status === "SUBSCRIBED") {
             rastrear();          // publica minha presença (1ª vez E em cada reconexão)
             marcarAtividade();   // (re)inicia o timer de "ausente"
-            if (rtSubOk) { conexao(true); recuperarMsgs(); reconciliarReacoesVisiveis(); carregarNaoLidas(); limparTodosDigit(); onPresencaSync(); }   // reconectou => recupera msgs/reações/badges + limpa "digitando" velho + reconstrói presença
+            if (rtSubOk) {
+              // (1.14) reconexão com DEBOUNCE 1.5s: no flap de wifi (rejoin 5-10x/min) as cargas
+              // pesadas (recuperarMsgs/reações/não-lidas/feed) rodam UMA vez, não em avalanche.
+              coStats.reconexoes++; coLog("reconectou", "#" + coStats.reconexoes);
+              conexao(true); limparTodosDigit(); onPresencaSync();   // imediatos (leves)
+              if (recTimer) clearTimeout(recTimer);
+              recTimer = setTimeout(function () {
+                recTimer = null;
+                recuperarMsgs(); reconciliarReacoesVisiveis(); carregarNaoLidas(); verificarTranscricoes();
+                if (viewAtual === "feed" && elPage && elPage.classList.contains("ativo")) carregarFeed(true);
+              }, (window.__CO_REC_MS != null ? window.__CO_REC_MS : 1500));   // (1.14) debounce test-override
+            }
             rtSubOk = true;
           } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+            coStats.bcFalhas++; coLog("canal", status);   // (1.14) contador de falha de Broadcast
             conexao(false);      // indicador discreto de reconexão
             limparTodosDigit();  // conexão caiu => tira indicadores de digitação presos
           }
@@ -1530,7 +1616,14 @@
         if (document.visibilityState !== "visible" || !elPage || !elPage.classList.contains("ativo")) return;
         marcarAtividade();   // voltei pra aba => estou ativo
         if (viewAtual === "feed") carregarFeed(true);
-        else { verificarTranscricoes(); reconciliarReacoesVisiveis(); }   // reconcilia reações que mudaram com a aba oculta
+        else {
+          verificarTranscricoes(); reconciliarReacoesVisiveis();   // reconcilia reações que mudaram com a aba oculta
+          // (1.14) msgs que chegaram no canal ABERTO com a aba oculta foram renderizadas, mas marcarLidoAte
+          // no-opava (guard de visibilidade) => o cursor de leitura não avançou. Ao voltar à aba, re-marca pela
+          // mensagem mais nova na tela (msgLista é desc, .co-msg do topo) e evita badge fantasma de msg já vista.
+          var topoMsg = canalAtual && msgLista && msgLista.querySelector(".co-msg");
+          if (topoMsg) marcarLidoAte(canalAtual, topoMsg.getAttribute("data-mid"));
+        }
       });
     }
 
@@ -1737,7 +1830,8 @@
         }, function () { });
       } catch (e) { }
     }
-    var iv = setInterval(function () { if (montado || checagemFeita) { clearInterval(iv); return; } tentarIniciar(); }, 700);
+    var bootTent = 0;
+    var iv = setInterval(function () { if (montado || checagemFeita || ++bootTent > 900) { clearInterval(iv); return; } tentarIniciar(); }, 700);   // (1.14) teto: não roda pra sempre se pronto() nunca ficar true
     if (document.readyState !== "loading") tentarIniciar();
   } catch (e) { /* módulo opcional: qualquer erro aqui não afeta o Painel */ }
 })();
