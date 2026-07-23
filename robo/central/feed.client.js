@@ -40,6 +40,12 @@
      adiciona/remove (mesmo emoji 2x = remove); chips "emoji N" abaixo da msg com a minha reação
      destacada. Tempo real por Broadcast: trigger em mensagem_reacoes emite 'reacao.alterada' →
      o cliente atualiza SÓ aquela mensagem (RPC de leitura reacoes_de), sem recarregar a conversa.
+   - Sprint 1.13: PRESENÇA (Online/Ausente/Offline) + "digitando…". 100% EFÊMERO — Realtime
+     Presence (track/sync) + Broadcast, no MESMO canal; NADA gravado no banco, sem postgres_changes,
+     sem polling. Lista "Pessoas" na lateral (roster via RPC participantes + status ao vivo); "ausente"
+     após 2min de inatividade. "Fulano está digitando…" só p/ OUTROS na conversa aberta, com throttle
+     no envio e sumiço automático (timeout) / imediato ao enviar a mensagem. Reconexão re-publica a
+     presença e limpa indicadores de digitação velhos.
    NÃO inclui: transcrição/IA/resumo/waveform, vídeo/documentos, múltiplos anexos, edição/recorte,
    fila offline/IndexedDB, busca, notificações push/browser, editar/apagar,
    manutenção, responsáveis/prioridade/SLA/workflow de ocorrência, limpeza de órfãos.
@@ -86,6 +92,14 @@
     // reações (Sprint 1.12)
     var EMOJIS = ["👍", "❤️", "😂", "😮", "👀", "✅"];   // paleta do seletor (exemplos do spec)
     var reacFetching = {}, reacDirty = {}, reacLpTimer = null, reacIgnoraClique = false;   // buscas em voo + "sujo" p/ re-buscar + timer/guarda do toque-longo
+    // presença + "digitando…" (Sprint 1.13) — EFÊMERO (Realtime Presence + Broadcast; nada no banco)
+    var presRoster = [], presOnline = {}, presLista = null, presCarregou = false;   // roster (participantes) + status ao vivo + nó da UI
+    var digitBy = {}, digitEl = null;                       // quem digita na conversa aberta: autorId -> {nome, timer}
+    var meuStatus = "online", idleTimer = null, ultTyping = 0, meuStopTimer = null, presWired = false, ultAtiv = 0;   // idle + throttle do "digitando"/atividade
+    function IDLE_MS() { return window.__CO_IDLE_MS || 120000; }   // 2min p/ virar "ausente" (test-override)
+    function TYP_TTL() { return window.__CO_TYP_TTL || 5000; }     // some após ~5s sem novo "digitando" (test-override)
+    function TYP_THR() { return window.__CO_TYP_THR != null ? window.__CO_TYP_THR : 2500; }   // throttle do envio
+    function ACT_MS() { return window.__CO_ACT_MS != null ? window.__CO_ACT_MS : 1500; }       // coalesce da atividade (evita churn no mousemove)
 
     function SB() { return window.__SB || null; }
     function perfil() { return window.__PERFIL || null; }
@@ -143,6 +157,13 @@
         ".co-menc-item .co-menc-setor{color:#9aa6ae;font-size:12px;margin-left:auto;}",
         ".co-menc-item.on,.co-menc-item:hover{background:#eaf5ee;}",
         ".co-side-lbl{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9aa6ae;margin:16px 8px 6px;}",
+        ".co-pessoas{max-height:200px;overflow:auto;}",
+        ".co-pessoa{display:flex;align-items:center;gap:7px;padding:3px 8px;font-size:13px;color:#37424b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}",
+        ".co-pessoa.off{color:#9aa6ae;}",
+        ".co-dot{width:8px;height:8px;border-radius:50%;flex:none;background:#c9d1d7;}",
+        ".co-dot.online{background:#2ecc71;}",
+        ".co-dot.idle{background:#f1c40f;}",
+        ".co-typing{min-height:16px;font-size:12.5px;color:#6b7a86;font-style:italic;padding:1px 6px 3px;}",
         ".co-canais{display:flex;flex-direction:column;gap:2px;}",
         ".co-side-vazio{color:#9aa6ae;font-size:13px;padding:8px 11px;}",
         ".co-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px;}",
@@ -346,6 +367,8 @@
       for (var i = 0; i < itens.length; i++) itens[i].classList.toggle("on", itens[i].getAttribute("data-topico") === topicoId);
     }
     function mostrarFeed() {
+      pararDigitar();        // saindo da conversa pelo Feed: avisa "parei de digitar" (antes de zerar canalAtual)
+      limparTodosDigit();    // e limpa o indicador de "digitando" que estava na tela
       viewAtual = "feed"; canalAtual = null;
       if (canalView) canalView.style.display = "none";
       if (feedView) feedView.style.display = "";
@@ -354,6 +377,8 @@
       if (!feedCarregou) carregarFeed(true);
     }
     function abrirCanal(t) {
+      pararDigitar();        // avisa que parei de digitar no tópico ANTERIOR (antes de trocar canalAtual)
+      limparTodosDigit();    // limpa o indicador de "digitando" da conversa que estou saindo
       viewAtual = "canal"; canalAtual = t.id;
       if (feedView) feedView.style.display = "none";
       if (canalView) canalView.style.display = "";
@@ -924,7 +949,7 @@
 
     /* ---------- COMPOSITOR DE FOTO (Sprint 1.5) ---------- */
     // Dispatcher: áudio > foto > texto (só um anexo por mensagem; texto opcional junto).
-    function enviar() { if (coAudioPend) enviarAudio(); else if (coPend) enviarFoto(); else enviarTexto(); }
+    function enviar() { pararDigitar(); if (coAudioPend) enviarAudio(); else if (coPend) enviarFoto(); else enviarTexto(); }
 
     function compErro(msg) {
       if (!coErro) return;
@@ -1343,10 +1368,134 @@
       }, function () { renderOcorrencia("erro", topico); });
     }
 
+    // ---- PRESENÇA (Sprint 1.13): roster + status ao vivo via Realtime Presence (efêmero) ------
+    function carregarParticipantes() {
+      var sb = SB(); if (!sb || presCarregou) return;
+      presCarregou = true;
+      var p;
+      try { p = sb.rpc("participantes"); }
+      catch (e) { presCarregou = false; return; }
+      p.then(function (r) {
+        if (r && !r.error && r.data) { presRoster = r.data; renderPresenca(); }
+        else presCarregou = false;   // deixa tentar de novo depois
+      }, function () { presCarregou = false; });
+    }
+    // status do usuário: eu = meu status local; os outros = o que a Presença reportou (senão offline)
+    function statusDe(id) {
+      if (id === (perfil() || {}).id) return meuStatus;
+      return (presOnline[id] && presOnline[id].status) || "offline";
+    }
+    function onPresencaSync() {
+      if (!rtCanal || !rtCanal.presenceState) return;
+      var st = {}, estado;
+      try { estado = rtCanal.presenceState() || {}; } catch (e) { estado = {}; }
+      Object.keys(estado).forEach(function (key) {
+        var metas = estado[key] || [], status = "idle", nome = null;
+        for (var i = 0; i < metas.length; i++) { if (!nome && metas[i].nome) nome = metas[i].nome; if ((metas[i].status || "online") === "online") status = "online"; }
+        // a chave da presença é o user_id; se vier no meta, prioriza. Guarda o nome p/ fallback.
+        var uid = (metas[0] && metas[0].user_id) || key;
+        st[uid] = { status: status, nome: nome };
+      });
+      presOnline = st;
+      renderPresenca();
+    }
+    function renderPresenca() {
+      if (!presLista) return;
+      var eu = perfil() || {}, ord = { online: 0, idle: 1, offline: 2 };
+      // base = roster (participantes); + qualquer presente que não esteja no roster (fallback se a RPC falhou)
+      var lista = presRoster.slice(), vistos = {};
+      for (var r = 0; r < lista.length; r++) vistos[lista[r].id] = true;
+      Object.keys(presOnline).forEach(function (uid) {
+        if (!vistos[uid]) { lista.push({ id: uid, nome: (presOnline[uid] && presOnline[uid].nome) || "Alguém", setor: null }); vistos[uid] = true; }
+      });
+      lista.sort(function (a, b) {
+        var da = ord[statusDe(a.id)], db = ord[statusDe(b.id)];
+        if (da !== db) return da - db;
+        return String(a.nome || "").localeCompare(String(b.nome || ""));
+      });
+      var h = "";
+      for (var i = 0; i < lista.length; i++) {
+        var u = lista[i], s = statusDe(u.id);
+        var rot = s === "online" ? "Online" : (s === "idle" ? "Ausente" : "Offline");
+        h += '<div class="co-pessoa' + (s === "offline" ? " off" : "") + '" title="' + esc(rot) + '">' +
+             '<span class="co-dot ' + (s === "offline" ? "" : s) + '"></span>' +
+             esc(u.nome || "—") + (u.id === eu.id ? " (você)" : "") + "</div>";
+      }
+      presLista.innerHTML = h;
+    }
+    function rastrear() {   // publica minha presença (idempotente; re-chamável na reconexão)
+      if (!rtCanal || !rtCanal.track) return;
+      var me = perfil() || {};
+      try { rtCanal.track({ user_id: me.id, nome: me.nome, status: meuStatus }); } catch (e) { }
+    }
+    // atividade do usuário: volta a "online" e reprograma o timer de "ausente".
+    // Coalesce: se já estou online e houve atividade há <ACT_MS, não re-armo o timer (evita
+    // clearTimeout/setTimeout a cada mousemove). Voltar de "ausente" sempre processa na hora.
+    function marcarAtividade() {
+      var agora = nowMs();
+      if (meuStatus === "online" && (agora - ultAtiv) < ACT_MS()) return;
+      ultAtiv = agora;
+      if (meuStatus !== "online") { meuStatus = "online"; rastrear(); renderPresenca(); }
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(function () { meuStatus = "idle"; rastrear(); renderPresenca(); }, IDLE_MS());
+    }
+
+    // ---- "DIGITANDO…" (Sprint 1.13): Broadcast efêmero no MESMO canal --------------------------
+    function enviarDigit(ativo) {   // avisa os outros (nunca grava nada)
+      if (!rtCanal || !rtCanal.send || !canalAtual) return;
+      var me = perfil() || {};
+      try { rtCanal.send({ type: "broadcast", event: "digitando", payload: { topico: canalAtual, autor: me.id, nome: me.nome, ativo: !!ativo } }); } catch (e) { }
+    }
+    function sinalizarDigitando() {   // chamado no input; throttle + agenda o "parou"
+      if (!canalAtual) return;
+      if (meuStopTimer) clearTimeout(meuStopTimer);
+      meuStopTimer = setTimeout(function () { enviarDigit(false); ultTyping = 0; }, TYP_TTL());
+      var agora = nowMs();
+      if (agora - ultTyping < TYP_THR()) return;   // no máximo 1 aviso a cada TYP_THR ms
+      ultTyping = agora;
+      enviarDigit(true);
+    }
+    function pararDigitar() {   // no envio / troca de conversa: some IMEDIATO nos outros
+      if (meuStopTimer) { clearTimeout(meuStopTimer); meuStopTimer = null; }
+      ultTyping = 0;
+      enviarDigit(false);
+    }
+    function nowMs() { return (window.Date && Date.now) ? Date.now() : +new Date(); }
+    function onDigitando(msg) {
+      var p = (msg && msg.payload) || {}, eu = (perfil() || {}).id;
+      if (!p.autor || p.autor === eu) return;        // NUNCA para o próprio usuário
+      if (p.topico !== canalAtual) return;           // só a conversa aberta
+      if (p.ativo === false) { limparDigit(p.autor); return; }
+      if (digitBy[p.autor] && digitBy[p.autor].timer) clearTimeout(digitBy[p.autor].timer);
+      digitBy[p.autor] = { nome: p.nome || "Alguém", timer: setTimeout(function () { limparDigit(p.autor); }, TYP_TTL()) };
+      renderTyping();
+    }
+    function limparDigit(autor) {
+      if (!digitBy[autor]) return;
+      if (digitBy[autor].timer) clearTimeout(digitBy[autor].timer);
+      delete digitBy[autor];
+      renderTyping();
+    }
+    function limparTodosDigit() {
+      var ks = Object.keys(digitBy);
+      for (var i = 0; i < ks.length; i++) if (digitBy[ks[i]].timer) clearTimeout(digitBy[ks[i]].timer);
+      digitBy = {};
+      renderTyping();
+    }
+    function renderTyping() {
+      if (!digitEl) return;
+      var nomes = Object.keys(digitBy).map(function (a) { return digitBy[a].nome; });
+      var txt = "";
+      if (nomes.length === 1) txt = esc(nomes[0]) + " está digitando…";
+      else if (nomes.length === 2) txt = esc(nomes[0]) + " e " + esc(nomes[1]) + " estão digitando…";
+      else if (nomes.length > 2) txt = "Várias pessoas estão digitando…";
+      digitEl.innerHTML = txt;
+    }
+
     function assinarRealtime() {
       var sb = SB(); if (!sb || rtCanal) return;
       try {
-        rtCanal = sb.channel(CANAL_RT);
+        rtCanal = sb.channel(CANAL_RT, { config: { presence: { key: (perfil() || {}).id || "anon" } } });
         rtCanal.on("broadcast", { event: "novo" }, function (msg) {
           var p = (msg && msg.payload) || {};
           var tipo = p.tipo, bastidor = (tipo === "audio.transcrito" || tipo === "mencao.criada" || tipo === "reacao.alterada");
@@ -1354,7 +1503,7 @@
           if (viewAtual === "feed" && !bastidor) { novos++; renderNovos(); }
           // conversa aberta: busca só a msg e insere; tópico fechado: incrementa não-lidas
           if (tipo === "mensagem.criada") {
-            if (p.topico === canalAtual) buscarMsgNova(p.ent, canalAtual);
+            if (p.topico === canalAtual) { limparDigit(p.autor); buscarMsgNova(p.ent, canalAtual); }   // msg dele chegou => some o "digitando" na hora
             else incrementarNaoLida(p.topico, p.ent, p.autor);
           }
           else if (tipo === "reacao.alterada") {
@@ -1363,17 +1512,23 @@
           }
           else verificarTranscricoes();   // audio.transcrito / fallback sem tipo
         });
+        rtCanal.on("broadcast", { event: "digitando" }, onDigitando);
+        rtCanal.on("presence", { event: "sync" }, onPresencaSync);
         rtCanal.subscribe(function (status) {
           if (status === "SUBSCRIBED") {
-            if (rtSubOk) { conexao(true); recuperarMsgs(); reconciliarReacoesVisiveis(); carregarNaoLidas(); }   // reconectou => recupera msgs + reconcilia reações/badges (nunca dobra)
+            rastrear();          // publica minha presença (1ª vez E em cada reconexão)
+            marcarAtividade();   // (re)inicia o timer de "ausente"
+            if (rtSubOk) { conexao(true); recuperarMsgs(); reconciliarReacoesVisiveis(); carregarNaoLidas(); limparTodosDigit(); onPresencaSync(); }   // reconectou => recupera msgs/reações/badges + limpa "digitando" velho + reconstrói presença
             rtSubOk = true;
           } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-            conexao(false);   // indicador discreto de reconexão
+            conexao(false);      // indicador discreto de reconexão
+            limparTodosDigit();  // conexão caiu => tira indicadores de digitação presos
           }
         });
       } catch (e) { }
       document.addEventListener("visibilitychange", function () {
         if (document.visibilityState !== "visible" || !elPage || !elPage.classList.contains("ativo")) return;
+        marcarAtividade();   // voltei pra aba => estou ativo
         if (viewAtual === "feed") carregarFeed(true);
         else { verificarTranscricoes(); reconciliarReacoesVisiveis(); }   // reconcilia reações que mudaram com a aba oculta
       });
@@ -1405,6 +1560,8 @@
             '<div class="co-canais"></div>' +
             '<div class="co-side-lbl">Recebimentos</div>' +
             '<div class="co-recebimentos"></div>' +
+            '<div class="co-side-lbl">Pessoas</div>' +
+            '<div class="co-pessoas"></div>' +
           '</div>' +
           '<div class="co-main">' +
             // VIEW: FEED
@@ -1431,6 +1588,7 @@
                 '<textarea class="co-inp" rows="1" placeholder="Escreva uma mensagem…" maxlength="4000"></textarea>' +
                 '<button class="co-enviar" type="button">Enviar</button>' +
               '</div>' +
+              '<div class="co-typing" aria-live="polite"></div>' +
               '<div class="co-msgs"></div><div class="co-msg-status"></div>' +
               '<button class="copf-mais co-msg-mais" type="button" style="display:none;">Carregar mais</button>' +
             '</div>' +
@@ -1446,6 +1604,8 @@
       feedPill = elPage.querySelector(".copf-pill");
       canaisLista = elPage.querySelector(".co-canais");
       recebLista = elPage.querySelector(".co-recebimentos");
+      presLista = elPage.querySelector(".co-pessoas");
+      digitEl = elPage.querySelector(".co-typing");
       feedBtn = elPage.querySelector(".co-feed-btn");
       canalTitulo = elPage.querySelector(".co-canal-titulo");
       msgLista = elPage.querySelector(".co-msgs");
@@ -1472,7 +1632,8 @@
         if (!canaisCarregou) carregarCanais();
         if (!recebCarregou) carregarRecebimentos();
         if (!feedCarregou) carregarFeed(true);
-        carregarNaoLidas();   // contagem autoritativa dos badges
+        carregarNaoLidas();       // contagem autoritativa dos badges
+        carregarParticipantes();  // roster p/ a lista de presença
       });
       feedBtn.addEventListener("click", function () { mostrarFeed(); });
       elPage.querySelector(".copf-refresh").addEventListener("click", function () { carregarFeed(true); });
@@ -1530,6 +1691,8 @@
       coInp.addEventListener("input", function () {
         coInp.style.height = "auto"; coInp.style.height = Math.min(coInp.scrollHeight, 140) + "px";
         avaliarMenc();   // detecta "@token" sob o cursor e abre/fecha/atualiza o autocomplete
+        if ((coInp.value || "").length) sinalizarDigitando();   // avisa os outros que estou digitando (throttle)
+        else pararDigitar();                                     // esvaziou o campo => "parei de digitar" na hora
       });
       coInp.addEventListener("blur", function () { setTimeout(fecharMenc, 150); });   // clicar num item ainda dispara antes
       // foto
@@ -1542,6 +1705,13 @@
       coPreview.querySelector(".co-foto-x").addEventListener("click", function () { limparFoto(); });
       // áudio
       coAudioBtn.addEventListener("click", function () { toggleGravar(); });
+
+      // presença: qualquer atividade me mantém "online" e reprograma o timer de "ausente" (Sprint 1.13)
+      if (!presWired) {
+        presWired = true;
+        var reAtiv = function () { marcarAtividade(); };
+        ["mousemove", "keydown", "touchstart", "click"].forEach(function (ev) { document.addEventListener(ev, reAtiv, { passive: true }); });
+      }
 
       assinarRealtime();
     }
