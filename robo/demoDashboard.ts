@@ -10696,6 +10696,49 @@ function manAgSaveFromForm(){
 var czStep=1, czModelo='padrao', czProdutos=[], czTamanho='A4', czImpressao='multi', czValIni='', czValidade='', czLimite='0', czTema=null;
 function czTemasGet(){ try{ return JSON.parse(localStorage.getItem('cz_temas')||'[]'); }catch(e){ return []; } }
 function czTemasSave(l){ try{ localStorage.setItem('cz_temas',JSON.stringify(l)); return true; }catch(e){ return false; } }
+// Remove o fundo branco de um canvas por flood-fill a partir das BORDAS: apaga o branco de fora
+// (fundo) e PRESERVA o branco de dentro do logo (não ligado à borda). Se a arte já vier
+// transparente (cantos com alpha baixo), não mexe. Roda no navegador do usuário (same-origin).
+function czTirarFundoBranco(cx,W,H){
+  try{
+    var id=cx.getImageData(0,0,W,H), px=id.data, N=W*H, TH=235;
+    var cantos=[0,(W-1),(H-1)*W,(N-1)];
+    if(cantos.some(function(p){ return px[p*4+3]<20; })) return;   // já transparente => não mexe
+    var vis=new Uint8Array(N), st=[];
+    var seed=function(i){ if(!vis[i]){ vis[i]=1; if(px[i*4]>=TH&&px[i*4+1]>=TH&&px[i*4+2]>=TH) st.push(i); } };
+    var x,y;
+    for(x=0;x<W;x++){ seed(x); seed((H-1)*W+x); }
+    for(y=0;y<H;y++){ seed(y*W); seed(y*W+W-1); }
+    while(st.length){ var i=st.pop(); px[i*4+3]=0; var xx=i%W, yy=(i-xx)/W;
+      if(xx+1<W) seed(i+1); if(xx>0) seed(i-1); if(yy+1<H) seed(i+W); if(yy>0) seed(i-W); }
+    cx.putImageData(id,0,0);
+  }catch(e){}
+}
+// Reprocessa UMA VEZ as artes JÁ salvas (localStorage): tira o fundo branco delas sem o usuário
+// reenviar. Marca t.v=2 pra não repetir. Assíncrono (carrega cada imagem); re-renderiza no fim.
+var czReprocRun=false;
+function czReprocessarTemas(){
+  if(czReprocRun) return;
+  var l=czTemasGet(); if(!l.length) return;
+  var falta=l.filter(function(t){ return t.v!==2; }); if(!falta.length) return;
+  czReprocRun=true;
+  var pend=falta.length, mudou=false;
+  var done=function(){ if(--pend===0){ czReprocRun=false; if(mudou){ czTemasSave(l); renderCartaz(); } } };
+  for(var i=0;i<falta.length;i++){ (function(t){
+    var im=new Image();
+    im.onload=function(){
+      try{
+        var w=im.width||1, h=im.height||1, cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+        var cx=cv.getContext('2d'); cx.clearRect(0,0,w,h); cx.drawImage(im,0,0);
+        czTirarFundoBranco(cx,w,h);
+        t.d=cv.toDataURL('image/png');
+      }catch(e){}
+      t.v=2; mudou=true; done();
+    };
+    im.onerror=function(){ t.v=2; mudou=true; done(); };   // não trava se uma falhar
+    im.src=t.d;
+  })(falta[i]); }
+}
 function czTemaUpload(inp){
   var f=inp.files&&inp.files[0]; if(!f) return;
   if(!f.type || f.type.indexOf('image/')!==0){ uiConfirm({titulo:'Arquivo inválido',msg:'Escolha uma imagem (JPG ou PNG).',ok:'OK',cancel:''}); return; }
@@ -10710,31 +10753,7 @@ function czTemaUpload(inp){
       W=Math.max(1,Math.round(W*s)); H=Math.max(1,Math.round(H*s));
       var cv=document.createElement('canvas'); cv.width=W; cv.height=H;
       var cx=cv.getContext('2d'); cx.clearRect(0,0,W,H); cx.drawImage(img,0,0,W,H);
-      // REMOÇÃO AUTOMÁTICA DE FUNDO BRANCO: se a arte NÃO já vier transparente (cantos opacos),
-      // apaga o branco a partir das BORDAS (flood-fill) — assim o fundo verde do cartaz aparece
-      // atrás do logo. Branco INTERNO do logo (ex.: "SEMANA", o sino) é preservado, pois não
-      // está ligado à borda. Se a arte já for transparente, não mexe.
-      try {
-        var _id=cx.getImageData(0,0,W,H), _px=_id.data, _N=W*H, _TH=235;
-        var _cantos=[0,(W-1),(H-1)*W,(_N-1)];
-        var _jaTransp=_cantos.some(function(p){ return _px[p*4+3]<20; });
-        if(!_jaTransp){
-          var _vis=new Uint8Array(_N), _st=[];
-          var _seed=function(i){ if(!_vis[i]){ _vis[i]=1; if(_px[i*4]>=_TH&&_px[i*4+1]>=_TH&&_px[i*4+2]>=_TH) _st.push(i); } };
-          var _x,_y;
-          for(_x=0;_x<W;_x++){ _seed(_x); _seed((H-1)*W+_x); }
-          for(_y=0;_y<H;_y++){ _seed(_y*W); _seed(_y*W+W-1); }
-          while(_st.length){
-            var _i=_st.pop(); _px[_i*4+3]=0;
-            var _xx=_i%W, _yy=(_i-_xx)/W;
-            if(_xx+1<W) _seed(_i+1);
-            if(_xx>0) _seed(_i-1);
-            if(_yy+1<H) _seed(_i+W);
-            if(_yy>0) _seed(_i-W);
-          }
-          cx.putImageData(_id,0,0);
-        }
-      } catch(_e){ /* getImageData pode falhar em casos raros; segue sem remover o fundo */ }
+      czTirarFundoBranco(cx,W,H);   // remove o fundo branco automaticamente (mantém o branco interno do logo)
       var data=cv.toDataURL('image/png');
       var nome=(f.name||'Tema').replace(/\\.[^.]+$/,'');
       var l=czTemasGet(); l.push({n:nome,d:data});
@@ -10829,6 +10848,7 @@ function czInnerL(p){
 }
 function renderCartaz(){
   var wrap=document.getElementById('cartazWrap'); if(!wrap) return;
+  czReprocessarTemas();   // tira o fundo branco das artes já salvas (uma vez, sem reenviar)
   if(!document.getElementById('czlcss')){ var stl=document.createElement('style'); stl.id='czlcss'; stl.textContent=CZLCSS; document.head.appendChild(stl); }
   if(!wrap.__czb){ wrap.__czb=1; wrap.addEventListener('click',czClick); wrap.addEventListener('input',czInput); wrap.addEventListener('change',czChange); }
   var st='<div class="cz-steps"><div class="cz-step '+(czStep>1?'done':(czStep===1?'on':''))+'">1. Modelo</div><div class="cz-step '+(czStep>2?'done':(czStep===2?'on':''))+'">2. Produtos</div><div class="cz-step '+(czStep>3?'done':(czStep===3?'on':''))+'">3. Conferir</div></div>';
