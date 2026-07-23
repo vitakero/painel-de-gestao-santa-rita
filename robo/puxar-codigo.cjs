@@ -20,6 +20,7 @@ const REPO = "painel-de-gestao-santa-rita";
 // sozinho (a rodada atual segue com o código antigo; a PRÓXIMA rodada já usa o novo).
 const FILES = [
   ["robo/demoDashboard.ts", "demoDashboard.ts", "vr-data.json"],
+  ["robo/central/feed.client.js", "central/feed.client.js", "CENTRAL OPERACIONAL"],   // tela da Central (subpasta)
   ["robo/buildVrData.cjs", "buildVrData.cjs", "vr-data.json"],
   ["robo/publicar.cjs", "publicar.cjs", "PUBLICADO"],
   ["robo/pixWorker.cjs", "pixWorker.cjs", "pix_cobrancas"],
@@ -43,7 +44,9 @@ const headers = {
       if (!r.ok) { console.log("  (sem atualizacao de " + local + " - HTTP " + r.status + ")"); continue; }
       const txt = await r.text();
       if (txt.indexOf(marker) === -1) { console.log("  (" + local + " invalido - mantendo o atual)"); continue; }
-      fs.writeFileSync(path.join(__dirname, local), txt);
+      const dest = path.join(__dirname, local);
+      fs.mkdirSync(path.dirname(dest), { recursive: true });   // garante subpasta (ex.: central/) antes de gravar
+      fs.writeFileSync(dest, txt);
       console.log("  atualizado: " + local);
     } catch (e) {
       console.log("  (erro ao baixar " + local + ": " + e.message + " - mantendo o atual)");
