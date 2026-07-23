@@ -35,8 +35,13 @@
      SERVIDOR valida (existe/mesmo tenant/dedup, ids inválidos são ignorados). Render destaca
      "@Nome" e marca "mencionou você" quando eu estou em m.mencoes (via Broadcast/RLS — SEM
      notificação de navegador/push/email; sem canal novo).
+   - Sprint 1.12: REAÇÕES (emoji) às mensagens. Escrita SÓ por toggle_reacao (Sprint 0, idempotente,
+     validado no servidor). Seletor de emojis no hover (desktop) / toque longo (mobile); clique
+     adiciona/remove (mesmo emoji 2x = remove); chips "emoji N" abaixo da msg com a minha reação
+     destacada. Tempo real por Broadcast: trigger em mensagem_reacoes emite 'reacao.alterada' →
+     o cliente atualiza SÓ aquela mensagem (RPC de leitura reacoes_de), sem recarregar a conversa.
    NÃO inclui: transcrição/IA/resumo/waveform, vídeo/documentos, múltiplos anexos, edição/recorte,
-   fila offline/IndexedDB, reações, busca, notificações push/browser, editar/apagar,
+   fila offline/IndexedDB, busca, notificações push/browser, editar/apagar,
    manutenção, responsáveis/prioridade/SLA/workflow de ocorrência, limpeza de órfãos.
    ============================================================ */
 (function () {
@@ -78,6 +83,9 @@
     // menções (Sprint 1.11)
     var mencoesSel = {}, mencMenu = null, mencItens = [], mencIdx = 0, mencStart = 0;   // draft handle->id + estado do autocomplete
     var mencTimer = null, mencReqGen = 0;   // debounce da busca + geração p/ descartar resposta atrasada
+    // reações (Sprint 1.12)
+    var EMOJIS = ["👍", "❤️", "😂", "😮", "👀", "✅"];   // paleta do seletor (exemplos do spec)
+    var reacFetching = {}, reacDirty = {}, reacLpTimer = null, reacIgnoraClique = false;   // buscas em voo + "sujo" p/ re-buscar + timer/guarda do toque-longo
 
     function SB() { return window.__SB || null; }
     function perfil() { return window.__PERFIL || null; }
@@ -158,7 +166,20 @@
         ".copf-skel{height:58px;border-radius:9px;background:linear-gradient(90deg,#f2f5f7,#e9eef1,#f2f5f7);background-size:200% 100%;animation:copfsk 1.2s infinite;margin-bottom:6px;}",
         "@keyframes copfsk{0%{background-position:200% 0}100%{background-position:-200% 0}}",
         // mensagens de canal
-        ".co-msg{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:9px 4px;align-items:start;}",
+        ".co-msg{position:relative;display:grid;grid-template-columns:auto 1fr;gap:10px;padding:9px 4px;align-items:start;}",
+        ".co-reacoes{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;}",
+        ".co-reacoes:empty{display:none;margin:0;}",
+        ".co-reacao{display:inline-flex;align-items:center;gap:4px;border:1px solid #e0e6ea;background:#f5f7f8;border-radius:12px;padding:1px 8px;font-size:13px;line-height:1.7;cursor:pointer;color:#37424b;}",
+        ".co-reacao:hover{background:#eef1f3;}",
+        ".co-reacao.eu{border-color:#1a7a3a;background:#eaf5ee;color:#0c5a26;font-weight:600;}",
+        ".co-reacao-n{font-size:12px;}",
+        ".co-react-btn{position:absolute;top:6px;right:4px;width:26px;height:26px;padding:0;display:flex;align-items:center;justify-content:center;border:1px solid #e0e6ea;background:#fff;color:#8a97a2;border-radius:50%;cursor:pointer;opacity:0;transition:opacity .12s;}",
+        ".co-msg:hover .co-react-btn{opacity:1;}",
+        ".co-react-btn:hover{color:#157a35;border-color:#bcd8c6;}",
+        "@media (hover:none){.co-react-btn{opacity:.55;}}",
+        ".co-react-pick{position:absolute;top:-6px;right:4px;z-index:20;display:flex;gap:2px;background:#fff;border:1px solid #d9e2dc;border-radius:22px;box-shadow:0 6px 20px rgba(0,0,0,.14);padding:4px 6px;}",
+        ".co-react-emoji{border:0;background:transparent;font-size:20px;line-height:1;padding:3px 4px;border-radius:8px;cursor:pointer;}",
+        ".co-react-emoji:hover{background:#eaf5ee;transform:scale(1.15);}",
         ".co-av{width:32px;height:32px;border-radius:50%;background:#157a35;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none;}",
         ".co-msg-top{font-size:12.5px;color:#8a97a2;}",
         ".co-msg-top b{color:#37424b;font-weight:700;}",
@@ -340,6 +361,7 @@
       if (canalTitulo) canalTitulo.textContent = (t.tipo === "canal" ? "# " : "") + canalTitTxt;
       if (coInp) { coInp.value = ""; coInp.style.height = ""; }   // não vaza rascunho de uma conversa p/ outra
       limparMenc();                                                // nem rascunho de @menções
+      fecharReacPick();                                            // nem seletor de reação aberto
       limparFoto();                                                // nem foto pendente
       limparAudio();                                               // nem áudio pendente/gravando (descarta)
       carregarOcorrencia(t.id);                                    // estado do "Transformar em ocorrência"
@@ -508,6 +530,124 @@
       try { coInp.setSelectionRange(caret, caret); } catch (e) {}
       avaliarMenc();   // reaproveita a busca; o menu abre com o nome pré-filtrado
     }
+    // ---- Reações (Sprint 1.12) --------------------------------------------------------------
+    function normReacoes(reacoes) {
+      var arr = reacoes;
+      if (typeof arr === "string") { try { arr = JSON.parse(arr); } catch (e) { arr = []; } }
+      return (arr && arr.length) ? arr : [];
+    }
+    // Barra de chips "emoji N" abaixo da mensagem; a(s) minha(s) reação(ões) ganham a classe "eu".
+    function reacoesHtml(reacoes) {
+      var arr = normReacoes(reacoes), h = "";
+      for (var i = 0; i < arr.length; i++) {
+        var r = arr[i]; if (!r || !r.emoji || !(r.qtd > 0)) continue;
+        h += '<button type="button" class="co-reacao' + (r.eu ? " eu" : "") + '" data-emoji="' + esc(r.emoji) + '">' +
+             esc(r.emoji) + ' <span class="co-reacao-n">' + (r.qtd | 0) + "</span></button>";
+      }
+      return h;
+    }
+    function acharChip(bar, emoji) {
+      if (!bar) return null;
+      var cs = bar.querySelectorAll(".co-reacao");
+      for (var i = 0; i < cs.length; i++) if (cs[i].getAttribute("data-emoji") === emoji) return cs[i];
+      return null;
+    }
+    function barraDe(mid) {
+      if (!msgLista || !mid) return null;
+      var msgs = msgLista.querySelectorAll(".co-msg"), i;
+      for (i = 0; i < msgs.length; i++) if (msgs[i].getAttribute("data-mid") === mid) return msgs[i].querySelector(".co-reacoes");
+      return null;
+    }
+    // Pintura otimista no clique (o servidor é a verdade; atualizarReacoes reconcilia logo depois).
+    function reacaoOtimista(mid, emoji) {
+      var bar = barraDe(mid); if (!bar) return;
+      var chip = acharChip(bar, emoji);
+      if (chip) {
+        var eu = chip.classList.contains("eu");
+        var span = chip.querySelector(".co-reacao-n");
+        var n = (span && parseInt(span.textContent, 10)) || 0;
+        n = eu ? n - 1 : n + 1;
+        if (eu) chip.classList.remove("eu"); else chip.classList.add("eu");
+        if (n <= 0) { if (chip.parentNode) chip.parentNode.removeChild(chip); }
+        else if (span) span.textContent = n;
+      } else {
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "co-reacao eu"; b.setAttribute("data-emoji", emoji);
+        b.innerHTML = esc(emoji) + ' <span class="co-reacao-n">1</span>';
+        bar.appendChild(b);
+      }
+    }
+    // Escrita: SÓ via toggle_reacao (idempotente/validado no servidor). Otimista + reconcilia.
+    function toggleReacao(mid, emoji) {
+      var sb = SB(); if (!sb || !mid || !emoji) return;
+      reacaoOtimista(mid, emoji);
+      var p;
+      try { p = sb.rpc("toggle_reacao", { p_mensagem_id: mid, p_emoji: emoji }); }
+      catch (e) { atualizarReacoes([mid]); return; }
+      p.then(function () { atualizarReacoes([mid]); }, function () { atualizarReacoes([mid]); });   // verdade do servidor (sucesso OU erro)
+    }
+    // Leitura autoritativa das reações de mensagens específicas (tempo real + reconciliação).
+    // Coalesce por reacFetching (não duplica busca da mesma msg em voo), MAS se a msg mudou
+    // durante o voo (reacDirty), re-busca ao terminar => nunca "gruda" num snapshot velho.
+    function atualizarReacoes(ids) {
+      var sb = SB(); if (!sb || !ids || !ids.length) return;
+      var alvos = [], i, id;
+      for (i = 0; i < ids.length; i++) {
+        id = ids[i]; if (!id) continue;
+        if (reacFetching[id]) { reacDirty[id] = true; continue; }   // já em voo => marca p/ re-buscar
+        reacFetching[id] = true; alvos.push(id);
+      }
+      if (!alvos.length) return;
+      function terminar(data) {
+        if (data) for (var j = 0; j < data.length; j++) { var bar = barraDe(data[j].mensagem_id); if (bar) bar.innerHTML = reacoesHtml(data[j].reacoes); }
+        var redo = [];
+        for (var k = 0; k < alvos.length; k++) { delete reacFetching[alvos[k]]; if (reacDirty[alvos[k]]) { delete reacDirty[alvos[k]]; redo.push(alvos[k]); } }
+        if (redo.length) atualizarReacoes(redo);   // houve toggle/broadcast durante a busca => reconcilia de novo
+      }
+      var p;
+      try { p = sb.rpc("reacoes_de", { p_ids: alvos }); }
+      catch (e) { terminar(null); return; }
+      p.then(function (r) { terminar(r && !r.error && r.data ? r.data : null); }, function () { terminar(null); });
+    }
+    // Monta a barra de chips + o botão "reagir" numa bolha (usado por msgLinha E msgOtimista,
+    // pra a MINHA mensagem também ter reações desde o envio otimista — não só ao reabrir o canal).
+    function adicionarReacoesUI(div, body, reacoes) {
+      var barra = document.createElement("div");
+      barra.className = "co-reacoes";
+      barra.innerHTML = reacoesHtml(reacoes);
+      body.appendChild(barra);
+      var rbtn = document.createElement("button");
+      rbtn.type = "button"; rbtn.className = "co-react-btn"; rbtn.title = "Reagir"; rbtn.setAttribute("aria-label", "Reagir");
+      rbtn.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>';
+      div.appendChild(rbtn);
+    }
+    // Reconcilia as reações de TODAS as mensagens visíveis (reconexão / aba volta a focar):
+    // recuperarMsgs (1.9) dedup por id e NÃO reinsere quem já está na tela, então a barra de
+    // reações de mensagens existentes não se atualiza sozinha — aqui eu forço a releitura.
+    function reconciliarReacoesVisiveis() {
+      if (!msgLista) return;
+      var ms = msgLista.querySelectorAll(".co-msg"), ids = [], i;
+      for (i = 0; i < ms.length; i++) { var id = ms[i].getAttribute("data-mid"); if (id) ids.push(id); }
+      if (ids.length) atualizarReacoes(ids);
+    }
+    // Seletor de emojis: abre DENTRO da mensagem (posicionado por CSS relativo), um por vez.
+    function fecharReacPick() {
+      if (!msgLista) return;
+      var ps = msgLista.querySelectorAll(".co-react-pick");
+      for (var i = 0; i < ps.length; i++) if (ps[i].parentNode) ps[i].parentNode.removeChild(ps[i]);
+    }
+    function abrirReacPick(msgEl) {
+      if (!msgEl) return;
+      var jaAberto = msgEl.querySelector(".co-react-pick");
+      fecharReacPick();
+      if (jaAberto) return;   // 2º clique no mesmo botão = fecha (toggle)
+      var pick = document.createElement("div");
+      pick.className = "co-react-pick";
+      var h = "";
+      for (var i = 0; i < EMOJIS.length; i++) h += '<button type="button" class="co-react-emoji" data-emoji="' + esc(EMOJIS[i]) + '">' + esc(EMOJIS[i]) + "</button>";
+      pick.innerHTML = h;
+      msgEl.appendChild(pick);
+    }
     function msgLinha(m) {
       var div = document.createElement("div");
       div.className = "co-msg";
@@ -538,6 +678,8 @@
         delete transcrPend[m.id];                                   // evita elemento órfão de render anterior
         body.appendChild(transcrLinha(m.id, m.transcricao_status, m.transcricao));
       }
+      // reações (Sprint 1.12): barra de chips + botão "reagir" (hover no desktop / toque longo no mobile)
+      adicionarReacoesUI(div, body, m.reacoes);
       return div;
     }
     function msgSetStatus(estado) {
@@ -734,6 +876,7 @@
         aw.appendChild(au); body.appendChild(aw);
         if (transcrOn) body.appendChild(transcrLinha(id, "pendente", null));   // áudio recém-enviado entra como pendente
       }
+      adicionarReacoesUI(div, body, []);   // a MINHA mensagem também recebe barra+botão de reação já no otimista
       if (msgStatus) msgStatus.innerHTML = "";
       if (msgLista.firstChild) msgLista.insertBefore(div, msgLista.firstChild);
       else msgLista.appendChild(div);
@@ -1206,7 +1349,7 @@
         rtCanal = sb.channel(CANAL_RT);
         rtCanal.on("broadcast", { event: "novo" }, function (msg) {
           var p = (msg && msg.payload) || {};
-          var tipo = p.tipo, bastidor = (tipo === "audio.transcrito" || tipo === "mencao.criada");
+          var tipo = p.tipo, bastidor = (tipo === "audio.transcrito" || tipo === "mencao.criada" || tipo === "reacao.alterada");
           // Feed: conta "novos" só p/ eventos que aparecem no Feed (não os de bastidor)
           if (viewAtual === "feed" && !bastidor) { novos++; renderNovos(); }
           // conversa aberta: busca só a msg e insere; tópico fechado: incrementa não-lidas
@@ -1214,11 +1357,15 @@
             if (p.topico === canalAtual) buscarMsgNova(p.ent, canalAtual);
             else incrementarNaoLida(p.topico, p.ent, p.autor);
           }
+          else if (tipo === "reacao.alterada") {
+            // reação de OUTRO na conversa aberta: atualiza SÓ aquela mensagem (a minha já reconciliei no toggle)
+            if (p.topico === canalAtual && p.autor !== (perfil() || {}).id) atualizarReacoes([p.ent]);
+          }
           else verificarTranscricoes();   // audio.transcrito / fallback sem tipo
         });
         rtCanal.subscribe(function (status) {
           if (status === "SUBSCRIBED") {
-            if (rtSubOk) { conexao(true); recuperarMsgs(); carregarNaoLidas(); }   // reconectou => recupera msgs + reconcilia badges (nunca dobra)
+            if (rtSubOk) { conexao(true); recuperarMsgs(); reconciliarReacoesVisiveis(); carregarNaoLidas(); }   // reconectou => recupera msgs + reconcilia reações/badges (nunca dobra)
             rtSubOk = true;
           } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
             conexao(false);   // indicador discreto de reconexão
@@ -1228,7 +1375,7 @@
       document.addEventListener("visibilitychange", function () {
         if (document.visibilityState !== "visible" || !elPage || !elPage.classList.contains("ativo")) return;
         if (viewAtual === "feed") carregarFeed(true);
-        else verificarTranscricoes();
+        else { verificarTranscricoes(); reconciliarReacoesVisiveis(); }   // reconcilia reações que mudaram com a aba oculta
       });
     }
 
@@ -1332,10 +1479,39 @@
       feedMais.addEventListener("click", function () { carregarFeed(false); });
       feedPill.addEventListener("click", function () { novos = 0; renderNovos(); carregarFeed(true); });
       msgMais.addEventListener("click", function () { carregarMsgs(false); });
-      // clique numa @menção renderizada -> semeia o compositor (delegação: pega msgs atuais e futuras)
+      // delegação nas mensagens (menção + reações). Pega msgs atuais e futuras.
       msgLista.addEventListener("click", function (e) {
         var a = e.target;
-        if (a && a.classList && a.classList.contains("co-mencao")) { e.preventDefault(); aoClicarMencao(a); }
+        if (a && a.classList && a.classList.contains("co-mencao")) { e.preventDefault(); aoClicarMencao(a); return; }
+        var emo = a.closest ? a.closest(".co-react-emoji") : null;   // escolheu emoji no seletor
+        if (emo) { var me = emo.closest(".co-msg"); if (me) toggleReacao(me.getAttribute("data-mid"), emo.getAttribute("data-emoji")); fecharReacPick(); return; }
+        var chip = a.closest ? a.closest(".co-reacao") : null;       // clique num chip existente = toggle
+        if (chip) { var mc = chip.closest(".co-msg"); if (mc) toggleReacao(mc.getAttribute("data-mid"), chip.getAttribute("data-emoji")); return; }
+        var btn = a.closest ? a.closest(".co-react-btn") : null;     // botão "reagir" abre o seletor
+        if (btn) { var mb = btn.closest(".co-msg"); if (mb) abrirReacPick(mb); return; }
+        if (reacIgnoraClique) { reacIgnoraClique = false; return; }  // ignora o click sintético logo após um toque-longo
+        fecharReacPick();                                            // clique em qualquer outro lugar fecha o seletor
+      });
+      // toque longo (mobile) abre o seletor de emojis
+      msgLista.addEventListener("touchstart", function (e) {
+        var mm = e.target.closest ? e.target.closest(".co-msg") : null; if (!mm) return;
+        if (reacLpTimer) clearTimeout(reacLpTimer);
+        reacLpTimer = setTimeout(function () {
+          reacLpTimer = null; reacIgnoraClique = true;              // não deixa o click sintético do long-press fechar na hora
+          abrirReacPick(mm);
+          setTimeout(function () { reacIgnoraClique = false; }, 450);
+        }, 500);
+      }, { passive: true });
+      function cancelarLp() { if (reacLpTimer) { clearTimeout(reacLpTimer); reacLpTimer = null; } }
+      msgLista.addEventListener("touchend", cancelarLp, { passive: true });
+      msgLista.addEventListener("touchmove", cancelarLp, { passive: true });
+      msgLista.addEventListener("touchcancel", cancelarLp, { passive: true });
+      // clique FORA da lista de mensagens (compositor, canais, feed) também fecha o seletor de emojis
+      document.addEventListener("click", function (e) {
+        if (!msgLista) return;
+        var t = e.target;
+        if (t.closest && (t.closest(".co-react-pick") || t.closest(".co-react-btn") || t.closest(".co-msgs"))) return;
+        fecharReacPick();
       });
 
       // compositor (Sprint 1.4 texto + Sprint 1.5 foto)
