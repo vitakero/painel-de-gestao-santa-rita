@@ -11030,7 +11030,7 @@ function czImprimir(){
   var pages='';
   for(var i2=0;i2<itens.length;i2+=c.per){ var cells=''; for(var j=i2;j<i2+c.per && j<itens.length;j++){ cells+='<div class="cell">'+czInner(itens[j])+'</div>'; } pages+='<div class="pg">'+cells+'</div>'; }
   var _pageDef=(czTamanho==='A7')?'@page{size:A4 landscape;margin:6mm;}':'@page{size:A4;margin:6mm;}';
-  var _pgH=(czTamanho==='A7')?'182mm':'269mm';
+  var _pgH=(czTamanho==='A7')?'195mm':'282mm';
   var css='<style>:root{color-scheme:light only;}'+_pageDef+'*{margin:0;padding:0;box-sizing:border-box;font-family:"Bangers",cursive;}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
    +'.pg{width:100%;height:'+_pgH+';overflow:hidden;break-inside:avoid;display:grid;grid-template-columns:repeat('+c.cols+',minmax(0,1fr));grid-template-rows:repeat('+c.rows+',minmax(0,1fr));gap:5mm;}.pg+.pg{page-break-before:always;}'
    +'.cell{'+(c.per>1?'border:1px dashed #bbb;':'')+'container-type:inline-size;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:1.5% 4% 0.2%;overflow:hidden;}'
