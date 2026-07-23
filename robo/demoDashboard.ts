@@ -10716,14 +10716,14 @@ function czTirarFundoBranco(cx,W,H){
 }
 // Reprocessa UMA VEZ as artes JÁ salvas (localStorage): tira o fundo branco delas sem o usuário
 // reenviar. Marca t.v=2 pra não repetir. Assíncrono (carrega cada imagem); re-renderiza no fim.
-var czReprocRun=false;
+var czReprocRun=false, czReprocDone=false;
 function czReprocessarTemas(){
-  if(czReprocRun) return;
-  var l=czTemasGet(); if(!l.length) return;
-  var falta=l.filter(function(t){ return t.v!==2; }); if(!falta.length) return;
+  if(czReprocRun||czReprocDone) return;   // roda NO MÁXIMO uma vez por sessão (nunca entra em loop)
+  var l=czTemasGet(); if(!l.length){ czReprocDone=true; return; }
+  var falta=l.filter(function(t){ return t.v!==2; }); if(!falta.length){ czReprocDone=true; return; }
   czReprocRun=true;
   var pend=falta.length, mudou=false;
-  var done=function(){ if(--pend===0){ czReprocRun=false; if(mudou){ czTemasSave(l); renderCartaz(); } } };
+  var done=function(){ if(--pend===0){ czReprocRun=false; czReprocDone=true; if(mudou){ try{ czTemasSave(l); }catch(e){} renderCartaz(); } } };
   for(var i=0;i<falta.length;i++){ (function(t){
     var im=new Image();
     im.onload=function(){
