@@ -305,6 +305,25 @@
         ".db-bar-q{width:34px;flex:none;text-align:right;color:#5b6670;font-weight:650;}",
         ".db-tempo{border:1px solid #eef2f4;border-radius:12px;padding:13px 14px;background:#f8faf9;font-size:13px;color:#4a5560;}",
         ".db-tempo b{color:#1d2a33;font-size:16px;}",
+        /* ---- (2.3) Busca global ---- */
+        ".bg-campo{display:flex;gap:8px;margin-bottom:14px;}",
+        ".bg-campo input{flex:1;border:1px solid #dfe6e2;border-radius:10px;padding:11px 14px;font:inherit;font-size:15px;color:#2c3740;}",
+        ".bg-campo input:focus{outline:2px solid #157a35;outline-offset:0;border-color:#157a35;}",
+        ".bg-campo button{border:0;background:#157a35;color:#fff;border-radius:10px;padding:0 18px;font-size:14px;font-weight:650;cursor:pointer;}",
+        ".bg-grupo{margin-bottom:10px;border:1px solid #eef2f4;border-radius:12px;overflow:hidden;}",
+        ".bg-grh{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:#f8faf9;padding:10px 13px;font-size:13px;font-weight:700;color:#41505c;cursor:pointer;}",
+        ".bg-grh .bg-cnt{margin-left:auto;color:#8b949c;font-weight:600;}",
+        ".bg-grh .bg-ch{transition:transform .15s;color:#9aa6ae;}",
+        ".bg-grupo.rec .bg-ch{transform:rotate(-90deg);}",
+        ".bg-grupo.rec .bg-itens{display:none;}",
+        ".bg-itens{display:block;}",
+        ".bg-it{display:block;width:100%;text-align:left;border:0;border-top:1px solid #f1f4f2;background:#fff;padding:10px 13px;cursor:pointer;}",
+        ".bg-it:hover,.bg-it:focus-visible{background:#f4f8f5;outline:none;}",
+        ".bg-it-t{font-size:14px;color:#26313a;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}",
+        ".bg-it-s{font-size:12px;color:#8b949c;margin-top:2px;}",
+        ".bg-it-x{font-size:12.5px;color:#5b6670;margin-top:3px;font-style:italic;}",
+        ".bg-it-x mark{background:#fff2b8;color:inherit;padding:0 1px;border-radius:2px;}",
+        ".bg-vazio{color:#9aa6ae;font-size:13.5px;padding:22px 4px;text-align:center;}",
         ".co-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px;}",
         ".co-sub{font-size:13px;color:#7b8792;margin-top:2px;}",
         ".copf-refresh{border:1px solid #d9e2dc;background:#fff;color:#157a35;border-radius:8px;width:34px;height:34px;font-size:16px;cursor:pointer;flex:none;}",
@@ -1708,7 +1727,7 @@
         '<div class="kb-vista" role="tablist" aria-label="Visualização">' +
         '<button type="button" data-kbvista="lista" class="on">Lista</button>' +
         '<button type="button" data-kbvista="kanban">Kanban</button>' +
-        '<button type="button" data-kbvista="dashboard">Painel</button></div>' +
+        '<button type="button" data-kbvista="dashboard">Painel</button><button type="button" data-kbvista="busca">Busca</button></div>' +
         '<button type="button" class="wi-novo" data-winovo>Novo</button></div></div>' +
         '<div class="wi-abas">' +
         '<button type="button" class="wi-aba on" data-wiaba="meus">Meus</button>' +
@@ -1873,6 +1892,7 @@
       // então sem isto o clique no card não mostrava NADA (nem botão de voltar).
       if (kbEl) kbEl.style.display = "none";
       if (dbEl) dbEl.style.display = "none";
+      if (bgEl) bgEl.style.display = "none";
       kbFecharPop();
       if (wiListaEl) wiListaEl.style.display = "";
       if (wiMaisBtn && wiMaisBtn.parentNode) wiMaisBtn.parentNode.style.display = "none";
@@ -2027,6 +2047,7 @@
       viewAtual = "trabalho"; itemAtual = null;
       if (kbEl) kbEl.style.display = "none";          // (2.1) idem para o formulário "Novo"
       if (dbEl) dbEl.style.display = "none";
+      if (bgEl) bgEl.style.display = "none";
       kbFecharPop();
       if (wiListaEl) wiListaEl.style.display = "";
       wiFormAberto = true; ++wiGen; ++itemGen;   // nada em voo pode apagar o formulário
@@ -2531,6 +2552,7 @@
       try { localStorage.setItem("co_trab_vista", qual); } catch (e) { }
       kbGarantirView();
       dbGarantirView();
+      bgGarantirView();
       var bs = trabView ? trabView.querySelectorAll("[data-kbvista]") : [];
       for (var i = 0; i < bs.length; i++) bs[i].classList.toggle("on", bs[i].getAttribute("data-kbvista") === qual);
       // elementos que pertencem SÓ à Lista (aparecem apenas na vista lista)
@@ -2544,6 +2566,7 @@
       if (wiStatusEl) wiStatusEl.style.display = mostraLista ? "" : "none";   // (2.2) não deixa "Nada por aqui" da Lista embaixo do Painel/Kanban
       if (kbEl) kbEl.style.display = (qual === "kanban") ? "" : "none";
       if (dbEl) dbEl.style.display = (qual === "dashboard") ? "" : "none";
+      if (bgEl) bgEl.style.display = (qual === "busca") ? "" : "none";
       if (qual !== "kanban") kbFecharPop();
 
       if (qual === "kanban") {
@@ -2560,6 +2583,8 @@
         kbContadores();
       } else if (qual === "dashboard") {
         dbCarregar();
+      } else if (qual === "busca") {
+        bgMostrarInput();               // (2.3) resultado congelado: não recarrega sozinho
       } else {
         carregarWi(true);
       }
@@ -2720,6 +2745,145 @@
       // no mobile, abre já na coluna certa (reaplica o toggle) — status card vai pra sua coluna;
       // os demais caem em 'aberto' (nunca deixa a coluna anterior, que pode vir vazia pelo filtro).
       kbSelColuna(f.status && KB_COLS.indexOf(f.status) >= 0 ? f.status : "aberto");
+    }
+
+    /* ============================================================
+       (2.3) BUSCA GLOBAL CONTEXTUAL. Uma RPC (buscar_contexto) cruza work items, conversas,
+       mensagens e as entidades do ERP VINCULADAS. Resultado CONGELADO (não escuta Broadcast;
+       o usuário re-executa pra atualizar). Grupos recolhíveis; clicar nunca abre tela vazia.
+       ============================================================ */
+    var bgEl = null, bgGen = 0, bgRecolhidos = {};
+    var BG_GRUPOS = [
+      ["work_item", "Work Items"], ["conversa", "Conversas"], ["mensagem", "Mensagens"],
+      ["produto", "Produtos"], ["equipamento", "Equipamentos"], ["recebimento", "Recebimentos"]
+    ];
+
+    function bgGarantirView() {
+      if (bgEl || !wiListaEl) return bgEl;
+      bgEl = document.createElement("div");
+      bgEl.className = "co-busca";
+      bgEl.style.display = "none";
+      bgEl.innerHTML =
+        '<div class="bg-campo">' +
+        '<input type="search" data-bginput placeholder="Buscar em tudo: item, conversa, mensagem, produto, equipamento…" ' +
+        'aria-label="Buscar na Central" autocomplete="off">' +
+        '<button type="button" data-bgir>Buscar</button></div>' +
+        '<div data-bgres aria-live="polite"></div>';
+      wiListaEl.parentNode.insertBefore(bgEl, wiListaEl.nextSibling);
+      var inp = bgEl.querySelector("[data-bginput]");
+      bgEl.addEventListener("click", function (e) {
+        if (e.target.closest && e.target.closest("[data-bgir]")) { bgBuscar(inp.value); return; }
+        var gh = e.target.closest ? e.target.closest("[data-bggrupo]") : null;
+        if (gh) { var g = gh.getAttribute("data-bggrupo"); bgRecolhidos[g] = !bgRecolhidos[g];
+                  gh.parentNode.classList.toggle("rec", bgRecolhidos[g]);
+                  gh.setAttribute("aria-expanded", bgRecolhidos[g] ? "false" : "true"); return; }
+        var it = e.target.closest ? e.target.closest("[data-bgabrir]") : null;
+        if (it) bgAbrir(it);
+      });
+      inp.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); bgBuscar(inp.value); }
+        else if (e.key === "Escape") { ++bgGen; inp.value = ""; bgSetRes(""); }
+        else if (e.key === "ArrowDown") { var f = bgEl.querySelector(".bg-it"); if (f) { e.preventDefault(); f.focus(); } }
+      });
+      // setas navegam entre resultados
+      bgEl.addEventListener("keydown", function (e) {
+        var alvo = e.target && e.target.classList && e.target.classList.contains("bg-it") ? e.target : null;
+        if (!alvo) return;
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          e.preventDefault();
+          var its = Array.prototype.slice.call(bgEl.querySelectorAll(".bg-it"));
+          var i = its.indexOf(alvo) + (e.key === "ArrowDown" ? 1 : -1);
+          if (i < 0) { inp.focus(); return; }
+          if (its[i]) its[i].focus();
+        } else if (e.key === "Enter") { e.preventDefault(); bgAbrir(alvo); }
+      });
+      return bgEl;
+    }
+
+    function bgSetRes(html) { var r = bgEl && bgEl.querySelector("[data-bgres]"); if (r) r.innerHTML = html; }
+
+    function bgBuscar(texto) {
+      var sb = SB(); if (!sb || !bgEl) return;
+      var q = String(texto || "").trim();
+      if (q.length < 2) { bgSetRes('<div class="bg-vazio">Digite ao menos 2 letras para buscar.</div>'); return; }
+      var g = ++bgGen;
+      bgSetRes('<div class="bg-vazio">Buscando…</div>');
+      medirRpc("buscar_contexto", sb.rpc("buscar_contexto", { p_texto: q, p_limite: 50 })).then(function (r) {
+        if (g !== bgGen) return;                        // busca mais nova já saiu
+        if (!r || r.error) { bgSetRes('<div class="bg-vazio">Não consegui buscar. Tente de novo.</div>'); return; }
+        bgRender((r.data) || [], q);
+      }, function () { if (g === bgGen) bgSetRes('<div class="bg-vazio">Não consegui buscar. Tente de novo.</div>'); });
+    }
+
+    function bgMarcar(txt, termo) {
+      var s = esc(txt || "");
+      if (!termo) return s;
+      try {
+        var t = esc(String(termo)).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");   // esc casa com o texto já escapado
+        return s.replace(new RegExp("(" + t + ")", "ig"), "<mark>$1</mark>");
+      } catch (e) { return s; }
+    }
+
+    function bgRender(lista, termo) {
+      if (!bgEl) return;
+      if (!lista.length) { bgSetRes('<div class="bg-vazio">Nada encontrado para <b>' + esc(termo) + "</b>.</div>"); return; }
+      var porGrupo = {}, vistos = {};
+      for (var i = 0; i < lista.length; i++) {
+        var ch = lista[i].tipo + "|" + (lista[i].id || i);
+        if (vistos[ch]) continue; vistos[ch] = true;      // mesma entidade vinculada a N itens: 1 card só
+        var t = lista[i].tipo; (porGrupo[t] = porGrupo[t] || []).push(lista[i]);
+      }
+      var html = "";
+      for (var k = 0; k < BG_GRUPOS.length; k++) {
+        var chave = BG_GRUPOS[k][0], itens = porGrupo[chave];
+        if (!itens || !itens.length) continue;
+        var rec = !!bgRecolhidos[chave];
+        html += '<div class="bg-grupo' + (rec ? " rec" : "") + '">' +
+          '<button type="button" class="bg-grh" data-bggrupo="' + chave + '" aria-expanded="' + (rec ? "false" : "true") + '">' +
+          '<span class="bg-ch">▾</span>' + esc(BG_GRUPOS[k][1]) + '<span class="bg-cnt">' + itens.length + "</span></button>" +
+          '<div class="bg-itens">';
+        for (var j = 0; j < itens.length; j++) html += bgItemHtml(itens[j], termo);
+        html += "</div></div>";
+      }
+      bgSetRes(html);
+    }
+
+    function bgItemHtml(it, termo) {
+      var titulo = it.titulo || (it.tipo === "mensagem" ? "Mensagem" : "(sem título)");
+      var linha1 = it.tipo === "mensagem" ? (it.responsavel ? esc(it.responsavel) : "Mensagem") : bgMarcar(titulo, termo);
+      var extra = "";
+      if (it.tipo === "work_item" && it.status) extra = esc((it.subtitulo || ""));
+      else if (it.subtitulo) extra = bgMarcar(it.subtitulo, termo);
+      var trecho = "";
+      if (it.trecho && (it.tipo === "mensagem" || it.tipo === "work_item")) trecho = '<div class="bg-it-x">' + bgMarcar(it.trecho, termo) + "</div>";
+      return '<button type="button" class="bg-it" tabindex="0"' +
+        ' data-bgabrir="1" data-bgtipo="' + esc(it.tipo) + '"' +
+        ' data-bgid="' + esc(it.id || "") + '"' +
+        ' data-bgtop="' + esc(it.topico_id || "") + '"' +
+        ' data-bgwi="' + esc(it.work_item_id || "") + '">' +
+        '<div class="bg-it-t">' + linha1 + "</div>" +
+        (extra ? '<div class="bg-it-s">' + extra + "</div>" : "") +
+        trecho + "</button>";
+    }
+
+    // Abrir SEM tela vazia: work item -> detalhe; mensagem/conversa -> a conversa;
+    // produto/equipamento/recebimento -> o work item de contexto (ou a conversa).
+    function bgAbrir(el) {
+      var tipo = el.getAttribute("data-bgtipo");
+      var id = el.getAttribute("data-bgid");
+      var top = el.getAttribute("data-bgtop");
+      var wi = el.getAttribute("data-bgwi");
+      if (tipo === "work_item") { abrirItem(id); return; }
+      if (tipo === "mensagem" || tipo === "conversa") { if (top) wiIrConversa(top); return; }
+      // entidades do ERP: abre o contexto (work item vinculado, senão a conversa)
+      if (wi) abrirItem(wi);
+      else if (top) wiIrConversa(top);
+    }
+
+    function bgMostrarInput() {
+      bgGarantirView();
+      var inp = bgEl && bgEl.querySelector("[data-bginput]");
+      if (inp) setTimeout(function () { try { inp.focus(); } catch (e) { } }, 30);
     }
 
     // (2.0) Hidrata os títulos dos work items do Feed em UMA chamada em lote (teto 100 casa
