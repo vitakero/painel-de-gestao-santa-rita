@@ -282,6 +282,29 @@
         ".kb-mais{width:100%;border:1px dashed #d5ded8;background:none;color:#6b7a86;border-radius:8px;padding:6px;font-size:12.5px;cursor:pointer;margin-top:6px;}",
         ".kb-vazio{color:#a8b2ba;font-size:12.5px;padding:10px 4px;text-align:center;}",
         "@media(max-width:760px){.kb-abas{display:flex;}.kb-quadro{display:block;}.kb-col{min-width:0;}.kb-col.off{display:none;}.kb-itens{max-height:none;}}",
+        /* ---- (2.2) Dashboard ---- */
+        ".db-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px;}",
+        ".db-card{border:1px solid #eef2f4;border-radius:12px;padding:13px 14px;background:#fff;text-align:left;cursor:default;}",
+        ".db-card.clic{cursor:pointer;}",
+        ".db-card.clic:hover{border-color:#cfe3d6;background:#fbfdfc;}",
+        ".db-num{font-size:26px;font-weight:700;color:#1d2a33;line-height:1.1;}",
+        ".db-lbl{font-size:12.5px;color:#6b7a86;margin-top:3px;}",
+        ".db-card.alerta .db-num{color:#c0562a;}",
+        ".db-card.urg .db-num{color:#b3261e;}",
+        ".db-sec{margin-top:20px;}",
+        ".db-sec-h{display:flex;align-items:center;gap:8px;margin-bottom:9px;}",
+        ".db-sec-h .db-lbl{margin:0;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:11px;color:#9aa6ae;}",
+        ".db-dims{display:flex;gap:5px;}",
+        ".db-dim{border:1px solid #e3eae6;background:#fff;color:#5b6670;border-radius:999px;padding:4px 11px;font-size:12px;font-weight:600;cursor:pointer;}",
+        ".db-dim.on{background:#eaf5ee;border-color:#bfe0cb;color:#0c5a26;}",
+        ".db-bars{display:flex;flex-direction:column;gap:6px;}",
+        ".db-bar{display:flex;align-items:center;gap:9px;font-size:13px;}",
+        ".db-bar-nome{width:120px;flex:none;color:#41505c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}",
+        ".db-bar-track{flex:1;height:16px;background:#f1f4f2;border-radius:6px;overflow:hidden;}",
+        ".db-bar-fill{height:100%;background:#8fc7a3;border-radius:6px;}",
+        ".db-bar-q{width:34px;flex:none;text-align:right;color:#5b6670;font-weight:650;}",
+        ".db-tempo{border:1px solid #eef2f4;border-radius:12px;padding:13px 14px;background:#f8faf9;font-size:13px;color:#4a5560;}",
+        ".db-tempo b{color:#1d2a33;font-size:16px;}",
         ".co-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px;}",
         ".co-sub{font-size:13px;color:#7b8792;margin-top:2px;}",
         ".copf-refresh{border:1px solid #d9e2dc;background:#fff;color:#157a35;border-radius:8px;width:34px;height:34px;font-size:16px;cursor:pointer;flex:none;}",
@@ -1684,7 +1707,8 @@
         '<div style="display:flex;gap:8px;align-items:center;">' +
         '<div class="kb-vista" role="tablist" aria-label="Visualização">' +
         '<button type="button" data-kbvista="lista" class="on">Lista</button>' +
-        '<button type="button" data-kbvista="kanban">Kanban</button></div>' +
+        '<button type="button" data-kbvista="kanban">Kanban</button>' +
+        '<button type="button" data-kbvista="dashboard">Painel</button></div>' +
         '<button type="button" class="wi-novo" data-winovo>Novo</button></div></div>' +
         '<div class="wi-abas">' +
         '<button type="button" class="wi-aba on" data-wiaba="meus">Meus</button>' +
@@ -1721,7 +1745,7 @@
           carregarWi(true); return;
         }
         var vb = t.closest ? t.closest("[data-kbvista]") : null;
-        if (vb) { kbMostrar(vb.getAttribute("data-kbvista")); return; }
+        if (vb) { kbSoAtivos = false; kbMostrar(vb.getAttribute("data-kbvista")); return; }   // Kanban aberto pelo alternador = todas as colunas
         if (t.closest && t.closest("[data-winovo]")) { wiAbrirForm(); return; }
         if (t.closest && t.closest("[data-wimais]")) { carregarWi(false); return; }
         var card = t.closest ? t.closest("[data-wiid]") : null;
@@ -1848,6 +1872,7 @@
       // (2.1) detalhe/formulário vivem dentro de wiListaEl. No Kanban ele está display:none,
       // então sem isto o clique no card não mostrava NADA (nem botão de voltar).
       if (kbEl) kbEl.style.display = "none";
+      if (dbEl) dbEl.style.display = "none";
       kbFecharPop();
       if (wiListaEl) wiListaEl.style.display = "";
       if (wiMaisBtn && wiMaisBtn.parentNode) wiMaisBtn.parentNode.style.display = "none";
@@ -2001,6 +2026,7 @@
       wiGarantirView();
       viewAtual = "trabalho"; itemAtual = null;
       if (kbEl) kbEl.style.display = "none";          // (2.1) idem para o formulário "Novo"
+      if (dbEl) dbEl.style.display = "none";
       kbFecharPop();
       if (wiListaEl) wiListaEl.style.display = "";
       wiFormAberto = true; ++wiGen; ++itemGen;   // nada em voo pode apagar o formulário
@@ -2464,13 +2490,7 @@
       kbEl.addEventListener("click", function (e) {
         var t = e.target;
         var aba = t.closest ? t.closest("[data-kbaba]") : null;
-        if (aba) {
-          kbMobCol = aba.getAttribute("data-kbaba");
-          var as = kbEl.querySelectorAll("[data-kbaba]"), cs = kbEl.querySelectorAll("[data-kbcol]"), i;
-          for (i = 0; i < as.length; i++) as[i].classList.toggle("on", as[i] === aba);
-          for (i = 0; i < cs.length; i++) cs[i].classList.toggle("off", cs[i].getAttribute("data-kbcol") !== kbMobCol);
-          return;
-        }
+        if (aba) { kbSelColuna(aba.getAttribute("data-kbaba")); return; }
         var mais = t.closest ? t.closest("[data-kbmais]") : null;
         if (mais) { kbCarregarCol(mais.getAttribute("data-kbmais"), false); return; }
         var act = t.closest ? t.closest("[data-kbact]") : null;
@@ -2493,6 +2513,15 @@
       return kbEl;
     }
 
+    // (2.2) seleciona a coluna visível no mobile (reaplica o toggle das abas/colunas).
+    function kbSelColuna(col) {
+      kbMobCol = col;
+      if (!kbEl) return;
+      var as = kbEl.querySelectorAll("[data-kbaba]"), cs = kbEl.querySelectorAll("[data-kbcol]"), i;
+      for (i = 0; i < as.length; i++) as[i].classList.toggle("on", as[i].getAttribute("data-kbaba") === col);
+      for (i = 0; i < cs.length; i++) cs[i].classList.toggle("off", cs[i].getAttribute("data-kbcol") !== col);
+    }
+
     function kbMostrar(qual) {
       // (2.1) sair de detalhe/formulário ANTES de trocar de vista: senão renderWiLista
       // aborta no guard (itemAtual/wiFormAberto) e a Lista fica em skeleton para sempre.
@@ -2501,25 +2530,196 @@
       kbVista = qual;
       try { localStorage.setItem("co_trab_vista", qual); } catch (e) { }
       kbGarantirView();
+      dbGarantirView();
       var bs = trabView ? trabView.querySelectorAll("[data-kbvista]") : [];
       for (var i = 0; i < bs.length; i++) bs[i].classList.toggle("on", bs[i].getAttribute("data-kbvista") === qual);
+      // elementos que pertencem SÓ à Lista (aparecem apenas na vista lista)
+      var listaAbas = trabView ? trabView.querySelector(".wi-abas") : null;
+      var listaFiltros = trabView ? trabView.querySelector("[data-wifiltros]") : null;
+      var mostraLista = (qual === "lista");
+      if (wiListaEl) wiListaEl.style.display = mostraLista ? "" : "none";
+      if (wiMaisBtn) wiMaisBtn.parentNode.style.display = mostraLista ? "" : "none";
+      if (listaAbas) listaAbas.style.display = mostraLista ? "" : "none";
+      if (listaFiltros) listaFiltros.style.display = mostraLista ? "" : "none";
+      if (wiStatusEl) wiStatusEl.style.display = mostraLista ? "" : "none";   // (2.2) não deixa "Nada por aqui" da Lista embaixo do Painel/Kanban
+      if (kbEl) kbEl.style.display = (qual === "kanban") ? "" : "none";
+      if (dbEl) dbEl.style.display = (qual === "dashboard") ? "" : "none";
+      if (qual !== "kanban") kbFecharPop();
+
       if (qual === "kanban") {
-        if (wiListaEl) wiListaEl.style.display = "none";
-        if (wiMaisBtn) wiMaisBtn.parentNode.style.display = "none";
-        var ab = trabView ? trabView.querySelector(".wi-abas") : null; if (ab) ab.style.display = "none";
-        var fl = trabView ? trabView.querySelector("[data-wifiltros]") : null; if (fl) fl.style.display = "none";
-        if (kbEl) kbEl.style.display = "";
-        KB_COLS.forEach(function (st) { kbCarregarCol(st, true); });
+        // (2.2) drill-down de fila ativa esconde a coluna Concluído (o card não a conta)
+        var colConc = kbEl ? kbEl.querySelector('[data-kbcol="concluido"]') : null;
+        var abaConc = kbEl ? kbEl.querySelector('[data-kbaba="concluido"]') : null;
+        if (colConc) colConc.style.display = kbSoAtivos ? "none" : "";
+        if (abaConc) abaConc.style.display = kbSoAtivos ? "none" : "";
+        if (kbSoAtivos && kbMobCol === "concluido") kbSelColuna("aberto");
+        KB_COLS.forEach(function (st) {
+          if (kbSoAtivos && st === "concluido") { kbZerar(st); kbRenderCol(st); return; }  // não carrega
+          kbCarregarCol(st, true);
+        });
         kbContadores();
+      } else if (qual === "dashboard") {
+        dbCarregar();
       } else {
-        if (kbEl) kbEl.style.display = "none";
-        kbFecharPop();
-        if (wiListaEl) wiListaEl.style.display = "";
-        if (wiMaisBtn) wiMaisBtn.parentNode.style.display = "";
-        var ab2 = trabView ? trabView.querySelector(".wi-abas") : null; if (ab2) ab2.style.display = "";
-        var fl2 = trabView ? trabView.querySelector("[data-wifiltros]") : null; if (fl2) fl2.style.display = "";
         carregarWi(true);
       }
+    }
+
+    /* ============================================================
+       (2.2) DASHBOARD ("Painel") — só leitura, só agregação dos work_items existentes.
+       Um card por indicador; clicar num card abre o Kanban já filtrado. Tempo real =
+       re-agregação AUTORITATIVA de UMA RPC barata (debounced) + patch dos números no
+       lugar — nunca soma incremental (a lição de drift da 1.10/1.14) e nunca reconstrói o DOM.
+       ============================================================ */
+    var dbEl = null, dbDados = null, dbDim = "prioridade", dbGen = 0, dbTimer = null;
+    var kbSoAtivos = false;   // (2.2) drill-down de card de fila ativa: Kanban esconde "Concluído"
+    // cada card: [chave, rótulo, classe extra, filtro do Kanban p/ drill-down (ou null)]
+    // soAtivos: o indicador conta só fila ativa (exclui concluído/cancelado) — o drill-down
+    // esconde a coluna Concluído no Kanban, senão o card "3 urgentes" abriria mostrando 7.
+    var DB_CARDS = [
+      ["abertos", "Abertos", "", { status: "aberto" }],
+      ["em_andamento", "Em andamento", "", { status: "em_andamento" }],
+      ["bloqueados", "Bloqueados", "", { status: "bloqueado" }],
+      ["atrasados", "Atrasados", "alerta", { prazo: "atrasados" }],
+      ["urgente", "Urgentes", "urg", { prio: "urgente", soAtivos: true }],
+      ["alta", "Alta prioridade", "", { prio: "alta", soAtivos: true }],
+      ["meus", "Meus itens", "", { resp: "meus", soAtivos: true }],
+      ["sem_responsavel", "Sem responsável", "", { resp: "sem", soAtivos: true }],
+      ["concluidos_hoje", "Concluídos hoje", "", null],
+      ["cancelados", "Cancelados", "", null]
+    ];
+
+    function dbGarantirView() {
+      if (dbEl || !wiListaEl) return dbEl;
+      dbEl = document.createElement("div");
+      dbEl.className = "co-dash";
+      dbEl.style.display = "none";
+      dbEl.innerHTML =
+        '<div class="db-grid" data-dbgrid></div>' +
+        '<div class="db-sec"><div class="db-tempo" data-dbtempo></div></div>' +
+        '<div class="db-sec"><div class="db-sec-h"><span class="db-lbl">Distribuição do trabalho ativo</span>' +
+        '<div class="db-dims">' +
+        '<button type="button" class="db-dim on" data-dbdim="prioridade">Prioridade</button>' +
+        '<button type="button" class="db-dim" data-dbdim="responsavel">Responsável</button>' +
+        '<button type="button" class="db-dim" data-dbdim="tipo">Tipo</button>' +
+        '<button type="button" class="db-dim" data-dbdim="status">Status</button></div></div>' +
+        '<div class="db-bars" data-dbbars></div></div>';
+      wiListaEl.parentNode.insertBefore(dbEl, wiListaEl.nextSibling);
+      dbEl.addEventListener("click", function (e) {
+        var dim = e.target.closest ? e.target.closest("[data-dbdim]") : null;
+        if (dim) {
+          dbDim = dim.getAttribute("data-dbdim");
+          var ds = dbEl.querySelectorAll("[data-dbdim]");
+          for (var i = 0; i < ds.length; i++) ds[i].classList.toggle("on", ds[i] === dim);
+          dbCarregarGrupo(); return;
+        }
+        var card = e.target.closest ? e.target.closest("[data-dbfiltro]") : null;
+        if (card) dbAbrirFiltro(card.getAttribute("data-dbfiltro"));
+      });
+      dbEl.addEventListener("keydown", function (e) {
+        var card = e.target && e.target.getAttribute && e.target.getAttribute("data-dbfiltro");
+        if (card && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); dbAbrirFiltro(card); }
+      });
+      return dbEl;
+    }
+
+    // Debounce: uma rajada de eventos (mudança em lote) vira UMA re-agregação, não N.
+    function dbAgendarRefresh() {
+      if (!dbEl || dbEl.style.display === "none") return;
+      if (dbTimer) clearTimeout(dbTimer);
+      dbTimer = setTimeout(function () { dbTimer = null; dbCarregar(); }, (window.__CO_DB_MS != null ? window.__CO_DB_MS : 800));
+    }
+
+    function dbCarregar() {
+      var sb = SB(); if (!sb || !dbEl) return;
+      var g = ++dbGen;
+      medirRpc("dashboard_operacional", sb.rpc("dashboard_operacional")).then(function (r) {
+        if (g !== dbGen) return;                       // re-agregação mais nova já veio
+        if (!r || r.error) return;                     // erro: mantém os números que já estavam
+        dbDados = (r.data && r.data[0]) || null;
+        dbPintar();
+      }, function () { });
+      dbCarregarGrupo();
+    }
+
+    function dbPintar() {
+      if (!dbEl || !dbDados) return;
+      var grid = dbEl.querySelector("[data-dbgrid]");
+      // Reaproveita os nós se já existem (patch no lugar) — não reconstrói o DOM a cada evento.
+      if (!grid.children.length) {
+        var h = "";
+        for (var i = 0; i < DB_CARDS.length; i++) {
+          var c = DB_CARDS[i], clic = c[3] ? " clic" : "";
+          h += '<div class="db-card' + clic + (c[2] ? " " + c[2] : "") + '"' +
+               (c[3] ? ' data-dbfiltro="' + c[0] + '" role="button" tabindex="0"' : "") +
+               ' aria-label="' + esc(c[1]) + '"><div class="db-num" data-dbnum="' + c[0] + '">–</div>' +
+               '<div class="db-lbl">' + esc(c[1]) + "</div></div>";
+        }
+        grid.innerHTML = h;
+      }
+      for (var k = 0; k < DB_CARDS.length; k++) {
+        var el = grid.querySelector('[data-dbnum="' + DB_CARDS[k][0] + '"]');
+        if (el) el.textContent = String(dbDados[DB_CARDS[k][0]] != null ? dbDados[DB_CARDS[k][0]] : 0);
+      }
+      var tempo = dbEl.querySelector("[data-dbtempo]");
+      if (tempo) {
+        var amostra = dbDados.resolucao_amostra || 0;
+        tempo.innerHTML = amostra > 0
+          ? "Tempo médio de resolução: <b>" + dbDurar(dbDados.resolucao_media_seg) + "</b> " +
+            '<span style="color:#9aa6ae;">(' + amostra + " concluído" + (amostra > 1 ? "s" : "") + ")</span>"
+          : '<span style="color:#9aa6ae;">Ainda não há itens concluídos para calcular o tempo médio.</span>';
+      }
+    }
+
+    function dbDurar(seg) {
+      seg = Number(seg) || 0;
+      if (seg < 3600) return Math.max(1, Math.round(seg / 60)) + " min";
+      if (seg < 86400) return (seg / 3600).toFixed(1).replace(".0", "") + " h";
+      return (seg / 86400).toFixed(1).replace(".0", "") + " dia" + (seg >= 2 * 86400 ? "s" : "");
+    }
+
+    function dbCarregarGrupo() {
+      var sb = SB(); if (!sb || !dbEl) return;
+      var g = dbGen, dim = dbDim;
+      medirRpc("dashboard_agrupado", sb.rpc("dashboard_agrupado", { p_dim: dim })).then(function (r) {
+        if (g !== dbGen || dim !== dbDim) return;      // resposta de uma agregação/dimensão anterior: descarta
+        var bars = dbEl.querySelector("[data-dbbars]"); if (!bars) return;
+        var ls = (r && r.data) || [];
+        if (!ls.length) { bars.innerHTML = '<div class="kb-vazio">Sem trabalho ativo.</div>'; return; }
+        var max = 0, i;
+        for (i = 0; i < ls.length; i++) max = Math.max(max, ls[i].quantidade || 0);
+        var PR = { urgente: "Urgente", alta: "Alta", normal: "Normal", baixa: "Baixa",
+                   aberto: "Aberto", em_andamento: "Em andamento", bloqueado: "Bloqueado",
+                   concluido: "Concluído", cancelado: "Cancelado", ocorrencia: "Ocorrência", tarefa: "Tarefa" };
+        var h = "";
+        for (i = 0; i < ls.length; i++) {
+          var nome = PR[ls[i].rotulo] || ls[i].rotulo || "?";
+          var pct = max ? Math.round((ls[i].quantidade / max) * 100) : 0;
+          h += '<div class="db-bar"><span class="db-bar-nome" title="' + esc(nome) + '">' + esc(nome) + "</span>" +
+               '<span class="db-bar-track"><span class="db-bar-fill" style="width:' + pct + '%"></span></span>' +
+               '<span class="db-bar-q">' + (ls[i].quantidade || 0) + "</span></div>";
+        }
+        bars.innerHTML = h;
+      }, function () { });
+    }
+
+    // Drill-down: card -> abre o Kanban já filtrado (Kanban tem todos os filtros, incl. prazo).
+    function dbAbrirFiltro(chave) {
+      var c = null;
+      for (var i = 0; i < DB_CARDS.length; i++) if (DB_CARDS[i][0] === chave) c = DB_CARDS[i];
+      if (!c || !c[3]) return;
+      var f = c[3];
+      kbFiltro = { resp: f.resp || "todos", prio: f.prio || "", tipo: "", prazo: f.prazo || "" };
+      kbSoAtivos = !!f.soAtivos;                 // card de fila ativa => Kanban sem a coluna Concluído
+      kbMostrar("kanban");
+      // reflete o filtro nos selects do quadro
+      if (kbEl) {
+        var setSel = function (name, val) { var s = kbEl.querySelector('[data-kbf="' + name + '"]'); if (s) s.value = val; };
+        setSel("resp", kbFiltro.resp); setSel("prio", kbFiltro.prio); setSel("tipo", ""); setSel("prazo", kbFiltro.prazo);
+      }
+      // no mobile, abre já na coluna certa (reaplica o toggle) — status card vai pra sua coluna;
+      // os demais caem em 'aberto' (nunca deixa a coluna anterior, que pode vir vazia pelo filtro).
+      kbSelColuna(f.status && KB_COLS.indexOf(f.status) >= 0 ? f.status : "aberto");
     }
 
     // (2.0) Hidrata os títulos dos work items do Feed em UMA chamada em lote (teto 100 casa
@@ -2580,6 +2780,7 @@
             if (p.ent && (viewAtual === "trabalho" || viewAtual === "item")) {
               if (itemAtual && p.ent === itemAtual) abrirItem(itemAtual);   // detalhe aberto: recarrega o detalhe
               else if (kbVista === "kanban") kbReconciliar(p.ent);           // (2.1) move/atualiza SÓ aquele card
+              else if (kbVista === "dashboard") dbAgendarRefresh();          // (2.2) re-agrega (debounced), patch no lugar
               else wiAtualizarUm(p.ent);                                    // lista: só aquele card
             }
           }
@@ -2606,6 +2807,8 @@
                   KB_COLS.forEach(function (st) { kbCarregarCol(st, true); });
                   kbContadores();
                 }
+                // (2.2) painel aberto: re-agrega autoritativamente (nunca soma incremental)
+                if (kbVista === "dashboard" && dbEl && dbEl.style.display !== "none") dbCarregar();
               }, (window.__CO_REC_MS != null ? window.__CO_REC_MS : 1500));   // (1.14) debounce test-override
             }
             rtSubOk = true;
@@ -2630,6 +2833,7 @@
           // no-opava (guard de visibilidade) => o cursor de leitura não avançou. Ao voltar à aba, re-marca pela
           // mensagem mais nova na tela (msgLista é desc, .co-msg do topo) e evita badge fantasma de msg já vista.
           if (kbVista === "kanban" && kbEl && kbEl.style.display !== "none") kbContadores();   // (2.1)
+          if (kbVista === "dashboard" && dbEl && dbEl.style.display !== "none") dbCarregar();  // (2.2) reconcilia no foco
           var topoMsg = canalAtual && msgLista && msgLista.querySelector(".co-msg");
           if (topoMsg) marcarLidoAte(canalAtual, topoMsg.getAttribute("data-mid"));
         }
