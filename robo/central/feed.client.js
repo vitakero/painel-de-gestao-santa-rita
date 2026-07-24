@@ -253,6 +253,35 @@
         ".wi-row{display:flex;gap:9px;flex-wrap:wrap;}",
         ".wi-row>div{flex:1;min-width:150px;}",
         ".wi-erro{color:#b3261e;font-size:13px;}",
+        /* ---- (2.1) Kanban ---- */
+        ".kb-vista{display:flex;gap:4px;background:#f2f5f3;border-radius:9px;padding:3px;}",
+        ".kb-vista button{border:0;background:none;color:#5b6670;border-radius:7px;padding:5px 13px;font-size:13px;font-weight:650;cursor:pointer;}",
+        ".kb-vista button.on{background:#fff;color:#0c5a26;box-shadow:0 1px 2px rgba(0,0,0,.06);}",
+        ".kb-quadro{display:flex;gap:12px;align-items:flex-start;overflow-x:auto;padding-bottom:6px;}",
+        ".kb-col{flex:1 1 0;min-width:212px;background:#f8faf9;border-radius:12px;padding:9px;display:flex;flex-direction:column;}",
+        ".kb-col-h{display:flex;align-items:center;gap:7px;margin-bottom:8px;padding:0 3px;position:sticky;top:0;background:#f8faf9;z-index:1;}",
+        ".kb-col-t{font-size:12.5px;font-weight:700;color:#4a5560;letter-spacing:.02em;}",
+        ".kb-cnt{margin-left:auto;background:#e6ebe8;color:#5b6670;border-radius:999px;font-size:11.5px;font-weight:700;padding:1px 8px;}",
+        ".kb-itens{display:flex;flex-direction:column;gap:7px;max-height:62vh;overflow-y:auto;}",
+        ".kb-card{background:#fff;border:1px solid #eaeeec;border-radius:10px;padding:9px 10px;cursor:pointer;position:relative;}",
+        ".kb-card:hover{border-color:#cfe3d6;}",
+        ".kb-card:focus-visible{outline:2px solid #157a35;outline-offset:1px;}",
+        ".kb-card.atrasado{border-left:3px solid #e07b39;}",
+        ".kb-card.meu{box-shadow:inset 3px 0 0 #157a35;}",
+        ".kb-card.movendo{opacity:.5;pointer-events:none;}",
+        ".kb-c-tit{font-size:13.5px;font-weight:640;color:#26313a;line-height:1.3;}",
+        ".kb-c-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:11.5px;color:#7b8792;}",
+        ".kb-c-menu{position:absolute;top:6px;right:6px;border:0;background:none;color:#a8b2ba;cursor:pointer;font-size:15px;line-height:1;padding:2px 5px;border-radius:6px;}",
+        ".kb-c-menu:hover{background:#f2f5f3;color:#5b6670;}",
+        ".kb-pop{position:absolute;top:26px;right:6px;background:#fff;border:1px solid #e3eae6;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:5;min-width:174px;padding:5px;}",
+        ".kb-pop button{display:block;width:100%;text-align:left;border:0;background:none;padding:7px 10px;font-size:13px;color:#3c4750;border-radius:7px;cursor:pointer;}",
+        ".kb-pop button:hover,.kb-pop button:focus-visible{background:#eef4f0;outline:none;}",
+        ".kb-abas{display:none;gap:5px;margin-bottom:10px;overflow-x:auto;}",
+        ".kb-aba{flex:none;border:1px solid #e3eae6;background:#fff;color:#4a5560;border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:650;cursor:pointer;white-space:nowrap;}",
+        ".kb-aba.on{background:#eaf5ee;border-color:#bfe0cb;color:#0c5a26;}",
+        ".kb-mais{width:100%;border:1px dashed #d5ded8;background:none;color:#6b7a86;border-radius:8px;padding:6px;font-size:12.5px;cursor:pointer;margin-top:6px;}",
+        ".kb-vazio{color:#a8b2ba;font-size:12.5px;padding:10px 4px;text-align:center;}",
+        "@media(max-width:760px){.kb-abas{display:flex;}.kb-quadro{display:block;}.kb-col{min-width:0;}.kb-col.off{display:none;}.kb-itens{max-height:none;}}",
         ".co-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px;}",
         ".co-sub{font-size:13px;color:#7b8792;margin-top:2px;}",
         ".copf-refresh{border:1px solid #d9e2dc;background:#fff;color:#157a35;border-radius:8px;width:34px;height:34px;font-size:16px;cursor:pointer;flex:none;}",
@@ -1652,12 +1681,16 @@
       trabView.innerHTML =
         '<div class="co-head"><div><b style="font-size:16px;">Trabalho</b>' +
         '<div class="co-sub">Ocorrências e tarefas da operação.</div></div>' +
-        '<button type="button" class="wi-novo" data-winovo>Novo</button></div>' +
+        '<div style="display:flex;gap:8px;align-items:center;">' +
+        '<div class="kb-vista" role="tablist" aria-label="Visualização">' +
+        '<button type="button" data-kbvista="lista" class="on">Lista</button>' +
+        '<button type="button" data-kbvista="kanban">Kanban</button></div>' +
+        '<button type="button" class="wi-novo" data-winovo>Novo</button></div></div>' +
         '<div class="wi-abas">' +
         '<button type="button" class="wi-aba on" data-wiaba="meus">Meus</button>' +
         '<button type="button" class="wi-aba" data-wiaba="abertos">Abertos</button>' +
         '<button type="button" class="wi-aba" data-wiaba="todos">Todos</button></div>' +
-        '<div class="wi-filtros">' +
+        '<div class="wi-filtros" data-wifiltros>' +
         '<select data-wif="status"><option value="">Status: todos</option>' +
         '<option value="aberto">Aberto</option><option value="em_andamento">Em andamento</option>' +
         '<option value="bloqueado">Bloqueado</option><option value="concluido">Concluído</option>' +
@@ -1687,6 +1720,8 @@
           for (var i = 0; i < bs.length; i++) bs[i].classList.toggle("on", bs[i] === aba);
           carregarWi(true); return;
         }
+        var vb = t.closest ? t.closest("[data-kbvista]") : null;
+        if (vb) { kbMostrar(vb.getAttribute("data-kbvista")); return; }
         if (t.closest && t.closest("[data-winovo]")) { wiAbrirForm(); return; }
         if (t.closest && t.closest("[data-wimais]")) { carregarWi(false); return; }
         var card = t.closest ? t.closest("[data-wiid]") : null;
@@ -1716,7 +1751,8 @@
       marcarAtivo(null);
       if (wiNavBtn) wiNavBtn.classList.add("on");
       renderNaoLidas();
-      carregarWi(true);
+      try { kbVista = localStorage.getItem("co_trab_vista") || "lista"; } catch (e) { kbVista = "lista"; }
+      kbMostrar(kbVista);        // (2.1) Lista continua sendo o padrão; Kanban é opcional
     }
 
     // Filtros -> argumentos da RPC. "Meus" e "Abertos" são atalhos de filtro, não modos.
@@ -1809,6 +1845,12 @@
       var sb = SB(); if (!sb || !id) return;
       itemAtual = id;
       wiFormAberto = false;
+      // (2.1) detalhe/formulário vivem dentro de wiListaEl. No Kanban ele está display:none,
+      // então sem isto o clique no card não mostrava NADA (nem botão de voltar).
+      if (kbEl) kbEl.style.display = "none";
+      kbFecharPop();
+      if (wiListaEl) wiListaEl.style.display = "";
+      if (wiMaisBtn && wiMaisBtn.parentNode) wiMaisBtn.parentNode.style.display = "none";
       ++wiGen;                       // uma página da lista em voo não pode repintar por cima
       var g = ++itemGen;
       wiGarantirView();
@@ -1958,6 +2000,9 @@
     function wiAbrirForm() {
       wiGarantirView();
       viewAtual = "trabalho"; itemAtual = null;
+      if (kbEl) kbEl.style.display = "none";          // (2.1) idem para o formulário "Novo"
+      kbFecharPop();
+      if (wiListaEl) wiListaEl.style.display = "";
       wiFormAberto = true; ++wiGen; ++itemGen;   // nada em voo pode apagar o formulário
       if (!wiListaEl) return;
       wiSetStatus(""); if (wiMaisBtn) wiMaisBtn.style.display = "none";
@@ -2067,6 +2112,416 @@
       });
     }
 
+    /* ============================================================
+       (2.1) KANBAN — visualização por status dos MESMOS work_items da 2.0.
+       Sem modelo novo, sem RPC de escrita nova: mover card = transicionar_work_item.
+       Cada coluna tem cursor/estado PRÓPRIOS (uma coluna pode ter 3 itens e outra milhares).
+       ============================================================ */
+    var KB_COLS = ["aberto", "em_andamento", "bloqueado", "concluido"];
+    var kbVista = "lista";                 // lista | kanban
+    var kbMobCol = "aberto";               // no celular, uma coluna por vez
+    var kbEstado = {};                     // status -> {itens,ordem,cur,temMais,carregando,gen,scroll}
+    var kbFiltro = { resp: "todos", prio: "", tipo: "", prazo: "" };
+    var kbCont = {};                       // contadores autoritativos do servidor
+    var kbEmVoo = {};                      // work_item_id -> true (trava clique repetido)
+    var kbEl = null, kbPop = null;
+
+    function kbZerar(st) {
+      kbEstado[st] = { itens: {}, ordem: [], cur: null, temMais: true, carregando: false, gen: 0, scroll: 0 };
+    }
+    KB_COLS.forEach(kbZerar);
+
+    function kbArgs() {
+      var me = (perfil() || {}).id || null;
+      return {
+        p_responsavel_id: kbFiltro.resp === "meus" ? me : (kbFiltro.resp !== "todos" && kbFiltro.resp !== "sem" ? kbFiltro.resp : null),
+        p_sem_responsavel: kbFiltro.resp === "sem",
+        p_prioridade: kbFiltro.prio || null,
+        p_tipo: kbFiltro.tipo || null,
+        p_prazo: kbFiltro.prazo || null
+      };
+    }
+
+    function kbCarregarCol(st, reset) {
+      var sb = SB(); if (!sb || !kbEstado[st]) return;
+      var e = kbEstado[st];
+      if (!reset && (e.carregando || !e.temMais)) return;
+      e.carregando = true;
+      var g = ++e.gen;                      // resposta velha de filtro antigo não entra
+      if (reset) { e.itens = {}; e.ordem = []; e.cur = null; e.temMais = true; }
+      var a = kbArgs();
+      a.p_status = st; a.p_limite = 20;
+      a.p_cursor_pri = e.cur ? e.cur.pri : null;
+      a.p_cursor_prazo = e.cur ? e.cur.prazo : null;
+      a.p_cursor_at = e.cur ? e.cur.at : null;
+      a.p_cursor_id = e.cur ? e.cur.id : null;
+      medirRpc("kanban_coluna", sb.rpc("kanban_coluna", a)).then(function (r) {
+        if (g !== e.gen) return;            // filtro mudou no meio do caminho
+        e.carregando = false;
+        if (!r || r.error) { e.temMais = false; kbRenderCol(st); return; }
+        var ls = (r.data) || [], i;
+        for (i = 0; i < ls.length; i++) {
+          if (!e.itens[ls[i].id]) e.ordem.push(ls[i].id);   // dedup por id
+          e.itens[ls[i].id] = ls[i];
+        }
+        if (ls.length) {
+          var u = ls[ls.length - 1];
+          e.cur = { pri: u.pri_rank, prazo: u.prazo_ord, at: (st === "concluido" ? u.concluido_em : u.atualizado_em), id: u.id };
+        }
+        e.temMais = ls.length >= 20;
+        kbRenderCol(st);
+      }, function () { if (g === e.gen) { e.carregando = false; e.temMais = false; kbRenderCol(st); } });
+    }
+
+    var kbCntGen = 0;
+    function kbContadores() {
+      var sb = SB(); if (!sb) return;
+      var g = ++kbCntGen;
+      medirRpc("kanban_contadores", sb.rpc("kanban_contadores", kbArgs())).then(function (r) {
+        if (g !== kbCntGen) return;              // resposta do filtro ANTERIOR: descarta
+        if (!r || r.error || !r.data) return;    // erro: número velho é melhor que branco
+        var ls = r.data;
+        kbCont = {};
+        for (var i = 0; i < (ls.length || 0); i++) kbCont[ls[i].status] = ls[i].quantidade;
+        kbPintarContadores();
+      }, function () { });
+    }
+
+    function kbPintarContadores() {
+      if (!kbEl) return;
+      KB_COLS.concat(["cancelado"]).forEach(function (st) {
+        var n = kbCont[st], txt = (n == null) ? "" : (n >= 100 ? "99+" : String(n));
+        var alvos = kbEl.querySelectorAll('[data-kbcnt="' + st + '"]');
+        for (var i = 0; i < alvos.length; i++) alvos[i].textContent = txt;
+      });
+    }
+
+    var KB_LBL = { aberto: "Aberto", em_andamento: "Em andamento", bloqueado: "Bloqueado", concluido: "Concluído" };
+    var KB_ACAO_LBL = { em_andamento: "Iniciar", bloqueado: "Bloquear", concluido: "Concluir", cancelado: "Cancelar", aberto: "Reabrir" };
+
+    function kbCard(w) {
+      var me = (perfil() || {}).id;
+      var d = document.createElement("div");
+      d.className = "kb-card" + (w.atrasado ? " atrasado" : "") + (w.responsavel_id && w.responsavel_id === me ? " meu" : "");
+      d.setAttribute("data-kbid", w.id);
+      d.setAttribute("tabindex", "0");
+      d.setAttribute("role", "button");
+      d.setAttribute("aria-label", (w.tipo === "tarefa" ? "Tarefa" : "Ocorrência") + ": " + (w.titulo || "") +
+        ", prioridade " + w.prioridade + ", " + (KB_LBL[w.status] || w.status) + (w.atrasado ? ", atrasado" : ""));
+      var prazo = w.prazo_em ? (w.atrasado ? '<span class="wi-atraso">Atrasado</span>' : "Prazo " + esc(tempoRel(w.prazo_em))) : "";
+      d.innerHTML =
+        '<button type="button" class="kb-c-menu" data-kbmenu aria-label="Ações do item">⋯</button>' +
+        '<div class="kb-c-tit">' + esc(w.titulo || "(sem título)") + "</div>" +
+        '<div class="kb-c-meta">' +
+        '<span class="wi-tipo">' + (w.tipo === "tarefa" ? "Tarefa" : "Ocorr.") + "</span>" +
+        '<span class="wi-chip wi-pr-' + w.prioridade + '">' + esc(w.prioridade) + "</span>" +
+        (w.responsavel_nome ? "<span>" + esc(w.responsavel_nome) + "</span>" : '<span style="color:#c2cad0;">sem resp.</span>') +
+        (prazo ? "<span>" + prazo + "</span>" : "") +
+        (w.tem_conversa ? '<span title="tem conversa">💬</span>' : "") +
+        (w.contexto ? "<span>" + w.contexto + " ctx</span>" : "") +
+        "</div>";
+      return d;
+    }
+
+    function kbRenderCol(st) {
+      if (!kbEl) return;
+      var wrap = kbEl.querySelector('[data-kbitens="' + st + '"]'); if (!wrap) return;
+      var e = kbEstado[st], top = wrap.scrollTop;
+      wrap.innerHTML = "";
+      for (var i = 0; i < e.ordem.length; i++) {
+        var w = e.itens[e.ordem[i]];
+        if (w) wrap.appendChild(kbCard(w));
+      }
+      if (!e.ordem.length) {
+        var v = document.createElement("div"); v.className = "kb-vazio";
+        v.textContent = e.carregando ? "Carregando…" : "Nada aqui.";
+        wrap.appendChild(v);
+      }
+      if (e.temMais && e.ordem.length) {
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "kb-mais"; b.setAttribute("data-kbmais", st);
+        b.textContent = "Carregar mais";
+        wrap.appendChild(b);
+      }
+      wrap.scrollTop = top;                 // preserva a posição de rolagem da coluna
+    }
+
+    // MOVER: otimista + rollback. O request_id fica preso à INTENÇÃO (retry não duplica).
+    var kbReqMov = {};
+    function kbMover(id, novo) {
+      var sb = SB(); if (!sb || kbEmVoo[id]) return;
+      var de = null, w = null, k;
+      for (k = 0; k < KB_COLS.length; k++) if (kbEstado[KB_COLS[k]].itens[id]) { de = KB_COLS[k]; w = kbEstado[KB_COLS[k]].itens[id]; }
+      if (!de || !w) return;
+      if ((WI_TRANSICOES[de] || []).indexOf(novo) < 0) return;      // a UI nunca oferece inválido
+      kbEmVoo[id] = true;
+      var chave = id + "|" + novo;
+      var req = kbReqMov[chave] || wiReqId(); if (!req) { delete kbEmVoo[id]; return; }
+      kbReqMov[chave] = req;
+      var snapshot = { de: de, w: w, pos: kbEstado[de].ordem.indexOf(id), gen: kbEstado[de].gen };
+      kbTirar(id, de);
+      if (novo !== "cancelado") { var w2 = JSON.parse(JSON.stringify(w)); w2.status = novo; kbPor(w2, novo); }
+      kbRenderCol(de); if (novo !== "cancelado") kbRenderCol(novo);
+      comTimeout(medirRpc("transicionar_work_item", sb.rpc("transicionar_work_item",
+        { p_request_id: req, p_work_item_id: id, p_novo_status: novo })), 30000).then(function (r) {
+          delete kbEmVoo[id];
+          if (r && r.error) {
+            // 40001 = "o item mudou de estado" (a 2.0 usa UPDATE condicional). É JUSTAMENTE o caso
+            // em que o meu snapshot está comprovadamente velho — então reconcilio em vez de crer nele.
+            delete kbReqMov[chave];                 // intenção morta: nunca replayar este id
+            kbRollback(snapshot, novo);
+            kbReconciliar(id); kbContadores();
+            wiAvisar(r.error.code === "40001"
+              ? "Esse item mudou enquanto você olhava — atualizei o card."
+              : (r.error.message || "Não deu pra mover."));
+            return;
+          }
+          delete kbReqMov[chave];
+          kbReconciliar(id); kbContadores();
+        }, function () {
+          delete kbEmVoo[id];
+          kbRollback(snapshot, novo);
+          kbReconciliar(id); kbContadores();        // pode ter COMMITADO e só o retorno ter falhado
+          wiAvisar("Não deu pra mover. Tente de novo.");
+        });
+    }
+
+    function kbTirar(id, st) {
+      var e = kbEstado[st]; if (!e) return;
+      delete e.itens[id]; e.ordem = e.ordem.filter(function (x) { return x !== id; });
+    }
+    // Insere respeitando a ORDEM CANÔNICA da coluna (a mesma do servidor). Empurrar sempre
+    // para o topo faria o quadro mentir: um item de prioridade baixa apareceria acima de um
+    // urgente só porque chegou por Broadcast.
+    function kbOrdemChave(w, st) {
+      if (st === "concluido") return [0, 0, -Date.parse(w.concluido_em || 0) || 0];
+      var pr = w.pri_rank || ({ urgente: 1, alta: 2, normal: 3 })[w.prioridade] || 4;
+      var pz = w.prazo_em ? Date.parse(w.prazo_em) : Infinity;
+      return [pr, pz, -(Date.parse(w.atualizado_em || 0) || 0)];
+    }
+    function kbPor(w, st) {
+      var e = kbEstado[st]; if (!e) return;
+      if (e.itens[w.id]) { e.itens[w.id] = w; return; }      // só atualizou conteúdo: mantém a posição
+      e.itens[w.id] = w;
+      var ck = kbOrdemChave(w, st), i, pos = e.ordem.length;
+      for (i = 0; i < e.ordem.length; i++) {
+        var o = e.itens[e.ordem[i]]; if (!o) continue;
+        var ok = kbOrdemChave(o, st);
+        if (ck[0] < ok[0] || (ck[0] === ok[0] && (ck[1] < ok[1] ||
+            (ck[1] === ok[1] && ck[2] < ok[2])))) { pos = i; break; }
+      }
+      // se cairia DEPOIS do último carregado e ainda há mais páginas, não insere: ele
+      // aparecerá no "Carregar mais", no lugar certo (senão fura a paginação).
+      if (pos >= e.ordem.length && e.temMais && e.ordem.length) { delete e.itens[w.id]; return; }
+      e.ordem.splice(pos, 0, w.id);
+    }
+    function kbRollback(s, novo) {
+      if (novo !== "cancelado") kbTirar(s.w.id, novo);
+      var e = kbEstado[s.de];
+      // não ressuscita item numa coluna que já foi recarregada (filtro novo) nem fora do filtro
+      if (e && e.gen === s.gen && !e.itens[s.w.id] && kbPassaFiltro(s.w)) {
+        e.itens[s.w.id] = s.w; e.ordem.splice(Math.max(0, s.pos), 0, s.w.id);
+      }
+      kbRenderCol(s.de); if (novo !== "cancelado") kbRenderCol(novo);
+    }
+
+    // Reconcilia UM item com o servidor (pós-escrita e pós-Broadcast).
+    function kbReconciliar(id) {
+      var sb = SB(); if (!sb || !id) return;
+      medirRpc("work_items_por_ids", sb.rpc("work_items_por_ids", { p_ids: [id] })).then(function (r) {
+        var w = (r && r.data && r.data[0]) || null, k;
+        var atual = null;
+        for (k = 0; k < KB_COLS.length; k++) if (kbEstado[KB_COLS[k]].itens[id]) atual = KB_COLS[k];
+        if (!w) { if (atual) { kbTirar(id, atual); kbRenderCol(atual); } return; }   // sumiu por RLS/filtro
+        var destino = (KB_COLS.indexOf(w.status) >= 0) ? w.status : null;
+        if (atual && atual !== destino) { kbTirar(id, atual); kbRenderCol(atual); }
+        if (destino) {
+          // o card só entra se ainda satisfizer o filtro atual (senão o quadro mentiria)
+          if (kbPassaFiltro(w)) { kbPor(kbNorm(w), destino); kbRenderCol(destino); }
+          else { kbTirar(id, destino); kbRenderCol(destino); }
+        }
+      }, function () { });
+    }
+
+    // work_items_por_ids devolve o formato da LISTA; o card do Kanban usa alguns nomes próprios.
+    function kbNorm(w) {
+      return {
+        id: w.id, tipo: w.tipo, titulo: w.titulo, status: w.status, prioridade: w.prioridade,
+        responsavel_id: w.responsavel_id, responsavel_nome: w.responsavel_nome,
+        prazo_em: w.prazo_em, criado_em: w.criado_em, atualizado_em: w.atualizado_em,
+        concluido_em: w.concluido_em, topico_id: w.topico_id, contexto: w.vinculos || 0,
+        atrasado: !!w.atrasado, tem_conversa: !!w.topico_id,
+        pri_rank: ({ urgente: 1, alta: 2, normal: 3 })[w.prioridade] || 4,
+        prazo_ord: w.prazo_em || "infinity"
+      };
+    }
+
+    function kbPassaFiltro(w) {
+      var me = (perfil() || {}).id;
+      if (kbFiltro.resp === "meus" && w.responsavel_id !== me) return false;
+      if (kbFiltro.resp === "sem" && w.responsavel_id) return false;
+      if (kbFiltro.resp !== "todos" && kbFiltro.resp !== "meus" && kbFiltro.resp !== "sem"
+          && w.responsavel_id !== kbFiltro.resp) return false;
+      if (kbFiltro.prio && w.prioridade !== kbFiltro.prio) return false;
+      if (kbFiltro.tipo && w.tipo !== kbFiltro.tipo) return false;
+      // espelha o SQL nos CINCO valores. Faltando 'hoje'/'7dias' aqui, kbPassaFiltro virava
+      // porteiro aberto e o Broadcast metia card fora do filtro (tela e contador divergiam).
+      var pz = kbFiltro.prazo;
+      if (pz && pz !== "todos") {
+        if (pz === "sem") return !w.prazo_em;
+        if (!w.prazo_em) return false;
+        var t = Date.parse(w.prazo_em); if (isNaN(t)) return false;
+        if (pz === "atrasados") return !!w.atrasado;
+        var ini = new Date(); ini.setHours(0, 0, 0, 0);
+        if (pz === "hoje") return t >= ini.getTime() && t < ini.getTime() + 864e5;
+        if (pz === "7dias") { var ag = nowMs(); return t >= ag && t < ag + 7 * 864e5; }
+      }
+      return true;
+    }
+
+    function kbFecharPop() { if (kbPop && kbPop.parentNode) kbPop.parentNode.removeChild(kbPop); kbPop = null; }
+
+    function kbAbrirMenu(card) {
+      kbFecharPop();
+      var id = card.getAttribute("data-kbid"), w = null, k;
+      for (k = 0; k < KB_COLS.length; k++) if (kbEstado[KB_COLS[k]].itens[id]) w = kbEstado[KB_COLS[k]].itens[id];
+      if (!w) return;
+      var me = (perfil() || {}).id;
+      var h = "";
+      if (w.responsavel_id !== me) h += '<button type="button" data-kbact="assumir">Assumir para mim</button>';
+      var tr = WI_TRANSICOES[w.status] || [];
+      for (k = 0; k < tr.length; k++) h += '<button type="button" data-kbact="st:' + tr[k] + '">' + KB_ACAO_LBL[tr[k]] + "</button>";
+      if (w.tem_conversa) h += '<button type="button" data-kbact="conversa">Abrir conversa</button>';
+      h += '<button type="button" data-kbact="detalhe">Abrir detalhe</button>';
+      kbPop = document.createElement("div");
+      kbPop.className = "kb-pop"; kbPop.setAttribute("role", "menu"); kbPop.innerHTML = h;
+      kbPop.setAttribute("data-kbfor", id);
+      card.appendChild(kbPop);
+      var b1 = kbPop.querySelector("button"); if (b1) b1.focus();
+    }
+
+    function kbAcao(id, act) {
+      var w = null, k;
+      for (k = 0; k < KB_COLS.length; k++) if (kbEstado[KB_COLS[k]].itens[id]) w = kbEstado[KB_COLS[k]].itens[id];
+      kbFecharPop();
+      if (!w) return;
+      if (act === "detalhe") { abrirItem(id); return; }
+      if (act === "conversa") { if (w.topico_id) wiIrConversa(w.topico_id); return; }
+      if (act === "assumir") {
+        // reusa atualizar_work_item da 2.0 (nenhuma RPC de escrita nova nesta sprint)
+        wiEscrever("atualizar_work_item", { p_work_item_id: id, p_responsavel_id: (perfil() || {}).id }, id);
+        setTimeout(function () { kbReconciliar(id); kbContadores(); }, 400);
+        return;
+      }
+      if (act.indexOf("st:") === 0) {
+        var novo = act.slice(3);
+        if (novo === "concluido" || novo === "cancelado") {
+          if (!window.confirm(novo === "concluido" ? "Concluir este item?" : "Cancelar este item?")) return;
+        }
+        kbMover(id, novo);
+      }
+    }
+
+    function kbGarantirView() {
+      if (kbEl || !wiListaEl) return kbEl;
+      kbEl = document.createElement("div");
+      kbEl.className = "kb-quadro-wrap";
+      kbEl.style.display = "none";
+      var abas = "", cols = "";
+      KB_COLS.forEach(function (st, i) {
+        abas += '<button type="button" class="kb-aba' + (i === 0 ? " on" : "") + '" data-kbaba="' + st + '">' +
+                KB_LBL[st] + ' <span data-kbcnt="' + st + '"></span></button>';
+        cols += '<section class="kb-col' + (i === 0 ? "" : " off") + '" data-kbcol="' + st + '" aria-label="Coluna ' + KB_LBL[st] + '">' +
+                '<header class="kb-col-h"><span class="kb-col-t">' + KB_LBL[st] + '</span>' +
+                '<span class="kb-cnt" data-kbcnt="' + st + '"></span></header>' +
+                '<div class="kb-itens" data-kbitens="' + st + '"></div></section>';
+      });
+      kbEl.innerHTML =
+        '<div class="wi-filtros" style="margin-bottom:10px;">' +
+        '<select data-kbf="resp" aria-label="Filtrar por responsável"><option value="todos">Responsável: todos</option>' +
+        '<option value="meus">Meus</option><option value="sem">Sem responsável</option></select>' +
+        '<select data-kbf="prio" aria-label="Filtrar por prioridade"><option value="">Prioridade: todas</option>' +
+        '<option value="urgente">Urgente</option><option value="alta">Alta</option>' +
+        '<option value="normal">Normal</option><option value="baixa">Baixa</option></select>' +
+        '<select data-kbf="tipo" aria-label="Filtrar por tipo"><option value="">Tipo: todos</option>' +
+        '<option value="ocorrencia">Ocorrência</option><option value="tarefa">Tarefa</option></select>' +
+        '<select data-kbf="prazo" aria-label="Filtrar por prazo"><option value="">Prazo: todos</option>' +
+        '<option value="atrasados">Atrasados</option><option value="hoje">Vence hoje</option>' +
+        '<option value="7dias">Próximos 7 dias</option><option value="sem">Sem prazo</option></select>' +
+        '<span style="margin-left:auto;font-size:12.5px;color:#9aa6ae;">Cancelados: <b data-kbcnt="cancelado">0</b></span>' +
+        "</div>" +
+        '<div class="kb-abas" role="tablist">' + abas + "</div>" +
+        '<div class="kb-quadro">' + cols + "</div>";
+      wiListaEl.parentNode.insertBefore(kbEl, wiListaEl.nextSibling);
+
+      kbEl.addEventListener("change", function (e) {
+        var f = e.target.getAttribute && e.target.getAttribute("data-kbf"); if (!f) return;
+        kbFiltro[f] = e.target.value;
+        kbFecharPop();
+        KB_COLS.forEach(function (st) { kbCarregarCol(st, true); });   // cancela o antigo via gen
+        kbContadores();
+      });
+      kbEl.addEventListener("click", function (e) {
+        var t = e.target;
+        var aba = t.closest ? t.closest("[data-kbaba]") : null;
+        if (aba) {
+          kbMobCol = aba.getAttribute("data-kbaba");
+          var as = kbEl.querySelectorAll("[data-kbaba]"), cs = kbEl.querySelectorAll("[data-kbcol]"), i;
+          for (i = 0; i < as.length; i++) as[i].classList.toggle("on", as[i] === aba);
+          for (i = 0; i < cs.length; i++) cs[i].classList.toggle("off", cs[i].getAttribute("data-kbcol") !== kbMobCol);
+          return;
+        }
+        var mais = t.closest ? t.closest("[data-kbmais]") : null;
+        if (mais) { kbCarregarCol(mais.getAttribute("data-kbmais"), false); return; }
+        var act = t.closest ? t.closest("[data-kbact]") : null;
+        if (act) {
+          var pop = act.closest(".kb-pop");
+          kbAcao(pop ? pop.getAttribute("data-kbfor") : null, act.getAttribute("data-kbact"));
+          return;
+        }
+        var mbtn = t.closest ? t.closest("[data-kbmenu]") : null;
+        if (mbtn) { e.stopPropagation(); kbAbrirMenu(mbtn.closest(".kb-card")); return; }
+        var card = t.closest ? t.closest("[data-kbid]") : null;
+        if (card) { kbFecharPop(); abrirItem(card.getAttribute("data-kbid")); }
+      });
+      // teclado: Enter/Espaço abre o card, ESC fecha o menu
+      kbEl.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") { kbFecharPop(); return; }
+        var card = e.target && e.target.classList && e.target.classList.contains("kb-card") ? e.target : null;
+        if (card && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); abrirItem(card.getAttribute("data-kbid")); }
+      });
+      return kbEl;
+    }
+
+    function kbMostrar(qual) {
+      // (2.1) sair de detalhe/formulário ANTES de trocar de vista: senão renderWiLista
+      // aborta no guard (itemAtual/wiFormAberto) e a Lista fica em skeleton para sempre.
+      itemAtual = null; wiFormAberto = false; ++wiGen; ++itemGen;
+      if (viewAtual === "item") viewAtual = "trabalho";
+      kbVista = qual;
+      try { localStorage.setItem("co_trab_vista", qual); } catch (e) { }
+      kbGarantirView();
+      var bs = trabView ? trabView.querySelectorAll("[data-kbvista]") : [];
+      for (var i = 0; i < bs.length; i++) bs[i].classList.toggle("on", bs[i].getAttribute("data-kbvista") === qual);
+      if (qual === "kanban") {
+        if (wiListaEl) wiListaEl.style.display = "none";
+        if (wiMaisBtn) wiMaisBtn.parentNode.style.display = "none";
+        var ab = trabView ? trabView.querySelector(".wi-abas") : null; if (ab) ab.style.display = "none";
+        var fl = trabView ? trabView.querySelector("[data-wifiltros]") : null; if (fl) fl.style.display = "none";
+        if (kbEl) kbEl.style.display = "";
+        KB_COLS.forEach(function (st) { kbCarregarCol(st, true); });
+        kbContadores();
+      } else {
+        if (kbEl) kbEl.style.display = "none";
+        kbFecharPop();
+        if (wiListaEl) wiListaEl.style.display = "";
+        if (wiMaisBtn) wiMaisBtn.parentNode.style.display = "";
+        var ab2 = trabView ? trabView.querySelector(".wi-abas") : null; if (ab2) ab2.style.display = "";
+        var fl2 = trabView ? trabView.querySelector("[data-wifiltros]") : null; if (fl2) fl2.style.display = "";
+        carregarWi(true);
+      }
+    }
+
     // (2.0) Hidrata os títulos dos work items do Feed em UMA chamada em lote (teto 100 casa
     // com a página de 30). Sem isso o Feed mostraria uma fileira de "Nova tarefa" sem nome.
     function wiHidratarFeed() {
@@ -2124,6 +2579,7 @@
           else if (tipo && tipo.indexOf("work_item.") === 0) {
             if (p.ent && (viewAtual === "trabalho" || viewAtual === "item")) {
               if (itemAtual && p.ent === itemAtual) abrirItem(itemAtual);   // detalhe aberto: recarrega o detalhe
+              else if (kbVista === "kanban") kbReconciliar(p.ent);           // (2.1) move/atualiza SÓ aquele card
               else wiAtualizarUm(p.ent);                                    // lista: só aquele card
             }
           }
@@ -2145,6 +2601,11 @@
                 recTimer = null;
                 recuperarMsgs(); reconciliarReacoesVisiveis(); carregarNaoLidas(); verificarTranscricoes();
                 if (viewAtual === "feed" && elPage && elPage.classList.contains("ativo")) carregarFeed(true);
+                // (2.1) quadro aberto: recarrega a 1ª página autoritativa de cada coluna + contadores
+                if (kbVista === "kanban" && kbEl && kbEl.style.display !== "none") {
+                  KB_COLS.forEach(function (st) { kbCarregarCol(st, true); });
+                  kbContadores();
+                }
               }, (window.__CO_REC_MS != null ? window.__CO_REC_MS : 1500));   // (1.14) debounce test-override
             }
             rtSubOk = true;
@@ -2155,6 +2616,10 @@
           }
         });
       } catch (e) { }
+      document.addEventListener("click", function (e) {
+        if (kbPop && e.target && (!e.target.closest || !e.target.closest(".kb-pop")) &&
+            (!e.target.closest || !e.target.closest("[data-kbmenu]"))) kbFecharPop();   // (2.1)
+      });
       document.addEventListener("visibilitychange", function () {
         if (document.visibilityState !== "visible" || !elPage || !elPage.classList.contains("ativo")) return;
         marcarAtividade();   // voltei pra aba => estou ativo
@@ -2164,6 +2629,7 @@
           // (1.14) msgs que chegaram no canal ABERTO com a aba oculta foram renderizadas, mas marcarLidoAte
           // no-opava (guard de visibilidade) => o cursor de leitura não avançou. Ao voltar à aba, re-marca pela
           // mensagem mais nova na tela (msgLista é desc, .co-msg do topo) e evita badge fantasma de msg já vista.
+          if (kbVista === "kanban" && kbEl && kbEl.style.display !== "none") kbContadores();   // (2.1)
           var topoMsg = canalAtual && msgLista && msgLista.querySelector(".co-msg");
           if (topoMsg) marcarLidoAte(canalAtual, topoMsg.getAttribute("data-mid"));
         }
