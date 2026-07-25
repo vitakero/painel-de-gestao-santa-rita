@@ -352,6 +352,38 @@
         ".ia-cfg-erro{color:#b3261e;font-size:12.5px;margin-top:10px;min-height:0;}",
         ".ia-cfg-erro:empty{margin-top:0;}",
         ".ia-cfg-btns{display:flex;align-items:center;gap:8px;margin-top:18px;}",
+        ".ro-resumo{display:flex;gap:10px;margin:4px 0 12px;flex-wrap:wrap;}",
+        ".ro-num{flex:1;min-width:96px;background:#f7fafd;border:1px solid #e6ecf3;border-radius:12px;padding:11px 13px;display:flex;flex-direction:column;gap:2px;}",
+        ".ro-num b{font-size:22px;color:#26313a;}",
+        ".ro-num span{font-size:12px;color:#7b8792;}",
+        ".ro-num.pend b{color:#8a6d3b;}",
+        ".ro-num.and b{color:#3f5ea8;}",
+        ".ro-num.conc b{color:#157a35;}",
+        ".ro-lista{display:flex;flex-direction:column;gap:8px;}",
+        ".ro-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid #e6ecf3;background:#fff;border-radius:12px;padding:11px 13px;cursor:pointer;}",
+        ".ro-row:hover{background:#f7fafd;}",
+        ".ro-row-main{flex:1;min-width:0;}",
+        ".ro-tit{font-size:14.5px;font-weight:650;color:#26313a;}",
+        ".ro-inativa{font-size:11px;color:#b3bcc4;font-weight:600;}",
+        ".ro-meta{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap;}",
+        ".ro-setor{font-size:11px;background:#eef2f7;color:#5b6b7a;border-radius:6px;padding:1px 7px;font-weight:600;}",
+        ".ro-ult{font-size:12px;color:#8a97a8;}",
+        ".ro-badge{flex:none;font-size:11px;font-weight:700;border-radius:20px;padding:3px 10px;}",
+        ".ro-badge.pend{background:#fdf6e3;color:#8a6d3b;}",
+        ".ro-badge.and{background:#eef2fb;color:#3f5ea8;}",
+        ".ro-badge.conc{background:#eaf7ee;color:#157a35;}",
+        ".ro-acoes{margin-top:12px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;}",
+        ".ro-obs-wrap{width:100%;}",
+        ".ro-obs-wrap textarea{width:100%;box-sizing:border-box;border:1px solid #d9e2ec;border-radius:9px;padding:8px 10px;font-size:14px;}",
+        ".ro-check{white-space:pre-wrap;color:#3c4750;font-size:14px;line-height:1.5;}",
+        ".ro-adm{display:flex;gap:8px;margin-top:14px;}",
+        ".ro-hist{margin-top:16px;}",
+        ".ro-hist-it{font-size:13px;color:#5b6b7a;padding:6px 0;border-top:1px solid #eef2f5;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}",
+        ".ro-hist-obs{width:100%;color:#7b8792;font-size:12.5px;margin-top:2px;}",
+        ".ro-form input,.ro-form textarea{width:100%;box-sizing:border-box;margin-top:8px;border:1px solid #d9e2ec;border-radius:9px;padding:9px 11px;font-size:14px;}",
+        ".ro-form-lin{display:flex;gap:8px;}",
+        ".ro-form-erro{color:#b3261e;font-size:12.5px;margin-top:8px;}",
+        ".ro-form-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;}",
         ".co-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px;}",
         ".co-sub{font-size:13px;color:#7b8792;margin-top:2px;}",
         ".copf-refresh{border:1px solid #d9e2dc;background:#fff;color:#157a35;border-radius:8px;width:34px;height:34px;font-size:16px;cursor:pointer;flex:none;}",
@@ -563,6 +595,8 @@
       viewAtual = "feed"; canalAtual = null; itemAtual = null;
       if (canalView) canalView.style.display = "none";
       if (trabView) trabView.style.display = "none";                 // (2.0)
+      if (rotView) rotView.style.display = "none";                   // (2.6)
+      if (roNavBtn) roNavBtn.classList.remove("on");                 // (2.6)
       if (wiNavBtn) wiNavBtn.classList.remove("on");                 // (2.0)
       if (feedView) feedView.style.display = "";
       marcarAtivo(null);
@@ -575,6 +609,8 @@
       viewAtual = "canal"; canalAtual = t.id; itemAtual = null;
       if (feedView) feedView.style.display = "none";
       if (trabView) trabView.style.display = "none";                 // (2.0)
+      if (rotView) rotView.style.display = "none";                   // (2.6)
+      if (roNavBtn) roNavBtn.classList.remove("on");                 // (2.6)
       if (wiNavBtn) wiNavBtn.classList.remove("on");                 // (2.0)
       if (canalView) canalView.style.display = "";
       canalTitTxt = t.titulo || "Conversa";
@@ -1821,6 +1857,7 @@
       if (canalView) canalView.style.display = "none";
       if (trabView) trabView.style.display = "";
       marcarAtivo(null);
+      if (rotView) rotView.style.display = "none"; if (roNavBtn) roNavBtn.classList.remove("on");   // (2.6)
       if (wiNavBtn) wiNavBtn.classList.add("on");
       renderNaoLidas();
       try { kbVista = localStorage.getItem("co_trab_vista") || "lista"; } catch (e) { kbVista = "lista"; }
@@ -1931,6 +1968,7 @@
       if (trabView) trabView.style.display = "";
       if (feedView) feedView.style.display = "none";
       if (canalView) canalView.style.display = "none";
+      if (rotView) rotView.style.display = "none"; if (roNavBtn) roNavBtn.classList.remove("on");   // (2.6)
       viewAtual = "item";
       if (wiListaEl) wiListaEl.innerHTML = "";
       wiSetStatus('<div class="copf-skel"></div><div class="copf-skel"></div>');
@@ -3316,6 +3354,10 @@
               else wiAtualizarUm(p.ent);                                    // lista: só aquele card
             }
           }
+          else if (tipo && tipo.indexOf("rotina.") === 0) {
+            // (2.6-review) ignora o meu próprio broadcast: quem concluiu já recarregou local (evita reload duplo)
+            if (viewAtual === "rotinas" && p.autor !== (perfil() || {}).id) roCarregar();
+          }
           else if (tipo === "audio.transcrito" || !tipo) verificarTranscricoes();   // (1.14) só transcrição/fallback — não dispara RPC p/ todo evento de bastidor
         });
         rtCanal.on("broadcast", { event: "digitando" }, onDigitando);
@@ -3341,6 +3383,7 @@
                 }
                 // (2.2) painel aberto: re-agrega autoritativamente (nunca soma incremental)
                 if (kbVista === "dashboard" && dbEl && dbEl.style.display !== "none") dbCarregar();
+                if (viewAtual === "rotinas") roCarregar();   // (2.6-review) revalida as Rotinas na reconexão
               }, (window.__CO_REC_MS != null ? window.__CO_REC_MS : 1500));   // (1.14) debounce test-override
             }
             rtSubOk = true;
@@ -3366,6 +3409,7 @@
           // mensagem mais nova na tela (msgLista é desc, .co-msg do topo) e evita badge fantasma de msg já vista.
           if (kbVista === "kanban" && kbEl && kbEl.style.display !== "none") kbContadores();   // (2.1)
           if (kbVista === "dashboard" && dbEl && dbEl.style.display !== "none") dbCarregar();  // (2.2) reconcilia no foco
+          if (viewAtual === "rotinas") roCarregar();   // (2.6-review) reconcilia as Rotinas ao voltar o foco
           var topoMsg = canalAtual && msgLista && msgLista.querySelector(".co-msg");
           if (topoMsg) marcarLidoAte(canalAtual, topoMsg.getAttribute("data-mid"));
         }
@@ -3712,6 +3756,264 @@
     }
     function pwaEsconderAtualizar() { if (pwaBanner && pwaBanner.parentNode) pwaBanner.parentNode.removeChild(pwaBanner); pwaBanner = null; }
 
+    /* ============================================================
+       (2.6) ROTINAS OPERACIONAIS — atividades proativas/recorrentes (abertura, fechamento,
+       limpeza, conferências, checklists). Nova área na Central, no mesmo padrão do Trabalho.
+       Catálogo (criar/editar/ativar) = só master; executar (iniciar/concluir) + ler = operacional.
+       Conclusão emite evento no Feed (=> Broadcast pelo trigger existente). Atrás da flag rotinas_enabled.
+       ============================================================ */
+    var rotinasFlagOn = false;
+    var rotView = null, roNavBtn = null, roListaEl = null, roResumoEl = null, roDetEl = null,
+        roFormEl = null, roStatusEl = null, roNovaBox = null;
+    var roGen = 0, roMap = {}, roDetId = null, roBusy = {};
+
+    function roEhMaster() { var p = perfil(); return !!(p && p.is_master); }
+    function roReqId() { try { return uuidv7(); } catch (e) { return null; } }
+
+    function roGarantirNav() {
+      if (roNavBtn || !wiNavBtn || !wiNavBtn.parentNode) return;
+      roNavBtn = document.createElement("button");
+      roNavBtn.type = "button"; roNavBtn.className = "co-nav-item";
+      roNavBtn.innerHTML =
+        '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M9 11l3 3L22 4"/><path d="M3 6h4M3 12h4M3 18h4"/></svg><span>Rotinas</span>';
+      roNavBtn.addEventListener("click", function () { mostrarRotinas(); });
+      wiNavBtn.parentNode.insertBefore(roNavBtn, wiNavBtn.nextSibling);
+    }
+
+    function roGarantirView() {
+      if (rotView || !feedView || !feedView.parentNode) return rotView;
+      rotView = document.createElement("div");
+      rotView.className = "co-rotinas";
+      rotView.style.display = "none";
+      rotView.innerHTML =
+        '<div class="co-head"><div><b style="font-size:16px;">Rotinas</b>' +
+        '<div class="co-sub">Tarefas recorrentes da operação (abertura, fechamento, limpeza, conferências).</div></div>' +
+        '<div data-ronovabox></div></div>' +
+        '<div class="ro-resumo" data-roresumo></div>' +
+        '<div class="ro-form" data-roform style="display:none;"></div>' +
+        '<div class="ro-det" data-rodet style="display:none;"></div>' +
+        '<div class="ro-lista" data-rolista></div>' +
+        '<div class="copf-status" data-rostatus></div>';
+      feedView.parentNode.insertBefore(rotView, feedView.nextSibling);
+      roListaEl = rotView.querySelector("[data-rolista]");
+      roResumoEl = rotView.querySelector("[data-roresumo]");
+      roDetEl = rotView.querySelector("[data-rodet]");
+      roFormEl = rotView.querySelector("[data-roform]");
+      roStatusEl = rotView.querySelector("[data-rostatus]");
+      roNovaBox = rotView.querySelector("[data-ronovabox]");
+      if (roEhMaster()) roNovaBox.innerHTML = '<button type="button" class="wi-novo" data-ronova>Nova rotina</button>';
+
+      rotView.addEventListener("click", function (e) {
+        var t = e.target; if (!t || !t.closest) return;
+        if (t.closest("[data-ronova]")) { roAbrirForm(null); return; }
+        if (t.closest("[data-rocancelarform]")) { roFecharForm(); return; }
+        var sv = t.closest("[data-rosalvar]"); if (sv) { roSalvar(sv); return; }
+        if (t.closest("[data-rovoltar]")) { roVoltarLista(); return; }
+        var ini = t.closest("[data-roiniciar]"); if (ini) { roIniciar(ini.getAttribute("data-roiniciar"), ini); return; }
+        var con = t.closest("[data-roconcluir]"); if (con) { roConcluir(con.getAttribute("data-roconcluir"), con.getAttribute("data-roexec"), con); return; }
+        var ed = t.closest("[data-roeditar]"); if (ed) { roAbrirForm(ed.getAttribute("data-roeditar")); return; }
+        var at = t.closest("[data-roativar]"); if (at) { roToggleAtivo(at.getAttribute("data-roativar"), at.getAttribute("data-roval") === "1"); return; }
+        var ab = t.closest("[data-roabrir]"); if (ab) { roAbrirDetalhe(ab.getAttribute("data-roabrir")); return; }
+      });
+      return rotView;
+    }
+
+    function mostrarRotinas() {
+      if (!rotinasFlagOn) return;
+      pararDigitar(); limparTodosDigit();   // (2.6-review) saindo de uma conversa: avisa "parei de digitar"
+      roGarantirView();
+      viewAtual = "rotinas"; canalAtual = null; itemAtual = null;
+      if (feedView) feedView.style.display = "none";
+      if (canalView) canalView.style.display = "none";
+      if (trabView) trabView.style.display = "none";
+      if (wiNavBtn) wiNavBtn.classList.remove("on");
+      if (rotView) rotView.style.display = "";
+      if (roNavBtn) roNavBtn.classList.add("on");
+      marcarAtivo(null);
+      roVoltarLista();
+      roCarregar();
+    }
+
+    function roMsg(txt) { if (roStatusEl) roStatusEl.innerHTML = txt || ""; }
+    function roVoltarLista() {
+      roDetId = null;
+      if (roDetEl) { roDetEl.style.display = "none"; roDetEl.innerHTML = ""; }
+      if (roFormEl) { roFormEl.style.display = "none"; roFormEl.innerHTML = ""; }
+      if (roListaEl) roListaEl.style.display = "";
+      if (roResumoEl) roResumoEl.style.display = "";
+    }
+
+    function roCarregar() {
+      var sb = SB(); if (!sb) return;
+      var g = ++roGen;
+      roMsg('<div class="copf-skel"></div><div class="copf-skel"></div>');
+      comTimeout(medirRpc("rotinas_resumo", sb.rpc("rotinas_resumo")), 15000).then(function (r) {
+        if (g !== roGen || viewAtual !== "rotinas") return;
+        if (r && !r.error && r.data && r.data[0]) roRenderResumo(r.data[0]);
+      }, function () { });
+      comTimeout(medirRpc("listar_rotinas", sb.rpc("listar_rotinas", { p_setor: null, p_incluir_inativas: roEhMaster() })), 15000).then(function (r) {
+        if (g !== roGen || viewAtual !== "rotinas") return;
+        if (!r || r.error) { roMsg("<b>Não consegui carregar as rotinas.</b>"); return; }
+        roMsg("");
+        roRenderLista((r.data) || []);
+      }, function () { if (g === roGen && viewAtual === "rotinas") roMsg("<b>Não consegui carregar as rotinas.</b>"); });
+    }
+
+    function roCard(lbl, n, cls) {
+      return '<div class="ro-num ' + cls + '"><b>' + (n == null ? 0 : n) + "</b><span>" + esc(lbl) + "</span></div>";
+    }
+    function roRenderResumo(r) {
+      if (!roResumoEl) return;
+      roResumoEl.innerHTML =
+        roCard("Pendentes", r.pendentes, "pend") + roCard("Em andamento", r.em_andamento, "and") +
+        roCard("Concluídas hoje", r.concluidas, "conc");
+    }
+
+    var RO_BADGE = { pendente: ["Pendente", "pend"], em_andamento: ["Em andamento", "and"], concluido: ["Concluída hoje", "conc"] };
+    function roRenderLista(rows) {
+      roMap = {};
+      if (!roListaEl) return;
+      if (!rows.length) { roListaEl.innerHTML = '<div class="copf-status"><b>Nenhuma rotina cadastrada.</b>' + (roEhMaster() ? "<br>Clique em “Nova rotina” para criar a primeira." : "") + "</div>"; return; }
+      var h = "";
+      for (var i = 0; i < rows.length; i++) { roMap[rows[i].id] = rows[i]; h += roRowHtml(rows[i]); }
+      roListaEl.innerHTML = h;
+    }
+    function roRowHtml(r) {
+      var b = RO_BADGE[r.estado_hoje] || RO_BADGE.pendente;
+      var ult = r.ultima_em ? ("Última: " + esc(r.ultima_usuario || "—") + " · " + tempoRel(r.ultima_em)) : "Nunca executada";
+      return '<button type="button" class="ro-row" data-roabrir="' + esc(r.id) + '">' +
+        '<div class="ro-row-main"><div class="ro-tit">' + esc(r.titulo) + (r.ativo ? "" : ' <span class="ro-inativa">inativa</span>') + "</div>" +
+        '<div class="ro-meta">' + (r.setor ? '<span class="ro-setor">' + esc(r.setor) + "</span>" : "") +
+        '<span class="ro-ult">' + ult + "</span></div></div>" +
+        '<span class="ro-badge ' + b[1] + '">' + b[0] + "</span></button>";
+    }
+
+    function roAbrirDetalhe(id) {
+      var r = roMap[id]; if (!r) return;
+      roDetId = id;
+      if (roListaEl) roListaEl.style.display = "none";
+      if (roResumoEl) roResumoEl.style.display = "none";
+      if (roFormEl) roFormEl.style.display = "none";
+      if (roDetEl) { roDetEl.style.display = ""; roRenderDetalhe(r, null); }
+      var sb = SB(); if (!sb) return;
+      var g = roGen;
+      medirRpc("detalhe_rotina", sb.rpc("detalhe_rotina", { p_id: id })).then(function (res) {
+        if (roDetId !== id || g !== roGen) return;
+        if (res && !res.error) roRenderDetalhe(r, (res.data) || []);
+      }, function () { });
+    }
+    function roRenderDetalhe(r, hist) {
+      if (!roDetEl) return;
+      var b = RO_BADGE[r.estado_hoje] || RO_BADGE.pendente;
+      var acoes;
+      if (r.exec_aberta_id) {
+        acoes = '<div class="ro-obs-wrap"><textarea data-roobs placeholder="Observação (opcional)" rows="2"></textarea></div>' +
+          '<button type="button" class="wi-btn pri" data-roconcluir="' + esc(r.id) + '" data-roexec="' + esc(r.exec_aberta_id) + '">Concluir</button>';
+      } else {
+        acoes = '<button type="button" class="wi-btn pri" data-roiniciar="' + esc(r.id) + '">Iniciar</button>';
+      }
+      var adm = roEhMaster()
+        ? '<div class="ro-adm"><button type="button" class="wi-btn" data-roeditar="' + esc(r.id) + '">Editar</button>' +
+          '<button type="button" class="wi-btn" data-roativar="' + esc(r.id) + '" data-roval="' + (r.ativo ? "0" : "1") + '">' + (r.ativo ? "Desativar" : "Ativar") + "</button></div>"
+        : "";
+      var histHtml = "";
+      if (hist && hist.length && hist[0].exec_id) {
+        histHtml = '<div class="ro-hist"><div class="wi-det-lbl">Últimas execuções</div>';
+        for (var i = 0; i < hist.length; i++) {
+          var e = hist[i]; if (!e.exec_id) continue;
+          var bb = RO_BADGE[e.exec_status] || [e.exec_status, ""];
+          histHtml += '<div class="ro-hist-it"><span class="ro-badge ' + bb[1] + '">' + esc(bb[0] || e.exec_status) + "</span> " +
+            esc(e.exec_usuario || "—") + " · " + tempoRel(e.exec_executado_em || e.exec_created_at) +
+            (e.exec_observacao ? '<div class="ro-hist-obs">' + esc(e.exec_observacao) + "</div>" : "") + "</div>";
+        }
+        histHtml += "</div>";
+      }
+      roDetEl.innerHTML =
+        '<button type="button" class="wi-btn" data-rovoltar>← Rotinas</button>' +
+        '<div class="ro-det-head"><div style="font-size:17px;font-weight:650;color:#26313a;margin-top:6px;">' + esc(r.titulo) + "</div>" +
+        '<div class="ro-meta" style="margin-top:6px;">' + (r.setor ? '<span class="ro-setor">' + esc(r.setor) + "</span>" : "") +
+        '<span class="ro-badge ' + b[1] + '">' + b[0] + "</span></div></div>" +
+        (r.descricao ? '<div class="wi-det-sec"><div class="wi-det-lbl">Checklist / descrição</div><div class="ro-check">' + esc(r.descricao) + "</div></div>" : "") +
+        '<div class="ro-acoes">' + acoes + "</div>" + adm + histHtml;
+    }
+
+    function roIniciar(rotinaId, btn) {
+      if (roBusy[rotinaId]) return; roBusy[rotinaId] = true;
+      if (btn) btn.disabled = true;
+      var sb = SB(); if (!sb) { roBusy[rotinaId] = false; return; }
+      comTimeout(medirRpc("registrar_execucao", sb.rpc("registrar_execucao",
+        { p_request_id: roReqId(), p_rotina_id: rotinaId, p_status: "em_andamento", p_execucao_id: null, p_observacao: null })), 20000)
+        .then(function (r) {
+          roBusy[rotinaId] = false;
+          if (r && !r.error) { if (roMap[rotinaId]) roMap[rotinaId].exec_aberta_id = r.data; roAbrirDetalhe(rotinaId); roCarregar(); }
+          else { if (btn) btn.disabled = false; roMsg("<b>Não consegui iniciar.</b>"); }
+        }, function () { roBusy[rotinaId] = false; if (btn) btn.disabled = false; });
+    }
+    function roConcluir(rotinaId, execId, btn) {
+      var key = "c" + execId; if (roBusy[key]) return; roBusy[key] = true;
+      if (btn) btn.disabled = true;
+      var obs = roDetEl ? roDetEl.querySelector("[data-roobs]") : null;
+      var sb = SB(); if (!sb) { roBusy[key] = false; return; }
+      comTimeout(medirRpc("registrar_execucao", sb.rpc("registrar_execucao",
+        { p_request_id: roReqId(), p_rotina_id: rotinaId, p_status: "concluido", p_execucao_id: execId, p_observacao: obs ? obs.value : null })), 20000)
+        .then(function (r) {
+          roBusy[key] = false;
+          if (r && !r.error) { if (roMap[rotinaId]) roMap[rotinaId].exec_aberta_id = null; roVoltarLista(); roCarregar(); }
+          else { if (btn) btn.disabled = false; roMsg("<b>Não consegui concluir.</b>"); }
+        }, function () { roBusy[key] = false; if (btn) btn.disabled = false; });
+    }
+
+    /* ---- criar/editar (só master) ---- */
+    function roAbrirForm(id) {
+      if (!roEhMaster() || !roFormEl) return;
+      var r = id ? roMap[id] : null;
+      if (roListaEl) roListaEl.style.display = "none";
+      if (roResumoEl) roResumoEl.style.display = "none";
+      if (roDetEl) roDetEl.style.display = "none";
+      roFormEl.style.display = "";
+      roFormEl.setAttribute("data-roeditid", id || "");
+      roFormEl.innerHTML =
+        '<button type="button" class="wi-btn" data-rovoltar>← Rotinas</button>' +
+        '<div class="wi-det-lbl" style="margin-top:8px;">' + (id ? "Editar rotina" : "Nova rotina") + "</div>" +
+        '<input type="text" data-rof="titulo" placeholder="Título (ex.: Abertura da loja)" maxlength="160" value="' + (r ? esc(r.titulo) : "") + '">' +
+        '<textarea data-rof="descricao" rows="4" placeholder="Checklist / descrição (opcional)">' + (r ? esc(r.descricao || "") : "") + "</textarea>" +
+        '<div class="ro-form-lin"><input type="text" data-rof="setor" placeholder="Setor (opcional)" maxlength="80" value="' + (r && r.setor ? esc(r.setor) : "") + '">' +
+        '<input type="number" data-rof="ordem" placeholder="Ordem" value="' + (r && r.ordem != null ? esc(String(r.ordem)) : "0") + '"></div>' +
+        '<div class="ro-form-erro" data-roerro></div>' +
+        '<div class="ro-form-btns"><button type="button" class="wi-btn" data-rocancelarform>Cancelar</button>' +
+        '<button type="button" class="wi-btn pri" data-rosalvar>Salvar</button></div>';
+      var inp = roFormEl.querySelector('[data-rof="titulo"]'); if (inp) inp.focus();
+    }
+    function roFecharForm() { roVoltarLista(); }
+    function roSalvar(btn) {
+      if (!roFormEl) return;
+      var id = roFormEl.getAttribute("data-roeditid") || null;
+      var val = function (k) { var el = roFormEl.querySelector('[data-rof="' + k + '"]'); return el ? String(el.value || "").trim() : ""; };
+      var titulo = val("titulo");
+      var erEl = roFormEl.querySelector("[data-roerro]");
+      if (!titulo) { if (erEl) erEl.textContent = "Informe o título."; return; }
+      if (btn) btn.disabled = true;
+      var sb = SB(); if (!sb) { if (btn) btn.disabled = false; return; }
+      var ordem = parseInt(val("ordem"), 10); if (isNaN(ordem)) ordem = 0;
+      var p, args;
+      if (id) { p = "editar_rotina"; args = { p_id: id, p_titulo: titulo, p_descricao: val("descricao") || null, p_setor: val("setor") || null, p_ordem: ordem }; }
+      else { p = "criar_rotina"; args = { p_request_id: roReqId(), p_titulo: titulo, p_descricao: val("descricao") || null, p_setor: val("setor") || null, p_ordem: ordem }; }
+      comTimeout(medirRpc(p, sb.rpc(p, args)), 20000).then(function (r) {
+        if (btn) btn.disabled = false;
+        if (r && !r.error) { roVoltarLista(); roCarregar(); }
+        else if (erEl) erEl.textContent = "Não consegui salvar.";
+      }, function () { if (btn) btn.disabled = false; if (erEl) erEl.textContent = "Não consegui salvar."; });
+    }
+    function roToggleAtivo(id, ativar) {
+      var sb = SB(); if (!sb) return;
+      var p = ativar ? "ativar_rotina" : "desativar_rotina";
+      var args = ativar ? { p_id: id, p_ativo: true } : { p_id: id };
+      medirRpc(p, sb.rpc(p, args)).then(function (r) {
+        if (r && !r.error) { roVoltarLista(); roCarregar(); }
+      }, function () { });
+    }
+
     function pronto() { return document.querySelector("nav.sidebar") && document.querySelector("main") && SB() && perfil(); }
     function tentarIniciar() {
       if (montado || checagemFeita) return;
@@ -3734,6 +4036,10 @@
         }, function () { });
         sb.from("feature_flags").select("habilitado").eq("chave", "central_ia").maybeSingle().then(function (r) {
           iaFlagOn = !!(r && r.data && r.data.habilitado);    // (2.4) gate 1: flag central_ia
+        }, function () { });
+        sb.from("feature_flags").select("habilitado").eq("chave", "rotinas_enabled").maybeSingle().then(function (r) {
+          rotinasFlagOn = !!(r && r.data && r.data.habilitado);   // (2.6) área Rotinas
+          if (rotinasFlagOn) roGarantirNav();
         }, function () { });
       } catch (e) { }
     }
