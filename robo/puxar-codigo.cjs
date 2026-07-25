@@ -21,6 +21,7 @@ const REPO = "painel-de-gestao-santa-rita";
 const FILES = [
   ["robo/demoDashboard.ts", "demoDashboard.ts", "vr-data.json"],
   ["robo/central/feed.client.js", "central/feed.client.js", "CENTRAL OPERACIONAL"],   // tela da Central (subpasta)
+  ["robo/central/sw.js", "central/sw.js", "CENTRAL PWA SW"],   // (2.5) service worker do PWA
   ["robo/buildVrData.cjs", "buildVrData.cjs", "vr-data.json"],
   ["robo/publicar.cjs", "publicar.cjs", "PUBLICADO"],
   ["robo/pixWorker.cjs", "pixWorker.cjs", "pix_cobrancas"],
