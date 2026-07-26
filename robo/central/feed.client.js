@@ -427,6 +427,26 @@
         ".pe-item{border:0;}",
         ".pe-reatr{margin-top:-2px;padding:0 2px 2px;}",
         ".pe-reatr select{width:100%;box-sizing:border-box;border:1px solid #eef2f4;border-radius:8px;padding:5px 8px;font-size:12px;color:#5b6670;background:#fbfdfc;}",
+        ".co-md{padding:2px 0;}",
+        ".md-head{margin-bottom:13px;}",
+        ".md-tit{font-size:19px;font-weight:700;color:#26313a;}",
+        ".md-sub{font-size:13.5px;color:#7b8792;margin-top:3px;}",
+        ".md-cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}",
+        ".md-card{flex:1;min-width:120px;text-align:left;border:1px solid #e6ecf3;background:#fff;border-radius:12px;padding:11px 13px;cursor:pointer;}",
+        ".md-card:hover{background:#f7fafd;}",
+        ".md-card.on{border-color:#157a35;box-shadow:0 0 0 1px #157a35 inset;}",
+        ".md-card-lbl{font-size:12px;color:#7b8792;}",
+        ".md-card-n{font-size:22px;font-weight:700;color:#26313a;margin-top:2px;}",
+        ".md-card.alerta .md-card-n{color:#c0392b;}",
+        ".md-lista{display:flex;flex-direction:column;gap:9px;}",
+        ".md-item{border:1px solid #eef2f4;border-radius:12px;padding:11px 13px;background:#fff;}",
+        ".md-item.atrasado{border-color:#f1c9bf;background:#fff8f6;}",
+        ".md-i-tit{font-size:14px;font-weight:650;color:#26313a;}",
+        ".md-i-sub{font-size:13px;color:#5b6670;margin-top:3px;}",
+        ".md-i-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:7px;font-size:12px;color:#7b8792;}",
+        ".md-i-acao{margin-top:9px;}",
+        ".md-vazio{color:#7b8792;font-size:13.5px;padding:14px 2px;}",
+        ".md-ok{color:#157a35;font-weight:600;}",
         ".co-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px;}",
         ".co-sub{font-size:13px;color:#7b8792;margin-top:2px;}",
         ".copf-refresh{border:1px solid #d9e2dc;background:#fff;color:#157a35;border-radius:8px;width:34px;height:34px;font-size:16px;cursor:pointer;flex:none;}",
@@ -641,6 +661,7 @@
       if (rotView) rotView.style.display = "none";                   // (2.6)
       if (roNavBtn) roNavBtn.classList.remove("on");                 // (2.6)
       if (wiNavBtn) wiNavBtn.classList.remove("on");                 // (2.0)
+      mdEsconder();                                                  // (2.9)
       if (feedView) feedView.style.display = "";
       marcarAtivo(null);
       renderNaoLidas();   // sem tópico aberto: o badge do que estava aberto volta a aparecer se tiver não-lidas
@@ -655,6 +676,7 @@
       if (rotView) rotView.style.display = "none";                   // (2.6)
       if (roNavBtn) roNavBtn.classList.remove("on");                 // (2.6)
       if (wiNavBtn) wiNavBtn.classList.remove("on");                 // (2.0)
+      mdEsconder();                                                  // (2.9)
       if (canalView) canalView.style.display = "";
       canalTitTxt = t.titulo || "Conversa";
       if (canalTitulo) canalTitulo.textContent = (t.tipo === "canal" ? "# " : "") + canalTitTxt;
@@ -1898,6 +1920,7 @@
       wiGarantirView();
       if (feedView) feedView.style.display = "none";
       if (canalView) canalView.style.display = "none";
+      mdEsconder();                                                  // (2.9)
       if (trabView) trabView.style.display = "";
       marcarAtivo(null);
       if (rotView) rotView.style.display = "none"; if (roNavBtn) roNavBtn.classList.remove("on");   // (2.6)
@@ -2013,6 +2036,7 @@
       if (feedView) feedView.style.display = "none";
       if (canalView) canalView.style.display = "none";
       if (rotView) rotView.style.display = "none"; if (roNavBtn) roNavBtn.classList.remove("on");   // (2.6)
+      mdEsconder();                                                  // (2.9)
       viewAtual = "item";
       if (wiListaEl) wiListaEl.innerHTML = "";
       wiSetStatus('<div class="copf-skel"></div><div class="copf-skel"></div>');
@@ -3382,6 +3406,10 @@
           var tipo = p.tipo, bastidor = (tipo === "audio.transcrito" || tipo === "mencao.criada" || tipo === "reacao.alterada"
             // (2.0) vínculo é só roteamento — o servidor já o exclui do Feed; aqui evita inflar o "novos"
             || tipo === "work_item.vinculo_adicionado" || tipo === "work_item.vinculo_removido");
+          // (2.9) Meu Dia: qualquer evento que possa mudar minhas pendências (menção/tarefa/rotina) e não
+          // seja do próprio autor => reagenda (debounced) o resumo. Reconcilia pelo servidor (não infere do payload).
+          if (mdFlagOn && p.autor !== (perfil() || {}).id &&
+            (tipo === "mensagem.criada" || (tipo && tipo.indexOf("work_item.") === 0) || (tipo && tipo.indexOf("rotina.") === 0))) mdAgendarRefresh();
           // Feed: conta "novos" só p/ eventos que aparecem no Feed (não os de bastidor)
           if (viewAtual === "feed" && !bastidor) { novos++; renderNovos(); }
           // conversa aberta: busca só a msg e insere; tópico fechado: incrementa não-lidas
@@ -3435,6 +3463,7 @@
                 // (2.2) painel aberto: re-agrega autoritativamente (nunca soma incremental)
                 if (kbVista === "dashboard" && dbEl && dbEl.style.display !== "none") dbCarregar();
                 if (viewAtual === "rotinas") roCarregar();   // (2.6-review) revalida as Rotinas na reconexão
+                if (mdFlagOn) { if (viewAtual === "meudia") mdCarregar(); else mdAtualizarBadge(); }   // (2.9)
               }, (window.__CO_REC_MS != null ? window.__CO_REC_MS : 1500));   // (1.14) debounce test-override
             }
             rtSubOk = true;
@@ -3461,6 +3490,7 @@
           if (kbVista === "kanban" && kbEl && kbEl.style.display !== "none") kbContadores();   // (2.1)
           if (kbVista === "dashboard" && dbEl && dbEl.style.display !== "none") dbCarregar();  // (2.2) reconcilia no foco
           if (viewAtual === "rotinas") roCarregar();   // (2.6-review) reconcilia as Rotinas ao voltar o foco
+          if (mdFlagOn) { if (viewAtual === "meudia") mdCarregar(); else mdAtualizarBadge(); }   // (2.9) badge fresco ao voltar o foco
           var topoMsg = canalAtual && msgLista && msgLista.querySelector(".co-msg");
           if (topoMsg) marcarLidoAte(canalAtual, topoMsg.getAttribute("data-mid"));
         }
@@ -3881,6 +3911,7 @@
       if (canalView) canalView.style.display = "none";
       if (trabView) trabView.style.display = "none";
       if (wiNavBtn) wiNavBtn.classList.remove("on");
+      mdEsconder();                                                  // (2.9)
       if (rotView) rotView.style.display = "";
       if (roNavBtn) roNavBtn.classList.add("on");
       marcarAtivo(null);
@@ -4489,6 +4520,245 @@
       }, function () { sel.disabled = false; sel.value = ""; if (peStatusEl) peStatusEl.innerHTML = "<b>Não consegui reatribuir.</b>"; });
     }
 
+    /* ===================== SPRINT 2.9: MEU DIA / CAIXA DE ENTRADA ==============================
+       Visão PESSOAL agregada (menções pendentes + tarefas minhas ativas + atrasadas + rotinas
+       pendentes do meu setor hoje). NÃO é domínio novo: só LÊ (meu_dia_resumo / meu_dia_itens,
+       INVOKER sob RLS) e reusa as ações canônicas (abrirCanal / abrirItem / registrar_execucao).
+       Item de navegação no TOPO (primeira tela do dia) com badge = total de pendências (sem dupla
+       contagem: atrasadas ⊆ tarefas ativas). Tudo atrás da flag meu_dia_enabled. */
+    var mdFlagOn = false;
+    var mdNavBtn = null, mdView = null, mdHeadEl = null, mdCardsEl = null, mdStatusEl = null, mdListaEl = null;
+    var mdSecao = "mencao";        // seção aberta: mencao | work_item | atrasado | rotina
+    var mdResumo = null, mdLista = [];
+    var mdGen = 0, mdSecGen = 0, mdRefreshTimer = null, mdBusy = {};
+    var mdOffset = 0, mdTotal = 0, MD_LIM = 50;   // (2.9-review) paginação da seção: card e lista não se contradizem
+    var MD_SECOES = [
+      { chave: "mencao", lbl: "Menções", campo: "total_mencoes" },
+      { chave: "work_item", lbl: "Tarefas minhas", campo: "total_work_items_ativos" },
+      { chave: "atrasado", lbl: "Atrasadas", campo: "total_atrasados", alerta: true },
+      { chave: "rotina", lbl: "Rotinas pendentes", campo: "total_rotinas_pendentes" }
+    ];
+    function mdReqId() { try { return uuidv7(); } catch (e) { return null; } }
+    function mdEsconder() { if (mdView) mdView.style.display = "none"; if (mdNavBtn) mdNavBtn.classList.remove("on"); }
+
+    function mdGarantirNav() {
+      if (mdNavBtn || !feedBtn || !feedBtn.parentNode) return;
+      mdNavBtn = document.createElement("button");
+      mdNavBtn.type = "button"; mdNavBtn.className = "co-nav-item";
+      mdNavBtn.innerHTML =
+        '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/></svg>' +
+        '<span>Meu Dia</span><span class="co-badge" style="display:none;"></span>';
+      mdNavBtn.addEventListener("click", function () { mostrarMeuDia(); });
+      feedBtn.parentNode.insertBefore(mdNavBtn, feedBtn);   // primeira tela do dia
+      mdAtualizarBadge();                                   // já busca o total pro badge
+    }
+
+    function mdGarantirView() {
+      if (mdView || !feedView || !feedView.parentNode) return mdView;
+      mdView = document.createElement("div");
+      mdView.className = "co-md"; mdView.style.display = "none";
+      mdView.innerHTML = '<div class="md-head"></div><div class="md-cards"></div><div class="md-status"></div><div class="md-lista"></div>';
+      feedView.parentNode.insertBefore(mdView, feedView.nextSibling);
+      mdHeadEl = mdView.querySelector(".md-head"); mdCardsEl = mdView.querySelector(".md-cards");
+      mdStatusEl = mdView.querySelector(".md-status"); mdListaEl = mdView.querySelector(".md-lista");
+      mdView.addEventListener("click", mdOnClick);
+      return mdView;
+    }
+
+    function mostrarMeuDia() {
+      if (!mdFlagOn) return;
+      pararDigitar(); limparTodosDigit();
+      mdGarantirView();
+      viewAtual = "meudia"; canalAtual = null; itemAtual = null;
+      if (feedView) feedView.style.display = "none";
+      if (canalView) canalView.style.display = "none";
+      if (trabView) trabView.style.display = "none";
+      if (rotView) rotView.style.display = "none";
+      marcarAtivo(null);                                   // (2.9-review) ANTES de apagar o Feed: marcarAtivo(null) religa o feedBtn
+      if (feedBtn) feedBtn.classList.remove("on");
+      if (wiNavBtn) wiNavBtn.classList.remove("on");
+      if (roNavBtn) roNavBtn.classList.remove("on");
+      if (mdView) mdView.style.display = "";
+      if (mdNavBtn) mdNavBtn.classList.add("on");
+      mdCarregar();
+    }
+
+    function mdSetStatus(html) { if (mdStatusEl) mdStatusEl.innerHTML = html || ""; }
+    function mdErroBox() { return '<div class="md-vazio"><b>Não foi possível carregar seu dia.</b> <button type="button" class="wi-btn" data-mdretry>Tentar novamente</button></div>'; }
+
+    function mdCarregar() {
+      var sb = SB(); if (!sb || !mdFlagOn) return;
+      var g = ++mdGen;
+      mdRenderResumo(null); mdSetStatus("");
+      if (mdListaEl) mdListaEl.innerHTML = '<div class="copf-skel"></div><div class="copf-skel"></div>';
+      medirRpc("meu_dia_resumo", sb.rpc("meu_dia_resumo")).then(function (r) {
+        if (g !== mdGen || viewAtual !== "meudia") return;
+        if (!r || r.error) { mdRenderResumo(null); mdSetStatus(mdErroBox()); if (mdListaEl) mdListaEl.innerHTML = ""; return; }
+        mdResumo = (r.data && r.data[0]) || { total_mencoes: 0, total_work_items_ativos: 0, total_atrasados: 0, total_rotinas_pendentes: 0, total_pendencias: 0, meu_setor: null };
+        mdRenderResumo(mdResumo); mdAtualizarBadgeNum(mdResumo.total_pendencias); mdCarregarSecao();
+      }, function () { if (g === mdGen && viewAtual === "meudia") { mdRenderResumo(null); mdSetStatus(mdErroBox()); if (mdListaEl) mdListaEl.innerHTML = ""; } });
+    }
+
+    function mdCarregarSecao(append) {
+      var sb = SB(); if (!sb) return;
+      var g = ++mdSecGen;
+      if (!append) { mdOffset = 0; if (mdListaEl) mdListaEl.innerHTML = '<div class="copf-skel"></div><div class="copf-skel"></div>'; }
+      medirRpc("meu_dia_itens", sb.rpc("meu_dia_itens", { p_tipo: mdSecao, p_limit: MD_LIM, p_offset: mdOffset })).then(function (r) {
+        if (g !== mdSecGen || viewAtual !== "meudia") return;
+        if (!r || r.error) { if (!append && mdListaEl) mdListaEl.innerHTML = '<div class="md-vazio"><b>Não foi possível carregar.</b> <button type="button" class="wi-btn" data-mdsec>Tentar novamente</button></div>'; return; }
+        var novos = r.data || [];
+        mdTotal = novos.length ? (+novos[0].total_count || (mdOffset + novos.length)) : (append ? mdTotal : 0);
+        mdRenderLista(novos, append);
+      }, function () { if (g === mdSecGen && viewAtual === "meudia" && !append && mdListaEl) mdListaEl.innerHTML = '<div class="md-vazio"><b>Não foi possível carregar.</b></div>'; });
+    }
+
+    function mdRenderResumo(res) {
+      if (!mdHeadEl || !mdCardsEl) return;
+      if (!res) {
+        mdHeadEl.innerHTML = '<div class="md-tit">Meu Dia</div><div class="md-sub">Carregando seu dia…</div>';
+        var sk = ""; for (var i = 0; i < 4; i++) sk += '<div class="md-card"><div class="md-card-lbl">…</div><div class="md-card-n">·</div></div>';
+        mdCardsEl.innerHTML = sk; return;
+      }
+      var tot = +res.total_pendencias || 0;
+      var sub = tot === 0 ? '<span class="md-ok">Tudo certo por aqui.</span> Você não tem nenhuma pendência agora.'
+        : (tot === 1 ? "1 coisa precisa" : tot + " coisas precisam") + " da sua atenção.";
+      mdHeadEl.innerHTML = '<div class="md-tit">Meu Dia</div><div class="md-sub">' + sub + "</div>";
+      var html = "";
+      for (var j = 0; j < MD_SECOES.length; j++) {
+        var s = MD_SECOES[j], n = +res[s.campo] || 0;
+        html += '<button type="button" class="md-card' + (s.chave === mdSecao ? " on" : "") + (s.alerta && n > 0 ? " alerta" : "") + '" data-mdcard="' + s.chave + '">' +
+          '<div class="md-card-lbl">' + s.lbl + '</div><div class="md-card-n">' + n + "</div></button>";
+      }
+      mdCardsEl.innerHTML = html;
+    }
+
+    function mdVazioSecao() {
+      if (mdSecao === "mencao") return "Nenhuma menção pendente.";
+      if (mdSecao === "work_item") return "Nenhuma tarefa atribuída a você agora.";
+      if (mdSecao === "atrasado") return "Nenhuma tarefa atrasada.";
+      if (mdSecao === "rotina") return (mdResumo && !mdResumo.meu_setor)
+        ? "Seu setor ainda não está configurado. Peça pro responsável definir seu setor."
+        : "Nenhuma rotina pendente no seu setor hoje.";
+      return "Nada por aqui.";
+    }
+
+    function mdRenderLista(novos, append) {
+      mdLista = append ? mdLista.concat(novos || []) : (novos || []);
+      if (!mdListaEl) return;
+      if (!mdLista.length) { mdListaEl.innerHTML = '<div class="md-vazio">' + mdVazioSecao() + "</div>"; return; }
+      var html = ""; for (var i = 0; i < mdLista.length; i++) html += mdItemHtml(mdLista[i], i);
+      if (mdLista.length < mdTotal) html += '<button type="button" class="wi-btn" data-mdmais style="margin-top:5px;">Carregar mais (' + (mdTotal - mdLista.length) + ")</button>";   // (2.9-review) card e lista não se contradizem
+      mdListaEl.innerHTML = html;
+    }
+
+    function mdItemHtml(it, idx) {
+      var tipo = it.item_tipo;
+      if (tipo === "mencao") {
+        return '<div class="md-item">' +
+          '<div class="md-i-tit">' + esc(it.titulo || "Alguém") + " mencionou você</div>" +
+          (it.subtitulo ? '<div class="md-i-sub">“' + esc(it.subtitulo) + '”</div>' : "") +
+          '<div class="md-i-meta">' + (it.contexto_titulo ? "<span>" + esc(it.contexto_titulo) + "</span>" : "") +
+          (it.occurred_at ? "<span>" + esc(tempoRel(it.occurred_at)) + "</span>" : "") + "</div>" +
+          '<div class="md-i-acao"><button type="button" class="wi-btn" data-mdidx="' + idx + '" data-mdabrir="conversa">Abrir conversa</button></div></div>';
+      }
+      if (tipo === "work_item" || tipo === "atrasado") {
+        var prazo = it.prazo_em ? (it.atrasado ? '<span class="wi-atraso">Atrasado · ' + esc(tempoRel(it.prazo_em)) + "</span>" : "Prazo " + esc(tempoRel(it.prazo_em))) : "";
+        return '<div class="md-item' + (it.atrasado ? " atrasado" : "") + '">' +
+          '<div class="md-i-tit">' + esc(it.titulo || "(sem título)") + "</div>" +
+          '<div class="md-i-meta">' +
+          wiChip("wi-st-" + it.status, WI_STATUS_LBL[it.status] || it.status) +
+          wiChip("wi-pr-" + it.prioridade, it.prioridade) +
+          (prazo ? "<span>" + prazo + "</span>" : "") + "</div>" +
+          '<div class="md-i-acao"><button type="button" class="wi-btn" data-mdidx="' + idx + '" data-mdabrir="item">Abrir</button></div></div>';
+      }
+      if (tipo === "rotina") {
+        var emand = it.status === "em_andamento";
+        var badge = '<span style="font-size:11px;font-weight:700;border-radius:20px;padding:2px 9px;' +
+          (emand ? "background:#fdf0e3;color:#b26a1e;" : "background:#eef2f4;color:#5b6670;") + '">' + (emand ? "Em andamento" : "Pendente hoje") + "</span>";
+        var setor = it.contexto_titulo ? '<span style="font-size:11px;font-weight:600;color:#5b6670;background:#eef4f0;border-radius:20px;padding:2px 9px;">' + esc(it.contexto_titulo) + "</span>" : "";
+        var acao = emand
+          ? '<button type="button" class="wi-btn" data-mdidx="' + idx + '" data-mdabrir="concluir">Concluir</button>'
+          : '<button type="button" class="wi-btn" data-mdidx="' + idx + '" data-mdabrir="iniciar">Iniciar</button>';
+        return '<div class="md-item">' +
+          '<div class="md-i-meta" style="margin-top:0;margin-bottom:5px;">' + setor + badge + "</div>" +
+          '<div class="md-i-tit">' + esc(it.titulo || "(sem título)") + "</div>" +
+          '<div class="md-i-acao">' + acao + "</div></div>";
+      }
+      return "";
+    }
+
+    function mdOnClick(e) {
+      var t = e.target; if (!t || !t.closest) return;
+      if (t.closest("[data-mdretry]")) { mdCarregar(); return; }
+      if (t.closest("[data-mdsec]")) { mdCarregarSecao(); return; }
+      if (t.closest("[data-mdmais]")) { mdOffset += MD_LIM; mdCarregarSecao(true); return; }
+      var card = t.closest("[data-mdcard]");
+      if (card) {
+        var qual = card.getAttribute("data-mdcard");
+        if (qual === mdSecao) return;
+        mdSecao = qual; if (mdResumo) mdRenderResumo(mdResumo); mdCarregarSecao(); return;
+      }
+      var acaoEl = t.closest("[data-mdabrir]");
+      if (acaoEl) {
+        var it = mdLista[+acaoEl.getAttribute("data-mdidx")]; if (!it) return;
+        var acao = acaoEl.getAttribute("data-mdabrir");
+        if (acao === "conversa" && it.target_id) { abrirCanal({ id: it.target_id, titulo: it.contexto_titulo || "Conversa", tipo: it.contexto_tipo }); return; }
+        if (acao === "item" && it.item_id) { abrirItem(it.item_id); return; }
+        if (acao === "iniciar" && it.item_id) { mdIniciarRotina(it.item_id, acaoEl); return; }
+        if (acao === "concluir" && it.item_id) { mdConcluirRotina(it.item_id, it.exec_aberta_id, acaoEl); return; }
+      }
+    }
+
+    function mdIniciarRotina(rotinaId, btn) {
+      if (mdBusy[rotinaId]) return; mdBusy[rotinaId] = true; if (btn) btn.disabled = true;
+      var sb = SB(); if (!sb) { mdBusy[rotinaId] = false; return; }
+      comTimeout(medirRpc("registrar_execucao", sb.rpc("registrar_execucao",
+        { p_request_id: mdReqId(), p_rotina_id: rotinaId, p_status: "em_andamento", p_execucao_id: null, p_observacao: null })), 20000)
+        .then(function (r) {
+          mdBusy[rotinaId] = false;
+          if (r && !r.error) { if (viewAtual === "meudia") mdCarregar(); else mdAtualizarBadge(); } else { if (btn) btn.disabled = false; }
+        }, function () { mdBusy[rotinaId] = false; if (btn) btn.disabled = false; });
+    }
+
+    function mdConcluirRotina(rotinaId, execId, btn) {
+      if (!execId) { if (viewAtual === "meudia") mdCarregar(); else mdAtualizarBadge(); return; }   // sem execução aberta: estado mudou por baixo => reconcilia
+      var key = "c" + execId; if (mdBusy[key]) return; mdBusy[key] = true; if (btn) btn.disabled = true;
+      var sb = SB(); if (!sb) { mdBusy[key] = false; return; }
+      comTimeout(medirRpc("registrar_execucao", sb.rpc("registrar_execucao",
+        { p_request_id: mdReqId(), p_rotina_id: rotinaId, p_status: "concluido", p_execucao_id: execId, p_observacao: null })), 20000)
+        .then(function (r) {
+          mdBusy[key] = false;
+          if (r && !r.error) { if (viewAtual === "meudia") mdCarregar(); else mdAtualizarBadge(); } else { if (btn) btn.disabled = false; }
+        }, function () { mdBusy[key] = false; if (btn) btn.disabled = false; });
+    }
+
+    function mdAtualizarBadgeNum(n) {
+      if (!mdNavBtn) return;
+      var b = mdNavBtn.querySelector(".co-badge"); if (!b) return;
+      n = +n || 0;
+      if (n > 0) { b.textContent = n > 99 ? "99+" : String(n); b.style.display = ""; }
+      else { b.textContent = ""; b.style.display = "none"; }
+    }
+
+    function mdAtualizarBadge() {
+      var sb = SB(); if (!sb || !mdFlagOn) return;
+      medirRpc("meu_dia_resumo", sb.rpc("meu_dia_resumo")).then(function (r) {
+        if (!r || r.error) return;
+        var res = (r.data && r.data[0]) || null; if (!res) return;
+        mdResumo = res; mdAtualizarBadgeNum(res.total_pendencias);
+        if (viewAtual === "meudia") mdRenderResumo(res);
+      }, function () { });
+    }
+
+    function mdAgendarRefresh() {
+      if (!mdFlagOn) return;
+      if (mdRefreshTimer) clearTimeout(mdRefreshTimer);
+      mdRefreshTimer = setTimeout(function () {
+        mdRefreshTimer = null;
+        if (viewAtual === "meudia") mdCarregar(); else mdAtualizarBadge();
+      }, (window.__CO_MD_MS != null ? window.__CO_MD_MS : 800));
+    }
+
     function pronto() { return document.querySelector("nav.sidebar") && document.querySelector("main") && SB() && perfil(); }
     function tentarIniciar() {
       if (montado || checagemFeita) return;
@@ -4523,6 +4793,10 @@
         sb.from("feature_flags").select("habilitado").eq("chave", "work_items_por_responsavel_enabled").maybeSingle().then(function (r) {
           peFlagOn = !!(r && r.data && r.data.habilitado);   // (2.8) visão Por funcionário
           peGarantirBotao();
+        }, function () { });
+        sb.from("feature_flags").select("habilitado").eq("chave", "meu_dia_enabled").maybeSingle().then(function (r) {
+          mdFlagOn = !!(r && r.data && r.data.habilitado);   // (2.9) visão Meu Dia
+          if (mdFlagOn) mdGarantirNav();
         }, function () { });
       } catch (e) { }
     }
