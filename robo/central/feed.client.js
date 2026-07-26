@@ -447,6 +447,37 @@
         ".md-i-acao{margin-top:9px;}",
         ".md-vazio{color:#7b8792;font-size:13.5px;padding:14px 2px;}",
         ".md-ok{color:#157a35;font-weight:600;}",
+        ".co-solic{padding:2px 0;}",
+        ".so-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}",
+        ".so-tabs{display:flex;gap:6px;}",
+        ".so-tab{border:1px solid #d9e2ec;background:#fff;color:#5b6670;border-radius:9px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;}",
+        ".so-tab.on{background:#eaf5ee;border-color:#157a35;color:#0c5a26;}",
+        ".so-nova{margin-left:auto;border:0;background:#157a35;color:#fff;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;}",
+        ".so-lista{display:flex;flex-direction:column;gap:9px;}",
+        ".so-card{border:1px solid #eef2f4;border-radius:12px;padding:12px 14px;background:#fff;}",
+        ".so-card-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}",
+        ".so-tipo{font-size:11px;font-weight:700;letter-spacing:.02em;color:#7b8792;text-transform:uppercase;}",
+        ".so-tit{font-size:14.5px;font-weight:650;color:#26313a;margin-top:3px;}",
+        ".so-desc{font-size:13px;color:#5b6670;margin-top:4px;white-space:pre-wrap;}",
+        ".so-valor{font-size:14px;font-weight:700;color:#26313a;margin-top:5px;}",
+        ".so-meta{font-size:12px;color:#7b8792;margin-top:6px;}",
+        ".so-badge{display:inline-block;font-size:11px;font-weight:700;border-radius:20px;padding:2px 10px;}",
+        ".so-badge.pendente{background:#eef2f4;color:#5b6670;}",
+        ".so-badge.aprovada{background:#e6f4ea;color:#1a7a37;}",
+        ".so-badge.negada{background:#fdeaea;color:#c0392b;}",
+        ".so-badge.cancelada{background:#f0f0f0;color:#8a929a;}",
+        ".so-decisao{margin-top:8px;padding:8px 10px;background:#f7fafb;border-radius:8px;font-size:12.5px;color:#5b6670;}",
+        ".so-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}",
+        ".so-form{border:1px solid #e6ecf3;border-radius:12px;padding:14px;background:#fbfdfc;}",
+        ".so-form label{display:block;font-size:12px;font-weight:600;color:#5b6670;margin:8px 0 4px;}",
+        ".so-form input,.so-form select,.so-form textarea{width:100%;box-sizing:border-box;border:1px solid #d9e2ec;border-radius:9px;padding:8px 10px;font-size:13px;color:#26313a;background:#fff;}",
+        ".so-modal-bg{position:fixed;inset:0;background:rgba(20,28,26,.35);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;}",
+        ".so-modal{background:#fff;border-radius:14px;padding:18px;max-width:420px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.2);}",
+        ".so-modal h4{margin:0 0 8px;font-size:16px;color:#26313a;}",
+        ".so-vazio{color:#7b8792;font-size:13.5px;padding:16px 2px;}",
+        ".so-erro-modal{color:#c0392b;font-size:12.5px;margin-top:6px;}",
+        ".wi-btn.danger{color:#c0392b;border-color:#f1c9bf;}",
+        ".wi-btn.primary{background:#157a35;color:#fff;border-color:#157a35;}",
         ".co-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px;}",
         ".co-sub{font-size:13px;color:#7b8792;margin-top:2px;}",
         ".copf-refresh{border:1px solid #d9e2dc;background:#fff;color:#157a35;border-radius:8px;width:34px;height:34px;font-size:16px;cursor:pointer;flex:none;}",
@@ -661,7 +692,7 @@
       if (rotView) rotView.style.display = "none";                   // (2.6)
       if (roNavBtn) roNavBtn.classList.remove("on");                 // (2.6)
       if (wiNavBtn) wiNavBtn.classList.remove("on");                 // (2.0)
-      mdEsconder();                                                  // (2.9)
+      mdEsconder(); soEsconder();                                    // (2.9/3.0)
       if (feedView) feedView.style.display = "";
       marcarAtivo(null);
       renderNaoLidas();   // sem tópico aberto: o badge do que estava aberto volta a aparecer se tiver não-lidas
@@ -676,7 +707,7 @@
       if (rotView) rotView.style.display = "none";                   // (2.6)
       if (roNavBtn) roNavBtn.classList.remove("on");                 // (2.6)
       if (wiNavBtn) wiNavBtn.classList.remove("on");                 // (2.0)
-      mdEsconder();                                                  // (2.9)
+      mdEsconder(); soEsconder();                                    // (2.9/3.0)
       if (canalView) canalView.style.display = "";
       canalTitTxt = t.titulo || "Conversa";
       if (canalTitulo) canalTitulo.textContent = (t.tipo === "canal" ? "# " : "") + canalTitTxt;
@@ -1920,7 +1951,7 @@
       wiGarantirView();
       if (feedView) feedView.style.display = "none";
       if (canalView) canalView.style.display = "none";
-      mdEsconder();                                                  // (2.9)
+      mdEsconder(); soEsconder();                                    // (2.9/3.0)
       if (trabView) trabView.style.display = "";
       marcarAtivo(null);
       if (rotView) rotView.style.display = "none"; if (roNavBtn) roNavBtn.classList.remove("on");   // (2.6)
@@ -2036,7 +2067,7 @@
       if (feedView) feedView.style.display = "none";
       if (canalView) canalView.style.display = "none";
       if (rotView) rotView.style.display = "none"; if (roNavBtn) roNavBtn.classList.remove("on");   // (2.6)
-      mdEsconder();                                                  // (2.9)
+      mdEsconder(); soEsconder();                                    // (2.9/3.0)
       viewAtual = "item";
       if (wiListaEl) wiListaEl.innerHTML = "";
       wiSetStatus('<div class="copf-skel"></div><div class="copf-skel"></div>');
@@ -3409,7 +3440,8 @@
           // (2.9) Meu Dia: qualquer evento que possa mudar minhas pendências (menção/tarefa/rotina) e não
           // seja do próprio autor => reagenda (debounced) o resumo. Reconcilia pelo servidor (não infere do payload).
           if (mdFlagOn && p.autor !== (perfil() || {}).id &&
-            (tipo === "mensagem.criada" || (tipo && tipo.indexOf("work_item.") === 0) || (tipo && tipo.indexOf("rotina.") === 0))) mdAgendarRefresh();
+            (tipo === "mensagem.criada" || (tipo && tipo.indexOf("work_item.") === 0) || (tipo && tipo.indexOf("rotina.") === 0) || (tipo && tipo.indexOf("solicitacao.") === 0))) mdAgendarRefresh();
+          if (soFlagOn && tipo && tipo.indexOf("solicitacao.") === 0 && p.autor !== (perfil() || {}).id) soAgendarRefresh();   // (3.0) fila/minhas em tempo real
           // Feed: conta "novos" só p/ eventos que aparecem no Feed (não os de bastidor)
           if (viewAtual === "feed" && !bastidor) { novos++; renderNovos(); }
           // conversa aberta: busca só a msg e insere; tópico fechado: incrementa não-lidas
@@ -3464,6 +3496,7 @@
                 if (kbVista === "dashboard" && dbEl && dbEl.style.display !== "none") dbCarregar();
                 if (viewAtual === "rotinas") roCarregar();   // (2.6-review) revalida as Rotinas na reconexão
                 if (mdFlagOn) { if (viewAtual === "meudia") mdCarregar(); else mdAtualizarBadge(); }   // (2.9)
+                if (soFlagOn && viewAtual === "solicitacoes") soAgendarRefresh();   // (3.0)
               }, (window.__CO_REC_MS != null ? window.__CO_REC_MS : 1500));   // (1.14) debounce test-override
             }
             rtSubOk = true;
@@ -3491,6 +3524,7 @@
           if (kbVista === "dashboard" && dbEl && dbEl.style.display !== "none") dbCarregar();  // (2.2) reconcilia no foco
           if (viewAtual === "rotinas") roCarregar();   // (2.6-review) reconcilia as Rotinas ao voltar o foco
           if (mdFlagOn) { if (viewAtual === "meudia") mdCarregar(); else mdAtualizarBadge(); }   // (2.9) badge fresco ao voltar o foco
+          if (soFlagOn && viewAtual === "solicitacoes") soAgendarRefresh();   // (3.0)
           var topoMsg = canalAtual && msgLista && msgLista.querySelector(".co-msg");
           if (topoMsg) marcarLidoAte(canalAtual, topoMsg.getAttribute("data-mid"));
         }
@@ -3911,7 +3945,7 @@
       if (canalView) canalView.style.display = "none";
       if (trabView) trabView.style.display = "none";
       if (wiNavBtn) wiNavBtn.classList.remove("on");
-      mdEsconder();                                                  // (2.9)
+      mdEsconder(); soEsconder();                                    // (2.9/3.0)
       if (rotView) rotView.style.display = "";
       if (roNavBtn) roNavBtn.classList.add("on");
       marcarAtivo(null);
@@ -4574,6 +4608,7 @@
       if (canalView) canalView.style.display = "none";
       if (trabView) trabView.style.display = "none";
       if (rotView) rotView.style.display = "none";
+      soEsconder();                                        // (3.0)
       marcarAtivo(null);                                   // (2.9-review) ANTES de apagar o Feed: marcarAtivo(null) religa o feedBtn
       if (feedBtn) feedBtn.classList.remove("on");
       if (wiNavBtn) wiNavBtn.classList.remove("on");
@@ -4628,6 +4663,10 @@
         var s = MD_SECOES[j], n = +res[s.campo] || 0;
         html += '<button type="button" class="md-card' + (s.chave === mdSecao ? " on" : "") + (s.alerta && n > 0 ? " alerta" : "") + '" data-mdcard="' + s.chave + '">' +
           '<div class="md-card-lbl">' + s.lbl + '</div><div class="md-card-n">' + n + "</div></button>";
+      }
+      if (res.total_solicitacoes_aprovar != null) {   // (3.0) só p/ aprovador; clicar leva pra área Solicitações
+        html += '<button type="button" class="md-card" data-mdcard="solicitacao_aprovar">' +
+          '<div class="md-card-lbl">Solicitações para aprovar</div><div class="md-card-n">' + (+res.total_solicitacoes_aprovar || 0) + "</div></button>";
       }
       mdCardsEl.innerHTML = html;
     }
@@ -4695,6 +4734,7 @@
       var card = t.closest("[data-mdcard]");
       if (card) {
         var qual = card.getAttribute("data-mdcard");
+        if (qual === "solicitacao_aprovar") { if (soFlagOn) mostrarSolicitacoes("aprovar"); return; }   // (3.0) deep-link
         if (qual === mdSecao) return;
         mdSecao = qual; if (mdResumo) mdRenderResumo(mdResumo); mdCarregarSecao(); return;
       }
@@ -4759,6 +4799,276 @@
       }, (window.__CO_MD_MS != null ? window.__CO_MD_MS : 800));
     }
 
+    /* ===================== SPRINT 3.0: SOLICITAÇÕES & APROVAÇÕES ==============================
+       Fluxo PEDIDO→DECISÃO (não é work item). Funcionário abre; acompanha em "Minhas"; aprovador
+       (= master) decide em "Para aprovar". Escrita só por RPC DEFINER (criar/cancelar/aprovar/negar);
+       leitura INVOKER sob RLS. Tempo real por Broadcast (solicitacao.*). Integra no Meu Dia (badge do
+       aprovador). Atrás da flag solicitacoes_enabled. Conteúdo sensível nunca vai no Broadcast/Feed. */
+    var soFlagOn = false;
+    var soNavBtn = null, soView = null, soHeadEl = null, soListaEl = null, soStatusEl = null, soFormEl = null, soModalWrap = null;
+    var soAba = "minhas";            // minhas | aprovar
+    var soGen = 0, soRefreshTimer = null, soBusy = {}, soModalCtx = null;
+    var SO_TIPOS = [
+      { v: "folga", l: "Folga" }, { v: "compra_insumo", l: "Compra / insumo" }, { v: "adiantamento", l: "Adiantamento" },
+      { v: "manutencao", l: "Manutenção" }, { v: "reposicao_urgente", l: "Reposição urgente" }, { v: "outro", l: "Outro" }
+    ];
+    var SO_TIPO_LBL = {}; for (var _si = 0; _si < SO_TIPOS.length; _si++) SO_TIPO_LBL[SO_TIPOS[_si].v] = SO_TIPOS[_si].l;
+    var SO_STATUS_LBL = { pendente: "Pendente", aprovada: "Aprovada", negada: "Negada", cancelada: "Cancelada" };
+    function soReqId() { try { return uuidv7(); } catch (e) { return null; } }
+    function soEhAprovador() { var p = perfil(); return !!(p && p.is_master); }
+    function soEsconder() { if (soView) soView.style.display = "none"; if (soNavBtn) soNavBtn.classList.remove("on"); }
+    function soFmtValor(v) {
+      if (v == null || v === "") return "";
+      var n = Number(v); if (isNaN(n)) return "";
+      var neg = n < 0; n = Math.abs(n);
+      var p = n.toFixed(2).split("."), int = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      return "R$ " + (neg ? "-" : "") + int + "," + p[1];
+    }
+
+    function soGarantirNav() {
+      if (soNavBtn) return;
+      var ref = roNavBtn || wiNavBtn || feedBtn; if (!ref || !ref.parentNode) return;
+      soNavBtn = document.createElement("button");
+      soNavBtn.type = "button"; soNavBtn.className = "co-nav-item";
+      soNavBtn.innerHTML =
+        '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>' +
+        "<span>Solicitações</span>";
+      soNavBtn.addEventListener("click", function () { mostrarSolicitacoes(); });
+      ref.parentNode.insertBefore(soNavBtn, ref.nextSibling);
+    }
+
+    function soGarantirView() {
+      if (soView || !feedView || !feedView.parentNode) return soView;
+      soView = document.createElement("div");
+      soView.className = "co-solic"; soView.style.display = "none";
+      soView.innerHTML =
+        '<div class="so-head"></div><div class="so-status"></div><div class="so-lista"></div>' +
+        '<div class="so-form" style="display:none;"></div><div class="so-modal-wrap"></div>';
+      feedView.parentNode.insertBefore(soView, feedView.nextSibling);
+      soHeadEl = soView.querySelector(".so-head");
+      soStatusEl = soView.querySelector(".so-status");
+      soListaEl = soView.querySelector(".so-lista");
+      soFormEl = soView.querySelector(".so-form");
+      soModalWrap = soView.querySelector(".so-modal-wrap");
+      soView.addEventListener("click", soOnClick);
+      return soView;
+    }
+
+    function mostrarSolicitacoes(aba) {
+      if (!soFlagOn) return;
+      pararDigitar(); limparTodosDigit();
+      soGarantirView();
+      if (aba === "aprovar" && !soEhAprovador()) aba = "minhas";
+      if (aba) soAba = aba;
+      viewAtual = "solicitacoes"; canalAtual = null; itemAtual = null;
+      if (feedView) feedView.style.display = "none";
+      if (canalView) canalView.style.display = "none";
+      if (trabView) trabView.style.display = "none";
+      if (rotView) rotView.style.display = "none";
+      if (mdView) mdView.style.display = "none"; if (mdNavBtn) mdNavBtn.classList.remove("on");
+      marcarAtivo(null);
+      if (feedBtn) feedBtn.classList.remove("on");
+      if (wiNavBtn) wiNavBtn.classList.remove("on");
+      if (roNavBtn) roNavBtn.classList.remove("on");
+      if (soView) soView.style.display = "";
+      if (soNavBtn) soNavBtn.classList.add("on");
+      soRenderHead();
+      soCarregar();
+    }
+
+    function soRenderHead() {
+      if (!soHeadEl) return;
+      var tabs = '<div class="so-tabs"><button type="button" class="so-tab' + (soAba === "minhas" ? " on" : "") + '" data-soaba="minhas">Minhas solicitações</button>';
+      if (soEhAprovador()) tabs += '<button type="button" class="so-tab' + (soAba === "aprovar" ? " on" : "") + '" data-soaba="aprovar">Para aprovar</button>';
+      tabs += "</div>";
+      soHeadEl.innerHTML = tabs + '<button type="button" class="so-nova" data-sonova>+ Nova solicitação</button>';
+    }
+
+    function soSetStatus(html) { if (soStatusEl) soStatusEl.innerHTML = html || ""; }
+
+    function soCarregar() {
+      var sb = SB(); if (!sb || !soFlagOn) return;
+      if (soFormEl) soFormEl.style.display = "none";
+      if (soListaEl) soListaEl.style.display = "";   // (3.0-review) recarregar fecha o form => reexibe a lista (não deixa em branco)
+      var g = ++soGen;
+      soSetStatus(""); if (soListaEl) soListaEl.innerHTML = '<div class="copf-skel"></div><div class="copf-skel"></div>';
+      var rpc = soAba === "aprovar" ? "solicitacoes_pendentes_aprovacao" : "solicitacoes_minhas";
+      var args = soAba === "aprovar" ? { p_limit: 50, p_offset: 0 } : { p_status: null, p_tipo: null, p_limit: 50, p_offset: 0 };
+      medirRpc(rpc, sb.rpc(rpc, args)).then(function (r) {
+        if (g !== soGen || viewAtual !== "solicitacoes") return;
+        if (!r || r.error) { if (soListaEl) soListaEl.innerHTML = '<div class="so-vazio"><b>Não foi possível carregar as solicitações.</b> <button type="button" class="wi-btn" data-soretry>Tentar novamente</button></div>'; return; }
+        if (soAba === "aprovar") soRenderAprovar(r.data || []); else soRenderMinhas(r.data || []);
+      }, function () { if (g === soGen && viewAtual === "solicitacoes" && soListaEl) soListaEl.innerHTML = '<div class="so-vazio"><b>Não foi possível carregar as solicitações.</b> <button type="button" class="wi-btn" data-soretry>Tentar novamente</button></div>'; });
+    }
+
+    function soCardBase(s) {
+      var val = soFmtValor(s.valor);
+      return '<div class="so-card-top"><span class="so-tipo">' + esc(SO_TIPO_LBL[s.tipo] || s.tipo) + "</span></div>" +
+        '<div class="so-tit">' + esc(s.titulo || "(sem título)") + "</div>" +
+        (s.descricao ? '<div class="so-desc">' + esc(s.descricao) + "</div>" : "") +
+        (val ? '<div class="so-valor">' + val + "</div>" : "");
+    }
+
+    function soRenderMinhas(itens) {
+      if (!soListaEl) return;
+      if (!itens.length) { soListaEl.innerHTML = '<div class="so-vazio">Você ainda não abriu nenhuma solicitação.<div style="margin-top:10px;"><button type="button" class="wi-btn primary" data-sonova>+ Nova solicitação</button></div></div>'; return; }
+      var html = "";
+      for (var i = 0; i < itens.length; i++) {
+        var s = itens[i], quando = tempoRel(s.created_at);
+        var decisao = "";
+        if (s.status === "aprovada" || s.status === "negada") {
+          decisao = '<div class="so-decisao"><b>' + (s.status === "aprovada" ? "Aprovada" : "Negada") + "</b>" +
+            (s.decidida_por_nome ? " · por " + esc(s.decidida_por_nome) : "") + (s.decidida_em ? " · " + esc(tempoRel(s.decidida_em)) : "") +
+            (s.decisao_comentario ? "<br>“" + esc(s.decisao_comentario) + "”" : "") + "</div>";
+        } else if (s.status === "cancelada") {
+          decisao = '<div class="so-decisao">Cancelada' + (s.cancelada_em ? " · " + esc(tempoRel(s.cancelada_em)) : "") + "</div>";
+        }
+        var acoes = s.status === "pendente" ? '<div class="so-acoes"><button type="button" class="wi-btn danger" data-socancelar="' + esc(s.id) + '">Cancelar solicitação</button></div>' : "";
+        html += '<div class="so-card">' + soCardBase(s) +
+          '<div class="so-meta"><span class="so-badge ' + s.status + '">' + (SO_STATUS_LBL[s.status] || s.status) + "</span> · " + esc(quando) + "</div>" +
+          decisao + acoes + "</div>";
+      }
+      soListaEl.innerHTML = html;
+    }
+
+    function soRenderAprovar(itens) {
+      if (!soListaEl) return;
+      if (!itens.length) { soListaEl.innerHTML = '<div class="so-vazio"><b>Tudo certo.</b><br>Nenhuma solicitação aguardando aprovação.</div>'; return; }
+      var html = '<div class="so-meta" style="margin-bottom:4px;">' + itens.length + (itens.length === 1 ? " solicitação aguardando decisão" : " solicitações aguardando decisão") + "</div>";
+      for (var i = 0; i < itens.length; i++) {
+        var s = itens[i];
+        html += '<div class="so-card"><div class="so-meta" style="margin-top:0;margin-bottom:2px;"><b>' + esc(s.autor_nome || "Alguém") + "</b> · " + esc(tempoRel(s.created_at)) + "</div>" +
+          soCardBase(s) +
+          '<div class="so-acoes"><button type="button" class="wi-btn primary" data-soaprovar="' + esc(s.id) + '">Aprovar</button>' +
+          '<button type="button" class="wi-btn danger" data-sonegar="' + esc(s.id) + '">Negar</button></div></div>';
+      }
+      soListaEl.innerHTML = html;
+    }
+
+    /* ---- Nova solicitação ---- */
+    function soAbrirForm() {
+      soGarantirView();
+      if (!soFormEl) return;
+      soFormEl._soReq = null;   // (3.0-review) cada abertura = nova intenção (não reusa request_id de um envio anterior perdido)
+      var opts = ""; for (var i = 0; i < SO_TIPOS.length; i++) opts += '<option value="' + SO_TIPOS[i].v + '">' + esc(SO_TIPOS[i].l) + "</option>";
+      soFormEl.innerHTML =
+        '<div style="font-size:15px;font-weight:650;color:#26313a;margin-bottom:4px;">Nova solicitação</div>' +
+        '<label>Tipo *</label><select data-sof="tipo"><option value="">Escolha…</option>' + opts + "</select>" +
+        '<label>Título *</label><input type="text" data-sof="titulo" maxlength="200" placeholder="Ex.: Comprar material de limpeza">' +
+        '<label>Descrição</label><textarea data-sof="descricao" rows="3" maxlength="2000" placeholder="Detalhe o pedido (opcional)"></textarea>' +
+        '<label>Valor (opcional)</label><input type="number" data-sof="valor" min="0" step="0.01" placeholder="0,00">' +
+        '<div class="so-erro-modal" data-soformerro style="display:none;"></div>' +
+        '<div class="so-acoes" style="margin-top:12px;"><button type="button" class="wi-btn primary" data-soenviar>Enviar solicitação</button>' +
+        '<button type="button" class="wi-btn" data-sofcancelar>Cancelar</button></div>';
+      soFormEl.style.display = "";
+      if (soListaEl) soListaEl.style.display = "none";
+      soSetStatus("");
+    }
+    function soFecharForm() { if (soFormEl) { soFormEl.style.display = "none"; soFormEl.innerHTML = ""; } if (soListaEl) soListaEl.style.display = ""; }
+
+    function soSalvar(btn) {
+      if (!soFormEl) return;
+      var tipo = (soFormEl.querySelector('[data-sof="tipo"]') || {}).value || "";
+      var titulo = ((soFormEl.querySelector('[data-sof="titulo"]') || {}).value || "").trim();
+      var desc = ((soFormEl.querySelector('[data-sof="descricao"]') || {}).value || "").trim();
+      var valorRaw = ((soFormEl.querySelector('[data-sof="valor"]') || {}).value || "").trim();
+      var erroEl = soFormEl.querySelector("[data-soformerro]");
+      function erro(m) { if (erroEl) { erroEl.textContent = m; erroEl.style.display = ""; } }
+      if (!tipo) return erro("Escolha o tipo.");
+      if (!titulo) return erro("Escreva um título.");
+      var valor = null;
+      if (valorRaw !== "") { valor = Number(valorRaw.replace(",", ".")); if (isNaN(valor) || valor < 0) return erro("Valor inválido."); }
+      if (soFormEl._soReq == null) soFormEl._soReq = soReqId();   // idempotência presa à intenção
+      var req = soFormEl._soReq;
+      if (btn) btn.disabled = true;
+      var sb = SB(); if (!sb) { if (btn) btn.disabled = false; return; }
+      comTimeout(medirRpc("criar_solicitacao", sb.rpc("criar_solicitacao",
+        { p_request_id: req, p_tipo: tipo, p_titulo: titulo, p_descricao: desc || null, p_valor: valor })), 30000)
+        .then(function (r) {
+          if (r && !r.error) { soFormEl._soReq = null; soAba = "minhas"; soRenderHead(); soFecharForm(); soCarregar(); }
+          else { if (btn) btn.disabled = false; erro((r && r.error && r.error.message) ? "Não foi possível enviar." : "Não foi possível enviar."); }
+        }, function () { if (btn) btn.disabled = false; erro("Falha de conexão. Tente de novo."); });
+    }
+
+    /* ---- Cancelar (autor) ---- */
+    function soCancelar(id) {
+      soModalCtx = { acao: "cancelar", id: id };
+      soModal('<h4>Cancelar esta solicitação?</h4><div class="so-desc">Ela sai da fila e não poderá ser decidida.</div>' +
+        '<div class="so-acoes" style="margin-top:14px;"><button type="button" class="wi-btn" data-somodalcancel>Voltar</button>' +
+        '<button type="button" class="wi-btn danger" data-somodalok>Cancelar solicitação</button></div>');
+    }
+    /* ---- Aprovar / Negar (aprovador) ---- */
+    function soAprovar(id) {
+      soModalCtx = { acao: "aprovar", id: id };
+      soModal('<h4>Aprovar solicitação?</h4><label style="font-size:12px;font-weight:600;color:#5b6670;">Comentário (opcional)</label>' +
+        '<textarea data-somodaltxt rows="3" style="width:100%;box-sizing:border-box;border:1px solid #d9e2ec;border-radius:9px;padding:8px 10px;font-size:13px;"></textarea>' +
+        '<div class="so-erro-modal" data-somodalerro style="display:none;"></div>' +
+        '<div class="so-acoes" style="margin-top:12px;"><button type="button" class="wi-btn" data-somodalcancel>Cancelar</button>' +
+        '<button type="button" class="wi-btn primary" data-somodalok>Aprovar</button></div>');
+    }
+    function soNegar(id) {
+      soModalCtx = { acao: "negar", id: id };
+      soModal('<h4>Negar solicitação?</h4><label style="font-size:12px;font-weight:600;color:#5b6670;">Motivo *</label>' +
+        '<textarea data-somodaltxt rows="3" style="width:100%;box-sizing:border-box;border:1px solid #d9e2ec;border-radius:9px;padding:8px 10px;font-size:13px;"></textarea>' +
+        '<div class="so-erro-modal" data-somodalerro style="display:none;"></div>' +
+        '<div class="so-acoes" style="margin-top:12px;"><button type="button" class="wi-btn" data-somodalcancel>Cancelar</button>' +
+        '<button type="button" class="wi-btn danger" data-somodalok>Negar</button></div>');
+    }
+    function soModal(html) { if (!soModalWrap) return; soModalWrap.innerHTML = '<div class="so-modal-bg"><div class="so-modal">' + html + "</div></div>"; }
+    function soFecharModal() { if (soModalWrap) soModalWrap.innerHTML = ""; soModalCtx = null; }
+
+    function soConfirmarModal(okBtn) {
+      if (!soModalCtx) return;
+      var ctx = soModalCtx, sb = SB(); if (!sb) return;
+      var txtEl = soModalWrap ? soModalWrap.querySelector("[data-somodaltxt]") : null;
+      var erroEl = soModalWrap ? soModalWrap.querySelector("[data-somodalerro]") : null;
+      var comentario = txtEl ? txtEl.value.trim() : "";
+      function erro(m) { if (erroEl) { erroEl.textContent = m; erroEl.style.display = ""; } }
+      if (ctx.acao === "negar" && !comentario) return erro("O motivo é obrigatório.");
+      var chave = ctx.acao + ":" + ctx.id; if (soBusy[chave]) return; soBusy[chave] = true;
+      if (okBtn) okBtn.disabled = true;
+      var nome = ctx.acao === "aprovar" ? "aprovar_solicitacao" : ctx.acao === "negar" ? "negar_solicitacao" : "cancelar_solicitacao";
+      var args = ctx.acao === "cancelar" ? { p_request_id: soReqId(), p_solicitacao_id: ctx.id }
+        : { p_request_id: soReqId(), p_solicitacao_id: ctx.id, p_comentario: comentario || (ctx.acao === "negar" ? comentario : null) };
+      comTimeout(medirRpc(nome, sb.rpc(nome, args)), 30000).then(function (r) {
+        soBusy[chave] = false;
+        if (r && !r.error) { soFecharModal(); soCarregar(); if (mdFlagOn && ctx.acao !== "cancelar") mdAtualizarBadge(); }   // (3.0-review) badge do Meu Dia reconcilia mesmo sendo minha própria ação
+        else {
+          if (okBtn) okBtn.disabled = false;
+          var msg = (r && r.error && r.error.message) || "";
+          if (msg.indexOf("já foi decidida") >= 0 || msg.indexOf("ja foi decidida") >= 0) { erro("Esta solicitação já foi decidida por outra pessoa."); soCarregar(); }
+          else erro("Não foi possível concluir. Tente de novo.");
+        }
+      }, function () { soBusy[chave] = false; if (okBtn) okBtn.disabled = false; erro("Falha de conexão. Tente de novo."); });
+    }
+
+    function soOnClick(e) {
+      var t = e.target; if (!t || !t.closest) return;
+      var aba = t.closest("[data-soaba]");
+      if (aba) { var a = aba.getAttribute("data-soaba"); if (a !== soAba) { soAba = a; soRenderHead(); soCarregar(); } return; }
+      if (t.closest("[data-sonova]")) { soAbrirForm(); return; }
+      if (t.closest("[data-soenviar]")) { soSalvar(t.closest("[data-soenviar]")); return; }
+      if (t.closest("[data-sofcancelar]")) { soFecharForm(); return; }
+      if (t.closest("[data-soretry]")) { soCarregar(); return; }
+      var cc = t.closest("[data-socancelar]"); if (cc) { soCancelar(cc.getAttribute("data-socancelar")); return; }
+      var ap = t.closest("[data-soaprovar]"); if (ap) { soAprovar(ap.getAttribute("data-soaprovar")); return; }
+      var ng = t.closest("[data-sonegar]"); if (ng) { soNegar(ng.getAttribute("data-sonegar")); return; }
+      if (t.closest("[data-somodalok]")) { soConfirmarModal(t.closest("[data-somodalok]")); return; }
+      if (t.closest("[data-somodalcancel]")) { soFecharModal(); return; }
+    }
+
+    function soAgendarRefresh() {
+      if (!soFlagOn) return;
+      if (soRefreshTimer) clearTimeout(soRefreshTimer);
+      soRefreshTimer = setTimeout(function () {
+        soRefreshTimer = null;
+        // não recarrega se há modal/formulário aberto (não atropela quem está digitando/decidindo)
+        var modalAberto = soModalWrap && soModalWrap.innerHTML;
+        var formAberto = soFormEl && soFormEl.style.display !== "none" && soFormEl.innerHTML;
+        if (viewAtual === "solicitacoes" && !modalAberto && !formAberto) soCarregar();
+      }, (window.__CO_SO_MS != null ? window.__CO_SO_MS : 800));
+    }
+
     function pronto() { return document.querySelector("nav.sidebar") && document.querySelector("main") && SB() && perfil(); }
     function tentarIniciar() {
       if (montado || checagemFeita) return;
@@ -4797,6 +5107,10 @@
         sb.from("feature_flags").select("habilitado").eq("chave", "meu_dia_enabled").maybeSingle().then(function (r) {
           mdFlagOn = !!(r && r.data && r.data.habilitado);   // (2.9) visão Meu Dia
           if (mdFlagOn) mdGarantirNav();
+        }, function () { });
+        sb.from("feature_flags").select("habilitado").eq("chave", "solicitacoes_enabled").maybeSingle().then(function (r) {
+          soFlagOn = !!(r && r.data && r.data.habilitado);   // (3.0) área Solicitações
+          if (soFlagOn) soGarantirNav();
         }, function () { });
       } catch (e) { }
     }
