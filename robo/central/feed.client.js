@@ -407,6 +407,26 @@
         ".ro-srow-main{flex:1;min-width:0;text-align:left;border:0;background:none;cursor:pointer;padding:0;}",
         ".ro-srow-main:hover .ro-tit{color:#157a35;}",
         ".ro-srow-acao{flex:none;}",
+        ".pe-cab{margin:2px 0 12px;}",
+        ".pe-tit{font-size:15px;font-weight:650;color:#26313a;margin-bottom:8px;}",
+        ".pe-filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}",
+        ".pe-filtros select,.pe-filtros input{border:1px solid #d9e2ec;border-radius:9px;padding:7px 10px;font-size:13px;color:#26313a;background:#fff;}",
+        ".pe-filtros input[type=search]{flex:1;min-width:140px;}",
+        ".pe-check{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:#5b6670;}",
+        ".pe-resumo{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}",
+        ".pe-card{flex:1;min-width:170px;text-align:left;border:1px solid #e6ecf3;background:#fff;border-radius:12px;padding:11px 13px;cursor:pointer;}",
+        ".pe-card:hover{background:#f7fafd;}",
+        ".pe-card.on{border-color:#157a35;box-shadow:0 0 0 1px #157a35 inset;}",
+        ".pe-card-nome{font-size:14px;font-weight:650;color:#26313a;margin-bottom:6px;}",
+        ".pe-inat{font-size:10.5px;color:#b3bcc4;font-weight:600;}",
+        ".pe-card-nums{display:flex;gap:10px;flex-wrap:wrap;}",
+        ".pe-n{font-size:11.5px;color:#7b8792;}",
+        ".pe-n b{font-size:15px;color:#26313a;margin-right:3px;}",
+        ".pe-n.al b{color:#e07b39;} .pe-n.ur b{color:#c0392b;} .pe-n.bl b{color:#8a6d3b;}",
+        ".pe-lista{display:flex;flex-direction:column;gap:8px;}",
+        ".pe-item{border:0;}",
+        ".pe-reatr{margin-top:-2px;padding:0 2px 2px;}",
+        ".pe-reatr select{width:100%;box-sizing:border-box;border:1px solid #eef2f4;border-radius:8px;padding:5px 8px;font-size:12px;color:#5b6670;background:#fbfdfc;}",
         ".co-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px;}",
         ".co-sub{font-size:13px;color:#7b8792;margin-top:2px;}",
         ".copf-refresh{border:1px solid #d9e2dc;background:#fff;color:#157a35;border-radius:8px;width:34px;height:34px;font-size:16px;cursor:pointer;flex:none;}",
@@ -1982,6 +2002,7 @@
       if (kbEl) kbEl.style.display = "none";
       if (dbEl) dbEl.style.display = "none";
       if (bgEl) bgEl.style.display = "none";
+      if (peEl) peEl.style.display = "none";   // (2.8) abrir item/form esconde a visão Por funcionário
       kbFecharPop();
       if (wiListaEl) wiListaEl.style.display = "";
       if (wiMaisBtn && wiMaisBtn.parentNode) wiMaisBtn.parentNode.style.display = "none";
@@ -2166,6 +2187,7 @@
       if (kbEl) kbEl.style.display = "none";          // (2.1) idem para o formulário "Novo"
       if (dbEl) dbEl.style.display = "none";
       if (bgEl) bgEl.style.display = "none";
+      if (peEl) peEl.style.display = "none";   // (2.8) abrir item/form esconde a visão Por funcionário
       kbFecharPop();
       if (wiListaEl) wiListaEl.style.display = "";
       wiFormAberto = true; ++wiGen; ++itemGen;   // nada em voo pode apagar o formulário
@@ -2668,11 +2690,13 @@
       // aborta no guard (itemAtual/wiFormAberto) e a Lista fica em skeleton para sempre.
       itemAtual = null; wiFormAberto = false; ++wiGen; ++itemGen;
       if (viewAtual === "item") viewAtual = "trabalho";
+      if (qual === "pessoas" && !peFlagOn) qual = "lista";   // (2.8-review) flag off + co_trab_vista velho => cai pra Lista
       kbVista = qual;
       try { localStorage.setItem("co_trab_vista", qual); } catch (e) { }
       kbGarantirView();
       dbGarantirView();
       bgGarantirView();
+      peGarantirBotao();
       var bs = trabView ? trabView.querySelectorAll("[data-kbvista]") : [];
       for (var i = 0; i < bs.length; i++) bs[i].classList.toggle("on", bs[i].getAttribute("data-kbvista") === qual);
       // elementos que pertencem SÓ à Lista (aparecem apenas na vista lista)
@@ -2687,6 +2711,7 @@
       if (kbEl) kbEl.style.display = (qual === "kanban") ? "" : "none";
       if (dbEl) dbEl.style.display = (qual === "dashboard") ? "" : "none";
       if (bgEl) bgEl.style.display = (qual === "busca") ? "" : "none";
+      if (peEl) peEl.style.display = (qual === "pessoas") ? "" : "none";   // (2.8)
       if (qual !== "kanban") kbFecharPop();
 
       if (qual === "kanban") {
@@ -2705,6 +2730,8 @@
         dbCarregar();
       } else if (qual === "busca") {
         bgMostrarInput();               // (2.3) resultado congelado: não recarrega sozinho
+      } else if (qual === "pessoas") {
+        peGarantirView(); if (peEl) peEl.style.display = ""; peCarregar(true);   // (2.8) Por funcionário
       } else {
         carregarWi(true);
       }
@@ -3374,6 +3401,7 @@
               if (itemAtual && p.ent === itemAtual) abrirItem(itemAtual);   // detalhe aberto: recarrega o detalhe
               else if (kbVista === "kanban") kbReconciliar(p.ent);           // (2.1) move/atualiza SÓ aquele card
               else if (kbVista === "dashboard") dbAgendarRefresh();          // (2.2) re-agrega (debounced), patch no lugar
+              else if (kbVista === "pessoas") { if (peFlagOn && p.autor !== (perfil() || {}).id) peAgendarRefresh(); }   // (2.8-review) flag+autor+debounce
               else wiAtualizarUm(p.ent);                                    // lista: só aquele card
             }
           }
@@ -4229,6 +4257,238 @@
     }
 
 
+    /* ============================================================
+       (2.8) TAREFAS POR FUNCIONÁRIO — nova VISÃO sobre os Work Items (não é sistema paralelo).
+       5º item do alternador Trabalho: [Lista][Kanban][Painel][Busca][Por funcionário].
+       Reusa wiCard (card da Lista), abrirItem (detalhe) e atualizar_work_item (reatribuição, só master).
+       Resumo por responsável + lista filtrável/paginada, dia/atraso canônicos do servidor.
+       Atrás da flag work_items_por_responsavel_enabled.
+       ============================================================ */
+    var peFlagOn = false;
+    var peEl = null, peResumoEl = null, peListaEl = null, peStatusEl = null, peMaisEl = null;
+    var peFResp = "", peFSemResp = false, peFStatus = "", peFPrio = "", peFTipo = "", peFAtras = false, peBusca = "";
+    var peOffset = 0, peTotal = 0, peGen = 0, peRoster = null, peRefreshTimer = null;
+
+    function peEhMaster() { var p = perfil(); return !!(p && p.is_master); }
+    function peReqId() { try { return uuidv7(); } catch (e) { return null; } }
+    // (2.8-review) rajada de eventos vira UMA recarga (espelha dbAgendarRefresh), e só se a vista está visível
+    function peAgendarRefresh() {
+      if (peRefreshTimer) clearTimeout(peRefreshTimer);
+      peRefreshTimer = setTimeout(function () {
+        peRefreshTimer = null;
+        if (viewAtual === "trabalho" && kbVista === "pessoas" && peFlagOn && peEl && peEl.style.display !== "none") peCarregar(true);
+      }, (window.__CO_PE_MS != null ? window.__CO_PE_MS : 700));
+    }
+
+    // insere o botão "Por funcionário" no alternador (só com a flag on)
+    function peGarantirBotao() {
+      if (!peFlagOn || !trabView) return;
+      var alt = trabView.querySelector(".kb-vista"); if (!alt) return;
+      if (alt.querySelector('[data-kbvista="pessoas"]')) return;
+      var b = document.createElement("button");
+      b.type = "button"; b.setAttribute("data-kbvista", "pessoas"); b.textContent = "Por funcionário";
+      alt.appendChild(b);
+    }
+
+    function peGarantirView() {
+      if (peEl || !wiListaEl) return peEl;
+      peEl = document.createElement("div");
+      peEl.className = "co-porfunc";
+      peEl.style.display = "none";
+      peEl.innerHTML =
+        '<div class="pe-cab"><div class="pe-tit">Tarefas por funcionário</div>' +
+        '<div class="pe-filtros">' +
+        '<select data-pef="resp"><option value="">Todos os responsáveis</option>' +
+        '<option value="__me">Minhas tarefas</option><option value="__none">Sem responsável</option></select>' +
+        '<select data-pef="status"><option value="">Status: todos</option>' +
+        '<option value="aberto">Aberto</option><option value="em_andamento">Em andamento</option>' +
+        '<option value="bloqueado">Bloqueado</option><option value="concluido">Concluído</option>' +
+        '<option value="cancelado">Cancelado</option></select>' +
+        '<select data-pef="prio"><option value="">Prioridade: todas</option>' +
+        '<option value="urgente">Urgente</option><option value="alta">Alta</option>' +
+        '<option value="normal">Normal</option><option value="baixa">Baixa</option></select>' +
+        '<select data-pef="tipo"><option value="">Tipo: todos</option>' +
+        '<option value="tarefa">Tarefa</option><option value="ocorrencia">Ocorrência</option></select>' +
+        '<label class="pe-check"><input type="checkbox" data-pef="atras"> Só atrasadas</label>' +
+        '<input type="search" data-pef="busca" placeholder="Buscar tarefa…" autocomplete="off"></div></div>' +
+        '<div class="pe-resumo" data-peresumo></div>' +
+        '<div class="pe-lista" data-pelista></div>' +
+        '<div style="text-align:center;margin-top:10px;"><button type="button" class="copf-mais" data-pemais style="display:none;">Carregar mais</button></div>' +
+        '<div class="copf-status" data-pestatus></div>';
+      wiListaEl.parentNode.insertBefore(peEl, wiListaEl.nextSibling);
+      peResumoEl = peEl.querySelector("[data-peresumo]");
+      peListaEl = peEl.querySelector("[data-pelista]");
+      peStatusEl = peEl.querySelector("[data-pestatus]");
+      peMaisEl = peEl.querySelector("[data-pemais]");
+
+      peEl.addEventListener("change", function (e) {
+        var s = e.target && e.target.getAttribute && e.target.getAttribute("data-pef");
+        if (s === "resp") { peSetResp(e.target.value); peCarregar(true); return; }
+        if (s === "status") { peFStatus = e.target.value; peCarregar(true); return; }
+        if (s === "prio") { peFPrio = e.target.value; peCarregar(true); return; }
+        if (s === "tipo") { peFTipo = e.target.value; peCarregar(true); return; }
+        if (s === "atras") { peFAtras = !!e.target.checked; peCarregar(true); return; }
+        var re = e.target && e.target.getAttribute && e.target.getAttribute("data-pereatr");
+        if (re) { peReatribuir(re, e.target); return; }
+      });
+      var buscaEl = peEl.querySelector('[data-pef="busca"]');
+      if (buscaEl) {
+        var tmr = null;
+        buscaEl.addEventListener("input", function () {
+          peBusca = String(buscaEl.value || "").trim();
+          if (tmr) clearTimeout(tmr);
+          tmr = setTimeout(function () { peCarregar(true); }, 260);
+        });
+      }
+      peEl.addEventListener("click", function (e) {
+        var t = e.target; if (!t || !t.closest) return;
+        var card = t.closest("[data-pecard]");
+        if (card) { peSetResp(card.getAttribute("data-pecard")); peSincResp(); peCarregar(true); return; }
+        if (t.closest("[data-pemais]")) { peCarregar(false); return; }
+        // clique num card de work item (data-wiid) sobe pro listener do trabView => abrirItem
+      });
+      return peEl;
+    }
+
+    function peSetResp(val) {
+      // "" = todos ; "__me" = minhas ; "__none" = sem responsável ; uuid = aquele responsável
+      if (val === "__none") { peFSemResp = true; peFResp = "__none"; }
+      else if (val === "__me") { peFSemResp = false; peFResp = "__me"; }
+      else { peFSemResp = false; peFResp = val || ""; }
+    }
+    function peSincResp() {
+      var sel = peEl && peEl.querySelector('[data-pef="resp"]'); if (!sel) return;
+      // garante que o valor exista como opção (responsável clicado num card)
+      var v = peFResp;
+      if (v && v !== "__me" && v !== "__none" && !sel.querySelector('option[value="' + v + '"]')) {
+        var o = document.createElement("option"); o.value = v; o.textContent = "(responsável)"; sel.appendChild(o);
+      }
+      sel.value = v;
+    }
+
+    function peRosterCarregar(cb) {
+      if (peRoster) { cb && cb(); return; }
+      var sb = SB(); if (!sb) { cb && cb(); return; }
+      medirRpc("participantes", sb.rpc("participantes")).then(function (r) {
+        peRoster = (r && !r.error && r.data) ? r.data : [];
+        // popula o dropdown de responsável com o roster
+        var sel = peEl && peEl.querySelector('[data-pef="resp"]');
+        if (sel) {
+          var atual = sel.value;
+          for (var i = 0; i < peRoster.length; i++) {
+            if (sel.querySelector('option[value="' + peRoster[i].id + '"]')) continue;
+            var o = document.createElement("option"); o.value = peRoster[i].id; o.textContent = peRoster[i].nome; sel.appendChild(o);
+          }
+          sel.value = atual;
+        }
+        if (peListaEl) {   // (2.8-review) selects de reatribuição que renderizaram antes do roster
+          var res = peListaEl.querySelectorAll("[data-pereatr]");
+          for (var m = 0; m < res.length; m++) res[m].innerHTML = peRosterOpts(res[m].getAttribute("data-pecur"));
+        }
+        cb && cb();
+      }, function () { peRoster = []; cb && cb(); });
+    }
+
+    function peCarregar(reset) {
+      var sb = SB(); if (!sb) return;
+      peGarantirView();
+      peRosterCarregar();
+      if (reset) { peOffset = 0; if (peListaEl) peListaEl.innerHTML = ""; }
+      var g = ++peGen;
+      if (peStatusEl && reset) peStatusEl.innerHTML = '<div class="copf-skel"></div><div class="copf-skel"></div>';
+      if (reset) {
+        comTimeout(medirRpc("work_items_resumo_por_responsavel", sb.rpc("work_items_resumo_por_responsavel", { p_busca: null, p_incluir_sem_responsavel: true, p_concluidos_desde: null })), 15000).then(function (r) {
+          if (g !== peGen || viewAtual !== "trabalho" || kbVista !== "pessoas") return;
+          if (r && !r.error) peRenderResumo((r.data) || []);
+        }, function () { });
+      }
+      var meu = (perfil() || {}).id || null;
+      var args = {
+        p_responsavel_id: (peFResp === "__me") ? meu : ((peFResp && peFResp !== "__none") ? peFResp : null),
+        p_sem_responsavel: peFSemResp, p_status: peFStatus || null, p_prioridade: peFPrio || null,
+        p_tipo: peFTipo || null, p_somente_atrasados: peFAtras, p_busca: peBusca || null,
+        p_limit: 50, p_offset: peOffset
+      };
+      comTimeout(medirRpc("work_items_por_responsavel_pagina", sb.rpc("work_items_por_responsavel_pagina", args)), 15000).then(function (r) {
+        if (g !== peGen || viewAtual !== "trabalho" || kbVista !== "pessoas") return;
+        if (!r || r.error) { if (peStatusEl) peStatusEl.innerHTML = "<b>Não consegui carregar.</b>"; return; }
+        if (peStatusEl) peStatusEl.innerHTML = "";
+        var rows = (r.data) || [];
+        peTotal = rows.length ? Number(rows[0].total_count || 0) : 0;
+        peRenderLista(rows, reset);
+        peOffset += rows.length;
+        if (peMaisEl) peMaisEl.style.display = (peOffset < peTotal) ? "" : "none";
+      }, function () { if (g === peGen && peStatusEl) peStatusEl.innerHTML = "<b>Não consegui carregar.</b>"; });
+    }
+
+    function peNum(lbl, n, cls) {
+      return '<span class="pe-n ' + (cls || "") + '"><b>' + (n == null ? 0 : n) + "</b>" + esc(lbl) + "</span>";
+    }
+    function peRenderResumo(rows) {
+      if (!peResumoEl) return;
+      if (!rows.length) { peResumoEl.innerHTML = ""; return; }
+      var h = "";
+      for (var i = 0; i < rows.length; i++) {
+        var s = rows[i];
+        var nome = (s.responsavel_id == null) ? "Sem responsável"
+                 : (s.responsavel_nome ? esc(s.responsavel_nome) + (s.responsavel_ativo ? "" : ' <span class="pe-inat">inativo</span>') : "Usuário indisponível");
+        var chave = (s.responsavel_id == null) ? "__none" : s.responsavel_id;
+        var on = ((peFSemResp && s.responsavel_id == null) || (peFResp && peFResp === s.responsavel_id)) ? " on" : "";
+        h += '<button type="button" class="pe-card' + on + '" data-pecard="' + esc(chave) + '">' +
+          '<div class="pe-card-nome">' + nome + (s.responsavel_setor ? ' <span class="ro-setor">' + esc(s.responsavel_setor) + "</span>" : "") + "</div>" +
+          '<div class="pe-card-nums">' +
+          peNum(" ativas", s.total_ativos, "") +
+          (Number(s.total_atrasados) ? peNum(" atrasadas", s.total_atrasados, "al") : "") +
+          (Number(s.total_urgentes) ? peNum(" urgentes", s.total_urgentes, "ur") : "") +
+          (Number(s.total_em_andamento) ? peNum(" em and.", s.total_em_andamento, "") : "") +
+          (Number(s.total_bloqueados) ? peNum(" bloq.", s.total_bloqueados, "bl") : "") +
+          "</div></button>";
+      }
+      peResumoEl.innerHTML = h;
+    }
+
+    function peRosterOpts(sel) {
+      var o = '<option value="">Reatribuir…</option>';
+      if (peRoster) for (var i = 0; i < peRoster.length; i++)
+        o += '<option value="' + esc(peRoster[i].id) + '"' + (sel === peRoster[i].id ? " selected" : "") + ">" + esc(peRoster[i].nome) + "</option>";
+      o += '<option value="__none">— Tirar responsável —</option>';
+      return o;
+    }
+    function peRenderLista(rows, reset) {
+      if (!peListaEl) return;
+      if (reset && !rows.length) {
+        peListaEl.innerHTML = '<div class="copf-status"><b>' +
+          ((peFResp || peFSemResp || peFStatus || peFPrio || peFTipo || peFAtras || peBusca) ? "Nenhuma tarefa para este filtro." : "Nenhuma tarefa cadastrada.") + "</b></div>";
+        return;
+      }
+      if (reset) peListaEl.innerHTML = "";
+      for (var i = 0; i < rows.length; i++) {
+        var w = rows[i];
+        var wrap = document.createElement("div"); wrap.className = "pe-item";
+        wrap.appendChild(wiCard(w));   // reusa o card da Lista (clique => abrirItem via listener do trabView)
+        if (peEhMaster()) {
+          var re = document.createElement("div"); re.className = "pe-reatr";
+          re.innerHTML = '<select data-pereatr="' + esc(w.id) + '" data-pecur="' + esc(w.responsavel_id || "") + '">' + peRosterOpts(w.responsavel_id) + "</select>";
+          wrap.appendChild(re);
+        }
+        peListaEl.appendChild(wrap);
+      }
+    }
+
+    function peReatribuir(wiId, sel) {
+      var val = sel.value; if (!val) return;
+      var sb = SB(); if (!sb) return;
+      sel.disabled = true;
+      var args = (val === "__none")
+        ? { p_request_id: peReqId(), p_work_item_id: wiId, p_remover_responsavel: true }
+        : { p_request_id: peReqId(), p_work_item_id: wiId, p_responsavel_id: val };
+      comTimeout(medirRpc("atualizar_work_item", sb.rpc("atualizar_work_item", args)), 20000).then(function (r) {
+        sel.disabled = false;
+        if (r && !r.error) peCarregar(true);            // reatribuiu: recarrega resumo + lista
+        else { sel.value = ""; if (peStatusEl) peStatusEl.innerHTML = "<b>Não consegui reatribuir.</b>"; }
+      }, function () { sel.disabled = false; sel.value = ""; if (peStatusEl) peStatusEl.innerHTML = "<b>Não consegui reatribuir.</b>"; });
+    }
+
     function pronto() { return document.querySelector("nav.sidebar") && document.querySelector("main") && SB() && perfil(); }
     function tentarIniciar() {
       if (montado || checagemFeita) return;
@@ -4259,6 +4519,10 @@
         sb.from("feature_flags").select("habilitado").eq("chave", "rotinas_setor_enabled").maybeSingle().then(function (r) {
           rotinasSetorFlagOn = !!(r && r.data && r.data.habilitado);   // (2.7) visão Por setor
           roMontarToggle();
+        }, function () { });
+        sb.from("feature_flags").select("habilitado").eq("chave", "work_items_por_responsavel_enabled").maybeSingle().then(function (r) {
+          peFlagOn = !!(r && r.data && r.data.habilitado);   // (2.8) visão Por funcionário
+          peGarantirBotao();
         }, function () { });
       } catch (e) { }
     }
