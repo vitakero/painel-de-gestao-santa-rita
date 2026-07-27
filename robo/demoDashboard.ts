@@ -11086,6 +11086,8 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     document.querySelectorAll(".page").forEach(p=>p.classList.remove("ativo"));
     btn.classList.add("ativo");
     document.getElementById("page-"+btn.dataset.page).classList.add("ativo");
+    // presença: grava a página e re-registra JÁ (antes dos renders, pra não travar se algum render der erro)
+    try{ localStorage.setItem("ui_pagina_atual", btn.dataset.page); if(window.__presTrack) window.__presTrack(); }catch(e){}
     if(btn.dataset.page==="calendario"){ calAno=HOJE.getFullYear(); calMes=HOJE.getMonth(); setView("ano"); }
     if(btn.dataset.page==="organograma"){ renderOrg(); orgCenterView(); }
     if(btn.dataset.page==="fluxograma") renderFlux();
@@ -11962,6 +11964,8 @@ function pedEnviar(){
           ch.on('presence',{event:'sync'},function(){ window.__ONLINE=ch.presenceState(); if(typeof renderOnline==='function') renderOnline(); });
           ch.subscribe(function(st){ if(st==='SUBSCRIBED'){ window.__PRES_META={nome:(perfil&&perfil.nome)||email, setor:(perfil&&perfil.setor)||'', email:email}; if(window.__presTrack) window.__presTrack(); } });
           window.__PRESCH=ch;
+          // heartbeat: relê a presença (quem está online + em que página) a cada 5s, sem depender só do evento de sync
+          if(!window.__PRES_HB){ window.__PRES_HB=setInterval(function(){ try{ if(window.__PRESCH){ window.__ONLINE=window.__PRESCH.presenceState(); if(typeof renderOnline==='function') renderOnline(); } }catch(e){} }, 5000); }
         }
       }catch(e){}
       try{ var _pa=document.getElementById('page-acessos'); if(_pa && _pa.classList.contains('ativo') && typeof renderAcessos==='function'){ _acsTries=0; renderAcessos(); } }catch(e){}
