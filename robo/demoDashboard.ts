@@ -507,6 +507,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .ag-f-row input.ag-f-hora { width:auto; margin-bottom:0; }
   .ag-f-lbl { font-size:12px; color:#5b6670; }
   .ag-salvar { border:0; background:#157a35; color:#fff; border-radius:8px; padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer; }
+  .ag-ev-rep { font-size:11px; color:#1b4f86; background:#e6f0fb; border-radius:5px; padding:1px 7px; }
+  .ag-f-serie { font-size:11.5px; color:#1b4f86; background:#eaf2fb; border:1px solid #d3e3f5; border-radius:7px; padding:6px 9px; margin-bottom:9px; }
+  .ag-f-hint { font-size:11.5px; color:#5b6670; margin:-2px 0 8px 2px; }
+  .ag-aviso { font-size:12px; color:#8a5a00; background:#fdf3e3; border:1px solid #f3dcae; border-radius:7px; padding:7px 9px; margin-bottom:10px; }
+  .ag-form select.ag-f-rep { width:auto; margin-bottom:0; padding:6px 8px; border:1px solid #cfd8e3; border-radius:8px; font-size:13px; font-family:inherit; background:#fff; }
+  .ag-f-ate-wrap input.ag-f-ate { width:auto; margin-bottom:0; }
   .esc-domcol { font-weight:700; color:#0c5a26; }
   .px-venc-vencido { color:#c0392b; font-weight:700; }
   .px-venc-prox { color:#e8820e; font-weight:700; }
@@ -3437,27 +3443,88 @@ const DOW_PT = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 // ================= AGENDA (compromissos por dia — na nuvem) =================
 let agAno=HOJE.getFullYear(), agMes=HOJE.getMonth(), agSel=null, agEditId=null;
 let agEventos={};   // "YYYY-MM-DD" -> [eventos]
-let agCarregando=false;
+let agReqSeq=0;     // sequência de carregamento — descarta respostas obsoletas em navegação rápida
+let agRT=null;      // canal realtime
+let agErro=false;   // o último carregamento falhou?
+const AG_DOW_LONGO=["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
 function agSB(){ return window.__SB||null; }
 function agUid(){ return (window.__PERFIL&&window.__PERFIL.id)||null; }
 function agK(a,m,d){ return a+"-"+("0"+(m+1)).slice(-2)+"-"+("0"+d).slice(-2); }
+function agParse(k){ var p=String(k).split("-"); return new Date(+p[0],+p[1]-1,+p[2]); }
 function agEhHoje(a,m,d){ var h=new Date(); return h.getFullYear()===a&&h.getMonth()===m&&h.getDate()===d; }
 function agFmtHora(t){ return t?String(t).slice(0,5):""; }
 function agFmtDataBr(k){ var p=String(k).split("-"); return DOW_PT[new Date(+p[0],+p[1]-1,+p[2]).getDay()]+", "+p[2]+"/"+p[1]+"/"+p[0]; }
 function agEsc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function agRepete(ev){ return ev&&ev.repete&&ev.repete!=="nao"?ev.repete:null; }
+function agTodaToda(dow){ return (dow===0||dow===6)?"todo ":"toda "; }   // domingo/sábado = masculino
+function agRepLabel(ev){
+  var r=agRepete(ev); if(!r) return "";
+  if(r==="dia") return "todo dia";
+  if(r==="uteis") return "toda segunda a sexta";
+  if(r==="semana"){ var dw=agParse(ev.data).getDay(); return agTodaToda(dw)+AG_DOW_LONGO[dw]; }
+  if(r==="quinzena") return "a cada 15 dias";
+  if(r==="mes") return "todo dia "+agParse(ev.data).getDate();
+  return "";
+}
+function agRepHint(rep){
+  if(!rep||rep==="nao") return "";
+  var base=agSel?agParse(agSel):new Date();
+  if(rep==="dia") return "Vai repetir todos os dias.";
+  if(rep==="uteis") return "Vai repetir de segunda a sexta.";
+  if(rep==="semana") return "Vai repetir "+agTodaToda(base.getDay())+AG_DOW_LONGO[base.getDay()]+".";
+  if(rep==="quinzena") return "Vai repetir a cada 15 dias.";
+  if(rep==="mes") return "Vai repetir todo dia "+base.getDate()+" do mês.";
+  return "";
+}
+// Em quais dias do mês (ano,mes) este evento aparece, considerando a recorrência.
+function agOcorre(ev,ano,mes){
+  var out=[], rep=agRepete(ev), base=ev.data, ult=new Date(ano,mes+1,0).getDate();
+  if(!rep){ if(base>=agK(ano,mes,1)&&base<=agK(ano,mes,ult)) out.push(base); return out; }
+  var bd=agParse(base), bDia=bd.getDate(), ate=ev.repete_ate||null;
+  for(var d=1; d<=ult; d++){
+    var key=agK(ano,mes,d);
+    if(key<base) continue;                 // antes do início da série
+    if(ate&&key>ate) continue;             // depois do fim ("repetir até")
+    var cur=new Date(ano,mes,d), dc=Math.round((cur-bd)/864e5), hit=false;
+    if(rep==="dia") hit=true;
+    else if(rep==="uteis"){ var w=cur.getDay(); hit=(w>=1&&w<=5); }
+    else if(rep==="semana") hit=(dc%7===0);
+    else if(rep==="quinzena") hit=(dc%14===0);
+    else if(rep==="mes") hit=(d===bDia);
+    if(hit) out.push(key);
+  }
+  return out;
+}
 function agFindEv(id){ var e=null; (agEventos[agSel]||[]).forEach(function(x){ if(x.id===id) e=x; }); return e; }
 
 function agCloudLoad(){
   var sb=agSB(), uid=agUid();
   if(!sb||!uid){ agRenderMes(); agRenderDia(); return; }
-  if(agCarregando) return; agCarregando=true;
-  var ini=agK(agAno,agMes,1), fim=agK(agAno,agMes,new Date(agAno,agMes+1,0).getDate());
-  sb.from("agenda_eventos").select("*").eq("para_id",uid).gte("data",ini).lte("data",fim).then(function(r){
-    agCarregando=false; agEventos={};
-    if(!r.error&&r.data){ r.data.forEach(function(ev){ (agEventos[ev.data]=agEventos[ev.data]||[]).push(ev); });
-      Object.keys(agEventos).forEach(function(k){ agEventos[k].sort(function(a,b){ return (a.hora||"99")<(b.hora||"99")?-1:1; }); }); }
-    agRenderMes(); agRenderDia();
-  },function(){ agCarregando=false; agRenderMes(); agRenderDia(); });
+  var seq=++agReqSeq, reqAno=agAno, reqMes=agMes;
+  var ini=agK(reqAno,reqMes,1), fim=agK(reqAno,reqMes,new Date(reqAno,reqMes+1,0).getDate());
+  // Q1 = eventos únicos + início de séries dentro do mês; Q2 = séries que começaram ANTES deste mês (recorrem pra cá).
+  var q1=sb.from("agenda_eventos").select("*").eq("para_id",uid).gte("data",ini).lte("data",fim);
+  var q2=sb.from("agenda_eventos").select("*").eq("para_id",uid).not("repete","is",null).lt("data",ini);
+  function terminar(rows,erro){
+    if(seq!==agReqSeq) return;                                   // resposta velha: já saiu uma carga mais nova
+    if(reqAno!==agAno||reqMes!==agMes){ agCloudLoad(); return; } // mês mudou durante a carga → recarrega o certo
+    if(erro){ agErro=true; agRenderMes(); agRenderDia(); return; } // preserva o que já estava na tela + mostra aviso
+    agErro=false;
+    var mapa={};
+    rows.forEach(function(ev){ agOcorre(ev,agAno,agMes).forEach(function(key){ (mapa[key]=mapa[key]||[]).push(ev); }); });
+    Object.keys(mapa).forEach(function(k){ mapa[k].sort(function(a,b){ return (a.hora||"99")<(b.hora||"99")?-1:1; }); });
+    agEventos=mapa; agRenderMes(); agRenderDia();
+  }
+  Promise.all([
+    q1.then(function(r){ return r; }, function(){ return {error:true}; }),
+    q2.then(function(r){ return r; }, function(){ return {data:[]}; })   // Q2 falhar (ex.: coluna 'repete' ainda não existe) só desliga a recorrência
+  ]).then(function(res){
+    var r1=res[0]||{}, r2=res[1]||{};
+    if(r1.error){ terminar(null,true); return; }
+    var rows=[], vistos={};
+    (r1.data||[]).concat(r2.data||[]).forEach(function(ev){ if(ev&&!vistos[ev.id]){ vistos[ev.id]=1; rows.push(ev); } });
+    terminar(rows,false);
+  },function(){ terminar(null,true); });
 }
 
 function agRenderMes(){
@@ -3466,25 +3533,37 @@ function agRenderMes(){
   grid.innerHTML=celulasDoMes(agAno,agMes).map(function(c){
     if(c.fora) return '<div class="ag-cel fora"><span class="ag-num">'+c.dia+'</span></div>';
     var key=agK(agAno,agMes,c.dia), evs=agEventos[key]||[];
-    var chips=evs.slice(0,3).map(function(ev){ return '<div class="ag-chip">'+(ev.hora?('<b>'+agFmtHora(ev.hora)+'</b> '):'')+agEsc(ev.titulo)+'</div>'; }).join('');
+    var chips=evs.slice(0,3).map(function(ev){ return '<div class="ag-chip">'+(agRepete(ev)?'🔁 ':'')+(ev.hora?('<b>'+agFmtHora(ev.hora)+'</b> '):'')+agEsc(ev.titulo)+'</div>'; }).join('');
     var mais=evs.length>3?('<div class="ag-mais">+'+(evs.length-3)+' mais</div>'):'';
     return '<div class="ag-cel'+(agEhHoje(agAno,agMes,c.dia)?' hoje':'')+(agSel===key?' sel':'')+'" data-agdia="'+key+'"><span class="ag-num">'+c.dia+'</span>'+chips+mais+'</div>';
   }).join('');
 }
 
 function agEvHtml(ev){
+  var rep=agRepLabel(ev);
   return '<div class="ag-ev"><div class="ag-ev-top">'+
     (ev.hora?'<span class="ag-ev-hora">'+agFmtHora(ev.hora)+'</span>':'<span class="ag-ev-hora dia">dia todo</span>')+
-    '<span class="ag-ev-tit">'+agEsc(ev.titulo)+'</span></div>'+
+    '<span class="ag-ev-tit">'+agEsc(ev.titulo)+'</span>'+
+    (rep?'<span class="ag-ev-rep">🔁 '+rep+'</span>':'')+'</div>'+
     (ev.descricao?'<div class="ag-ev-desc">'+agEsc(ev.descricao)+'</div>':'')+
     '<div class="ag-ev-acoes"><button type="button" class="ag-mini" data-ageditar="'+ev.id+'">Editar</button>'+
     '<button type="button" class="ag-mini danger" data-agexcluir="'+ev.id+'">Excluir</button></div></div>';
 }
 function agFormHtml(){
   var ev = agEditId ? agFindEv(agEditId) : null;
+  var rep = ev&&ev.repete?ev.repete:"nao";
+  var ate = ev&&ev.repete_ate?ev.repete_ate:"";
+  function opt(v,txt){ return '<option value="'+v+'"'+(rep===v?' selected':'')+'>'+txt+'</option>'; }
+  var mostrarRep=(rep&&rep!=="nao");
   return '<div class="ag-form"><div class="ag-form-tit">'+(ev?'Editar compromisso':'Novo compromisso')+'</div>'+
+    (ev&&agRepete(ev)?'<div class="ag-f-serie">🔁 Este compromisso se repete — salvar ou excluir vale para todas as vezes.</div>':'')+
     '<input type="text" class="ag-f-tit" maxlength="120" placeholder="O que você vai fazer?" value="'+(ev?agEsc(ev.titulo):'')+'">'+
     '<div class="ag-f-row"><span class="ag-f-lbl">Hora (opcional):</span><input type="time" class="ag-f-hora" value="'+(ev&&ev.hora?agFmtHora(ev.hora):'')+'"></div>'+
+    '<div class="ag-f-row"><span class="ag-f-lbl">Repetir:</span><select class="ag-f-rep">'+
+      opt("nao","Não repete")+opt("dia","Todo dia")+opt("uteis","Toda segunda a sexta")+opt("semana","Toda semana")+opt("quinzena","A cada 15 dias")+opt("mes","Todo mês")+
+    '</select></div>'+
+    '<div class="ag-f-hint"'+(mostrarRep?'':' style="display:none;"')+'>'+agRepHint(rep)+'</div>'+
+    '<div class="ag-f-row ag-f-ate-wrap"'+(mostrarRep?'':' style="display:none;"')+'><span class="ag-f-lbl">Repetir até (opcional):</span><input type="date" class="ag-f-ate" value="'+(ate?agEsc(ate):'')+'"></div>'+
     '<textarea class="ag-f-desc" rows="2" maxlength="500" placeholder="Anotação (opcional)">'+(ev?agEsc(ev.descricao||''):'')+'</textarea>'+
     '<div class="ag-f-erro" style="display:none;color:#c0392b;font-size:12.5px;margin-top:2px;"></div>'+
     '<div style="display:flex;gap:8px;align-items:center;"><button type="button" class="ag-salvar" data-agsalvar="'+(ev?ev.id:'')+'">'+(ev?'Salvar':'Adicionar')+'</button>'+
@@ -3492,10 +3571,11 @@ function agFormHtml(){
 }
 function agRenderDia(){
   var p=document.getElementById("agPainel"); if(!p) return;
-  if(!agSel){ p.innerHTML='<div class="ag-vazio">Escolha um dia no calendário para ver e marcar seus compromissos.</div>'; return; }
+  var aviso=agErro?'<div class="ag-aviso">Não deu pra carregar a agenda agora. Verifique a conexão e toque em "Hoje".</div>':'';
+  if(!agSel){ p.innerHTML=aviso+'<div class="ag-vazio">Escolha um dia no calendário para ver e marcar seus compromissos.</div>'; return; }
   var evs=agEventos[agSel]||[];
   var lista=evs.length?evs.map(agEvHtml).join(''):'<div class="ag-vazio">Nada marcado neste dia ainda.</div>';
-  p.innerHTML='<div class="ag-painel-tit">'+agFmtDataBr(agSel)+'</div><div class="ag-lista">'+lista+'</div>'+agFormHtml();
+  p.innerHTML=aviso+'<div class="ag-painel-tit">'+agFmtDataBr(agSel)+'</div><div class="ag-lista">'+lista+'</div>'+agFormHtml();
 }
 function renderAgenda(){ if(!agSel){ var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate()); } agRenderMes(); agRenderDia(); }
 
@@ -3504,35 +3584,59 @@ function agSalvar(btn,id){
   var titulo=(box.querySelector(".ag-f-tit").value||"").trim();
   var hora=(box.querySelector(".ag-f-hora").value||"");
   var desc=(box.querySelector(".ag-f-desc").value||"").trim();
+  var repSel=box.querySelector(".ag-f-rep"), rep=repSel?repSel.value:"nao";
+  var ateEl=box.querySelector(".ag-f-ate"), ate=ateEl?(ateEl.value||""):"";
   var erro=box.querySelector(".ag-f-erro");
   function eMsg(m){ if(erro){ erro.textContent=m; erro.style.display=""; } }
   if(!titulo) return eMsg("Escreva o que você vai fazer.");
+  if(rep&&rep!=="nao"&&ate&&agSel&&ate<agSel) return eMsg('"Repetir até" não pode ser antes do dia do compromisso.');
   var sb=agSB(); if(!sb||!agUid()) return eMsg("Entre no painel pra salvar.");
   btn.disabled=true;
   var payload={ titulo:titulo, hora:hora||null, descricao:desc||null };
-  var q = id ? sb.from("agenda_eventos").update(payload).eq("id",id)
-             : sb.from("agenda_eventos").insert(Object.assign({data:agSel},payload));
-  q.then(function(r){ btn.disabled=false; if(r&&r.error){ eMsg("Não deu pra salvar. Tente de novo."); return; } agEditId=null; agCloudLoad(); },
-         function(){ btn.disabled=false; eMsg("Falha de conexão. Tente de novo."); });
+  var q;
+  if(id){
+    payload.repete=(rep&&rep!=="nao")?rep:null;                 // update permite ligar/desligar a repetição
+    payload.repete_ate=(rep&&rep!=="nao"&&ate)?ate:null;
+    q=sb.from("agenda_eventos").update(payload).eq("id",id).select();
+  } else {
+    if(rep&&rep!=="nao"){ payload.repete=rep; if(ate) payload.repete_ate=ate; } // insert de "não repete" não toca nas colunas novas
+    q=sb.from("agenda_eventos").insert(Object.assign({data:agSel},payload)).select();
+  }
+  q.then(function(r){ btn.disabled=false;
+    if(r&&r.error){ eMsg("Não deu pra salvar. Tente de novo."); return; }
+    if(r&&r.data&&r.data.length===0){ eMsg("Não foi possível salvar (sem permissão)."); return; }  // 0 linhas = RLS barrou
+    agEditId=null; agCloudLoad();
+  },function(){ btn.disabled=false; eMsg("Falha de conexão. Tente de novo."); });
 }
 function agExcluir(id){
   uiConfirm({titulo:"Excluir compromisso?",msg:"Tem certeza que quer excluir este compromisso?",ok:"Excluir",cancel:"Cancelar"}).then(function(ok){
     if(!ok) return; var sb=agSB(); if(!sb) return;
-    sb.from("agenda_eventos").delete().eq("id",id).then(function(r){ if(!(r&&r.error)){ agEditId=null; agCloudLoad(); } });
+    sb.from("agenda_eventos").delete().eq("id",id).select().then(function(r){ if(!(r&&r.error)){ agEditId=null; agCloudLoad(); } });
   });
 }
+function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; function rec(){ clearTimeout(deb); deb=setTimeout(agCloudLoad,700); } agRT=sb.channel("agenda_sync").on("postgres_changes",{event:"*",schema:"public",table:"agenda_eventos"},rec).subscribe(); }catch(e){} }
 
 (function(){
-  var pv=document.getElementById("agPrev"); if(pv) pv.addEventListener("click",function(){ agMes--; if(agMes<0){agMes=11;agAno--;} agEditId=null; agCloudLoad(); });
-  var nx=document.getElementById("agNext"); if(nx) nx.addEventListener("click",function(){ agMes++; if(agMes>11){agMes=0;agAno++;} agEditId=null; agCloudLoad(); });
+  var pv=document.getElementById("agPrev"); if(pv) pv.addEventListener("click",function(){ agMes--; if(agMes<0){agMes=11;agAno--;} agSel=null; agEditId=null; agCloudLoad(); });
+  var nx=document.getElementById("agNext"); if(nx) nx.addEventListener("click",function(){ agMes++; if(agMes>11){agMes=0;agAno++;} agSel=null; agEditId=null; agCloudLoad(); });
   var hj=document.getElementById("agHoje"); if(hj) hj.addEventListener("click",function(){ var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate()); agEditId=null; agCloudLoad(); });
   var dias=document.getElementById("agDias"); if(dias) dias.addEventListener("click",function(e){ var c=e.target.closest("[data-agdia]"); if(c){ agSel=c.getAttribute("data-agdia"); agEditId=null; agRenderMes(); agRenderDia(); } });
-  var pn=document.getElementById("agPainel"); if(pn) pn.addEventListener("click",function(e){
-    var sv=e.target.closest("[data-agsalvar]"); if(sv){ agSalvar(sv, sv.getAttribute("data-agsalvar")||null); return; }
-    var ed=e.target.closest("[data-ageditar]"); if(ed){ agEditId=ed.getAttribute("data-ageditar"); agRenderDia(); return; }
-    var ex=e.target.closest("[data-agexcluir]"); if(ex){ agExcluir(ex.getAttribute("data-agexcluir")); return; }
-    if(e.target.closest("[data-agcancelaredit]")){ agEditId=null; agRenderDia(); return; }
-  });
+  var pn=document.getElementById("agPainel"); if(pn){
+    pn.addEventListener("click",function(e){
+      var sv=e.target.closest("[data-agsalvar]"); if(sv){ agSalvar(sv, sv.getAttribute("data-agsalvar")||null); return; }
+      var ed=e.target.closest("[data-ageditar]"); if(ed){ agEditId=ed.getAttribute("data-ageditar"); agRenderDia(); return; }
+      var ex=e.target.closest("[data-agexcluir]"); if(ex){ agExcluir(ex.getAttribute("data-agexcluir")); return; }
+      if(e.target.closest("[data-agcancelaredit]")){ agEditId=null; agRenderDia(); return; }
+    });
+    // trocar "Repetir" mostra/esconde o "até" e atualiza a dica, sem re-renderizar o form
+    pn.addEventListener("change",function(e){
+      var sel=e.target.closest(".ag-f-rep"); if(!sel) return;
+      var box=sel.closest(".ag-form"); if(!box) return;
+      var rep=sel.value, mostrar=(rep&&rep!=="nao");
+      var hint=box.querySelector(".ag-f-hint"); if(hint){ hint.textContent=agRepHint(rep); hint.style.display=mostrar?"":"none"; }
+      var aw=box.querySelector(".ag-f-ate-wrap"); if(aw){ aw.style.display=mostrar?"":"none"; }
+    });
+  }
 })();
 // =============== FIM AGENDA ===============
 let escAno = HOJE.getFullYear(), escMes = HOJE.getMonth();
@@ -12169,6 +12273,7 @@ function pedEnviar(){
       try{ if(typeof glCloudLoad==="function"){ glCloudLoad(); glRealtime(); var _gp=document.getElementById('page-galpoes'); if(_gp && _gp.classList.contains('ativo')) renderGalpoes(); } }catch(e){}
       try{ if(typeof pixCobLoad==="function") pixCobLoad(); }catch(e){}
       try{ if(typeof entCloudLoad==="function") entCloudLoad(); }catch(e){}
+      try{ if(typeof agCloudLoad==="function"){ agCloudLoad(); if(typeof agRealtime==="function") agRealtime(); } }catch(e){}
       try{ if(window.__syncPull) window.__syncPull(); }catch(e){}
       try{
         if(!window.__PRESCH){
