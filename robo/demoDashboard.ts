@@ -475,6 +475,38 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .esc-add-cancel { border:1px solid #d9e2ec; background:#fff; color:#5b6670; border-radius:7px; padding:7px 12px; font-size:13px; cursor:pointer; }
   .esc td.nome .esc-del { color:#cdd6df; font-weight:700; margin-left:4px; }
   .esc td.nome .esc-del:hover { color:#c0392b; }
+  .ag-wrap { display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap; }
+  .ag-cal { flex:1; min-width:300px; }
+  .ag-painel { width:340px; flex:none; }
+  @media (max-width:860px){ .ag-painel { width:100%; } }
+  .ag-cel { min-height:76px; border:1px solid #eef1f4; border-radius:8px; padding:4px 5px; cursor:pointer; background:#fff; overflow:hidden; display:flex; flex-direction:column; }
+  .ag-cel:hover { background:#f6faf7; }
+  .ag-cel.fora { background:#fafbfc; cursor:default; }
+  .ag-cel.hoje { border-color:#157a35; box-shadow:0 0 0 1px #157a35 inset; }
+  .ag-cel.sel { background:#eaf5ee; border-color:#157a35; }
+  .ag-num { font-size:12px; font-weight:700; color:#46546a; }
+  .ag-cel.fora .ag-num { color:#c8cfd8; }
+  .ag-chip { font-size:10.5px; background:#e6f0fb; color:#1b4f86; border-radius:4px; padding:1px 4px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ag-mais { font-size:10px; color:#8a97a8; margin-top:1px; }
+  .ag-painel-tit { font-size:15px; font-weight:700; color:#0c5a26; margin-bottom:10px; text-transform:capitalize; }
+  .ag-lista { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+  .ag-ev { border:1px solid #eef1f4; border-radius:9px; padding:9px 11px; background:#fff; }
+  .ag-ev-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .ag-ev-hora { font-size:12px; font-weight:700; color:#157a35; background:#e6f4ea; border-radius:5px; padding:1px 7px; }
+  .ag-ev-hora.dia { color:#7b8792; background:#eef1f4; }
+  .ag-ev-tit { font-size:13.5px; font-weight:600; color:#26313a; }
+  .ag-ev-desc { font-size:12.5px; color:#5b6670; margin-top:4px; white-space:pre-wrap; }
+  .ag-ev-acoes { margin-top:7px; display:flex; gap:7px; }
+  .ag-mini { border:1px solid #d9e2ec; background:#fff; color:#5b6670; border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer; }
+  .ag-mini.danger { color:#c0392b; border-color:#f1c9bf; }
+  .ag-vazio { color:#8a97a8; font-size:13px; padding:8px 2px; }
+  .ag-form { border:1px solid #dbe7df; border-radius:11px; padding:12px; background:#f7fcf9; }
+  .ag-form-tit { font-size:13px; font-weight:700; color:#157a35; margin-bottom:8px; }
+  .ag-form input, .ag-form textarea { width:100%; box-sizing:border-box; border:1px solid #cfd8e3; border-radius:8px; padding:8px 10px; font-size:13px; margin-bottom:8px; font-family:inherit; }
+  .ag-f-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .ag-f-row input.ag-f-hora { width:auto; margin-bottom:0; }
+  .ag-f-lbl { font-size:12px; color:#5b6670; }
+  .ag-salvar { border:0; background:#157a35; color:#fff; border-radius:8px; padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer; }
   .esc-domcol { font-weight:700; color:#0c5a26; }
   .px-venc-vencido { color:#c0392b; font-weight:700; }
   .px-venc-prox { color:#e8820e; font-weight:700; }
@@ -565,6 +597,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="estoque"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Estoque</button>
     <button class="nav-item" data-page="datas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/></svg></span> Datas críticas</button>
     <button class="nav-item" data-page="calendario"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Calendário</button>
+    <button class="nav-item" data-page="agenda"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg></span> Agenda</button>
     <button class="nav-item" data-page="escala"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span> Escala</button>
     <button class="nav-item" data-page="ferias"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg></span> Férias</button>
     <button class="nav-item" data-page="pontos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span> Pontos extras<span class="nav-badge" id="pxNavBadge" style="display:none;"></span></button>
@@ -763,6 +796,26 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <thead><tr><th>PLU / CÓD. BARRAS</th><th>PRODUTO</th><th>DATA VENCIMENTO</th><th>ESTOQUE LOJA</th><th>ESTOQUE DEPÓSITO</th><th>ESTOQUE TOTAL</th></tr></thead>
           <tbody><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr></tbody>
         </table>
+      </div>
+    </section>
+
+    <section id="page-agenda" class="page">
+      <div class="card">
+        <div class="cal-top">
+          <button class="cal-nav" id="agPrev">‹</button>
+          <h2 id="agTitulo" style="margin:0;min-width:220px;text-align:center;font-size:18px;"></h2>
+          <button class="cal-nav" id="agNext">›</button>
+          <button class="btn-s" id="agHoje" style="margin-left:auto;">Hoje</button>
+        </div>
+        <div class="ag-wrap">
+          <div class="ag-cal">
+            <div class="cal-grid cal-head">
+              <div>DOM</div><div>SEG</div><div>TER</div><div>QUA</div><div>QUI</div><div>SEX</div><div>SÁB</div>
+            </div>
+            <div class="cal-grid" id="agDias"></div>
+          </div>
+          <div class="ag-painel" id="agPainel"></div>
+        </div>
       </div>
     </section>
 
@@ -3380,6 +3433,108 @@ const OPERACAO = ${JSON.stringify(operacaoSeed)};
 const LOGO_URI = ${JSON.stringify(logoDataUri)};
 const SIMBOLO_URI = ${JSON.stringify(simboloDataUri)};
 const DOW_PT = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+
+// ================= AGENDA (compromissos por dia — na nuvem) =================
+let agAno=HOJE.getFullYear(), agMes=HOJE.getMonth(), agSel=null, agEditId=null;
+let agEventos={};   // "YYYY-MM-DD" -> [eventos]
+let agCarregando=false;
+function agSB(){ return window.__SB||null; }
+function agUid(){ return (window.__PERFIL&&window.__PERFIL.id)||null; }
+function agK(a,m,d){ return a+"-"+("0"+(m+1)).slice(-2)+"-"+("0"+d).slice(-2); }
+function agEhHoje(a,m,d){ var h=new Date(); return h.getFullYear()===a&&h.getMonth()===m&&h.getDate()===d; }
+function agFmtHora(t){ return t?String(t).slice(0,5):""; }
+function agFmtDataBr(k){ var p=String(k).split("-"); return DOW_PT[new Date(+p[0],+p[1]-1,+p[2]).getDay()]+", "+p[2]+"/"+p[1]+"/"+p[0]; }
+function agEsc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function agFindEv(id){ var e=null; (agEventos[agSel]||[]).forEach(function(x){ if(x.id===id) e=x; }); return e; }
+
+function agCloudLoad(){
+  var sb=agSB(), uid=agUid();
+  if(!sb||!uid){ agRenderMes(); agRenderDia(); return; }
+  if(agCarregando) return; agCarregando=true;
+  var ini=agK(agAno,agMes,1), fim=agK(agAno,agMes,new Date(agAno,agMes+1,0).getDate());
+  sb.from("agenda_eventos").select("*").eq("para_id",uid).gte("data",ini).lte("data",fim).then(function(r){
+    agCarregando=false; agEventos={};
+    if(!r.error&&r.data){ r.data.forEach(function(ev){ (agEventos[ev.data]=agEventos[ev.data]||[]).push(ev); });
+      Object.keys(agEventos).forEach(function(k){ agEventos[k].sort(function(a,b){ return (a.hora||"99")<(b.hora||"99")?-1:1; }); }); }
+    agRenderMes(); agRenderDia();
+  },function(){ agCarregando=false; agRenderMes(); agRenderDia(); });
+}
+
+function agRenderMes(){
+  var tit=document.getElementById("agTitulo"); if(tit) tit.textContent=MESES[agMes]+" "+agAno;
+  var grid=document.getElementById("agDias"); if(!grid) return;
+  grid.innerHTML=celulasDoMes(agAno,agMes).map(function(c){
+    if(c.fora) return '<div class="ag-cel fora"><span class="ag-num">'+c.dia+'</span></div>';
+    var key=agK(agAno,agMes,c.dia), evs=agEventos[key]||[];
+    var chips=evs.slice(0,3).map(function(ev){ return '<div class="ag-chip">'+(ev.hora?('<b>'+agFmtHora(ev.hora)+'</b> '):'')+agEsc(ev.titulo)+'</div>'; }).join('');
+    var mais=evs.length>3?('<div class="ag-mais">+'+(evs.length-3)+' mais</div>'):'';
+    return '<div class="ag-cel'+(agEhHoje(agAno,agMes,c.dia)?' hoje':'')+(agSel===key?' sel':'')+'" data-agdia="'+key+'"><span class="ag-num">'+c.dia+'</span>'+chips+mais+'</div>';
+  }).join('');
+}
+
+function agEvHtml(ev){
+  return '<div class="ag-ev"><div class="ag-ev-top">'+
+    (ev.hora?'<span class="ag-ev-hora">'+agFmtHora(ev.hora)+'</span>':'<span class="ag-ev-hora dia">dia todo</span>')+
+    '<span class="ag-ev-tit">'+agEsc(ev.titulo)+'</span></div>'+
+    (ev.descricao?'<div class="ag-ev-desc">'+agEsc(ev.descricao)+'</div>':'')+
+    '<div class="ag-ev-acoes"><button type="button" class="ag-mini" data-ageditar="'+ev.id+'">Editar</button>'+
+    '<button type="button" class="ag-mini danger" data-agexcluir="'+ev.id+'">Excluir</button></div></div>';
+}
+function agFormHtml(){
+  var ev = agEditId ? agFindEv(agEditId) : null;
+  return '<div class="ag-form"><div class="ag-form-tit">'+(ev?'Editar compromisso':'Novo compromisso')+'</div>'+
+    '<input type="text" class="ag-f-tit" maxlength="120" placeholder="O que você vai fazer?" value="'+(ev?agEsc(ev.titulo):'')+'">'+
+    '<div class="ag-f-row"><span class="ag-f-lbl">Hora (opcional):</span><input type="time" class="ag-f-hora" value="'+(ev&&ev.hora?agFmtHora(ev.hora):'')+'"></div>'+
+    '<textarea class="ag-f-desc" rows="2" maxlength="500" placeholder="Anotação (opcional)">'+(ev?agEsc(ev.descricao||''):'')+'</textarea>'+
+    '<div class="ag-f-erro" style="display:none;color:#c0392b;font-size:12.5px;margin-top:2px;"></div>'+
+    '<div style="display:flex;gap:8px;align-items:center;"><button type="button" class="ag-salvar" data-agsalvar="'+(ev?ev.id:'')+'">'+(ev?'Salvar':'Adicionar')+'</button>'+
+    (ev?'<button type="button" class="ag-mini" data-agcancelaredit>Cancelar</button>':'')+'</div></div>';
+}
+function agRenderDia(){
+  var p=document.getElementById("agPainel"); if(!p) return;
+  if(!agSel){ p.innerHTML='<div class="ag-vazio">Escolha um dia no calendário para ver e marcar seus compromissos.</div>'; return; }
+  var evs=agEventos[agSel]||[];
+  var lista=evs.length?evs.map(agEvHtml).join(''):'<div class="ag-vazio">Nada marcado neste dia ainda.</div>';
+  p.innerHTML='<div class="ag-painel-tit">'+agFmtDataBr(agSel)+'</div><div class="ag-lista">'+lista+'</div>'+agFormHtml();
+}
+function renderAgenda(){ if(!agSel){ var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate()); } agRenderMes(); agRenderDia(); }
+
+function agSalvar(btn,id){
+  var box=btn.closest(".ag-form"); if(!box) return;
+  var titulo=(box.querySelector(".ag-f-tit").value||"").trim();
+  var hora=(box.querySelector(".ag-f-hora").value||"");
+  var desc=(box.querySelector(".ag-f-desc").value||"").trim();
+  var erro=box.querySelector(".ag-f-erro");
+  function eMsg(m){ if(erro){ erro.textContent=m; erro.style.display=""; } }
+  if(!titulo) return eMsg("Escreva o que você vai fazer.");
+  var sb=agSB(); if(!sb||!agUid()) return eMsg("Entre no painel pra salvar.");
+  btn.disabled=true;
+  var payload={ titulo:titulo, hora:hora||null, descricao:desc||null };
+  var q = id ? sb.from("agenda_eventos").update(payload).eq("id",id)
+             : sb.from("agenda_eventos").insert(Object.assign({data:agSel},payload));
+  q.then(function(r){ btn.disabled=false; if(r&&r.error){ eMsg("Não deu pra salvar. Tente de novo."); return; } agEditId=null; agCloudLoad(); },
+         function(){ btn.disabled=false; eMsg("Falha de conexão. Tente de novo."); });
+}
+function agExcluir(id){
+  uiConfirm({titulo:"Excluir compromisso?",msg:"Tem certeza que quer excluir este compromisso?",ok:"Excluir",cancel:"Cancelar"}).then(function(ok){
+    if(!ok) return; var sb=agSB(); if(!sb) return;
+    sb.from("agenda_eventos").delete().eq("id",id).then(function(r){ if(!(r&&r.error)){ agEditId=null; agCloudLoad(); } });
+  });
+}
+
+(function(){
+  var pv=document.getElementById("agPrev"); if(pv) pv.addEventListener("click",function(){ agMes--; if(agMes<0){agMes=11;agAno--;} agEditId=null; agCloudLoad(); });
+  var nx=document.getElementById("agNext"); if(nx) nx.addEventListener("click",function(){ agMes++; if(agMes>11){agMes=0;agAno++;} agEditId=null; agCloudLoad(); });
+  var hj=document.getElementById("agHoje"); if(hj) hj.addEventListener("click",function(){ var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate()); agEditId=null; agCloudLoad(); });
+  var dias=document.getElementById("agDias"); if(dias) dias.addEventListener("click",function(e){ var c=e.target.closest("[data-agdia]"); if(c){ agSel=c.getAttribute("data-agdia"); agEditId=null; agRenderMes(); agRenderDia(); } });
+  var pn=document.getElementById("agPainel"); if(pn) pn.addEventListener("click",function(e){
+    var sv=e.target.closest("[data-agsalvar]"); if(sv){ agSalvar(sv, sv.getAttribute("data-agsalvar")||null); return; }
+    var ed=e.target.closest("[data-ageditar]"); if(ed){ agEditId=ed.getAttribute("data-ageditar"); agRenderDia(); return; }
+    var ex=e.target.closest("[data-agexcluir]"); if(ex){ agExcluir(ex.getAttribute("data-agexcluir")); return; }
+    if(e.target.closest("[data-agcancelaredit]")){ agEditId=null; agRenderDia(); return; }
+  });
+})();
+// =============== FIM AGENDA ===============
 let escAno = HOJE.getFullYear(), escMes = HOJE.getMonth();
 
 function ensureIds(arr){ arr.forEach((r,i)=>{ if(r.id==null) r.id="r"+i; }); return arr; }
@@ -11145,6 +11300,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     // presença: grava a página e re-registra JÁ (antes dos renders, pra não travar se algum render der erro)
     try{ localStorage.setItem("ui_pagina_atual", btn.dataset.page); if(window.__presTrack) window.__presTrack(); }catch(e){}
     if(btn.dataset.page==="calendario"){ calAno=HOJE.getFullYear(); calMes=HOJE.getMonth(); setView("ano"); }
+    if(btn.dataset.page==="agenda"){ renderAgenda(); agCloudLoad(); }
     if(btn.dataset.page==="organograma"){ renderOrg(); orgCenterView(); }
     if(btn.dataset.page==="fluxograma") renderFlux();
     if(btn.dataset.page==="layout"){ renderLayout(); layFitView(); }
