@@ -473,6 +473,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .esc-addform .esc-add-lbl { font-size:12px; color:#5b6670; }
   .esc-add-ok { border:0; background:#157a35; color:#fff; border-radius:7px; padding:7px 15px; font-size:13px; font-weight:600; cursor:pointer; }
   .esc-add-cancel { border:1px solid #d9e2ec; background:#fff; color:#5b6670; border-radius:7px; padding:7px 12px; font-size:13px; cursor:pointer; }
+  .esc td.nome .esc-del { color:#cdd6df; font-weight:700; margin-left:4px; }
+  .esc td.nome .esc-del:hover { color:#c0392b; }
   .esc-domcol { font-weight:700; color:#0c5a26; }
   .px-venc-vencido { color:#c0392b; font-weight:700; }
   .px-venc-prox { color:#e8820e; font-weight:700; }
@@ -3542,7 +3544,8 @@ function renderEscala(){
       const folgaCel = (escMaster && r.folga && r.folga!=="—")
         ? '<span class="esc-folga-edit" data-folga="'+r.id+'" title="Trocar a folga (só master)">'+r.folga+'</span>'
         : r.folga;
-      body+='<tr><td class="nome"><span class="esc-nome" data-edit="'+r.id+'">'+nm+'</span></td><td>'+folgaCel+'</td>'+cels+'</tr>';
+      const delCel = escMaster ? ' <span class="esc-del" data-escdel="'+r.id+'" title="Remover da escala">✕</span>' : '';
+      body+='<tr><td class="nome"><span class="esc-nome" data-edit="'+r.id+'">'+nm+'</span>'+delCel+'</td><td>'+folgaCel+'</td>'+cels+'</tr>';
     });
     html+='<div class="esc-grupo">'+g+'</div><div class="esc-scroll"><table class="esc"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>'+escAddHtml(g);
   });
@@ -3598,6 +3601,19 @@ document.getElementById("escGrade").addEventListener("click", (e)=>{
     const enc=wrap.querySelector(".esc-add-enc").value||"";
     roster.push({ id:"add"+Date.now()+"_"+Math.floor(Math.random()*1000), grupo:g, nome:nome||"(vaga)", enc:enc, folga:folga, cargo:escCargoGrupo(g) });
     attachDomRot(roster); saveRoster(); escAddGrupo=null; renderEscala();
+    return;
+  }
+  // Remover pessoa da escala (só master): confirma e apaga a linha
+  const dd=e.target.closest("[data-escdel]");
+  if(dd){
+    if(!(window.__PERFIL&&window.__PERFIL.is_master)) return;
+    const id=dd.getAttribute("data-escdel"), r=roster.find(x=>x.id===id); if(!r) return;
+    const quem = (r.nome && r.nome!=="(vaga)") ? ('"'+r.nome+'"') : "esta vaga";
+    uiConfirm({ titulo:"Remover da escala?", msg:"Tem certeza que quer remover "+quem+" da escala? A escala se ajusta sozinha.", ok:"Remover", cancel:"Cancelar" }).then(function(ok){
+      if(!ok) return;
+      roster = roster.filter(function(x){ return x.id!==id; });
+      saveRoster(); renderEscala();
+    });
     return;
   }
 });
