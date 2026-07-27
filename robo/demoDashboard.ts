@@ -834,7 +834,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <span><span class="qd cel-t2"></span> T.2</span>
           <span><span class="qd cel-folga"></span> Folga</span>
           <span><span class="qd" style="background:#e3eefb;border-color:#b9d3f2;"></span> Domingo</span>
-          <span style="color:#8a97a8;">A escala é gerada automaticamente e não pode ser editada célula a célula. Para trocar quem ocupa uma vaga (saiu um, entra outro), clique no nome do funcionário — o rodízio da vaga continua o mesmo. O <b>master</b> também pode clicar na <b>folga</b> de um funcionário para trocar o dia de folga.</span>
+          <span style="color:#8a97a8;">A escala é gerada automaticamente e não pode ser editada célula a célula. Para trocar quem ocupa uma vaga (saiu um, entra outro), clique no nome do funcionário — o rodízio da vaga continua o mesmo.</span>
         </div>
         <div id="escGrade"></div>
       </div>
