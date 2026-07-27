@@ -461,6 +461,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .esc-setor .nm { font-size:16px; font-weight:700; color:#1a2233; }
   .esc-setor .qt { font-size:12.5px; color:#8a97a8; margin-top:3px; }
   .esc-nome-input { font:inherit; color:#1a2233; border:2px solid #157a35; border-radius:6px; padding:3px 7px; width:155px; outline:none; box-shadow:0 0 0 3px rgba(21,122,53,.15); }
+  .esc-folga-edit { cursor:pointer; color:#157a35; font-weight:700; border-bottom:1px dashed #9ac6ad; border-radius:4px; padding:1px 3px; }
+  .esc-folga-edit:hover { background:#e3f0e8; }
+  .esc-folga-sel { font:inherit; color:#1a2233; border:2px solid #157a35; border-radius:6px; padding:2px 5px; outline:none; box-shadow:0 0 0 3px rgba(21,122,53,.15); }
   .esc-domcol { font-weight:700; color:#0c5a26; }
   .px-venc-vencido { color:#c0392b; font-weight:700; }
   .px-venc-prox { color:#e8820e; font-weight:700; }
@@ -831,7 +834,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <span><span class="qd cel-t2"></span> T.2</span>
           <span><span class="qd cel-folga"></span> Folga</span>
           <span><span class="qd" style="background:#e3eefb;border-color:#b9d3f2;"></span> Domingo</span>
-          <span style="color:#8a97a8;">A escala é gerada automaticamente e não pode ser editada célula a célula. Para trocar quem ocupa uma vaga (saiu um, entra outro), clique no nome do funcionário — o rodízio da vaga continua o mesmo.</span>
+          <span style="color:#8a97a8;">A escala é gerada automaticamente e não pode ser editada célula a célula. Para trocar quem ocupa uma vaga (saiu um, entra outro), clique no nome do funcionário — o rodízio da vaga continua o mesmo. O <b>master</b> também pode clicar na <b>folga</b> de um funcionário para trocar o dia de folga.</span>
         </div>
         <div id="escGrade"></div>
       </div>
@@ -3480,6 +3483,7 @@ function voltarSetores(){
 function renderEscala(){
   var setor = ESC_SETORES.filter(function(s){ return s.nome===escSetorAtual; })[0];
   if(!setor) return;
+  var escMaster = !!(window.__PERFIL && window.__PERFIL.is_master);   // só o master pode trocar a folga
   document.getElementById("escTitulo").textContent = MESES[escMes]+" "+escAno;
   document.getElementById("escPrintTitulo").textContent = "Escala — "+setor.nome+" — "+MESES[escMes]+" "+escAno;
   const _hj=new Date();
@@ -3510,7 +3514,10 @@ function renderEscala(){
         cels+='<td class="'+cls+'" data-id="'+r.id+'" data-dia="'+d+'">'+v+'</td>';
       }
       const nm=r.nome+(r.enc?' <span class="esc-enc">('+r.enc+')</span>':"");
-      body+='<tr><td class="nome"><span class="esc-nome" data-edit="'+r.id+'">'+nm+'</span></td><td>'+r.folga+'</td>'+cels+'</tr>';
+      const folgaCel = (escMaster && r.folga && r.folga!=="—")
+        ? '<span class="esc-folga-edit" data-folga="'+r.id+'" title="Trocar a folga (só master)">'+r.folga+'</span>'
+        : r.folga;
+      body+='<tr><td class="nome"><span class="esc-nome" data-edit="'+r.id+'">'+nm+'</span></td><td>'+folgaCel+'</td>'+cels+'</tr>';
     });
     html+='<div class="esc-grupo">'+g+'</div><div class="esc-scroll"><table class="esc"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
   });
@@ -3534,6 +3541,23 @@ document.getElementById("escGrade").addEventListener("click", (e)=>{
     const commit=(salvar)=>{ if(feito) return; feito=true; if(salvar){ r.nome=inp.value.trim()||"(vaga)"; saveRoster(); } renderEscala(); };
     inp.addEventListener("keydown",(ev)=>{ if(ev.key==="Enter"){ ev.preventDefault(); commit(true); } else if(ev.key==="Escape"){ ev.preventDefault(); commit(false); } });
     inp.addEventListener("blur",()=>commit(true));
+    return;
+  }
+  // Trocar a FOLGA de um funcionário — SÓ o master (Caixas Femininos, Caixas Masculino, Embaladores).
+  const fe=e.target.closest("[data-folga]");
+  if(fe){
+    if(!(window.__PERFIL && window.__PERFIL.is_master)) return;   // trava: só master
+    if(fe.querySelector("select")) return;                        // já está editando
+    const id=fe.dataset.folga, r=roster.find(x=>x.id===id);
+    if(!r) return;
+    const sel=document.createElement("select"); sel.className="esc-folga-sel";
+    ["Seg","Ter","Qua","Qui","Sex","Sáb"].forEach(function(d){ var o=document.createElement("option"); o.value=d; o.textContent=d; if(d===r.folga) o.selected=true; sel.appendChild(o); });
+    fe.innerHTML=""; fe.appendChild(sel); sel.focus();
+    let feito=false;
+    const commit=(salvar)=>{ if(feito) return; feito=true; if(salvar && sel.value!==r.folga){ r.folga=sel.value; saveRoster(); } renderEscala(); };
+    sel.addEventListener("change",()=>commit(true));
+    sel.addEventListener("blur",()=>commit(true));
+    sel.addEventListener("keydown",(ev)=>{ if(ev.key==="Escape"){ ev.preventDefault(); commit(false); } });
     return;
   }
 });
