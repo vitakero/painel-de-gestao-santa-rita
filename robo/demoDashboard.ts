@@ -11114,6 +11114,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="negociar") renderNegociar();
     if(btn.dataset.page==="analise") renderAnalise();
     try{ localStorage.setItem("ui_pagina_atual", btn.dataset.page); }catch(e){}
+    try{ if(window.__presTrack) window.__presTrack(); }catch(e){}   // presença: atualiza "o que está fazendo"
     window.scrollTo(0,0);
   });
 });
@@ -11959,7 +11960,7 @@ function pedEnviar(){
         if(!window.__PRESCH){
           var ch=SB.channel('presenca',{config:{presence:{key:uid||email}}});
           ch.on('presence',{event:'sync'},function(){ window.__ONLINE=ch.presenceState(); if(typeof renderOnline==='function') renderOnline(); });
-          ch.subscribe(function(st){ if(st==='SUBSCRIBED'){ ch.track({nome:(perfil&&perfil.nome)||email, setor:(perfil&&perfil.setor)||'', email:email}); } });
+          ch.subscribe(function(st){ if(st==='SUBSCRIBED'){ window.__PRES_META={nome:(perfil&&perfil.nome)||email, setor:(perfil&&perfil.setor)||'', email:email}; if(window.__presTrack) window.__presTrack(); } });
           window.__PRESCH=ch;
         }
       }catch(e){}
@@ -12080,14 +12081,26 @@ function acsOnlineSet(){
   for(var k in st){ if(k) s[k]=1; var e=st[k]&&st[k][0]; if(e&&e.email) s[String(e.email).toLowerCase()]=1; }
   return s;
 }
-// Online agora aparece DENTRO do cartão de cada pessoa (não mais num aviso em cima).
+// Página em que cada pessoa online está agora (mapa email/uid -> chave da página).
+function acsOnlinePag(){
+  var st=window.__ONLINE||{}, m={};
+  for(var k in st){ var e=st[k]&&st[k][0]; if(!e) continue; var pg=e.pagina||''; if(k) m[k]=pg; if(e.email) m[String(e.email).toLowerCase()]=pg; }
+  return m;
+}
+function acsPagAtual(){ try{ return localStorage.getItem("ui_pagina_atual")||''; }catch(e){ return ''; } }
+function acsPagLabel(key){ if(!key) return ''; var b=document.querySelector('.nav-item[data-page="'+key+'"]'); return b?b.textContent.trim():''; }
+function acsOnlTxt(pagKey){ var l=acsPagLabel(pagKey); return 'online agora'+(l?' · em '+l:''); }
+// Registra/atualiza a presença com a PÁGINA atual (chamado ao entrar e a cada troca de tela).
+window.__presTrack=function(){ try{ if(window.__PRESCH && window.__PRES_META){ var m=window.__PRES_META; window.__PRESCH.track({nome:m.nome,setor:m.setor,email:m.email,pagina:acsPagAtual()}); } }catch(e){} };
+// Online agora (+ o que está fazendo) aparece DENTRO do cartão de cada pessoa.
 function renderOnline(){
   var top=document.getElementById("acsOnline"); if(top) top.innerHTML=''; // aviso de cima removido
-  var OS=acsOnlineSet();
+  var OS=acsOnlineSet(), PM=acsOnlinePag();
   var dots=document.querySelectorAll('.acs-onl');
   for(var i=0;i<dots.length;i++){
     var d=dots[i], em=(d.getAttribute('data-em')||'').toLowerCase(), uid=d.getAttribute('data-uid')||'';
-    d.style.display=(OS[em]||OS[uid])?'':'none';
+    if(OS[em]||OS[uid]){ d.textContent=acsOnlTxt(PM[em]||PM[uid]||''); d.style.display=''; }
+    else { d.style.display='none'; }
   }
 }
 var _acsTries=0;
@@ -12110,17 +12123,18 @@ function renderAcessos(){
     });
     var pend=perfis.filter(function(p){ return !p.is_master && !p.aprovado; }).length;
     var head=pend?('<div class="acs-pendaviso">⏳ <b>'+pend+' pessoa'+(pend>1?'s':'')+' aguardando liberação</b> — confira o nome e o setor, marque as páginas e clique em Liberar.</div>'):'';
-    var OS=acsOnlineSet();
+    var OS=acsOnlineSet(), PM=acsOnlinePag();
     el.innerHTML=head+perfis.map(function(p){
       var liberado=p.is_master||p.aprovado;
       var _onl=!!(OS[String(p.email||'').toLowerCase()]||OS[p.id]);
+      var _pg=PM[String(p.email||'').toLowerCase()]||PM[p.id]||'';
       var pgsHtml=pages.map(function(pg){ var on=(p.paginas||[]).indexOf(pg.key)>=0; return '<label class="acs-pg"><input type="checkbox" class="acs-pgchk" value="'+pg.key+'"'+(on?' checked':'')+(p.is_master?' disabled':'')+'> '+pg.label+'</label>'; }).join('');
       var acaoAcesso=p.is_master?'':(liberado
         ? '<button class="acs-bloquear" type="button" title="A pessoa volta pra tela de espera">Bloquear acesso</button>'
         : '<button class="acs-liberar" type="button">Liberar acesso</button>');
       if(!p.is_master) acaoAcesso+='<button class="acs-excluir" type="button" title="Apaga o login do banco de dados de vez">Excluir login</button>';
       return '<div class="acs-card'+(liberado?'':' pend')+'" data-uid="'+p.id+'">'+
-        '<div class="acs-header"><div class="acs-hleft"><b>'+(p.nome||'(sem nome)')+'</b>'+'<span class="acs-onl" data-em="'+prdEsc(String(p.email||'').toLowerCase())+'" data-uid="'+prdEsc(p.id||'')+'" style="display:'+(_onl?'':'none')+'">online agora</span>'+(p.setor?'<span class="acs-tag">'+prdEsc(p.setor)+'</span>':'')+(p.is_master?'<span class="acs-tag master">Master</span>':'')+(liberado?'':'<span class="acs-tag pend">⏳ aguardando liberação</span>')+'<div class="acs-email">'+(p.email||'')+(p.criado_em?' · pediu acesso em '+String(p.criado_em).slice(0,10).split('-').reverse().join('/'):'')+'</div></div><span class="acs-chevron">›</span></div>'+
+        '<div class="acs-header"><div class="acs-hleft"><b>'+(p.nome||'(sem nome)')+'</b>'+'<span class="acs-onl" data-em="'+prdEsc(String(p.email||'').toLowerCase())+'" data-uid="'+prdEsc(p.id||'')+'" style="display:'+(_onl?'':'none')+'">'+acsOnlTxt(_pg)+'</span>'+(p.setor?'<span class="acs-tag">'+prdEsc(p.setor)+'</span>':'')+(p.is_master?'<span class="acs-tag master">Master</span>':'')+(liberado?'':'<span class="acs-tag pend">⏳ aguardando liberação</span>')+'<div class="acs-email">'+(p.email||'')+(p.criado_em?' · pediu acesso em '+String(p.criado_em).slice(0,10).split('-').reverse().join('/'):'')+'</div></div><span class="acs-chevron">›</span></div>'+
         '<div class="acs-body" style="display:'+(liberado?'none':'')+'"><div class="acs-top"><label class="acs-master"><input type="checkbox" class="acs-ismaster"'+(p.is_master?' checked':'')+'> Master (vê tudo)</label><div class="acs-setorwrap">Setor: <input class="acs-setor" value="'+(p.setor||'')+'" placeholder="ex: Açougue"></div></div><div class="acs-pages">'+pgsHtml+'</div><div style="display:flex;gap:10px;flex-wrap:wrap;">'+acaoAcesso+'<button class="acs-salvar" type="button">Salvar acessos</button></div></div>'+
         '</div>';
     }).join('');
