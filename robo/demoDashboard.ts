@@ -467,9 +467,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .esc-addwrap { margin:7px 2px 16px; }
   .esc-addbtn { border:1px dashed #9ac6ad; background:#f2f9f4; color:#157a35; border-radius:9px; padding:7px 14px; font-size:13px; font-weight:600; cursor:pointer; }
   .esc-addbtn:hover { background:#e3f0e8; }
-  .esc-addform { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:7px 2px 18px; padding:11px 13px; border:1px solid #cfe3d6; background:#f7fcf9; border-radius:11px; }
+  .esc-addform { display:flex; gap:9px 10px; flex-wrap:wrap; align-items:center; margin:7px 2px 18px; padding:12px 14px; border:1px solid #cfe3d6; background:#f7fcf9; border-radius:11px; max-width:560px; }
   .esc-addform input, .esc-addform select { font:inherit; color:#1a2233; border:1px solid #cfd8e3; border-radius:7px; padding:6px 9px; font-size:13px; background:#fff; }
-  .esc-add-nome { min-width:190px; flex:1; }
+  .esc-add-nome { width:100%; box-sizing:border-box; flex:none; }
+  .esc-addform .esc-add-lbl { font-size:12px; color:#5b6670; }
   .esc-add-ok { border:0; background:#157a35; color:#fff; border-radius:7px; padding:7px 15px; font-size:13px; font-weight:600; cursor:pointer; }
   .esc-add-cancel { border:1px solid #d9e2ec; background:#fff; color:#5b6670; border-radius:7px; padding:7px 12px; font-size:13px; cursor:pointer; }
   .esc-domcol { font-weight:700; color:#0c5a26; }
@@ -3470,8 +3471,8 @@ function escAddHtml(g){
   var opF=''; ["Seg","Ter","Qua","Qui","Sex","Sáb"].forEach(function(d){ opF+='<option value="'+d+'"'+(d==="Seg"?' selected':'')+'>'+d+'</option>'; });
   return '<div class="esc-addform" data-addgrupo="'+g+'">'+
     '<input type="text" class="esc-add-nome" placeholder="Nome do funcionário" autofocus>'+
-    '<span style="font-size:12px;color:#5b6670;">Folga:</span><select class="esc-add-folga">'+opF+'</select>'+
-    '<span style="font-size:12px;color:#5b6670;">Encarregado:</span><select class="esc-add-enc"><option value="Macio" selected>Macio</option><option value="Josinaldo">Josinaldo</option></select>'+
+    '<span class="esc-add-lbl">Folga:</span><select class="esc-add-folga">'+opF+'</select>'+
+    '<span class="esc-add-lbl">Encarregado:</span><select class="esc-add-enc"><option value="Macio" selected>Macio</option><option value="Josinaldo">Josinaldo</option></select>'+
     '<button type="button" class="esc-add-ok" data-addsalvar="'+g+'">Adicionar</button>'+
     '<button type="button" class="esc-add-cancel" data-addcancel>Cancelar</button>'+
   '</div>';
