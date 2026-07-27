@@ -464,6 +464,14 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .esc-folga-edit { cursor:pointer; color:#157a35; font-weight:700; border-bottom:1px dashed #9ac6ad; border-radius:4px; padding:1px 3px; }
   .esc-folga-edit:hover { background:#e3f0e8; }
   .esc-folga-sel { font:inherit; color:#1a2233; border:2px solid #157a35; border-radius:6px; padding:2px 5px; outline:none; box-shadow:0 0 0 3px rgba(21,122,53,.15); }
+  .esc-addwrap { margin:7px 2px 16px; }
+  .esc-addbtn { border:1px dashed #9ac6ad; background:#f2f9f4; color:#157a35; border-radius:9px; padding:7px 14px; font-size:13px; font-weight:600; cursor:pointer; }
+  .esc-addbtn:hover { background:#e3f0e8; }
+  .esc-addform { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:7px 2px 18px; padding:11px 13px; border:1px solid #cfe3d6; background:#f7fcf9; border-radius:11px; }
+  .esc-addform input, .esc-addform select { font:inherit; color:#1a2233; border:1px solid #cfd8e3; border-radius:7px; padding:6px 9px; font-size:13px; background:#fff; }
+  .esc-add-nome { min-width:190px; flex:1; }
+  .esc-add-ok { border:0; background:#157a35; color:#fff; border-radius:7px; padding:7px 15px; font-size:13px; font-weight:600; cursor:pointer; }
+  .esc-add-cancel { border:1px solid #d9e2ec; background:#fff; color:#5b6670; border-radius:7px; padding:7px 12px; font-size:13px; cursor:pointer; }
   .esc-domcol { font-weight:700; color:#0c5a26; }
   .px-venc-vencido { color:#c0392b; font-weight:700; }
   .px-venc-prox { color:#e8820e; font-weight:700; }
@@ -3452,6 +3460,22 @@ const ESC_SETORES = [
   { nome:"Açougue", grupos:["Açougue"], icone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h11a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3z"/><path d="M15 8h4a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4"/><path d="M3 19h13"/></svg>' }
 ];
 let escSetorAtual = null;
+let escAddGrupo = null;   // grupo cujo formulário "adicionar pessoa" está aberto (só master)
+function escCargoGrupo(g){ var r=roster.filter(function(x){ return x.grupo===g; })[0]; return r?r.cargo:''; }
+// Botão / formulário "adicionar pessoa" no fim de cada grupo (SÓ master; grupos com folga fixa, não Abastecedores).
+function escAddHtml(g){
+  if(!(window.__PERFIL&&window.__PERFIL.is_master)) return '';
+  if(g==="Abastecedores") return '';
+  if(escAddGrupo!==g) return '<div class="esc-addwrap"><button type="button" class="esc-addbtn" data-addpessoa="'+g+'">+ Adicionar pessoa</button></div>';
+  var opF=''; ["Seg","Ter","Qua","Qui","Sex","Sáb"].forEach(function(d){ opF+='<option value="'+d+'"'+(d==="Seg"?' selected':'')+'>'+d+'</option>'; });
+  return '<div class="esc-addform" data-addgrupo="'+g+'">'+
+    '<input type="text" class="esc-add-nome" placeholder="Nome do funcionário" autofocus>'+
+    '<span style="font-size:12px;color:#5b6670;">Folga:</span><select class="esc-add-folga">'+opF+'</select>'+
+    '<span style="font-size:12px;color:#5b6670;">Encarregado:</span><select class="esc-add-enc"><option value="Macio" selected>Macio</option><option value="Josinaldo">Josinaldo</option></select>'+
+    '<button type="button" class="esc-add-ok" data-addsalvar="'+g+'">Adicionar</button>'+
+    '<button type="button" class="esc-add-cancel" data-addcancel>Cancelar</button>'+
+  '</div>';
+}
 
 function renderEscalaHub(){
   let html='<div class="esc-hub-tit">Escala de Trabalho — escolha o setor</div><div class="esc-hub">';
@@ -3519,7 +3543,7 @@ function renderEscala(){
         : r.folga;
       body+='<tr><td class="nome"><span class="esc-nome" data-edit="'+r.id+'">'+nm+'</span></td><td>'+folgaCel+'</td>'+cels+'</tr>';
     });
-    html+='<div class="esc-grupo">'+g+'</div><div class="esc-scroll"><table class="esc"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
+    html+='<div class="esc-grupo">'+g+'</div><div class="esc-scroll"><table class="esc"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>'+escAddHtml(g);
   });
   document.getElementById("escGrade").innerHTML=html;
 }
@@ -3558,6 +3582,21 @@ document.getElementById("escGrade").addEventListener("click", (e)=>{
     sel.addEventListener("change",()=>commit(true));
     sel.addEventListener("blur",()=>commit(true));
     sel.addEventListener("keydown",(ev)=>{ if(ev.key==="Escape"){ ev.preventDefault(); commit(false); } });
+    return;
+  }
+  // Adicionar pessoa (só master): abrir formulário
+  const ap=e.target.closest("[data-addpessoa]");
+  if(ap){ if(!(window.__PERFIL&&window.__PERFIL.is_master)) return; escAddGrupo=ap.getAttribute("data-addpessoa"); renderEscala(); return; }
+  if(e.target.closest("[data-addcancel]")){ escAddGrupo=null; renderEscala(); return; }
+  const as=e.target.closest("[data-addsalvar]");
+  if(as){
+    if(!(window.__PERFIL&&window.__PERFIL.is_master)) return;
+    const g=as.getAttribute("data-addsalvar"), wrap=as.closest(".esc-addform"); if(!wrap) return;
+    const nome=(wrap.querySelector(".esc-add-nome").value||"").trim();
+    const folga=wrap.querySelector(".esc-add-folga").value||"Seg";
+    const enc=wrap.querySelector(".esc-add-enc").value||"";
+    roster.push({ id:"add"+Date.now()+"_"+Math.floor(Math.random()*1000), grupo:g, nome:nome||"(vaga)", enc:enc, folga:folga, cargo:escCargoGrupo(g) });
+    attachDomRot(roster); saveRoster(); escAddGrupo=null; renderEscala();
     return;
   }
 });
