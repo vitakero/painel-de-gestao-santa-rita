@@ -12286,7 +12286,7 @@ function pedEnviar(){
       try{ if(typeof pixCobLoad==="function") pixCobLoad(); }catch(e){}
       try{ if(typeof entCloudLoad==="function") entCloudLoad(); }catch(e){}
       try{ if(typeof agCloudLoad==="function"){ agCloudLoad(); if(typeof agRealtime==="function") agRealtime(); } }catch(e){}
-      try{ SB.rpc("tocar_visto"); if(!window.__VISTO_HB){ window.__VISTO_HB=setInterval(function(){ try{ if(window.__SB) window.__SB.rpc("tocar_visto"); }catch(e){} }, 60000); } }catch(e){}
+      try{ SB.rpc("tocar_visto").then(function(){},function(){}); if(!window.__VISTO_HB){ window.__VISTO_HB=setInterval(function(){ try{ if(window.__SB) window.__SB.rpc("tocar_visto").then(function(){},function(){}); }catch(e){} }, 60000); } }catch(e){}
       try{ if(window.__syncPull) window.__syncPull(); }catch(e){}
       try{
         if(!window.__PRESCH){
