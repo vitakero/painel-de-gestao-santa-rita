@@ -2391,7 +2391,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div class="cl-tabs">
           <button type="button" class="cl-tab on" data-clview="hoje">Visão de hoje</button>
           <button type="button" class="cl-tab" data-clview="agenda">Agenda da semana</button>
-          <button type="button" class="cl-tab cl-print" id="clImprimirBtn" style="margin-left:auto;">
+          <button type="button" class="cl-tab" id="clLinkBtn" style="margin-left:auto;background:#0c5a26;color:#fff;border-color:#0c5a26;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Link do fornecedor
+          </button>
+          <button type="button" class="cl-tab cl-print" id="clImprimirBtn">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir
           </button>
         </div>
@@ -4212,6 +4215,12 @@ function clCloudLoad(){
     }, function(){ centralAg=clSeed(); centralModo="demo"; renderCentral(); });
   }catch(e){ centralAg=clSeed(); centralModo="demo"; renderCentral(); }
 }
+var CL_AGENDAR_URL="https://painel-de-gestao-santa-rita.vercel.app/agendar.html"; // vira agendamento.supermercadosantarita.com.br quando o domínio ligar
+function clLinkFornecedor(){
+  var url=CL_AGENDAR_URL;
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(url); }catch(e){}
+  uiConfirm({titulo:"Link de agendamento do fornecedor",msg:"Copiei o link! Mande pros seus fornecedores agendarem a entrega:   "+url,ok:"Abrir página",cancel:"Fechar"}).then(function(ok){ if(ok){ try{ window.open(url,"_blank"); }catch(e){} } });
+}
 function renderCentral(){
   if(!centralAg||!centralAg.length){ if(centralModo!=="live"){ centralAg=clSeed(); } }
   renderClInteg();
@@ -4395,6 +4404,7 @@ function clImprimir(){
   var di=document.getElementById("clDiaInp"); if(di) di.onchange=function(){ if(this.value) clMudaDia(this.value); };
   var dh=document.getElementById("clDiaHoje"); if(dh) dh.onclick=function(){ clMudaDia(clDataISO(new Date())); };
   var ib=document.getElementById("clImprimirBtn"); if(ib) ib.addEventListener("click",clImprimir);
+  var lb=document.getElementById("clLinkBtn"); if(lb) lb.addEventListener("click",clLinkFornecedor);
 })();
 // CALENDÁRIO DE COBRANÇAS do galpão — mesmo formato dos pontos extras (uma linha por mensalidade).
 // A cobrança automática (boleto/Pix) entra quando a conta PESSOA FÍSICA for ligada ao banco;
