@@ -2027,6 +2027,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .acs-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#22c55e;margin-right:6px;vertical-align:middle;box-shadow:0 0 0 3px rgba(34,197,94,.2);}
         .acs-onl{display:inline-flex;align-items:center;gap:6px;margin-left:9px;padding:2px 10px;background:#eaf7ee;color:#0c7a34;border:1px solid #bfe6cd;border-radius:20px;font-size:11.5px;font-weight:700;vertical-align:middle;}
         .acs-onl::before{content:"";width:7px;height:7px;border-radius:50%;background:#1fbf52;box-shadow:0 0 0 0 rgba(31,191,82,.5);animation:acsPulse 1.8s ease-out infinite;}
+        .acs-onl.off{background:#f0f2f5;color:#79828e;border-color:#e3e7ec;font-weight:600;}
+        .acs-onl.off::before{background:#b6bec8;box-shadow:none;animation:none;}
         @keyframes acsPulse{0%{box-shadow:0 0 0 0 rgba(31,191,82,.5);}70%{box-shadow:0 0 0 6px rgba(31,191,82,0);}100%{box-shadow:0 0 0 0 rgba(31,191,82,0);}}
         .acs-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
         .acs-top b{font-size:15px;color:#1a2233;}
@@ -12284,6 +12286,7 @@ function pedEnviar(){
       try{ if(typeof pixCobLoad==="function") pixCobLoad(); }catch(e){}
       try{ if(typeof entCloudLoad==="function") entCloudLoad(); }catch(e){}
       try{ if(typeof agCloudLoad==="function"){ agCloudLoad(); if(typeof agRealtime==="function") agRealtime(); } }catch(e){}
+      try{ SB.rpc("tocar_visto"); if(!window.__VISTO_HB){ window.__VISTO_HB=setInterval(function(){ try{ if(window.__SB) window.__SB.rpc("tocar_visto"); }catch(e){} }, 60000); } }catch(e){}
       try{ if(window.__syncPull) window.__syncPull(); }catch(e){}
       try{
         if(!window.__PRESCH){
@@ -12421,6 +12424,21 @@ function acsOnlinePag(){
 function acsPagAtual(){ try{ return localStorage.getItem("ui_pagina_atual")||''; }catch(e){ return ''; } }
 function acsPagLabel(key){ if(!key) return ''; var b=document.querySelector('.nav-item[data-page="'+key+'"]'); return b?b.textContent.trim():''; }
 function acsOnlTxt(pagKey){ var l=acsPagLabel(pagKey); return 'online agora'+(l?' · em '+l:''); }
+// "visto por último" pra quem está offline (estilo WhatsApp).
+function acsVistoTxt(ts){
+  if(!ts) return '';
+  var d=new Date(ts); if(isNaN(d.getTime())) return '';
+  var agora=new Date(), min=Math.floor((agora-d)/60000);
+  if(min<1) return 'visto agora mesmo';
+  if(min<60) return 'visto há '+min+' min';
+  var hh=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+  function ymd(x){ return x.getFullYear()+'-'+x.getMonth()+'-'+x.getDate(); }
+  if(ymd(d)===ymd(agora)) return 'visto hoje às '+hh;
+  var ontem=new Date(agora); ontem.setDate(ontem.getDate()-1);
+  if(ymd(d)===ymd(ontem)) return 'visto ontem às '+hh;
+  var dm=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2);
+  return 'visto em '+dm+' às '+hh;
+}
 // Registra/atualiza a presença com a PÁGINA atual (chamado ao entrar e a cada troca de tela).
 window.__presTrack=function(){ try{ if(window.__PRESCH && window.__PRES_META){ var m=window.__PRES_META; window.__PRESCH.track({nome:m.nome,setor:m.setor,email:m.email,pagina:acsPagAtual()}); } }catch(e){} };
 // Online agora (+ o que está fazendo) aparece DENTRO do cartão de cada pessoa.
@@ -12430,8 +12448,12 @@ function renderOnline(){
   var dots=document.querySelectorAll('.acs-onl');
   for(var i=0;i<dots.length;i++){
     var d=dots[i], em=(d.getAttribute('data-em')||'').toLowerCase(), uid=d.getAttribute('data-uid')||'';
-    if(OS[em]||OS[uid]){ d.textContent=acsOnlTxt(PM[em]||PM[uid]||''); d.style.display=''; }
-    else { d.style.display='none'; }
+    if(OS[em]||OS[uid]){ d.textContent=acsOnlTxt(PM[em]||PM[uid]||''); d.classList.remove('off'); d.style.display=''; }
+    else {
+      var vt=acsVistoTxt(d.getAttribute('data-visto')||'');
+      if(vt){ d.textContent=vt; d.classList.add('off'); d.style.display=''; }
+      else { d.style.display='none'; }
+    }
   }
 }
 var _acsTries=0;
@@ -12465,7 +12487,7 @@ function renderAcessos(){
         : '<button class="acs-liberar" type="button">Liberar acesso</button>');
       if(!p.is_master) acaoAcesso+='<button class="acs-excluir" type="button" title="Apaga o login do banco de dados de vez">Excluir login</button>';
       return '<div class="acs-card'+(liberado?'':' pend')+'" data-uid="'+p.id+'">'+
-        '<div class="acs-header"><div class="acs-hleft"><b>'+(p.nome||'(sem nome)')+'</b>'+'<span class="acs-onl" data-em="'+prdEsc(String(p.email||'').toLowerCase())+'" data-uid="'+prdEsc(p.id||'')+'" style="display:'+(_onl?'':'none')+'">'+acsOnlTxt(_pg)+'</span>'+(p.setor?'<span class="acs-tag">'+prdEsc(p.setor)+'</span>':'')+(p.is_master?'<span class="acs-tag master">Master</span>':'')+(liberado?'':'<span class="acs-tag pend">⏳ aguardando liberação</span>')+'<div class="acs-email">'+(p.email||'')+(p.criado_em?' · pediu acesso em '+String(p.criado_em).slice(0,10).split('-').reverse().join('/'):'')+'</div></div><span class="acs-chevron">›</span></div>'+
+        '<div class="acs-header"><div class="acs-hleft"><b>'+(p.nome||'(sem nome)')+'</b>'+'<span class="acs-onl'+(_onl?'':' off')+'" data-em="'+prdEsc(String(p.email||'').toLowerCase())+'" data-uid="'+prdEsc(p.id||'')+'" data-visto="'+prdEsc(p.visto_em||'')+'" style="display:'+((_onl||acsVistoTxt(p.visto_em||''))?'':'none')+'">'+(_onl?acsOnlTxt(_pg):acsVistoTxt(p.visto_em||''))+'</span>'+(p.setor?'<span class="acs-tag">'+prdEsc(p.setor)+'</span>':'')+(p.is_master?'<span class="acs-tag master">Master</span>':'')+(liberado?'':'<span class="acs-tag pend">⏳ aguardando liberação</span>')+'<div class="acs-email">'+(p.email||'')+(p.criado_em?' · pediu acesso em '+String(p.criado_em).slice(0,10).split('-').reverse().join('/'):'')+'</div></div><span class="acs-chevron">›</span></div>'+
         '<div class="acs-body" style="display:'+(liberado?'none':'')+'"><div class="acs-top"><label class="acs-master"><input type="checkbox" class="acs-ismaster"'+(p.is_master?' checked':'')+'> Master (vê tudo)</label><div class="acs-setorwrap">Setor: <input class="acs-setor" value="'+(p.setor||'')+'" placeholder="ex: Açougue"></div></div><div class="acs-pages">'+pgsHtml+'</div><div style="display:flex;gap:10px;flex-wrap:wrap;">'+acaoAcesso+'<button class="acs-salvar" type="button">Salvar acessos</button></div></div>'+
         '</div>';
     }).join('');
