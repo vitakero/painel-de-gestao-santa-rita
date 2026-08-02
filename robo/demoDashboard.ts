@@ -571,6 +571,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 <body>
 <div id="authOv" style="display:flex"><div id="authCard"><img id="authLogo" alt=""><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div id="authChecando" style="text-align:center;color:#8a97a8;font-size:13.5px;padding:14px 0 6px;">Verificando acesso...</div><div id="authLoginBox" style="display:none"><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar conta</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld" id="fldSetor" style="display:none"><label>Setor</label><select id="authSetor"><option value="">Selecione...</option><option>Frente de Loja</option><option>Açougue</option><option>Padaria</option><option>Hortifruti</option><option>Mercearia</option><option>Estoque</option><option>Financeiro</option><option>RH</option><option>Compras</option><option>Administração</option><option>Diretoria</option><option>Outro</option></select></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><div class="pw-wrap"><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld" id="fldRepetir" style="display:none"><label>Repetir senha</label><div class="pw-wrap"><input id="authRepetir" type="password" placeholder="digite a senha de novo" autocomplete="new-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authForgot">Esqueci minha senha</span></div><div id="authReset" style="display:none"><div class="auth-fld"><label>Nova senha</label><div class="pw-wrap"><input id="authNovaSenha" type="password" placeholder="mínimo 6 caracteres"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld"><label>Repetir nova senha</label><div class="pw-wrap"><input id="authNovaRepetir" type="password" placeholder="digite a senha de novo"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authResetBtn" type="button">Salvar nova senha</button><div id="authResetMsg" style="font-size:13px;margin-top:10px;text-align:center;"></div></div><div id="authWait" style="display:none"><div style="font-size:44px;margin:4px 0 8px;">⏳</div><p style="font-size:14.5px;color:#33404f;line-height:1.65;margin:0 0 6px;"><b>Conta confirmada!</b><br>Falta o administrador liberar o seu acesso ao painel.</p><p style="font-size:12.5px;color:#8a97a8;margin:0 0 16px;">Avise o responsável. Assim que ele liberar, você entra automaticamente.</p><button id="authWaitSair" type="button" style="background:#eef1f5;color:#33404f;border:0;border-radius:10px;padding:10px 22px;font-weight:700;cursor:pointer;">Sair</button></div></div></div>
 <script>try{var _o=document.getElementById("authOv");var _s=(location.hash||"")+(location.search||"");var _rec=(_s.indexOf("type=recovery")>=0)||(window.sessionStorage&&sessionStorage.getItem("sr_recovery")==="1");var _exp=(!_rec)&&(_s.indexOf("otp_expired")>=0||_s.indexOf("access_denied")>=0||_s.indexOf("error_code")>=0);if(_o&&(_rec||_exp)){_o.style.display="flex";var _lb=document.getElementById("authLoginBox");var _rb=document.getElementById("authReset");if(_rec){if(_lb)_lb.style.display="none";if(_rb)_rb.style.display="";}else{if(_rb)_rb.style.display="none";if(_lb)_lb.style.display="";var _m=document.getElementById("authMsg");if(_m){_m.textContent="Este link de senha já foi usado ou expirou. Toque em Esqueci minha senha para receber um novo.";_m.style.color="#c0392b";}}}}catch(e){}</script>
+<script>try{var _o2=document.getElementById("authOv");var _s2=(location.hash||"")+(location.search||"");var _rec2=(_s2.indexOf("type=recovery")>=0)||(window.sessionStorage&&sessionStorage.getItem("sr_recovery")==="1");if(_o2&&!_rec2&&localStorage.getItem("sr_lib")){var _t=false;for(var _i=0;_i<sessionStorage.length;_i++){var _k=sessionStorage.key(_i);if(_k&&_k.indexOf("sb-")===0&&_k.indexOf("auth-token")>=0){_t=true;break;}}if(_t){_o2.style.display="none";}}}catch(e){}</script>
   <header>
     <div class="hwrap">
       <div class="logo">
@@ -12280,6 +12281,7 @@ function pedEnviar(){
       var liberado = perfil && (perfil.is_master || perfil.aprovado);
       if(!liberado){ mostrarEspera(uid); return; }
       fimChecagem(); applyPerms(perfil); showUser(perfil,email); ov.style.display="none";
+      try{ localStorage.setItem("sr_lib", uid||''); }catch(e){}   // lembra que este login já está liberado -> reload não pisca a tela verde
       try{ if(typeof manCloudLoad==="function") manCloudLoad(); }catch(e){}
       try{ if(typeof pxCloudLoad==="function") pxCloudLoad(); }catch(e){}
       try{ if(typeof glCloudLoad==="function"){ glCloudLoad(); glRealtime(); var _gp=document.getElementById('page-galpoes'); if(_gp && _gp.classList.contains('ativo')) renderGalpoes(); } }catch(e){}
@@ -12303,6 +12305,7 @@ function pedEnviar(){
   }
   function mostrarReset(){ fimChecagem(); ov.style.display="flex"; var lb=document.getElementById("authLoginBox"); if(lb) lb.style.display="none"; var rb=document.getElementById("authReset"); if(rb) rb.style.display=""; }
   function mostrarEspera(uid){
+    try{ localStorage.removeItem("sr_lib"); }catch(e){}   // não está liberado -> não esconder o overlay otimista da próxima vez
     fimChecagem();
     ov.style.display="flex";
     var lb=document.getElementById("authLoginBox"); if(lb) lb.style.display="none";
@@ -12328,7 +12331,7 @@ function pedEnviar(){
   }
   SB.auth.getSession().then(function(r){
     if(_isRecovery){ mostrarReset(); return; }
-    if(r && r.data && r.data.session){ carregarPerfil(r.data.session); }
+    if(r && r.data && r.data.session){ try{ var _u=r.data.session.user&&r.data.session.user.id; if(_u && localStorage.getItem("sr_lib")===_u){ ov.style.display="none"; } }catch(e){} carregarPerfil(r.data.session); }
     else { fimChecagem(); ov.style.display="flex"; var _lb2=document.getElementById("authLoginBox"); if(_lb2) _lb2.style.display=""; if(_linkExpirado){ setMsg("Este link de senha já foi usado ou expirou. Toque em Esqueci minha senha para receber um novo.","#c0392b"); } }
   });
   function traduzErro(m){
