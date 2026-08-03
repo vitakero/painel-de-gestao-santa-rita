@@ -3818,7 +3818,7 @@
       } catch (e) { }
       window.addEventListener("beforeinstallprompt", function (ev) {
         try { ev.preventDefault(); } catch (e) { }
-        pwaDeferred = ev; if (!pwaEmApp()) pwaMostrarInstalar();
+        pwaDeferred = ev; /* botão "Instalar aplicativo" desativado a pedido do Victor — não mostra o convite (nem o nativo, por causa do preventDefault) */
       });
       window.addEventListener("appinstalled", function () { pwaDeferred = null; pwaEsconderInstalar(); });
     }
