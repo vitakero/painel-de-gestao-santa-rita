@@ -11474,6 +11474,20 @@ try{ manAtualizaBadge(); }catch(e){}
 // senão abas definidas mais abaixo (Loja/Depósito, Pedidos...) abrem vazias/quebradas.
 (function(){
   try{ if("scrollRestoration" in history) history.scrollRestoration="manual"; }catch(e){}
+  // Troca a página VISUALMENTE já (antes de pintar), pra NÃO piscar a Vendas no reload.
+  // A renderização de verdade continua no setTimeout abaixo (senão abas abrem quebradas).
+  try{
+    var _pg0=localStorage.getItem("ui_pagina_atual");
+    if(_pg0 && _pg0!=="vendas"){
+      var _tgt0=document.getElementById("page-"+_pg0);
+      var _nb0=document.querySelector('.nav-item[data-page="'+_pg0+'"]');
+      if(_tgt0 && _nb0){
+        document.querySelectorAll(".page").forEach(function(p){ p.classList.remove("ativo"); });
+        document.querySelectorAll(".nav-item").forEach(function(b){ b.classList.remove("ativo"); });
+        _tgt0.classList.add("ativo"); _nb0.classList.add("ativo");
+      }
+    }
+  }catch(e){}
   setTimeout(function(){
     try{
       const pg=localStorage.getItem("ui_pagina_atual");
