@@ -622,12 +622,36 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .desp-tbl td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:700;}
   .desp-catchip{display:inline-block;font-size:11px;font-weight:600;padding:1px 8px;border-radius:5px;background:#eef4fb;color:#2a6fb0;white-space:nowrap;}
   .desp-aviso{background:#fbf1d7;color:#7a5a00;border-radius:10px;padding:11px 14px;font-size:13px;margin-bottom:16px;line-height:1.5;}
+
+  /* ===== Modo noturno (Sprint UI 1.0 — tema REAL, gerado no build) =====
+     A folha escura é DERIVADA do claro no build (injetarTemaEscuro): cada regra com cor
+     ganha uma versão "html.tema-escuro" na paleta premium (#0F1115/#161A21/#1C212A/#2D3643...).
+     O claro fica intocado; CSS novo ganha dark de graça. Aqui, só o que o mapeamento não expressa. */
+  @media screen{
+    html.tema-escuro{ background:#0F1115; color-scheme:dark; }
+    html.tema-escuro body{ background:#0F1115; }
+    html.tema-escuro header{ background:#161A21; }
+    html.tema-escuro .card{ box-shadow:0 1px 2px rgba(0,0,0,.4); }
+    html.tema-escuro ::selection{ background:#2e8f5266; }
+  }
+  /* Acessibilidade: foco visível nos dois temas */
+  :focus-visible{ outline:2px solid #157a35; outline-offset:2px; }
+  html.tema-escuro :focus-visible{ outline-color:#3fbd6c; }
+  /* Micro-transições sutis (150ms) — a troca de tema vira um cross-fade suave */
+  @media (prefers-reduced-motion: no-preference){
+    .nav-item, button, .hchip, .card, input, select, textarea{ transition: background-color .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease; }
+  }
+  #hTema{ display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid #d7dee7; background:#fff; border-radius:9px; cursor:pointer; color:#56606d; padding:0; }
+  #hTema:hover{ background:#f0f3f7; }
+  #hTema svg{ width:17px; height:17px; transition:transform .3s ease; }
+  #hTema:active svg{ transform:rotate(40deg) scale(.9); }
 </style><link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body>
 <div id="authOv" style="display:flex"><div id="authCard"><img id="authLogo" alt=""><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div id="authChecando" style="text-align:center;color:#8a97a8;font-size:13.5px;padding:14px 0 6px;">Verificando acesso...</div><div id="authLoginBox" style="display:none"><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar conta</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld" id="fldSetor" style="display:none"><label>Setor</label><select id="authSetor"><option value="">Selecione...</option><option>Frente de Loja</option><option>Açougue</option><option>Padaria</option><option>Hortifruti</option><option>Mercearia</option><option>Estoque</option><option>Financeiro</option><option>RH</option><option>Compras</option><option>Administração</option><option>Diretoria</option><option>Outro</option></select></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><div class="pw-wrap"><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld" id="fldRepetir" style="display:none"><label>Repetir senha</label><div class="pw-wrap"><input id="authRepetir" type="password" placeholder="digite a senha de novo" autocomplete="new-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authForgot">Esqueci minha senha</span></div><div id="authReset" style="display:none"><div class="auth-fld"><label>Nova senha</label><div class="pw-wrap"><input id="authNovaSenha" type="password" placeholder="mínimo 6 caracteres"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld"><label>Repetir nova senha</label><div class="pw-wrap"><input id="authNovaRepetir" type="password" placeholder="digite a senha de novo"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authResetBtn" type="button">Salvar nova senha</button><div id="authResetMsg" style="font-size:13px;margin-top:10px;text-align:center;"></div></div><div id="authWait" style="display:none"><div style="font-size:44px;margin:4px 0 8px;">⏳</div><p style="font-size:14.5px;color:#33404f;line-height:1.65;margin:0 0 6px;"><b>Conta confirmada!</b><br>Falta o administrador liberar o seu acesso ao painel.</p><p style="font-size:12.5px;color:#8a97a8;margin:0 0 16px;">Avise o responsável. Assim que ele liberar, você entra automaticamente.</p><button id="authWaitSair" type="button" style="background:#eef1f5;color:#33404f;border:0;border-radius:10px;padding:10px 22px;font-weight:700;cursor:pointer;">Sair</button></div></div></div>
 <script>try{var _o=document.getElementById("authOv");var _s=(location.hash||"")+(location.search||"");var _rec=(_s.indexOf("type=recovery")>=0)||(window.sessionStorage&&sessionStorage.getItem("sr_recovery")==="1");var _exp=(!_rec)&&(_s.indexOf("otp_expired")>=0||_s.indexOf("access_denied")>=0||_s.indexOf("error_code")>=0);if(_o&&(_rec||_exp)){_o.style.display="flex";var _lb=document.getElementById("authLoginBox");var _rb=document.getElementById("authReset");if(_rec){if(_lb)_lb.style.display="none";if(_rb)_rb.style.display="";}else{if(_rb)_rb.style.display="none";if(_lb)_lb.style.display="";var _m=document.getElementById("authMsg");if(_m){_m.textContent="Este link de senha já foi usado ou expirou. Toque em Esqueci minha senha para receber um novo.";_m.style.color="#c0392b";}}}}catch(e){}</script>
 <script>try{var _o2=document.getElementById("authOv");var _s2=(location.hash||"")+(location.search||"");var _rec2=(_s2.indexOf("type=recovery")>=0)||(window.sessionStorage&&sessionStorage.getItem("sr_recovery")==="1");if(_o2&&!_rec2&&localStorage.getItem("sr_lib")){var _t=false;for(var _i=0;_i<sessionStorage.length;_i++){var _k=sessionStorage.key(_i);if(_k&&_k.indexOf("sb-")===0&&_k.indexOf("auth-token")>=0){_t=true;break;}}if(_t){_o2.style.display="none"; if(localStorage.getItem("sr_master")==="1"){var _nm=document.createElement("style");_nm.textContent=".nav-item.nav-mo{display:flex!important}";(document.head||document.documentElement).appendChild(_nm);window.__navmocss=_nm;}}}}catch(e){}</script>
-<script>try{var _pgc=localStorage.getItem("ui_pagina_atual");if(_pgc&&_pgc!=="vendas"&&/^[a-z0-9_-]+$/.test(_pgc)){var _stc=document.createElement("style");_stc.textContent="#page-vendas.ativo{display:none!important}#page-"+_pgc+"{display:grid!important}"+".nav-item[data-page='vendas'].ativo{background:none!important;color:#33404f!important;font-weight:500!important}.nav-item[data-page='vendas'].ativo .ico{color:#8a97a8!important}.nav-item[data-page='"+_pgc+"']{background:#157a35!important;color:#fff!important;font-weight:600!important}.nav-item[data-page='"+_pgc+"'] .ico{color:#fff!important}";(document.head||document.documentElement).appendChild(_stc);window.__pgcss=_stc;}}catch(e){}</script>
+<script>try{var _t=localStorage.getItem("ui_tema");var _esc=(_t==="escuro")||(!_t&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches);if(_esc){document.documentElement.classList.add("tema-escuro");}var _m=document.createElement("meta");_m.name="theme-color";_m.content=_esc?"#0F1115":"#ffffff";(document.head||document.documentElement).appendChild(_m);window.__temaMeta=_m;}catch(e){}</script>
+<script>try{var _pgc=localStorage.getItem("ui_pagina_atual");if(_pgc&&_pgc!=="vendas"&&/^[a-z0-9_-]+$/.test(_pgc)){var _esc3=document.documentElement.classList.contains("tema-escuro");var _tx=_esc3?"#dde3ea":"#33404f",_ic=_esc3?"#8f98a5":"#8a97a8",_tw=_esc3?"#f3f4f6":"#fff";var _stc=document.createElement("style");_stc.textContent="#page-vendas.ativo{display:none!important}#page-"+_pgc+"{display:grid!important}"+".nav-item[data-page='vendas'].ativo{background:none!important;color:"+_tx+"!important;font-weight:500!important}.nav-item[data-page='vendas'].ativo .ico{color:"+_ic+"!important}.nav-item[data-page='"+_pgc+"']{background:#157a35!important;color:"+_tw+"!important;font-weight:600!important}.nav-item[data-page='"+_pgc+"'] .ico{color:"+_tw+"!important}";(document.head||document.documentElement).appendChild(_stc);window.__pgcss=_stc;}}catch(e){}</script>
   <header>
     <div class="hwrap">
       <div class="logo">
@@ -644,6 +668,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <span class="hupd" title="Última leitura dos dados da loja">Atualizado ${geradoEmCurto}</span>
         </div>
         <span class="hchip hver" title="Versão do painel — gerada em ${geradoEm}">v${versaoPainel}</span>
+        <button id="hTema" type="button" title="Modo noturno"></button>
         <div class="hsep hsep-r"></div>
         <button id="hUser" type="button"></button>
       </div>
@@ -651,6 +676,21 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   </header>
   <script>
   (function(){ var el=document.getElementById("hDataHoje"); if(!el) return; try{ var d=new Date(); var s=d.toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"}); el.textContent=s.charAt(0).toUpperCase()+s.slice(1); }catch(e){} })();
+  // Modo noturno: botão no cabeçalho troca o tema; escolha fica salva (ui_tema) e aplica antes do 1º paint (script no topo).
+  (function(){
+    var bt=document.getElementById("hTema"); if(!bt) return;
+    var LUA='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    var SOL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+    function pinta(){ var esc=document.documentElement.classList.contains("tema-escuro"); bt.innerHTML=esc?SOL:LUA; bt.title=esc?"Modo claro":"Modo noturno"; }
+    bt.onclick=function(){
+      var r=document.documentElement; r.classList.toggle("tema-escuro");
+      var esc=r.classList.contains("tema-escuro");
+      try{ localStorage.setItem("ui_tema", esc?"escuro":"claro"); }catch(e){}
+      try{ if(window.__temaMeta) window.__temaMeta.content=esc?"#0F1115":"#ffffff"; }catch(e){}
+      pinta();
+    };
+    pinta();
+  })();
   </script>
   <div class="layout">
   <nav class="sidebar">
@@ -12843,5 +12883,171 @@ if (centralFeedJs) {
     ? finalHtml.slice(0, _i) + "<scr" + "ipt>" + centralFeedJs + "</scr" + "ipt>\n" + finalHtml.slice(_i)
     : finalHtml + "<scr" + "ipt>" + centralFeedJs + "</scr" + "ipt>";
 }
-await writeFile("output/index.html", comCentral);
-console.log("OK -> output/index.html (painel com dados reais do VR)");
+// ===== SPRINT UI 1.0 — TEMA ESCURO PREMIUM (gerado no build) =====
+// A folha escura NÃO é mantida à mão: cada regra de cor do tema claro ganha uma
+// versão "html.tema-escuro" mapeada pra paleta premium. O claro fica intocado e
+// CSS novo ganha dark automaticamente. Janelas de impressão (documentos próprios)
+// nunca escurecem (folha embrulhada em @media screen).
+const PAL_BG: Record<string,string> = {
+  "#ffffff":"#1c212a",
+  "#eef1f6":"#0f1115","#eef2f6":"#0f1115","#f4f5f6":"#0f1115","#f3f4f6":"#0f1115",
+  "#f6f8fa":"#161a21","#f7f9fb":"#161a21","#f8fafc":"#161a21","#f0f3f7":"#161a21","#f4f7fb":"#161a21",
+  "#f1f4f8":"#161a21","#f4f6f9":"#161a21","#eef1f5":"#161a21","#f5f7fa":"#161a21","#fafbfc":"#161a21",
+  "#e9edf3":"#252b36","#e6ebf1":"#252b36","#e2e8ee":"#252b36","#edeff1":"#252b36","#e8ecf1":"#252b36",
+  "#eef2f4":"#252b36","#dfe5ec":"#252b36","#e0e6ed":"#252b36","#eaeef3":"#252b36",
+  "#f3f6fa":"#161a21","#f2f5f8":"#161a21","#eef2f7":"#0f1115","#eef2f8":"#0f1115","#f7f9fc":"#161a21",
+  "#fbfcfd":"#1c212a","#fafcfe":"#1c212a",
+  "#e4f5ea":"#16281c","#e6f2ea":"#16281c","#d9f2e1":"#16281c","#e3f0e8":"#16281c","#eaf7ee":"#16281c",
+  "#eaf5ee":"#16281c","#dcf0e4":"#16281c","#e2ebe5":"#16281c","#f6fbf7":"#16281c","#f4f9f5":"#16281c",
+  "#f6f9f7":"#16281c","#d9ecdf":"#16281c","#e9f7ef":"#16281c",
+  "#fdecec":"#2b1d1e","#fbe6e6":"#2b1d1e","#fbeae8":"#2b1d1e","#fdeeec":"#2b1d1e",
+  "#fbf1d7":"#2a2418","#fdf3d9":"#2a2418","#fff7e0":"#2a2418",
+  "#fdeadb":"#2a2016",
+  "#eef4fb":"#1a2530","#e8f1fa":"#1a2530",
+  "#c0392b":"#993128",
+};
+const PAL_FG: Record<string,string> = {
+  "#1a2233":"#f3f4f6","#1d2733":"#f3f4f6","#16211b":"#f3f4f6","#111111":"#f3f4f6","#000000":"#f3f4f6",
+  "#1a1a1a":"#f3f4f6","#222222":"#eceff3","#1d2129":"#f3f4f6",
+  "#17202b":"#f3f4f6","#2a3542":"#dde3ea","#0f172a":"#f3f4f6",
+  "#2a3340":"#dde3ea","#33404f":"#dde3ea","#3a4553":"#d5dce4","#46535f":"#ccd4de",
+  "#56606d":"#b6bdc8","#5a6678":"#b6bdc8","#6b7787":"#aab2bf","#46546a":"#b6bdc8","#5d6875":"#b6bdc8","#5b6670":"#b6bdc8","#5b6b7f":"#b6bdc8",
+  "#7a8696":"#8f98a5","#8a97a8":"#8f98a5","#93a0b0":"#8f98a5","#8a96a5":"#8f98a5","#9aa6b2":"#8f98a5",
+  "#8a97a6":"#8f98a5","#8a94a3":"#8f98a5","#98a3b1":"#8f98a5","#7d8794":"#8f98a5","#9aa7b5":"#8f98a5",
+  "#8a97a3":"#8f98a5","#95a1af":"#8f98a5","#94a0ae":"#8f98a5","#b5bcc7":"#7b8492",
+  "#a9b4c0":"#7b8492","#b9c4d0":"#7b8492",
+  "#ffffff":"#f3f4f6",
+  "#157a35":"#3fbd6c","#0c5a26":"#5fc182","#0f5a27":"#5fc182","#1b9e4b":"#42c874",
+  "#0e6b2c":"#6bcb8b","#12692e":"#5fc182","#23a847":"#35c568",
+  "#c0392b":"#e0776b","#e74c3c":"#e88478","#b03222":"#dd7466","#b3261e":"#dd7466","#a02c1c":"#d96b5e","#b8362a":"#dd7466",
+  "#9a6a00":"#d9ae56","#b8860b":"#d3a74e","#7a5a00":"#d9b568",
+  "#dd6b12":"#e2924f","#c15200":"#e08a4a","#c05621":"#df8d59",
+  "#2a6fb0":"#6fa9dc","#2980b9":"#6fb0e0",
+};
+const PAL_BORDA: Record<string,string> = {
+  "#cdd6e0":"#2d3643","#d7dee7":"#2d3643","#d4dde6":"#2d3643","#dde3dc":"#2d3643","#dbe2ea":"#2d3643",
+  "#e2e8ee":"#2d3643","#e8ecf1":"#2d3643","#edeff1":"#2d3643","#e5e9f0":"#2d3643","#eef1f5":"#2d3643",
+  "#eef2f4":"#2d3643","#e0e6ed":"#2d3643","#eef2f6":"#2d3643","#e8edf3":"#2d3643","#e6ebf1":"#2d3643",
+  "#e2e8f1":"#2d3643","#e1e7ee":"#2d3643","#cfd8e3":"#2d3643","#eef1f4":"#2d3643","#c8d2de":"#2d3643",
+  "#d5dde6":"#2d3643","#e4e9f0":"#2d3643","#e3e8ee":"#2d3643","#e2e8ef":"#2d3643","#dfe5ec":"#2d3643","#dfe4ea":"#2d3643",
+  "#d5dbe3":"#3a4553","#c2cad4":"#3a4553","#cdd5df":"#3a4553","#b3bdc9":"#46525f","#b9c4d0":"#3a4553","#a9b4c0":"#46525f",
+  "#c9d2dc":"#3a4553","#c2cdda":"#3a4553","#c3ccd6":"#3a4553","#b9c3cf":"#3a4452","#9aa7b5":"#46525f",
+  "#ffffff":"#39434f","#157a35":"#2e8f52","#c0392b":"#8e4a43",
+};
+function temaHex6(h: string): string { let x=h.replace("#","").toLowerCase(); if(x.length===3) x=x[0]+x[0]+x[1]+x[1]+x[2]+x[2]; return "#"+x; }
+function temaHsl(hex: string): {h:number,s:number,l:number} {
+  const x=temaHex6(hex); const r=parseInt(x.slice(1,3),16)/255,g=parseInt(x.slice(3,5),16)/255,b=parseInt(x.slice(5,7),16)/255;
+  const mx=Math.max(r,g,b),mn=Math.min(r,g,b); const l=(mx+mn)/2; let h=0,s=0;
+  if(mx!==mn){ const d=mx-mn; s=l>0.5? d/(2-mx-mn) : d/(mx+mn);
+    h = mx===r ? ((g-b)/d+(g<b?6:0)) : mx===g ? ((b-r)/d+2) : ((r-g)/d+4); h/=6; }
+  return {h,s,l};
+}
+function temaHexDeHsl(h:number,s:number,l:number): string {
+  const f=(n:number)=>{ const k=(n+h*12)%12; const a=s*Math.min(l,1-l); const c=l-a*Math.max(-1,Math.min(k-3,Math.min(9-k,1))); return Math.round(c*255).toString(16).padStart(2,"0"); };
+  return "#"+f(0)+f(8)+f(4);
+}
+function temaMapear(tipo:"bg"|"fg"|"borda", hex:string): string {
+  const h=temaHex6(hex);
+  const tab = tipo==="fg"?PAL_FG : tipo==="borda"?PAL_BORDA : PAL_BG;
+  if(tab[h]) return tab[h];
+  const {h:hh,s,l}=temaHsl(h);
+  if(tipo==="bg"){ if(l>0.72) return temaHexDeHsl(hh, Math.min(s*0.35,0.25), 0.10+(1-l)*0.25); if(l>0.5&&s<0.2) return temaHexDeHsl(hh, s*0.4, 0.2); return h; }
+  if(tipo==="fg"){ if(s>0.4&&l<0.62) return temaHexDeHsl(hh, s*0.72, Math.max(l,0.62)); if(l<0.4) return temaHexDeHsl(hh, Math.min(s*0.5,0.3), 0.88); if(l<0.62) return temaHexDeHsl(hh, s*0.6, 0.72); return h; }
+  if(l>0.6) return "#2d3643"; return h;
+}
+function temaTipoDe(prop:string): "bg"|"fg"|"borda"|null {
+  if(prop==="color"||prop==="fill"||prop==="stroke"||prop==="caret-color"||prop==="-webkit-text-fill-color") return "fg";
+  if(prop.startsWith("background")) return "bg";
+  if(prop.startsWith("border")||prop==="outline"||prop==="outline-color"||prop==="box-shadow"||prop==="text-decoration-color"||prop==="scrollbar-color") return "borda";
+  return null;
+}
+function temaProcessarCss(css:string): string {
+  css=css.replace(/\/\*[\s\S]*?\*\//g,"");
+  function parse(str:string): string {
+    let res="",idx=0;
+    while(idx<str.length){
+      const open=str.indexOf("{",idx); if(open<0) break;
+      const sel=str.slice(idx,open).trim();
+      let depth=1,j=open+1;
+      while(j<str.length&&depth>0){ if(str[j]==="{")depth++; else if(str[j]==="}")depth--; j++; }
+      const corpo=str.slice(open+1, j-1); idx=j;
+      if(!sel) continue;
+      if(sel[0]==="@"){
+        const low=sel.toLowerCase();
+        if(low.startsWith("@media") && !low.includes("print")){ const inner=parse(corpo); if(inner) res+=sel+"{"+inner+"}"; }
+        continue; // @keyframes/@font-face/@page/@media print: pula
+      }
+      const mapped:string[]=[];
+      for(const d of corpo.split(";")){
+        const ci=d.indexOf(":"); if(ci<0) continue;
+        const prop=d.slice(0,ci).trim().toLowerCase(); const val=d.slice(ci+1).trim();
+        const tipo=temaTipoDe(prop); if(!tipo) continue;
+        let mudou=false;
+        let nv=val.replace(/#[0-9a-fA-F]{3,6}\b/g,(hx)=>{ const nm=temaMapear(tipo,hx); if(temaHex6(nm)!==temaHex6(hx)){ mudou=true; return nm; } return hx; });
+        // glow/anel verde da marca (focus, seleção): clareia no escuro
+        nv=nv.replace(/rgba\(\s*21\s*,\s*122\s*,\s*53\s*,/g,()=>{ mudou=true; return "rgba(63,189,108,"; });
+        if(mudou) mapped.push(prop+":"+nv);
+      }
+      if(mapped.length){
+        const selDark=sel.split(",").map(s=>{ s=s.trim();
+          if(/^html\b/i.test(s)) return s.replace(/^html/i,"html.tema-escuro");
+          if(/^:root\b/.test(s)) return "html.tema-escuro"+s.slice(5);
+          if(/^body\b/i.test(s)) return "html.tema-escuro "+s;
+          return "html.tema-escuro "+s;
+        }).join(",");
+        res+=selDark+"{"+mapped.join(";")+"}";
+      }
+    }
+    return res;
+  }
+  return parse(css);
+}
+function temaCssCentral(js:string): string {
+  const ini=js.indexOf("st.textContent = ["); if(ini<0) return "";
+  const fim=js.indexOf("].join",ini); if(fim<0) return "";
+  const trecho=js.slice(ini,fim);
+  let css=""; const re=/"((?:[^"\\]|\\.)*)"/g; let m:RegExpExecArray|null;
+  while((m=re.exec(trecho))) css+=m[1].replace(/\\"/g,'"').replace(/\\\\/g,"\\");
+  return temaProcessarCss(css);
+}
+function temaInlineDark(doc:string): string {
+  const usos=new Set<string>();
+  for(const m of doc.matchAll(/style="([^"]*#[0-9a-fA-F]{3,6}[^"]*)"/g)){
+    for(const d of m[1].split(";")){
+      const ci=d.indexOf(":"); if(ci<0) continue;
+      const prop=d.slice(0,ci).trim().toLowerCase();
+      const hexes=d.slice(ci+1).match(/#[0-9a-fA-F]{3,6}\b/g); if(!hexes) continue;
+      const tipo=temaTipoDe(prop); if(!tipo) continue;
+      for(const hx of hexes) usos.add(tipo+"|"+prop+"|"+hx);
+    }
+  }
+  let css="";
+  // Documentos "papel" mostrados DENTRO do painel (contratos, cartas, páginas de impressão)
+  // continuam claros no modo noturno — papel é papel. A guarda :not(X *) exclui os descendentes.
+  const GUARDA=":not(.doc-page *):not(.doc-page-wrap *):not(.carta *):not(.cl-p-wrap *):not(.pg *)";
+  for(const u of usos){
+    const [tipo,prop,hx]=u.split("|");
+    const d=temaMapear(tipo as any,hx); if(temaHex6(d)===temaHex6(hx)) continue;
+    const alvo = tipo==="borda" && prop!=="box-shadow" ? "border-color" : prop;
+    // duas variações de espaçamento ("prop:#hex" e "prop: #hex") cobrem o HTML estático e o gerado em runtime
+    css+=`html.tema-escuro [style*="${prop}:${hx}"]${GUARDA}{${alvo}:${d} !important}`;
+    css+=`html.tema-escuro [style*="${prop}: ${hx}"]${GUARDA}{${alvo}:${d} !important}`;
+  }
+  for(const m of doc.matchAll(/\b(fill|stroke)="(#[0-9a-fA-F]{3,6})"/g)){
+    const d=temaMapear("fg",m[2]); if(temaHex6(d)!==temaHex6(m[2])) css+=`html.tema-escuro [${m[1]}="${m[2]}"]{${m[1]}:${d}}`;
+  }
+  return css;
+}
+function injetarTemaEscuro(doc:string): string {
+  let cssEscuro="";
+  const re=/<script\b[\s\S]*?<\/script>|<style\b[^>]*>([\s\S]*?)<\/style>/gi; let m:RegExpExecArray|null;
+  while((m=re.exec(doc))){ if(m[1]!=null) cssEscuro+=temaProcessarCss(m[1]); }
+  try{ cssEscuro+=temaCssCentral(centralFeedJs||""); }catch(e){}
+  cssEscuro+=temaInlineDark(doc);
+  const bloco='<style id="temaEscuroCss">@media screen{'+cssEscuro+"}</style>";
+  const i=doc.indexOf("</head>");
+  return i>=0 ? doc.slice(0,i)+bloco+doc.slice(i) : doc+bloco;
+}
+const comTema = injetarTemaEscuro(comCentral);
+await writeFile("output/index.html", comTema);
+console.log("OK -> output/index.html (painel com dados reais do VR; tema escuro premium gerado: " + Math.round((comTema.length-comCentral.length)/1024) + "KB)");
