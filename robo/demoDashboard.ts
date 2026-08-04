@@ -2377,6 +2377,48 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .rec-ing-somatxt{font-size:12.5px;color:#56606d;}
         .rec-ing-somatxt b{font-size:14.5px;color:#1d2733;}
         .rec-ing-nota{font-size:11px;color:#8a97a8;font-weight:400;margin-top:2px;}
+        /* ===== Ficha técnica: resumo executivo, seções e indicadores ===== */
+        .rec-resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+        @media(max-width:900px){ .rec-resumo{grid-template-columns:1fr 1fr;} }
+        .rec-resc{background:#fff;border:1px solid #e8ecf1;border-radius:13px;padding:14px 15px;display:flex;flex-direction:column;gap:5px;}
+        .rec-resc .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#eef4ef;color:#157a35;}
+        .rec-resc .ic svg{width:16px;height:16px;}
+        .rec-resc .rot{font-size:11px;color:#8a97a8;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+        .rec-resc .val{font-size:21px;font-weight:800;color:#1d2733;font-variant-numeric:tabular-nums;line-height:1.15;}
+        .rec-resc.destaque{background:linear-gradient(155deg,#0f5a27,#157a35);border-color:transparent;}
+        .rec-resc.destaque .ic{background:#ffffff26;color:#fff;} .rec-resc.destaque .rot{color:#ffffffbf;} .rec-resc.destaque .val{color:#fff;}
+        .rec-resc .val.verde{color:#157a35;} .rec-resc .val.vermelho{color:#c0392b;}
+        .rec-sec{display:flex;align-items:center;gap:9px;margin:18px 0 9px;}
+        .rec-sec .n{width:21px;height:21px;border-radius:6px;background:#eef4ef;color:#157a35;font-size:11.5px;font-weight:800;display:grid;place-items:center;flex:none;}
+        .rec-sec .t{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#56606d;}
+        .rec-sec .l{flex:1;height:1px;background:#e8ecf1;}
+        /* composição dos custos */
+        .rec-comp{display:flex;flex-direction:column;gap:7px;margin-top:11px;padding-top:11px;border-top:1px solid #e6ece8;}
+        .rec-compr{display:grid;grid-template-columns:96px 1fr 46px;gap:10px;align-items:center;font-size:12px;color:#56606d;}
+        .rec-compb{height:8px;border-radius:5px;background:#e8eef0;overflow:hidden;}
+        .rec-compb>i{display:block;height:100%;border-radius:5px;transition:width .25s;}
+        .rec-compb>i.a{background:#157a35;} .rec-compb>i.b{background:#4e9e6a;} .rec-compb>i.c{background:#9dc4ad;}
+        .rec-compr b{text-align:right;color:#1d2733;font-variant-numeric:tabular-nums;}
+        /* histórico de custo */
+        .rec-hist{display:flex;gap:20px;flex-wrap:wrap;align-items:center;margin-top:11px;padding-top:11px;border-top:1px solid #e6ece8;font-size:12px;color:#56606d;}
+        .rec-hist b{color:#1d2733;font-variant-numeric:tabular-nums;}
+        .rec-hvar{font-weight:800;padding:2px 9px;border-radius:6px;font-size:12px;}
+        .rec-hvar.sobe{background:#fdecec;color:#c0392b;} .rec-hvar.desce{background:#e4f5ea;color:#157a35;} .rec-hvar.igual{background:#eef1f5;color:#8a97a8;}
+        /* preços sugeridos (clicáveis) */
+        .rec-sug{display:flex;gap:10px;flex-wrap:wrap;margin-top:11px;padding-top:11px;border-top:1px solid #e6ece8;}
+        .rec-sugb{background:#fff;border:1px solid #d7dee7;border-radius:10px;padding:8px 13px;cursor:pointer;text-align:left;min-width:118px;}
+        .rec-sugb:hover{border-color:#157a35;background:#f4f9f5;}
+        .rec-sugb .r{display:block;font-size:10.5px;color:#8a97a8;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+        .rec-sugb .v{display:block;font-size:15.5px;font-weight:800;color:#1d2733;font-variant-numeric:tabular-nums;margin-top:1px;}
+        .rec-sugb .m{display:block;font-size:10.5px;color:#a9b4c0;}
+        /* saúde da receita */
+        .rec-saude{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:10px;margin-top:11px;}
+        .rec-saude .pt{width:9px;height:9px;border-radius:50%;flex:none;}
+        .rec-saude b{font-size:13.5px;} .rec-saude span{font-size:12px;opacity:.85;}
+        .rec-saude.bom{background:#e4f5ea;color:#0c5a26;} .rec-saude.bom .pt{background:#157a35;}
+        .rec-saude.atencao{background:#fbf1d7;color:#7a5a00;} .rec-saude.atencao .pt{background:#c9a227;}
+        .rec-saude.ruim{background:#fdecec;color:#a02c1c;} .rec-saude.ruim .pt{background:#c0392b;}
+        .rec-saude.vazio{background:#eef1f5;color:#8a97a8;} .rec-saude.vazio .pt{background:#b9c4d0;}
         /* Painel financeiro da ficha técnica */
         .rec-fin{margin-top:12px;background:#f7faf8;border:1px solid #e2ebe5;border-radius:11px;overflow:hidden;}
         .rec-fin-g{padding:12px 15px;border-bottom:1px solid #e6ece8;}
@@ -11987,9 +12029,38 @@ function recFinCalc(e){
   var margVenda = preco>0 ? (preco-total)/preco*100 : null;
   var vendaUn   = (rend>0 && preco>0) ? preco/rend : null;
   var lucroUn   = (custoUn!=null && vendaUn!=null) ? vendaUn-custoUn : null;
+  var peso      = Math.max(0,+e.pesoFinal||0);
+  var custoKg   = peso>0 ? total/peso : null;
+  var fatia     = function(v){ return total>0 ? v/total*100 : null; };
   return { ing:ing, emb:emb, outros:out, total:total, rend:rend, un:recSing(e.rendUn||""),
            custoUn:custoUn, preco:preco, markup:markup, lucro:lucro, margVenda:margVenda,
-           vendaUn:vendaUn, lucroUn:lucroUn };
+           vendaUn:vendaUn, lucroUn:lucroUn, peso:peso, custoKg:custoKg,
+           comp:{ ing:fatia(ing), emb:fatia(emb), outros:fatia(out) },
+           precos:recPrecosSugeridos(total),
+           saude:recSaude(margVenda) };
+}
+/* Regras de negócio configuráveis (markup das faixas de preço e limites de saúde da margem). */
+var REC_REGRAS={ mkMinimo:30, mkIdeal:60, mkPremium:100, margemBoa:30, margemAtencao:15 };
+function recPrecosSugeridos(total){
+  if(!(total>0)) return {minimo:null,ideal:null,premium:null};
+  return { minimo: total*(1+REC_REGRAS.mkMinimo/100),
+           ideal:  total*(1+REC_REGRAS.mkIdeal/100),
+           premium:total*(1+REC_REGRAS.mkPremium/100) };
+}
+function recSaude(margVenda){
+  if(margVenda==null) return {nivel:"vazio", titulo:"Sem preço", texto:"Informe o preço ou o markup"};
+  if(margVenda>=REC_REGRAS.margemBoa)     return {nivel:"bom",     titulo:"Excelente",     texto:"Margem saudável"};
+  if(margVenda>=REC_REGRAS.margemAtencao) return {nivel:"atencao", titulo:"Atenção",       texto:"Margem baixa"};
+  return {nivel:"ruim", titulo:"Revisar preço", texto:(margVenda<0?"A receita está no prejuízo":"Margem muito apertada")};
+}
+// Histórico: compara o custo atual com o ponto anterior guardado.
+function recHistVar(hist,atual){
+  var h=(hist||[]).filter(function(p){ return p&&isFinite(+p.c); });
+  if(!h.length) return null;
+  var ant=+h[h.length-1].c;
+  if(h.length && Math.abs(ant-atual)<0.005 && h.length>1) ant=+h[h.length-2].c;
+  if(!(ant>0)) return null;
+  return { data:h[h.length-1].d, anterior:ant, atual:atual, variacao:(atual-ant)/ant*100 };
 }
 function recMoeda(v){ return (v==null||!isFinite(v))?"—":brl(v); }
 function recPct(v){ return (v==null||!isFinite(v))?"—":((Math.round(v*10)/10).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%"); }
@@ -12137,6 +12208,28 @@ function recAutoEmbCusto(){
 /* ---------- CAMADA DE TELA DO PAINEL FINANCEIRO (ler -> calcular -> pintar) ----------
    Um único caminho: qualquer mudança chama recFinSync(). Nada de conta espalhada. */
 var recFinModo="preco";   // "preco" (dono digita o preço) | "markup" (dono digita o markup)
+var recHistAtual=[];      // histórico de custo da receita aberta
+/* ---------- componentes visuais reutilizáveis (montam HTML, não calculam nada) ---------- */
+var REC_ICO={
+  custo:'<path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  tag:'<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
+  lucro:'<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+  fatia:'<path d="M12 3l9 7-9 11-9-11z"/><line x1="3" y1="10" x2="21" y2="10"/>'
+};
+function recTopCard(ico,rot,id,destaque){
+  return '<div class="rec-resc'+(destaque?' destaque':'')+'">'
+    +'<div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+REC_ICO[ico]+'</svg></div>'
+    +'<div class="rot">'+rot+'</div><div class="val" id="'+id+'">—</div></div>';
+}
+function recSecao(n,titulo){ return '<div class="rec-sec"><span class="n">'+n+'</span><span class="t">'+recEsc(titulo)+'</span><span class="l"></span></div>'; }
+function recSugHtml(rot,valor,mk){
+  return '<button type="button" class="rec-sugb" data-sug="'+(Math.round((valor||0)*100)/100)+'" title="Clique para usar este preço">'
+    +'<span class="r">'+rot+'</span><span class="v">'+recMoeda(valor)+'</span><span class="m">markup '+mk+'%</span></button>';
+}
+function recDataBr(iso){ var p=String(iso||"").split("-"); return p.length===3?(p[2]+"/"+p[1]+"/"+p[0]):String(iso||""); }
+function recBarraHtml(rot,pct,cls){
+  return '<div class="rec-compr"><span>'+recEsc(rot)+'</span><div class="rec-compb"><i class="'+cls+'" style="width:'+((pct==null?0:Math.max(0,Math.min(100,pct))).toFixed(1))+'%"></i></div><b>'+recPct(pct)+'</b></div>';
+}
 function recVal(id){ var el=document.getElementById(id); return el?el.value:""; }
 function recPoe(id,txt){ var el=document.getElementById(id); if(el) el.textContent=txt; }
 function recFinLer(){
@@ -12145,6 +12238,7 @@ function recFinLer(){
            outros:despParseValor(recVal("recOutros")),
            rendQtd:despParseValor(recVal("recRendQtd")),
            rendUn:recVal("recRendUn"),
+           pesoFinal:despParseValor(recVal("recPeso")),
            preco:despParseValor(recVal("recPreco")),
            markup:despParseValor(recVal("recMarkup")),
            modo:recFinModo };
@@ -12157,7 +12251,31 @@ function recFinPintar(f){
   recPoe("rfLucro",   recMoeda(f.lucro));
   recPoe("rfLucroUn", recMoeda(f.lucroUn));
   recPoe("rfMargV",   recPct(f.margVenda));
-  ["rfUn1","rfUn2","rfUn3"].forEach(function(id){ recPoe(id,f.un); });
+  ["rfUn1","rfUn2","rfUn3","rtUnLbl"].forEach(function(id){ recPoe(id,f.un); });
+  recPoe("rfCustoKg",  recMoeda(f.custoKg));
+  recPoe("rfLucroPct", recPct(f.markup));
+  // resumo executivo (topo)
+  recPoe("rtCusto", recMoeda(f.total)); recPoe("rtPreco", recMoeda(f.preco>0?f.preco:null));
+  recPoe("rtLucro", recMoeda(f.lucro)); recPoe("rtVendaUn", recMoeda(f.vendaUn));
+  var tl=document.getElementById("rtLucro"); if(tl) tl.className="val "+((f.lucro==null)?"":(f.lucro>=0?"verde":"vermelho"));
+  // composição dos custos
+  var cp=document.getElementById("rfComp");
+  if(cp) cp.innerHTML=(f.total>0)?(recBarraHtml("Ingredientes",f.comp.ing,"a")+recBarraHtml("Embalagem",f.comp.emb,"b")+recBarraHtml("Outros",f.comp.outros,"c")):"";
+  // preços sugeridos (clique aplica)
+  var sg=document.getElementById("rfSug");
+  if(sg) sg.innerHTML=(f.total>0)?(
+      recSugHtml("Mínimo",f.precos.minimo,REC_REGRAS.mkMinimo)
+     +recSugHtml("Ideal",f.precos.ideal,REC_REGRAS.mkIdeal)
+     +recSugHtml("Premium",f.precos.premium,REC_REGRAS.mkPremium)):"";
+  // saúde da receita
+  var sd=document.getElementById("rfSaude");
+  if(sd){ sd.className="rec-saude "+f.saude.nivel; sd.innerHTML='<span class="pt"></span><div><b>'+recEsc(f.saude.titulo)+'</b> <span>'+recEsc(f.saude.texto)+'</span></div>'; }
+  // histórico de custo
+  var hs=document.getElementById("rfHist");
+  if(hs){ var h=recHistVar(recHistAtual,f.total);
+    hs.innerHTML = h ? ('<span>Última atualização: <b>'+recEsc(recDataBr(h.data))+'</b></span><span>Custo anterior: <b>'+brl(h.anterior)+'</b></span><span>Custo atual: <b>'+brl(h.atual)+'</b></span>'
+        +'<span class="rec-hvar '+(h.variacao>0.05?"sobe":(h.variacao<-0.05?"desce":"igual"))+'">'+(h.variacao>0.05?"▲ +":(h.variacao<-0.05?"▼ ":""))+recPct(Math.abs(h.variacao)<0.05?0:h.variacao).replace("-","")+'</span>')
+      : '<span style="color:#a9b4c0;">O histórico de custo aparece aqui depois que você salvar a receita pela primeira vez.</span>'; }
   var l=document.getElementById("rfLucro"); if(l) l.className="rec-fin-v "+((f.lucro==null)?"":(f.lucro>=0?"verde":"vermelho"));
   // o campo que o dono NÃO está digitando é preenchido pelo painel
   var p=document.getElementById("recPreco"), m=document.getElementById("recMarkup");
@@ -12206,47 +12324,82 @@ function recRenderForm(){
   if(ed&&ed.rendQtd!=null&&ed.rendQtd!=="") _rend={q:ed.rendQtd,u:(ed.rendUn||_rend.u||"")};
   var setSug=recSetores().map(function(s){ return '<option value="'+recEsc(s)+'">'; }).join('');
   var fotoPrev=recFotoUrl?('<img src="'+recEsc(recFotoUrl)+'" style="max-height:120px;border-radius:8px;display:block;"><button type="button" id="recFotoDel" class="rec-mini del" style="margin-top:6px;">Remover foto</button>'):'<span style="color:#8a97a8;font-size:12px;">Nenhuma foto ainda.</span>';
-  w.innerHTML='<div class="rec-form"><div class="rec-grid">'
-    +'<div class="rec-fld" style="margin-top:0;"><label>Nome da receita</label><input id="recNome" placeholder="Ex: Frango assado temperado" value="'+(ed?recEsc(ed.nome):'')+'"></div>'
-    +'<div class="rec-fld" style="margin-top:0;"><label>Setor / categoria</label><input id="recSetor" list="recSetLista" placeholder="Ex: Rotisseria" value="'+(ed?recEsc(ed.setor||''):'')+'"><datalist id="recSetLista">'+setSug+'</datalist></div>'
-    +'<div class="rec-fld" style="margin-top:0;"><label>Tempo de preparo</label><input id="recTempo" placeholder="Ex: 1h30" value="'+(ed?recEsc(ed.tempo||''):'')+'"></div>'
+  w.innerHTML='<div class="rec-form">'
+    // ---- resumo executivo (4 indicadores principais) ----
+    +'<div class="rec-resumo">'
+      +recTopCard("custo","Custo total","rtCusto",true)
+      +recTopCard("tag","Preço de venda","rtPreco")
+      +recTopCard("lucro","Lucro","rtLucro")
+      +recTopCard("fatia","Venda por <em id=rtUnLbl>unidade</em>","rtVendaUn")
     +'</div>'
-    +'<div class="rec-fld"><label>Embalagem usada</label><input id="recEmb" list="recEmbLista" placeholder="Ex: Bandeja B-3 — escolha do Material de uso ou digite (separe por vírgula se usar mais de uma)" value="'+(ed?recEsc(ed.embalagem||''):'')+'"><datalist id="recEmbLista">'+((typeof matData!=="undefined"?matData:[]).map(function(m){ var v=(m.nome||"")+((m.tamanho)?" — "+m.tamanho:""); return '<option value="'+recEsc(v)+'">'; }).join(''))+'</datalist></div>'
-    +'<div class="rec-fld"><label>Ingredientes</label><div class="rec-ings">'
+    // ---- 1 dados da receita ----
+    +recSecao(1,"Receita")
+    +'<div class="rec-grid">'
+      +'<div class="rec-fld" style="margin-top:0;"><label>Nome da receita</label><input id="recNome" placeholder="Ex: Frango assado temperado" value="'+(ed?recEsc(ed.nome):'')+'"></div>'
+      +'<div class="rec-fld" style="margin-top:0;"><label>Setor / categoria</label><input id="recSetor" list="recSetLista" placeholder="Ex: Rotisseria" value="'+(ed?recEsc(ed.setor||''):'')+'"><datalist id="recSetLista">'+setSug+'</datalist></div>'
+      +'<div class="rec-fld" style="margin-top:0;"><label>Embalagem usada</label><input id="recEmb" list="recEmbLista" placeholder="Ex: Bandeja B-3" value="'+(ed?recEsc(ed.embalagem||''):'')+'"><datalist id="recEmbLista">'+((typeof matData!=="undefined"?matData:[]).map(function(m){ var v=(m.nome||"")+((m.tamanho)?" — "+m.tamanho:""); return '<option value="'+recEsc(v)+'">'; }).join(''))+'</datalist></div>'
+    +'</div>'
+    // ---- 2 ingredientes ----
+    +recSecao(2,"Ingredientes")
+    +'<div class="rec-ings">'
       +'<div class="rec-ing-head"><div style="text-align:right;">Qtd</div><div>Unidade</div><div>Ingrediente</div><div style="text-align:right;" title="Preço de 1 kg, 1 L ou 1 unidade — como você compra">Preço de referência</div><div style="text-align:right;" title="Calculado pelo painel conforme a quantidade usada">Custo na receita</div><div></div></div>'
       +'<div id="recIngBox"></div>'
       +'<div class="rec-ing-pe"><button type="button" class="rec-ing-add" id="recIngAdd">＋ Adicionar ingrediente</button>'
-        +'<div class="rec-ing-somatxt">Custo total dos ingredientes: <b id="recIngTot">R$ 0,00</b><div class="rec-ing-nota">É esta soma que alimenta o painel financeiro abaixo.</div></div></div>'
+        +'<div class="rec-ing-somatxt">Custo total dos ingredientes: <b id="recIngTot">R$ 0,00</b><div class="rec-ing-nota">É esta soma que alimenta todo o painel.</div></div></div>'
+    +'</div>'
+    // ---- 3 custos ----
+    +recSecao(3,"Custos")
+    +'<div class="rec-fin"><div class="rec-fin-g ultimo"><div class="rec-fin-row">'
+      +'<div class="rec-fin-i"><span>Ingredientes</span><div class="rec-fin-v" id="rfIng">R$ 0,00</div><i>soma da tabela acima</i></div>'
+      +'<div class="rec-fin-i"><span>Embalagem</span><input id="recCustoEmb" inputmode="decimal" class="rec-fin-inp" placeholder="0,00" title="Preenche sozinho ao escolher a embalagem — pode ajustar" value="'+(ed&&ed.custoEmb?recEsc(String(ed.custoEmb).replace(".",",")):'')+'"></div>'
+      +'<div class="rec-fin-i"><span>Outros custos</span><input id="recOutros" inputmode="decimal" class="rec-fin-inp" placeholder="0,00" title="Gás, energia, mão de obra… (opcional)" value="'+(ed&&ed.outros?recEsc(String(ed.outros).replace(".",",")):'')+'"></div>'
+      +'<div class="rec-fin-i destaque"><span>Custo total</span><div class="rec-fin-v" id="rfTotal">R$ 0,00</div></div>'
+    +'</div>'
+      +'<div class="rec-comp" id="rfComp"></div>'
+      +'<div class="rec-hist" id="rfHist"></div>'
     +'</div></div>'
-    +'<div class="rec-fin" id="recFin">'
-      +'<div class="rec-fin-g"><div class="rec-fin-t">Custos</div><div class="rec-fin-row">'
-        +'<div class="rec-fin-i"><span>Ingredientes</span><div class="rec-fin-v" id="rfIng">R$ 0,00</div><i>soma da tabela acima</i></div>'
-        +'<div class="rec-fin-i"><span>Embalagem</span><input id="recCustoEmb" inputmode="decimal" class="rec-fin-inp" placeholder="0,00" title="Preenche sozinho ao escolher a embalagem — pode ajustar" value="'+(ed&&ed.custoEmb?recEsc(String(ed.custoEmb).replace(".",",")):'')+'"></div>'
-        +'<div class="rec-fin-i"><span>Outros custos</span><input id="recOutros" inputmode="decimal" class="rec-fin-inp" placeholder="0,00" title="Gás, energia, mão de obra… (opcional)" value="'+(ed&&ed.outros?recEsc(String(ed.outros).replace(".",",")):'')+'"></div>'
-        +'<div class="rec-fin-i destaque"><span>Custo total</span><div class="rec-fin-v" id="rfTotal">R$ 0,00</div></div>'
+    // ---- 4 produção ----
+    +recSecao(4,"Produção")
+    +'<div class="rec-fin"><div class="rec-fin-g ultimo"><div class="rec-fin-row">'
+      +'<div class="rec-fin-i"><span>Rendimento</span><div class="rec-rendw">'
+        +'<input id="recRendQtd" inputmode="decimal" class="rec-fin-inp" style="width:62px;" placeholder="16" value="'+recEsc(String(_rend.q||""))+'">'
+        +'<select id="recRendUn" class="rec-fin-sel">'+recUnOpts(_rend.u,REC_REND_UNS)+'</select>'
       +'</div></div>'
-      +'<div class="rec-fin-g"><div class="rec-fin-t">Produção</div><div class="rec-fin-row">'
-        +'<div class="rec-fin-i"><span>Rendimento</span><div class="rec-rendw">'
-          +'<input id="recRendQtd" inputmode="decimal" class="rec-fin-inp" style="width:62px;" placeholder="16" value="'+recEsc(String(_rend.q||""))+'">'
-          +'<select id="recRendUn" class="rec-fin-sel">'+recUnOpts(_rend.u,REC_REND_UNS)+'</select>'
-        +'</div></div>'
-        +'<div class="rec-fin-i"><span>Custo por <em id="rfUn1">unidade</em></span><div class="rec-fin-v verde" id="rfCustoUn">—</div></div>'
-      +'</div></div>'
-      +'<div class="rec-fin-g"><div class="rec-fin-t">Preço de venda <i>— digite o markup <b>ou</b> o preço; o painel calcula o outro</i></div><div class="rec-fin-row">'
+      +'<div class="rec-fin-i"><span>Tempo de preparo</span><input id="recTempo" class="rec-fin-inp" style="width:96px;text-align:left;" placeholder="1h20" value="'+(ed?recEsc(ed.tempo||''):'')+'"></div>'
+      +'<div class="rec-fin-i"><span>Peso final (kg)</span><input id="recPeso" inputmode="decimal" class="rec-fin-inp" style="width:84px;" placeholder="2,35" title="Opcional — permite calcular o custo por kg" value="'+(ed&&ed.pesoFinal?recEsc(String(ed.pesoFinal).replace(".",",")):'')+'"></div>'
+      +'<div class="rec-fin-i"><span>Validade (dias)</span><input id="recValidade" inputmode="numeric" class="rec-fin-inp" style="width:74px;" placeholder="3" title="Opcional" value="'+(ed&&ed.validade?recEsc(String(ed.validade)):'')+'"></div>'
+      +'<div class="rec-fin-i"><span>Custo por <em id="rfUn1">unidade</em></span><div class="rec-fin-v verde" id="rfCustoUn">—</div></div>'
+      +'<div class="rec-fin-i"><span>Custo por kg</span><div class="rec-fin-v" id="rfCustoKg">—</div></div>'
+    +'</div></div></div>'
+    // ---- 5 venda ----
+    +recSecao(5,"Venda")
+    +'<div class="rec-fin"><div class="rec-fin-g ultimo">'
+      +'<div class="rec-fin-t" style="margin-bottom:9px;">Digite o markup <b>ou</b> o preço — o painel calcula o outro</div>'
+      +'<div class="rec-fin-row">'
         +'<div class="rec-fin-i"><span>Markup (%)</span><input id="recMarkup" inputmode="decimal" class="rec-fin-inp" placeholder="60"></div>'
         +'<div class="rec-fin-i"><span>Preço de venda</span><input id="recPreco" inputmode="decimal" class="rec-fin-inp" placeholder="0,00" value="'+(ed&&ed.preco?recEsc(String(ed.preco).replace(".",",")):'')+'"></div>'
         +'<div class="rec-fin-i"><span>Venda por <em id="rfUn2">unidade</em></span><div class="rec-fin-v" id="rfVendaUn">—</div></div>'
-      +'</div></div>'
-      +'<div class="rec-fin-g ultimo"><div class="rec-fin-t">Resultado</div><div class="rec-fin-row">'
-        +'<div class="rec-fin-i"><span>Lucro total</span><div class="rec-fin-v verde" id="rfLucro">—</div></div>'
-        +'<div class="rec-fin-i"><span>Lucro por <em id="rfUn3">unidade</em></span><div class="rec-fin-v" id="rfLucroUn">—</div></div>'
-        +'<div class="rec-fin-i"><span>Margem sobre venda</span><div class="rec-fin-v" id="rfMargV">—</div></div>'
-      +'</div></div>'
+      +'</div>'
+      +'<div class="rec-sug" id="rfSug"></div>'
+    +'</div></div>'
+    // ---- 6 resultado ----
+    +recSecao(6,"Resultado")
+    +'<div class="rec-fin"><div class="rec-fin-g ultimo"><div class="rec-fin-row">'
+      +'<div class="rec-fin-i"><span>Lucro total</span><div class="rec-fin-v verde" id="rfLucro">—</div></div>'
+      +'<div class="rec-fin-i"><span>Lucro por <em id="rfUn3">unidade</em></span><div class="rec-fin-v" id="rfLucroUn">—</div></div>'
+      +'<div class="rec-fin-i"><span>Margem sobre venda</span><div class="rec-fin-v" id="rfMargV">—</div></div>'
+      +'<div class="rec-fin-i"><span>Lucro sobre o custo</span><div class="rec-fin-v" id="rfLucroPct">—</div></div>'
     +'</div>'
-    +'<div class="rec-fld"><label>Foto do produto</label><label class="man-fotobtn">'+MAN_ICO_CAM+'Tirar / escolher foto<input id="recFotoFile" type="file" accept="image/*" capture="environment" style="display:none;"></label><div id="recFotoPrev" style="margin-top:8px;">'+fotoPrev+'</div></div>'
-    +'<div class="rec-fld"><label>Modo de preparo</label><textarea id="recPrep" rows="6" placeholder="Passo a passo. Ex.:\\n1) Tempere o frango\\n2) Deixe descansar 30 min\\n3) Asse a 180C por 50 min">'+(ed?recEsc(ed.preparo||''):'')+'</textarea></div>'
+      +'<div class="rec-saude vazio" id="rfSaude"><span class="pt"></span><div><b>—</b> <span></span></div></div>'
+    +'</div></div>'
+    // ---- 7 foto / 8 preparo ----
+    +recSecao(7,"Foto do produto")
+    +'<label class="man-fotobtn">'+MAN_ICO_CAM+'Tirar / escolher foto<input id="recFotoFile" type="file" accept="image/*" capture="environment" style="display:none;"></label><div id="recFotoPrev" style="margin-top:8px;">'+fotoPrev+'</div>'
+    +recSecao(8,"Modo de preparo")
+    +'<div class="rec-fld" style="margin-top:0;"><textarea id="recPrep" rows="6" placeholder="Passo a passo. Ex.:\\n1) Tempere o frango\\n2) Deixe descansar 30 min\\n3) Asse a 180C por 50 min">'+(ed?recEsc(ed.preparo||''):'')+'</textarea></div>'
     +'<div class="rec-acoesf"><button class="rec-btn prim" id="recSalvar" type="button">'+(ed?'Salvar':'Adicionar')+'</button><button class="rec-btn" id="recCancelar" type="button">Cancelar</button></div>'
     +'</div>';
+  recHistAtual=(ed&&Array.isArray(ed.histCusto))?ed.histCusto:[];
   recFinModo="preco";
   recIngRender();
   recAutoEmbCusto();
@@ -12270,6 +12423,14 @@ function recSalvarForm(){
   var tempo=(document.getElementById("recTempo").value||"").trim();
   var custoEmb=Math.round(fin.emb*1000)/1000;
   var outros=Math.round(fin.outros*100)/100;
+  var pesoFinal=Math.max(0,despParseValor(recVal("recPeso")));
+  var validade=Math.max(0,Math.round(despParseValor(recVal("recValidade"))));
+  // histórico de custo: guarda um ponto sempre que o CUSTO TOTAL muda (pra acompanhar aumento)
+  var _o0=recEdit?recData.find(function(x){return x.id===recEdit;}):null;
+  var histCusto=(_o0&&Array.isArray(_o0.histCusto))?_o0.histCusto.slice():[];
+  var _tot=Math.round(fin.total*100)/100, _ult=histCusto.length?+histCusto[histCusto.length-1].c:null;
+  if(_tot>0 && (_ult==null || Math.abs(_ult-_tot)>=0.01)) histCusto.push({d:new Date().toISOString().slice(0,10), c:_tot});
+  if(histCusto.length>12) histCusto=histCusto.slice(-12);
   var embalagem=(document.getElementById("recEmb").value||"").trim();
   // texto derivado das linhas — MAS se o dono não mexeu nos ingredientes, o texto original fica intacto
   var _orig=recEdit?recData.find(function(x){return x.id===recEdit;}):null;
@@ -12277,8 +12438,8 @@ function recSalvarForm(){
   if(!recIngTocado && _orig) ingr=(Array.isArray(_orig.ingr)?_orig.ingr:[]);   // e as linhas salvas também
   var preparo=(document.getElementById("recPrep").value||"").trim();
   if(!nome){ uiConfirm({titulo:"Aviso",msg:"Informe o nome da receita.",ok:"OK",cancel:""}); return; }
-  if(recEdit){ var e=recData.find(function(x){return x.id===recEdit;}); if(e){ e.nome=nome; e.setor=setor; e.rendimento=rendimento; e.rendQtd=rendQtd; e.rendUn=rendUn; e.custo=custo; e.preco=preco; e.tempo=tempo; e.custoEmb=custoEmb; e.outros=outros; e.embalagem=embalagem; e.ingr=ingr; e.ingredientes=ingredientes; e.preparo=preparo; e.foto=recFotoUrl; } }
-  else { recData.push({id:recFormId||recUid(),nome:nome,setor:setor,rendimento:rendimento,rendQtd:rendQtd,rendUn:rendUn,custo:custo,preco:preco,tempo:tempo,custoEmb:custoEmb,outros:outros,embalagem:embalagem,ingr:ingr,ingredientes:ingredientes,preparo:preparo,foto:recFotoUrl}); }
+  if(recEdit){ var e=recData.find(function(x){return x.id===recEdit;}); if(e){ e.nome=nome; e.setor=setor; e.rendimento=rendimento; e.rendQtd=rendQtd; e.rendUn=rendUn; e.custo=custo; e.preco=preco; e.tempo=tempo; e.custoEmb=custoEmb; e.outros=outros; e.pesoFinal=pesoFinal; e.validade=validade; e.histCusto=histCusto; e.embalagem=embalagem; e.ingr=ingr; e.ingredientes=ingredientes; e.preparo=preparo; e.foto=recFotoUrl; } }
+  else { recData.push({id:recFormId||recUid(),nome:nome,setor:setor,rendimento:rendimento,rendQtd:rendQtd,rendUn:rendUn,custo:custo,preco:preco,tempo:tempo,custoEmb:custoEmb,outros:outros,pesoFinal:pesoFinal,validade:validade,histCusto:histCusto,embalagem:embalagem,ingr:ingr,ingredientes:ingredientes,preparo:preparo,foto:recFotoUrl}); }
   recSave(); recForm=null; recEdit=null; recFotoUrl=""; recFormId=""; renderReceitas();
 }
 function recRenderLista(){
@@ -12433,6 +12594,8 @@ function recImprimir(){
       if(add){ recIngNova(fw); return; }
       var del=ev.target.closest("[data-ingdel]");
       if(del){ recIngTocado=true; recIngr.splice(+del.getAttribute("data-ingdel"),1); recIngRender(); return; }
+      var sug=ev.target.closest("[data-sug]");   // clicar num preço sugerido aplica ele
+      if(sug){ var pv=document.getElementById("recPreco"); if(pv){ pv.value=String(sug.getAttribute("data-sug")).replace(".",","); recFinModo="preco"; recFinSync(); } return; }
       if(ev.target.closest("#recSalvar")){ recSalvarForm(); } else if(ev.target.closest("#recCancelar")){ recForm=null; recEdit=null; recFotoUrl=""; recFormId=""; recRenderForm(); } else if(ev.target.closest("#recFotoDel")){ recFotoUrl=""; var pv=document.getElementById("recFotoPrev"); if(pv) pv.innerHTML='<span style="color:#8a97a8;font-size:12px;">Nenhuma foto ainda.</span>'; } });
     fw.addEventListener("change",function(ev){ if(recIngCampo(ev)) return; if(ev.target.id==="recFotoFile") recFotoUpload(ev.target); if(ev.target.id==="recEmb"){ recAutoEmbCusto(); recFinSync(); } if(ev.target.id==="recRendUn") recFinSync(); });
     function recIngCampo(ev){
@@ -12455,7 +12618,7 @@ function recImprimir(){
       if(id==="recEmb"){ recAutoEmbCusto(); recFinSync(); }
       else if(id==="recPreco"){ recFinModo="preco"; recFinSync(); }
       else if(id==="recMarkup"){ recFinModo="markup"; recFinSync(); }
-      else if(id==="recCustoEmb"||id==="recOutros"||id==="recRendQtd"||id==="recRendUn") recFinSync(); });
+      else if(id==="recCustoEmb"||id==="recOutros"||id==="recRendQtd"||id==="recRendUn"||id==="recPeso") recFinSync(); });
     // Enter numa linha: vai pra linha de baixo; se já for a última, cria uma nova
     fw.addEventListener("keydown",function(ev){
       if(ev.key!=="Enter") return;
