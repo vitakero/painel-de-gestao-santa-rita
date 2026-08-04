@@ -723,6 +723,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="epi"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span> EPI</button>
     <button class="nav-item" data-page="fardamento"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l4-3 2 2h4l2-2 4 3-2 3-2-1v11H8V9L6 10z"/></svg></span> Fardamento</button>
     <button class="nav-item" data-page="material"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8"/><rect x="2" y="3" width="20" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg></span> Material de uso</button>
+    <button class="nav-item" data-page="custosop"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/><circle cx="18.7" cy="8" r="1.2"/></svg></span> Custos operacionais<span class="soon">novo</span></button>
     <button class="nav-item" data-page="receitas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span> Receitas</button>
     <button class="nav-item" data-page="estld"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg></span> Loja / Depósito<span class="soon">novo</span></button>
     <button class="nav-item" data-page="pedidos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span> Pedidos<span class="soon">novo</span><span class="nav-badge" id="pedNavBadge" style="display:none;"></span></button>
@@ -2856,6 +2857,51 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       <div class="card">
         <h2>Negociações</h2>
         <div id="negTabela"></div>
+      </div>
+    </section>
+    <section id="page-custosop" class="page">
+      <div class="card">
+        <style>
+        .cop-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px;}
+        .cop-titulo{font-size:17px;font-weight:700;color:#0c5a26;display:flex;align-items:center;gap:8px;}
+        .cop-busca{flex:1;min-width:150px;max-width:280px;border:1px solid #d7dee7;border-radius:9px;padding:7px 12px;font:inherit;color:#1d2733;}
+        .cop-btn{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #d7dee7;border-radius:9px;padding:7px 13px;font-size:13px;font-weight:600;color:#56606d;cursor:pointer;}
+        .cop-btn.prim{background:#157a35;border-color:#157a35;color:#fff;}
+        .cop-sub{font-size:12.5px;color:#8a97a8;margin:2px 0 12px;}
+        .cop-form{background:#f8fafb;border:1px solid #e2e8ee;border-radius:11px;padding:14px;margin-bottom:14px;}
+        .cop-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 120px;gap:10px;}
+        @media(max-width:860px){ .cop-grid{grid-template-columns:1fr 1fr;} }
+        .cop-fld label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#6b7787;font-weight:700;margin-bottom:4px;}
+        .cop-fld input,.cop-fld select{width:100%;box-sizing:border-box;border:1px solid #d4dde6;border-radius:8px;padding:8px 10px;font:inherit;color:#1d2733;background:#fff;}
+        .cop-fld input:focus,.cop-fld select:focus{border-color:#157a35;outline:none;}
+        .cop-grid2{display:flex;gap:10px;align-items:flex-end;margin-top:10px;flex-wrap:wrap;}
+        .cop-grid2 .cop-fld{flex:1;min-width:200px;}
+        .cop-check{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:#33404f;font-weight:600;cursor:pointer;padding-bottom:9px;}
+        .cop-cat{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#8a97a8;margin:16px 0 8px;display:flex;align-items:center;gap:8px;}
+        .cop-cat .n{background:#eef4ef;color:#157a35;border-radius:20px;padding:1px 8px;font-size:11px;}
+        .cop-lista{display:grid;grid-template-columns:1fr;gap:8px;}
+        .cop-item{display:grid;grid-template-columns:1.6fr 1fr 130px auto;gap:10px;align-items:center;background:#fff;border:1px solid #e8ecf1;border-radius:11px;padding:11px 14px;}
+        @media(max-width:760px){ .cop-item{grid-template-columns:1fr 1fr;} }
+        .cop-nome{font-weight:700;color:#1d2733;font-size:14px;}
+        .cop-obs{font-size:11.5px;color:#8a97a8;margin-top:1px;}
+        .cop-un{font-size:12px;color:#56606d;}
+        .cop-val{font-size:15px;font-weight:800;color:#157a35;font-variant-numeric:tabular-nums;text-align:right;}
+        .cop-acoes{display:flex;gap:6px;justify-content:flex-end;}
+        .cop-mini{border:1px solid #e2e8ee;background:#fff;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;color:#56606d;cursor:pointer;}
+        .cop-mini.del{color:#c0392b;}
+        .cop-off{opacity:.55;}
+        .cop-tag{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:5px;background:#eef1f5;color:#8a97a8;margin-left:6px;}
+        .cop-hist{font-size:11px;color:#a9b4c0;margin-top:3px;}
+        .cop-vazio{color:#8a97a8;font-size:13.5px;text-align:center;padding:26px 0;line-height:1.7;}
+        </style>
+        <div class="cop-top">
+          <div class="cop-titulo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg> Custos operacionais</div>
+          <input id="copBusca" class="cop-busca" placeholder="Buscar custo...">
+          <button class="cop-btn prim" id="copAdd" type="button">＋ Novo custo</button>
+        </div>
+        <div class="cop-sub">Cadastre uma vez (mão de obra, energia, gás, limpeza...) e use em qualquer receita — a ficha técnica puxa daqui.</div>
+        <div id="copFormWrap"></div>
+        <div id="copLista"></div>
       </div>
     </section>
     <section id="page-despesas" class="page"><div id="despRoot"></div></section>
@@ -10679,7 +10725,7 @@ function lixRestaurar(reg){
 }
 
 /* ===== Configurações (só master) ===== */
-var CFG_TABELAS=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas","banco_horas","galpoes"];
+var CFG_TABELAS=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas","banco_horas","galpoes","custos_operacionais"];
 function cfgEhMaster(){ return !!(window.__PERFIL && window.__PERFIL.is_master); }
 function renderConfig(){
   var el=document.getElementById("cfgConteudo"); if(!el) return;
@@ -10747,7 +10793,7 @@ function bkpRestaurar(file){
     uiConfirm({titulo:"Restaurar backup",msg:"Isso vai repor os dados com a cópia do dia "+(pacote._data?pacote._data.slice(0,10).split("-").reverse().join("/"):"?")+" ("+qtd+" registros). O que foi adicionado depois dessa data pode ser substituído. Continuar?",ok:"Restaurar",cancel:"Cancelar"}).then(function(ok){
       if(!ok) return;
       var msg=document.getElementById("bkpMsg"); if(msg){ msg.textContent="Restaurando..."; msg.style.color="#7a8696"; }
-      var ordem=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas","banco_horas","galpoes"];
+      var ordem=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas","banco_horas","galpoes","custos_operacionais"];
       var cadeia=Promise.resolve();
       ordem.forEach(function(t){
         var linhas=pacote.tabelas[t]; if(!linhas||!linhas.length) return;
@@ -11867,6 +11913,96 @@ try{ manAtualizaBadge(); }catch(e){}
    Abas-documento: 1 linha (id fixo, valor). Push automatico ao salvar; pull no login; realtime com aviso. */
 /* ===== Material de uso (embalagens/materiais padrão) ===== */
 var MAT_TIPOS=["Sacola","Embalagem a vácuo","Bandeja","Filme plástico","Papel","Fita","Etiqueta","Bobina","Pote / Marmita","Outro"];
+/* ===== CATÁLOGO DE CUSTOS OPERACIONAIS =====
+   Cadastro reutilizável (mão de obra, energia, gás...). Guarda histórico do valor de referência. */
+var copData=(function(){ try{ var a=JSON.parse(localStorage.getItem("custos_operacionais")||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } })();
+var copForm=null, copEdit=null, copBusca="";
+function copUid(){ return "co_"+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36); }
+function copSave(){ try{ localStorage.setItem("custos_operacionais", JSON.stringify(copData)); }catch(e){} }
+function copEsc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function copAtivos(){ return copData.filter(function(x){ return x.ativo!==false; }); }
+function copPorNome(nome){
+  var n=String(nome||"").trim().toLowerCase(); if(!n) return null;
+  return copData.filter(function(x){ return String(x.nome||"").trim().toLowerCase()===n; })[0]||null;
+}
+function renderCustosOp(){ copRenderForm(); copRenderLista(); }
+function copRenderForm(){
+  var w=document.getElementById("copFormWrap"); if(!w) return;
+  if(!copForm){ w.innerHTML=""; return; }
+  var ed=copEdit?copData.find(function(x){return x.id===copEdit;}):null;
+  var cats=COP_CATS.map(function(c){ return '<option'+(ed&&ed.categoria===c?' selected':'')+'>'+copEsc(c)+'</option>'; }).join('');
+  var uns=COP_UNS.map(function(u){ return '<option'+((ed?ed.unidade:"Por receita")===u?' selected':'')+'>'+copEsc(u)+'</option>'; }).join('');
+  w.innerHTML='<div class="cop-form"><div class="cop-grid">'
+    +'<div class="cop-fld"><label>Nome do custo</label><input id="copNome" placeholder="Ex: Mão de obra padeiro" value="'+(ed?copEsc(ed.nome):'')+'"></div>'
+    +'<div class="cop-fld"><label>Categoria</label><select id="copCat"><option value="">Escolha...</option>'+cats+'</select></div>'
+    +'<div class="cop-fld"><label>Unidade de cálculo</label><select id="copUn">'+uns+'</select></div>'
+    +'<div class="cop-fld"><label>Valor de referência</label><input id="copValor" inputmode="decimal" placeholder="0,00" value="'+(ed&&ed.valor?copEsc(String(ed.valor).replace(".",",")):'')+'"></div>'
+    +'</div><div class="cop-grid2">'
+    +'<div class="cop-fld"><label>Observação</label><input id="copObs" placeholder="Opcional (ex.: 1h de padeiro + ajudante)" value="'+(ed?copEsc(ed.obs||''):'')+'"></div>'
+    +'<label class="cop-check"><input type="checkbox" id="copAtivo"'+((!ed||ed.ativo!==false)?' checked':'')+'> Ativo</label>'
+    +'<button class="cop-btn prim" id="copSalvar" type="button">'+(ed?'Salvar':'Adicionar')+'</button>'
+    +'<button class="cop-btn" id="copCancelar" type="button">Cancelar</button>'
+    +'</div>'
+    +'<div style="font-size:11.5px;color:#8a97a8;margin-top:9px;">A <b>unidade de cálculo</b> diz como o custo entra na receita: “Por receita” usa o valor cheio; “Por hora/minuto” multiplica pelo tempo; “Percentual” aplica sobre ingredientes + embalagem.</div>'
+    +'</div>';
+  var n=document.getElementById("copNome"); if(n) n.focus();
+}
+function copSalvarForm(){
+  var nome=(document.getElementById("copNome").value||"").trim();
+  var categoria=document.getElementById("copCat").value;
+  var unidade=document.getElementById("copUn").value;
+  var valor=Math.max(0,despParseValor(document.getElementById("copValor").value));
+  var obs=(document.getElementById("copObs").value||"").trim();
+  var ativo=!!document.getElementById("copAtivo").checked;
+  if(!nome){ uiConfirm({titulo:"Aviso",msg:"Informe o nome do custo.",ok:"OK",cancel:""}); return; }
+  if(copEdit){
+    var e=copData.find(function(x){return x.id===copEdit;});
+    if(e){
+      if(Math.abs((+e.valor||0)-valor)>=0.005){ e.hist=(Array.isArray(e.hist)?e.hist:[]); e.hist.push({d:new Date().toISOString().slice(0,10), v:(+e.valor||0)}); if(e.hist.length>12) e.hist=e.hist.slice(-12); }
+      e.nome=nome; e.categoria=categoria; e.unidade=unidade; e.valor=valor; e.obs=obs; e.ativo=ativo;
+    }
+  }
+  else copData.push({id:copUid(),nome:nome,categoria:categoria,unidade:unidade,valor:valor,obs:obs,ativo:ativo,hist:[]});
+  copSave(); copForm=null; copEdit=null; renderCustosOp();
+}
+function copRenderLista(){
+  var el=document.getElementById("copLista"); if(!el) return;
+  if(!copData.length){ el.innerHTML='<p class="cop-vazio">Nenhum custo operacional cadastrado ainda.<br>Clique em <b>＋ Novo custo</b> para começar (mão de obra, energia, gás...).</p>'; return; }
+  var q=copBusca.trim().toLowerCase();
+  var itens=copData.filter(function(x){ if(!q) return true; return ((x.nome||"")+" "+(x.categoria||"")+" "+(x.obs||"")).toLowerCase().indexOf(q)>=0; });
+  if(!itens.length){ el.innerHTML='<p class="cop-vazio">Nada encontrado para "'+copEsc(copBusca)+'".</p>'; return; }
+  var grupos={}; itens.forEach(function(x){ var c=(x.categoria||"").trim()||"Sem categoria"; (grupos[c]=grupos[c]||[]).push(x); });
+  var h="";
+  Object.keys(grupos).sort(function(a,b){return a.localeCompare(b,"pt");}).forEach(function(c){
+    h+='<div class="cop-cat">'+copEsc(c)+'<span class="n">'+grupos[c].length+'</span></div><div class="cop-lista">';
+    grupos[c].sort(function(a,b){ return (a.nome||"").localeCompare(b.nome||"","pt"); }).forEach(function(x){
+      var hist=(Array.isArray(x.hist)&&x.hist.length)?('<div class="cop-hist">Valor anterior: '+brl(+x.hist[x.hist.length-1].v||0)+' em '+recDataBr(x.hist[x.hist.length-1].d)+'</div>'):'';
+      h+='<div class="cop-item'+(x.ativo===false?' cop-off':'')+'">'
+        +'<div><div class="cop-nome">'+copEsc(x.nome)+(x.ativo===false?'<span class="cop-tag">inativo</span>':'')+'</div>'+(x.obs?'<div class="cop-obs">'+copEsc(x.obs)+'</div>':'')+hist+'</div>'
+        +'<div class="cop-un">'+copEsc(x.unidade||"Por receita")+'</div>'
+        +'<div class="cop-val">'+brl(+x.valor||0)+'</div>'
+        +'<div class="cop-acoes"><button class="cop-mini" data-copedit="'+x.id+'" type="button">Editar</button><button class="cop-mini del" data-copdel="'+x.id+'" type="button">Remover</button></div>'
+        +'</div>';
+    });
+    h+='</div>';
+  });
+  el.innerHTML=h;
+}
+(function initCustosOp(){
+  var add=document.getElementById("copAdd"); if(add) add.addEventListener("click",function(){ copForm=copForm?null:"new"; copEdit=null; copRenderForm(); });
+  var bus=document.getElementById("copBusca"); if(bus) bus.addEventListener("input",function(){ copBusca=this.value; copRenderLista(); });
+  var fw=document.getElementById("copFormWrap"); if(fw) fw.addEventListener("click",function(ev){
+    if(ev.target.closest("#copSalvar")) copSalvarForm();
+    else if(ev.target.closest("#copCancelar")){ copForm=null; copEdit=null; copRenderForm(); }
+  });
+  var lst=document.getElementById("copLista"); if(lst) lst.addEventListener("click",function(ev){
+    var e=ev.target.closest("[data-copedit]");
+    if(e){ copEdit=e.getAttribute("data-copedit"); copForm="edit"; copRenderForm(); var w=document.getElementById("copFormWrap"); if(w) w.scrollIntoView({behavior:"smooth",block:"center"}); return; }
+    var d=ev.target.closest("[data-copdel]");
+    if(d){ var id=d.getAttribute("data-copdel"); var it=copData.find(function(x){return x.id===id;});
+      uiConfirm({titulo:"Remover custo",msg:'Remover "'+copEsc(it?it.nome:"")+'" do catálogo? As receitas que já usam ele mantêm o valor gravado.',ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(sim){ copData=copData.filter(function(x){return x.id!==id;}); copSave(); renderCustosOp(); } }); return; }
+  });
+})();
 var matData=(function(){ try{ var a=JSON.parse(localStorage.getItem("material_uso")||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } })();
 var matForm=null, matEdit=null, matBusca="";
 function matUid(){ return "m_"+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36); }
@@ -12018,8 +12154,11 @@ function recFinCalc(e){
   e=e||{};
   var ing=recTotalIngr(e.ingr||[]);
   if(!(ing>0) && +e.custoIngLegado>0) ing=+e.custoIngLegado;      // receita antiga (texto, sem preços) mantém o custo salvo
-  var emb=Math.max(0,+e.custoEmb||0), out=Math.max(0,+e.outros||0);
-  var total=ing+emb+out;
+  var emb=Math.max(0,+e.custoEmb||0);
+  // custos operacionais: linhas do catálogo (percentual incide sobre o custo direto = ingredientes + embalagem)
+  var direto=ing+emb;
+  var out=(e.custosOp&&e.custosOp.length) ? recTotalCop(e.custosOp,{direto:direto}) : Math.max(0,+e.outros||0);
+  var total=direto+out;
   var rend=Math.max(0,+e.rendQtd||0);
   var custoUn = rend>0 ? total/rend : null;
   var preco=Math.max(0,+e.preco||0), markup=null, mk=+e.markup;
@@ -12038,6 +12177,28 @@ function recFinCalc(e){
            comp:{ ing:fatia(ing), emb:fatia(emb), outros:fatia(out) },
            precos:recPrecosSugeridos(total),
            saude:recSaude(margVenda) };
+}
+/* ---------- CUSTOS OPERACIONAIS (mão de obra, energia, gás…) ----------
+   Cada custo do catálogo tem uma UNIDADE DE CÁLCULO. Hoje a quantidade é digitada;
+   a arquitetura já prevê preencher sozinho no futuro (tempo da receita, peso, rendimento). */
+var COP_CATS=["Mão de obra","Energia elétrica","Gás","Água","Limpeza","Depreciação","Manutenção","Equipamentos","Produção","Outros"];
+var COP_UNS=["Por receita","Por hora","Por minuto","Por kg produzido","Por unidade produzida","Percentual","Valor fixo"];
+// base = quanto multiplicar quando a unidade é automática no futuro (tempo, peso, rendimento)
+// e, no caso de Percentual, sobre qual valor incide (custo direto = ingredientes + embalagem).
+function recCopLinha(r,ctx){
+  r=r||{}; ctx=ctx||{};
+  var q=Number(String(r.q==null?"":r.q).replace(",",".")); if(!isFinite(q)) q=0;
+  var p=Number(r.p); if(!isFinite(p)) p=0;
+  var u=String(r.u||"");
+  if(COP_UNS.indexOf(u)<0) return {ok:false,custo:0,erro:"unidade de cálculo inválida"};
+  if(q<0||p<0) return {ok:false,custo:0,erro:"valor negativo"};
+  if(u==="Percentual") return {ok:true, custo:(+ctx.direto||0)*(p/100), erro:""};   // % sobre ingredientes + embalagem
+  return {ok:true, custo:q*p, erro:""};                                            // demais: quantidade × valor de referência
+}
+function recTotalCop(rows,ctx){
+  var mic=0;
+  (rows||[]).forEach(function(r){ var c=recCopLinha(r,ctx); if(c.ok) mic+=Math.round(c.custo*1e6); });
+  return Math.round(mic/1e4)/100;
 }
 /* Regras de negócio configuráveis (markup das faixas de preço e limites de saúde da margem). */
 var REC_REGRAS={ mkMinimo:30, mkIdeal:60, mkPremium:100, margemBoa:30, margemAtencao:15 };
@@ -12164,6 +12325,59 @@ function recCustoIngrDe(x){
   if(rows&&rows.length&&rows.some(function(r){ return +r.p>0; })) return recTotalIngr(rows);
   return +((x&&x.custo)||0);
 }
+/* ---------- linhas de CUSTO OPERACIONAL dentro da receita ---------- */
+var recCop=[];   // [{q,u,n,p,refId}]
+function recCopNorm(r){
+  r=r||{};
+  return { q:String(r.q==null?"":r.q), u:String(r.u||"Por receita"), n:String(r.n||""), p:+r.p||0, refId:String(r.refId||"") };
+}
+// receita antiga com o campo único "outros" vira uma linha de valor fixo (não perde nada)
+function recCopDe(x){
+  if(x&&Array.isArray(x.custosOp)&&x.custosOp.length) return x.custosOp.map(recCopNorm);
+  if(x&&+x.outros>0) return [recCopNorm({q:1,u:"Valor fixo",n:"Outros custos",p:+x.outros})];
+  return [];
+}
+function recCopLimpas(){
+  return recCop.filter(function(r){ return (r.n||"").trim()||(+r.p>0); })
+               .map(function(r){ return {q:String(r.q||"").trim(),u:String(r.u||"Por receita"),n:(r.n||"").trim(),p:Math.max(0,+r.p||0),refId:r.refId||""}; });
+}
+function recCopCtx(){   // percentual incide sobre ingredientes + embalagem
+  return { direto: recTotalIngr(recIngr) + Math.max(0,despParseValor(recVal("recCustoEmb"))) };
+}
+function recCopRowHtml(r,i){
+  var cl=recCopLinha(r,recCopCtx());
+  var custoTxt=cl.erro?('<span class="err" title="'+recEsc(cl.erro)+'">—</span>'):brl(cl.custo);
+  var uns=COP_UNS.map(function(u){ return '<option'+(u===r.u?' selected':'')+'>'+recEsc(u)+'</option>'; }).join('');
+  var pct=(r.u==="Percentual");
+  return '<div class="rec-ing-row" data-cop="'+i+'">'
+    +'<input class="rec-ing-q" data-copf="q" inputmode="decimal" placeholder="1" value="'+recEsc(String(r.q||""))+'"'+(pct?' disabled title="Percentual não usa quantidade"':'')+'>'
+    +'<select class="rec-ing-u" data-copf="u" style="width:100%;">'+uns+'</select>'
+    +'<input class="rec-ing-n" data-copf="n" list="recCopLista" placeholder="Escolha ou digite (ex: Mão de obra)" value="'+recEsc(r.n||"")+'">'
+    +'<div class="rec-ing-pw"><input class="rec-ing-p" data-copf="p" inputmode="decimal" placeholder="0,00" title="Valor de referência do cadastro — pode ajustar" value="'+(+r.p>0?recEsc(String(r.p).replace(".",",")):"")+'"><span class="rec-ing-suf">'+(pct?"%":"")+'</span></div>'
+    +'<div class="rec-ing-calc"><span class="rec-ing-calclbl">Custo: </span>'+custoTxt+'</div>'
+    +'<button type="button" class="rec-ing-x" data-copdel2="'+i+'" title="Remover este custo">×</button>'
+    +'</div>';
+}
+function recCopRender(){
+  var box=document.getElementById("recCopBox"); if(!box) return;
+  box.innerHTML=recCop.length?recCop.map(recCopRowHtml).join(""):'<div class="rec-ing-vazio">Nenhum custo operacional — clique em “＋ Adicionar custo operacional”.</div>';
+  recFinSync();
+}
+function recCopNova(fw){
+  var u=recCop[recCop.length-1];
+  var vazia=u&&!(u.n||"").trim()&&!(+u.p>0);
+  if(!vazia) recCop.push({q:"1",u:"Por receita",n:"",p:0,refId:""});
+  recCopRender();
+  var rows=(fw||document).querySelectorAll('[data-cop] .rec-ing-n');
+  if(rows.length) rows[rows.length-1].focus();
+}
+// escolher um custo do catálogo preenche unidade e valor sozinho
+function recCopAplicaCatalogo(i){
+  var r=recCop[i]; if(!r) return false;
+  var c=copPorNome(r.n); if(!c) return false;
+  r.u=c.unidade||"Por receita"; r.p=+c.valor||0; r.refId=c.id;
+  return true;
+}
 function recIngNova(fw){   // nova linha (não empilha linha vazia atrás de linha vazia)
   var u=recIngr[recIngr.length-1];
   var vazia=u&&!String(u.q||"").trim()&&!String(u.u||"").trim()&&!(u.n||"").trim()&&!(+u.p>0);
@@ -12235,7 +12449,7 @@ function recPoe(id,txt){ var el=document.getElementById(id); if(el) el.textConte
 function recFinLer(){
   return { ingr:recIngr, custoIngLegado:recCustoManual,
            custoEmb:despParseValor(recVal("recCustoEmb")),
-           outros:despParseValor(recVal("recOutros")),
+           custosOp:recCop,
            rendQtd:despParseValor(recVal("recRendQtd")),
            rendUn:recVal("recRendUn"),
            pesoFinal:despParseValor(recVal("recPeso")),
@@ -12246,6 +12460,8 @@ function recFinLer(){
 function recFinPintar(f){
   recPoe("rfIng",   recMoeda(f.ing));
   recPoe("rfTotal", recMoeda(f.total));
+  recPoe("rfOper", recMoeda(f.outros));
+  recPoe("recCopTot", recMoeda(f.outros));
   recPoe("rfCustoUn", recMoeda(f.custoUn));
   recPoe("rfVendaUn", recMoeda(f.vendaUn));
   recPoe("rfLucro",   recMoeda(f.lucro));
@@ -12260,7 +12476,7 @@ function recFinPintar(f){
   var tl=document.getElementById("rtLucro"); if(tl) tl.className="val "+((f.lucro==null)?"":(f.lucro>=0?"verde":"vermelho"));
   // composição dos custos
   var cp=document.getElementById("rfComp");
-  if(cp) cp.innerHTML=(f.total>0)?(recBarraHtml("Ingredientes",f.comp.ing,"a")+recBarraHtml("Embalagem",f.comp.emb,"b")+recBarraHtml("Outros",f.comp.outros,"c")):"";
+  if(cp) cp.innerHTML=(f.total>0)?(recBarraHtml("Ingredientes",f.comp.ing,"a")+recBarraHtml("Embalagem",f.comp.emb,"b")+recBarraHtml("Operacionais",f.comp.outros,"c")):"";
   // preços sugeridos (clique aplica)
   var sg=document.getElementById("rfSug");
   if(sg) sg.innerHTML=(f.total>0)?(
@@ -12348,11 +12564,18 @@ function recRenderForm(){
         +'<div class="rec-ing-somatxt">Custo total dos ingredientes: <b id="recIngTot">R$ 0,00</b><div class="rec-ing-nota">É esta soma que alimenta todo o painel.</div></div></div>'
     +'</div>'
     // ---- 3 custos ----
-    +recSecao(3,"Custos")
+    +recSecao(3,"Custos operacionais")
+    +'<div class="rec-ings">'
+      +'<div class="rec-ing-head"><div style="text-align:right;">Qtd</div><div>Unidade</div><div>Custo operacional</div><div style="text-align:right;" title="Valor de referência do cadastro">Valor de ref.</div><div style="text-align:right;">Custo na receita</div><div></div></div>'
+      +'<div id="recCopBox"></div>'
+      +'<datalist id="recCopLista">'+copAtivos().map(function(c){ return '<option value="'+recEsc(c.nome)+'">'+recEsc((c.categoria||"")+" · "+(c.unidade||"")+" · "+brl(+c.valor||0))+'</option>'; }).join('')+'</datalist>'
+      +'<div class="rec-ing-pe"><button type="button" class="rec-ing-add" id="recCopAdd">＋ Adicionar custo operacional</button>'
+        +'<div class="rec-ing-somatxt">Total operacional: <b id="recCopTot">R$ 0,00</b><div class="rec-ing-nota">Cadastre em <b>Custos operacionais</b> e reaproveite em todas as receitas.</div></div></div>'
+    +'</div>'
     +'<div class="rec-fin"><div class="rec-fin-g ultimo"><div class="rec-fin-row">'
-      +'<div class="rec-fin-i"><span>Ingredientes</span><div class="rec-fin-v" id="rfIng">R$ 0,00</div><i>soma da tabela acima</i></div>'
+      +'<div class="rec-fin-i"><span>Ingredientes</span><div class="rec-fin-v" id="rfIng">R$ 0,00</div></div>'
       +'<div class="rec-fin-i"><span>Embalagem</span><input id="recCustoEmb" inputmode="decimal" class="rec-fin-inp" placeholder="0,00" title="Preenche sozinho ao escolher a embalagem — pode ajustar" value="'+(ed&&ed.custoEmb?recEsc(String(ed.custoEmb).replace(".",",")):'')+'"></div>'
-      +'<div class="rec-fin-i"><span>Outros custos</span><input id="recOutros" inputmode="decimal" class="rec-fin-inp" placeholder="0,00" title="Gás, energia, mão de obra… (opcional)" value="'+(ed&&ed.outros?recEsc(String(ed.outros).replace(".",",")):'')+'"></div>'
+      +'<div class="rec-fin-i"><span>Custos operacionais</span><div class="rec-fin-v" id="rfOper">R$ 0,00</div></div>'
       +'<div class="rec-fin-i destaque"><span>Custo total</span><div class="rec-fin-v" id="rfTotal">R$ 0,00</div></div>'
     +'</div>'
       +'<div class="rec-comp" id="rfComp"></div>'
@@ -12400,6 +12623,8 @@ function recRenderForm(){
     +'<div class="rec-acoesf"><button class="rec-btn prim" id="recSalvar" type="button">'+(ed?'Salvar':'Adicionar')+'</button><button class="rec-btn" id="recCancelar" type="button">Cancelar</button></div>'
     +'</div>';
   recHistAtual=(ed&&Array.isArray(ed.histCusto))?ed.histCusto:[];
+  recCop=recCopDe(ed);
+  recCopRender();
   recFinModo="preco";
   recIngRender();
   recAutoEmbCusto();
@@ -12415,14 +12640,15 @@ function recSalvarForm(){
   var ingr=recIngLimpas();
   // MESMO cálculo da tela (uma regra só): custo dos ingredientes, embalagem, outros e preço saem daqui
   var fin=recFinCalc({ingr:ingr, custoIngLegado:recCustoManual, custoEmb:despParseValor(recVal("recCustoEmb")),
-                      outros:despParseValor(recVal("recOutros")), rendQtd:despParseValor(recVal("recRendQtd")),
+                      custosOp:recCop, rendQtd:despParseValor(recVal("recRendQtd")),
                       rendUn:recVal("recRendUn"), preco:despParseValor(recVal("recPreco")),
                       markup:despParseValor(recVal("recMarkup")), modo:recFinModo});
   var custo=Math.round(fin.ing*100)/100;
   var preco=Math.round(fin.preco*100)/100;
   var tempo=(document.getElementById("recTempo").value||"").trim();
   var custoEmb=Math.round(fin.emb*1000)/1000;
-  var outros=Math.round(fin.outros*100)/100;
+  var custosOp=recCopLimpas();
+  var outros=Math.round(fin.outros*100)/100;   // total operacional (compat com o cartão antigo)
   var pesoFinal=Math.max(0,despParseValor(recVal("recPeso")));
   var validade=Math.max(0,Math.round(despParseValor(recVal("recValidade"))));
   // histórico de custo: guarda um ponto sempre que o CUSTO TOTAL muda (pra acompanhar aumento)
@@ -12438,8 +12664,8 @@ function recSalvarForm(){
   if(!recIngTocado && _orig) ingr=(Array.isArray(_orig.ingr)?_orig.ingr:[]);   // e as linhas salvas também
   var preparo=(document.getElementById("recPrep").value||"").trim();
   if(!nome){ uiConfirm({titulo:"Aviso",msg:"Informe o nome da receita.",ok:"OK",cancel:""}); return; }
-  if(recEdit){ var e=recData.find(function(x){return x.id===recEdit;}); if(e){ e.nome=nome; e.setor=setor; e.rendimento=rendimento; e.rendQtd=rendQtd; e.rendUn=rendUn; e.custo=custo; e.preco=preco; e.tempo=tempo; e.custoEmb=custoEmb; e.outros=outros; e.pesoFinal=pesoFinal; e.validade=validade; e.histCusto=histCusto; e.embalagem=embalagem; e.ingr=ingr; e.ingredientes=ingredientes; e.preparo=preparo; e.foto=recFotoUrl; } }
-  else { recData.push({id:recFormId||recUid(),nome:nome,setor:setor,rendimento:rendimento,rendQtd:rendQtd,rendUn:rendUn,custo:custo,preco:preco,tempo:tempo,custoEmb:custoEmb,outros:outros,pesoFinal:pesoFinal,validade:validade,histCusto:histCusto,embalagem:embalagem,ingr:ingr,ingredientes:ingredientes,preparo:preparo,foto:recFotoUrl}); }
+  if(recEdit){ var e=recData.find(function(x){return x.id===recEdit;}); if(e){ e.nome=nome; e.setor=setor; e.rendimento=rendimento; e.rendQtd=rendQtd; e.rendUn=rendUn; e.custo=custo; e.preco=preco; e.tempo=tempo; e.custoEmb=custoEmb; e.outros=outros; e.custosOp=custosOp; e.pesoFinal=pesoFinal; e.validade=validade; e.histCusto=histCusto; e.embalagem=embalagem; e.ingr=ingr; e.ingredientes=ingredientes; e.preparo=preparo; e.foto=recFotoUrl; } }
+  else { recData.push({id:recFormId||recUid(),nome:nome,setor:setor,rendimento:rendimento,rendQtd:rendQtd,rendUn:rendUn,custo:custo,preco:preco,tempo:tempo,custoEmb:custoEmb,outros:outros,custosOp:custosOp,pesoFinal:pesoFinal,validade:validade,histCusto:histCusto,embalagem:embalagem,ingr:ingr,ingredientes:ingredientes,preparo:preparo,foto:recFotoUrl}); }
   recSave(); recForm=null; recEdit=null; recFotoUrl=""; recFormId=""; renderReceitas();
 }
 function recRenderLista(){
@@ -12457,12 +12683,12 @@ function recRenderLista(){
       var _meta=[]; if(x.rendimento) _meta.push('Rende: '+recEsc(x.rendimento)); if(x.tempo) _meta.push('Tempo: '+recEsc(x.tempo));
       // MESMA regra do formulário (recFinCalc) — nada de conta duplicada no cartão
       var _f=recFinCalc({ingr:(x.ingr||[]).map(recIngNorm), custoIngLegado:x.custo, custoEmb:recEmbCustoDe(x),
-                         outros:x.outros, rendQtd:(x.rendQtd||recRendSplit(x.rendimento||"").q), rendUn:(x.rendUn||recRendSplit(x.rendimento||"").u),
+                         custosOp:recCopDe(x), outros:x.outros, rendQtd:(x.rendQtd||recRendSplit(x.rendimento||"").q), rendUn:(x.rendUn||recRendSplit(x.rendimento||"").u),
                          preco:x.preco, modo:"preco"});
       var _money='';
       if(_f.total>0||_f.preco>0){
         var _cor=((_f.lucro==null||_f.lucro>=0)?'#157a35':'#c0392b');
-        var _det=(_f.emb>0||_f.outros>0)?(' <span style="color:#8a97a8">(ingred. '+brl(_f.ing)+(_f.emb>0?(' + emb. '+brl(_f.emb)):'')+(_f.outros>0?(' + outros '+brl(_f.outros)):'')+')</span>'):'';
+        var _det=(_f.emb>0||_f.outros>0)?(' <span style="color:#8a97a8">(ingred. '+brl(_f.ing)+(_f.emb>0?(' + emb. '+brl(_f.emb)):'')+(_f.outros>0?(' + operac. '+brl(_f.outros)):'')+')</span>'):'';
         var _p1=(_f.total>0)?('Custo: '+brl(_f.total)+_det):'';
         var _p2=(_f.preco>0)?((_p1?' · ':'')+'Venda: '+brl(_f.preco)):'';
         var _p3=(_f.lucro!=null)?(' · <b style="color:'+_cor+'">Lucro: '+brl(_f.lucro)+'</b> · Markup: <b>'+recPct(_f.markup)+'</b> · Marg. venda: <b>'+recPct(_f.margVenda)+'</b>'):'';
@@ -12594,10 +12820,25 @@ function recImprimir(){
       if(add){ recIngNova(fw); return; }
       var del=ev.target.closest("[data-ingdel]");
       if(del){ recIngTocado=true; recIngr.splice(+del.getAttribute("data-ingdel"),1); recIngRender(); return; }
+      if(ev.target.closest("#recCopAdd")){ recCopNova(fw); return; }
+      var cdel=ev.target.closest("[data-copdel2]");
+      if(cdel){ recCop.splice(+cdel.getAttribute("data-copdel2"),1); recCopRender(); return; }
       var sug=ev.target.closest("[data-sug]");   // clicar num preço sugerido aplica ele
       if(sug){ var pv=document.getElementById("recPreco"); if(pv){ pv.value=String(sug.getAttribute("data-sug")).replace(".",","); recFinModo="preco"; recFinSync(); } return; }
       if(ev.target.closest("#recSalvar")){ recSalvarForm(); } else if(ev.target.closest("#recCancelar")){ recForm=null; recEdit=null; recFotoUrl=""; recFormId=""; recRenderForm(); } else if(ev.target.closest("#recFotoDel")){ recFotoUrl=""; var pv=document.getElementById("recFotoPrev"); if(pv) pv.innerHTML='<span style="color:#8a97a8;font-size:12px;">Nenhuma foto ainda.</span>'; } });
-    fw.addEventListener("change",function(ev){ if(recIngCampo(ev)) return; if(ev.target.id==="recFotoFile") recFotoUpload(ev.target); if(ev.target.id==="recEmb"){ recAutoEmbCusto(); recFinSync(); } if(ev.target.id==="recRendUn") recFinSync(); });
+    fw.addEventListener("change",function(ev){ if(recIngCampo(ev)) return; if(recCopCampo(ev)) return; if(ev.target.id==="recFotoFile") recFotoUpload(ev.target); if(ev.target.id==="recEmb"){ recAutoEmbCusto(); recFinSync(); } if(ev.target.id==="recRendUn") recFinSync(); });
+    function recCopCampo(ev){
+      var f=ev.target.getAttribute&&ev.target.getAttribute("data-copf");
+      if(!f) return false;
+      var lin=ev.target.closest("[data-cop]"); if(!lin) return true;
+      var i=+lin.getAttribute("data-cop"), r=recCop[i]; if(!r) return true;
+      if(f==="p") r.p=Math.max(0,despParseValor(ev.target.value));
+      else if(f==="n"){ r.n=ev.target.value; if(recCopAplicaCatalogo(i)){ recCopRender(); return true; } }
+      else r[f]=ev.target.value;
+      if(f==="u"){ recCopRender(); return true; }      // muda a unidade -> redesenha (percentual troca o campo)
+      recCopRender();
+      return true;
+    }
     function recIngCampo(ev){
       var f=ev.target.getAttribute&&ev.target.getAttribute("data-ingf");
       if(!f) return false;
@@ -12614,11 +12855,12 @@ function recImprimir(){
     }
     fw.addEventListener("input",function(ev){
       if(recIngCampo(ev)) return;
+      if(recCopCampo(ev)) return;
       var id=ev.target.id;
       if(id==="recEmb"){ recAutoEmbCusto(); recFinSync(); }
       else if(id==="recPreco"){ recFinModo="preco"; recFinSync(); }
       else if(id==="recMarkup"){ recFinModo="markup"; recFinSync(); }
-      else if(id==="recCustoEmb"||id==="recOutros"||id==="recRendQtd"||id==="recRendUn"||id==="recPeso") recFinSync(); });
+      else if(id==="recCustoEmb"||id==="recRendQtd"||id==="recRendUn"||id==="recPeso") recFinSync(); });
     // Enter numa linha: vai pra linha de baixo; se já for a última, cria uma nova
     fw.addEventListener("keydown",function(ev){
       if(ev.key!=="Enter") return;
@@ -12829,6 +13071,7 @@ function pedEnviar(){
   var MAPA=[
     {chave:"material_uso",        tabela:"material_uso",         modo:"array"},
     {chave:"receitas_dados",      tabela:"receitas",             modo:"array"},
+    {chave:"custos_operacionais", tabela:"custos_operacionais",  modo:"array"},
     {chave:"ferias_dados",        tabela:"ferias",               modo:"array"},
     {chave:"cargos_dados",        tabela:"cargos_salarios",      modo:"array", pagina:"cargos"},
     {chave:"perdas",              tabela:"perdas",               modo:"array"},
