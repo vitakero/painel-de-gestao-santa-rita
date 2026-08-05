@@ -12522,12 +12522,13 @@ function recFinCalc(e){
   e=e||{};
   var ing=recTotalIngr((typeof recIngResolvLista==="function")?recIngResolvLista(e.ingr||[]):(e.ingr||[]));
   if(!(ing>0) && +e.custoIngLegado>0) ing=+e.custoIngLegado;      // receita antiga (texto, sem preços) mantém o custo salvo
-  var emb=Math.max(0,+e.custoEmb||0);
-  // custos operacionais: linhas do catálogo (percentual incide sobre o custo direto = ingredientes + embalagem)
+  var rend=Math.max(0,+e.rendQtd||0);
+  // embalagens: linhas do cadastro (a base "por unidade produzida" usa o rendimento)
+  var emb=(e.embalagens&&e.embalagens.length) ? recTotalEmb((typeof recEmbResolvLista==="function")?recEmbResolvLista(e.embalagens):e.embalagens,{rend:rend}) : Math.max(0,+e.custoEmb||0);
+  // custos operacionais: percentual incide sobre o custo direto (ingredientes + embalagem)
   var direto=ing+emb;
   var out=(e.custosOp&&e.custosOp.length) ? recTotalCop(e.custosOp,{direto:direto}) : Math.max(0,+e.outros||0);
   var total=direto+out;
-  var rend=Math.max(0,+e.rendQtd||0);
   var custoUn = rend>0 ? total/rend : null;
   var preco=Math.max(0,+e.preco||0), markup=null, mk=+e.markup;
   if(e.modo==="markup" && isFinite(mk) && total>0){ markup=mk; preco=total*(1+mk/100); }
@@ -12545,6 +12546,28 @@ function recFinCalc(e){
            comp:{ ing:fatia(ing), emb:fatia(emb), outros:fatia(out) },
            precos:recPrecosSugeridos(total),
            saude:recSaude(margVenda) };
+}
+/* ---------- EMBALAGENS DA RECEITA ----------
+   Cada linha é uma embalagem do cadastro + quantidade. A base diz se a quantidade é
+   por RECEITA (1 bandeja por bolo) ou por UNIDADE PRODUZIDA (16 potes para 16 fatias).
+   Ter quantidade por linha é o que permite, no futuro, baixar do estoque na produção. */
+var EMB_BASES=["Por receita","Por unidade produzida"];
+function recEmbLinha(r,ctx){
+  r=r||{}; ctx=ctx||{};
+  var q=Number(String(r.q==null?"":r.q).replace(",",".")); if(!isFinite(q)) q=0;
+  var p=Number(r.p); if(!isFinite(p)) p=0;
+  if(q<0||p<0) return {ok:false,custo:0,erro:"valor negativo"};
+  if(r.base==="Por unidade produzida"){
+    var rend=Number(ctx.rend)||0;
+    if(!(rend>0)) return {ok:false,custo:0,erro:"informe o rendimento para calcular por unidade"};
+    return {ok:true,custo:q*p*rend,erro:""};
+  }
+  return {ok:true,custo:q*p,erro:""};
+}
+function recTotalEmb(rows,ctx){
+  var mic=0;
+  (rows||[]).forEach(function(r){ var c=recEmbLinha(r,ctx); if(c.ok) mic+=Math.round(c.custo*1e6); });
+  return Math.round(mic/1e4)/100;
 }
 /* ---------- CUSTOS OPERACIONAIS (mão de obra, energia, gás…) ----------
    Cada custo do catálogo tem uma UNIDADE DE CÁLCULO. Hoje a quantidade é digitada;
@@ -12775,6 +12798,72 @@ function recAlertaInsumo(rows){
     if(ins && typeof insAlertou==="function" && insAlertou(ins) && !achou) achou=ins; });
   return achou;
 }
+/* ---------- linhas de EMBALAGEM dentro da receita ---------- */
+var recEmbL=[];
+function recEmbNorm(r){ r=r||{}; return {refId:String(r.refId||""), q:String(r.q==null?"1":r.q), base:String(r.base||"Por receita"), n:String(r.n||""), p:+r.p||0}; }
+function recEmbResolv(r){
+  r=recEmbNorm(r);
+  var m=r.refId?((typeof matData!=="undefined"?matData:[]).filter(function(x){return x.id===r.refId;})[0]||null):null;
+  if(m) return {refId:r.refId,q:r.q,base:r.base,n:m.nome+(m.tamanho?(" — "+m.tamanho):""),p:+m.preco||0,mat:m};
+  return {refId:"",q:r.q,base:r.base,n:r.n,p:r.p,mat:null};
+}
+function recEmbResolvLista(rows){ return (rows||[]).map(recEmbResolv); }
+// migração: campo de texto antigo (+ custoEmb) vira linhas
+function recEmbDe(x){
+  if(x&&Array.isArray(x.embalagens)&&x.embalagens.length) return x.embalagens.map(recEmbNorm);
+  var out=[];
+  if(x&&x.embalagem){
+    String(x.embalagem).split(",").forEach(function(nome){
+      nome=nome.trim(); if(!nome) return;
+      var m=(typeof recEmbMatch==="function")?recEmbMatch(nome):null;
+      out.push(recEmbNorm(m?{refId:m.id,q:"1",base:"Por receita"}:{n:nome,q:"1",base:"Por receita",p:0}));
+    });
+  }
+  if(!out.length && x && +x.custoEmb>0) out.push(recEmbNorm({n:"Embalagem",q:"1",base:"Por receita",p:+x.custoEmb}));
+  return out;
+}
+function recEmbLimpas(){
+  return recEmbL.filter(function(r){ return r.refId||(r.n||"").trim()||(+r.p>0); })
+                .map(function(r){ if(r.refId) return {refId:r.refId,q:String(r.q||"1").trim(),base:r.base||"Por receita"};
+                                  return {n:(r.n||"").trim(),q:String(r.q||"1").trim(),base:r.base||"Por receita",p:Math.max(0,+r.p||0)}; });
+}
+function recEmbCtx(){ return {rend:despParseValor(recVal("recRendQtd"))}; }
+function recEmbRowHtml(r0,i){
+  var r=recEmbResolv(r0), doCat=!!r.mat, cl=recEmbLinha(r,recEmbCtx());
+  var custoTxt=cl.erro?('<span class="err" title="'+recEsc(cl.erro)+'">—</span>'):brl(cl.custo);
+  var bases=EMB_BASES.map(function(b){ return '<option'+(b===r.base?' selected':'')+'>'+recEsc(b)+'</option>'; }).join('');
+  return '<div class="rec-ing-row" data-emb="'+i+'">'
+    +'<input class="rec-ing-q" data-embf="q" inputmode="decimal" placeholder="1" value="'+recEsc(String(r.q||""))+'">'
+    +'<select class="rec-ing-u" data-embf="base" style="width:100%;">'+bases+'</select>'
+    +'<input class="rec-ing-n" data-embf="n" list="recEmbLista2" placeholder="Escolha a embalagem cadastrada" value="'+recEsc(r.n||"")+'"'+(doCat?' title="Vem do cadastro de Embalagens"':'')+'>'
+    +'<div class="rec-ing-pw"><input class="rec-ing-p'+(doCat?' rec-auto':'')+'" data-embf="p" inputmode="decimal" placeholder="0,00"'+(doCat?' readOnly title="Custo vem do cadastro de Embalagens"':' title="Sem embalagem do cadastro: digite o custo de 1"')+' value="'+(+r.p>0?recEsc(String(r.p).replace(".",",")):"")+'"><span class="rec-ing-suf">cada</span></div>'
+    +'<div class="rec-ing-calc"><span class="rec-ing-calclbl">Custo: </span>'+custoTxt+'</div>'
+    +'<button type="button" class="rec-ing-x" data-embdel="'+i+'" title="Remover">×</button>'
+    +'</div>';
+}
+function recEmbRender(){
+  var box=document.getElementById("recEmbBox"); if(!box) return;
+  box.innerHTML=recEmbL.length?recEmbL.map(recEmbRowHtml).join(""):'<div class="rec-ing-vazio">Nenhuma embalagem — clique em “＋ Adicionar embalagem”.</div>';
+  recFinSync();
+}
+function recEmbNova(fw){
+  var u=recEmbL[recEmbL.length-1];
+  var vazia=u&&!u.refId&&!(u.n||"").trim()&&!(+u.p>0);
+  if(!vazia) recEmbL.push({refId:"",q:"1",base:"Por receita",n:"",p:0});
+  recEmbRender();
+  var rows=(fw||document).querySelectorAll('[data-emb] .rec-ing-n');
+  if(rows.length) rows[rows.length-1].focus();
+}
+function recEmbAplicaCatalogo(i){
+  var r=recEmbL[i]; if(!r) return false;
+  var nome=String(r.n||"").trim().toLowerCase();
+  var m=(typeof matData!=="undefined"?matData:[]).filter(function(x){
+    var v=(x.nome||"")+(x.tamanho?(" — "+x.tamanho):"");
+    return v.trim().toLowerCase()===nome || String(x.nome||"").trim().toLowerCase()===nome; })[0];
+  if(m){ r.refId=m.id; return true; }
+  if(r.refId){ r.refId=""; return true; }
+  return false;
+}
 /* ---------- linhas de CUSTO OPERACIONAL dentro da receita ---------- */
 var recCop=[];
 // Resolve a linha pelo catálogo: valor e unidade vêm de lá (regra: receita não duplica valor).
@@ -12803,7 +12892,7 @@ function recCopLimpas(){
                });
 }
 function recCopCtx(){
-  return { direto: recTotalIngr(recIngResolvLista(recIngr)) + Math.max(0,despParseValor(recVal("recCustoEmb"))) };
+  return { direto: recTotalIngr(recIngResolvLista(recIngr)) + recTotalEmb(recEmbResolvLista(recEmbL),{rend:despParseValor(recVal("recRendQtd"))}) };
 }
 function recCopRowHtml(r0,i){
   var r=recCopResolv(r0), doCat=!!r.cop;
@@ -12909,7 +12998,7 @@ function recVal(id){ var el=document.getElementById(id); return el?el.value:""; 
 function recPoe(id,txt){ var el=document.getElementById(id); if(el) el.textContent=txt; }
 function recFinLer(){
   return { ingr:recIngr, custoIngLegado:recCustoManual,
-           custoEmb:despParseValor(recVal("recCustoEmb")),
+           embalagens:recEmbL, custoEmb:despParseValor(recVal("recCustoEmb")),
            custosOp:recCop,
            rendQtd:despParseValor(recVal("recRendQtd")),
            rendUn:recVal("recRendUn"),
@@ -12922,6 +13011,8 @@ function recFinPintar(f){
   recPoe("rfIng",   recMoeda(f.ing));
   recPoe("rfTotal", recMoeda(f.total));
   recPoe("rfOper", recMoeda(f.outros));
+  recPoe("rfEmb", recMoeda(f.emb));
+  recPoe("recEmbTot", recMoeda(f.emb));
   recPoe("recCopTot", recMoeda(f.outros));
   recPoe("rfCustoUn", recMoeda(f.custoUn));
   recPoe("rfVendaUn", recMoeda(f.vendaUn));
@@ -13015,10 +13106,9 @@ function recRenderForm(){
     +'</div>'
     // ---- 1 dados da receita ----
     +recSecao(1,"Receita")
-    +'<div class="rec-grid">'
+    +'<div class="rec-grid" style="grid-template-columns:1.6fr 1fr;">'
       +'<div class="rec-fld" style="margin-top:0;"><label>Nome da receita</label><input id="recNome" placeholder="Ex: Frango assado temperado" value="'+(ed?recEsc(ed.nome):'')+'"></div>'
       +'<div class="rec-fld" style="margin-top:0;"><label>Setor / categoria</label><input id="recSetor" list="recSetLista" placeholder="Ex: Rotisseria" value="'+(ed?recEsc(ed.setor||''):'')+'"><datalist id="recSetLista">'+setSug+'</datalist></div>'
-      +'<div class="rec-fld" style="margin-top:0;"><label>Embalagem usada</label><input id="recEmb" list="recEmbLista" placeholder="Ex: Bandeja B-3" value="'+(ed?recEsc(ed.embalagem||''):'')+'"><datalist id="recEmbLista">'+((typeof matData!=="undefined"?matData:[]).map(function(m){ var v=(m.nome||"")+((m.tamanho)?" — "+m.tamanho:""); return '<option value="'+recEsc(v)+'">'; }).join(''))+'</datalist></div>'
     +'</div>'
     // ---- 2 ingredientes ----
     +recSecao(2,"Ingredientes")
@@ -13031,7 +13121,15 @@ function recRenderForm(){
         +'<div class="rec-ing-somatxt">Custo total dos ingredientes: <b id="recIngTot">R$ 0,00</b><div class="rec-ing-nota">É esta soma que alimenta todo o painel.</div></div></div>'
     +'</div>'
     // ---- 3 custos ----
-    +recSecao(3,"Custos operacionais")
+    +recSecao(3,"Embalagens")
+    +'<div class="rec-ings">'
+      +'<div class="rec-ing-head"><div style="text-align:right;">Qtd</div><div>Base</div><div>Embalagem</div><div style="text-align:right;">Custo de 1</div><div style="text-align:right;">Custo na receita</div><div></div></div>'
+      +'<div id="recEmbBox"></div>'
+      +'<datalist id="recEmbLista2">'+((typeof matData!=="undefined"?matData:[]).filter(function(m){return m.ativo!==false;}).map(function(m){ var v=(m.nome||"")+(m.tamanho?(" — "+m.tamanho):""); return '<option value="'+recEsc(v)+'">'+recEsc(brl(+m.preco||0)+(m.fornecedor?(" · "+m.fornecedor):""))+'</option>'; }).join(''))+'</datalist>'
+      +'<div class="rec-ing-pe"><button type="button" class="rec-ing-add" id="recEmbAdd">＋ Adicionar embalagem</button>'
+        +'<div class="rec-ing-somatxt">Total de embalagem: <b id="recEmbTot">R$ 0,00</b><div class="rec-ing-nota">“Por receita” = 1 por bolo. “Por unidade produzida” = 1 por fatia.</div></div></div>'
+    +'</div>'
+    +recSecao(4,"Custos operacionais")
     +'<div class="rec-ings">'
       +'<div class="rec-ing-head"><div style="text-align:right;">Qtd</div><div>Unidade</div><div>Custo operacional</div><div style="text-align:right;" title="Valor de referência do cadastro">Valor de ref.</div><div style="text-align:right;">Custo na receita</div><div></div></div>'
       +'<div id="recCopBox"></div>'
@@ -13041,7 +13139,7 @@ function recRenderForm(){
     +'</div>'
     +'<div class="rec-fin"><div class="rec-fin-g ultimo"><div class="rec-fin-row">'
       +'<div class="rec-fin-i"><span>Ingredientes</span><div class="rec-fin-v" id="rfIng">R$ 0,00</div></div>'
-      +'<div class="rec-fin-i"><span>Embalagem</span><input id="recCustoEmb" inputmode="decimal" class="rec-fin-inp" placeholder="0,00" title="Preenche sozinho ao escolher a embalagem — pode ajustar" value="'+(ed&&ed.custoEmb?recEsc(String(ed.custoEmb).replace(".",",")):'')+'"></div>'
+      +'<div class="rec-fin-i"><span>Embalagem</span><div class="rec-fin-v" id="rfEmb">R$ 0,00</div><i>soma da tabela de embalagens</i></div>'
       +'<div class="rec-fin-i"><span>Custos operacionais</span><div class="rec-fin-v" id="rfOper">R$ 0,00</div></div>'
       +'<div class="rec-fin-i destaque"><span>Custo total</span><div class="rec-fin-v" id="rfTotal">R$ 0,00</div></div>'
     +'</div>'
@@ -13049,7 +13147,7 @@ function recRenderForm(){
       +'<div class="rec-hist" id="rfHist"></div>'
     +'</div></div>'
     // ---- 4 produção ----
-    +recSecao(4,"Produção")
+    +recSecao(5,"Produção")
     +'<div class="rec-fin"><div class="rec-fin-g ultimo"><div class="rec-fin-row">'
       +'<div class="rec-fin-i"><span>Rendimento</span><div class="rec-rendw">'
         +'<input id="recRendQtd" inputmode="decimal" class="rec-fin-inp" style="width:62px;" placeholder="16" value="'+recEsc(String(_rend.q||""))+'">'
@@ -13062,7 +13160,7 @@ function recRenderForm(){
       +'<div class="rec-fin-i"><span>Custo por kg</span><div class="rec-fin-v" id="rfCustoKg">—</div></div>'
     +'</div></div></div>'
     // ---- 5 venda ----
-    +recSecao(5,"Venda")
+    +recSecao(6,"Venda")
     +'<div class="rec-fin"><div class="rec-fin-g ultimo">'
       +'<div class="rec-fin-t" style="margin-bottom:9px;">Digite o markup <b>ou</b> o preço — o painel calcula o outro</div>'
       +'<div class="rec-fin-row">'
@@ -13073,7 +13171,7 @@ function recRenderForm(){
       +'<div class="rec-sug" id="rfSug"></div>'
     +'</div></div>'
     // ---- 6 resultado ----
-    +recSecao(6,"Resultado")
+    +recSecao(7,"Resultado")
     +'<div class="rec-fin"><div class="rec-fin-g ultimo"><div class="rec-fin-row">'
       +'<div class="rec-fin-i"><span>Lucro total</span><div class="rec-fin-v verde" id="rfLucro">—</div></div>'
       +'<div class="rec-fin-i"><span>Lucro por <em id="rfUn3">unidade</em></span><div class="rec-fin-v" id="rfLucroUn">—</div></div>'
@@ -13083,15 +13181,17 @@ function recRenderForm(){
       +'<div class="rec-saude vazio" id="rfSaude"><span class="pt"></span><div><b>—</b> <span></span></div></div>'
     +'</div></div>'
     // ---- 7 foto / 8 preparo ----
-    +recSecao(7,"Foto do produto")
+    +recSecao(8,"Foto do produto")
     +'<label class="man-fotobtn">'+MAN_ICO_CAM+'Tirar / escolher foto<input id="recFotoFile" type="file" accept="image/*" capture="environment" style="display:none;"></label><div id="recFotoPrev" style="margin-top:8px;">'+fotoPrev+'</div>'
-    +recSecao(8,"Modo de preparo")
+    +recSecao(9,"Modo de preparo")
     +'<div class="rec-fld" style="margin-top:0;"><textarea id="recPrep" rows="6" placeholder="Passo a passo. Ex.:\\n1) Tempere o frango\\n2) Deixe descansar 30 min\\n3) Asse a 180C por 50 min">'+(ed?recEsc(ed.preparo||''):'')+'</textarea></div>'
     +'<div class="rec-acoesf"><button class="rec-btn prim" id="recSalvar" type="button">'+(ed?'Salvar':'Adicionar')+'</button><button class="rec-btn" id="recCancelar" type="button">Cancelar</button></div>'
     +'</div>';
   recHistAtual=(ed&&Array.isArray(ed.histCusto))?ed.histCusto:[];
   recCop=recCopDe(ed);
+  recEmbL=recEmbDe(ed);
   recCopRender();
+  recEmbRender();
   recFinModo="preco";
   recIngRender();
   recAutoEmbCusto();
@@ -13106,14 +13206,14 @@ function recSalvarForm(){
   var rendimento=[rendQtd,rendUn].filter(Boolean).join(" ");
   var ingr=recIngLimpas();
   // MESMO cálculo da tela (uma regra só): custo dos ingredientes, embalagem, outros e preço saem daqui
-  var fin=recFinCalc({ingr:ingr, custoIngLegado:recCustoManual, custoEmb:despParseValor(recVal("recCustoEmb")),
-                      custosOp:recCop, rendQtd:despParseValor(recVal("recRendQtd")),
+  var fin=recFinCalc({ingr:ingr, custoIngLegado:recCustoManual, embalagens:recEmbL, custosOp:recCop, rendQtd:despParseValor(recVal("recRendQtd")),
                       rendUn:recVal("recRendUn"), preco:despParseValor(recVal("recPreco")),
                       markup:despParseValor(recVal("recMarkup")), modo:recFinModo});
   var custo=Math.round(fin.ing*100)/100;
   var preco=Math.round(fin.preco*100)/100;
   var tempo=(document.getElementById("recTempo").value||"").trim();
   var custoEmb=Math.round(fin.emb*1000)/1000;
+  var embalagens=recEmbLimpas();
   var custosOp=recCopLimpas();
   var outros=Math.round(fin.outros*100)/100;   // total operacional (compat com o cartão antigo)
   var pesoFinal=Math.max(0,despParseValor(recVal("recPeso")));
@@ -13131,8 +13231,8 @@ function recSalvarForm(){
   if(!recIngTocado && _orig) ingr=(Array.isArray(_orig.ingr)?_orig.ingr:[]);   // e as linhas salvas também
   var preparo=(document.getElementById("recPrep").value||"").trim();
   if(!nome){ uiConfirm({titulo:"Aviso",msg:"Informe o nome da receita.",ok:"OK",cancel:""}); return; }
-  if(recEdit){ var e=recData.find(function(x){return x.id===recEdit;}); if(e){ e.nome=nome; e.setor=setor; e.rendimento=rendimento; e.rendQtd=rendQtd; e.rendUn=rendUn; e.custo=custo; e.preco=preco; e.tempo=tempo; e.custoEmb=custoEmb; e.outros=outros; e.custosOp=custosOp; e.pesoFinal=pesoFinal; e.validade=validade; e.histCusto=histCusto; e.embalagem=embalagem; e.ingr=ingr; e.ingredientes=ingredientes; e.preparo=preparo; e.foto=recFotoUrl; } }
-  else { recData.push({id:recFormId||recUid(),nome:nome,setor:setor,rendimento:rendimento,rendQtd:rendQtd,rendUn:rendUn,custo:custo,preco:preco,tempo:tempo,custoEmb:custoEmb,outros:outros,custosOp:custosOp,pesoFinal:pesoFinal,validade:validade,histCusto:histCusto,embalagem:embalagem,ingr:ingr,ingredientes:ingredientes,preparo:preparo,foto:recFotoUrl}); }
+  if(recEdit){ var e=recData.find(function(x){return x.id===recEdit;}); if(e){ e.nome=nome; e.setor=setor; e.rendimento=rendimento; e.rendQtd=rendQtd; e.rendUn=rendUn; e.custo=custo; e.preco=preco; e.tempo=tempo; e.custoEmb=custoEmb; e.embalagens=embalagens; e.outros=outros; e.custosOp=custosOp; e.pesoFinal=pesoFinal; e.validade=validade; e.histCusto=histCusto; e.embalagem=embalagem; e.ingr=ingr; e.ingredientes=ingredientes; e.preparo=preparo; e.foto=recFotoUrl; } }
+  else { recData.push({id:recFormId||recUid(),nome:nome,setor:setor,rendimento:rendimento,rendQtd:rendQtd,rendUn:rendUn,custo:custo,preco:preco,tempo:tempo,custoEmb:custoEmb,embalagens:embalagens,outros:outros,custosOp:custosOp,pesoFinal:pesoFinal,validade:validade,histCusto:histCusto,embalagem:embalagem,ingr:ingr,ingredientes:ingredientes,preparo:preparo,foto:recFotoUrl}); }
   recSave(); recForm=null; recEdit=null; recFotoUrl=""; recFormId=""; renderReceitas();
 }
 function recRenderLista(){
@@ -13149,7 +13249,7 @@ function recRenderLista(){
     grupos[s].sort(function(a,b){ return (a.nome||"").localeCompare(b.nome||"","pt",{numeric:true}); }).forEach(function(x){
       var _meta=[]; if(x.rendimento) _meta.push('Rende: '+recEsc(x.rendimento)); if(x.tempo) _meta.push('Tempo: '+recEsc(x.tempo));
       // MESMA regra do formulário (recFinCalc) — nada de conta duplicada no cartão
-      var _f=recFinCalc({ingr:(x.ingr||[]).map(recIngNorm), custoIngLegado:x.custo, custoEmb:recEmbCustoDe(x),
+      var _f=recFinCalc({ingr:(x.ingr||[]).map(recIngNorm), custoIngLegado:x.custo, embalagens:recEmbDe(x), custoEmb:recEmbCustoDe(x),
                          custosOp:recCopDe(x), outros:x.outros, rendQtd:(x.rendQtd||recRendSplit(x.rendimento||"").q), rendUn:(x.rendUn||recRendSplit(x.rendimento||"").u),
                          preco:x.preco, modo:"preco"});
       var _money='';
@@ -13546,13 +13646,27 @@ function recAbaIr(id){
       if(add){ recIngNova(fw); return; }
       var del=ev.target.closest("[data-ingdel]");
       if(del){ recIngTocado=true; recIngr.splice(+del.getAttribute("data-ingdel"),1); recIngRender(); return; }
+      if(ev.target.closest("#recEmbAdd")){ recEmbNova(fw); return; }
+      var edel=ev.target.closest("[data-embdel]");
+      if(edel){ recEmbL.splice(+edel.getAttribute("data-embdel"),1); recEmbRender(); return; }
       if(ev.target.closest("#recCopAdd")){ recCopNova(fw); return; }
       var cdel=ev.target.closest("[data-copdel2]");
       if(cdel){ recCop.splice(+cdel.getAttribute("data-copdel2"),1); recCopRender(); return; }
       var sug=ev.target.closest("[data-sug]");   // clicar num preço sugerido aplica ele
       if(sug){ var pv=document.getElementById("recPreco"); if(pv){ pv.value=String(sug.getAttribute("data-sug")).replace(".",","); recFinModo="preco"; recFinSync(); } return; }
       if(ev.target.closest("#recSalvar")){ recSalvarForm(); } else if(ev.target.closest("#recCancelar")){ recForm=null; recEdit=null; recFotoUrl=""; recFormId=""; recRenderForm(); } else if(ev.target.closest("#recFotoDel")){ recFotoUrl=""; var pv=document.getElementById("recFotoPrev"); if(pv) pv.innerHTML='<span style="color:#8a97a8;font-size:12px;">Nenhuma foto ainda.</span>'; } });
-    fw.addEventListener("change",function(ev){ if(recIngCampo(ev)) return; if(recCopCampo(ev)) return; if(ev.target.id==="recFotoFile") recFotoUpload(ev.target); if(ev.target.id==="recEmb"){ recAutoEmbCusto(); recFinSync(); } if(ev.target.id==="recRendUn") recFinSync(); });
+    fw.addEventListener("change",function(ev){ if(recIngCampo(ev)) return; if(recEmbCampo(ev)) return; if(recCopCampo(ev)) return; if(ev.target.id==="recFotoFile") recFotoUpload(ev.target); if(ev.target.id==="recEmb"){ recAutoEmbCusto(); recFinSync(); } if(ev.target.id==="recRendUn") recFinSync(); });
+    function recEmbCampo(ev){
+      var f=ev.target.getAttribute&&ev.target.getAttribute("data-embf");
+      if(!f) return false;
+      var lin=ev.target.closest("[data-emb]"); if(!lin) return true;
+      var i=+lin.getAttribute("data-emb"), r=recEmbL[i]; if(!r) return true;
+      if(f==="p") r.p=Math.max(0,despParseValor(ev.target.value));
+      else if(f==="n"){ r.n=ev.target.value; if(recEmbAplicaCatalogo(i)){ recEmbRender(); return true; } }
+      else r[f]=ev.target.value;
+      recEmbRender();
+      return true;
+    }
     function recCopCampo(ev){
       var f=ev.target.getAttribute&&ev.target.getAttribute("data-copf");
       if(!f) return false;
@@ -13582,12 +13696,13 @@ function recAbaIr(id){
     }
     fw.addEventListener("input",function(ev){
       if(recIngCampo(ev)) return;
+      if(recEmbCampo(ev)) return;
       if(recCopCampo(ev)) return;
       var id=ev.target.id;
       if(id==="recEmb"){ recAutoEmbCusto(); recFinSync(); }
       else if(id==="recPreco"){ recFinModo="preco"; recFinSync(); }
       else if(id==="recMarkup"){ recFinModo="markup"; recFinSync(); }
-      else if(id==="recCustoEmb"||id==="recRendQtd"||id==="recRendUn"||id==="recPeso") recFinSync(); });
+      else if(id==="recRendQtd"||id==="recRendUn"||id==="recPeso") recFinSync(); });
     // Enter numa linha: vai pra linha de baixo; se já for a última, cria uma nova
     fw.addEventListener("keydown",function(ev){
       if(ev.key!=="Enter") return;
