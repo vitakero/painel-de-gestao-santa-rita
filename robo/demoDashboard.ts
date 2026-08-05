@@ -2389,6 +2389,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .rec-ing-somatxt{font-size:12.5px;color:#56606d;}
         .rec-ing-somatxt b{font-size:14.5px;color:#1d2733;}
         .rec-ing-nota{font-size:11px;color:#8a97a8;font-weight:400;margin-top:2px;}
+        .rec-prod-aviso{border-radius:9px;padding:9px 12px;font-size:12.5px;margin-top:10px;line-height:1.5;}
+        .rec-prod-aviso.ok{background:#e4f5ea;color:#0c5a26;}
+        .rec-prod-aviso.at{background:#fbf1d7;color:#7a5a00;}
+        .rec-prod-aviso.ru{background:#fdecec;color:#a02c1c;}
+        .rec-prod-med{font-size:11.5px;color:#8a97a8;margin-top:5px;}
         .rec-aviso-ins{background:#fbf1d7;color:#7a5a00;border-radius:9px;padding:9px 12px;font-size:12.5px;margin:8px 0 0;line-height:1.5;}
         /* ===== Ficha técnica: resumo executivo, seções e indicadores ===== */
         .rec-resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
@@ -12591,6 +12596,38 @@ function recTotalCop(rows,ctx){
   ((typeof recCopResolvLista==="function")?recCopResolvLista(rows||[]):(rows||[])).forEach(function(r){ var c=recCopLinha(r,ctx); if(c.ok) mic+=Math.round(c.custo*1e6); });
   return Math.round(mic/1e4)/100;
 }
+/* ---------- RENDIMENTO REAL x FICHA (produção com perda) ----------
+   A ficha diz quanto DEVERIA render. A produção diz quanto REALMENTE saiu.
+   A diferença vira custo: o mesmo dinheiro dividido por menos unidades. */
+function recProdNum(v){ var n=parseFloat(String(v==null?"":v).replace(",",".").replace(/[^0-9.\-]/g,"")); return isFinite(n)?n:0; }
+function recProdAnalise(prod,esperado,custoReceita){
+  prod=prod||{};
+  var boas=Math.max(0,recProdNum(prod.quantidade));
+  var perdidas=Math.max(0,recProdNum(prod.perdidas));
+  var esp=Math.max(0,+esperado||0);
+  var feitas=boas+perdidas;
+  var custo=Math.max(0,+custoReceita||0);
+  return {
+    boas:boas, perdidas:perdidas, feitas:feitas, esperado:esp,
+    // rendimento contra a ficha: saíram 14 de 16 = 87,5%
+    rendPct: esp>0 ? (boas/esp*100) : null,
+    // perda de produção: 1 de 15 feitas = 6,7%
+    perdaPct: feitas>0 ? (perdidas/feitas*100) : null,
+    // custo real da unidade boa: todo o dinheiro dividido só pelo que dá pra vender
+    custoUnitReal: boas>0 && custo>0 ? (custo/boas) : null,
+    custoUnitFicha: esp>0 && custo>0 ? (custo/esp) : null
+  };
+}
+// média dos últimos registros (pra saber se é caso isolado ou padrão)
+function recProdMedia(producoes,esperado,n){
+  var lista=(producoes||[]).slice(-(n||10)).filter(function(pr){ return recProdNum(pr.quantidade)>0; });
+  if(!lista.length) return null;
+  var somaBoas=0, somaPerd=0;
+  lista.forEach(function(pr){ somaBoas+=recProdNum(pr.quantidade); somaPerd+=Math.max(0,recProdNum(pr.perdidas)); });
+  var med=somaBoas/lista.length;
+  return { n:lista.length, mediaBoas:med, totalPerdidas:somaPerd,
+           rendPct:(+esperado>0)?(med/(+esperado)*100):null };
+}
 /* ---------- RATEIO DE CUSTOS (despesa real do setor -> custo por unidade produzida) ----------
    Fluxo: despesas do período -> % destinado ao setor -> dividido pela produção do período
    = custo unitário, que vai para o Cadastro de Custos Operacionais (nunca direto na receita). */
@@ -13280,15 +13317,17 @@ function recRenderLista(){
 function recProdFormHtml(x){
   var fotoPrev=recProdFoto?('<img src="'+recEsc(recProdFoto)+'" style="max-height:100px;border-radius:8px;display:block;"><button type="button" class="rec-mini del" data-recprodfotodel="1" style="margin-top:6px;">Remover foto</button>'):'<span style="color:#8a97a8;font-size:12px;">Nenhuma foto ainda.</span>';
   return '<div class="rec-prodform"><div class="rec-pf-tit">Registrar produção + conferência de qualidade</div>'
-    +'<div class="rec-grid" style="grid-template-columns:140px 1fr 1fr;">'
+    +'<div class="rec-grid" style="grid-template-columns:130px 1fr 1fr 1fr;">'
     +'<div class="rec-fld" style="margin-top:0;"><label>Data</label><input id="recPqData" type="date" value="'+manIso(HOJE)+'"></div>'
-    +'<div class="rec-fld" style="margin-top:0;"><label>Quantidade produzida</label><input id="recPqQtd" placeholder="Ex: 50 unidades"></div>'
+    +'<div class="rec-fld" style="margin-top:0;"><label>Quantidade boa (deu pra vender)</label><input id="recPqQtd" inputmode="decimal" placeholder="Ex: 14"></div>'
+    +'<div class="rec-fld" style="margin-top:0;"><label>Perdeu na produção</label><input id="recPqPerda" inputmode="decimal" placeholder="0" title="Queimou, desandou, caiu — o que virou lixo antes de vender"></div>'
     +'<div class="rec-fld" style="margin-top:0;"><label>Quem produziu</label><input id="recPqQuem" placeholder="Funcionário"></div>'
     +'</div>'
     +'<div class="rec-grid" style="grid-template-columns:1fr 1fr;margin-top:10px;">'
     +'<div class="rec-fld" style="margin-top:0;"><label>Resultado da conferência</label><select id="recPqRes"><option value="ok">Ficou no padrão (conforme)</option><option value="fora">Fora do padrão</option></select></div>'
     +'<div class="rec-fld" style="margin-top:0;"><label>Quem conferiu (supervisor)</label><input id="recPqSup" placeholder="Supervisor / gerente"></div>'
     +'</div>'
+    +'<div id="recPqAviso" class="rec-prod-aviso" style="display:none;"></div>'
     +'<div class="rec-fld"><label>Foto do resultado (opcional)</label><label class="man-fotobtn">'+MAN_ICO_CAM+'Tirar / escolher foto<input id="recPqFotoFile" type="file" accept="image/*" capture="environment" style="display:none;"></label><div id="recPqFotoPrev" style="margin-top:8px;">'+fotoPrev+'</div></div>'
     +'<div class="rec-fld"><label>Observação</label><input id="recPqObs" placeholder="Opcional (ex.: massa mais mole que o padrão)"></div>'
     +'<div class="rec-acoesf"><button class="rec-btn prim" data-recprodsalvar="'+x.id+'" type="button">Registrar</button><button class="rec-btn" data-recprodcancel="1" type="button">Cancelar</button></div>'
@@ -13297,10 +13336,26 @@ function recProdFormHtml(x){
 function recProdHistHtml(x){
   var arr=(x.producoes||[]).slice().sort(function(a,b){ return a.data<b.data?1:-1; });
   if(!arr.length) return '<div class="rec-prodhist"><span style="color:#8a97a8;font-size:13px;">Nenhuma produção registrada ainda.</span></div>';
+  var _esp=+((x.rendQtd!=null&&x.rendQtd!=="")?x.rendQtd:recRendSplit(x.rendimento||"").q)||0;
+  var _un=recSing(x.rendUn||recRendSplit(x.rendimento||"").u||"");
+  var _custo=recFinCalc({ingr:(x.ingr||[]).map(recIngNorm), custoIngLegado:x.custo, custoEmb:recEmbCustoDe(x), custosOp:recCopDe(x)}).total;
+  var _med=recProdMedia(x.producoes,_esp,10);
   var h='<div class="rec-prodhist">';
+  if(_med&&_med.rendPct!=null){
+    var _cls=(_med.rendPct>=98)?"ok":((_med.rendPct>=90)?"at":"ru");
+    var _cReal=(_med.mediaBoas>0&&_custo>0)?(_custo/_med.mediaBoas):null;
+    h+='<div class="rec-prod-aviso '+_cls+'" style="margin:0 0 10px;">Rendimento médio das últimas '+_med.n+' produções: <b>'
+      +(Math.round(_med.mediaBoas*10)/10).toLocaleString("pt-BR")+'</b> de <b>'+(_esp||"—")+'</b> ('+recPct(_med.rendPct)+')'
+      +(_med.totalPerdidas>0?(' · perdas na produção: <b>'+(Math.round(_med.totalPerdidas*10)/10).toLocaleString("pt-BR")+'</b>'):'')
+      +(_cReal!=null?('<br>Custo real por '+recEsc(_un)+': <b>'+brl(_cReal)+'</b>'+((_custo>0&&_esp>0)?(' <span style="opacity:.75;">(ficha: '+brl(_custo/_esp)+')</span>'):'')):'')
+      +'</div>';
+  }
   arr.forEach(function(p){
     var badge=(p.resultado==="fora")?'<span class="rec-badge fora">Fora do padrão</span>':'<span class="rec-badge ok">Conforme</span>';
-    h+='<div class="rec-prod-item"><div class="rec-prod-l1"><b>'+recEsc((p.data||"").split("-").reverse().join("/"))+'</b>'+(p.quantidade?' · '+recEsc(p.quantidade):'')+(p.quemFez?' · por '+recEsc(p.quemFez):'')+' '+badge+'</div>'
+    var _a=recProdAnalise(p,_esp,_custo);
+    var _rend=(_a.rendPct!=null&&_a.boas>0)?(' · rendimento <b>'+recPct(_a.rendPct)+'</b>'):'';
+    var _perd=(_a.perdidas>0)?(' · <span style="color:#c0392b;">perdeu '+_a.perdidas+'</span>'):'';
+    h+='<div class="rec-prod-item"><div class="rec-prod-l1"><b>'+recEsc((p.data||"").split("-").reverse().join("/"))+'</b>'+(p.quantidade?' · '+recEsc(p.quantidade):'')+_perd+_rend+(p.quemFez?' · por '+recEsc(p.quemFez):'')+' '+badge+'</div>'
       +(p.quemConferiu?'<div class="rec-prod-l2">Conferido por: '+recEsc(p.quemConferiu)+'</div>':'')
       +(p.obs?'<div class="rec-prod-l2">'+recEsc(p.obs)+'</div>':'')
       +(p.foto?'<img src="'+recEsc(p.foto)+'" class="rec-prod-foto">':'')
@@ -13326,17 +13381,41 @@ function recProdFotoUpload(inp){
     }catch(e){ if(pv) pv.innerHTML='<span style="color:#c0392b;font-size:12px;">Erro ao processar a foto.</span>'; }
   });
 }
+// Mostra na hora o estrago: rendimento real e custo real da unidade.
+function recProdAvisoPinta(recipeId){
+  var el=document.getElementById("recPqAviso"); if(!el) return;
+  var x=recData.find(function(r){return r.id===recipeId;}); if(!x){ el.style.display="none"; return; }
+  var esp=+((x.rendQtd!=null&&x.rendQtd!=="")?x.rendQtd:recRendSplit(x.rendimento||"").q)||0;
+  var un=recSing(x.rendUn||recRendSplit(x.rendimento||"").u||"");
+  var custo=recFinCalc({ingr:(x.ingr||[]).map(recIngNorm), custoIngLegado:x.custo, custoEmb:recEmbCustoDe(x), custosOp:recCopDe(x)}).total;
+  var a=recProdAnalise({quantidade:(document.getElementById("recPqQtd")||{}).value,
+                        perdidas:(document.getElementById("recPqPerda")||{}).value}, esp, custo);
+  if(!(a.boas>0)&&!(a.perdidas>0)){ el.style.display="none"; return; }
+  var cls = (a.rendPct==null)?"ok":(a.rendPct>=98?"ok":(a.rendPct>=90?"at":"ru"));
+  var h='<b>Esperado '+(esp||"—")+'</b> · boas <b>'+a.boas+'</b>'+(a.perdidas>0?(' · perdeu <b>'+a.perdidas+'</b>'):'')
+    +(a.rendPct!=null?(' · rendimento <b>'+recPct(a.rendPct)+'</b>'):'');
+  if(a.custoUnitReal!=null){
+    h+='<br>Custo real por '+recEsc(un)+': <b>'+brl(a.custoUnitReal)+'</b>';
+    if(a.custoUnitFicha!=null&&Math.abs(a.custoUnitReal-a.custoUnitFicha)>=0.005){
+      h+=' <span style="opacity:.75;">(a ficha diz '+brl(a.custoUnitFicha)+' — diferença de '+brl(a.custoUnitReal-a.custoUnitFicha)+' por '+recEsc(un)+')</span>';
+    }
+  }
+  var med=recProdMedia(x.producoes,esp,10);
+  if(med&&med.rendPct!=null) h+='<div class="rec-prod-med">Média das últimas '+med.n+' produções: '+(Math.round(med.mediaBoas*10)/10).toLocaleString("pt-BR")+' '+recEsc(x.rendUn||un)+' ('+recPct(med.rendPct)+' da ficha)</div>';
+  el.className="rec-prod-aviso "+cls; el.style.display=""; el.innerHTML=h;
+}
 function recProdSalvar(recipeId){
   var x=recData.find(function(r){return r.id===recipeId;}); if(!x) return;
   var data=document.getElementById("recPqData").value;
   var quantidade=(document.getElementById("recPqQtd").value||"").trim();
+  var perdidas=(document.getElementById("recPqPerda")?document.getElementById("recPqPerda").value:"").trim();
   var quemFez=(document.getElementById("recPqQuem").value||"").trim();
   var resultado=document.getElementById("recPqRes").value;
   var quemConferiu=(document.getElementById("recPqSup").value||"").trim();
   var obs=(document.getElementById("recPqObs").value||"").trim();
   if(!data){ uiConfirm({titulo:"Aviso",msg:"Informe a data da produção.",ok:"OK",cancel:""}); return; }
   if(!x.producoes) x.producoes=[];
-  x.producoes.push({id:recProdFotoId||recUid(),data:data,quantidade:quantidade,quemFez:quemFez,resultado:resultado,quemConferiu:quemConferiu,obs:obs,foto:recProdFoto});
+  x.producoes.push({id:recProdFotoId||recUid(),data:data,quantidade:quantidade,perdidas:perdidas,quemFez:quemFez,resultado:resultado,quemConferiu:quemConferiu,obs:obs,foto:recProdFoto});
   recSave(); recProdForm=null; recProdFoto=""; recProdFotoId=""; recProdHist[recipeId]=true; renderReceitas();
 }
 function recImprimir(){
@@ -13393,6 +13472,35 @@ function ratNovo(){
   ratSimQtd=""; ratSimDesp={};
   renderRateio();
 }
+// Soma as perdas já lançadas na aba Perdas para o setor/competência do rateio.
+function ratPerdasDoSetor(setor,mes,ano){
+  var base=(typeof prdData!=="undefined"&&Array.isArray(prdData))?prdData:[];
+  var alvo=String(setor||"").trim().toLowerCase();
+  var mm=String(mes).padStart(2,"0"), aa=String(ano);
+  var itens=base.filter(function(x){
+    var d=String(x.data||""); if(d.slice(0,4)!==aa || d.slice(5,7)!==mm) return false;
+    return String(x.setor||"").trim().toLowerCase()===alvo;
+  });
+  var mic=0; itens.forEach(function(x){ mic+=Math.round((+x.valor||0)*1e6); });
+  return { qtd:itens.length, valor:Math.round(mic/1e4)/100, itens:itens };
+}
+function ratImportarPerdas(){
+  var r=ratAtual; if(!r) return;
+  var res=ratPerdasDoSetor(r.setor,r.mes,r.ano);
+  if(!res.qtd){ uiConfirm({titulo:"Nenhuma perda encontrada",msg:"Não há perdas lançadas para "+r.setor+" em "+ratMes(r.mes)+" de "+r.ano+".\\n\\nLance na aba Perdas e volte aqui.",ok:"OK",cancel:""}); return; }
+  var desc="Perdas "+r.setor+" — "+ratMes(r.mes)+"/"+r.ano;
+  var ja=(r.despesas||[]).filter(function(d){ return d.origem==="perdas"; })[0];
+  uiConfirm({titulo:"Importar perdas?",
+    msg:res.qtd+" perda(s) lançada(s) para "+r.setor+" em "+ratMes(r.mes)+", somando "+brl(res.valor)+".\\n\\n"
+       +(ja?"Já existe uma linha de perdas neste rateio — ela será atualizada.":"Vou adicionar uma linha de despesa com esse valor."),
+    ok:"Importar", cancel:"Cancelar"}).then(function(sim){
+      if(!sim) return;
+      if(ja){ ja.valorTotal=res.valor; ja.desc=desc; }
+      else r.despesas.push({cat:"Outros",desc:desc,valorTotal:res.valor,pctSetor:100,
+                            criterio:(RAT_PROD[r.producao.tipo]||{}).crit||"Por receita",obs:"Importado da aba Perdas",copId:"",origem:"perdas"});
+      renderRateio();
+    });
+}
 function ratEtapa(n,t){ return '<div class="rat-et"><span class="n">'+n+'</span><span class="t">'+ratEsc(t)+'</span><span class="l"></span></div>'; }
 function ratLinhaHtml(d,i,prod){
   var c=ratCustoLinha(d,prod);
@@ -13429,7 +13537,8 @@ function renderRateio(){
   h+=ratEtapa(2,"Despesas do período")+'<div class="rat-box">'
     +'<div class="rat-cab"><div>Categoria</div><div>Descrição</div><div style="text-align:right;">Valor total</div><div style="text-align:right;">% setor</div><div>Critério</div><div style="text-align:right;">Valor setor → custo</div><div></div></div>'
     +(r.despesas||[]).map(function(d,i){ return ratLinhaHtml(d,i,prod); }).join('')
-    +'<button type="button" class="rat-add" id="ratAddDesp">＋ Adicionar despesa</button></div>';
+    +'<button type="button" class="rat-add" id="ratAddDesp">＋ Adicionar despesa</button> '
+    +'<button type="button" class="rat-add" id="ratImpPerdas" title="Traz as perdas já lançadas na aba Perdas para este setor e mês">↓ Importar perdas do setor</button></div>';
   // 3 produção
   h+=ratEtapa(3,"Produção do período")+'<div class="rat-box"><div class="rat-grid">'
     +'<div class="rat-fld"><label>Tipo de produção</label><select id="ratProdTipo">'+tipos+'</select></div>'
@@ -13557,6 +13666,7 @@ function ratAplicar(){
   var nv=document.getElementById("ratNovo"); if(nv) nv.addEventListener("click",ratNovo);
   var root=document.getElementById("ratRoot"); if(!root) return;
   root.addEventListener("click",function(ev){
+    if(ev.target.closest("#ratImpPerdas")){ ratImportarPerdas(); return; }
     if(ev.target.closest("#ratAddDesp")){ ratAtual.despesas.push({cat:"Outros",desc:"",valorTotal:"",pctSetor:"",criterio:(RAT_PROD[ratAtual.producao.tipo]||{}).crit||"Por receita",obs:"",copId:""}); renderRateio(); return; }
     var dd=ev.target.closest("[data-rddel]"); if(dd){ ratAtual.despesas.splice(+dd.getAttribute("data-rddel"),1); renderRateio(); return; }
     if(ev.target.closest("#ratAplicar")){ ratAplicar(); return; }
@@ -13716,8 +13826,9 @@ function recAbaIr(id){
   }
   var lst=document.getElementById("recLista"); if(lst){
     lst.addEventListener("change",function(ev){ if(ev.target.id==="recPqFotoFile") recProdFotoUpload(ev.target); });
+    lst.addEventListener("input",function(ev){ if(ev.target.id==="recPqQtd"||ev.target.id==="recPqPerda"){ var f=ev.target.closest("[data-recprodsalvar]")?null:document.querySelector("[data-recprodsalvar]"); if(f) recProdAvisoPinta(f.getAttribute("data-recprodsalvar")); } });
     lst.addEventListener("click",function(ev){
-    var pa=ev.target.closest("[data-recprodadd]"); if(pa){ var pid=pa.getAttribute("data-recprodadd"); if(recProdForm===pid){ recProdForm=null; } else { recProdForm=pid; recProdFoto=""; recProdFotoId=recUid(); recProdHist[pid]=true; } renderReceitas(); return; }
+    var pa=ev.target.closest("[data-recprodadd]"); if(pa){ var pid=pa.getAttribute("data-recprodadd"); if(recProdForm===pid){ recProdForm=null; } else { recProdForm=pid; recProdFoto=""; recProdFotoId=recUid(); recProdHist[pid]=true; } renderReceitas(); try{ if(recProdForm) recProdAvisoPinta(recProdForm); }catch(e){} return; }
     var ph=ev.target.closest("[data-recprodhist]"); if(ph){ var hid=ph.getAttribute("data-recprodhist"); recProdHist[hid]=!recProdHist[hid]; renderReceitas(); return; }
     var ps=ev.target.closest("[data-recprodsalvar]"); if(ps){ recProdSalvar(ps.getAttribute("data-recprodsalvar")); return; }
     if(ev.target.closest("[data-recprodcancel]")){ recProdForm=null; recProdFoto=""; recProdFotoId=""; renderReceitas(); return; }
