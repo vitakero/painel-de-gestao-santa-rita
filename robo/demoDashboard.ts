@@ -723,6 +723,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="epi"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span> EPI</button>
     <button class="nav-item" data-page="fardamento"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l4-3 2 2h4l2-2 4 3-2 3-2-1v11H8V9L6 10z"/></svg></span> Fardamento</button>
     <button class="nav-item" data-page="material"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8"/><rect x="2" y="3" width="20" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg></span> Material de uso</button>
+    <button class="nav-item" data-page="insumos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Insumos<span class="soon">novo</span></button>
     <button class="nav-item" data-page="custosop"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/><circle cx="18.7" cy="8" r="1.2"/></svg></span> Custos operacionais<span class="soon">novo</span></button>
     <button class="nav-item" data-page="receitas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span> Receitas</button>
     <button class="nav-item" data-page="estld"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg></span> Loja / Depósito<span class="soon">novo</span></button>
@@ -2378,6 +2379,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .rec-ing-somatxt{font-size:12.5px;color:#56606d;}
         .rec-ing-somatxt b{font-size:14.5px;color:#1d2733;}
         .rec-ing-nota{font-size:11px;color:#8a97a8;font-weight:400;margin-top:2px;}
+        .rec-aviso-ins{background:#fbf1d7;color:#7a5a00;border-radius:9px;padding:9px 12px;font-size:12.5px;margin:8px 0 0;line-height:1.5;}
         /* ===== Ficha técnica: resumo executivo, seções e indicadores ===== */
         .rec-resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
         @media(max-width:900px){ .rec-resumo{grid-template-columns:1fr 1fr;} }
@@ -2490,7 +2492,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div class="rec-top">
           <div class="rec-titulo"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#157a35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Receitas</div>
           <input id="recBusca" class="rec-busca" placeholder="Buscar receita...">
-          <button class="rec-btn" id="recImprimir" type="button"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#157a35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir receitas</button>
+          <button class="rec-btn" id="recInsumos" type="button" title="Cadastro de insumos"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Insumos</button><button class="rec-btn" id="recImprimir" type="button"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#157a35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir receitas</button>
           <button class="rec-btn prim" id="recAdd" type="button">＋ Nova receita</button>
         </div>
         <p class="rec-sub">Cadastre as receitas que a loja produz (rotisseria, padaria, açougue...) pra sempre sair igual — mesmo sabor, mesma quantidade.</p>
@@ -2857,6 +2859,66 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       <div class="card">
         <h2>Negociações</h2>
         <div id="negTabela"></div>
+      </div>
+    </section>
+    <section id="page-insumos" class="page">
+      <div class="card">
+        <style>
+        .ins-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+        .ins-titulo{font-size:17px;font-weight:700;color:#0c5a26;display:flex;align-items:center;gap:8px;}
+        .ins-busca{flex:1;min-width:160px;max-width:300px;border:1px solid #d7dee7;border-radius:9px;padding:7px 12px;font:inherit;color:#1d2733;}
+        .ins-sel{border:1px solid #d7dee7;border-radius:9px;padding:7px 10px;font:inherit;font-size:13px;color:#56606d;background:#fff;cursor:pointer;}
+        .ins-btn{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #d7dee7;border-radius:9px;padding:7px 13px;font-size:13px;font-weight:600;color:#56606d;cursor:pointer;}
+        .ins-btn.prim{background:#157a35;border-color:#157a35;color:#fff;}
+        .ins-sub{font-size:12.5px;color:#8a97a8;margin:2px 0 12px;}
+        .ins-form{background:#f8fafb;border:1px solid #e2e8ee;border-radius:11px;padding:14px;margin-bottom:14px;}
+        .ins-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+        @media(max-width:980px){ .ins-grid{grid-template-columns:1fr 1fr;} }
+        @media(max-width:560px){ .ins-grid{grid-template-columns:1fr;} }
+        .ins-fld label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#6b7787;font-weight:700;margin-bottom:4px;}
+        .ins-fld input,.ins-fld select{width:100%;box-sizing:border-box;border:1px solid #d4dde6;border-radius:8px;padding:8px 10px;font:inherit;color:#1d2733;background:#fff;}
+        .ins-fld input:focus,.ins-fld select:focus{border-color:#157a35;outline:none;}
+        .ins-acoesf{display:flex;gap:9px;align-items:center;margin-top:12px;flex-wrap:wrap;}
+        .ins-check{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:#33404f;font-weight:600;cursor:pointer;}
+        .ins-twrap{overflow-x:auto;border:1px solid #e8ecf1;border-radius:12px;background:#fff;}
+        .ins-tbl{border-collapse:collapse;width:100%;font-size:13px;min-width:720px;}
+        .ins-tbl th,.ins-tbl td{padding:9px 12px;border-bottom:1px solid #eef1f5;text-align:left;vertical-align:middle;}
+        .ins-tbl th{background:#f6f8fa;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8a97a8;font-weight:700;white-space:nowrap;}
+        .ins-tbl tr:last-child td{border-bottom:0;}
+        .ins-tbl tr:hover td{background:#f9fbfa;}
+        .ins-tbl td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+        .ins-cod{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#8a97a8;}
+        .ins-nome{font-weight:700;color:#1d2733;}
+        .ins-meta{font-size:11px;color:#8a97a8;margin-top:1px;}
+        .ins-preco{font-weight:800;color:#157a35;font-variant-numeric:tabular-nums;}
+        .ins-var{font-size:11px;font-weight:700;padding:1px 7px;border-radius:5px;margin-left:6px;white-space:nowrap;}
+        .ins-var.sobe{background:#fdecec;color:#c0392b;} .ins-var.desce{background:#e4f5ea;color:#157a35;}
+        .ins-uso{background:#eef4fb;color:#2a6fb0;border:0;border-radius:6px;padding:2px 9px;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;}
+        .ins-uso:hover{background:#dfeaf7;}
+        .ins-chip{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:5px;background:#eef1f5;color:#8a97a8;}
+        .ins-mini{border:1px solid #e2e8ee;background:#fff;border-radius:7px;padding:4px 9px;font-size:12px;font-weight:600;color:#56606d;cursor:pointer;}
+        .ins-mini.del{color:#c0392b;}
+        .ins-off td{opacity:.5;}
+        .ins-pag{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px;font-size:12.5px;color:#8a97a8;flex-wrap:wrap;}
+        .ins-pag button{border:1px solid #d7dee7;background:#fff;border-radius:8px;padding:5px 11px;font-size:12.5px;font-weight:600;color:#56606d;cursor:pointer;}
+        .ins-pag button:disabled{opacity:.4;cursor:default;}
+        .ins-vazio{color:#8a97a8;font-size:13.5px;text-align:center;padding:26px 0;line-height:1.7;}
+        .ins-hist{background:#f8fafb;border:1px solid #e2e8ee;border-radius:10px;padding:11px 13px;margin-top:9px;}
+        .ins-hist-l{display:flex;justify-content:space-between;font-size:12.5px;color:#56606d;padding:3px 0;border-bottom:1px dashed #e8ecf1;}
+        .ins-hist-l:last-child{border-bottom:0;}
+        .ins-hist-l b{color:#1d2733;font-variant-numeric:tabular-nums;}
+        </style>
+        <div class="ins-top">
+          <div class="ins-titulo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Insumos</div>
+          <input id="insBusca" class="ins-busca" placeholder="Buscar por nome, código, marca, fornecedor, barras...">
+          <select id="insFiltroCat" class="ins-sel"><option value="">Todas as categorias</option></select>
+          <select id="insFiltroAtivo" class="ins-sel"><option value="1">Só ativos</option><option value="">Todos</option><option value="0">Só inativos</option></select>
+          <button class="ins-btn prim" id="insAdd" type="button">＋ Novo insumo</button>
+          <button class="ins-btn" id="insImportar" type="button" title="Cria insumos a partir dos ingredientes já digitados nas receitas">Importar das receitas</button>
+        </div>
+        <div class="ins-sub">Cadastro único dos produtos usados na produção. Mudou o preço aqui, <b>todas as receitas se atualizam sozinhas</b>.</div>
+        <div id="insFormWrap"></div>
+        <div id="insLista"></div>
       </div>
     </section>
     <section id="page-custosop" class="page">
@@ -10725,7 +10787,7 @@ function lixRestaurar(reg){
 }
 
 /* ===== Configurações (só master) ===== */
-var CFG_TABELAS=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas","banco_horas","galpoes","custos_operacionais"];
+var CFG_TABELAS=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas","banco_horas","galpoes","custos_operacionais","insumos"];
 function cfgEhMaster(){ return !!(window.__PERFIL && window.__PERFIL.is_master); }
 function renderConfig(){
   var el=document.getElementById("cfgConteudo"); if(!el) return;
@@ -10793,7 +10855,7 @@ function bkpRestaurar(file){
     uiConfirm({titulo:"Restaurar backup",msg:"Isso vai repor os dados com a cópia do dia "+(pacote._data?pacote._data.slice(0,10).split("-").reverse().join("/"):"?")+" ("+qtd+" registros). O que foi adicionado depois dessa data pode ser substituído. Continuar?",ok:"Restaurar",cancel:"Cancelar"}).then(function(ok){
       if(!ok) return;
       var msg=document.getElementById("bkpMsg"); if(msg){ msg.textContent="Restaurando..."; msg.style.color="#7a8696"; }
-      var ordem=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas","banco_horas","galpoes","custos_operacionais"];
+      var ordem=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas","banco_horas","galpoes","custos_operacionais","insumos"];
       var cadeia=Promise.resolve();
       ordem.forEach(function(t){
         var linhas=pacote.tabelas[t]; if(!linhas||!linhas.length) return;
@@ -11913,6 +11975,221 @@ try{ manAtualizaBadge(); }catch(e){}
    Abas-documento: 1 linha (id fixo, valor). Push automatico ao salvar; pull no login; realtime com aviso. */
 /* ===== Material de uso (embalagens/materiais padrão) ===== */
 var MAT_TIPOS=["Sacola","Embalagem a vácuo","Bandeja","Filme plástico","Papel","Fita","Etiqueta","Bobina","Pote / Marmita","Outro"];
+/* ===== CADASTRO DE INSUMOS (fonte única dos produtos da produção) =====
+   Receita guarda só: insumoId + quantidade + unidade. Nome, preço e unidade de referência
+   vêm daqui — mudou aqui, muda em todas as receitas. Preço médio/mín/máx/último são
+   DERIVADOS do histórico (não são campos, pra não desencontrar). */
+var INS_CATS=["Farinhas","Laticínios","Carnes","Temperos","Hortifruti","Embalagens","Bebidas","Congelados","Descartáveis","Outros"];
+var insData=(function(){ try{ var a=JSON.parse(localStorage.getItem("insumos")||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } })();
+var insForm=null, insEdit=null, insBusca="", insCat="", insAtivoF="1", insPag=1, insVerUso=null;
+var INS_POR_PAG=25;
+function insUid(){ return "in_"+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36); }
+function insSave(){ try{ localStorage.setItem("insumos", JSON.stringify(insData)); }catch(e){} }
+function insEsc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function insPorId(id){ if(!id) return null; return insData.filter(function(x){ return x.id===id; })[0]||null; }
+function insPorNome(nome){ var n=String(nome||"").trim().toLowerCase(); if(!n) return null;
+  return insData.filter(function(x){ return String(x.nome||"").trim().toLowerCase()===n; })[0]||null; }
+function insProxCodigo(){
+  var mx=0; insData.forEach(function(x){ var m=String(x.codigo||"").match(/(\\d+)$/); if(m) mx=Math.max(mx,+m[1]); });
+  return "INS-"+String(mx+1).padStart(4,"0");
+}
+/* ---- indicadores DERIVADOS do histórico (não guardados) ---- */
+function insSerie(x){   // histórico + preço atual, em ordem
+  var h=(Array.isArray(x&&x.hist)?x.hist:[]).filter(function(p){ return p&&isFinite(+p.v); }).map(function(p){ return {d:p.d,v:+p.v,por:p.por||""}; });
+  h.push({d:(x&&x.atualizadoEm)||"", v:+((x&&x.preco)||0), por:(x&&x.atualizadoPor)||""});
+  return h;
+}
+function insIndic(x){
+  var se=insSerie(x), vals=se.map(function(p){ return p.v; }).filter(function(v){ return v>0; });
+  var atual=+((x&&x.preco)||0);
+  var ult=(se.length>1)?se[se.length-2].v:null;
+  return { atual:atual, ultimo:ult,
+           media: vals.length?(vals.reduce(function(a,b){return a+b;},0)/vals.length):null,
+           min: vals.length?Math.min.apply(null,vals):null,
+           max: vals.length?Math.max.apply(null,vals):null,
+           variacao: (ult>0)?((atual-ult)/ult*100):null };
+}
+function insAlertou(x){   // mudou mais de 10% na última alteração -> avisa nas receitas
+  var i=insIndic(x); return (i.variacao!=null && Math.abs(i.variacao)>=10);
+}
+function insUsoCount(id){
+  var n=0; (typeof recData!=="undefined"?recData:[]).forEach(function(r){
+    if((r.ingr||[]).some(function(l){ return l.insumoId===id; })) n++;
+  }); return n;
+}
+function insUsoReceitas(id){
+  return (typeof recData!=="undefined"?recData:[]).filter(function(r){ return (r.ingr||[]).some(function(l){ return l.insumoId===id; }); });
+}
+function renderInsumos(){ insRenderForm(); insRenderLista(); }
+function insRenderForm(){
+  var w=document.getElementById("insFormWrap"); if(!w) return;
+  if(!insForm){ w.innerHTML=""; return; }
+  var ed=insEdit?insPorId(insEdit):null;
+  var cats=INS_CATS.map(function(c){ return '<option'+(ed&&ed.categoria===c?' selected':'')+'>'+insEsc(c)+'</option>'; }).join('');
+  var uns=REC_UNS.map(function(u){ return '<option'+((ed?ed.un:"kg")===u?' selected':'')+'>'+insEsc(u)+'</option>'; }).join('');
+  var v=function(k){ return ed?insEsc(String(ed[k]==null?"":ed[k])):""; };
+  var hist="";
+  if(ed){ var se=insSerie(ed).slice().reverse(), ind=insIndic(ed);
+    hist='<div class="ins-hist"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#8a97a8;font-weight:800;margin-bottom:6px;">Histórico de preços</div>'
+      +se.map(function(pt,i){ return '<div class="ins-hist-l"><span>'+insEsc(recDataBr(pt.d)||"—")+(pt.por?(' · '+insEsc(pt.por)):'')+(i===0?' <span class="ins-chip">atual</span>':'')+'</span><b>'+brl(pt.v)+'</b></div>'; }).join('')
+      +'<div class="ins-hist-l" style="margin-top:5px;border-top:1px solid #e2e8ee;padding-top:6px;"><span>Médio: <b>'+recMoeda(ind.media)+'</b> · Mínimo: <b>'+recMoeda(ind.min)+'</b> · Máximo: <b>'+recMoeda(ind.max)+'</b></span><span></span></div>'
+      +'</div>';
+  }
+  w.innerHTML='<div class="ins-form"><div class="ins-grid">'
+    +'<div class="ins-fld"><label>Código</label><input id="insCodigo" placeholder="'+insProxCodigo()+'" value="'+v("codigo")+'"></div>'
+    +'<div class="ins-fld" style="grid-column:span 2;"><label>Nome do insumo</label><input id="insNome" placeholder="Ex: Mistura para bolo" value="'+v("nome")+'"></div>'
+    +'<div class="ins-fld"><label>Categoria</label><select id="insCat"><option value="">Escolha...</option>'+cats+'</select></div>'
+    +'<div class="ins-fld"><label>Subcategoria</label><input id="insSub" placeholder="Ex: Bolo pronto" value="'+v("subcategoria")+'"></div>'
+    +'<div class="ins-fld"><label>Marca</label><input id="insMarca" placeholder="Ex: Sustentare" value="'+v("marca")+'"></div>'
+    +'<div class="ins-fld"><label>Fornecedor</label><input id="insForn" placeholder="Ex: Distribuidora X" value="'+v("fornecedor")+'"></div>'
+    +'<div class="ins-fld"><label>Unidade de referência</label><select id="insUn">'+uns+'</select></div>'
+    +'<div class="ins-fld"><label>Preço de referência (por 1 un.)</label><input id="insPreco" inputmode="decimal" placeholder="0,00" value="'+(ed&&ed.preco?insEsc(String(ed.preco).replace(".",",")):"")+'"></div>'
+    +'<div class="ins-fld"><label>Código de barras</label><input id="insEan" inputmode="numeric" placeholder="7891234567890" value="'+v("ean")+'"></div>'
+    +'<div class="ins-fld" style="grid-column:span 2;"><label>Observação</label><input id="insObs" placeholder="Opcional" value="'+v("obs")+'"></div>'
+    +'</div>'
+    +'<div class="ins-acoesf"><label class="ins-check"><input type="checkbox" id="insAtivo"'+((!ed||ed.ativo!==false)?' checked':'')+'> Ativo</label>'
+    +'<button class="ins-btn prim" id="insSalvar" type="button">'+(ed?'Salvar':'Adicionar')+'</button>'
+    +'<button class="ins-btn" id="insCancelar" type="button">Cancelar</button>'
+    +(ed?('<span style="font-size:11.5px;color:#8a97a8;margin-left:auto;">Usado em <b>'+insUsoCount(ed.id)+'</b> receita(s)'+(ed.atualizadoEm?(' · atualizado em '+recDataBr(ed.atualizadoEm)+(ed.atualizadoPor?(' por '+insEsc(ed.atualizadoPor)):'')):'')+'</span>'):'')
+    +'</div>'+hist
+    +'<div style="font-size:11.5px;color:#8a97a8;margin-top:9px;">O <b>preço de referência</b> é o preço de 1 '+(ed?insEsc(ed.un||"kg"):"kg")+'. Ao mudar, o preço antigo entra no histórico e <b>todas as receitas se atualizam</b>.</div>'
+    +'</div>';
+  var n=document.getElementById("insNome"); if(n) n.focus();
+}
+function insSalvarForm(){
+  var nome=(document.getElementById("insNome").value||"").trim();
+  if(!nome){ uiConfirm({titulo:"Aviso",msg:"Informe o nome do insumo.",ok:"OK",cancel:""}); return; }
+  var preco=Math.max(0,despParseValor(document.getElementById("insPreco").value));
+  var quem=(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"";
+  var hoje=new Date().toISOString().slice(0,10);
+  var dados={ codigo:(document.getElementById("insCodigo").value||"").trim()||insProxCodigo(),
+    nome:nome, categoria:document.getElementById("insCat").value,
+    subcategoria:(document.getElementById("insSub").value||"").trim(),
+    marca:(document.getElementById("insMarca").value||"").trim(),
+    fornecedor:(document.getElementById("insForn").value||"").trim(),
+    un:document.getElementById("insUn").value||"kg", preco:preco,
+    ean:(document.getElementById("insEan").value||"").trim(),
+    obs:(document.getElementById("insObs").value||"").trim(),
+    ativo:!!document.getElementById("insAtivo").checked };
+  if(insEdit){
+    var e=insPorId(insEdit);
+    if(e){
+      if(Math.abs((+e.preco||0)-preco)>=0.005){   // preço mudou -> guarda o anterior no histórico
+        e.hist=Array.isArray(e.hist)?e.hist:[];
+        e.hist.push({d:e.atualizadoEm||hoje, v:+e.preco||0, por:e.atualizadoPor||""});
+        if(e.hist.length>24) e.hist=e.hist.slice(-24);
+      }
+      Object.keys(dados).forEach(function(k){ e[k]=dados[k]; });
+      e.atualizadoEm=hoje; e.atualizadoPor=quem;
+    }
+  } else {
+    dados.id=insUid(); dados.hist=[]; dados.atualizadoEm=hoje; dados.atualizadoPor=quem;
+    insData.push(dados);
+  }
+  insSave(); insForm=null; insEdit=null; renderInsumos();
+  try{ if(typeof renderReceitas==="function") renderReceitas(); }catch(e2){}
+}
+function insFiltrados(){
+  var q=insBusca.trim().toLowerCase();
+  return insData.filter(function(x){
+    if(insCat && (x.categoria||"")!==insCat) return false;
+    if(insAtivoF==="1" && x.ativo===false) return false;
+    if(insAtivoF==="0" && x.ativo!==false) return false;
+    if(!q) return true;
+    return ((x.nome||"")+" "+(x.codigo||"")+" "+(x.categoria||"")+" "+(x.subcategoria||"")+" "+(x.marca||"")+" "+(x.fornecedor||"")+" "+(x.ean||"")).toLowerCase().indexOf(q)>=0;
+  }).sort(function(a,b){ return (a.nome||"").localeCompare(b.nome||"","pt"); });
+}
+function insRenderLista(){
+  var el=document.getElementById("insLista"); if(!el) return;
+  var fc=document.getElementById("insFiltroCat");
+  if(fc && fc.options.length<=1){ INS_CATS.forEach(function(c){ var o=document.createElement("option"); o.value=c; o.textContent=c; fc.appendChild(o); }); }
+  if(!insData.length){ el.innerHTML='<p class="ins-vazio">Nenhum insumo cadastrado ainda.<br>Clique em <b>＋ Novo insumo</b> — ou em <b>Importar das receitas</b> pra criar a partir do que você já digitou.</p>'; return; }
+  var itens=insFiltrados();
+  if(!itens.length){ el.innerHTML='<p class="ins-vazio">Nada encontrado com esses filtros.</p>'; return; }
+  var tot=Math.ceil(itens.length/INS_POR_PAG); if(insPag>tot) insPag=tot; if(insPag<1) insPag=1;
+  var pag=itens.slice((insPag-1)*INS_POR_PAG, insPag*INS_POR_PAG);
+  var h='<div class="ins-twrap"><table class="ins-tbl"><thead><tr><th>Código</th><th>Insumo</th><th>Categoria</th><th>Fornecedor</th><th class="num">Preço ref.</th><th class="num">Médio</th><th>Uso</th><th></th></tr></thead><tbody>';
+  pag.forEach(function(x){
+    var ind=insIndic(x);
+    var varTxt=(ind.variacao!=null&&Math.abs(ind.variacao)>=0.05)?('<span class="ins-var '+(ind.variacao>0?"sobe":"desce")+'">'+(ind.variacao>0?"▲ +":"▼ ")+recPct(Math.abs(ind.variacao))+'</span>'):'';
+    var uso=insUsoCount(x.id);
+    h+='<tr'+(x.ativo===false?' class="ins-off"':'')+'>'
+      +'<td class="ins-cod">'+insEsc(x.codigo||"")+'</td>'
+      +'<td><div class="ins-nome">'+insEsc(x.nome)+(x.ativo===false?' <span class="ins-chip">inativo</span>':'')+'</div>'
+        +'<div class="ins-meta">'+[insEsc(x.marca||""),insEsc(x.subcategoria||""),(x.ean?("cód. barras "+insEsc(x.ean)):"")].filter(Boolean).join(" · ")+'</div></td>'
+      +'<td>'+insEsc(x.categoria||"—")+'</td>'
+      +'<td>'+insEsc(x.fornecedor||"—")+'</td>'
+      +'<td class="num"><span class="ins-preco">'+brl(+x.preco||0)+'</span><span style="color:#8a97a8;font-size:11px;">/'+insEsc(x.un||"kg")+'</span>'+varTxt+'</td>'
+      +'<td class="num" style="color:#56606d;">'+recMoeda(ind.media)+'</td>'
+      +'<td>'+(uso?('<button class="ins-uso" data-insuso="'+x.id+'" type="button">'+uso+' receita'+(uso>1?"s":"")+'</button>'):'<span style="color:#a9b4c0;font-size:12px;">—</span>')+'</td>'
+      +'<td style="text-align:right;white-space:nowrap;"><button class="ins-mini" data-insedit="'+x.id+'" type="button">Editar</button> <button class="ins-mini del" data-insdel="'+x.id+'" type="button">Remover</button></td>'
+      +'</tr>';
+    if(insVerUso===x.id){
+      var rs=insUsoReceitas(x.id);
+      h+='<tr><td colspan="8" style="background:#f8fafb;"><b style="font-size:12px;color:#56606d;">Receitas que usam este insumo:</b> '
+        +(rs.length?rs.map(function(r){ return insEsc(r.nome); }).join(" · "):"nenhuma")+'</td></tr>';
+    }
+  });
+  h+='</tbody></table></div>';
+  h+='<div class="ins-pag"><span>'+itens.length+' insumo(s) · página '+insPag+' de '+tot+'</span><span>'
+    +'<button type="button" data-inspag="-1"'+(insPag<=1?' disabled':'')+'>‹ Anterior</button> '
+    +'<button type="button" data-inspag="1"'+(insPag>=tot?' disabled':'')+'>Próxima ›</button></span></div>';
+  el.innerHTML=h;
+}
+/* Importa insumos a partir dos ingredientes já digitados nas receitas (agrupa por nome). */
+function insImportarDasReceitas(){
+  var mapa={};
+  (typeof recData!=="undefined"?recData:[]).forEach(function(r){
+    (r.ingr||[]).forEach(function(l){
+      var nome=String(l.n||"").trim(); if(!nome||l.insumoId) return;
+      var k=nome.toLowerCase();
+      if(!mapa[k]) mapa[k]={nome:nome, un:(l.pu||recUnRef(l.u)||"kg"), preco:+l.p||0, n:0};
+      mapa[k].n++;
+      if(+l.p>0) mapa[k].preco=+l.p;
+    });
+  });
+  var novos=Object.keys(mapa).filter(function(k){ return !insPorNome(mapa[k].nome); });
+  if(!novos.length){ uiConfirm({titulo:"Nada a importar",msg:"Todos os ingredientes das receitas já têm insumo cadastrado.",ok:"OK",cancel:""}); return; }
+  var lista=novos.slice(0,12).map(function(k){ return "• "+mapa[k].nome+" ("+brl(mapa[k].preco)+"/"+mapa[k].un+")"; }).join("\\n");
+  uiConfirm({titulo:"Importar "+novos.length+" insumo(s)?",
+    msg:"Vou criar estes insumos a partir das receitas e ligar as linhas:\\n\\n"+lista+(novos.length>12?("\\n... e mais "+(novos.length-12)):""),
+    ok:"Importar", cancel:"Cancelar"}).then(function(sim){
+      if(!sim) return;
+      var hoje=new Date().toISOString().slice(0,10), quem=(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"";
+      novos.forEach(function(k){ var m=mapa[k];
+        insData.push({id:insUid(),codigo:insProxCodigo(),nome:m.nome,categoria:"",subcategoria:"",marca:"",fornecedor:"",
+          un:m.un,preco:m.preco,ean:"",obs:"Importado das receitas",ativo:true,hist:[],atualizadoEm:hoje,atualizadoPor:quem});
+      });
+      insSave();
+      // liga as linhas das receitas aos insumos criados
+      var lig=0;
+      (typeof recData!=="undefined"?recData:[]).forEach(function(r){
+        (r.ingr||[]).forEach(function(l){ if(l.insumoId) return; var ins=insPorNome(l.n); if(ins){ l.insumoId=ins.id; lig++; } });
+      });
+      try{ recSave(); }catch(e){}
+      renderInsumos(); try{ renderReceitas(); }catch(e){}
+      uiConfirm({titulo:"Pronto!",msg:novos.length+" insumo(s) criado(s) e "+lig+" linha(s) de receita ligada(s).",ok:"OK",cancel:""});
+    });
+}
+(function initInsumos(){
+  var add=document.getElementById("insAdd"); if(add) add.addEventListener("click",function(){ insForm=insForm?null:"new"; insEdit=null; insRenderForm(); });
+  var imp=document.getElementById("insImportar"); if(imp) imp.addEventListener("click",insImportarDasReceitas);
+  var bus=document.getElementById("insBusca"); if(bus) bus.addEventListener("input",function(){ insBusca=this.value; insPag=1; insRenderLista(); });
+  var fc=document.getElementById("insFiltroCat"); if(fc) fc.addEventListener("change",function(){ insCat=this.value; insPag=1; insRenderLista(); });
+  var fa=document.getElementById("insFiltroAtivo"); if(fa) fa.addEventListener("change",function(){ insAtivoF=this.value; insPag=1; insRenderLista(); });
+  var fw=document.getElementById("insFormWrap"); if(fw) fw.addEventListener("click",function(ev){
+    if(ev.target.closest("#insSalvar")) insSalvarForm();
+    else if(ev.target.closest("#insCancelar")){ insForm=null; insEdit=null; insRenderForm(); }
+  });
+  var lst=document.getElementById("insLista"); if(lst) lst.addEventListener("click",function(ev){
+    var pg=ev.target.closest("[data-inspag]"); if(pg){ insPag+=(+pg.getAttribute("data-inspag")); insRenderLista(); return; }
+    var us=ev.target.closest("[data-insuso]"); if(us){ var uid=us.getAttribute("data-insuso"); insVerUso=(insVerUso===uid)?null:uid; insRenderLista(); return; }
+    var e=ev.target.closest("[data-insedit]"); if(e){ insEdit=e.getAttribute("data-insedit"); insForm="edit"; insRenderForm(); var w=document.getElementById("insFormWrap"); if(w) w.scrollIntoView({behavior:"smooth",block:"center"}); return; }
+    var d=ev.target.closest("[data-insdel]"); if(d){ var id=d.getAttribute("data-insdel"); var it=insPorId(id), uso=insUsoCount(id);
+      uiConfirm({titulo:"Remover insumo",msg:'Remover "'+insEsc(it?it.nome:"")+'"?'+(uso?(" Ele é usado em "+uso+" receita(s) — elas ficam sem preço até você ligar outro insumo."):""),ok:"Remover",cancel:"Cancelar"})
+      .then(function(sim){ if(sim){ insData=insData.filter(function(x){return x.id!==id;}); insSave(); renderInsumos(); try{ renderReceitas(); }catch(e2){} } }); return; }
+  });
+})();
 /* ===== CATÁLOGO DE CUSTOS OPERACIONAIS =====
    Cadastro reutilizável (mão de obra, energia, gás...). Guarda histórico do valor de referência. */
 var copData=(function(){ try{ var a=JSON.parse(localStorage.getItem("custos_operacionais")||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } })();
@@ -12152,7 +12429,7 @@ function recFmtRef(p,pu){ return (+p>0&&pu)?(brl(+p)+"/"+pu):""; }
 var REC_REND_UNS=["fatias","unidades","porções","kg","bandejas","formas","pizzas","copos","potes"];
 function recFinCalc(e){
   e=e||{};
-  var ing=recTotalIngr(e.ingr||[]);
+  var ing=recTotalIngr((typeof recIngResolvLista==="function")?recIngResolvLista(e.ingr||[]):(e.ingr||[]));
   if(!(ing>0) && +e.custoIngLegado>0) ing=+e.custoIngLegado;      // receita antiga (texto, sem preços) mantém o custo salvo
   var emb=Math.max(0,+e.custoEmb||0);
   // custos operacionais: linhas do catálogo (percentual incide sobre o custo direto = ingredientes + embalagem)
@@ -12293,45 +12570,69 @@ function recIngTexto(rows){
 }
 function recIngLimpas(){
   return recIngr.filter(function(r){ return (r.n||"").trim()||String(r.q||"").trim(); })   // linha só com preço não conta
-                .map(function(r){ var u=String(r.u||"").trim();
-                  return {q:String(r.q||"").trim(), u:u, n:(r.n||"").trim(),
-                          p:Math.max(0,+r.p||0), pu:String(r.pu||recUnRef(u)||"")}; });     // custo NÃO é gravado: sai da fórmula
+                .map(function(r){ var u=String(r.u||"").trim(), id=String(r.insumoId||"");
+                  // COM insumo: guarda só a referência + quantidade (preço vem do cadastro).
+                  // SEM insumo (linha antiga/manual): mantém nome e preço na própria linha.
+                  if(id) return {insumoId:id, q:String(r.q||"").trim(), u:u};
+                  return {q:String(r.q||"").trim(), u:u, n:(r.n||"").trim(), p:Math.max(0,+r.p||0), pu:String(r.pu||recUnRef(u)||"")}; });
 }
-function recIngTotal(){ return recTotalIngr(recIngr); }   // soma os CUSTOS calculados, nunca os preços de referência
+function recIngTotal(){ return recTotalIngr(recIngResolvLista(recIngr)); }   // soma os CUSTOS calculados, nunca os preços de referência
 function recIngRowHtml(r,i){
-  var pu=recUnRef(r.u)||"", cl=recCustoLinha(r);
+  var R=recIngResolv(r), pu=R.pu||"", cl=recCustoLinha(R);
   var custoTxt = cl.erro ? ('<span class="err" title="'+recEsc(cl.erro)+'">—</span>') : brl(cl.custo);
+  var doCat=!!R.ins;
   return '<div class="rec-ing-row" data-ing="'+i+'">'
     +'<input class="rec-ing-q" data-ingf="q" inputmode="decimal" min="0" placeholder="1" value="'+recEsc(String(r.q||""))+'">'
     +'<select class="rec-ing-u" data-ingf="u">'+recUnOpts(r.u)+'</select>'
-    +'<input class="rec-ing-n" data-ingf="n" placeholder="Ex: mistura de bolo" value="'+recEsc(r.n||"")+'">'
-    +'<div class="rec-ing-pw"><input class="rec-ing-p" data-ingf="p" inputmode="decimal" placeholder="0,00" title="Preço de 1 '+(pu||"kg / L / un")+' (como você compra)" value="'+(+r.p>0?recEsc(String(r.p).replace(".",",")):"")+'"><span class="rec-ing-suf">'+(pu?("/"+recEsc(pu)):"")+'</span></div>'
+    +'<input class="rec-ing-n" data-ingf="n" list="recInsLista" placeholder="Escolha um insumo cadastrado" value="'+recEsc(R.n||"")+'"'+(doCat?' title="Vem do cadastro de insumos"':'')+'>'
+    +'<div class="rec-ing-pw"><input class="rec-ing-p'+(doCat?' rec-auto':'')+'" data-ingf="p" inputmode="decimal" placeholder="0,00"'+(doCat?' readOnly title="Preço vem do cadastro de insumos — mude lá e vale pra todas as receitas"':' title="Sem insumo ligado: digite o preço de 1 '+(pu||"kg / L / un")+'"')+' value="'+(+R.p>0?recEsc(String(R.p).replace(".",",")):"")+'"><span class="rec-ing-suf">'+(pu?("/"+recEsc(pu)):"")+'</span></div>'
     +'<div class="rec-ing-calc" title="Calculado pelo painel conforme a quantidade usada"><span class="rec-ing-calclbl">Custo: </span>'+custoTxt+'</div>'
     +'<button type="button" class="rec-ing-x" data-ingdel="'+i+'" title="Remover este ingrediente">×</button>'
     +'</div>';
 }
+// digitar/escolher o nome liga a linha ao insumo do cadastro
+function recIngAplicaInsumo(i){
+  var r=recIngr[i]; if(!r||typeof insPorNome!=="function") return false;
+  var ins=insPorNome(r.n);
+  if(ins){ r.insumoId=ins.id; if(!String(r.u||"").trim()) r.u=ins.un; return true; }
+  if(r.insumoId){ r.insumoId=""; return true; }
+  return false;
+}
 // Normaliza uma linha salva (inclusive as antigas, onde "c" era o preço de referência digitado).
 function recIngNorm(r){
   r=r||{};
-  var s=(r.u==null)?recQSplit(r.q):{q:r.q,u:r.u};
-  var u=String(s.u||"");
+  var sp=(r.u==null)?recQSplit(r.q):{q:r.q,u:r.u};
+  var u=String(sp.u||"");
   var p=(r.p!=null&&r.p!=="")?(+r.p||0):(+r.c||0);       // migração: c -> p (preço de referência)
-  return {q:String(s.q||""), u:u, n:r.n||"", p:p, pu:String(r.pu||recUnRef(u)||"")};
+  return {q:String(sp.q||""), u:u, n:r.n||"", p:p, pu:String(r.pu||recUnRef(u)||""), insumoId:String(r.insumoId||"")};
 }
 // Custo dos ingredientes de uma receita salva: recalcula pelas linhas (fonte da verdade).
-// Receita sem linhas continua usando o custo digitado à mão.
 function recCustoIngrDe(x){
-  var rows=(x&&Array.isArray(x.ingr))?x.ingr.map(recIngNorm):null;
+  var rows=(x&&Array.isArray(x.ingr))?recIngResolvLista(x.ingr.map(recIngNorm)):null;
   if(rows&&rows.length&&rows.some(function(r){ return +r.p>0; })) return recTotalIngr(rows);
   return +((x&&x.custo)||0);
 }
+// Linha da receita RESOLVIDA: nome/preço/unidade de referência vêm do insumo cadastrado.
+// Linha antiga (sem insumoId) continua usando o que está gravado nela — nada se perde.
+function recIngResolv(r){
+  r=r||{};
+  var ins=(r.insumoId&&typeof insPorId==="function")?insPorId(r.insumoId):null;
+  if(ins) return {q:r.q,u:r.u,n:ins.nome,p:+ins.preco||0,pu:ins.un||recUnRef(r.u),insumoId:r.insumoId,ins:ins};
+  return {q:r.q,u:r.u,n:r.n||"",p:+r.p||0,pu:r.pu||recUnRef(r.u),insumoId:r.insumoId||"",ins:null};
+}
+function recIngResolvLista(rows){ return (rows||[]).map(recIngResolv); }
+function recAlertaInsumo(rows){
+  var achou=null;
+  (rows||[]).forEach(function(r){ var ins=(r.insumoId&&typeof insPorId==="function")?insPorId(r.insumoId):null;
+    if(ins && typeof insAlertou==="function" && insAlertou(ins) && !achou) achou=ins; });
+  return achou;
+}
 /* ---------- linhas de CUSTO OPERACIONAL dentro da receita ---------- */
-var recCop=[];   // [{q,u,n,p,refId}]
+var recCop=[];
 function recCopNorm(r){
   r=r||{};
   return { q:String(r.q==null?"":r.q), u:String(r.u||"Por receita"), n:String(r.n||""), p:+r.p||0, refId:String(r.refId||"") };
 }
-// receita antiga com o campo único "outros" vira uma linha de valor fixo (não perde nada)
 function recCopDe(x){
   if(x&&Array.isArray(x.custosOp)&&x.custosOp.length) return x.custosOp.map(recCopNorm);
   if(x&&+x.outros>0) return [recCopNorm({q:1,u:"Valor fixo",n:"Outros custos",p:+x.outros})];
@@ -12341,8 +12642,8 @@ function recCopLimpas(){
   return recCop.filter(function(r){ return (r.n||"").trim()||(+r.p>0); })
                .map(function(r){ return {q:String(r.q||"").trim(),u:String(r.u||"Por receita"),n:(r.n||"").trim(),p:Math.max(0,+r.p||0),refId:r.refId||""}; });
 }
-function recCopCtx(){   // percentual incide sobre ingredientes + embalagem
-  return { direto: recTotalIngr(recIngr) + Math.max(0,despParseValor(recVal("recCustoEmb"))) };
+function recCopCtx(){
+  return { direto: recTotalIngr(recIngResolvLista(recIngr)) + Math.max(0,despParseValor(recVal("recCustoEmb"))) };
 }
 function recCopRowHtml(r,i){
   var cl=recCopLinha(r,recCopCtx());
@@ -12371,7 +12672,6 @@ function recCopNova(fw){
   var rows=(fw||document).querySelectorAll('[data-cop] .rec-ing-n');
   if(rows.length) rows[rows.length-1].focus();
 }
-// escolher um custo do catálogo preenche unidade e valor sozinho
 function recCopAplicaCatalogo(i){
   var r=recCop[i]; if(!r) return false;
   var c=copPorNome(r.n); if(!c) return false;
@@ -12498,6 +12798,10 @@ function recFinPintar(f){
   if(recFinModo==="markup"){ if(p && document.activeElement!==p) p.value=(f.preco>0)?String(Math.round(f.preco*100)/100).replace(".",","):""; }
   else if(m && document.activeElement!==m) m.value=(f.markup==null)?"":String(Math.round(f.markup*10)/10).replace(".",",");
   var s=document.getElementById("recIngTot"); if(s) s.textContent=recMoeda(f.ing);
+  var av=document.getElementById("recAvisoIns");
+  if(av){ var ia=(typeof recAlertaInsumo==="function")?recAlertaInsumo(recIngr):null;
+    if(ia){ var vi=insIndic(ia); av.style.display=""; av.innerHTML='<b>Atenção:</b> o preço de <b>'+recEsc(ia.nome)+'</b> mudou '+recPct(Math.abs(vi.variacao))+' ('+brl(vi.ultimo)+' → '+brl(vi.atual)+'). O custo desta receita foi atualizado automaticamente.'; }
+    else av.style.display="none"; }
 }
 function recFinSync(){ var f=recFinCalc(recFinLer()); recFinPintar(f); return f; }
 // Se o formulário está aberto e já montado, NÃO remonta (senão apaga o que está sendo digitado).
@@ -12560,6 +12864,8 @@ function recRenderForm(){
     +'<div class="rec-ings">'
       +'<div class="rec-ing-head"><div style="text-align:right;">Qtd</div><div>Unidade</div><div>Ingrediente</div><div style="text-align:right;" title="Preço de 1 kg, 1 L ou 1 unidade — como você compra">Preço de referência</div><div style="text-align:right;" title="Calculado pelo painel conforme a quantidade usada">Custo na receita</div><div></div></div>'
       +'<div id="recIngBox"></div>'
+      +'<datalist id="recInsLista">'+((typeof insData!=="undefined"?insData:[]).filter(function(x){return x.ativo!==false;}).map(function(x){ return '<option value="'+recEsc(x.nome)+'">'+recEsc([(x.categoria||""),(x.marca||""),brl(+x.preco||0)+"/"+(x.un||"")].filter(Boolean).join(" · "))+'</option>'; }).join(''))+'</datalist>'
+      +'<div id="recAvisoIns" class="rec-aviso-ins" style="display:none;"></div>' 
       +'<div class="rec-ing-pe"><button type="button" class="rec-ing-add" id="recIngAdd">＋ Adicionar ingrediente</button>'
         +'<div class="rec-ing-somatxt">Custo total dos ingredientes: <b id="recIngTot">R$ 0,00</b><div class="rec-ing-nota">É esta soma que alimenta todo o painel.</div></div></div>'
     +'</div>'
@@ -12812,6 +13118,7 @@ function recImprimir(){
 }
 (function initReceitas(){
   var pr=document.getElementById("recImprimir"); if(pr) pr.addEventListener("click",function(){ recImprimir(); });
+  var bi=document.getElementById("recInsumos"); if(bi) bi.addEventListener("click",function(){ var n=document.querySelector('.nav-item[data-page="insumos"]'); if(n) n.click(); });
   var add=document.getElementById("recAdd"); if(add) add.addEventListener("click",function(){ recForm=recForm?null:"new"; recEdit=null; recFotoUrl=""; recFormId=""; recRenderForm(); });
   var bus=document.getElementById("recBusca"); if(bus) bus.addEventListener("input",function(){ recBusca=this.value; recRenderLista(); });
   var fw=document.getElementById("recFormWrap"); if(fw){
@@ -12849,7 +13156,8 @@ function recImprimir(){
         if(f==="p") r.p=Math.max(0,despParseValor(ev.target.value));
         else if(f==="u"){ r.u=ev.target.value; r.pu=recUnRef(r.u); }
         else r[f]=ev.target.value;
-        if(f!=="n") recIngLinhaAtualiza(lin,i);   // quantidade, unidade e preço mudam o custo
+        if(f==="n"){ if(recIngAplicaInsumo(i)){ recIngRender(); return true; } recIngSoma(); return true; }
+        recIngLinhaAtualiza(lin,i);   // quantidade, unidade e preço mudam o custo
       }
       return true;
     }
@@ -13072,6 +13380,7 @@ function pedEnviar(){
     {chave:"material_uso",        tabela:"material_uso",         modo:"array"},
     {chave:"receitas_dados",      tabela:"receitas",             modo:"array"},
     {chave:"custos_operacionais", tabela:"custos_operacionais",  modo:"array"},
+    {chave:"insumos",             tabela:"insumos",              modo:"array"},
     {chave:"ferias_dados",        tabela:"ferias",               modo:"array"},
     {chave:"cargos_dados",        tabela:"cargos_salarios",      modo:"array", pagina:"cargos"},
     {chave:"perdas",              tabela:"perdas",               modo:"array"},
