@@ -2871,6 +2871,69 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div id="negTabela"></div>
       </div>
     </section>
+    <section id="page-rateio" class="page">
+      <div class="mod-tabs-wrap" id="abas-rateio"></div>
+      <div class="card">
+        <style>
+        .rat-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+        .rat-titulo{font-size:17px;font-weight:700;color:#0c5a26;display:flex;align-items:center;gap:8px;}
+        .rat-sub{font-size:12.5px;color:#8a97a8;margin:2px 0 14px;}
+        .rat-et{display:flex;align-items:center;gap:9px;margin:20px 0 10px;}
+        .rat-et .n{width:22px;height:22px;border-radius:7px;background:#eef4ef;color:#157a35;font-size:12px;font-weight:800;display:grid;place-items:center;flex:none;}
+        .rat-et .t{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#56606d;}
+        .rat-et .l{flex:1;height:1px;background:#e8ecf1;}
+        .rat-box{background:#f8fafb;border:1px solid #e2e8ee;border-radius:11px;padding:13px;}
+        .rat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+        @media(max-width:900px){ .rat-grid{grid-template-columns:1fr 1fr;} }
+        .rat-fld label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#6b7787;font-weight:700;margin-bottom:4px;}
+        .rat-fld input,.rat-fld select{width:100%;box-sizing:border-box;border:1px solid #d4dde6;border-radius:8px;padding:8px 10px;font:inherit;color:#1d2733;background:#fff;}
+        .rat-fld input:focus,.rat-fld select:focus{border-color:#157a35;outline:none;}
+        .rat-lin{display:grid;grid-template-columns:1.1fr 1.4fr 118px 82px 118px 1fr 34px;gap:8px;align-items:center;margin-bottom:7px;}
+        .rat-lin input,.rat-lin select{width:100%;box-sizing:border-box;border:1px solid #d4dde6;border-radius:8px;padding:7px 9px;font:inherit;font-size:13px;color:#1d2733;background:#fff;}
+        .rat-lin .num{text-align:right;}
+        .rat-lin .calc{text-align:right;font-weight:700;color:#157a35;font-variant-numeric:tabular-nums;font-size:13px;}
+        .rat-cab{display:grid;grid-template-columns:1.1fr 1.4fr 118px 82px 118px 1fr 34px;gap:8px;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:#8a97a8;font-weight:700;padding:0 2px 6px;}
+        @media(max-width:1000px){ .rat-cab{display:none;} .rat-lin{grid-template-columns:1fr 1fr 34px;row-gap:6px;padding-bottom:9px;border-bottom:1px dashed #e8ecf1;} }
+        .rat-x{border:1px solid #e2e8ee;background:#fff;color:#c0392b;border-radius:8px;height:34px;cursor:pointer;font-size:16px;padding:0;}
+        .rat-add{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px dashed #b9c4d0;border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:700;color:#157a35;cursor:pointer;margin-top:4px;}
+        .rat-add:hover{border-color:#157a35;background:#f4f9f5;}
+        .rat-res{overflow-x:auto;border:1px solid #e8ecf1;border-radius:11px;background:#fff;}
+        .rat-tbl{border-collapse:collapse;width:100%;font-size:13px;min-width:680px;}
+        .rat-tbl th,.rat-tbl td{padding:9px 12px;border-bottom:1px solid #eef1f5;text-align:left;}
+        .rat-tbl th{background:#f6f8fa;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8a97a8;font-weight:700;white-space:nowrap;}
+        .rat-tbl tr:last-child td{border-bottom:0;}
+        .rat-tbl td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+        .rat-tbl td.dest{font-weight:800;color:#157a35;}
+        .rat-tot{display:flex;gap:24px;flex-wrap:wrap;align-items:center;background:#f2f8f4;border:1px solid #d9ecdf;border-radius:11px;padding:13px 16px;margin-top:11px;}
+        .rat-tot .i{display:flex;flex-direction:column;gap:2px;}
+        .rat-tot .i span{font-size:11px;color:#6b7787;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+        .rat-tot .i b{font-size:19px;color:#1d2733;font-variant-numeric:tabular-nums;}
+        .rat-tot .i.big b{font-size:24px;color:#157a35;}
+        .rat-erro{background:#fdecec;color:#a02c1c;border-radius:9px;padding:9px 13px;font-size:12.5px;margin-top:9px;line-height:1.5;}
+        .rat-btn{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #d7dee7;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;color:#56606d;cursor:pointer;}
+        .rat-btn.prim{background:#157a35;border-color:#157a35;color:#fff;}
+        .rat-btn:disabled{opacity:.45;cursor:default;}
+        .rat-sim{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+        @media(max-width:900px){ .rat-sim{grid-template-columns:1fr 1fr;} }
+        .rat-simc{background:#fff;border:1px solid #e8ecf1;border-radius:11px;padding:12px 14px;}
+        .rat-simc span{font-size:11px;color:#8a97a8;font-weight:700;text-transform:uppercase;letter-spacing:.04em;display:block;}
+        .rat-simc b{font-size:19px;color:#1d2733;font-variant-numeric:tabular-nums;}
+        .rat-simc b.verde{color:#157a35;} .rat-simc b.vermelho{color:#c0392b;}
+        .rat-hist-i{display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr auto;gap:10px;align-items:center;background:#fff;border:1px solid #e8ecf1;border-radius:11px;padding:11px 14px;margin-bottom:8px;font-size:13px;}
+        @media(max-width:820px){ .rat-hist-i{grid-template-columns:1fr 1fr;} }
+        .rat-st{font-size:10.5px;font-weight:800;padding:2px 9px;border-radius:6px;text-transform:uppercase;letter-spacing:.04em;}
+        .rat-st.Rascunho{background:#eef1f5;color:#8a97a8;} .rat-st.Calculado{background:#eef4fb;color:#2a6fb0;}
+        .rat-st.Aprovado{background:#fbf1d7;color:#9a6a00;} .rat-st.Aplicado{background:#e4f5ea;color:#157a35;} .rat-st.Cancelado{background:#fdecec;color:#c0392b;}
+        .rat-vazio{color:#8a97a8;font-size:13.5px;text-align:center;padding:22px 0;line-height:1.7;}
+        </style>
+        <div class="rat-top">
+          <div class="rat-titulo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="4" width="3" height="14"/></svg> Rateio de custos</div>
+          <button class="rat-btn prim" id="ratNovo" type="button">＋ Novo rateio</button>
+        </div>
+        <div class="rat-sub">Transforma a despesa real do setor (folha, energia, gás…) em custo por receita — e joga direto no cadastro de Custos operacionais.</div>
+        <div id="ratRoot"></div>
+      </div>
+    </section>
     <section id="page-insumos" class="page">
       <div class="mod-tabs-wrap" id="abas-insumos"></div>
       <div class="card">
@@ -10799,7 +10862,7 @@ function lixRestaurar(reg){
 }
 
 /* ===== Configurações (só master) ===== */
-var CFG_TABELAS=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas","banco_horas","galpoes","custos_operacionais","insumos"];
+var CFG_TABELAS=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas","banco_horas","galpoes","custos_operacionais","insumos","rateios"];
 function cfgEhMaster(){ return !!(window.__PERFIL && window.__PERFIL.is_master); }
 function renderConfig(){
   var el=document.getElementById("cfgConteudo"); if(!el) return;
@@ -10867,7 +10930,7 @@ function bkpRestaurar(file){
     uiConfirm({titulo:"Restaurar backup",msg:"Isso vai repor os dados com a cópia do dia "+(pacote._data?pacote._data.slice(0,10).split("-").reverse().join("/"):"?")+" ("+qtd+" registros). O que foi adicionado depois dessa data pode ser substituído. Continuar?",ok:"Restaurar",cancel:"Cancelar"}).then(function(ok){
       if(!ok) return;
       var msg=document.getElementById("bkpMsg"); if(msg){ msg.textContent="Restaurando..."; msg.style.color="#7a8696"; }
-      var ordem=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas","banco_horas","galpoes","custos_operacionais","insumos"];
+      var ordem=["perfis","manutencao_equipamentos","manutencao_registros","pontos_extras","entregas_entregadores","entregas_registros","ferias","perdas","perdas_acougue","epi_catalogo","epi_entregas","fardamento_catalogo","fardamento_entregas","negociacoes","calendario_campanhas","cartaz_temas","escala","organogramas","fluxograma","layout","configuracoes","cargos_salarios","material_uso","receitas","banco_horas","galpoes","custos_operacionais","insumos","rateios"];
       var cadeia=Promise.resolve();
       ordem.forEach(function(t){
         var linhas=pacote.tabelas[t]; if(!linhas||!linhas.length) return;
@@ -11962,7 +12025,7 @@ try{ manAtualizaBadge(); }catch(e){}
     if(_pg0 && _pg0!=="vendas"){
       var _tgt0=document.getElementById("page-"+_pg0);
       var _nb0=document.querySelector('.nav-item[data-page="'+_pg0+'"]')
-              || (["insumos","custosop","material"].indexOf(_pg0)>=0 ? document.querySelector('.nav-item[data-page="receitas"]') : null);
+              || (["insumos","custosop","material","rateio"].indexOf(_pg0)>=0 ? document.querySelector('.nav-item[data-page="receitas"]') : null);
       if(_tgt0 && _nb0){
         document.querySelectorAll(".page").forEach(function(p){ p.classList.remove("ativo"); });
         document.querySelectorAll(".nav-item").forEach(function(b){ b.classList.remove("ativo"); });
@@ -11975,7 +12038,7 @@ try{ manAtualizaBadge(); }catch(e){}
     try{
       const pg=localStorage.getItem("ui_pagina_atual");
       if(pg && pg!=="vendas"){
-        if(["insumos","custosop","material"].indexOf(pg)>=0 && typeof recAbaIr==="function"){ recAbaIr(pg); }
+        if(["insumos","custosop","material","rateio"].indexOf(pg)>=0 && typeof recAbaIr==="function"){ recAbaIr(pg); }
         else { const b=document.querySelector('.nav-item[data-page="'+pg+'"]'); if(b) b.click(); }
       }
     }catch(e){}
@@ -12211,6 +12274,7 @@ function copUid(){ return "co_"+Date.now().toString(36)+Math.floor(Math.random()
 function copSave(){ try{ localStorage.setItem("custos_operacionais", JSON.stringify(copData)); }catch(e){} }
 function copEsc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
 function copAtivos(){ return copData.filter(function(x){ return x.ativo!==false; }); }
+function copPorId(id){ if(!id) return null; return copData.filter(function(x){ return x.id===id; })[0]||null; }
 function copPorNome(nome){
   var n=String(nome||"").trim().toLowerCase(); if(!n) return null;
   return copData.filter(function(x){ return String(x.nome||"").trim().toLowerCase()===n; })[0]||null;
@@ -12501,8 +12565,65 @@ function recCopLinha(r,ctx){
 }
 function recTotalCop(rows,ctx){
   var mic=0;
-  (rows||[]).forEach(function(r){ var c=recCopLinha(r,ctx); if(c.ok) mic+=Math.round(c.custo*1e6); });
+  ((typeof recCopResolvLista==="function")?recCopResolvLista(rows||[]):(rows||[])).forEach(function(r){ var c=recCopLinha(r,ctx); if(c.ok) mic+=Math.round(c.custo*1e6); });
   return Math.round(mic/1e4)/100;
+}
+/* ---------- RATEIO DE CUSTOS (despesa real do setor -> custo por unidade produzida) ----------
+   Fluxo: despesas do período -> % destinado ao setor -> dividido pela produção do período
+   = custo unitário, que vai para o Cadastro de Custos Operacionais (nunca direto na receita). */
+var RAT_SETORES=["Padaria","Confeitaria","Rotisseria","Açougue","Fatiados","Lanchonete","Cozinha","Produção própria","Outros"];
+var RAT_CATS=["Mão de obra","Encargos trabalhistas","Energia elétrica","Gás","Água","Limpeza","Manutenção","Depreciação","EPI","Materiais de uso","Administração","Outros"];
+var RAT_STATUS=["Rascunho","Calculado","Aprovado","Aplicado","Cancelado"];
+// tipo de produção -> unidade e critério compatível
+var RAT_PROD={ "Número de receitas":{un:"receitas", crit:"Por receita"},
+               "Quilos produzidos":{un:"kg",        crit:"Por kg produzido"},
+               "Unidades produzidas":{un:"unidades",crit:"Por unidade produzida"},
+               "Horas de produção":{un:"horas",     crit:"Por hora"},
+               "Minutos de produção":{un:"minutos", crit:"Por minuto"} };
+var RAT_CRITS=["Por receita","Por kg produzido","Por unidade produzida","Por hora","Por minuto","Valor fixo"];
+function ratValorSetor(total,pct){
+  var t=Number(total), p=Number(pct);
+  if(!isFinite(t)||!isFinite(p)||t<0||p<0||p>100) return null;
+  return t*p/100;
+}
+function ratCompat(criterio,tipoProducao){
+  if(criterio==="Valor fixo") return true;                      // não divide pela produção
+  var d=RAT_PROD[tipoProducao];
+  return !!d && d.crit===criterio;
+}
+function ratCustoLinha(d,prod){
+  d=d||{}; prod=prod||{};
+  var vs=ratValorSetor(d.valorTotal,d.pctSetor);
+  if(vs==null) return {ok:false,valorSetor:null,custo:null,erro:"valor ou percentual inválido"};
+  if(!ratCompat(d.criterio,prod.tipo)) return {ok:false,valorSetor:vs,custo:null,erro:"critério “"+(d.criterio||"?")+"” não combina com a produção informada"};
+  if(d.criterio==="Valor fixo") return {ok:true,valorSetor:vs,custo:vs,erro:""};
+  var q=Number(prod.qtd);
+  if(!isFinite(q)||q<=0) return {ok:false,valorSetor:vs,custo:null,erro:"informe a produção do período (maior que zero)"};
+  return {ok:true,valorSetor:vs,custo:vs/q,erro:""};
+}
+function ratCalcular(r){
+  r=r||{}; var prod=r.producao||{}, linhas=[], micDesp=0, micCusto=0, erros=[];
+  (r.despesas||[]).forEach(function(d,i){
+    var c=ratCustoLinha(d,prod);
+    if(c.valorSetor!=null) micDesp+=Math.round(c.valorSetor*1e6);
+    if(c.ok) micCusto+=Math.round(c.custo*1e6); else if(c.erro) erros.push({i:i,erro:c.erro});
+    linhas.push({cat:d.cat||"",desc:d.desc||"",valorTotal:+d.valorTotal||0,pctSetor:+d.pctSetor||0,
+                 valorSetor:c.valorSetor,criterio:d.criterio||"",custo:c.custo,erro:c.erro,copId:d.copId||"",obs:d.obs||""});
+  });
+  return { linhas:linhas, totalDespesas:Math.round(micDesp/1e4)/100, custoUnitTotal:Math.round(micCusto/1e4)/100,
+           producao:{tipo:prod.tipo||"",qtd:+prod.qtd||0,un:(RAT_PROD[prod.tipo]||{}).un||prod.un||""},
+           erros:erros, ok:erros.length===0 };
+}
+// simulação: recalcula com outros números SEM tocar no oficial
+function ratSimular(r,mudancas){
+  var copia=JSON.parse(JSON.stringify(r||{}));
+  mudancas=mudancas||{};
+  if(mudancas.producaoQtd!=null) copia.producao=Object.assign({},copia.producao||{},{qtd:mudancas.producaoQtd});
+  if(mudancas.despesas) (copia.despesas||[]).forEach(function(d,i){ if(mudancas.despesas[i]!=null) d.valorTotal=mudancas.despesas[i]; });
+  var antes=ratCalcular(r), depois=ratCalcular(copia);
+  return { antes:antes, depois:depois,
+           difTotal:Math.round((depois.custoUnitTotal-antes.custoUnitTotal)*100)/100,
+           varPct: antes.custoUnitTotal>0 ? (depois.custoUnitTotal-antes.custoUnitTotal)/antes.custoUnitTotal*100 : null };
 }
 /* Regras de negócio configuráveis (markup das faixas de preço e limites de saúde da margem). */
 var REC_REGRAS={ mkMinimo:30, mkIdeal:60, mkPremium:100, margemBoa:30, margemAtencao:15 };
@@ -12656,6 +12777,15 @@ function recAlertaInsumo(rows){
 }
 /* ---------- linhas de CUSTO OPERACIONAL dentro da receita ---------- */
 var recCop=[];
+// Resolve a linha pelo catálogo: valor e unidade vêm de lá (regra: receita não duplica valor).
+// Linha manual (sem refId) continua usando o que está gravado nela.
+function recCopResolv(r){
+  r=r||{};
+  var c=(r.refId&&typeof copPorId==="function")?copPorId(r.refId):null;
+  if(c) return {q:r.q,u:c.unidade||r.u||"Por receita",n:c.nome,p:+c.valor||0,refId:r.refId,cop:c};
+  return {q:r.q,u:r.u||"Por receita",n:r.n||"",p:+r.p||0,refId:r.refId||"",cop:null};
+}
+function recCopResolvLista(rows){ return (rows||[]).map(recCopResolv); }
 function recCopNorm(r){
   r=r||{};
   return { q:String(r.q==null?"":r.q), u:String(r.u||"Por receita"), n:String(r.n||""), p:+r.p||0, refId:String(r.refId||"") };
@@ -12667,12 +12797,16 @@ function recCopDe(x){
 }
 function recCopLimpas(){
   return recCop.filter(function(r){ return (r.n||"").trim()||(+r.p>0); })
-               .map(function(r){ return {q:String(r.q||"").trim(),u:String(r.u||"Por receita"),n:(r.n||"").trim(),p:Math.max(0,+r.p||0),refId:r.refId||""}; });
+               .map(function(r){
+                 if(r.refId) return {refId:r.refId, q:String(r.q||"").trim()};        // vem do catálogo: sem cópia de valor
+                 return {q:String(r.q||"").trim(),u:String(r.u||"Por receita"),n:(r.n||"").trim(),p:Math.max(0,+r.p||0)};
+               });
 }
 function recCopCtx(){
   return { direto: recTotalIngr(recIngResolvLista(recIngr)) + Math.max(0,despParseValor(recVal("recCustoEmb"))) };
 }
-function recCopRowHtml(r,i){
+function recCopRowHtml(r0,i){
+  var r=recCopResolv(r0), doCat=!!r.cop;
   var cl=recCopLinha(r,recCopCtx());
   var custoTxt=cl.erro?('<span class="err" title="'+recEsc(cl.erro)+'">—</span>'):brl(cl.custo);
   var uns=COP_UNS.map(function(u){ return '<option'+(u===r.u?' selected':'')+'>'+recEsc(u)+'</option>'; }).join('');
@@ -13143,6 +13277,220 @@ function recImprimir(){
   if(!w){ uiConfirm({titulo:"Pop-up bloqueado",msg:"Libere os pop-ups do site para imprimir as receitas.",ok:"OK",cancel:""}); return; }
   w.document.write(html); w.document.close(); w.focus();
 }
+/* ===== TELA DO RATEIO DE CUSTOS ===== */
+var ratData=(function(){ try{ var a=JSON.parse(localStorage.getItem("rateios")||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } })();
+var ratAtual=null, ratSimQtd="", ratSimDesp={};
+function ratUid(){ return "rt_"+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36); }
+function ratSave(){ try{ localStorage.setItem("rateios", JSON.stringify(ratData)); }catch(e){} }
+function ratEsc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function ratMes(m){ return ["","Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][+m]||""; }
+function ratNovo(){
+  var h=new Date();
+  ratAtual={ id:ratUid(), setor:"Padaria", mes:h.getMonth()+1, ano:h.getFullYear(), dataIni:"", dataFim:"", status:"Rascunho",
+    despesas:[{cat:"Mão de obra",desc:"",valorTotal:"",pctSetor:"",criterio:"Por receita",obs:"",copId:""}],
+    producao:{tipo:"Número de receitas",qtd:"",obs:""},
+    criadoEm:h.toISOString().slice(0,10), criadoPor:(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"" };
+  ratSimQtd=""; ratSimDesp={};
+  renderRateio();
+}
+function ratEtapa(n,t){ return '<div class="rat-et"><span class="n">'+n+'</span><span class="t">'+ratEsc(t)+'</span><span class="l"></span></div>'; }
+function ratLinhaHtml(d,i,prod){
+  var c=ratCustoLinha(d,prod);
+  var cats=RAT_CATS.map(function(x){ return '<option'+(x===d.cat?' selected':'')+'>'+ratEsc(x)+'</option>'; }).join('');
+  var crits=RAT_CRITS.map(function(x){ return '<option'+(x===d.criterio?' selected':'')+'>'+ratEsc(x)+'</option>'; }).join('');
+  return '<div class="rat-lin" data-rd="'+i+'">'
+    +'<select data-rdf="cat">'+cats+'</select>'
+    +'<input data-rdf="desc" placeholder="Ex: Folha da Padaria" value="'+ratEsc(d.desc||"")+'">'
+    +'<input data-rdf="valorTotal" class="num" inputmode="decimal" placeholder="0,00" value="'+(d.valorTotal!==""&&d.valorTotal!=null?ratEsc(String(d.valorTotal).replace(".",",")):"")+'">'
+    +'<input data-rdf="pctSetor" class="num" inputmode="decimal" placeholder="%" value="'+(d.pctSetor!==""&&d.pctSetor!=null?ratEsc(String(d.pctSetor).replace(".",",")):"")+'">'
+    +'<select data-rdf="criterio">'+crits+'</select>'
+    +'<div class="calc">'+(c.valorSetor!=null?brl(c.valorSetor):"—")+(c.ok?(' <span style="color:#8a97a8;font-weight:400;">→</span> '+brl(c.custo)):'')+'</div>'
+    +'<button type="button" class="rat-x" data-rddel="'+i+'" title="Remover">×</button>'
+    +'</div>';
+}
+function renderRateio(){
+  var root=document.getElementById("ratRoot"); if(!root) return;
+  if(!ratAtual){ root.innerHTML=ratHistHtml(); return; }
+  var r=ratAtual, calc=ratCalcular(r), prod=r.producao||{};
+  var un=(RAT_PROD[prod.tipo]||{}).un||"";
+  var setores=RAT_SETORES.map(function(x){ return '<option'+(x===r.setor?' selected':'')+'>'+ratEsc(x)+'</option>'; }).join('');
+  var meses=[1,2,3,4,5,6,7,8,9,10,11,12].map(function(m){ return '<option value="'+m+'"'+(+r.mes===m?' selected':'')+'>'+ratMes(m)+'</option>'; }).join('');
+  var tipos=Object.keys(RAT_PROD).map(function(t){ return '<option'+(t===prod.tipo?' selected':'')+'>'+ratEsc(t)+'</option>'; }).join('');
+  var h="";
+  // 1 setor e período
+  h+=ratEtapa(1,"Setor e período")+'<div class="rat-box"><div class="rat-grid">'
+    +'<div class="rat-fld"><label>Setor</label><select id="ratSetor">'+setores+'</select></div>'
+    +'<div class="rat-fld"><label>Mês</label><select id="ratMesSel">'+meses+'</select></div>'
+    +'<div class="rat-fld"><label>Ano</label><input id="ratAno" inputmode="numeric" value="'+ratEsc(String(r.ano||""))+'"></div>'
+    +'<div class="rat-fld"><label>Data inicial</label><input id="ratDtIni" type="date" value="'+ratEsc(r.dataIni||"")+'"></div>'
+    +'<div class="rat-fld"><label>Data final</label><input id="ratDtFim" type="date" value="'+ratEsc(r.dataFim||"")+'"></div>'
+    +'</div><div style="margin-top:9px;font-size:12px;color:#8a97a8;">Status: <span class="rat-st '+ratEsc(r.status)+'">'+ratEsc(r.status)+'</span></div></div>';
+  // 2 despesas
+  h+=ratEtapa(2,"Despesas do período")+'<div class="rat-box">'
+    +'<div class="rat-cab"><div>Categoria</div><div>Descrição</div><div style="text-align:right;">Valor total</div><div style="text-align:right;">% setor</div><div>Critério</div><div style="text-align:right;">Valor setor → custo</div><div></div></div>'
+    +(r.despesas||[]).map(function(d,i){ return ratLinhaHtml(d,i,prod); }).join('')
+    +'<button type="button" class="rat-add" id="ratAddDesp">＋ Adicionar despesa</button></div>';
+  // 3 produção
+  h+=ratEtapa(3,"Produção do período")+'<div class="rat-box"><div class="rat-grid">'
+    +'<div class="rat-fld"><label>Tipo de produção</label><select id="ratProdTipo">'+tipos+'</select></div>'
+    +'<div class="rat-fld"><label>Quantidade produzida</label><input id="ratProdQtd" inputmode="decimal" placeholder="4850" value="'+(prod.qtd!==""&&prod.qtd!=null?ratEsc(String(prod.qtd).replace(".",",")):"")+'"></div>'
+    +'<div class="rat-fld"><label>Unidade</label><input value="'+ratEsc(un)+'" readonly class="rec-auto"></div>'
+    +'<div class="rat-fld" style="grid-column:span 2;"><label>Observação</label><input id="ratProdObs" placeholder="Opcional" value="'+ratEsc(prod.obs||"")+'"></div>'
+    +'</div></div>';
+  h+='<div id="ratResultado"></div>';
+  root.innerHTML=h;
+  ratPintaResultado();
+}
+// Repinta SÓ o resultado (não mexe nos campos que estão sendo digitados).
+function ratPintaResultado(){
+  var alvo=document.getElementById("ratResultado"); if(!alvo||!ratAtual) return;
+  var r=ratAtual, calc=ratCalcular(r), prod=r.producao||{};
+  var h='';
+  h+=ratEtapa(4,"Resultado do rateio");
+  if(!(calc.linhas||[]).length){ h+='<div class="rat-vazio">Adicione as despesas acima para ver o resultado.</div>'; }
+  else{
+    h+='<div class="rat-res"><table class="rat-tbl"><thead><tr><th>Categoria</th><th>Descrição</th><th class="num">Valor do setor</th><th class="num">Produção</th><th>Unidade</th><th class="num">Custo calculado</th><th>Custo operacional</th></tr></thead><tbody>';
+    calc.linhas.forEach(function(l,i){
+      var vinc=(typeof copData!=="undefined"?copData:[]).map(function(c){ return '<option value="'+c.id+'"'+(c.id===l.copId?' selected':'')+'>'+ratEsc(c.nome)+'</option>'; }).join('');
+      h+='<tr><td>'+ratEsc(l.cat)+'</td><td>'+ratEsc(l.desc||"—")+'</td><td class="num">'+(l.valorSetor!=null?brl(l.valorSetor):"—")+'</td>'
+        +'<td class="num">'+(calc.producao.qtd?calc.producao.qtd.toLocaleString("pt-BR"):"—")+'</td><td>'+ratEsc(calc.producao.un)+'</td>'
+        +'<td class="num dest">'+(l.custo!=null?brl(l.custo):('<span style="color:#c0392b;font-weight:600;font-size:12px;">'+ratEsc(l.erro||"—")+'</span>'))+'</td>'
+        +'<td><select data-ratvinc="'+i+'" style="border:1px solid #d4dde6;border-radius:7px;padding:5px 7px;font:inherit;font-size:12.5px;background:#fff;"><option value="">— criar novo —</option>'+vinc+'</select></td></tr>';
+    });
+    h+='</tbody></table></div>';
+    h+='<div class="rat-tot"><div class="i"><span>Total das despesas do setor</span><b>'+brl(calc.totalDespesas)+'</b></div>'
+      +'<div class="i"><span>Produção do período</span><b>'+(calc.producao.qtd?calc.producao.qtd.toLocaleString("pt-BR"):"—")+' '+ratEsc(calc.producao.un)+'</b></div>'
+      +'<div class="i big"><span>Custo operacional por '+ratEsc((calc.producao.un||"unidade").replace(/s$/,""))+'</span><b>'+brl(calc.custoUnitTotal)+'</b></div></div>';
+    if(calc.erros.length) h+='<div class="rat-erro"><b>Corrija antes de aplicar:</b> '+calc.erros.map(function(e){ return "linha "+(e.i+1)+" — "+ratEsc(e.erro); }).join(" · ")+'</div>';
+  }
+  // 5 simulação
+  h+=ratEtapa(5,"Simulação (não altera nada)");
+  var simMud={}; if(ratSimQtd!=="") simMud.producaoQtd=despParseValor(ratSimQtd);
+  if(Object.keys(ratSimDesp).length){ simMud.despesas={}; Object.keys(ratSimDesp).forEach(function(k){ simMud.despesas[k]=despParseValor(ratSimDesp[k]); }); }
+  var sim=ratSimular(r,simMud);
+  h+='<div class="rat-box"><div class="rat-grid" style="grid-template-columns:1fr 1fr;">'
+    +'<div class="rat-fld"><label>E se a produção fosse…</label><input id="ratSimQtd" inputmode="decimal" placeholder="'+(prod.qtd||"5500")+'" value="'+ratEsc(ratSimQtd)+'"></div>'
+    +'<div class="rat-fld"><label>E se a 1ª despesa fosse…</label><input id="ratSimD0" inputmode="decimal" placeholder="Ex: 45.000" value="'+ratEsc(ratSimDesp[0]||"")+'"></div>'
+    +'</div><div class="rat-sim" style="margin-top:11px;">'
+    +'<div class="rat-simc"><span>Custo atual</span><b>'+brl(sim.antes.custoUnitTotal)+'</b></div>'
+    +'<div class="rat-simc"><span>Custo simulado</span><b class="'+((sim.difTotal<0)?"verde":(sim.difTotal>0?"vermelho":""))+'">'+brl(sim.depois.custoUnitTotal)+'</b></div>'
+    +'<div class="rat-simc"><span>Diferença</span><b class="'+((sim.difTotal<0)?"verde":(sim.difTotal>0?"vermelho":""))+'">'+(sim.difTotal>0?"+":"")+brl(sim.difTotal)+'</b></div>'
+    +'<div class="rat-simc"><span>Variação</span><b>'+((sim.varPct==null)?"—":((sim.varPct>0?"+":"")+recPct(sim.varPct)))+'</b></div>'
+    +'</div></div>';
+  // 6 aplicação
+  h+=ratEtapa(6,"Aplicar no cadastro de custos operacionais")
+    +'<div class="rat-box"><div style="font-size:12.5px;color:#56606d;margin-bottom:10px;">Os valores vão para o <b>Cadastro de custos operacionais</b> — e as receitas que usam esses custos passam a valer o novo valor automaticamente. Nada é gravado dentro da receita.</div>'
+    +'<button class="rat-btn prim" id="ratAplicar" type="button"'+((!calc.ok||!calc.linhas.length)?" disabled":"")+'>Aplicar ao cadastro</button> '
+    +'<button class="rat-btn" id="ratSalvarRasc" type="button">Salvar rascunho</button> '
+    +'<button class="rat-btn" id="ratCancelar" type="button">Cancelar</button></div>';
+  h+=ratEtapa(7,"Histórico de rateios")+ratHistHtml();
+  alvo.innerHTML=h;
+  // atualiza o valor calculado em cada linha de despesa, sem redesenhar os campos
+  (r.despesas||[]).forEach(function(d,i){
+    var lin=document.querySelector('[data-rd="'+i+'"] .calc'); if(!lin) return;
+    var c=ratCustoLinha(d,prod);
+    lin.innerHTML=(c.valorSetor!=null?brl(c.valorSetor):"—")+(c.ok?(' <span style="color:#8a97a8;font-weight:400;">→</span> '+brl(c.custo)):'');
+  });
+}
+function ratHistHtml(){
+  if(!ratData.length) return '<div class="rat-vazio">Nenhum rateio ainda.<br>Clique em <b>＋ Novo rateio</b> para começar.</div>';
+  return ratData.slice().reverse().map(function(x){
+    var c=ratCalcular(x);
+    return '<div class="rat-hist-i"><div><b>'+ratEsc(x.setor)+'</b><div style="font-size:11.5px;color:#8a97a8;">'+ratMes(x.mes)+' de '+ratEsc(String(x.ano))+'</div></div>'
+      +'<div><span style="font-size:11px;color:#8a97a8;">Despesas</span><br><b>'+brl(c.totalDespesas)+'</b></div>'
+      +'<div><span style="font-size:11px;color:#8a97a8;">Produção</span><br><b>'+(c.producao.qtd?c.producao.qtd.toLocaleString("pt-BR"):"—")+' '+ratEsc(c.producao.un)+'</b></div>'
+      +'<div><span style="font-size:11px;color:#8a97a8;">Custo por unidade</span><br><b style="color:#157a35;">'+brl(c.custoUnitTotal)+'</b></div>'
+      +'<div style="text-align:right;"><span class="rat-st '+ratEsc(x.status)+'">'+ratEsc(x.status)+'</span>'
+      +'<div style="font-size:11px;color:#a9b4c0;margin-top:3px;">'+(x.aplicadoEm?("aplicado "+recDataBr(x.aplicadoEm)+(x.aplicadoPor?(" por "+ratEsc(x.aplicadoPor)):"")):("criado "+recDataBr(x.criadoEm)))+'</div>'
+      +'<button class="rat-btn" data-ratabrir="'+x.id+'" type="button" style="margin-top:6px;padding:4px 10px;font-size:12px;">Abrir</button></div></div>';
+  }).join('');
+}
+/* ---- aplicar: confirmação com atual x novo, impacto nas receitas e auditoria ---- */
+function ratAplicar(){
+  var r=ratAtual; if(!r) return;
+  var calc=ratCalcular(r);
+  if(!calc.ok||!calc.linhas.length){ uiConfirm({titulo:"Não dá para aplicar",msg:"Corrija os erros do rateio antes de aplicar.",ok:"OK",cancel:""}); return; }
+  var un=(RAT_PROD[r.producao.tipo]||{}).crit||"Por receita";
+  var linhas=calc.linhas.map(function(l){
+    var cop=l.copId?copPorId(l.copId):null;
+    var atual=cop?(+cop.valor||0):null;
+    var usos=cop?(typeof recData!=="undefined"?recData:[]).filter(function(rc){ return (rc.custosOp||[]).some(function(cl){ return cl.refId===cop.id; }); }).length:0;
+    return {l:l, cop:cop, atual:atual, novo:l.custo, variacao:(atual>0)?((l.custo-atual)/atual*100):null, receitas:usos};
+  });
+  var txt=linhas.map(function(x){
+    var nome=x.cop?x.cop.nome:((x.l.desc||x.l.cat)+" (novo)");
+    return "• "+nome+": "+(x.atual!=null?brl(x.atual):"—")+" → "+brl(x.novo)
+      +(x.variacao!=null?(" ("+(x.variacao>0?"+":"")+recPct(x.variacao)+")"):"")
+      +(x.receitas?("  ·  "+x.receitas+" receita(s) afetada(s)"):"");
+  }).join("\\n");
+  uiConfirm({titulo:"Aplicar "+linhas.length+" custo(s)?",
+    msg:"Os custos operacionais abaixo serão atualizados — e as receitas que usam eles passam a valer o novo valor:\\n\\n"+txt+"\\n\\nQuem aplica: "+((window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"—"),
+    ok:"Aplicar", cancel:"Cancelar"}).then(function(sim){
+      if(!sim) return;
+      var hoje=new Date().toISOString().slice(0,10), quem=(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"";
+      var origem="Rateio "+r.setor+" "+ratMes(r.mes)+"/"+r.ano;
+      linhas.forEach(function(x){
+        if(x.cop){
+          if(Math.abs((+x.cop.valor||0)-x.novo)>=0.005){
+            x.cop.hist=Array.isArray(x.cop.hist)?x.cop.hist:[];
+            x.cop.hist.push({d:hoje, v:+x.cop.valor||0, por:quem, motivo:origem});
+            if(x.cop.hist.length>24) x.cop.hist=x.cop.hist.slice(-24);
+          }
+          x.cop.valor=Math.round(x.novo*10000)/10000; x.cop.unidade=un; x.cop.origem=origem; x.cop.atualizadoEm=hoje; x.cop.atualizadoPor=quem;
+        } else {
+          copData.push({id:copUid(), nome:(x.l.desc||x.l.cat)+" "+r.setor, categoria:x.l.cat, unidade:un,
+            valor:Math.round(x.novo*10000)/10000, obs:"Criado pelo "+origem, ativo:true, hist:[],
+            setor:r.setor, origem:origem, atualizadoEm:hoje, atualizadoPor:quem});
+        }
+      });
+      copSave();
+      r.status="Aplicado"; r.aplicadoEm=hoje; r.aplicadoPor=quem;
+      r.resultado=calc.linhas;   // congela o resultado pra auditoria
+      if(!ratData.some(function(x){ return x.id===r.id; })) ratData.push(r);
+      ratSave();
+      try{ renderCustosOp(); renderReceitas(); }catch(e){}
+      ratAtual=null; renderRateio();
+      uiConfirm({titulo:"Aplicado!",msg:linhas.length+" custo(s) operacional(is) atualizado(s). As receitas vinculadas já estão com o novo valor.",ok:"OK",cancel:""});
+    });
+}
+(function initRateio(){
+  var nv=document.getElementById("ratNovo"); if(nv) nv.addEventListener("click",ratNovo);
+  var root=document.getElementById("ratRoot"); if(!root) return;
+  root.addEventListener("click",function(ev){
+    if(ev.target.closest("#ratAddDesp")){ ratAtual.despesas.push({cat:"Outros",desc:"",valorTotal:"",pctSetor:"",criterio:(RAT_PROD[ratAtual.producao.tipo]||{}).crit||"Por receita",obs:"",copId:""}); renderRateio(); return; }
+    var dd=ev.target.closest("[data-rddel]"); if(dd){ ratAtual.despesas.splice(+dd.getAttribute("data-rddel"),1); renderRateio(); return; }
+    if(ev.target.closest("#ratAplicar")){ ratAplicar(); return; }
+    if(ev.target.closest("#ratSalvarRasc")){ ratAtual.status="Calculado"; if(!ratData.some(function(x){return x.id===ratAtual.id;})) ratData.push(ratAtual); ratSave(); uiConfirm({titulo:"Salvo",msg:"Rascunho guardado no histórico.",ok:"OK",cancel:""}); renderRateio(); return; }
+    if(ev.target.closest("#ratCancelar")){ ratAtual=null; renderRateio(); return; }
+    var ab=ev.target.closest("[data-ratabrir]"); if(ab){ var id=ab.getAttribute("data-ratabrir"); ratAtual=ratData.filter(function(x){return x.id===id;})[0]||null; ratSimQtd=""; ratSimDesp={}; renderRateio(); window.scrollTo(0,0); return; }
+  });
+  function campo(ev){
+    if(!ratAtual) return;
+    var t=ev.target, id=t.id, f=t.getAttribute&&t.getAttribute("data-rdf");
+    if(f){ var lin=t.closest("[data-rd]"); if(!lin) return; var i=+lin.getAttribute("data-rd"); var d=ratAtual.despesas[i]; if(!d) return;
+      d[f]=(f==="valorTotal"||f==="pctSetor")?despParseValor(t.value):t.value;
+      if(f==="criterio") renderRateio(); else ratPintaResultado(); return; }
+    var vc=t.getAttribute&&t.getAttribute("data-ratvinc");
+    if(vc!=null){ var lc=ratCalcular(ratAtual).linhas[+vc]; if(ratAtual.despesas[+vc]) ratAtual.despesas[+vc].copId=t.value; renderRateio(); return; }
+    if(id==="ratSetor") ratAtual.setor=t.value;
+    else if(id==="ratMesSel") ratAtual.mes=+t.value;
+    else if(id==="ratAno") ratAtual.ano=+t.value||ratAtual.ano;
+    else if(id==="ratDtIni") ratAtual.dataIni=t.value;
+    else if(id==="ratDtFim") ratAtual.dataFim=t.value;
+    else if(id==="ratProdTipo"){ ratAtual.producao.tipo=t.value; var cr=(RAT_PROD[t.value]||{}).crit; if(cr) (ratAtual.despesas||[]).forEach(function(d){ if(d.criterio!=="Valor fixo") d.criterio=cr; }); }
+    else if(id==="ratProdQtd"){ ratAtual.producao.qtd=despParseValor(t.value); ratPintaResultado(); return; }
+    else if(id==="ratProdObs") ratAtual.producao.obs=t.value;
+    else if(id==="ratSimQtd"){ ratSimQtd=t.value; ratPintaResultado(); return; }
+    else if(id==="ratSimD0"){ ratSimDesp[0]=t.value; ratPintaResultado(); return; }
+    else return;
+    renderRateio();
+  }
+  root.addEventListener("change",campo);
+  root.addEventListener("input",function(ev){ var t=ev.target, id=t.id;
+    if(id==="ratSimQtd"||id==="ratSimD0"||id==="ratProdQtd") { campo(ev); return; }
+    var f=t.getAttribute&&t.getAttribute("data-rdf");
+    if(f==="valorTotal"||f==="pctSetor"||f==="desc") campo(ev); });
+})();
 /* ===== NAVEGAÇÃO INTERNA DO MÓDULO RECEITAS (abas tipo ERP) =====
    O menu lateral tem só MÓDULOS; os cadastros auxiliares viram abas aqui dentro.
    A troca não recarrega nada: cada aba é a própria <section> que já existe, então
@@ -13152,6 +13500,7 @@ var REC_ABAS=[
   {id:"receitas", rot:"Receitas",           ico:'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>'},
   {id:"insumos",  rot:"Insumos",            ico:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>'},
   {id:"custosop", rot:"Custos operacionais",ico:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'},
+  {id:"rateio",   rot:"Rateio de custos",  ico:'<path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="4" width="3" height="14"/>'},
   {id:"material", rot:"Embalagens",         ico:'<path d="M21 8v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8"/><rect x="2" y="3" width="20" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>'}
 ];
 function recAbasHtml(ativa){
@@ -13174,6 +13523,7 @@ function recAbaIr(id){
   else if(id==="insumos") renderInsumos();
   else if(id==="custosop") renderCustosOp();
   else if(id==="material") renderMaterial();
+  else if(id==="rateio") renderRateio();
   window.scrollTo(0,0);
 }
 (function initAbasReceitas(){
@@ -13450,6 +13800,7 @@ function pedEnviar(){
     {chave:"receitas_dados",      tabela:"receitas",             modo:"array"},
     {chave:"custos_operacionais", tabela:"custos_operacionais",  modo:"array"},
     {chave:"insumos",             tabela:"insumos",              modo:"array"},
+    {chave:"rateios",             tabela:"rateios",              modo:"array"},
     {chave:"ferias_dados",        tabela:"ferias",               modo:"array"},
     {chave:"cargos_dados",        tabela:"cargos_salarios",      modo:"array", pagina:"cargos"},
     {chave:"perdas",              tabela:"perdas",               modo:"array"},
