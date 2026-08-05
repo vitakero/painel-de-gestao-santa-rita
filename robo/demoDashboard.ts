@@ -722,9 +722,6 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="acougue"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h11a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3z"/><path d="M15 8h4a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4"/><path d="M3 19h13"/></svg></span> Perdas açougue</button>
     <button class="nav-item" data-page="epi"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span> EPI</button>
     <button class="nav-item" data-page="fardamento"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l4-3 2 2h4l2-2 4 3-2 3-2-1v11H8V9L6 10z"/></svg></span> Fardamento</button>
-    <button class="nav-item" data-page="material"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8"/><rect x="2" y="3" width="20" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg></span> Material de uso</button>
-    <button class="nav-item" data-page="insumos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Insumos<span class="soon">novo</span></button>
-    <button class="nav-item" data-page="custosop"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/><circle cx="18.7" cy="8" r="1.2"/></svg></span> Custos operacionais<span class="soon">novo</span></button>
     <button class="nav-item" data-page="receitas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span> Receitas</button>
     <button class="nav-item" data-page="estld"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg></span> Loja / Depósito<span class="soon">novo</span></button>
     <button class="nav-item" data-page="pedidos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span> Pedidos<span class="soon">novo</span><span class="nav-badge" id="pedNavBadge" style="display:none;"></span></button>
@@ -2290,6 +2287,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     </section>
 
     <section id="page-material" class="page">
+      <div class="mod-tabs-wrap" id="abas-material"></div>
       <div class="card">
         <style>
         .mat-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px;}
@@ -2300,6 +2298,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .mat-sub{font-size:12.5px;color:#8a97a8;margin:2px 0 14px;}
         .mat-form{background:#f6f9f7;border:1px solid #e2ebe5;border-radius:12px;padding:14px 16px;margin-bottom:16px;}
         .mat-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1.2fr;gap:10px;}
+        .mat-check{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:#33404f;font-weight:600;cursor:pointer;}
         .mat-grid2{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:end;margin-top:10px;}
         .mat-fld label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#6b7787;font-weight:700;margin-bottom:4px;}
         .mat-fld input,.mat-fld select{width:100%;box-sizing:border-box;border:1px solid #d4dde6;border-radius:8px;padding:8px 10px;font:inherit;color:#1d2733;}
@@ -2319,9 +2318,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .mat-vazio{color:#8a97a8;font-size:14px;text-align:center;padding:30px 0;line-height:1.6;}
         </style>
         <div class="mat-top">
-          <div class="mat-titulo"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#157a35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8"/><rect x="2" y="3" width="20" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>Material de uso</div>
-          <input id="matBusca" class="mat-busca" placeholder="Buscar material...">
-          <button class="mat-btn prim" id="matAdd" type="button">＋ Novo material</button>
+          <div class="mat-titulo"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#157a35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8"/><rect x="2" y="3" width="20" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>Embalagens e materiais</div>
+          <input id="matBusca" class="mat-busca" placeholder="Buscar embalagem...">
+          <button class="mat-btn prim" id="matAdd" type="button">＋ Nova embalagem</button>
         </div>
         <p class="mat-sub">Cadastre as embalagens e materiais padrão da loja, com o tamanho certo de cada um — pra sempre usar o correto e economizar.</p>
         <div id="matFormWrap"></div>
@@ -2330,12 +2329,23 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     </section>
 
     <section id="page-receitas" class="page">
+      <div class="mod-tabs-wrap" id="abas-receitas"></div>
       <div class="card">
         <style>
         .rec-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px;}
         .rec-titulo{font-size:17px;font-weight:700;color:#0c5a26;display:flex;align-items:center;gap:8px;}
         .rec-busca{flex:1;min-width:150px;max-width:280px;border:1px solid #d7dee7;border-radius:9px;padding:7px 12px;font:inherit;color:#1d2733;}
-        .rec-btn{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #d7dee7;border-radius:9px;padding:7px 13px;font-size:13px;font-weight:600;color:#56606d;cursor:pointer;}
+        /* Abas internas do módulo (padrão ERP) */
+  .mod-tabs-wrap{margin:-4px 0 14px;}
+  .mod-tabs{display:flex;gap:2px;border-bottom:1px solid #e2e8ee;overflow-x:auto;}
+  .mod-tab{display:inline-flex;align-items:center;gap:7px;background:none;border:0;border-bottom:2px solid transparent;
+    padding:9px 14px;font-size:13.5px;font-weight:600;color:#6b7787;cursor:pointer;white-space:nowrap;margin-bottom:-1px;}
+  .mod-tab svg{width:15px;height:15px;flex:none;color:#a9b4c0;}
+  .mod-tab:hover{color:#1d2733;background:#f6f8fa;border-radius:8px 8px 0 0;}
+  .mod-tab.on{color:#0c5a26;border-bottom-color:#157a35;font-weight:700;}
+  .mod-tab.on svg{color:#157a35;}
+  @media(max-width:620px){ .mod-tab span{display:none;} .mod-tab{padding:9px 15px;} .mod-tab.on span{display:inline;} }
+  .rec-btn{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #d7dee7;border-radius:9px;padding:7px 13px;font-size:13px;font-weight:600;color:#56606d;cursor:pointer;}
         .rec-btn.prim{background:#157a35;border-color:#157a35;color:#fff;}
         .rec-sub{font-size:12.5px;color:#8a97a8;margin:2px 0 14px;}
         .rec-form{background:#f6f9f7;border:1px solid #e2ebe5;border-radius:12px;padding:14px 16px;margin-bottom:16px;}
@@ -2492,7 +2502,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div class="rec-top">
           <div class="rec-titulo"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#157a35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Receitas</div>
           <input id="recBusca" class="rec-busca" placeholder="Buscar receita...">
-          <button class="rec-btn" id="recInsumos" type="button" title="Cadastro de insumos"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Insumos</button><button class="rec-btn" id="recImprimir" type="button"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#157a35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir receitas</button>
+          <button class="rec-btn" id="recImprimir" type="button"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#157a35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir receitas</button>
           <button class="rec-btn prim" id="recAdd" type="button">＋ Nova receita</button>
         </div>
         <p class="rec-sub">Cadastre as receitas que a loja produz (rotisseria, padaria, açougue...) pra sempre sair igual — mesmo sabor, mesma quantidade.</p>
@@ -2862,6 +2872,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       </div>
     </section>
     <section id="page-insumos" class="page">
+      <div class="mod-tabs-wrap" id="abas-insumos"></div>
       <div class="card">
         <style>
         .ins-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
@@ -2922,6 +2933,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       </div>
     </section>
     <section id="page-custosop" class="page">
+      <div class="mod-tabs-wrap" id="abas-custosop"></div>
       <div class="card">
         <style>
         .cop-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px;}
@@ -11893,7 +11905,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="acougue") renderAcougue();
     if(btn.dataset.page==="manutencoes"){ renderManut(); manCloudLoad(); }
     if(btn.dataset.page==="cargos") renderCargos();
-    if(btn.dataset.page==="material") renderMaterial();
+    if(btn.dataset.page==="receitas"){ try{ var _ab=localStorage.getItem("ui_aba_receitas")||"receitas"; if(_ab!=="receitas" && typeof recAbaIr==="function"){ recAbaIr(_ab); return; } }catch(e){} }
     if(btn.dataset.page==="receitas") renderReceitas();
     if(btn.dataset.page==="estld"){ renderEstLD(); eldCloudLoad(); var _ei=document.getElementById("eldInp"); if(_ei) _ei.focus(); }
     if(btn.dataset.page==="pedidos"){ renderPedidos(); pedCloudLoad(); pedRealtime(); }
@@ -11949,7 +11961,8 @@ try{ manAtualizaBadge(); }catch(e){}
     var _pg0=localStorage.getItem("ui_pagina_atual");
     if(_pg0 && _pg0!=="vendas"){
       var _tgt0=document.getElementById("page-"+_pg0);
-      var _nb0=document.querySelector('.nav-item[data-page="'+_pg0+'"]');
+      var _nb0=document.querySelector('.nav-item[data-page="'+_pg0+'"]')
+              || (["insumos","custosop","material"].indexOf(_pg0)>=0 ? document.querySelector('.nav-item[data-page="receitas"]') : null);
       if(_tgt0 && _nb0){
         document.querySelectorAll(".page").forEach(function(p){ p.classList.remove("ativo"); });
         document.querySelectorAll(".nav-item").forEach(function(b){ b.classList.remove("ativo"); });
@@ -11962,8 +11975,8 @@ try{ manAtualizaBadge(); }catch(e){}
     try{
       const pg=localStorage.getItem("ui_pagina_atual");
       if(pg && pg!=="vendas"){
-        const b=document.querySelector('.nav-item[data-page="'+pg+'"]');
-        if(b) b.click();
+        if(["insumos","custosop","material"].indexOf(pg)>=0 && typeof recAbaIr==="function"){ recAbaIr(pg); }
+        else { const b=document.querySelector('.nav-item[data-page="'+pg+'"]'); if(b) b.click(); }
       }
     }catch(e){}
     window.scrollTo(0,0);
@@ -12283,6 +12296,10 @@ function copRenderLista(){
 var matData=(function(){ try{ var a=JSON.parse(localStorage.getItem("material_uso")||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } })();
 var matForm=null, matEdit=null, matBusca="";
 function matUid(){ return "m_"+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36); }
+function matProxCodigo(){
+  var mx=0; matData.forEach(function(x){ var m=String(x.codigo||"").match(/(\\d+)$/); if(m) mx=Math.max(mx,+m[1]); });
+  return "EMB-"+String(mx+1).padStart(4,"0");
+}
 function matSave(){ try{ localStorage.setItem("material_uso", JSON.stringify(matData)); }catch(e){} }
 function matEsc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
 function matSetores(){ var l=[]; matData.forEach(function(x){ var s=(x.setor||"").trim(); if(s&&l.indexOf(s)<0) l.push(s); }); return l.sort(function(a,b){return a.localeCompare(b,"pt");}); }
@@ -12293,14 +12310,20 @@ function matRenderForm(){
   var ed=matEdit?matData.find(function(x){return x.id===matEdit;}):null;
   var tipoOpts='<option value="">Tipo...</option>'+MAT_TIPOS.map(function(t){ return '<option'+(ed&&ed.tipo===t?' selected':'')+'>'+matEsc(t)+'</option>'; }).join('');
   var setSug=matSetores().map(function(s){ return '<option value="'+matEsc(s)+'">'; }).join('');
-  w.innerHTML='<div class="mat-form"><div class="mat-grid" style="grid-template-columns:1.5fr 1fr 0.9fr 1.1fr 120px;">'
-    +'<div class="mat-fld"><label>Nome do material</label><input id="matNome" placeholder="Ex: Sacola pequena" value="'+(ed?matEsc(ed.nome):'')+'"></div>'
-    +'<div class="mat-fld"><label>Tipo</label><select id="matTipo">'+tipoOpts+'</select></div>'
+  var unOpts=["un","kg","g","L","ml"].map(function(u){ return '<option'+((ed&&ed.un?ed.un:"un")===u?' selected':'')+'>'+u+'</option>'; }).join('');
+  w.innerHTML='<div class="mat-form"><div class="mat-grid" style="grid-template-columns:110px 1.5fr 1fr 0.9fr;">'
+    +'<div class="mat-fld"><label>Código</label><input id="matCodigo" placeholder="'+matProxCodigo()+'" value="'+(ed?matEsc(ed.codigo||''):'')+'"></div>'
+    +'<div class="mat-fld"><label>Nome da embalagem</label><input id="matNome" placeholder="Ex: Sacola pequena" value="'+(ed?matEsc(ed.nome):'')+'"></div>'
+    +'<div class="mat-fld"><label>Categoria</label><select id="matTipo">'+tipoOpts+'</select></div>'
     +'<div class="mat-fld"><label>Tamanho</label><input id="matTam" placeholder="Ex: 20x30 cm" value="'+(ed?matEsc(ed.tamanho||''):'')+'"></div>'
+    +'</div><div class="mat-grid" style="grid-template-columns:1.1fr 1.1fr 100px 120px;margin-top:10px;">'
+    +'<div class="mat-fld"><label>Fornecedor</label><input id="matForn" placeholder="Ex: Distribuidora X" value="'+(ed?matEsc(ed.fornecedor||''):'')+'"></div>'
     +'<div class="mat-fld"><label>Onde usa (setor)</label><input id="matSetor" list="matSetLista" placeholder="Ex: Hortifruti" value="'+(ed?matEsc(ed.setor||''):'')+'"><datalist id="matSetLista">'+setSug+'</datalist></div>'
-    +'<div class="mat-fld"><label>Preço (R$ cada)</label><input id="matPreco" type="number" min="0" step="0.001" placeholder="0,00" value="'+(ed&&ed.preco?ed.preco:'')+'"></div>'
+    +'<div class="mat-fld"><label>Unidade</label><select id="matUn">'+unOpts+'</select></div>'
+    +'<div class="mat-fld"><label>Custo (R$ cada)</label><input id="matPreco" type="number" min="0" step="0.001" placeholder="0,00" value="'+(ed&&ed.preco?ed.preco:'')+'"></div>'
     +'</div><div class="mat-grid2">'
     +'<div class="mat-fld"><label>Observação / padrão de uso</label><input id="matObs" placeholder="Opcional (ex.: carne moída até 1 kg)" value="'+(ed?matEsc(ed.obs||''):'')+'"></div>'
+    +'<label class="mat-check"><input type="checkbox" id="matAtivo"'+((!ed||ed.ativo!==false)?' checked':'')+'> Ativo</label>'
     +'<button class="mat-btn prim" id="matSalvar" type="button">'+(ed?'Salvar':'Adicionar')+'</button>'
     +'<button class="mat-btn" id="matCancelar" type="button">Cancelar</button>'
     +'</div></div>';
@@ -12313,9 +12336,13 @@ function matSalvarForm(){
   var setor=(document.getElementById("matSetor").value||"").trim();
   var obs=(document.getElementById("matObs").value||"").trim();
   var preco=parseFloat(document.getElementById("matPreco").value)||0;
-  if(!nome){ uiConfirm({titulo:"Aviso",msg:"Informe o nome do material.",ok:"OK",cancel:""}); return; }
-  if(matEdit){ var e=matData.find(function(x){return x.id===matEdit;}); if(e){ e.nome=nome; e.tipo=tipo; e.tamanho=tamanho; e.setor=setor; e.obs=obs; e.preco=preco; } }
-  else { matData.push({id:matUid(),nome:nome,tipo:tipo,tamanho:tamanho,setor:setor,obs:obs,preco:preco}); }
+  var codigo=(document.getElementById("matCodigo").value||"").trim()||matProxCodigo();
+  var fornecedor=(document.getElementById("matForn").value||"").trim();
+  var un=document.getElementById("matUn").value||"un";
+  var ativo=!!document.getElementById("matAtivo").checked;
+  if(!nome){ uiConfirm({titulo:"Aviso",msg:"Informe o nome da embalagem.",ok:"OK",cancel:""}); return; }
+  if(matEdit){ var e=matData.find(function(x){return x.id===matEdit;}); if(e){ e.nome=nome; e.tipo=tipo; e.tamanho=tamanho; e.setor=setor; e.obs=obs; e.preco=preco; e.codigo=codigo; e.fornecedor=fornecedor; e.un=un; e.ativo=ativo; } }
+  else { matData.push({id:matUid(),nome:nome,tipo:tipo,tamanho:tamanho,setor:setor,obs:obs,preco:preco,codigo:codigo,fornecedor:fornecedor,un:un,ativo:ativo}); }
   matSave(); matForm=null; matEdit=null; renderMaterial();
 }
 function matRenderLista(){
@@ -13116,9 +13143,51 @@ function recImprimir(){
   if(!w){ uiConfirm({titulo:"Pop-up bloqueado",msg:"Libere os pop-ups do site para imprimir as receitas.",ok:"OK",cancel:""}); return; }
   w.document.write(html); w.document.close(); w.focus();
 }
+/* ===== NAVEGAÇÃO INTERNA DO MÓDULO RECEITAS (abas tipo ERP) =====
+   O menu lateral tem só MÓDULOS; os cadastros auxiliares viram abas aqui dentro.
+   A troca não recarrega nada: cada aba é a própria <section> que já existe, então
+   filtros, busca e formulário em edição continuam exatamente como estavam.
+   Pra crescer (Fichas Técnicas, Ordens de Produção...), basta pôr a seção e uma linha em REC_ABAS. */
+var REC_ABAS=[
+  {id:"receitas", rot:"Receitas",           ico:'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>'},
+  {id:"insumos",  rot:"Insumos",            ico:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>'},
+  {id:"custosop", rot:"Custos operacionais",ico:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'},
+  {id:"material", rot:"Embalagens",         ico:'<path d="M21 8v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8"/><rect x="2" y="3" width="20" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>'}
+];
+function recAbasHtml(ativa){
+  return '<div class="mod-tabs">'+REC_ABAS.map(function(a){
+    return '<button type="button" class="mod-tab'+(a.id===ativa?' on':'')+'" data-aba="'+a.id+'">'
+      +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+a.ico+'</svg>'
+      +'<span>'+a.rot+'</span></button>';
+  }).join('')+'</div>';
+}
+function recAbaIr(id){
+  if(!REC_ABAS.some(function(a){ return a.id===id; })) id="receitas";
+  document.querySelectorAll(".page").forEach(function(p){ p.classList.remove("ativo"); });
+  var sec=document.getElementById("page-"+id); if(sec) sec.classList.add("ativo");
+  // no menu lateral, o módulo continua sendo "Receitas"
+  document.querySelectorAll(".nav-item").forEach(function(b){ b.classList.remove("ativo"); });
+  var nv=document.querySelector('.nav-item[data-page="receitas"]'); if(nv) nv.classList.add("ativo");
+  REC_ABAS.forEach(function(a){ var barra=document.getElementById("abas-"+a.id); if(barra) barra.innerHTML=recAbasHtml(id); });
+  try{ localStorage.setItem("ui_pagina_atual", id); localStorage.setItem("ui_aba_receitas", id); if(window.__presTrack) window.__presTrack(); }catch(e){}
+  if(id==="receitas") renderReceitas();
+  else if(id==="insumos") renderInsumos();
+  else if(id==="custosop") renderCustosOp();
+  else if(id==="material") renderMaterial();
+  window.scrollTo(0,0);
+}
+(function initAbasReceitas(){
+  REC_ABAS.forEach(function(a){
+    var barra=document.getElementById("abas-"+a.id); if(!barra) return;
+    barra.innerHTML=recAbasHtml(a.id);
+    barra.addEventListener("click",function(ev){
+      var b=ev.target.closest("[data-aba]"); if(!b) return;
+      recAbaIr(b.getAttribute("data-aba"));
+    });
+  });
+})();
 (function initReceitas(){
   var pr=document.getElementById("recImprimir"); if(pr) pr.addEventListener("click",function(){ recImprimir(); });
-  var bi=document.getElementById("recInsumos"); if(bi) bi.addEventListener("click",function(){ var n=document.querySelector('.nav-item[data-page="insumos"]'); if(n) n.click(); });
   var add=document.getElementById("recAdd"); if(add) add.addEventListener("click",function(){ recForm=recForm?null:"new"; recEdit=null; recFotoUrl=""; recFormId=""; recRenderForm(); });
   var bus=document.getElementById("recBusca"); if(bus) bus.addEventListener("input",function(){ recBusca=this.value; recRenderLista(); });
   var fw=document.getElementById("recFormWrap"); if(fw){
