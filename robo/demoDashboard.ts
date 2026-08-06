@@ -2639,6 +2639,16 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       .cl-integ{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-radius:12px;padding:12px 18px;margin-bottom:16px;font-size:13px;line-height:1.45;}
       .cl-integ.demo{background:#fff8ec;border:1px solid #f2dcb3;color:#8a5a12;}
       /* ---- Conferência dos carros ---- */
+      /* Enquanto for exemplo, a tela fica listrada e cada linha ganha selo vermelho:
+         ninguém pode confundir maquete com dado da loja e decidir em cima disso. */
+      .cl-fake-aviso{background:#fbf4e2;border:1px solid #e8dbb4;border-left:4px solid #c0392b;border-radius:10px;
+                     padding:13px 16px;margin-top:14px;font-size:13px;color:#6b5000;line-height:1.6;}
+      .cl-fake-aviso b{color:#a3341f;}
+      .cl-fake-tag{display:inline-block;background:#c0392b;color:#fff;font-size:9px;font-weight:800;
+                   text-transform:uppercase;letter-spacing:.08em;padding:2px 6px;border-radius:4px;
+                   margin-right:7px;vertical-align:1px;}
+      .cl-conf-lin.fake,.cl-conf-rk.fake .cl-conf-bloco{
+        background-image:repeating-linear-gradient(135deg,rgba(192,57,43,.045) 0 10px,transparent 10px 20px);}
       .cl-conf-sel{display:flex;align-items:center;gap:10px;margin:14px 0 12px;}
       .cl-conf-sel label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#6b7787;font-weight:700;}
       .cl-conf-sel select{border:1px solid #dde4ec;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;background:#fff;}
@@ -2821,8 +2831,14 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #entKpis .kpi{padding:20px 16px;min-width:0;overflow:hidden;}
         #entKpis .kpi .v{font-size:26px;line-height:1.1;overflow-wrap:anywhere;}
         #entKpis .kpi .l{font-size:12.5px;margin-top:6px;overflow-wrap:anywhere;}
+        /* Rótulo com altura reservada pra 2 linhas: assim a barra de progresso fica na
+           mesma altura em todos os cartões mesmo quando um rótulo quebra e o outro não.
+           (Alinhar com margin-top:auto colava a barra no texto quando faltava espaço.) */
+        #entKpis .kpi .l{min-height:30px;}
         .ent-grade-wrap{overflow-x:auto;max-width:100%;border:1px solid #e6ebf1;border-radius:10px;margin:6px 0 22px;}
         .ent-edit-box{border:1px solid #e6ebf1;border-radius:10px;padding:12px 14px;margin:6px 0 14px;background:#fafcfe;}
+        .ent-edit-tit b{display:inline-flex;align-items:center;gap:7px;}
+        .ent-ico{width:16px;height:16px;flex:none;}
         .ent-edit-tit{display:flex;align-items:center;justify-content:space-between;gap:10px;}
         .ent-edit-tit b{font-size:13px;color:#0c5a26;}
         .ent-edit-toggle{border:1px solid #cfe0d6;background:#fff;color:#157a35;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;}
@@ -2870,6 +2886,55 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ent-svg-wrap{overflow-x:auto;max-width:100%;}
         #entGraficos,#entGradeWrap{min-width:0;}
         .ent-vazio{padding:40px 20px;text-align:center;color:#8a97a8;font-size:14px;}
+        /* Faixa de status do mes: responde "estamos indo bem?" antes de qualquer grafico.
+           Cor NUNCA e o unico sinal - sempre tem texto e icone junto. */
+        .ent-status{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #e6ebf1;border-left:5px solid #8a97a8;border-radius:12px;padding:14px 18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(20,40,70,.05);}
+        .ent-status-ico{flex:none;width:34px;height:34px;color:#8a97a8;}
+        .ent-status-ico svg{width:34px;height:34px;display:block;}
+        .ent-status-txt{flex:1;min-width:0;}
+        .ent-status-tit{font-size:15px;font-weight:800;color:#1d2733;letter-spacing:.2px;}
+        .ent-status-tit span{font-weight:600;color:#8a97a8;font-size:12.5px;white-space:nowrap;}
+        .ent-status-sub{font-size:13px;color:#46535f;margin-top:3px;overflow-wrap:anywhere;}
+        .ent-status-des{font-size:12px;color:#8a97a8;margin-top:3px;overflow-wrap:anywhere;}
+        .ent-status-proj{flex:none;text-align:right;padding-left:16px;border-left:1px solid #eef2f6;}
+        .ent-status-proj .l{font-size:10.5px;font-weight:700;color:#8a94a3;text-transform:uppercase;letter-spacing:.5px;}
+        .ent-status-proj .v{font-size:24px;font-weight:800;color:#17202b;line-height:1.15;}
+        .ent-status-proj .s{font-size:11.5px;color:#8a97a8;}
+        .ent-status.sit-ok{border-left-color:#157a35;} .ent-status.sit-ok .ent-status-ico{color:#157a35;}
+        .ent-status.sit-neutro{border-left-color:#2a6fb0;} .ent-status.sit-neutro .ent-status-ico{color:#2a6fb0;}
+        .ent-status.sit-aviso{border-left-color:#c98a00;} .ent-status.sit-aviso .ent-status-ico{color:#9a6a00;}
+        .ent-status.sit-risco{border-left-color:#c0392b;} .ent-status.sit-risco .ent-status-ico{color:#c0392b;}
+        .ent-status.sit-feito{border-left-color:#157a35;} .ent-status.sit-feito .ent-status-ico{color:#157a35;}
+        .ent-status.sit-vazio{border-left-color:#c3cbd6;} .ent-status.sit-vazio .ent-status-ico{color:#a4b0bd;}
+        @media (max-width:700px){
+          .ent-status{flex-wrap:wrap;padding:13px 15px;}
+          .ent-status-proj{border-left:0;padding-left:0;text-align:left;width:100%;border-top:1px solid #eef2f6;padding-top:9px;margin-top:2px;}
+        }
+        .ent-aviso{display:flex;align-items:flex-start;gap:9px;font-size:12.5px;border-radius:10px;padding:9px 13px;margin-bottom:9px;line-height:1.45;}
+        .ent-aviso svg{width:17px;height:17px;flex:none;margin-top:1px;}
+        .ent-aviso.aviso{background:#fdf6e3;color:#7a5600;border:1px solid #f0e0b6;}
+        .ent-aviso.erro{background:#fdecec;color:#a3291c;border:1px solid #f3cfcb;}
+        .ent-kbar{height:5px;border-radius:3px;background:#eef2f6;margin-top:9px;overflow:hidden;}
+        .ent-kbar i{display:block;height:100%;border-radius:3px;background:#157a35;}
+        .ent-ksub{font-size:11.5px;color:#8a97a8;margin-top:6px;line-height:1.4;overflow-wrap:anywhere;}
+        .ent-sub{margin:-8px 0 12px;font-size:12px;color:#8a97a8;text-align:center;line-height:1.45;}
+        /* stroke conta como "cor de texto" no gerador do tema escuro, e cor clara ali
+           volta clarinha — o que num fundo escuro vira linha branca. Por isso a linha de
+           grade usa cor média + opacidade baixa: fica discreta nos dois temas. */
+        .ent-acum-grid{stroke:#8a97a8;stroke-width:1;stroke-opacity:.35;}
+        .ent-acum-eixo{fill:#9aa7b6;}
+        .ent-acum-dia{fill:#5a6b7d;}
+        .ent-acum-esp{stroke:#a4b0bd;}
+        .ent-acum-real{stroke:#157a35;}
+        .ent-acum-pt{fill:#157a35;}
+        .ent-acum-val{fill:#0c5a26;}
+        .ent-acum-espt{fill:#8a97a8;}
+        .ent-lg-real{background:#157a35;}
+        .ent-lg-esp{background:#a4b0bd;}
+        .ent-mes-wrap{position:relative;}
+        .ent-mes-meta{position:absolute;left:4px;right:4px;border-top:2px dashed #8a97a8;pointer-events:none;}
+        .ent-mes-meta span{position:absolute;right:0;top:-17px;font-size:11px;font-weight:700;color:#5a6b7d;background:#fff;padding:1px 5px;border-radius:4px;}
+        .ent-digita-erro{font-size:12.5px;color:#c0392b;font-weight:600;margin:0 0 8px;}
       </style>
       <div class="card">
         <div class="ent-top">
@@ -2878,9 +2943,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <button class="ent-btn" id="entHoje" type="button">Hoje</button>
           <button class="ent-btn" id="entEditar" type="button" style="margin-left:auto;">Lançar entregas</button>
         </div>
-        <div class="kpis" id="entKpis" style="grid-template-columns:repeat(6,minmax(0,1fr));margin-bottom:22px;"></div>
+        <div id="entStatus"></div>
+        <div id="entAvisos"></div>
+        <div class="kpis" id="entKpis" style="grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin-bottom:22px;"></div>
         <div id="entGradeWrap" style="display:none;">
-          <p class="ent-grade-info">Digite quantas entregas cada entregador fez em cada dia (deixe em branco se não houve). O painel calcula tudo sozinho.</p>
+          <p class="ent-grade-info">Digite quantas entregas cada entregador fez em cada dia. Escreva <b>0</b> quando a loja abriu e não houve entrega, e deixe <b>em branco</b> o dia que ainda não foi apurado — o painel trata os dois de formas diferentes.</p>
+          <p class="ent-digita-erro" id="entAvisoDigita" style="display:none;"></p>
           <div id="entEntregadoresEdit"></div>
           <div class="ent-grade-wrap" id="entGrade"></div>
         </div>
@@ -4890,6 +4958,35 @@ function renderCentral(){
    Espelho do que a equipe já faz no VR: o conferente abre a senha da nota e bipa.
    Uma linha = uma CONFERÊNCIA (uma senha), não uma nota — um caminhão gera várias notas.
    Só leitura. Ninguém digita nada aqui. A lista de produtos com divergência fica no VR. */
+/* Exemplo ilustrativo da aba Conferência — só enquanto a nuvem estiver vazia.
+   ATENÇÃO: os nomes são INVENTADOS de propósito. O arquivo do painel é PÚBLICO;
+   pôr a lista real de fornecedores aqui entregaria com quem a loja trabalha.
+   Já houve um vazamento assim na aba Despesas — não repetir. */
+function clConfSeed(){
+  var d=new Date(), hoje=clDataISO(d);
+  d.setDate(d.getDate()-1); var ontem=clDataISO(d);
+  d.setDate(d.getDate()-1); var antes=clDataISO(d);
+  function c(id,dia,forn,ini,fim,min,bip,notas,nfin,div,sit){
+    return {id:"ex"+id,senha:String(100000+id*137),loja:"1",data:dia,fornecedor:forn,
+            inicio:ini,fim:fim,minutos:min,bipagens:bip,itens:bip*12,
+            notas:notas,notas_finalizadas:nfin,divergencias:div,situacao:sit};
+  }
+  return [
+    c(5,hoje,"Panificadora Teste","14:20","14:43",23,39,1,0,0,"conferindo"),
+    c(4,hoje,"Frios Demonstracao","11:05","11:38",33,58,2,1,14,"aguardando"),
+    c(3,hoje,"Laticinios Amostra","10:15","10:15",null,6,1,1,2,"finalizado"),
+    c(2,hoje,"Bebidas Exemplo","09:40","09:47",7,26,3,3,9,"finalizado"),
+    c(1,hoje,"Distribuidora Modelo","08:12","08:31",19,47,2,2,0,"finalizado"),
+    c(9,ontem,"Laticinios Amostra","15:44","15:44",null,9,1,1,0,"finalizado"),
+    c(8,ontem,"Frios Demonstracao","13:10","13:52",42,51,3,3,21,"finalizado"),
+    c(7,ontem,"Bebidas Exemplo","10:30","10:36",6,22,2,2,0,"finalizado"),
+    c(6,ontem,"Distribuidora Modelo","08:05","08:27",22,44,2,2,3,"finalizado"),
+    c(12,antes,"Bebidas Exemplo","16:08","16:14",6,24,2,2,0,"finalizado"),
+    c(11,antes,"Panificadora Teste","11:22","11:59",37,35,2,2,8,"finalizado"),
+    c(10,antes,"Distribuidora Modelo","09:02","09:19",17,40,1,1,1,"finalizado")
+  ];
+}
+function clConfEhExemplo(){ return centralConfModo!=="live"; }
 function clConfMin(m){
   if(m==null||!isFinite(m)) return {t:"—",cls:"na"};      // coletor mandou tudo de uma vez
   if(m>=60) return {t:Math.floor(m/60)+"h"+(m%60?String(m%60).padStart(2,"0"):""),cls:""};
@@ -4906,12 +5003,7 @@ function clConfDias(){
 }
 function renderClConf(){
   var el=document.getElementById("clConf"); if(!el) return;
-  if(!centralConf.length){
-    el.innerHTML='<div class="cl-integ demo" style="margin-top:14px;"><b>Ainda não tem conferência sincronizada.</b> '
-      +'Assim que o robô da loja rodar, as conferências que a equipe já faz no coletor aparecem aqui sozinhas — '
-      +'ninguém precisa digitar nada.</div>';
-    return;
-  }
+  if(!centralConf.length){ centralConf=clConfSeed(); centralConfModo="demo"; }
   var dias=clConfDias();
   if(!clConfDia || dias.indexOf(clConfDia)<0) clConfDia=dias[0];
   var doDia=centralConf.filter(function(c){ return c.data===clConfDia; })
@@ -4923,7 +5015,14 @@ function renderClConf(){
   var comT=doDia.filter(function(c){ return c.minutos!=null; });
   var med=comT.length?Math.round(comT.reduce(function(a,c){return a+(+c.minutos||0);},0)/comT.length):null;
 
-  var h='<div class="cl-conf-sel"><label>Dia</label><select id="clConfDiaSel">'
+  var h="";
+  if(clConfEhExemplo()){
+    h+='<div class="cl-fake-aviso">\u26a0\ufe0f <b>ATEN\u00c7\u00c3O: NADA AQUI \u00c9 REAL.</b><br>'
+      +'Os fornecedores e todos os n\u00fameros desta tela s\u00e3o <b>inventados</b>, s\u00f3 para voc\u00ea ver o formato. '
+      +'N\u00e3o use para decidir nada.<br>Quando o rob\u00f4 da loja sincronizar, os dados de verdade entram sozinhos '
+      +'e este aviso some.</div>';
+  }
+  h+='<div class="cl-conf-sel"><label>Dia</label><select id="clConfDiaSel">'
     +dias.map(function(d){ return '<option value="'+d+'"'+(d===clConfDia?" selected":"")+'>'+pxEsc(d.split("-").reverse().join("/"))+'</option>'; }).join("")
     +'</select><span class="cl-conf-tot">'+doDia.length+' conferência(s) neste dia</span></div>';
 
@@ -4938,8 +5037,10 @@ function renderClConf(){
   doDia.forEach(function(c){
     var st=clConfSt(c), mm=clConfMin(c.minutos), dv=+c.divergencias||0;
     var notas=(+c.notas||0), nf=(+c.notas_finalizadas||0);
-    h+='<div class="cl-conf-lin">'
-      +'<div class="cl-conf-a"><div class="cl-conf-f">'+pxEsc(c.fornecedor||"(sem nota ligada)")+'</div>'
+    h+='<div class="cl-conf-lin'+(clConfEhExemplo()?" fake":"")+'">'
+      +'<div class="cl-conf-a"><div class="cl-conf-f">'
+        +(clConfEhExemplo()?'<span class="cl-fake-tag">exemplo</span>':'')
+        +pxEsc(c.fornecedor||"(sem nota ligada)")+'</div>'
         +'<div class="cl-conf-m">'+(+c.bipagens||0)+' itens bipados · <b>'+notas+(notas===1?' nota':' notas')+'</b>'
         +(notas>nf?(' · <b>'+nf+' fechada'+(nf===1?'':'s')+'</b>'):'')
         +' · senha '+pxEsc(c.senha||"")+'</div></div>'
@@ -4996,9 +5097,9 @@ function clConfRankings(){
 
   var maxT=tempo.length?tempo[0].med:1;
   function barra(pct,cor){ return '<span class="cl-bar"><i style="width:'+Math.max(3,Math.round(pct))+'%;background:'+cor+'"></i></span>'; }
-  var h='<div class="cl-conf-rk">';
+  var h='<div class="cl-conf-rk'+(clConfEhExemplo()?" fake":"")+'">';
   if(tempo.length){
-    h+='<div class="cl-conf-bloco"><div class="cl-conf-rt">Quem demora mais na doca</div><table class="cl-rank"><thead><tr><th>Fornecedor</th><th class="n">Carros</th><th class="n">Tempo médio</th></tr></thead><tbody>';
+    h+='<div class="cl-conf-bloco"><div class="cl-conf-rt">'+(clConfEhExemplo()?'<span class="cl-fake-tag">exemplo</span>':'')+'Quem demora mais na doca</div><table class="cl-rank"><thead><tr><th>Fornecedor</th><th class="n">Carros</th><th class="n">Tempo médio</th></tr></thead><tbody>';
     tempo.forEach(function(x){
       var cor=x.med>=30?"#c0392b":(x.med>=15?"#d3a74e":"#1b8f45");
       h+='<tr><td>'+pxEsc(x.f.slice(0,26))+'</td><td class="n">'+x.nTempo+'</td><td class="n">'+barra(x.med/maxT*100,cor)+x.med+' min</td></tr>';
@@ -5006,7 +5107,7 @@ function clConfRankings(){
     h+='</tbody></table></div>';
   }
   if(certo.length){
-    h+='<div class="cl-conf-bloco"><div class="cl-conf-rt">Quem entrega certo — carros sem nenhuma divergência</div><table class="cl-rank"><thead><tr><th>Fornecedor</th><th class="n">Carros</th><th class="n">100% certo</th></tr></thead><tbody>';
+    h+='<div class="cl-conf-bloco"><div class="cl-conf-rt">'+(clConfEhExemplo()?'<span class="cl-fake-tag">exemplo</span>':'')+'Onde mais dá divergência — % de carros que vieram 100% certos</div><table class="cl-rank"><thead><tr><th>Fornecedor</th><th class="n">Carros</th><th class="n">100% certo</th></tr></thead><tbody>';
     certo.forEach(function(x){
       var cor=x.pct>=70?"#1b8f45":(x.pct>=40?"#d3a74e":"#c0392b");
       h+='<tr><td>'+pxEsc(x.f.slice(0,26))+'</td><td class="n">'+x.fin+'</td><td class="n">'+barra(x.pct,cor)+x.pct+'%</td></tr>';
@@ -5460,7 +5561,7 @@ function glContratoDocHtml(g){
     ".assin .papel{font-weight:bold;font-size:13px}"+
     ".test{margin-top:52px}.test .t{font-weight:bold;margin-bottom:20px}"+
     ".test .item{margin-bottom:26px;font-size:13px;line-height:1.9}.test .ln{display:inline-block;border-bottom:1px solid #1a1a1a;width:290px}"+
-    "@page{margin:0}@media print{.docbar{display:none}html,body{background:#fff}.doc-page-wrap{padding:0}.doc-page{box-shadow:none;border-radius:0;margin:0;max-width:none;padding:16mm 18mm 16mm}}";
+    "@page{margin:0}@media print{.docbar{display:none}html,body{background:#fff}.doc-page-wrap{padding:0}.doc-page{box-shadow:none;border-radius:0;margin:0;max-width:none;padding:11mm 17mm 8mm;line-height:1.5}.doc-page p{margin-bottom:8px}.doc-page h1{margin-bottom:12px}.assin{margin-top:30px!important}.assin .row{margin-top:52px!important}.assin .dado{margin-top:4px}.confere{margin-top:20px!important}}";
   var h="<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Contrato de Locação — "+nomeInq+"</title>"+
     "<link rel='preconnect' href='https://fonts.googleapis.com'><link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' rel='stylesheet'>"+
     "<style>"+css+"</style></head><body>";
@@ -6979,14 +7080,14 @@ function pxContratoDocHtml(p){
     ".assin .carimbo{height:52px;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:5px;font-size:10.5px;line-height:1.35;color:#1a4a2a;text-align:center}"+
     ".assin .carimbo b{font-size:11px;letter-spacing:.02em}.assin .carimbo.vazio{color:transparent}"+
     ".confere{margin-top:18px;font-size:9.5px;color:#555;text-align:center;line-height:1.5}"+
-    "@page{margin:0}@media print{.docbar{display:none}html,body{background:#fff}.doc-page-wrap{padding:0}.doc-page{box-shadow:none;border-radius:0;margin:0;max-width:none;padding:16mm 18mm 16mm}}";
+    "@page{margin:0}@media print{.docbar{display:none}html,body{background:#fff}.doc-page-wrap{padding:0}.doc-page{box-shadow:none;border-radius:0;margin:0;max-width:none;padding:11mm 17mm 8mm;line-height:1.5}.doc-page p{margin-bottom:8px}.doc-page h1{margin-bottom:12px}.assin{margin-top:30px!important}.assin .row{margin-top:52px!important}.assin .dado{margin-top:4px}.confere{margin-top:20px!important}}";
   var h="<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Contrato — "+forn+"</title>"+
     "<link rel='preconnect' href='https://fonts.googleapis.com'><link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' rel='stylesheet'>"+
     "<style>"+css+"</style></head><body>";
   h+=barra.html;
   h+="<div class='doc-page-wrap'><div class='doc-page'>";
   var logoSrc=""; try{ logoSrc=(typeof LOGO_URI!=="undefined"&&LOGO_URI)?LOGO_URI:((document.querySelector("header img")||{}).src||""); }catch(e){}
-  if(logoSrc) h+="<div style='text-align:center;margin:0 0 12px'><img src='"+logoSrc+"' alt='Supermercado Santa Rita' style='max-height:60px;width:auto'></div>";
+  if(logoSrc) h+="<div style='text-align:center;margin:0 0 8px'><img src='"+logoSrc+"' alt='Supermercado Santa Rita' style='max-height:44px;width:auto'></div>";
   h+="<h1>Acordo Comercial para Utilização de Espaço Promocional<br>(Ponto Extra)</h1>";
   h+="<p>Por este instrumento particular, de um lado <b>"+forn+"</b>, inscrita no CPF/CNPJ sob o nº <b>"+cnpjForn+"</b>, doravante denominada <b>CONTRATANTE</b>, e de outro lado <b>"+razao+"</b> ("+fant+"), inscrita no CNPJ sob o nº <b>"+cnpjL+"</b>, doravante denominada <b>CONTRATADA</b>, têm entre si justo e acordado o presente Acordo Comercial, que se regerá pelas cláusulas e condições a seguir.</p>";
   h+="<div class='bloco-info'>";
@@ -7001,7 +7102,7 @@ function pxContratoDocHtml(p){
   h+="</div>";
   h+="<div class='clausula'><p><span class='t'>CLÁUSULA DE QUITAÇÃO:</span> Após a confirmação do pagamento integral do valor acordado, as partes concedem entre si plena, geral e irrevogável quitação referente ao objeto deste acordo, nada mais tendo a reclamar uma da outra a qualquer título.</p></div>";
   h+="<div class='clausula'><p><span class='t'>CLÁUSULA DE FORO:</span> Fica eleito o Foro da Comarca de "+cidade+", com renúncia expressa a qualquer outro, por mais privilegiado que seja, para dirimir quaisquer dúvidas ou litígios oriundos do presente instrumento.</p></div>";
-  h+="<p style='margin-top:26px'>"+cidade.toUpperCase()+", "+dataExt+".</p>";
+  h+="<p style='margin-top:20px'>"+cidade.toUpperCase()+", "+dataExt+".</p>";
   h+="<div class='assin'>";
   h+="<div class='row'><div class='bloco'><div class='carimbo vazio'></div><div class='linha'><div class='papel'>CONTRATANTE</div><div class='dado'>"+forn+(p.cnpj?(" — CNPJ "+cnpjForn):"")+(vendedor?("<br>Vendedor(a): "+vendedor):"")+"</div></div></div>";
   var _as=(typeof pxAssinValida==="function"&&pxAssinValida(p))?p.assinatura:null;
@@ -7010,12 +7111,38 @@ function pxContratoDocHtml(p){
        +"<br>"+pxEsc(pxAssinDataFmt(_as.em))+" &middot; c\u00f3digo "+pxEsc(_as.codigo||"")+"</div>")
     : "<div class='carimbo vazio'></div>";
   h+="<div class='bloco'>"+_carimbo+"<div class='linha'><div class='papel'>CONTRATADA</div><div class='dado'>"+razao+" — CNPJ "+cnpjL+(L.diretor?("<br>Diretor: "+pxEsc(L.diretor)):"")+"</div></div></div></div>";
-  if(_as) h+="<p class='confere'>Assinatura eletr\u00f4nica registrada no Painel Santa Rita em "+pxEsc(pxAssinDataFmt(_as.em))
+  if(_as) h+="<p class='confere' style='margin-top:12px'>Assinatura eletr\u00f4nica registrada no Painel Santa Rita em "+pxEsc(pxAssinDataFmt(_as.em))
     +" sob o c\u00f3digo <b>"+pxEsc(_as.codigo||"")+"</b>."
     +"<br>Confira a autenticidade em <b>"+pxEsc(PX_CONFERIR_URL.split("//").pop())+"</b> \u2014 a p\u00e1gina mostra a qual contrato este c\u00f3digo pertence."
     +"<br>O c\u00f3digo \u00e9 gerado com chave secreta e deixa de valer se qualquer dado deste contrato for alterado.</p>";
   h+="</div>";
   h+="</div></div>";
+  /* AUTO-AJUSTE: o contrato TEM que sair numa folha só, seja qual for o tamanho do
+     nome do fornecedor ou do endereço. Mede como ficaria impresso e, se passar,
+     encolhe de leve (até 12%) — primeiro os espaços, depois a letra. Se couber
+     folgado, não mexe em nada. */
+  h+="<script>(function(){var A=289;function medir(){var pg=document.querySelector('.doc-page');"
+    +"if(!pg)return null;var w=pg.getBoundingClientRect().width;if(!w)return null;"
+    +"return{h:pg.getBoundingClientRect().height/(w/210),pg:pg};}"
+    +"function ajustar(){var st=document.createElement('style');st.id='__fit';"
+    +"st.textContent='@media screen{.docbar{display:none}.doc-page-wrap{padding:0}"
+    +".doc-page{box-shadow:none;border-radius:0;margin:0;max-width:none;padding:11mm 17mm 8mm;line-height:1.5}"
+    +".doc-page p{margin-bottom:8px}.doc-page h1{margin-bottom:12px}"
+    +".assin{margin-top:30px}.assin .row{margin-top:52px}.confere{margin-top:20px}}';"
+    +"document.head.appendChild(st);var m=medir();if(!m){st.remove();return;}"
+    +"var k=1,extra='';"
+    +"while(m.h>A&&k>0.88){k=Math.round((k-0.02)*100)/100;"
+    +"extra='.doc-page{font-size:'+(14.5*k).toFixed(2)+'px;line-height:'+(1.5*(k>0.94?1:0.98)).toFixed(3)+'}'"
+    +"+'.assin{margin-top:'+Math.round(30*k)+'px}.assin .row{margin-top:'+Math.round(52*k)+'px}'"
+    +"+'.confere{margin-top:'+Math.round(20*k)+'px}.doc-page p{margin-bottom:'+Math.round(8*k)+'px}';"
+    +"var t=document.getElementById('__fit2');if(!t){t=document.createElement('style');t.id='__fit2';document.head.appendChild(t);}"
+    +"t.textContent='@media screen{'+extra+'}';m=medir();if(!m)break;}"
+    +"st.remove();var t2=document.getElementById('__fit2');if(t2)t2.remove();"
+    +"if(k<1){var f=document.createElement('style');f.textContent='@media print{'+extra+'}';document.head.appendChild(f);}}"
+    +"var feito=false;function go(){if(feito)return;feito=true;ajustar();}"
+    +"setTimeout(go,80);window.addEventListener('load',function(){setTimeout(go,40);});"
+    +"window.addEventListener('beforeprint',function(){feito=false;go();});"
+    +"})();<\\/script>";
   h+="</body></html>";
   return h;
 }
@@ -10203,24 +10330,387 @@ function entFechado(a,m,d){ if(new Date(a,m,d).getDay()===0) return true; return
 function entTotalEntregador(a,m,nome){ let t=0; const nd=diasDoMes(a,m); for(let d=1;d<=nd;d++){ if(entFechado(a,m,d)) continue; t+=entGet(a,m,nome,d); } return t; }
 function entTotalDia(a,m,dia){ if(entFechado(a,m,dia)) return 0; let t=0; entEntregadores.forEach(function(nm){ t+=entGet(a,m,nm,dia); }); return t; }
 function entTotalMes(a,m){ let t=0; entEntregadores.forEach(function(nm){ t+=entTotalEntregador(a,m,nm); }); return t; }
-function entDiasRestantes(){
-  const nd=diasDoMes(entAno,entMes);
-  if(entAno<HOJE.getFullYear()||(entAno===HOJE.getFullYear()&&entMes<HOJE.getMonth())) return 0;
-  if(entAno>HOJE.getFullYear()||(entAno===HOJE.getFullYear()&&entMes>HOJE.getMonth())) return nd;
-  return Math.max(0, nd-HOJE.getDate());
+/* ==ENTCALC-INICIO==
+   Base de cálculo das Entregas. Tudo aqui é FUNÇÃO PURA: só depende do que recebe
+   por parâmetro (nada de entDados, entEntregadores, DOM ou HOJE lá de fora), pra
+   poder ser testada isolada em scripts/testes/entregas.test.cjs.
+   Não colocar acesso a global nem a tela aqui dentro.
+
+   LIMITAÇÃO CONHECIDA: "dia operacional" depende da lista de feriados do painel
+   (feriadosFechado), que hoje só tem Ano Novo, Sexta-feira Santa, Dia do Trabalho e
+   Natal. Em meses com feriado que não está cadastrado, a loja fica fechada mas o dia
+   entra como operacional — e a média, o ritmo e a projeção saem otimistas demais.
+   Decisão do Victor (06/08/2026): resolver isso junto com o módulo Calendário. */
+
+// Tolerâncias do semáforo, em PONTOS PERCENTUAIS entre o realizado e o esperado.
+// Ficam num lugar só, de propósito: nada de faixa mágica espalhada pelo código.
+var ENT_FAIXAS={ acima:5, atencao:-5, risco:-15 };
+// Mínimo de dias operacionais lançados pra arriscar uma projeção.
+var ENT_MIN_DIAS_PROJECAO=3;
+// "Fora do padrão": 3x acima ou 1/3 abaixo da MEDIANA dos últimos 10 lançamentos da
+// pessoa, e só opina depois de 5 lançamentos dela. Mediana (e não média) pra um dia
+// atípico não estragar a régua.
+var ENT_ANORMAL_FATOR=3, ENT_ANORMAL_MIN=5, ENT_ANORMAL_HIST=10;
+
+function entcDiasMes(a,m){ return new Date(a,m+1,0).getDate(); }
+
+// O dia de HOJE conta como "ainda não passou": o lançamento dele pode chegar.
+function entcJaPassou(a,m,d,hoje){
+  var h=new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate()).getTime();
+  return new Date(a,m,d).getTime() < h;
 }
+
+// Dia OPERACIONAL = a loja abre (não é domingo nem feriado).
+// ehFechado(a,m,d) entra por parâmetro porque a lista de feriados mora no painel.
+function entcDiasOperacionais(a,m,ehFechado){
+  var nd=entcDiasMes(a,m), n=0;
+  for(var d=1;d<=nd;d++) if(!ehFechado(a,m,d)) n++;
+  return n;
+}
+
+// Dia LANÇADO = dia operacional em que ALGUÉM foi digitado, inclusive ZERO.
+// Dia em branco NÃO entra na conta (decisão do Victor, 06/08/2026): tratar como zero
+// um dia que só não foi digitado seria punir a equipe por falha do escritório.
+function entcDiasLancados(a,m,ehFechado,temLancamento){
+  var nd=entcDiasMes(a,m), n=0;
+  for(var d=1;d<=nd;d++) if(!ehFechado(a,m,d) && temLancamento(d)) n++;
+  return n;
+}
+
+// Dias que ainda podem receber entrega: hoje (se em branco) e o futuro.
+// Dia útil que passou e ficou em branco não volta — por isso fica de fora.
+function entcDiasOperRestantes(a,m,ehFechado,temLancamento,hoje){
+  var nd=entcDiasMes(a,m), n=0;
+  for(var d=1;d<=nd;d++){
+    if(ehFechado(a,m,d)) continue;
+    if(temLancamento(d)) continue;
+    if(entcJaPassou(a,m,d,hoje)) continue;
+    n++;
+  }
+  return n;
+}
+
+// Dias úteis que já passaram e continuam sem ninguém lançado.
+function entcDiasSemLancamento(a,m,ehFechado,temLancamento,hoje){
+  var nd=entcDiasMes(a,m), out=[];
+  for(var d=1;d<=nd;d++){
+    if(ehFechado(a,m,d)) continue;
+    if(!entcJaPassou(a,m,d,hoje)) continue;
+    if(!temLancamento(d)) out.push(d);
+  }
+  return out;
+}
+
+function entcMediaOperacional(total,diasLancados){ return diasLancados>0 ? total/diasLancados : 0; }
+function entcPctAtingido(total,meta){ return meta>0 ? total/meta*100 : 0; }
+function entcFaltam(total,meta){ return Math.max(0, meta-total); }
+function entcExcedente(total,meta){ return Math.max(0, total-meta); }
+
+// Projeção LINEAR pelo ritmo atual. Não é previsão inteligente nem IA: é regra de três.
+// Devolve null quando ainda não há dias lançados suficientes pra arriscar um número.
+function entcProjecao(total,diasLancados,diasOperacionais){
+  if(diasLancados<ENT_MIN_DIAS_PROJECAO) return null;
+  if(diasOperacionais<=0) return null;
+  if(diasLancados>=diasOperacionais) return total; // mês todo lançado: a projeção É o realizado
+  return total/diasLancados*diasOperacionais;
+}
+
+// Quanto do mês operacional os dias lançados já cobrem, em %. É contra isso que o
+// realizado é comparado — dias lançados dos DOIS lados, pra o semáforo não acusar a
+// equipe quando o atraso é do lançamento.
+function entcRitmoEsperado(diasLancados,diasOperacionais){
+  if(diasOperacionais<=0) return 0;
+  return Math.min(100, diasLancados/diasOperacionais*100);
+}
+
+function entcSituacao(dif){
+  if(dif>=ENT_FAIXAS.acima) return "acima";
+  if(dif>=ENT_FAIXAS.atencao) return "no-ritmo";
+  if(dif>=ENT_FAIXAS.risco) return "atencao";
+  return "risco";
+}
+
+// Retrato do mês contra UMA meta. o={total,meta,diasLancados,diasOperacionais}
+function entcStatus(o){
+  o=o||{};
+  var total=+o.total||0, meta=+o.meta||0;
+  var dl=+o.diasLancados||0, dop=+o.diasOperacionais||0;
+  var pct=entcPctAtingido(total,meta);
+  var esp=entcRitmoEsperado(dl,dop);
+  var sit;
+  if(dl<=0) sit="sem-dados";
+  else if(dop>0 && dl>=dop) sit="concluido";
+  else sit=entcSituacao(pct-esp);
+  return {
+    total:total, meta:meta,
+    pct:pct, esperado:esp, dif:pct-esp,
+    faltam:entcFaltam(total,meta), excedente:entcExcedente(total,meta),
+    media:entcMediaOperacional(total,dl),
+    projecao:entcProjecao(total,dl,dop),
+    diasLancados:dl, diasOperacionais:dop,
+    situacao:sit
+  };
+}
+
+// Validação do que foi digitado numa célula. Entrega é número INTEIRO e não negativo.
+function entcValidaLancamento(txt){
+  var s=String(txt==null?"":txt).trim();
+  if(s==="") return {ok:true, vazio:true, valor:""};
+  if(/^-/.test(s)) return {ok:false, erro:"negativo"};
+  if(/^[0-9]*[.,][0-9]*$/.test(s)) return {ok:false, erro:"decimal"};
+  if(!/^[0-9]+$/.test(s)) return {ok:false, erro:"invalido"};
+  return {ok:true, valor:parseInt(s,10)};
+}
+
+function entcMediana(arr){
+  if(!arr||!arr.length) return 0;
+  var a=arr.slice().sort(function(x,y){ return x-y; });
+  var i=Math.floor(a.length/2);
+  return a.length%2 ? a[i] : (a[i-1]+a[i])/2;
+}
+
+// Valor muito fora do que aquela pessoa costuma fazer? Devolve null quando está normal
+// ou quando ainda não há histórico suficiente pra ter opinião. Zero nunca é "baixo
+// demais": zero confirmado é informação legítima.
+function entcAnormal(valor,historico){
+  if(!historico || historico.length<ENT_ANORMAL_MIN) return null;
+  var base=entcMediana(historico.slice(-ENT_ANORMAL_HIST));
+  if(base<=0) return null;
+  var v=+valor||0;
+  if(v>base*ENT_ANORMAL_FATOR) return {tipo:"alto", base:base};
+  if(v>0 && v<base/ENT_ANORMAL_FATOR) return {tipo:"baixo", base:base};
+  return null;
+}
+
+// Líder do mês. Empate devolve TODOS os nomes — o indicador serve pra reconhecer gente.
+function entcLider(lista){
+  var mx=-1, nomes=[];
+  (lista||[]).forEach(function(x){
+    var v=+x.total||0;
+    if(v>mx){ mx=v; nomes=[x.nome]; }
+    else if(v===mx) nomes.push(x.nome);
+  });
+  if(mx<=0) return null;
+  return {nomes:nomes, total:mx};
+}
+
+// Acumulado real x acumulado necessário, dia operacional a dia operacional.
+// O real só anda em dia lançado: dia em branco no meio do mês não derruba a linha.
+function entcAcumulado(a,m,ehFechado,totalDia,temLancamento,meta){
+  var nd=entcDiasMes(a,m), ops=[];
+  for(var d=1;d<=nd;d++) if(!ehFechado(a,m,d)) ops.push(d);
+  var passo = ops.length>0 ? meta/ops.length : 0;
+  var acc=0, out=[];
+  ops.forEach(function(d,i){
+    var lanc=!!temLancamento(d);
+    if(lanc) acc+=totalDia(d);
+    out.push({dia:d, i:i, lancado:lanc, real:acc, esperado:passo*(i+1)});
+  });
+  return out;
+}
+/* ==ENTCALC-FIM== */
+
+/* --- Ponte entre a tela e a base de cálculo acima --- */
+// Dia tem lançamento quando ALGUM entregador tem valor digitado nele. Zero conta:
+// zero confirmado ("abriu e não teve entrega") é diferente de dia não preenchido.
+function entTemLancamento(a,m,dia){
+  var md=entDados[entMesKey(a,m)]; if(!md) return false;
+  for(var i=0;i<entEntregadores.length;i++){
+    var reg=md[entEntregadores[i]];
+    if(reg && reg[dia]!==undefined) return true;
+  }
+  return false;
+}
+// Valores que ficaram guardados em domingo/feriado. Não entram em conta nenhuma —
+// mas antes sumiam calados; agora viram aviso na tela.
+function entValoresEmDiaFechado(a,m){
+  var md=entDados[entMesKey(a,m)]; if(!md) return [];
+  var nd=entcDiasMes(a,m), out=[];
+  for(var d=1;d<=nd;d++){
+    if(!entFechado(a,m,d)) continue;
+    var achou=false;
+    entEntregadores.forEach(function(nm){ var r=md[nm]; if(r && (+r[d]||0)>0) achou=true; });
+    if(achou) out.push(d);
+  }
+  return out;
+}
+// Lançamentos anteriores da pessoa, em ordem de data, pulando a célula em edição.
+function entHistorico(nome,exA,exM,exD){
+  var out=[];
+  Object.keys(entDados).forEach(function(mk){
+    var pt=mk.split("-"), a=+pt[0], m=+pt[1], reg=(entDados[mk]||{})[nome];
+    if(!reg) return;
+    Object.keys(reg).forEach(function(d){
+      var dd=+d;
+      if(a===exA && m===exM && dd===exD) return;
+      if(entFechado(a,m,dd)) return;
+      out.push({t:new Date(a,m,dd).getTime(), v:+reg[d]||0});
+    });
+  });
+  out.sort(function(x,y){ return x.t-y.t; });
+  return out.map(function(x){ return x.v; });
+}
+// Tudo que a tela precisa saber do mês, calculado uma vez só.
+function entCtx(a,m){
+  var ehF=function(x,y,d){ return entFechado(x,y,d); };
+  var temL=function(d){ return entTemLancamento(a,m,d); };
+  return {
+    ano:a, mes:m, ehFechado:ehF, temLancamento:temL,
+    total:entTotalMes(a,m),
+    ne:entEntregadores.length||1,
+    diasOperacionais:entcDiasOperacionais(a,m,ehF),
+    diasLancados:entcDiasLancados(a,m,ehF,temL),
+    restantes:entcDiasOperRestantes(a,m,ehF,temL,HOJE),
+    semLancamento:entcDiasSemLancamento(a,m,ehF,temL,HOJE)
+  };
+}
+// Dias úteis que ainda dá pra usar. Antes isto era "dias do mês - hoje" e contava
+// domingo e feriado, deixando o gráfico de ritmo otimista demais.
+function entDiasRestantes(){
+  return entcDiasOperRestantes(entAno,entMes,function(a,m,d){ return entFechado(a,m,d); },
+    function(d){ return entTemLancamento(entAno,entMes,d); }, HOJE);
+}
+// Percentual com uma casa. Usado no semáforo e nos cartões de meta.
+function entPct1(n){ return (Math.round((+n||0)*10)/10).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%"; }
+// "12, 13 e 18" — corta em 8 pra não virar parágrafo.
+function entLista(arr){
+  var a=(arr||[]).map(function(d){ return String(d); });
+  if(!a.length) return "";
+  if(a.length>8) return a.slice(0,8).join(", ")+" e mais "+(a.length-8);
+  if(a.length===1) return a[0];
+  return a.slice(0,-1).join(", ")+" e "+a[a.length-1];
+}
+// Cada situação tem TEXTO e ÍCONE próprios. Cor nunca é o único sinal.
+var ENT_SIT={
+  "acima":{t:"Acima do ritmo",c:"ok"},
+  "no-ritmo":{t:"No ritmo",c:"neutro"},
+  "atencao":{t:"Atenção",c:"aviso"},
+  "risco":{t:"Meta em risco",c:"risco"},
+  "concluido":{t:"Mês concluído",c:"feito"},
+  "sem-dados":{t:"Dados incompletos",c:"vazio"}
+};
+// Indexado pela SITUAÇÃO (a mesma chave de ENT_SIT), não pela classe de cor.
+var ENT_SIT_ICO={
+  "acima":'<circle cx="12" cy="12" r="9"/><path d="M12 16.5V8"/><path d="m8.4 11.6 3.6-3.6 3.6 3.6"/>',
+  "no-ritmo":'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.6"/>',
+  "atencao":'<path d="M12 4.2 3.2 19.4h17.6L12 4.2Z"/><path d="M12 10.2v3.8"/><path d="M12 16.8h.01"/>',
+  "risco":'<path d="M8.3 3.2h7.4l5.1 5.1v7.4l-5.1 5.1H8.3l-5.1-5.1V8.3l5.1-5.1Z"/><path d="M12 7.6v5.2"/><path d="M12 16.2h.01"/>',
+  "concluido":'<circle cx="12" cy="12" r="9"/><path d="m8.4 12.3 2.5 2.5 4.7-5"/>',
+  "sem-dados":'<circle cx="12" cy="12" r="9"/><path d="M12 11.2v5"/><path d="M12 7.9h.01"/>'
+};
+function entIco(chave){
+  var d=ENT_SIT_ICO[chave]||ENT_SIT_ICO["sem-dados"];
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+d+'</svg>';
+}
+
+// Faixa de status: responde "estamos indo bem?" sem o gerente fazer conta nenhuma.
+// O semáforo olha só a META BASE (decisão do Victor, 06/08/2026) — deixar a meta
+// desafio mandar deixaria a tela vermelha o mês inteiro e o sinal viraria ruído.
+function entRenderStatus(ctx){
+  var box=document.getElementById("entStatus"); if(!box) return;
+  var base={total:ctx.total,diasLancados:ctx.diasLancados,diasOperacionais:ctx.diasOperacionais};
+  var st1=entcStatus({total:base.total,meta:ENT_META1*ctx.ne,diasLancados:base.diasLancados,diasOperacionais:base.diasOperacionais});
+  var st2=entcStatus({total:base.total,meta:ENT_META2*ctx.ne,diasLancados:base.diasLancados,diasOperacionais:base.diasOperacionais});
+  var s=ENT_SIT[st1.situacao]||ENT_SIT["sem-dados"];
+
+  var linha;
+  if(st1.situacao==="sem-dados"){
+    linha="Nenhum dia lançado em "+MESES[ctx.mes]+". Lance as entregas pra ver o ritmo do mês.";
+  } else if(st1.situacao==="concluido"){
+    linha=entPct1(st1.pct)+" da meta base · os "+ctx.diasOperacionais+" dias úteis do mês estão lançados";
+  } else {
+    var sinal=st1.dif>=0?"+":"−";
+    linha=entPct1(st1.pct)+" realizado · "+entPct1(st1.esperado)+" esperado até aqui · "+
+      sinal+entPct1(Math.abs(st1.dif)).replace("%","")+" pontos";
+  }
+
+  var fechado=(st1.situacao==="concluido");
+  var projRot=fechado?"Total do mês":"Projeção do mês";
+  var projV, projS;
+  if(st1.projecao===null){
+    projV="—";
+    projS="Dados insuficientes — precisa de "+ENT_MIN_DIAS_PROJECAO+" dias lançados";
+  } else {
+    var p=Math.round(st1.projecao), d=p-st1.meta;
+    projV=num(p);
+    projS="meta base "+num(st1.meta)+" · "+(d>=0?"+":"−")+num(Math.abs(d));
+  }
+
+  var des="Meta desafio ("+ENT_META2+"): "+entPct1(st2.pct)+" atingida";
+  if(st2.projecao!==null){
+    var d2=Math.round(st2.projecao)-st2.meta;
+    des+= fechado
+      ? " · "+(d2>=0?"superada em "+num(d2):"faltaram "+num(-d2))
+      : " · projeção "+(d2>=0?"+":"−")+num(Math.abs(d2));
+  }
+
+  box.innerHTML='<div class="ent-status sit-'+s.c+'">'+
+    '<div class="ent-status-ico">'+entIco(st1.situacao)+'</div>'+
+    '<div class="ent-status-txt">'+
+      '<div class="ent-status-tit">'+s.t+'<span> — meta base '+ENT_META1+'</span></div>'+
+      '<div class="ent-status-sub">'+linha+'</div>'+
+      '<div class="ent-status-des">'+des+'</div>'+
+    '</div>'+
+    '<div class="ent-status-proj"><div class="l">'+projRot+'</div><div class="v">'+projV+'</div><div class="s">'+projS+'</div></div>'+
+  '</div>';
+}
+
+// Avisos de confiabilidade do lançamento. Não bloqueiam nada: informam.
+function entRenderAvisos(ctx){
+  var box=document.getElementById("entAvisos"); if(!box) return;
+  var av=[];
+  var n=ctx.semLancamento.length;
+  if(n===1) av.push({c:"aviso",txt:"Existe 1 dia útil sem lançamento: "+entLista(ctx.semLancamento)+". Ele fica de fora da média e da projeção."});
+  else if(n>1) av.push({c:"aviso",txt:"Existem "+n+" dias úteis sem lançamento: "+entLista(ctx.semLancamento)+". Eles ficam de fora da média e da projeção."});
+  var f=entValoresEmDiaFechado(ctx.ano,ctx.mes);
+  if(f.length) av.push({c:"erro",txt:"Há entrega lançada em dia fechado ("+entLista(f)+"). Domingo e feriado não contam — esses números não entram em conta nenhuma."});
+  box.innerHTML=av.map(function(a){
+    return '<div class="ent-aviso '+a.c+'">'+entIco(a.c==="erro"?"risco":"atencao")+'<span>'+a.txt+'</span></div>';
+  }).join("");
+}
+
 function entRenderKpis(){
-  const nd=diasDoMes(entAno,entMes);
-  const total=entTotalMes(entAno,entMes);
-  const ne=entEntregadores.length||1;
-  const alvo1=ENT_META1*ne, alvo2=ENT_META2*ne;
-  const pct1=alvo1>0?Math.max(0,(alvo1-total)/alvo1*100):0;
-  const pct2=alvo2>0?Math.max(0,(alvo2-total)/alvo2*100):0;
-  let melhor="—", melhorV=-1;
-  entEntregadores.forEach(function(nm){ const v=entTotalEntregador(entAno,entMes,nm); if(v>melhorV){ melhorV=v; melhor=nm; } });
-  if(total<=0) melhor="—";
-  const cards=[[num(total),"Entregas (total)"],[entDec(total/nd),"Média diária"],[entPct(pct1),"% Meta de "+ENT_META1],[entPct(pct2),"% Meta de "+ENT_META2],[entDec(total/ne),"Média por entregador"],[melhor,"Melhor entregador"]];
-  document.getElementById("entKpis").innerHTML=cards.map(function(c){ return '<div class="kpi"><div class="v">'+c[0]+'</div><div class="l">'+c[1]+'</div></div>'; }).join("");
+  var ctx=entCtx(entAno,entMes);
+  var st1=entcStatus({total:ctx.total,meta:ENT_META1*ctx.ne,diasLancados:ctx.diasLancados,diasOperacionais:ctx.diasOperacionais});
+  var st2=entcStatus({total:ctx.total,meta:ENT_META2*ctx.ne,diasLancados:ctx.diasLancados,diasOperacionais:ctx.diasOperacionais});
+  var totais=entEntregadores.map(function(nm){ return {nome:nm,total:entTotalEntregador(entAno,entMes,nm)}; });
+  var lider=entcLider(totais);
+  var mediaEnt=ctx.total/ctx.ne;
+
+  function card(v,l,sub,barra){
+    return '<div class="kpi"><div class="v">'+v+'</div><div class="l">'+l+'</div>'+
+      (barra!=null?'<div class="ent-kbar"><i style="width:'+barra.toFixed(1)+'%"></i></div>':'')+
+      (sub?'<div class="ent-ksub">'+sub+'</div>':'')+'</div>';
+  }
+  function cardMeta(st,rot){
+    var sub = st.faltam>0 ? "Faltam "+num(st.faltam)+" de "+num(st.meta)
+            : (st.excedente>0 ? "Superada em "+num(st.excedente) : "Meta batida exatamente");
+    // A barra para em 100%; o texto pode passar. Ver 108% de barra não diz nada.
+    return card(entPct1(st.pct),rot,sub,Math.min(100,Math.max(0,st.pct)));
+  }
+
+  var subMedia = ctx.diasLancados>0
+    ? ctx.diasLancados+" de "+ctx.diasOperacionais+" dias úteis lançados"
+    : "Nenhum dia lançado ainda";
+
+  var vLider="—", subLider="Nenhuma entrega lançada";
+  if(lider){
+    vLider=lider.nomes.join(" e ");
+    var dif=lider.total-mediaEnt;
+    subLider=num(lider.total)+" entregas · "+entPct1(lider.total/ENT_META1*100)+" da meta base · "+
+      num(Math.round(Math.abs(dif)))+(dif>=0?" acima":" abaixo")+" da média";
+  }
+
+  document.getElementById("entKpis").innerHTML=
+    card(num(ctx.total),"Entregas no mês",ctx.diasOperacionais+" dias úteis no mês")+
+    card(entDec(st1.media),"Média por dia operacional",subMedia)+
+    cardMeta(st1,"Meta base atingida")+
+    cardMeta(st2,"Meta desafio atingida")+
+    card(entDec(mediaEnt),"Acumulado médio por entregador",ctx.ne+(ctx.ne>1?" entregadores":" entregador"))+
+    card(vLider,"Líder do mês",subLider);
+
+  entRenderStatus(ctx);
+  entRenderAvisos(ctx);
 }
 function entChartPorEntregador(){
   const items=entEntregadores.map(function(nm,i){ return {nm:nm,v:entTotalEntregador(entAno,entMes,nm),cor:entCor(i)}; });
@@ -10238,19 +10728,60 @@ function entChartPorEntregador(){
   });
   return '<div class="ent-graf" style="padding-top:24px;"><h3>Total por Entregador</h3>'+rows+'</div>';
 }
-function entChartBarras(items,titulo){
+function entChartBarras(items,titulo,sub){
   let mx=1; items.forEach(function(x){ if(x.v>mx) mx=x.v; });
   let rows=""; items.forEach(function(x){ rows+='<div class="ent-barra-row"><div class="nm">'+x.nm+'</div><div class="ent-barra-track"><div class="ent-barra-fill" style="width:'+(x.v/mx*100).toFixed(1)+'%;background:'+ENT_COR_BARRA+';">'+num(x.v)+'</div></div></div>'; });
-  return '<div class="ent-graf"><h3>'+titulo+'</h3>'+rows+'</div>';
+  return '<div class="ent-graf"><h3>'+titulo+'</h3>'+(sub?'<p class="ent-sub">'+sub+'</p>':'')+rows+'</div>';
 }
 function entChartFaltam(meta,titulo){
   const items=entEntregadores.map(function(nm,i){ return {nm:nm,v:Math.max(0,meta-entTotalEntregador(entAno,entMes,nm)),cor:entCor(i)}; });
   return entChartBarras(items,titulo);
 }
 function entChartAtingir(meta,titulo){
+  // dr agora são DIAS ÚTEIS que ainda dá pra usar (sem domingo, sem feriado, sem dia
+  // já lançado). Antes contava domingo e feriado e o ritmo saía otimista demais.
   const dr=entDiasRestantes();
   const items=entEntregadores.map(function(nm,i){ const falta=Math.max(0,meta-entTotalEntregador(entAno,entMes,nm)); return {nm:nm,v:dr>0?Math.ceil(falta/dr):0,cor:entCor(i)}; });
-  return entChartBarras(items,titulo);
+  const sub = dr>0 ? "por dia, nos "+dr+" dias úteis que ainda restam" : "não há mais dia útil a lançar neste mês";
+  return entChartBarras(items,titulo,sub);
+}
+
+// Acumulado real x acumulado necessário. É o gráfico que responde "estamos adiantados
+// ou atrasados?" — a linha verde acima da cinza é mês adiantado.
+function entChartAcumulado(){
+  const ctx=entCtx(entAno,entMes);
+  const meta=ENT_META1*ctx.ne;
+  const pts=entcAcumulado(entAno,entMes,ctx.ehFechado,function(d){ return entTotalDia(entAno,entMes,d); },ctx.temLancamento,meta);
+  if(pts.length<2) return "";
+  let ultimo=-1; pts.forEach(function(p,i){ if(p.lancado) ultimo=i; });
+  if(ultimo<0) return "";
+  let mx=meta; pts.forEach(function(p){ if(p.real>mx) mx=p.real; }); if(mx<1) mx=1;
+  const n=pts.length, stepX=46, padL=44, padR=20, h=230, padT=26, padB=28, plotH=h-padT-padB;
+  const w=padL+padR+(n-1)*stepX;
+  function X(i){ return padL+i*stepX; }
+  function Y(v){ return padT+plotH-(v/mx*plotH); }
+  let grid="";
+  [0,0.5,1].forEach(function(f){
+    const y=Y(mx*f);
+    grid+='<line class="ent-acum-grid" x1="'+padL+'" y1="'+y.toFixed(1)+'" x2="'+(w-padR)+'" y2="'+y.toFixed(1)+'"/>'+
+      '<text class="ent-acum-eixo" x="'+(padL-7)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="10.5" font-weight="600">'+num(Math.round(mx*f))+'</text>';
+  });
+  let esp=""; pts.forEach(function(p,i){ esp+=(i?" L ":"M ")+X(i).toFixed(1)+","+Y(p.esperado).toFixed(1); });
+  let real="", bolas="";
+  for(let i=0;i<=ultimo;i++){
+    real+=(i?" L ":"M ")+X(i).toFixed(1)+","+Y(pts[i].real).toFixed(1);
+    bolas+='<circle class="ent-acum-pt" cx="'+X(i).toFixed(1)+'" cy="'+Y(pts[i].real).toFixed(1)+'" r="3"/>';
+  }
+  let eixo=""; pts.forEach(function(p,i){ if(n<=16||i%2===0||i===n-1) eixo+='<text class="ent-acum-dia" x="'+X(i).toFixed(1)+'" y="'+(h-8)+'" text-anchor="middle" font-size="11" font-weight="700">'+p.dia+'</text>'; });
+  const valor='<text class="ent-acum-val" x="'+X(ultimo).toFixed(1)+'" y="'+(Y(pts[ultimo].real)-10).toFixed(1)+'" text-anchor="'+(ultimo>n-3?"end":"middle")+'" font-size="12.5" font-weight="800">'+num(Math.round(pts[ultimo].real))+'</text>';
+  const metaTxt='<text class="ent-acum-espt" x="'+X(n-1).toFixed(1)+'" y="'+(Y(meta)-9).toFixed(1)+'" text-anchor="end" font-size="11.5" font-weight="700">meta '+num(meta)+'</text>';
+  const svg='<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'">'+grid+
+    '<path class="ent-acum-esp" d="'+esp+'" fill="none" stroke-width="2" stroke-dasharray="6 5"/>'+
+    '<path class="ent-acum-real" d="'+real+'" fill="none" stroke-width="2.4"/>'+bolas+eixo+metaTxt+valor+'</svg>';
+  const leg='<div class="ent-leg"><span><i class="ent-lg-real"></i>Acumulado real</span><span><i class="ent-lg-esp"></i>Necessário para a meta base</span></div>';
+  return '<div class="ent-graf"><h3>Acumulado Real × Necessário</h3>'+
+    '<p class="ent-sub">Cada ponto é um dia útil do mês. Linha verde acima da cinza = mês adiantado.</p>'+
+    leg+'<div class="ent-svg-wrap">'+svg+'</div></div>';
 }
 function entChartDiarioTotal(){
   const nd=diasDoMes(entAno,entMes);
@@ -10288,11 +10819,21 @@ function entChartDiarioPorEntregador(){
 }
 function entChartMensal(){
   const totals=[]; let mx=1; for(let m=0;m<12;m++){ const t=entTotalMes(entAno,m); totals.push(t); if(t>mx) mx=t; }
-  let bars='<div style="display:flex;align-items:flex-end;gap:8px;height:170px;padding:0 4px;">';
+  const metaTot=ENT_META1*(entEntregadores.length||1);
+  if(metaTot>mx) mx=metaTot;
+  let bars='<div class="ent-mes-wrap"><div class="ent-mes-meta" style="bottom:'+(metaTot/mx*130).toFixed(0)+'px"><span>Meta base '+num(metaTot)+'</span></div>'+
+    '<div style="display:flex;align-items:flex-end;gap:8px;height:170px;padding:0 4px;">';
   for(let m=0;m<12;m++){ const hgt=totals[m]/mx*130; bars+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">'+(totals[m]>0?'<div style="font-size:11px;font-weight:700;color:#33404f;margin-bottom:3px;">'+num(totals[m])+'</div>':'')+'<div style="width:62%;background:'+(m===entMes?'#157a35':'#a9d8b6')+';border-radius:4px 4px 0 0;height:'+hgt.toFixed(0)+'px;"></div></div>'; }
-  bars+='</div>';
+  bars+='</div></div>';
   let labels='<div style="display:flex;gap:8px;padding:6px 4px 0;">'; for(let m=0;m<12;m++){ const ab=MESES[m].slice(0,3); const lbl=ab.charAt(0).toUpperCase()+ab.slice(1).toLowerCase(); labels+='<div style="flex:1;text-align:center;font-size:13px;'+(m===entMes?'font-weight:800;color:#0c5a26;':'font-weight:600;color:#56606d;')+'">'+lbl+'</div>'; } labels+='</div>';
   return '<div class="ent-graf"><h3>Entregas Mensais — '+entAno+'</h3>'+bars+labels+'</div>';
+}
+// Mensagem curta embaixo do cabeçalho da grade quando o que foi digitado não serve.
+function entAvisoDigitacao(erro){
+  const el=document.getElementById("entAvisoDigita"); if(!el) return;
+  const msgs={negativo:"Entrega não pode ser número negativo.",decimal:"Entrega é número inteiro — sem vírgula nem ponto.",invalido:"Aqui só entra número."};
+  const m=msgs[erro]||"";
+  el.textContent=m; el.style.display=m?"":"none";
 }
 function entRenderGrade(){
   const nd=diasDoMes(entAno,entMes);
@@ -10316,7 +10857,7 @@ function entUpdGradeTotais(){
 function entRenderGraficos(){
   const g=document.getElementById("entGraficos");
   if(entTotalMes(entAno,entMes)<=0){ g.innerHTML='<div class="ent-graf"><div class="ent-vazio">Nenhuma entrega lançada em '+MESES[entMes]+" "+entAno+'.<br>Clique em <b>Lançar entregas</b> pra começar.</div></div>'; return; }
-  g.innerHTML=entChartPorEntregador()+
+  g.innerHTML=entChartAcumulado()+entChartPorEntregador()+
     '<div class="ent-graf2">'+entChartFaltam(ENT_META1,"Quanto Falta para "+ENT_META1)+entChartFaltam(ENT_META2,"Quanto Falta para "+ENT_META2)+'</div>'+
     '<div class="ent-graf2">'+entChartAtingir(ENT_META1,"Ritmo Diário para Bater "+ENT_META1)+entChartAtingir(ENT_META2,"Ritmo Diário para Bater "+ENT_META2)+'</div>'+
     entChartDiarioTotal()+entChartDiarioPorEntregador()+entChartMensal();
@@ -10329,13 +10870,16 @@ function entRenderEntregadoresEdit(){
     ? '<div class="ent-edit-body">'+rows+
       '<div class="ent-edit-add"><input type="text" id="entNovoNome" placeholder="Nome do novo entregador"><button type="button" id="entAddBtn">+ Adicionar</button></div></div>'
     : '';
-  box.innerHTML='<div class="ent-edit-box"><div class="ent-edit-tit"><b>👤 Entregadores</b><button type="button" class="ent-edit-toggle" id="entEditToggle">'+(entEntEditOpen?"Fechar":"Editar entregadores")+'</button></div>'+corpo+'</div>';
+  box.innerHTML='<div class="ent-edit-box"><div class="ent-edit-tit"><b><svg class="ent-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Entregadores</b><button type="button" class="ent-edit-toggle" id="entEditToggle">'+(entEntEditOpen?"Fechar":"Editar entregadores")+'</button></div>'+corpo+'</div>';
 }
 function renderEntregas(){
   document.getElementById("entTitulo").textContent=MESES[entMes]+" "+entAno;
   const be=document.getElementById("entEditar");
   be.classList.toggle("ativo",entEdit);
-  be.innerHTML=entEdit?"Concluir lançamento":"Lançar entregas";
+  // "Finalizar edição" e não "Concluir lançamento": este botão só mostra e esconde a
+  // grade. Fechamento de verdade (trava, histórico, quem fechou, reabertura) fica pra
+  // uma sprint futura — o rótulo antigo prometia o que o botão não faz.
+  be.innerHTML=entEdit?"Finalizar edição":"Lançar entregas";
   document.getElementById("entGradeWrap").style.display=entEdit?"":"none";
   entRenderKpis();
   if(entEdit){ entRenderEntregadoresEdit(); entRenderGrade(); }
@@ -10361,8 +10905,53 @@ function renderEntregas(){
     if(nv===old) return;
     if(entRenameEntregador(old,nv)){ renderEntregas(); } else { inp.value=old; uiConfirm({titulo:"Aviso",msg:"Nome inválido ou já existe.",ok:"OK",cancel:""}); }
   });
-  document.getElementById("entGrade").addEventListener("input",function(e){ const inp=e.target.closest("input[data-nome]"); if(!inp) return; const raw=(inp.value||"").replace(/[^0-9]/g,""); entSet(entAno,entMes,inp.dataset.nome,+inp.dataset.dia,raw===""?"":parseInt(raw,10)); entRenderKpis(); entUpdGradeTotais(); });
-  document.getElementById("entGrade").addEventListener("change",function(e){ if(e.target.closest("input[data-nome]")) entRenderGraficos(); });
+  document.getElementById("entGrade").addEventListener("input",function(e){
+    const inp=e.target.closest("input[data-nome]"); if(!inp) return;
+    const bruto=inp.value||"";
+    let v=entcValidaLancamento(bruto);
+    if(!v.ok){
+      entAvisoDigitacao(v.erro);
+      // Limpar "-5" vira 5 e "4,5" vira 45 — número DIFERENTE do que a pessoa quis.
+      // Marca a célula pra pedir confirmação ao sair, em vez de guardar calado.
+      if(v.erro==="negativo"||v.erro==="decimal") inp.setAttribute("data-sujo","1");
+      inp.value=bruto.replace(/[^0-9]/g,"");
+      v=entcValidaLancamento(inp.value);
+    } else entAvisoDigitacao("");
+    entSet(entAno,entMes,inp.dataset.nome,+inp.dataset.dia, v.vazio?"":v.valor);
+    entRenderKpis(); entUpdGradeTotais();
+  });
+  // Guarda o valor anterior pra poder desfazer se o usuário disser que errou.
+  document.getElementById("entGrade").addEventListener("focusin",function(e){
+    const inp=e.target.closest("input[data-nome]"); if(inp) inp.setAttribute("data-prev",inp.value||"");
+  });
+  document.getElementById("entGrade").addEventListener("change",function(e){
+    const inp=e.target.closest("input[data-nome]"); if(!inp) return;
+    const nome=inp.dataset.nome, dia=+inp.dataset.dia;
+    const v=entcValidaLancamento(inp.value);
+    const sujo=inp.getAttribute("data-sujo")==="1";
+    inp.removeAttribute("data-sujo");
+    const an=(v.ok&&!v.vazio)?entcAnormal(v.valor,entHistorico(nome,entAno,entMes,dia)):null;
+    let titulo="", msg="";
+    if(sujo&&v.ok&&!v.vazio){
+      titulo="Confira o número";
+      msg="Entrega é número inteiro e não negativo. Do que você digitou sobrou "+num(v.valor)+" no dia "+dia+", para "+nome+". Está certo?";
+    } else if(an){
+      titulo="Valor fora do padrão";
+      msg=nome+" costuma fazer perto de "+num(Math.round(an.base))+" entregas por dia. Você lançou "+num(v.valor)+" no dia "+dia+". Está certo?";
+    }
+    if(!msg){ entRenderGraficos(); return; }
+    // Só PERGUNTA. Nunca bloqueia: dia atípico existe, e travar o lançamento é pior.
+    const prev=inp.getAttribute("data-prev")||"";
+    uiConfirm({titulo:titulo,msg:msg,ok:"Sim, está certo",cancel:"Corrigir"}).then(function(ok){
+      if(!ok){
+        inp.value=prev;
+        const pv=entcValidaLancamento(prev);
+        entSet(entAno,entMes,nome,dia,(pv.ok&&!pv.vazio)?pv.valor:"");
+        entRenderKpis(); entUpdGradeTotais();
+      }
+      entRenderGraficos();
+    });
+  });
   document.getElementById("entGrade").addEventListener("keydown",function(e){
     if(e.key!=="Enter") return;
     const inp=e.target.closest("input[data-nome]"); if(!inp) return;
