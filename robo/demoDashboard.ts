@@ -242,6 +242,28 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .px-det-item span { font-size:14px; color:#2a3340; overflow-wrap:anywhere; }
   /* e-mail ocupa 2 colunas: cabe numa linha só e empurra o "Gerar contrato" mais pro lado */
   .px-det-box .px-det-item.px-det-wide { grid-column:span 2; }
+  /* ---- Pontos extras: uma grade só, com colunas proporcionais ao conteúdo ----
+     Colunas iguais desperdiçavam metade da largura em "Vendedor" (7 letras no mesmo
+     espaço do endereço inteiro) e faziam o endereço quebrar em 3 linhas. As proporções
+     abaixo têm folga proposital nos nomes: outro fornecedor pode ter nome bem maior. */
+  /* gap menor entre colunas (22 em vez de 28) devolve 30px de largura útil — é o que
+     faz o endereço caber em 2 linhas E o e-mail inteiro caber, sem escolher um dos dois. */
+  .px-det-box.px-det-pontos { grid-template-columns: 150px 1.55fr 2.1fr .9fr 1.1fr 1.55fr; gap:11px 22px; }
+  /* CNPJ tem sempre 18 caracteres: largura fixa, nunca quebra em duas linhas */
+  .px-det-pontos .px-det-nowrap span { white-space:nowrap; }
+  /* e-mail comprido corta com reticências em vez de quebrar (o endereço inteiro fica na dica) */
+  .px-det-pontos .px-det-corta span { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .px-det-pontos .px-det-corta a { white-space:nowrap; }
+  /* linha de baixo: Contrato nas colunas 1-3, Assinatura ancorada na 4 */
+  .px-det-pontos .px-det-ct, .px-det-pontos .px-det-assin { grid-column: span 3; }
+  @media (max-width:1180px){
+    .px-det-box.px-det-pontos { grid-template-columns: 1.4fr 2fr 1.3fr; }
+    .px-det-pontos .px-det-ct, .px-det-pontos .px-det-assin { grid-column: span 3; }
+  }
+  @media (max-width:700px){
+    .px-det-box.px-det-pontos { grid-template-columns: 1fr; }
+    .px-det-pontos .px-det-ct, .px-det-pontos .px-det-assin { grid-column: auto; }
+  }
   @media (max-width:760px){ .px-det-box .px-det-item.px-det-wide { grid-column:auto; } }
   .px-arq { display:flex; align-items:center; gap:8px; flex-wrap:wrap; width:100%; }
   .px-arq-link { display:inline-flex; align-items:center; gap:6px; max-width:240px; padding:5px 12px; background:#e3f0e8; color:#157a35; border-radius:7px; font-size:13px; font-weight:600; text-decoration:none; }
@@ -259,6 +281,35 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .px-arq-rem:hover { background:#fbeae8; }
   .px-gerar-ct { display:inline-flex; align-items:center; justify-content:center; gap:7px; box-sizing:border-box; width:100%; max-width:200px; min-width:0; min-height:46px; padding:11px 16px; background:#157a35; color:#fff; border:0; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
   .px-gerar-ct:hover { background:#11652b; }
+  .px-ct-duo { display:flex; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+  .px-ct-duo .px-arq { width:auto; flex:0 1 auto; }
+  .px-ct-duo .px-gerar-ct, .px-ct-duo .px-arq-anexar, .px-ct-duo .px-assinar { width:auto; min-width:auto; }
+  /* Opção B: rótulo ao lado (não em cima) e controles de 36px em vez de 46 —
+     o bloco de ações encolhe quase pela metade e para de parecer solto. */
+  .px-acoes .px-ct-duo { align-items:center; gap:9px; }
+  .px-acoes > b { margin-bottom:4px; }
+  .px-acoes .px-gerar-ct, .px-acoes .px-arq-anexar, .px-acoes .px-assinar {
+    min-height:36px; padding:8px 15px; font-size:12.5px; }
+  .px-acoes .px-assin { min-height:36px; padding:4px 11px; }
+  .px-acoes .px-arq-card { min-height:36px !important; }
+  /* A assinatura fica na MESMA fileira e na MESMA altura de "Gerar contrato" e
+     "Anexar contrato" (46px) — três controles alinhados, não um cartão gigante. */
+  .px-assin { display:inline-flex; align-items:center; gap:9px; box-sizing:border-box; min-height:46px;
+              padding:6px 13px; border:1px solid #e3e8ee; border-radius:8px; background:#fff;
+              font-size:12.5px; line-height:1.3; max-width:300px; }
+  .px-assin svg { flex:none; }
+  .px-assin.ok { border-color:#bfe0c9; background:#f2f9f4; color:#1f4a2e; }
+  .px-assin.caiu { border-color:#e8dbb4; background:#fbf4e2; color:#6b5000; }
+  .px-assin-txt { display:flex; flex-direction:column; min-width:0; }
+  .px-assin-txt b { font-size:12.5px; font-weight:700; white-space:nowrap; line-height:1.25; }
+  .px-assin-txt i { font-style:normal; font-size:10.5px; line-height:1.25; opacity:.8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .px-assin-cod { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.03em; }
+  .px-assin-x { flex:none; cursor:pointer; opacity:.45; font-size:13px; padding:2px 0 2px 3px; line-height:1; }
+  .px-assin-x:hover { opacity:1; color:#c0392b; }
+  .px-assinar { display:inline-flex; align-items:center; justify-content:center; gap:7px; box-sizing:border-box;
+                width:100%; max-width:200px; min-height:46px; padding:11px 16px; border:0; background:#157a35;
+                color:#fff; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .px-assinar:hover { background:#11652b; }
   .px-filtro { padding:8px 34px 8px 12px; border:1px solid #cdd6e0; border-radius:8px; font-size:14px; color:#2a3340; background-color:#fff; -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2346535f' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 11px center; cursor:pointer; }
   .px-filtro:hover { border-color:#9aa6b2; }
   .px-filtro:focus { outline:none; border-color:#2f6fed; box-shadow:0 0 0 3px rgba(47,111,237,.15); }
@@ -2394,6 +2445,15 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .rec-prod-aviso.at{background:#fbf1d7;color:#7a5a00;}
         .rec-prod-aviso.ru{background:#fdecec;color:#a02c1c;}
         .rec-prod-med{font-size:11.5px;color:#8a97a8;margin-top:5px;}
+        .rec-pf-pad{font-weight:400;color:#5a6678;font-size:11.5px;text-transform:none;letter-spacing:0;}
+        .rec-cmp{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;}
+        .rec-cmp b{font-weight:700;}
+        .rec-cmp .d-ok{color:#157a35;} .rec-cmp .d-at{color:#7a5a00;} .rec-cmp .d-ru{color:#c0392b;}
+        .rec-cmp-nd{color:#5a6678;font-weight:400;}
+        .rec-prod-alerta{font-size:11.5px;color:#7a5a00;margin-top:5px;line-height:1.5;}
+        .rec-grid-prod{grid-template-columns:130px 1fr 1fr 1fr;}
+        @media(max-width:820px){ .rec-grid-prod{grid-template-columns:1fr 1fr;} }
+        @media(max-width:460px){ .rec-grid-prod{grid-template-columns:1fr;} }
         .rec-aviso-ins{background:#fbf1d7;color:#7a5a00;border-radius:9px;padding:9px 12px;font-size:12.5px;margin:8px 0 0;line-height:1.5;}
         /* ===== Ficha técnica: resumo executivo, seções e indicadores ===== */
         .rec-resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
@@ -2578,6 +2638,43 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       .cl-tab.cl-print:hover{background:#f4f6f9;}
       .cl-integ{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-radius:12px;padding:12px 18px;margin-bottom:16px;font-size:13px;line-height:1.45;}
       .cl-integ.demo{background:#fff8ec;border:1px solid #f2dcb3;color:#8a5a12;}
+      /* ---- Conferência dos carros ---- */
+      .cl-conf-sel{display:flex;align-items:center;gap:10px;margin:14px 0 12px;}
+      .cl-conf-sel label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#6b7787;font-weight:700;}
+      .cl-conf-sel select{border:1px solid #dde4ec;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;background:#fff;}
+      .cl-conf-tot{font-size:12px;color:#8a97a8;}
+      .cl-conf-lista{border:1px solid #e5eaf0;border-radius:12px;padding:4px 16px;background:#fff;}
+      .cl-conf-lin{display:grid;grid-template-columns:1fr 128px 96px 190px;gap:16px;align-items:center;padding:12px 0;border-top:1px solid #eef2f6;}
+      .cl-conf-lin:first-child{border-top:0;}
+      .cl-conf-f{font-size:14px;font-weight:700;line-height:1.25;}
+      .cl-conf-m{font-size:11.5px;color:#8a97a8;margin-top:2px;}
+      .cl-conf-m b{color:#5c6773;}
+      .cl-conf-j{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:#5c6773;white-space:nowrap;}
+      .cl-conf-t{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;}
+      .cl-conf-t small{font-size:11px;font-weight:600;color:#8a97a8;margin-left:2px;}
+      .cl-conf-t.na{font-size:14px;font-weight:600;color:#aab4c0;}
+      .cl-conf-st{display:inline-flex;align-items:center;gap:6px;border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:700;white-space:nowrap;}
+      .cl-conf-st .pt{width:6px;height:6px;border-radius:50%;}
+      .cl-conf-st.ok{background:#e3f3e8;color:#1b8f45;}  .cl-conf-st.ok .pt{background:#1b8f45;}
+      .cl-conf-st.bip{background:#e6f0fb;color:#1f5fa8;} .cl-conf-st.bip .pt{background:#1f5fa8;}
+      .cl-conf-st.esp{background:#fbf4e2;color:#7a5a00;} .cl-conf-st.esp .pt{background:#7a5a00;}
+      .cl-conf-dv{font-size:11.5px;color:#c0392b;font-weight:700;margin-top:3px;}
+      .cl-conf-ok{font-size:11.5px;color:#1b8f45;font-weight:700;margin-top:3px;}
+      .cl-conf-aviso{background:#fbf4e2;border:1px solid #e8dbb4;border-left:3px solid #7a5a00;border-radius:8px;
+                     padding:11px 14px;font-size:12.5px;color:#6b5000;margin-top:14px;line-height:1.55;}
+      .cl-conf-rk{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px;}
+      .cl-conf-bloco{border:1px solid #e5eaf0;border-radius:12px;padding:14px 16px;background:#fff;}
+      .cl-conf-rt{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#6b7787;font-weight:700;margin-bottom:9px;}
+      .cl-rank{width:100%;border-collapse:collapse;font-size:13px;}
+      .cl-rank th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#6b7787;font-weight:700;padding:7px 8px;border-bottom:1px solid #e5eaf0;}
+      .cl-rank td{padding:8px;border-bottom:1px solid #f1f4f8;}
+      .cl-rank td.n,.cl-rank th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+      .cl-bar{height:6px;border-radius:3px;background:#eef1f5;width:80px;display:inline-block;vertical-align:middle;margin-right:8px;}
+      .cl-bar i{display:block;height:100%;border-radius:3px;}
+      @media(max-width:900px){
+        .cl-conf-lin{grid-template-columns:1fr;gap:4px;}
+        .cl-conf-rk{grid-template-columns:1fr;}
+      }
       .cl-integ.live{background:#e7f2ea;border:1px solid #bfe0cb;color:#0e5726;}
       .cl-integ b{font-weight:700;}
       .cl-integ .cl-atz{margin-left:auto;font-size:12px;color:#8a97a8;white-space:nowrap;}
@@ -2627,6 +2724,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div class="cl-tabs">
           <button type="button" class="cl-tab on" data-clview="hoje">Visão de hoje</button>
           <button type="button" class="cl-tab" data-clview="agenda">Agenda da semana</button>
+          <button type="button" class="cl-tab" data-clview="conf">Conferência dos carros</button>
           <button type="button" class="cl-tab" id="clLinkBtn" style="margin-left:auto;background:#0c5a26;color:#fff;border-color:#0c5a26;">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Link do fornecedor
           </button>
@@ -2645,6 +2743,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <div class="cl-filtros" id="clFiltros"></div>
           <div id="clTimeline"></div>
         </div>
+        <div id="clConf" style="display:none;"></div>
         <div id="clAgenda" style="display:none;">
           <div class="cl-wknav"><button type="button" id="clWkPrev" title="Semana anterior">‹</button><span class="lbl" id="clWkLbl"></span><button type="button" id="clWkNext" title="Próxima semana">›</button><button type="button" id="clWkHoje" style="min-width:auto;padding:0 12px;font-size:12.5px;font-weight:600;">Esta semana</button></div>
           <div class="cl-wk-wrap" id="clWeek"></div>
@@ -4695,7 +4794,10 @@ function pltDetalhe(){
 var centralAg=[];
 var centralModo="demo";     // "demo" | "live"
 var centralAtz="";          // hora da última sincronização (modo live)
-var clView="hoje";          // "hoje" | "agenda"
+var clView="hoje";          // "hoje" | "agenda" | "conf"
+var centralConf=[];         // conferências lidas de central_conferencias (o robô preenche)
+var centralConfModo="";     // "live" quando veio da nuvem
+var clConfDia=null;         // dia escolhido na aba Conferência
 var clDiaSel=null;          // dia escolhido na "Visão de hoje" (YYYY-MM-DD); null = hoje de verdade
 function clDiaAtual(){ return clDiaSel||clDataISO(new Date()); }
 var clWkBase=null;          // segunda-feira da semana exibida na agenda
@@ -4755,7 +4857,20 @@ function clCloudLoad(){
       renderCentral();
     }, function(){ centralAg=clSeed(); centralModo="demo"; renderCentral(); });
   }catch(e){ centralAg=clSeed(); centralModo="demo"; renderCentral(); }
+  clConfLoad();
 }
+// Lê central_conferencias — o resumo do que o conferente já bipou no coletor.
+// Vazia = o robô ainda não rodou; a tela explica isso em vez de inventar exemplo.
+function clConfLoad(){
+  var sb=clSB(); if(!sb) return;
+  try{
+    sb.from("central_conferencias").select("*").order("data",{ascending:false}).limit(600).then(function(r){
+      if(r&&!r.error&&r.data){ centralConf=r.data; centralConfModo=r.data.length?"live":""; }
+      if(clView==="conf") renderClConf();
+    }, function(){});
+  }catch(e){}
+}
+var PX_CONFERIR_URL="https://painel-de-gestao-santa-rita.vercel.app/conferir.html";  // página pública de conferência da assinatura
 var CL_AGENDAR_URL="https://painel-de-gestao-santa-rita.vercel.app/agendar.html"; // vira agendamento.supermercadosantarita.com.br quando o domínio ligar
 function clLinkFornecedor(){
   var url=CL_AGENDAR_URL;
@@ -4765,9 +4880,140 @@ function clLinkFornecedor(){
 function renderCentral(){
   if(!centralAg||!centralAg.length){ if(centralModo!=="live"){ centralAg=clSeed(); } }
   renderClInteg();
-  var vh=document.getElementById("clHoje"), va=document.getElementById("clAgenda");
-  if(clView==="agenda"){ if(vh)vh.style.display="none"; if(va)va.style.display=""; renderClAgenda(); }
-  else { if(va)va.style.display="none"; if(vh)vh.style.display=""; renderClDataNav(); renderClFiltros(); renderClKpis(); renderClTimeline(); }
+  var vh=document.getElementById("clHoje"), va=document.getElementById("clAgenda"), vc=document.getElementById("clConf");
+  if(vh)vh.style.display="none"; if(va)va.style.display="none"; if(vc)vc.style.display="none";
+  if(clView==="conf"){ if(vc)vc.style.display=""; renderClConf(); }
+  else if(clView==="agenda"){ if(va)va.style.display=""; renderClAgenda(); }
+  else { if(vh)vh.style.display=""; renderClDataNav(); renderClFiltros(); renderClKpis(); renderClTimeline(); }
+}
+/* ---------- CONFERÊNCIA DOS CARROS ----------
+   Espelho do que a equipe já faz no VR: o conferente abre a senha da nota e bipa.
+   Uma linha = uma CONFERÊNCIA (uma senha), não uma nota — um caminhão gera várias notas.
+   Só leitura. Ninguém digita nada aqui. A lista de produtos com divergência fica no VR. */
+function clConfMin(m){
+  if(m==null||!isFinite(m)) return {t:"—",cls:"na"};      // coletor mandou tudo de uma vez
+  if(m>=60) return {t:Math.floor(m/60)+"h"+(m%60?String(m%60).padStart(2,"0"):""),cls:""};
+  return {t:m+"<small>min</small>",cls:""};
+}
+function clConfSt(c){
+  if(c.situacao==="conferindo") return {k:"bip",t:"Sendo conferido"};
+  if(c.situacao==="aguardando") return {k:"esp",t:"Aguardando fechamento"};
+  return {k:"ok",t:"Finalizado"};
+}
+function clConfDias(){
+  var d={}; centralConf.forEach(function(c){ if(c.data) d[c.data]=1; });
+  return Object.keys(d).sort().reverse();
+}
+function renderClConf(){
+  var el=document.getElementById("clConf"); if(!el) return;
+  if(!centralConf.length){
+    el.innerHTML='<div class="cl-integ demo" style="margin-top:14px;"><b>Ainda não tem conferência sincronizada.</b> '
+      +'Assim que o robô da loja rodar, as conferências que a equipe já faz no coletor aparecem aqui sozinhas — '
+      +'ninguém precisa digitar nada.</div>';
+    return;
+  }
+  var dias=clConfDias();
+  if(!clConfDia || dias.indexOf(clConfDia)<0) clConfDia=dias[0];
+  var doDia=centralConf.filter(function(c){ return c.data===clConfDia; })
+                       .sort(function(a,b){ return (b.inicio||"").localeCompare(a.inicio||""); });
+
+  var conferindo=doDia.filter(function(c){return c.situacao==="conferindo";}).length;
+  var aguard=doDia.filter(function(c){return c.situacao==="aguardando";}).length;
+  var cem=doDia.filter(function(c){return c.situacao==="finalizado" && !(+c.divergencias>0);}).length;
+  var comT=doDia.filter(function(c){ return c.minutos!=null; });
+  var med=comT.length?Math.round(comT.reduce(function(a,c){return a+(+c.minutos||0);},0)/comT.length):null;
+
+  var h='<div class="cl-conf-sel"><label>Dia</label><select id="clConfDiaSel">'
+    +dias.map(function(d){ return '<option value="'+d+'"'+(d===clConfDia?" selected":"")+'>'+pxEsc(d.split("-").reverse().join("/"))+'</option>'; }).join("")
+    +'</select><span class="cl-conf-tot">'+doDia.length+' conferência(s) neste dia</span></div>';
+
+  h+='<div class="mpk-grid" style="margin-bottom:16px;">'
+    +clConfKpi("Carros conferidos","t",doDia.length,(conferindo?conferindo+" sendo conferido agora":"nenhum em andamento"))
+    +clConfKpi("Aguardando fechamento",aguard?"a":"",aguard,"bipou, a nota não foi finalizada")
+    +clConfKpi("Receberam 100%","g",cem,"de "+doDia.length+" · sem nenhuma divergência")
+    +clConfKpi("Tempo médio","b",(med==null?"—":med+'<small>min</small>'),(comT.length?("de "+comT.length+" conferência(s) medida(s)"):"nenhuma pôde ser medida"))
+    +'</div>';
+
+  h+='<div class="cl-conf-lista">';
+  doDia.forEach(function(c){
+    var st=clConfSt(c), mm=clConfMin(c.minutos), dv=+c.divergencias||0;
+    var notas=(+c.notas||0), nf=(+c.notas_finalizadas||0);
+    h+='<div class="cl-conf-lin">'
+      +'<div class="cl-conf-a"><div class="cl-conf-f">'+pxEsc(c.fornecedor||"(sem nota ligada)")+'</div>'
+        +'<div class="cl-conf-m">'+(+c.bipagens||0)+' itens bipados · <b>'+notas+(notas===1?' nota':' notas')+'</b>'
+        +(notas>nf?(' · <b>'+nf+' fechada'+(nf===1?'':'s')+'</b>'):'')
+        +' · senha '+pxEsc(c.senha||"")+'</div></div>'
+      +'<div class="cl-conf-j">'+pxEsc(c.inicio||"")+(c.fim&&c.fim!==c.inicio?(' → '+pxEsc(c.fim)):'')+'</div>'
+      +'<div class="cl-conf-t '+mm.cls+'">'+mm.t+'</div>'
+      +'<div><span class="cl-conf-st '+st.k+'"><span class="pt"></span>'+st.t+'</span>'
+        +(c.situacao==="finalizado"
+           ? (dv>0?'<div class="cl-conf-dv">⚠ '+dv+' com divergência</div>'
+                  :'<div class="cl-conf-ok">✓ recebido 100%</div>')
+           : (c.situacao==="aguardando"?'<div class="cl-conf-m">a nota ainda não foi finalizada</div>':''))
+      +'</div></div>';
+  });
+  h+='</div>';
+
+  if(doDia.some(function(c){ return c.minutos==null; })){
+    h+='<div class="cl-conf-aviso"><b>Por que alguns tempos aparecem como “—”?</b><br>'
+      +'Quando o coletor envia tudo de uma vez só no fim, todas as bipagens ficam com o mesmo horário e não dá '
+      +'para saber quanto tempo levou. Nesses casos mostro “—” em vez de inventar “0 min”. '
+      +'Em carro grande, que é onde o tempo importa, a medição funciona.</div>';
+  }
+  h+=clConfRankings();
+  el.innerHTML=h;
+  var sel=document.getElementById("clConfDiaSel");
+  if(sel) sel.onchange=function(){ clConfDia=this.value; renderClConf(); };
+}
+function clConfKpi(rot,cls,val,det){
+  var ico={g:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+           a:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+           b:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>',
+           t:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>'};
+  var k=cls==="a"?"a":(cls==="g"?"g":(cls==="b"?"b":"t"));
+  return '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">'+rot+'</span>'
+       + '<span class="mpk-ico '+(k==="a"?"r":(k==="b"?"b":"g"))+'">'+ico[k]+'</span></div>'
+       + '<div class="mpk-v'+(cls==="a"?" bad":"")+'">'+val+'</div>'
+       + '<div class="mpk-sub">'+det+'</div></div>';
+}
+// Rankings do período inteiro que está na nuvem (não só do dia escolhido).
+function clConfRankings(){
+  var porF={};
+  centralConf.forEach(function(c){
+    var f=(c.fornecedor||"").trim(); if(!f) return;
+    var o=porF[f]||(porF[f]={n:0,tempo:0,nTempo:0,limpos:0,fin:0});
+    o.n++;
+    if(c.minutos!=null){ o.tempo+=(+c.minutos||0); o.nTempo++; }
+    if(c.situacao==="finalizado"){ o.fin++; if(!(+c.divergencias>0)) o.limpos++; }
+  });
+  var lista=Object.keys(porF).map(function(f){ var o=porF[f];
+    return {f:f,n:o.n,med:o.nTempo?Math.round(o.tempo/o.nTempo):null,nTempo:o.nTempo,
+            pct:o.fin?Math.round(o.limpos/o.fin*100):null,fin:o.fin}; });
+
+  var tempo=lista.filter(function(x){ return x.med!=null && x.nTempo>=2; }).sort(function(a,b){ return b.med-a.med; }).slice(0,6);
+  var certo=lista.filter(function(x){ return x.pct!=null && x.fin>=2; }).sort(function(a,b){ return a.pct-b.pct; }).slice(0,6);
+  if(!tempo.length && !certo.length) return "";
+
+  var maxT=tempo.length?tempo[0].med:1;
+  function barra(pct,cor){ return '<span class="cl-bar"><i style="width:'+Math.max(3,Math.round(pct))+'%;background:'+cor+'"></i></span>'; }
+  var h='<div class="cl-conf-rk">';
+  if(tempo.length){
+    h+='<div class="cl-conf-bloco"><div class="cl-conf-rt">Quem demora mais na doca</div><table class="cl-rank"><thead><tr><th>Fornecedor</th><th class="n">Carros</th><th class="n">Tempo médio</th></tr></thead><tbody>';
+    tempo.forEach(function(x){
+      var cor=x.med>=30?"#c0392b":(x.med>=15?"#d3a74e":"#1b8f45");
+      h+='<tr><td>'+pxEsc(x.f.slice(0,26))+'</td><td class="n">'+x.nTempo+'</td><td class="n">'+barra(x.med/maxT*100,cor)+x.med+' min</td></tr>';
+    });
+    h+='</tbody></table></div>';
+  }
+  if(certo.length){
+    h+='<div class="cl-conf-bloco"><div class="cl-conf-rt">Quem entrega certo — carros sem nenhuma divergência</div><table class="cl-rank"><thead><tr><th>Fornecedor</th><th class="n">Carros</th><th class="n">100% certo</th></tr></thead><tbody>';
+    certo.forEach(function(x){
+      var cor=x.pct>=70?"#1b8f45":(x.pct>=40?"#d3a74e":"#c0392b");
+      h+='<tr><td>'+pxEsc(x.f.slice(0,26))+'</td><td class="n">'+x.fin+'</td><td class="n">'+barra(x.pct,cor)+x.pct+'%</td></tr>';
+    });
+    h+='</tbody></table></div>';
+  }
+  return h+'</div>';
 }
 function renderClInteg(){
   var el=document.getElementById("clIntegBanner"); if(!el) return;
@@ -5673,13 +5919,15 @@ function podePagina(chave){ var p=window.__PERFIL; return !!(p && (p.is_master |
 function pxPodeVer(){ return podePagina("pontos"); }
 var pxCloudOK=false, pxCarregando=false, pxRT=null, pxPushT=null;
 function pxRowFromP(p){ return {id:p.id,numero:p.numero||0,abertura:p.abertura||"",vencimento:p.vencimento||"",mes_pag:p.mesPag||"",status:p.status||"",fornecedor:p.fornecedor||"",cnpj:p.cnpj||"",razao_social:p.razaoSocial||"",contato:p.contato||"",email:p.email||"",endereco:p.endereco||"",vendedor:p.vendedor||"",valor:+p.valor||0,pagamento:p.pagamento||"",contrato:p.contrato||"",venc_contrato:p.vencContrato||"",obs:p.obs||"",manuais:p.manuais||null,comprovantes:p.comprovantes||null,contrato_url:(p.contratoArquivo&&p.contratoArquivo.indexOf("data:")!==0)?p.contratoArquivo:"",contrato_nome:p.contratoNome||"",atualizado_em:new Date().toISOString()}; }
-function pxPFromRow(r){ var p={id:r.id,numero:r.numero,abertura:r.abertura||"",vencimento:r.vencimento||"",mesPag:r.mes_pag||"",status:r.status||"",fornecedor:r.fornecedor||"",cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",vendedor:r.vendedor||"",valor:+r.valor||0,pagamento:r.pagamento||"",contrato:r.contrato||"",vencContrato:r.venc_contrato||"",obs:r.obs||""}; if(r.manuais)p.manuais=r.manuais; if(r.comprovantes)p.comprovantes=r.comprovantes; if(r.contrato_url){p.contratoArquivo=r.contrato_url;p.contratoNome=r.contrato_nome||"";} return p; }
+/* A coluna "assinatura" NÃO vai no salvamento comum de propósito: no banco existe uma
+   trava (trigger assin_trava) que recusa escrita direta nela. Só a função oficial assina. */
+function pxPFromRow(r){ var p={id:r.id,numero:r.numero,abertura:r.abertura||"",vencimento:r.vencimento||"",mesPag:r.mes_pag||"",status:r.status||"",fornecedor:r.fornecedor||"",cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",vendedor:r.vendedor||"",valor:+r.valor||0,pagamento:r.pagamento||"",contrato:r.contrato||"",vencContrato:r.venc_contrato||"",obs:r.obs||""}; if(r.manuais)p.manuais=r.manuais; if(r.comprovantes)p.comprovantes=r.comprovantes; if(r.contrato_url){p.contratoArquivo=r.contrato_url;p.contratoNome=r.contrato_nome||"";} if(r.assinatura)p.assinatura=r.assinatura; return p; }
 // Colunas novas na nuvem (cnpj etc). Se o SQL ainda não rodou no Supabase, o upsert
 // falharia inteiro em silêncio — então, nesse caso, reenvia SEM as colunas novas.
-var PX_COLS_NOVAS=["cnpj","razao_social","contato","email","endereco"];
+var PX_COLS_NOVAS=["cnpj","razao_social","contato","email","endereco","assinatura"];
 function pxUpsertSeguro(sb,rows){
   sb.from("pontos_extras").upsert(rows).then(function(r){
-    if(r && r.error && /column|cnpj|razao_social|contato|email|endereco|schema/i.test(String(r.error.message||""))){
+    if(r && r.error && /column|cnpj|razao_social|contato|email|endereco|assinatura|schema/i.test(String(r.error.message||""))){
       var enxutas=rows.map(function(row){ var c={}; for(var k in row){ if(PX_COLS_NOVAS.indexOf(k)<0) c[k]=row[k]; } return c; });
       sb.from("pontos_extras").upsert(enxutas).then(function(){},function(){});
       try{ console.warn("Pontos: nuvem sem as colunas novas (rode o SQL pix_cobrancas.sql no Supabase)."); }catch(e){}
@@ -6072,9 +6320,44 @@ function pixPayload(cfg,valor,txid){
 }
 // Regra: só cobra (Pix/boleto/bonificação) se o CONTRATO deste fornecedor estiver anexado.
 function pxContratoAnexado(p){ return !!(p && p.contratoArquivo); }
+/* ORDEM OFICIAL DO PROCESSO (definida pelo Victor):
+     1. o diretor ASSINA no painel (senha do master)
+     2. a funcionária IMPRIME o contrato já assinado
+     3. o fornecedor assina no papel
+     4. ela ANEXA o contrato assinado pelos dois
+     5. só então libera a cobrança
+   Por isso as duas travas: anexar exige assinatura, e cobrar exige as duas coisas. */
+function pxExigeAssinatura(p, acao){
+  if(typeof pxAssinValida==="function" && pxAssinValida(p)) return true;
+  var caiu=(typeof pxAssinCaiu==="function") && pxAssinCaiu(p);
+  uiConfirm({
+    titulo: caiu ? "A assinatura caiu" : "Assine o contrato primeiro",
+    msg: (caiu
+          ? "Este contrato mudou depois de assinado, então a assinatura do diretor não vale mais.\\n\\n"
+          : "Este contrato ainda não foi assinado pelo diretor.\\n\\n")
+       + "A ordem é:\\n"
+       + "1. o diretor assina aqui no painel\\n"
+       + "2. você imprime o contrato já assinado\\n"
+       + "3. o fornecedor assina no papel\\n"
+       + "4. você anexa o contrato assinado pelos dois\\n\\n"
+       + (acao==="anexar"
+          ? "Se anexar agora, o contrato vai estar sem a assinatura do diretor."
+          : "Sem isso a cobrança não é liberada."),
+    ok:"Entendi", cancel:"" });
+  return false;
+}
 function pxExigeContrato(p){
-  if(pxContratoAnexado(p)) return true;
-  uiConfirm({ titulo:"Gere e anexe o contrato primeiro", msg:"Para cobrar este fornecedor, o contrato precisa ser GERADO e ANEXADO.\\n\\nGere o contrato no botão \\u201cGerar contrato\\u201d, colha a assinatura e anexe no botão \\u201cAnexar contrato\\u201d (nos dados do fornecedor). Depois volte e gere a cobrança.", ok:"Entendi", cancel:"" });
+  var anexado=pxContratoAnexado(p);
+  var assinado=(typeof pxAssinValida==="function") && pxAssinValida(p);
+  if(anexado && assinado) return true;
+  if(!assinado) return pxExigeAssinatura(p,"cobrar");
+  uiConfirm({
+    titulo:"Anexe o contrato assinado",
+    msg:"O contrato já está assinado pelo diretor. Falta:\\n\\n"
+      + "\\u2022 imprimir e colher a assinatura do fornecedor\\n"
+      + "\\u2022 anexar no botão \\u201cAnexar contrato\\u201d\\n\\n"
+      + "Depois volte aqui e gere a cobrança.",
+    ok:"Entendi", cancel:"" });
   return false;
 }
 function pxGerarPix(p,key){
@@ -6636,7 +6919,10 @@ var PX_LOCADOR={
   endereco:"Rua André Sales, 531 - Paulo VI, Caicó/RN - CEP 59300-000",
   diretor:"Gilson João dos Santos"
 };
-function pxEsc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+/* Escapa TAMBÉM as aspas: este texto entra dentro de atributos (title="...", data-x="...").
+   Sem isso, um nome de arquivo como  contrato" onmouseover="..."  vira código executável
+   na tela de todo mundo — inclusive na hora de digitar a senha do master. */
+function pxEsc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
 // Número por extenso (reais) — pt-BR, até milhões.
 function pxNumExtenso(n){
   n=Math.round(n); if(n===0) return "zero";
@@ -6690,6 +6976,9 @@ function pxContratoDocHtml(p){
     ".assin{margin-top:40px}.assin .row{display:flex;gap:60px;justify-content:space-between;margin-top:66px}"+
     ".assin .bloco{flex:1;text-align:center}.assin .linha{border-top:1px solid #1a1a1a;padding-top:6px}"+
     ".assin .papel{font-weight:bold;font-size:13px}.assin .dado{font-size:11.5px;color:#333;margin-top:2px}"+
+    ".assin .carimbo{height:52px;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:5px;font-size:10.5px;line-height:1.35;color:#1a4a2a;text-align:center}"+
+    ".assin .carimbo b{font-size:11px;letter-spacing:.02em}.assin .carimbo.vazio{color:transparent}"+
+    ".confere{margin-top:18px;font-size:9.5px;color:#555;text-align:center;line-height:1.5}"+
     "@page{margin:0}@media print{.docbar{display:none}html,body{background:#fff}.doc-page-wrap{padding:0}.doc-page{box-shadow:none;border-radius:0;margin:0;max-width:none;padding:16mm 18mm 16mm}}";
   var h="<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Contrato — "+forn+"</title>"+
     "<link rel='preconnect' href='https://fonts.googleapis.com'><link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' rel='stylesheet'>"+
@@ -6714,8 +7003,17 @@ function pxContratoDocHtml(p){
   h+="<div class='clausula'><p><span class='t'>CLÁUSULA DE FORO:</span> Fica eleito o Foro da Comarca de "+cidade+", com renúncia expressa a qualquer outro, por mais privilegiado que seja, para dirimir quaisquer dúvidas ou litígios oriundos do presente instrumento.</p></div>";
   h+="<p style='margin-top:26px'>"+cidade.toUpperCase()+", "+dataExt+".</p>";
   h+="<div class='assin'>";
-  h+="<div class='row'><div class='bloco'><div class='linha'><div class='papel'>CONTRATANTE</div><div class='dado'>"+forn+(p.cnpj?(" — CNPJ "+cnpjForn):"")+(vendedor?("<br>Vendedor(a): "+vendedor):"")+"</div></div></div>";
-  h+="<div class='bloco'><div class='linha'><div class='papel'>CONTRATADA</div><div class='dado'>"+razao+" — CNPJ "+cnpjL+(L.diretor?("<br>Diretor: "+pxEsc(L.diretor)):"")+"</div></div></div></div>";
+  h+="<div class='row'><div class='bloco'><div class='carimbo vazio'></div><div class='linha'><div class='papel'>CONTRATANTE</div><div class='dado'>"+forn+(p.cnpj?(" — CNPJ "+cnpjForn):"")+(vendedor?("<br>Vendedor(a): "+vendedor):"")+"</div></div></div>";
+  var _as=(typeof pxAssinValida==="function"&&pxAssinValida(p))?p.assinatura:null;
+  var _carimbo=_as
+    ? ("<div class='carimbo'><b>Assinado eletronicamente</b><br>"+pxEsc(_as.nome||"")
+       +"<br>"+pxEsc(pxAssinDataFmt(_as.em))+" &middot; c\u00f3digo "+pxEsc(_as.codigo||"")+"</div>")
+    : "<div class='carimbo vazio'></div>";
+  h+="<div class='bloco'>"+_carimbo+"<div class='linha'><div class='papel'>CONTRATADA</div><div class='dado'>"+razao+" — CNPJ "+cnpjL+(L.diretor?("<br>Diretor: "+pxEsc(L.diretor)):"")+"</div></div></div></div>";
+  if(_as) h+="<p class='confere'>Assinatura eletr\u00f4nica registrada no Painel Santa Rita em "+pxEsc(pxAssinDataFmt(_as.em))
+    +" sob o c\u00f3digo <b>"+pxEsc(_as.codigo||"")+"</b>."
+    +"<br>Confira a autenticidade em <b>"+pxEsc(PX_CONFERIR_URL.split("//").pop())+"</b> \u2014 a p\u00e1gina mostra a qual contrato este c\u00f3digo pertence."
+    +"<br>O c\u00f3digo \u00e9 gerado com chave secreta e deixa de valer se qualquer dado deste contrato for alterado.</p>";
   h+="</div>";
   h+="</div></div>";
   h+="</body></html>";
@@ -6770,6 +7068,119 @@ function pxGerarContrato(p){
   if(!w){ alert("Para gerar o contrato, permita pop-ups deste site no navegador."); return; }
   w.document.open(); w.document.write(pxContratoDocHtml(p)); w.document.close();
 }
+/* ===== ASSINATURA ELETRÔNICA DO CONTRATO =====
+   Não existe imagem de assinatura guardada em lugar nenhum. O que vale é o ATO:
+   alguém digitou a senha do master para AQUELE contrato, com data, hora e login.
+   Se o contrato mudar depois (valor, prazo, fornecedor), a assinatura CAI sozinha —
+   assinar R$ 2.000 e alguém trocar pra R$ 200 depois seria um cheque em branco. */
+// impressão digital só dos campos que têm peso jurídico
+/* TEM QUE SER IDÊNTICA à função assin_impressao_ponto do Supabase (sql/assinatura_blindada.sql):
+   mesma ordem de campos, mesmo separador (caractere 31) e o mesmo prefixo de versão.
+   Mudou lá, muda aqui — senão o painel acha que toda assinatura "caiu". */
+function pxAssinImpressao(p){
+  p=p||{};
+  var lp=function(v){ return String(v==null?"":v).split(String.fromCharCode(31)).join(" "); };
+  var campos=[ lp(+p.numero||0), lp(p.fornecedor), lp(p.razaoSocial), lp(p.cnpj), lp(p.vendedor),
+               lp(p.endereco), lp(p.pagamento), lp(p.abertura), lp(p.vencimento),
+               lp((+p.valor||0).toFixed(2)) ];
+  return "v2"+String.fromCharCode(31)+campos.join(String.fromCharCode(31));
+}
+/* O CÓDIGO NÃO É MAIS CALCULADO AQUI — e não pode voltar a ser.
+   Este arquivo é público: qualquer fórmula que morasse aqui poderia ser lida e
+   usada para inventar códigos válidos. Agora quem assina é o banco (HMAC com
+   chave secreta que nunca sai de lá), pela função assinar_contrato_ponto. */
+function pxAssinatura(p){ return (p&&p.assinatura&&p.assinatura.em)?p.assinatura:null; }
+// assinatura só vale se o contrato não mudou depois dela
+/* Compara com a impressão que o BANCO assinou. Não existe mais campo vindo do cliente
+   aqui: se houvesse, bastaria editar o localStorage para ressuscitar uma assinatura caída. */
+function pxAssinValida(p){
+  var a=pxAssinatura(p); if(!a) return false;
+  return String(a.impressao||"")===pxAssinImpressao(p);
+}
+function pxAssinCaiu(p){ return !!pxAssinatura(p) && !pxAssinValida(p); }
+function pxAssinDataFmt(iso){
+  try{ var d=new Date(iso);
+    return ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear()
+      +" \u00e0s "+("0"+d.getHours()).slice(-2)+"h"+("0"+d.getMinutes()).slice(-2);
+  }catch(e){ return ""; }
+}
+// O quadrado que a funcionária e o master veem: por assinar / assinado / caiu
+function pxAssinBlocoHtml(p){
+  var a=pxAssinatura(p);
+  var icoOk='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#157a35" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  var icoPena='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/></svg>';
+  var icoAt='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7a5a00" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.6 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
+  if(a && pxAssinValida(p)){
+    var q=pxEsc(a.nome||"")+" \u00b7 "+pxEsc(pxAssinDataFmt(a.em))+" \u00b7 c\u00f3digo "+pxEsc(a.codigo||"");
+    return '<div class="px-assin ok" title="'+q+'">'+icoOk
+      +'<span class="px-assin-txt"><b>Assinado \u00b7 '+pxEsc(String(pxAssinDataFmt(a.em)).split(" \u00e0s ").join(" "))+'</b>'
+      +'<i class="px-assin-cod">'+pxEsc(a.codigo||"")+'</i></span>'
+      +'<span class="px-assin-x" data-cassinrem="'+p.id+'" title="Cancelar esta assinatura">\u2715</span></div>';
+  }
+  if(a){   // assinou e o contrato mudou depois
+    return '<div class="px-assin caiu" title="O contrato mudou depois de assinado. Confira e assine de novo.">'+icoAt
+      +'<span class="px-assin-txt"><b>A assinatura caiu</b><i>o contrato mudou depois</i></span></div>'
+      +'<button type="button" class="px-assinar" data-cassinar="'+p.id+'">'+icoPena+'Assinar de novo</button>';
+  }
+  return '<button type="button" class="px-assinar" data-cassinar="'+p.id+'" title="Sem isso o contrato sai sem a assinatura do diretor.">'+icoPena+'Assinar contrato</button>';
+}
+// Assinar: exige a senha REAL do master, mesmo que o master já esteja logado.
+function pxAssinar(id){
+  var p=pontosG.find(function(x){ return x.id===id; }); if(!p) return;
+  var sb=pxSB();
+  if(!sb){ uiConfirm({titulo:"Precisa estar conectado",msg:"Assinar exige conex\u00e3o com a nuvem \u2014 \u00e9 l\u00e1 que fica a chave da assinatura. Entre no painel e tente de novo.",ok:"Entendi",cancel:""}); return; }
+  var nome=(PX_LOCADOR&&PX_LOCADOR.diretor)?String(PX_LOCADOR.diretor).trim():"";
+  if(!nome){ uiConfirm({titulo:"Falta o nome do diretor",msg:"Preencha o campo \u201cDiretor\u201d nas Configura\u00e7\u00f5es da loja antes de assinar.",ok:"Entendi",cancel:""}); return; }
+  var motivo='Voc\u00ea est\u00e1 ASSINANDO o contrato do ponto extra n\u00ba '+(p.numero||"")+' \u2014 '+(p.fornecedor||"")
+    +', no valor de '+brl(+p.valor||0)+'. Digite a senha do master para confirmar.';
+  autorizarMaster(motivo,true,true).then(function(senha){
+    if(!senha||senha===true) return;
+    // quem assina é o BANCO: só lá existe a chave secreta que gera o código
+    sb.rpc("assinar_contrato_ponto",{p_id:id,p_senha:senha,p_nome:nome,p_impressao_esperada:pxAssinImpressao(p)}).then(function(r){
+      if(r&&r.error){ uiConfirm({titulo:"Não deu para assinar",msg:pxAssinErro(r.error),ok:"Entendi",cancel:""}); return; }
+      var a=r&&r.data; if(!a||!a.codigo){ uiConfirm({titulo:"Não deu para assinar",msg:"A nuvem não devolveu o código. Tente de novo.",ok:"Entendi",cancel:""}); return; }
+      p.assinatura=a; savePontosG(); renderPontosG();
+    },function(){ uiConfirm({titulo:"Sem resposta da nuvem",msg:"Não consegui falar com o banco agora. Tente de novo.",ok:"Entendi",cancel:""}); });
+  });
+}
+function pxAssinErro(e){
+  var m=String((e&&e.message)||"");
+  if(/senha_incorreta/.test(m)) return "Senha do master incorreta.";
+  if(/muitas_tentativas/.test(m)) return "Muitas tentativas erradas. Espere 15 minutos e tente de novo.";
+  if(/precisa_estar_logado/.test(m)) return "Sua sess\u00e3o caiu. Entre no painel de novo.";
+  if(/sem_permissao/.test(m)) return "Seu login n\u00e3o tem acesso \u00e0 p\u00e1gina Pontos extras.";
+  if(/contrato_mudou/.test(m)) return "Algu\u00e9m alterou este contrato enquanto voc\u00ea assinava. Atualize a p\u00e1gina e confira antes de assinar.";
+  if(/ponto_nao_encontrado/.test(m)) return "Este fornecedor ainda n\u00e3o chegou na nuvem. Espere alguns segundos e tente de novo.";
+  if(/sem_nome_do_diretor/.test(m)) return "Falta o nome do diretor nas Configura\u00e7\u00f5es.";
+  if(/assinar_contrato_ponto|function|does not exist|schema/i.test(m))
+    return "A blindagem da assinatura ainda n\u00e3o foi instalada no banco. Rode o arquivo sql/assinatura_blindada.sql no Supabase.";
+  return "N\u00e3o consegui assinar agora. "+m;
+}
+// cancelar também passa pelo banco (a coluna não aceita escrita direta)
+// Contrato assinado só sai com a senha do master — o banco recusa DELETE direto.
+function pxApagarAssinado(p){
+  var sb=pxSB(); if(!sb) return;
+  autorizarMaster("Apagar o ponto extra n\u00ba "+(p.numero||"")+", que tem contrato ASSINADO. Digite a senha do master.",true,true).then(function(senha){
+    if(!senha||senha===true) return;
+    sb.rpc("apagar_ponto_assinado",{p_id:p.id,p_senha:senha}).then(function(r){
+      if(r&&r.error){ uiConfirm({titulo:"Não deu para apagar",msg:pxAssinErro(r.error),ok:"Entendi",cancel:""}); return; }
+      lixAdd("Ponto extra","Nº "+(p.numero||"?")+" · "+(p.fornecedor||"sem fornecedor"),"ponto",p);
+      pontosG=pontosG.filter(function(x){ return x.id!==p.id; });
+      savePontosG(); if(pxEditId===p.id) pxLimparForm(); renderPontosG();
+    },function(){});
+  });
+}
+function pxCancelarAssinatura(id){
+  var p=pontosG.find(function(x){ return x.id===id; }); if(!p) return;
+  var sb=pxSB(); if(!sb) return;
+  autorizarMaster("Cancelar a assinatura do contrato do ponto extra n\u00ba "+(p.numero||"")+". Digite a senha do master.",true,true).then(function(senha){
+    if(!senha||senha===true) return;
+    sb.rpc("cancelar_assinatura_ponto",{p_id:id,p_senha:senha}).then(function(r){
+      if(r&&r.error){ uiConfirm({titulo:"Não deu para cancelar",msg:pxAssinErro(r.error),ok:"Entendi",cancel:""}); return; }
+      delete p.assinatura; savePontosG(); renderPontosG();
+    },function(){});
+  });
+}
 function pxContratoHtml(p){
   const docIc='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>';
   const clipIc='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>';
@@ -6785,9 +7196,11 @@ function pxContratoHtml(p){
     corpo='<button type="button" class="px-arq-anexar" data-cfile-btn="'+p.id+'">'+clipIc+'Anexar contrato</button>';
   }
   var gerarIc='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>';
-  return '<div class="px-det-item"><b>Contrato</b><button type="button" class="px-gerar-ct" data-cgerar="'+p.id+'" title="Gerar contrato padrão com os dados deste ponto">'+gerarIc+'Gerar contrato</button></div>'+
-    '<div class="px-det-item"><b>&nbsp;</b><div class="px-arq">'+corpo+
-    '<input type="file" data-cfile="'+p.id+'" accept="application/pdf,image/*" style="display:none;"></div></div>';
+  return '<div class="px-det-item px-det-ct px-acoes"><b>Contrato</b><div class="px-ct-duo">'+
+      '<button type="button" class="px-gerar-ct" data-cgerar="'+p.id+'" title="Gerar contrato padrão com os dados deste ponto">'+gerarIc+'Gerar contrato</button>'+
+      '<div class="px-arq">'+corpo+'<input type="file" data-cfile="'+p.id+'" accept="application/pdf,image/*" style="display:none;"></div>'+
+    '</div></div>'+
+    '<div class="px-det-item px-det-assin px-acoes"><b>Assinatura</b><div class="px-ct-duo">'+pxAssinBlocoHtml(p)+'</div></div>';
 }
 function pxFmtCnpj(c){
   const d=(c||"").replace(/\\D/g,"");
@@ -6837,13 +7250,13 @@ function renderPontosG(){
       '<td>'+(p.obs||"")+'</td>'+
       '<td style="white-space:nowrap"><span class="esc-nome" data-edit="'+p.id+'">editar</span> &nbsp;<span class="esc-del" data-del="'+p.id+'" title="Remover">✕</span></td>'+
       '</tr>'+
-      '<tr class="px-det" id="det-'+p.id+'" style="display:none;"><td colspan="11"><div class="px-det-wrap"><div class="px-det-box">'+
-        pxDetItem("CNPJ", p.cnpj ? pxFmtCnpj(p.cnpj) : "—")+
+      '<tr class="px-det" id="det-'+p.id+'" style="display:none;"><td colspan="11"><div class="px-det-wrap"><div class="px-det-box px-det-pontos">'+
+        pxDetItem("CNPJ", p.cnpj ? pxFmtCnpj(p.cnpj) : "—", "px-det-nowrap")+
         pxDetItem("Razão Social", p.razaoSocial||"—")+
         pxDetItem("Endereço", p.endereco?pxEsc(p.endereco):"—")+
         pxDetItem("Vendedor", p.vendedor||"—")+
-        pxDetItem("Contato", p.contato?pxFmtTel(p.contato):"—")+
-        pxDetItem("E-mail", p.email ? ('<a href="mailto:'+pxEsc(p.email)+'">'+pxEsc(p.email)+'</a>') : "—", "px-det-wide")+
+        pxDetItem("Contato", p.contato?pxFmtTel(p.contato):"—", "px-det-nowrap")+
+        pxDetItem("E-mail", p.email ? ('<a href="mailto:'+pxEsc(p.email)+'" title="'+pxEsc(p.email)+'">'+pxEsc(p.email)+'</a>') : "—", "px-det-corta")+
         pxContratoHtml(p)+
       '</div>'+pxAgendaHtml(p)+'</div></td></tr>';
   }).join("");
@@ -7046,10 +7459,14 @@ function uiPrompt(opts){
 // - Se quem está mexendo JÁ é master, passa direto (não incomoda ele com a própria senha).
 // - Se for funcionário, abre a janelinha: só passa se a senha bater com a de um master.
 // Uso: autorizarMaster("motivo").then(function(ok){ if(!ok) return; /* faz a ação */ });
-function autorizarMaster(motivo){
+function autorizarMaster(motivo,sempre,devolverSenha){
   return new Promise(function(resolve){
     var perfil=window.__PERFIL||{};
-    if(perfil.is_master){ resolve(true); return; } // master não precisa autorizar a si mesmo
+    // sempre=true: pede a senha até do próprio master. Usado para ASSINAR contrato —
+    // assinatura tem que ser um ato consciente, não um clique perdido.
+    if(perfil.is_master && !sempre){ resolve(true); return; }
+    // devolverSenha=true: resolve com a SENHA digitada (string, também é "verdadeiro"),
+    // porque algumas ações precisam reconferir a senha no banco. Quem não pede, recebe true.
     var bg=document.getElementById("smModal");
     if(!bg){
       bg=document.createElement("div"); bg.id="smModal"; bg.className="modal-bg";
@@ -7070,7 +7487,7 @@ function autorizarMaster(motivo){
       ok.disabled=true; ok.textContent="Conferindo…"; erro.style.display="none";
       sb.rpc("senha_master_ok",{senha:senha}).then(function(r){
         if(r && r.error){ falha("Não consegui conferir agora. Tente de novo."); return; }
-        if(r && r.data===true){ fechar(true); }
+        if(r && r.data===true){ fechar(devolverSenha?senha:true); }
         else { falha("Senha do master incorreta."); }
       }, function(){ falha("Não consegui conferir agora. Tente de novo."); });
     }
@@ -7236,7 +7653,11 @@ async function pixTravaClick(){
     const cview=e.target.closest("[data-cview]");
     if(cview){ e.preventDefault(); pxAbrirContrato(pontosG.find(x=>x.id===cview.dataset.cview)); return; }
     const cbtn=e.target.closest("[data-cfile-btn]");
-    if(cbtn){ const inp=document.querySelector('[data-cfile="'+cbtn.dataset.cfileBtn+'"]'); if(inp) inp.click(); return; }
+    if(cbtn){
+      // anexar só depois que o diretor assinou (ordem: assina -> imprime -> fornecedor assina -> anexa)
+      const _pa=pontosG.find(x=>x.id===cbtn.dataset.cfileBtn);
+      if(_pa && !pxExigeAssinatura(_pa,"anexar")) return;
+      const inp=document.querySelector('[data-cfile="'+cbtn.dataset.cfileBtn+'"]'); if(inp) inp.click(); return; }
     const pixb=e.target.closest("[data-pix]");
     if(pixb){ const pr=pixb.dataset.pix.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p) pxGerarPix(p,pr[1]); return; }
     const pixv=e.target.closest("[data-pixver]");
@@ -7310,6 +7731,10 @@ async function pixTravaClick(){
     if(cpview){ e.preventDefault(); const pr=cpview.dataset.compview.split("|"); const p=pontosG.find(x=>x.id===pr[0]); const c=p&&p.comprovantes?p.comprovantes[pr[1]]:null; if(c) pxAbrirArquivo(c.arquivo); return; }
     const cprem=e.target.closest("[data-comprem]");
     if(cprem){ const pr=cprem.dataset.comprem.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p&&p.comprovantes&&p.comprovantes[pr[1]]){ uiConfirm({ titulo:"Remover comprovante", msg:"Remover o comprovante desta parcela?", ok:"Remover", cancel:"Cancelar" }).then(function(sim){ if(!sim) return; delete p.comprovantes[pr[1]]; savePontosG(); renderPontosG(); pxReabrir(p.id); }); } return; }
+    const cass=e.target.closest("[data-cassinar]");
+    if(cass){ pxAssinar(cass.dataset.cassinar); return; }
+    const carem=e.target.closest("[data-cassinrem]");
+    if(carem){ pxCancelarAssinatura(carem.dataset.cassinrem); return; }
     const cger=e.target.closest("[data-cgerar]");
     if(cger){ pxGerarContrato(pontosG.find(x=>x.id===cger.dataset.cgerar)); return; }
     const ed=e.target.closest("[data-edit]");
@@ -7321,10 +7746,17 @@ async function pixTravaClick(){
     const del=e.target.closest("[data-del]");
     if(del){ const p=pontosG.find(x=>x.id===del.dataset.del); if(p){
       var _msg="Apaga o fornecedor \\u201c"+(p.fornecedor||"sem fornecedor")+"\\u201d (nº "+(p.numero||"?")+") e tudo dele: cobranças, pagamentos, notas e contrato.";
-      uiConfirm({ titulo:"Apagar este fornecedor?", msg:_msg, ok:"Sim, apagar", cancel:"Não, cancelar" }).then(function(sim){ if(!sim) return; lixAdd("Ponto extra","Nº "+(p.numero||"?")+" · "+(p.fornecedor||"sem fornecedor"),"ponto",p); pontosG=pontosG.filter(x=>x.id!==del.dataset.del); savePontosG(); pxCloudDelPonto(del.dataset.del); if(pxEditId===del.dataset.del) pxLimparForm(); renderPontosG(); }); } return; }
+      var _ass=pxAssinatura(p);
+      if(_ass){ _msg="Este contrato est\u00e1 ASSINADO (c\u00f3digo "+(_ass.codigo||"")+").\\n\\nPara apagar vai ser preciso a senha do master. A prova da assinatura continua guardada e o c\u00f3digo segue conferindo.\\n\\n"+_msg; }
+      uiConfirm({ titulo:"Apagar este fornecedor?", msg:_msg, ok:"Sim, apagar", cancel:"Não, cancelar" }).then(function(sim){ if(!sim) return;
+        if(_ass){ pxApagarAssinado(p); return; } lixAdd("Ponto extra","Nº "+(p.numero||"?")+" · "+(p.fornecedor||"sem fornecedor"),"ponto",p); pontosG=pontosG.filter(x=>x.id!==del.dataset.del); savePontosG(); pxCloudDelPonto(del.dataset.del); if(pxEditId===del.dataset.del) pxLimparForm(); renderPontosG(); }); } return; }
   });
   // processa o arquivo do contrato (usado tanto pelo clique/seletor quanto pelo arrastar-e-soltar)
   function pxProcessaContratoArquivo(id,f){
+  // TRAVA ÚNICA: qualquer caminho de anexar (botão, arrastar-e-soltar) passa por aqui.
+  // Anexar antes do diretor assinar quebraria a ordem do processo.
+  var _pAnx=pontosG.find(function(x){ return x.id===id; });
+  if(_pAnx && !pxExigeAssinatura(_pAnx,"anexar")) return;
     if(!f) return;
     if(f.size > 3*1024*1024){ uiConfirm({ titulo:"Arquivo muito grande", msg:"O contrato precisa ter no máximo 3 MB. Tente um PDF ou foto menor.", ok:"Entendi", cancel:"" }); return; }
     const reader=new FileReader();
@@ -10811,7 +11243,15 @@ function opAtualizaBadge(){
 /* ===== Lixeira (desfazer exclusão) — guarda o que foi apagado pra poder restaurar ===== */
 function lixSB(){ return window.__SB||null; }
 function lixUid(){ return "lx"+Date.now().toString(36)+Math.floor(Math.random()*1000); }
+/* Restaurar da Lixeira não pode trazer a assinatura de volta: o banco não aceita escrita
+   direta nessa coluna, então a tela mostraria "assinado" e o banco não teria nada — o
+   contrato sairia impresso com um carimbo que não confere. Guarda-se sem ela. */
+function lixSemAssinatura(o){
+  try{ if(o&&typeof o==="object"&&o.assinatura){ var c=JSON.parse(JSON.stringify(o)); delete c.assinatura; return c; } }catch(e){}
+  return o;
+}
 function lixAdd(tipo,descricao,feature,payload){
+  payload=lixSemAssinatura(payload);
   var reg={id:lixUid(),tipo:tipo,descricao:descricao,feature:feature,payload:payload,quando:new Date().toISOString()};
   var sb=lixSB();
   if(sb){ sb.from("lixeira").insert({id:reg.id,tipo:tipo,descricao:descricao,feature:feature,payload:payload,quando:reg.quando}).then(function(){},function(){}); }
@@ -12600,13 +13040,59 @@ function recTotalCop(rows,ctx){
    A ficha diz quanto DEVERIA render. A produção diz quanto REALMENTE saiu.
    A diferença vira custo: o mesmo dinheiro dividido por menos unidades. */
 function recProdNum(v){ var n=parseFloat(String(v==null?"":v).replace(",",".").replace(/[^0-9.\-]/g,"")); return isFinite(n)?n:0; }
-function recProdAnalise(prod,esperado,custoReceita){
-  prod=prod||{};
+/* Tempo escrito por gente: "1h20", "1:20", "80", "80min", "1,5h", "2 horas" -> minutos.
+   Não entendeu = null (a tela mostra "—" em vez de inventar número). */
+function recTempoMin(txt){
+  var s=String(txt==null?"":txt).toLowerCase().replace(/\\s+/g,"").replace(",",".");
+  if(!s) return null;
+  var r=null, m;
+  if((m=s.match(/^(\\d+):(\\d{1,2})$/)))                          r=(+m[1])*60+(+m[2]);                  // 1:20
+  else if((m=s.match(/^(\\d+(?:\\.\\d+)?)h(?:rs?|s|o(?:ra)?s?)?(\\d{1,2})?(?:m|min|minutos?)?$/))) r=parseFloat(m[1])*60+(m[2]?+m[2]:0);  // 1h20 / 1h / 1.5h / 2horas
+  else if((m=s.match(/^(\\d+(?:\\.\\d+)?)(?:m|min|minutos?)$/)))  r=parseFloat(m[1]);                    // 45min
+  else if((m=s.match(/^(\\d+)$/)))                                 r=+m[1];                               // 80 = minutos (só inteiro: "1,20" é ambíguo)
+  if(r==null||!isFinite(r)) return null;
+  r=Math.round(r);
+  return r>0?r:null;
+}
+/* Número escrito em pt-BR, MESMA regra do cadastro da ficha (despParseValor):
+   "2,35"->2.35 · "2.35"->2.35 · "2.500"->2500 (ponto de milhar). */
+function recNumBR(v){
+  var t=String(v==null?"":v).replace(/[^0-9.,]/g,"");
+  if(!t) return null;
+  if(t.indexOf(",")>=0) t=t.replace(/\\./g,"").replace(",",".");
+  else if(!/^\\d+\\.\\d{1,2}$/.test(t)) t=t.replace(/\\./g,"");
+  var n=parseFloat(t);
+  return isFinite(n)?n:null;
+}
+/* Peso em kg. Aceita "2,35", "2,35 kg", "500 g", "1,5kg" — e SÓ isso.
+   "2 kg 300" ou "dois quilos" devolvem null (a tela avisa em vez de inventar 2.300 kg). */
+function recPesoKg(txt){
+  var t=String(txt==null?"":txt).toLowerCase().replace(/\\s+/g,"");
+  if(!t) return null;
+  var m=t.match(/^([0-9.,]+)(kgs?|quilos?|k|gramas?|gr?|g)?$/);
+  if(!m) return null;
+  var n=recNumBR(m[1]); if(n==null||n<=0) return null;
+  var u=m[2]||"";
+  if(u==="g"||u==="gr"||u==="grama"||u==="gramas") n=n/1000;
+  return n>0?n:null;
+}
+// minutos -> "1h20" / "45min" (o jeito que o dono escreve)
+function recTempoFmt(min){
+  var m=Math.round(+min||0); if(!(m>0)) return "\u2014";
+  var h=Math.floor(m/60), r=m%60;
+  return h>0 ? (h+"h"+(r?((r<10?"0":"")+r):"")) : (r+"min");
+}
+function recProdAnalise(prod,esperado,custoReceita,ficha){
+  prod=prod||{}; ficha=ficha||{};
   var boas=Math.max(0,recProdNum(prod.quantidade));
   var perdidas=Math.max(0,recProdNum(prod.perdidas));
   var esp=Math.max(0,+esperado||0);
   var feitas=boas+perdidas;
   var custo=Math.max(0,+custoReceita||0);
+  // padrão da ficha x realidade da produção
+  var tPad=recTempoMin(ficha.tempo), tReal=recTempoMin(prod.tempo);
+  var pPad=Math.max(0,+ficha.pesoFinal||0)||null;
+  var pReal=recPesoKg(prod.peso);
   return {
     boas:boas, perdidas:perdidas, feitas:feitas, esperado:esp,
     // rendimento contra a ficha: saíram 14 de 16 = 87,5%
@@ -12615,18 +13101,52 @@ function recProdAnalise(prod,esperado,custoReceita){
     perdaPct: feitas>0 ? (perdidas/feitas*100) : null,
     // custo real da unidade boa: todo o dinheiro dividido só pelo que dá pra vender
     custoUnitReal: boas>0 && custo>0 ? (custo/boas) : null,
-    custoUnitFicha: esp>0 && custo>0 ? (custo/esp) : null
+    custoUnitFicha: esp>0 && custo>0 ? (custo/esp) : null,
+    // TEMPO: levou mais que o previsto? (mão de obra real maior que a da ficha)
+    tempoPad:tPad, tempoReal:tReal,
+    tempoDif:  (tPad!=null&&tReal!=null) ? (tReal-tPad) : null,
+    tempoPct:  (tPad!=null&&tReal!=null) ? ((tReal-tPad)/tPad*100) : null,
+    // PESO: deu menos massa que o previsto? (perda invisível: ressecou, faltou ingrediente)
+    pesoPad:pPad, pesoReal:pReal,
+    pesoDif:   (pPad!=null&&pReal!=null) ? (pReal-pPad) : null,
+    pesoPct:   (pPad!=null&&pReal!=null) ? ((pReal-pPad)/pPad*100) : null,
+    custoKgReal:  (pReal!=null&&custo>0) ? (custo/pReal) : null,
+    custoKgFicha: (pPad!=null&&custo>0)  ? (custo/pPad)  : null
   };
 }
 // média dos últimos registros (pra saber se é caso isolado ou padrão)
-function recProdMedia(producoes,esperado,n){
-  var lista=(producoes||[]).slice(-(n||10)).filter(function(pr){ return recProdNum(pr.quantidade)>0; });
-  if(!lista.length) return null;
+function recProdMedia(producoes,esperado,n,ficha){
+  var base=(producoes||[]).slice(-(n||10));
+  // lote inteiro perdido (0 boas, tudo na perda) TEM que entrar na média, senão some da conta
+  var lista=base.filter(function(pr){ return recProdNum(pr.quantidade)>0 || recProdNum(pr.perdidas)>0; });
+  // tempo e peso são opcionais: cada um conta só quem preencheu
+  var tempos=[], pesos=[];
+  base.forEach(function(pr){ var t=recTempoMin(pr.tempo); if(t!=null) tempos.push(t);
+                             var p=recPesoKg(pr.peso);   if(p!=null) pesos.push(p); });
+  if(!lista.length && !tempos.length && !pesos.length) return null;
   var somaBoas=0, somaPerd=0;
   lista.forEach(function(pr){ somaBoas+=recProdNum(pr.quantidade); somaPerd+=Math.max(0,recProdNum(pr.perdidas)); });
-  var med=somaBoas/lista.length;
+  var med=lista.length?(somaBoas/lista.length):null;
+  var soma=function(a){ var t=0,i; for(i=0;i<a.length;i++) t+=a[i]; return t; };
+  var mt=tempos.length?(soma(tempos)/tempos.length):null;
+  var mp=pesos.length?(soma(pesos)/pesos.length):null;
+  var tPad=recTempoMin((ficha||{}).tempo);
+  var pPad=Math.max(0,+((ficha||{}).pesoFinal)||0)||null;
   return { n:lista.length, mediaBoas:med, totalPerdidas:somaPerd,
-           rendPct:(+esperado>0)?(med/(+esperado)*100):null };
+           rendPct:(med!=null&&+esperado>0)?(med/(+esperado)*100):null,
+           nTempo:tempos.length, mediaTempo:mt, tempoPad:tPad,
+           tempoPct:(mt!=null&&tPad!=null)?((mt-tPad)/tPad*100):null,
+           nPeso:pesos.length, mediaPeso:mp, pesoPad:pPad,
+           pesoPct:(mp!=null&&pPad!=null)?((mp-pPad)/pPad*100):null };
+}
+/* Desvio do padrão: o lado RUIM (demorar mais, pesar menos) sobe rápido pra amarelo/vermelho.
+   O lado BOM é tolerante — terminar antes não é defeito, mas um desvio enorme ainda avisa
+   que a ficha pode estar errada. Devolve 0 (ok) / 1 (atenção) / 2 (ruim). */
+function recDesvNivel(pct,ruimSe){
+  var v=+pct; if(v==null||!isFinite(v)) return 0;
+  if(ruimSe==="menor") v=-v;                       // peso: ruim é pesar MENOS que o padrão
+  if(v>0) return v<=5?0:(v<=15?1:2);               // lado ruim
+  v=-v;      return v<=25?0:(v<=50?1:2);           // lado bom
 }
 /* ---------- RATEIO DE CUSTOS (despesa real do setor -> custo por unidade produzida) ----------
    Fluxo: despesas do período -> % destinado ao setor -> dividido pela produção do período
@@ -13286,9 +13806,7 @@ function recRenderLista(){
     grupos[s].sort(function(a,b){ return (a.nome||"").localeCompare(b.nome||"","pt",{numeric:true}); }).forEach(function(x){
       var _meta=[]; if(x.rendimento) _meta.push('Rende: '+recEsc(x.rendimento)); if(x.tempo) _meta.push('Tempo: '+recEsc(x.tempo));
       // MESMA regra do formulário (recFinCalc) — nada de conta duplicada no cartão
-      var _f=recFinCalc({ingr:(x.ingr||[]).map(recIngNorm), custoIngLegado:x.custo, embalagens:recEmbDe(x), custoEmb:recEmbCustoDe(x),
-                         custosOp:recCopDe(x), outros:x.outros, rendQtd:(x.rendQtd||recRendSplit(x.rendimento||"").q), rendUn:(x.rendUn||recRendSplit(x.rendimento||"").u),
-                         preco:x.preco, modo:"preco"});
+      var _f=recFichaCalc(x);
       var _money='';
       if(_f.total>0||_f.preco>0){
         var _cor=((_f.lucro==null||_f.lucro>=0)?'#157a35':'#c0392b');
@@ -13314,16 +13832,32 @@ function recRenderLista(){
   });
   el.innerHTML=h;
 }
+/* O custo de uma receita SALVA tem que ser o mesmo em todo lugar: cartão, histórico e produção.
+   Antes cada tela montava o objeto do recFinCalc do seu jeito e as embalagens sumiam no caminho. */
+function recFichaCalc(x){
+  x=x||{};
+  return recFinCalc({ingr:(x.ingr||[]).map(recIngNorm), custoIngLegado:x.custo,
+                     embalagens:recEmbDe(x), custoEmb:recEmbCustoDe(x),
+                     custosOp:recCopDe(x), outros:x.outros,
+                     rendQtd:(x.rendQtd||recRendSplit(x.rendimento||"").q),
+                     rendUn:(x.rendUn||recRendSplit(x.rendimento||"").u),
+                     pesoFinal:x.pesoFinal, preco:x.preco, modo:"preco"});
+}
 function recProdFormHtml(x){
+  var _padT=recTempoMin(x.tempo), _padP=Math.max(0,+x.pesoFinal||0);
+  var _hintT=_padT!=null?('<span class="rec-pf-pad">padr\u00e3o '+recEsc(recTempoFmt(_padT))+'</span>'):'';
+  var _hintP=_padP>0?('<span class="rec-pf-pad">padr\u00e3o '+recEsc(String(Math.round(_padP*1000)/1000).replace(".",","))+' kg</span>'):'';
   var fotoPrev=recProdFoto?('<img src="'+recEsc(recProdFoto)+'" style="max-height:100px;border-radius:8px;display:block;"><button type="button" class="rec-mini del" data-recprodfotodel="1" style="margin-top:6px;">Remover foto</button>'):'<span style="color:#8a97a8;font-size:12px;">Nenhuma foto ainda.</span>';
   return '<div class="rec-prodform"><div class="rec-pf-tit">Registrar produção + conferência de qualidade</div>'
-    +'<div class="rec-grid" style="grid-template-columns:130px 1fr 1fr 1fr;">'
+    +'<div class="rec-grid rec-grid-prod">'
     +'<div class="rec-fld" style="margin-top:0;"><label>Data</label><input id="recPqData" type="date" value="'+manIso(HOJE)+'"></div>'
     +'<div class="rec-fld" style="margin-top:0;"><label>Quantidade boa (deu pra vender)</label><input id="recPqQtd" inputmode="decimal" placeholder="Ex: 14"></div>'
     +'<div class="rec-fld" style="margin-top:0;"><label>Perdeu na produção</label><input id="recPqPerda" inputmode="decimal" placeholder="0" title="Queimou, desandou, caiu — o que virou lixo antes de vender"></div>'
     +'<div class="rec-fld" style="margin-top:0;"><label>Quem produziu</label><input id="recPqQuem" placeholder="Funcionário"></div>'
     +'</div>'
-    +'<div class="rec-grid" style="grid-template-columns:1fr 1fr;margin-top:10px;">'
+    +'<div class="rec-grid rec-grid-prod" style="margin-top:10px;align-items:end;">'
+    +'<div class="rec-fld" style="margin-top:0;"><label>Tempo que levou '+_hintT+'</label><input id="recPqTempo" placeholder="'+(_padT!=null?recEsc(recTempoFmt(_padT)):'ex.: 1h20')+'" title="Do começo ao fim. Pode escrever 1h20, 1:20 ou 80 (minutos)."></div>'
+    +'<div class="rec-fld" style="margin-top:0;"><label>Peso que deu (kg) '+_hintP+'</label><input id="recPqPeso" inputmode="decimal" placeholder="'+(_padP>0?recEsc(String(Math.round(_padP*1000)/1000).replace(".",",")):'ex.: 2,35')+'" title="Peso do que saiu pronto. Serve pra ver se rendeu a massa esperada."></div>'
     +'<div class="rec-fld" style="margin-top:0;"><label>Resultado da conferência</label><select id="recPqRes"><option value="ok">Ficou no padrão (conforme)</option><option value="fora">Fora do padrão</option></select></div>'
     +'<div class="rec-fld" style="margin-top:0;"><label>Quem conferiu (supervisor)</label><input id="recPqSup" placeholder="Supervisor / gerente"></div>'
     +'</div>'
@@ -13338,24 +13872,40 @@ function recProdHistHtml(x){
   if(!arr.length) return '<div class="rec-prodhist"><span style="color:#8a97a8;font-size:13px;">Nenhuma produção registrada ainda.</span></div>';
   var _esp=+((x.rendQtd!=null&&x.rendQtd!=="")?x.rendQtd:recRendSplit(x.rendimento||"").q)||0;
   var _un=recSing(x.rendUn||recRendSplit(x.rendimento||"").u||"");
-  var _custo=recFinCalc({ingr:(x.ingr||[]).map(recIngNorm), custoIngLegado:x.custo, custoEmb:recEmbCustoDe(x), custosOp:recCopDe(x)}).total;
-  var _med=recProdMedia(x.producoes,_esp,10);
+  var _custo=recFichaCalc(x).total;
+  var _med=recProdMedia(x.producoes,_esp,10,x);
   var h='<div class="rec-prodhist">';
-  if(_med&&_med.rendPct!=null){
-    var _cls=(_med.rendPct>=98)?"ok":((_med.rendPct>=90)?"at":"ru");
+  if(_med&&(_med.rendPct!=null||_med.mediaTempo!=null||_med.mediaPeso!=null)){
+    var _niv=0;
+    if(_med.rendPct!=null) _niv=Math.max(_niv,(_med.rendPct>=98)?0:((_med.rendPct>=90)?1:2));
+    if(_med.tempoPct!=null) _niv=Math.max(_niv,recDesvNivel(_med.tempoPct,"maior"));
+    if(_med.pesoPct!=null)  _niv=Math.max(_niv,recDesvNivel(_med.pesoPct,"menor"));
+    var _cls=["ok","at","ru"][_niv];
     var _cReal=(_med.mediaBoas>0&&_custo>0)?(_custo/_med.mediaBoas):null;
-    h+='<div class="rec-prod-aviso '+_cls+'" style="margin:0 0 10px;">Rendimento médio das últimas '+_med.n+' produções: <b>'
-      +(Math.round(_med.mediaBoas*10)/10).toLocaleString("pt-BR")+'</b> de <b>'+(_esp||"—")+'</b> ('+recPct(_med.rendPct)+')'
-      +(_med.totalPerdidas>0?(' · perdas na produção: <b>'+(Math.round(_med.totalPerdidas*10)/10).toLocaleString("pt-BR")+'</b>'):'')
-      +(_cReal!=null?('<br>Custo real por '+recEsc(_un)+': <b>'+brl(_cReal)+'</b>'+((_custo>0&&_esp>0)?(' <span style="opacity:.75;">(ficha: '+brl(_custo/_esp)+')</span>'):'')):'')
-      +'</div>';
+    var _qtdN=Math.max(_med.n,_med.nTempo||0,_med.nPeso||0);
+    // cada média tem o SEU tamanho de amostra: nem todo mundo preenche tempo e peso
+    var _amostra=function(k){ return (k===_qtdN)?"":(' <span class="rec-cmp-nd">('+k+' de '+_qtdN+')</span>'); };
+    h+='<div class="rec-prod-aviso '+_cls+'" style="margin:0 0 10px;">Média das últimas '+_qtdN+' produções';
+    if(_med.rendPct!=null){
+      h+=':<br>Rendimento'+_amostra(_med.n)+': <b>'+(Math.round(_med.mediaBoas*10)/10).toLocaleString("pt-BR")+'</b> de <b>'+(_esp||"—")+'</b> ('+recPct(_med.rendPct)+')'
+        +(_med.totalPerdidas>0?(' · perdas na produção: <b>'+(Math.round(_med.totalPerdidas*10)/10).toLocaleString("pt-BR")+'</b>'):'');
+      if(_cReal!=null) h+='<br>Custo real por '+recEsc(_un)+': <b>'+brl(_cReal)+'</b>'+((_custo>0&&_esp>0)?(' <span style="opacity:.75;">(ficha: '+brl(_custo/_esp)+')</span>'):'');
+    } else h+=':';
+    if(_med.mediaTempo!=null||_med.mediaPeso!=null){
+      h+='<div class="rec-cmp">';
+      if(_med.mediaTempo!=null) h+='<span>Tempo'+_amostra(_med.nTempo)+': '+(_med.tempoPad!=null?(recEsc(recTempoFmt(_med.tempoPad))+' previsto \u00b7 '):'')+'<b>'+recEsc(recTempoFmt(_med.mediaTempo))+'</b> na média'+(_med.tempoPct!=null?(' \u00b7 <b class="'+recDesvCls(_med.tempoPct,"maior")+'">'+recDifPct(_med.tempoPct)+'</b>'):'')+'</span>';
+      if(_med.mediaPeso!=null)  h+='<span>Peso'+_amostra(_med.nPeso)+': '+(_med.pesoPad!=null?(recEsc(recKg(_med.pesoPad))+' previsto \u00b7 '):'')+'<b>'+recEsc(recKg(_med.mediaPeso))+'</b> na média'+(_med.pesoPct!=null?(' \u00b7 <b class="'+recDesvCls(_med.pesoPct,"menor")+'">'+recDifPct(_med.pesoPct)+'</b>'):'')+'</span>';
+      h+='</div>';
+    }
+    h+='</div>';
   }
   arr.forEach(function(p){
     var badge=(p.resultado==="fora")?'<span class="rec-badge fora">Fora do padrão</span>':'<span class="rec-badge ok">Conforme</span>';
-    var _a=recProdAnalise(p,_esp,_custo);
+    var _a=recProdAnalise(p,_esp,_custo,x);
     var _rend=(_a.rendPct!=null&&_a.boas>0)?(' · rendimento <b>'+recPct(_a.rendPct)+'</b>'):'';
     var _perd=(_a.perdidas>0)?(' · <span style="color:#c0392b;">perdeu '+_a.perdidas+'</span>'):'';
     h+='<div class="rec-prod-item"><div class="rec-prod-l1"><b>'+recEsc((p.data||"").split("-").reverse().join("/"))+'</b>'+(p.quantidade?' · '+recEsc(p.quantidade):'')+_perd+_rend+(p.quemFez?' · por '+recEsc(p.quemFez):'')+' '+badge+'</div>'
+      +recProdCmpHtml(_a,p)
       +(p.quemConferiu?'<div class="rec-prod-l2">Conferido por: '+recEsc(p.quemConferiu)+'</div>':'')
       +(p.obs?'<div class="rec-prod-l2">'+recEsc(p.obs)+'</div>':'')
       +(p.foto?'<img src="'+recEsc(p.foto)+'" class="rec-prod-foto">':'')
@@ -13381,27 +13931,80 @@ function recProdFotoUpload(inp){
     }catch(e){ if(pv) pv.innerHTML='<span style="color:#c0392b;font-size:12px;">Erro ao processar a foto.</span>'; }
   });
 }
+// classe visual do desvio (o motor decide o nível; aqui só pinta)
+function recDesvCls(pct,ruimSe){ return ["d-ok","d-at","d-ru"][recDesvNivel(pct,ruimSe)]; }
+function recDifPct(v){ return (v==null||!isFinite(v))?"\u2014":((v>0?"+":"")+recPct(v)); }
+function recKg(v){ return (v==null||!isFinite(v))?"\u2014":((Math.round(v*1000)/1000).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:3})+" kg"); }
+/* Chips "previsto x real" de tempo e peso. Só aparece o que a pessoa preencheu.
+   Se ela escreveu algo que o sistema não entendeu, mostra o texto cru — o que foi digitado
+   NUNCA some da tela (senão vira dado invisível guardado no banco). */
+function recProdCmpHtml(a,prod){
+  prod=prod||{};
+  var rawT=String(prod.tempo==null?"":prod.tempo).trim(), rawP=String(prod.peso==null?"":prod.peso).trim();
+  var ch=[];
+  if(a.tempoReal!=null){
+    ch.push('<span>Tempo: '+(a.tempoPad!=null?(recEsc(recTempoFmt(a.tempoPad))+' previsto \u00b7 '):'')
+      +'<b>'+recEsc(recTempoFmt(a.tempoReal))+'</b> real'
+      +(a.tempoPct!=null?(' \u00b7 <b class="'+recDesvCls(a.tempoPct,"maior")+'">'+recDifPct(a.tempoPct)+'</b>'):'')+'</span>');
+  } else if(rawT){
+    ch.push('<span>Tempo: <b>'+recEsc(rawT)+'</b> <span class="rec-cmp-nd">(n\u00e3o deu pra comparar)</span></span>');
+  }
+  if(a.pesoReal!=null){
+    ch.push('<span>Peso: '+(a.pesoPad!=null?(recEsc(recKg(a.pesoPad))+' previsto \u00b7 '):'')
+      +'<b>'+recEsc(recKg(a.pesoReal))+'</b> real'
+      +(a.pesoPct!=null?(' \u00b7 <b class="'+recDesvCls(a.pesoPct,"menor")+'">'+recDifPct(a.pesoPct)+'</b>'):'')+'</span>');
+  } else if(rawP){
+    ch.push('<span>Peso: <b>'+recEsc(rawP)+'</b> <span class="rec-cmp-nd">(n\u00e3o deu pra comparar)</span></span>');
+  }
+  return ch.length?('<div class="rec-cmp">'+ch.join("")+'</div>'):'';
+}
 // Mostra na hora o estrago: rendimento real e custo real da unidade.
 function recProdAvisoPinta(recipeId){
   var el=document.getElementById("recPqAviso"); if(!el) return;
   var x=recData.find(function(r){return r.id===recipeId;}); if(!x){ el.style.display="none"; return; }
   var esp=+((x.rendQtd!=null&&x.rendQtd!=="")?x.rendQtd:recRendSplit(x.rendimento||"").q)||0;
   var un=recSing(x.rendUn||recRendSplit(x.rendimento||"").u||"");
-  var custo=recFinCalc({ingr:(x.ingr||[]).map(recIngNorm), custoIngLegado:x.custo, custoEmb:recEmbCustoDe(x), custosOp:recCopDe(x)}).total;
-  var a=recProdAnalise({quantidade:(document.getElementById("recPqQtd")||{}).value,
-                        perdidas:(document.getElementById("recPqPerda")||{}).value}, esp, custo);
-  if(!(a.boas>0)&&!(a.perdidas>0)){ el.style.display="none"; return; }
-  var cls = (a.rendPct==null)?"ok":(a.rendPct>=98?"ok":(a.rendPct>=90?"at":"ru"));
-  var h='<b>Esperado '+(esp||"—")+'</b> · boas <b>'+a.boas+'</b>'+(a.perdidas>0?(' · perdeu <b>'+a.perdidas+'</b>'):'')
-    +(a.rendPct!=null?(' · rendimento <b>'+recPct(a.rendPct)+'</b>'):'');
+  var custo=recFichaCalc(x).total;
+  var _v=function(id){ var e=document.getElementById(id); return e?e.value:""; };
+  var a=recProdAnalise({quantidade:_v("recPqQtd"), perdidas:_v("recPqPerda"),
+                        tempo:_v("recPqTempo"), peso:_v("recPqPeso")}, esp, custo, x);
+  // escreveu algo que o sistema não entendeu? avisa em vez de ignorar calado
+  var _rawT=String(_v("recPqTempo")||"").trim(), _rawP=String(_v("recPqPeso")||"").trim();
+  var alertas=[];
+  if(_rawT&&a.tempoReal==null) alertas.push('N\u00e3o entendi o tempo "'+recEsc(_rawT)+'". Escreva assim: 1h20, 1:20 ou 80 (minutos).');
+  if(_rawP&&a.pesoReal==null)  alertas.push('N\u00e3o entendi o peso "'+recEsc(_rawP)+'". Escreva s\u00f3 o n\u00famero em kg, ex.: 2,35 (ou 500 g).');
+  if(!(a.boas>0)&&!(a.perdidas>0)&&a.tempoReal==null&&a.pesoReal==null&&!alertas.length){ el.style.display="none"; return; }
+  // a cor do quadro segue o pior dos três sinais
+  var nivel=0;
+  if(a.rendPct!=null&&(a.boas>0||a.perdidas>0)) nivel=Math.max(nivel,(a.rendPct>=98)?0:((a.rendPct>=90)?1:2));
+  if(a.tempoPct!=null) nivel=Math.max(nivel,recDesvNivel(a.tempoPct,"maior"));
+  if(a.pesoPct!=null)  nivel=Math.max(nivel,recDesvNivel(a.pesoPct,"menor"));
+  if(alertas.length) nivel=Math.max(nivel,1);
+  var cls=["ok","at","ru"][nivel];
+  var h="";
+  if(a.boas>0||a.perdidas>0){
+    h+='<b>Esperado '+(esp||"—")+'</b> · boas <b>'+a.boas+'</b>'+(a.perdidas>0?(' · perdeu <b>'+a.perdidas+'</b>'):'')
+      +(a.rendPct!=null?(' · rendimento <b>'+recPct(a.rendPct)+'</b>'):'');
+  }
   if(a.custoUnitReal!=null){
-    h+='<br>Custo real por '+recEsc(un)+': <b>'+brl(a.custoUnitReal)+'</b>';
+    h+=(h?'<br>':'')+'Custo real por '+recEsc(un)+': <b>'+brl(a.custoUnitReal)+'</b>';
     if(a.custoUnitFicha!=null&&Math.abs(a.custoUnitReal-a.custoUnitFicha)>=0.005){
       h+=' <span style="opacity:.75;">(a ficha diz '+brl(a.custoUnitFicha)+' — diferença de '+brl(a.custoUnitReal-a.custoUnitFicha)+' por '+recEsc(un)+')</span>';
     }
   }
-  var med=recProdMedia(x.producoes,esp,10);
-  if(med&&med.rendPct!=null) h+='<div class="rec-prod-med">Média das últimas '+med.n+' produções: '+(Math.round(med.mediaBoas*10)/10).toLocaleString("pt-BR")+' '+recEsc(x.rendUn||un)+' ('+recPct(med.rendPct)+' da ficha)</div>';
+  h+=recProdCmpHtml(a);
+  if(alertas.length) h+='<div class="rec-prod-alerta">'+alertas.join("<br>")+'</div>';
+  if(a.custoKgReal!=null&&a.custoKgFicha!=null&&Math.abs(a.custoKgReal-a.custoKgFicha)>=0.005){
+    h+='<div class="rec-prod-med">Custo real por kg: '+brl(a.custoKgReal)+' (a ficha diz '+brl(a.custoKgFicha)+')</div>';
+  }
+  var med=recProdMedia(x.producoes,esp,10,x);
+  if(med){
+    var mh=[];
+    if(med.rendPct!=null) mh.push((Math.round(med.mediaBoas*10)/10).toLocaleString("pt-BR")+' '+recEsc(x.rendUn||un)+' em '+med.n+' ('+recPct(med.rendPct)+' da ficha)');
+    if(med.mediaTempo!=null) mh.push('tempo '+recEsc(recTempoFmt(med.mediaTempo))+' em '+med.nTempo+(med.tempoPct!=null?(' ('+recDifPct(med.tempoPct)+')'):''));
+    if(med.mediaPeso!=null)  mh.push('peso '+recEsc(recKg(med.mediaPeso))+' em '+med.nPeso+(med.pesoPct!=null?(' ('+recDifPct(med.pesoPct)+')'):''));
+    if(mh.length) h+='<div class="rec-prod-med">Média das últimas produções (registros contados): '+mh.join(' · ')+'</div>';
+  }
   el.className="rec-prod-aviso "+cls; el.style.display=""; el.innerHTML=h;
 }
 function recProdSalvar(recipeId){
@@ -13409,13 +14012,15 @@ function recProdSalvar(recipeId){
   var data=document.getElementById("recPqData").value;
   var quantidade=(document.getElementById("recPqQtd").value||"").trim();
   var perdidas=(document.getElementById("recPqPerda")?document.getElementById("recPqPerda").value:"").trim();
+  var tempo=(document.getElementById("recPqTempo")?document.getElementById("recPqTempo").value:"").trim();
+  var peso=(document.getElementById("recPqPeso")?document.getElementById("recPqPeso").value:"").trim();
   var quemFez=(document.getElementById("recPqQuem").value||"").trim();
   var resultado=document.getElementById("recPqRes").value;
   var quemConferiu=(document.getElementById("recPqSup").value||"").trim();
   var obs=(document.getElementById("recPqObs").value||"").trim();
   if(!data){ uiConfirm({titulo:"Aviso",msg:"Informe a data da produção.",ok:"OK",cancel:""}); return; }
   if(!x.producoes) x.producoes=[];
-  x.producoes.push({id:recProdFotoId||recUid(),data:data,quantidade:quantidade,perdidas:perdidas,quemFez:quemFez,resultado:resultado,quemConferiu:quemConferiu,obs:obs,foto:recProdFoto});
+  x.producoes.push({id:recProdFotoId||recUid(),data:data,quantidade:quantidade,perdidas:perdidas,tempo:tempo,peso:peso,quemFez:quemFez,resultado:resultado,quemConferiu:quemConferiu,obs:obs,foto:recProdFoto});
   recSave(); recProdForm=null; recProdFoto=""; recProdFotoId=""; recProdHist[recipeId]=true; renderReceitas();
 }
 function recImprimir(){
@@ -13826,7 +14431,7 @@ function recAbaIr(id){
   }
   var lst=document.getElementById("recLista"); if(lst){
     lst.addEventListener("change",function(ev){ if(ev.target.id==="recPqFotoFile") recProdFotoUpload(ev.target); });
-    lst.addEventListener("input",function(ev){ if(ev.target.id==="recPqQtd"||ev.target.id==="recPqPerda"){ var f=ev.target.closest("[data-recprodsalvar]")?null:document.querySelector("[data-recprodsalvar]"); if(f) recProdAvisoPinta(f.getAttribute("data-recprodsalvar")); } });
+    lst.addEventListener("input",function(ev){ if(ev.target.id==="recPqQtd"||ev.target.id==="recPqPerda"||ev.target.id==="recPqTempo"||ev.target.id==="recPqPeso"){ var f=ev.target.closest("[data-recprodsalvar]")?null:document.querySelector("[data-recprodsalvar]"); if(f) recProdAvisoPinta(f.getAttribute("data-recprodsalvar")); } });
     lst.addEventListener("click",function(ev){
     var pa=ev.target.closest("[data-recprodadd]"); if(pa){ var pid=pa.getAttribute("data-recprodadd"); if(recProdForm===pid){ recProdForm=null; } else { recProdForm=pid; recProdFoto=""; recProdFotoId=recUid(); recProdHist[pid]=true; } renderReceitas(); try{ if(recProdForm) recProdAvisoPinta(recProdForm); }catch(e){} return; }
     var ph=ev.target.closest("[data-recprodhist]"); if(ph){ var hid=ph.getAttribute("data-recprodhist"); recProdHist[hid]=!recProdHist[hid]; renderReceitas(); return; }
@@ -14782,5 +15387,31 @@ function injetarTemaEscuro(doc:string): string {
   return i>=0 ? doc.slice(0,i)+bloco+doc.slice(i) : doc+bloco;
 }
 const comTema = injetarTemaEscuro(comCentral);
+
+/* TRAVA DO BUILD — não deixa sair painel quebrado.
+   Este arquivo é UM template literal gigante: uma regex escrita com barra simples
+   (ex.: /\/\// em vez de /\\/\\//) vira outra coisa no HTML final e derruba TODO o
+   JavaScript do painel. Já aconteceu mais de uma vez e só se percebe abrindo a tela.
+   Aqui cada <script> gerado é compilado antes de gravar; se algum não compilar, o
+   build FALHA em vez de publicar um painel morto. */
+{
+  const re = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
+  let m: RegExpExecArray | null, n = 0;
+  const quebrados: string[] = [];
+  while ((m = re.exec(comTema))) {
+    n++;
+    const corpo = m[1];
+    if (!corpo.trim()) continue;
+    try { new Function(corpo); }
+    catch (e: any) { quebrados.push("script #" + n + ": " + (e && e.message)); }
+  }
+  if (quebrados.length) {
+    console.error("\n>>> BUILD RECUSADO: o JavaScript do painel não compila.\n    " + quebrados.join("\n    ") +
+      "\n    Quase sempre é BARRA SIMPLES numa regex dentro do template literal. Use barra dupla.\n");
+    process.exit(1);
+  }
+  console.log("   trava do build: " + n + " scripts compilam.");
+}
+
 await writeFile("output/index.html", comTema);
 console.log("OK -> output/index.html (painel com dados reais do VR; tema escuro premium gerado: " + Math.round((comTema.length-comCentral.length)/1024) + "KB)");
