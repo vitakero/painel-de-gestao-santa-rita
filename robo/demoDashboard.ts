@@ -2925,6 +2925,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #entKpis{gap:12px;}
         #entKpis .kpi{padding:16px 13px;}
         #entKpis .kpi .v{font-size:23px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        /* Nome de gente não é número: prefere quebrar linha a ser cortado. */
+        #entKpis .kpi.nome .v{white-space:normal;overflow:visible;overflow-wrap:anywhere;
+                              font-size:19px;line-height:1.15;}
         #entKpis .kpi .l{font-size:11px;letter-spacing:.2px;}
         #entKpis .ent-ksub{font-size:10.5px;}
         #entKpis .kpi.din{border-left:4px solid #157a35;}
@@ -11282,8 +11285,8 @@ function entRenderKpis(){
   var lider=entcLider(totais);
   var mediaEnt=ctx.total/ctx.ne;
 
-  function card(v,l,sub,barra){
-    return '<div class="kpi"><div class="v">'+v+'</div><div class="l">'+l+'</div>'+
+  function card(v,l,sub,barra,cls){
+    return '<div class="kpi '+(cls||"")+'"><div class="v">'+v+'</div><div class="l">'+l+'</div>'+
       (barra!=null?'<div class="ent-kbar"><i style="width:'+barra.toFixed(1)+'%"></i></div>':'')+
       (sub?'<div class="ent-ksub">'+sub+'</div>':'')+'</div>';
   }
@@ -11348,7 +11351,7 @@ function entRenderKpis(){
     cardMeta(st1,"Meta base atingida")+
     card(vsTxt,"Vs. mês anterior",vsSub)+
     card(num(ctx.restantes),"Dias úteis restantes",ctx.restantes===0?"o mês acabou":"ainda dá pra lançar")+
-    card(vLider,"Líder do mês",subLider)+
+    card(vLider,"Líder do mês",subLider,null,"nome")+
     cartaoDinheiro;
   // Uma fileira só: o número de colunas acompanha quantos cartões existem.
   var kb=document.getElementById("entKpis");
