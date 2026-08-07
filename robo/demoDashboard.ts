@@ -11761,8 +11761,13 @@ function entFecharMes(){
     if(r&&r.error){ uiConfirm({titulo:"Não deu certo",msg:r.error.message,ok:"OK",cancel:""}); return; }
     var pend=(r&&r.data)||[];
     if(pend.length){
+      // A lista pode ser longa (um item por pessoa e por dia em branco). Mostra as
+      // primeiras e diz quantas sobraram, pra caber na tela.
+      var lista=pend.slice(0,12).map(function(p){ return "• "+p.detalhe; }).join("\\n");
+      if(pend.length>12) lista+="\\n… e mais "+(pend.length-12)+" pendência(s).";
       uiConfirm({titulo:"Não foi possível fechar "+MESES[entMes].toLowerCase()+"/"+entAno,
-        msg:pend.map(function(p){ return "• "+p.detalhe; }).join("\\n"),ok:"Entendi",cancel:""});
+        msg:"O mês só fecha com TODOS os dias úteis preenchidos, para todo mundo. Dia sem entrega tem que ter ZERO digitado.\\n\\n"+lista,
+        ok:"Entendi",cancel:""});
       return;
     }
     var ctx=entCtx(entAno,entMes), cfg=entCfgAtual();
