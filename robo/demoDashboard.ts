@@ -2866,6 +2866,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         table.ent-grade tr.linha-tot td{background:#eef6f0;font-weight:700;color:#0c5a26;}
         table.ent-grade input{width:42px;border:1px solid transparent;border-radius:5px;padding:3px 2px;text-align:center;font:inherit;color:#1d2733;background:transparent;}
         table.ent-grade input:focus{outline:none;border-color:#157a35;background:#fff;box-shadow:0 0 0 2px rgba(21,122,53,.15);}
+        table.ent-grade input.fora{background:#fdf6e3;border-color:#e0c477;color:#7a5600;font-weight:700;}
         .ent-grade-info{font-size:12.5px;color:#8a97a8;margin:0 0 8px;}
         .ent-graf{background:#fff;border:1px solid #e6ebf1;border-radius:12px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(20,40,70,.05);}
         .ent-graf h3{margin:0 0 14px;font-size:14px;font-weight:800;color:#0c5a26;text-align:center;text-transform:uppercase;letter-spacing:.6px;}
@@ -11249,6 +11250,13 @@ function entRenderAvisos(ctx){
   var f=entValoresEmDiaFechado(ctx.ano,ctx.mes);
   if(f.length) av.push({c:"erro",txt:"Há entrega lançada em dia fechado ("+entLista(f)+"). Domingo e feriado não contam — esses números não entram em conta nenhuma."});
   // O que precisa da atenção do gerente, sem virar central de alertas.
+  var fora=entForaDoPadrao(ctx.ano,ctx.mes);
+  if(fora.length){
+    var ex=fora.slice(0,3).map(function(f){ return f.nome+" dia "+f.dia+" ("+num(f.valor)+")"; }).join(", ");
+    av.push({c:"aviso",txt:(fora.length===1?"1 lançamento está":fora.length+" lançamentos estão")+
+      " bem fora do normal daquela pessoa: "+ex+(fora.length>3?" e mais "+(fora.length-3):"")+
+      ". Estão marcados em amarelo na grade — confira se quiser, nada foi bloqueado."});
+  }
   var pend=entFilaPendentes().length;
   if(pend) av.push({c:"aviso",txt:pend+" alteração(ões) ainda não chegaram à nuvem. Não dá pra fechar o mês assim."});
   if(entCfg.master && entCfg.carregado && !entfConfigOk(entCfg))
@@ -11712,6 +11720,23 @@ function entReabrirMes(){
   });
 }
 /* ==ENTADM-FIM== */
+// Células muito fora do que aquela pessoa costuma fazer. Não bloqueia nada:
+// serve pra marcar na grade e contar no aviso do topo.
+function entForaDoPadrao(a,m){
+  var nd=diasDoMes(a,m), out=[], mk=entMesKey(a,m);
+  entIdsDoMes(a,m).forEach(function(id){
+    var hist=entHistorico(id,-1,-1,-1);   // histórico inteiro da pessoa, sem excluir nada
+    if(hist.length<ENT_ANORMAL_MIN) return;
+    for(var d=1;d<=nd;d++){
+      if(entFechado(a,m,d)) continue;
+      var raw=entGetRaw(a,m,id,d);
+      if(raw==="") continue;
+      var an=entcAnormal(+raw||0,hist);
+      if(an) out.push({id:id,dia:d,valor:+raw||0,base:Math.round(an.base),tipo:an.tipo,nome:entNomeDe(id,mk)});
+    }
+  });
+  return out;
+}
 function entRenderGrade(){
   const nd=diasDoMes(entAno,entMes);
   let head='<tr><th class="nome">Entregador</th>';
@@ -11719,10 +11744,14 @@ function entRenderGrade(){
   head+='<th>Total</th></tr>';
   let body="";
   const mkG=entMesKey(entAno,entMes);
+  const fora={}; entForaDoPadrao(entAno,entMes).forEach(function(f){ fora[f.id+"|"+f.dia]=f; });
   // A chave da célula é o ID, nunca o nome — é isso que faz renomear não mover nada.
   entIdsDoMes(entAno,entMes).forEach(function(id){
     const p=entPessoa(id), inativo=(p&&!p.ativo);
-    let cels=""; for(let d=1;d<=nd;d++){ if(entFechado(entAno,entMes,d)){ cels+='<td class="dom-fix">0</td>'; continue; } const v=entGetRaw(entAno,entMes,id,d); cels+='<td><input type="text" inputmode="numeric" data-id="'+entEsc(id)+'" data-dia="'+d+'" value="'+v+'"'+(inativo?' readonly title="Entregador inativo"':'')+'></td>'; }
+    let cels=""; for(let d=1;d<=nd;d++){ if(entFechado(entAno,entMes,d)){ cels+='<td class="dom-fix">0</td>'; continue; } const v=entGetRaw(entAno,entMes,id,d); const fx=fora[id+"|"+d];
+      cels+='<td><input type="text" inputmode="numeric" data-id="'+entEsc(id)+'" data-dia="'+d+'" value="'+v+'"'+
+            (fx?' class="fora" title="'+entEsc("Fora do padrão: "+fx.nome+" costuma fazer perto de "+fx.base+" por dia")+'"':'')+
+            (inativo?' readonly title="Entregador inativo"':'')+'></td>'; }
     body+='<tr><td class="nome">'+entEsc(entNomeDe(id,mkG))+(inativo?' <span class="ent-inat">inativo</span>':'')+'</td>'+cels+'<td class="tot">'+num(entTotalEntregador(entAno,entMes,id))+'</td></tr>';
   });
   let totRow='<tr class="linha-tot"><td class="nome">Total do dia</td>'; for(let d=1;d<=nd;d++) totRow+='<td>'+num(entTotalDia(entAno,entMes,d))+'</td>'; totRow+='<td>'+num(entTotalMes(entAno,entMes))+'</td></tr>';
@@ -11863,14 +11892,13 @@ function renderEntregas(){
     const v=entcValidaLancamento(inp.value);
     const sujo=inp.getAttribute("data-sujo")==="1";
     inp.removeAttribute("data-sujo");
-    const an=(v.ok&&!v.vazio)?entcAnormal(v.valor,entHistorico(id,entAno,entMes,dia)):null;
+    // Valor fora do padrão NÃO interrompe mais quem está digitando: a célula fica
+    // marcada e o aviso aparece no topo. Só pergunta quando o número GRAVADO ficou
+    // diferente do que a pessoa digitou (vírgula, sinal) — aí é erro de verdade.
     let titulo="", msg="";
     if(sujo&&v.ok&&!v.vazio){
       titulo="Confira o número";
       msg="Entrega é número inteiro e não negativo. Do que você digitou sobrou "+num(v.valor)+" no dia "+dia+", para "+nome+". Está certo?";
-    } else if(an){
-      titulo="Valor fora do padrão";
-      msg=nome+" costuma fazer perto de "+num(Math.round(an.base))+" entregas por dia. Você lançou "+num(v.valor)+" no dia "+dia+". Está certo?";
     }
     if(!msg){ entRenderGraficos(); return; }
     // Só PERGUNTA. Nunca bloqueia: dia atípico existe, e travar o lançamento é pior.
