@@ -2889,7 +2889,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ent-final.conf{background:#eef4fa;border-color:#d4e2ef;color:#1f4d7a;}
         .ent-final .eyb{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;
                         opacity:.62;margin-bottom:4px;}
-        .ent-final .ent-dias{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px;}
+        .ent-final .ent-dias{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px;align-items:center;}
+        .ent-final .ent-dias em{font-style:normal;font-size:11.5px;font-weight:700;opacity:.72;}
+        .ent-final .ent-dias em.fim{margin-left:2px;font-weight:600;opacity:.6;}
         .ent-final .ent-dias span{display:inline-flex;align-items:center;justify-content:center;min-width:26px;
                         height:22px;padding:0 6px;border-radius:6px;background:#fff;border:1px solid #cfdbe7;
                         font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums;}
@@ -12303,7 +12305,7 @@ function entRenderFinal(){
                :confirmar.length+' dias completos, prontos para salvar.')+'</b>'+
       '<div class="det">'+(ras.celulas?'<b>'+ras.celulas+' lançamento(s) ainda não salvos.</b> ':'')+
       'Confira os números antes de salvar. Depois de salvo o dia é encerrado e não aceita alteração.</div>'+
-      entChips(confirmar)+'</div>'+
+      entChips(confirmar,confirmar.length===1?'Dia:':'Dias:')+'</div>'+
       '<button type="button" id="entSalvarDia">'+(um?'Salvar o dia '+confirmar[0]:'Salvar '+confirmar.length+' dias')+'</button></div>'+
       entConfNota();
     return;
@@ -12320,7 +12322,7 @@ function entRenderFinal(){
         ? 'O dia '+dIn+' só pode ser salvo com todos os entregadores lançados. Falta: '+quem.slice(0,6).map(entEsc).join(', ')+(quem.length>6?' e mais '+(quem.length-6):'')+'.'
         : 'Confira e salve.')+'</div>'+
       '<div class="det">Quem não fez entrega no dia precisa de <b>0</b>. Nada vai para o servidor até você salvar.</div>'+
-      entChips(ras.dias)+'</div></div>'+
+      entChips(ras.dias,ras.dias.length===1?'Dia em lançamento:':'Dias em lançamento:')+'</div></div>'+
       (confirmar.length?'<div class="ent-conf-nota"><span>Pronto para salvar assim que terminar: dia '+entLista(confirmar)+'</span></div>':'')+
       entConfNota();
     return;
@@ -12360,9 +12362,11 @@ function entRenderFinal(){
     entConfNota();
 }
 // Os dias como fichas, em vez de "1, 3, 4, 5 e 6" no meio da frase. Lê-se de relance.
-function entChips(dias){
+function entChips(dias,rotulo){
   if(!dias||!dias.length) return "";
-  return '<div class="ent-dias">'+dias.map(function(d){ return '<span>'+d+'</span>'; }).join("")+'</div>';
+  return '<div class="ent-dias">'+(rotulo?'<em>'+rotulo+'</em>':'')+
+    dias.map(function(d){ return '<span>'+d+'</span>'; }).join("")+
+    '<em class="fim">de '+MESES[entMes].toLowerCase()+'</em></div>';
 }
 // Linha discreta com os dias já travados. Só o administrador ganha o botão de destravar.
 function entConfNota(){
