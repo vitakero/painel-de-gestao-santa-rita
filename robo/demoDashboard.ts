@@ -10625,11 +10625,28 @@ function entRealtime(){
       .subscribe();
   }catch(e){}
 }
-function entCor(id){
-  var h=0, t=String(id||"");
-  for(var i=0;i<t.length;i++){ h=(h*31+t.charCodeAt(i))>>>0; }
-  return ENT_CORES[h%ENT_CORES.length];
+// Cor por entregador. Só embaralhar o código não bastava: dois códigos parecidos
+// caíam na mesma cor e o gráfico de linhas ficava ilegível. Aqui a cor preferida vem
+// do código (então é estável), mas colisão anda pro próximo slot livre — com até 12
+// entregadores, ninguém repete cor.
+var entCoresMapa=null, entCoresChave="";
+function entCorMapa(){
+  var ids={};
+  entEquipe.forEach(function(p){ ids[p.id]=1; });
+  Object.keys(entDados).forEach(function(mk){ Object.keys(entDados[mk]||{}).forEach(function(id){ ids[id]=1; }); });
+  var lista=Object.keys(ids).sort(), chave=lista.join(",");
+  if(entCoresMapa && entCoresChave===chave) return entCoresMapa;
+  var usadas={}, mapa={};
+  lista.forEach(function(id){
+    var h=0; for(var i=0;i<id.length;i++){ h=(h*131+id.charCodeAt(i))>>>0; }
+    var k=h%ENT_CORES.length, n=0;
+    while(usadas[k] && n<ENT_CORES.length){ k=(k+1)%ENT_CORES.length; n++; }
+    usadas[k]=1; mapa[id]=ENT_CORES[k];
+  });
+  entCoresChave=chave; entCoresMapa=mapa;
+  return mapa;
 }
+function entCor(id){ return entCorMapa()[id] || ENT_CORES[0]; }
 function entDec(n){ return (n||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function entPct(n){ return entDec(n)+"%"; }
 function entFechado(a,m,d){ if(new Date(a,m,d).getDay()===0) return true; return feriadosFechado(a).has(fmtKey(a,m,d)); }
