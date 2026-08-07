@@ -2916,6 +2916,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ent-aviso.aviso{background:#fdf6e3;color:#7a5600;border:1px solid #f0e0b6;}
         .ent-aviso.erro{background:#fdecec;color:#a3291c;border:1px solid #f3cfcb;}
         .ent-aviso.ok{background:#e9f5ed;color:#0c5a26;border:1px solid #cfe0d6;}
+        .ent-aviso button{border:1px solid currentColor;background:#fff;color:inherit;border-radius:7px;
+                          padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;margin-left:10px;}
+        .ent-aviso button:hover{background:#d9ecdf;}
         .ent-aviso-conf{align-items:flex-start;}
         .ent-aviso-conf .det{font-size:11.5px;opacity:.85;margin-top:4px;line-height:1.45;}
         .ent-aviso-conf .acoes{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;}
@@ -11274,6 +11277,12 @@ function entRenderAvisos(ctx){
   var n=ctx.semLancamento.length;
   if(n===1) av.push({c:"aviso",txt:"Existe 1 dia útil sem lançamento: "+entLista(ctx.semLancamento)+". Ele fica de fora da média e da projeção."});
   else if(n>1) av.push({c:"aviso",txt:"Existem "+n+" dias úteis sem lançamento: "+entLista(ctx.semLancamento)+". Eles ficam de fora da média e da projeção."});
+  // Mês inteiro preenchido e ainda aberto: convida a finalizar ali mesmo, sem
+  // precisar chamar o dono. Quem finaliza fica registrado.
+  if(!entMesFechado() && entMesCompleto(ctx.ano,ctx.mes)){
+    av.push({c:"ok",acao:"finalizar",
+      txt:"Todos os dias de "+MESES[ctx.mes].toLowerCase()+" estão preenchidos. Pode finalizar o mês — depois disso nada mais pode ser alterado sem autorização do administrador."});
+  }
   var f=entValoresEmDiaFechado(ctx.ano,ctx.mes);
   if(f.length) av.push({c:"erro",txt:"Há entrega lançada em dia fechado ("+entLista(f)+"). Domingo e feriado não contam — esses números não entram em conta nenhuma."});
   // O que precisa da atenção do gerente, sem virar central de alertas.
@@ -11294,7 +11303,9 @@ function entRenderAvisos(ctx){
     av.push({c:"ok",txt:"Todos os dias úteis estão lançados. Este mês está pronto para ser fechado."});
   box.innerHTML=conf+av.map(function(a){
     var ico=a.c==="erro"?"risco":(a.c==="ok"?"concluido":"atencao");
-    return '<div class="ent-aviso '+a.c+'">'+entIco(ico)+'<span>'+a.txt+'</span></div>';
+    return '<div class="ent-aviso '+a.c+'">'+entIco(ico)+'<span>'+a.txt+
+      (a.acao==="finalizar"?' <button type="button" id="entFinalizarMes">Finalizar o mês</button>':'')+
+      '</span></div>';
   }).join("");
 }
 
@@ -11749,7 +11760,7 @@ function entCfgSalvar(){
 }
 
 // Fechar o mês: o servidor confere as pendências e recusa se houver.
-function entFecharMes(){
+function entFecharMes(porQuemLanca){
   var sb=entSB(); if(!sb) return;
   var nd=diasDoMes(entAno,entMes), fechados=[];
   for(var d=1;d<=nd;d++){ if(entFechado(entAno,entMes,d) && new Date(entAno,entMes,d).getDay()!==0) fechados.push(d); }
@@ -11773,12 +11784,12 @@ function entFecharMes(){
     var ctx=entCtx(entAno,entMes), cfg=entCfgAtual();
     var qs=entIdsDoMes(entAno,entMes).map(function(id){ return entTotalEntregador(entAno,entMes,id); });
     var t=entfTotalEquipe(qs,cfg);
-    uiConfirm({titulo:"Fechar "+MESES[entMes].toLowerCase()+"/"+entAno,
+    uiConfirm({titulo:(porQuemLanca?"Finalizar ":"Fechar ")+MESES[entMes].toLowerCase()+"/"+entAno,
       msg:"Entregas da equipe: "+num(t.entregas)+
           "\\nNa meta 2: "+t.desafio+"   ·   na meta 1: "+t.base+"   ·   sem remuneração: "+t.sem+
           (entMostraDinheiro()?"\\nValor variável total: "+entfMoeda(t.total):"")+
           "\\n\\nDepois de fechado, nenhum lançamento deste mês pode ser alterado sem reabrir.",
-      ok:"Confirmar fechamento",cancel:"Cancelar"}).then(function(ok){
+      ok:porQuemLanca?"Finalizar o mês":"Confirmar fechamento",cancel:"Cancelar"}).then(function(ok){
       if(!ok) return;
       sb.rpc("entregas_fechar_mes",{p_request_id:entUuid(),p_ano:entAno,p_mes:entMes+1,p_dias_fechados:fechados}).then(function(r2){
         if(r2&&r2.error){ uiConfirm({titulo:"Não deu certo",msg:r2.error.message,ok:"OK",cancel:""}); return; }
@@ -11823,6 +11834,18 @@ function entForaDoPadrao(a,m){
 // Relatório de fechamento para o RH lançar na folha. Abre pronto pra imprimir ou
 // salvar em PDF. Mostra entregas, faixa atingida, valor por entrega e valor de cada
 // um — e deixa explícito que é remuneração variável, não a folha inteira.
+// O mês está inteiro preenchido? Mesma regra que o servidor cobra no fechamento:
+// todo dia útil, para todo mundo que trabalhou no mês. Zero conta; branco não.
+function entMesCompleto(a,m){
+  var nd=diasDoMes(a,m), md=entDados[entMesKey(a,m)]||{};
+  var ids=Object.keys(md);
+  if(!ids.length) return false;
+  for(var d=1;d<=nd;d++){
+    if(entFechado(a,m,d)) continue;
+    for(var i=0;i<ids.length;i++){ if(entGetRaw(a,m,ids[i],d)==="") return false; }
+  }
+  return true;
+}
 function entRelatorioRH(){
   // Só de mês FECHADO. Relatório de mês aberto é número que ainda vai mudar — e o RH
   // não pode receber uma coisa hoje e outra amanhã.
@@ -12042,6 +12065,9 @@ function renderEntregas(){
   document.getElementById("entCfgBox").addEventListener("click",function(e){
     if(e.target.closest("#entCfgFechar")){ entCfgAberto=false; entRenderCfgBox(); return; }
     if(e.target.closest("#entCfgSalvar")){ entCfgSalvar(); return; }
+  });
+  document.getElementById("entAvisos").addEventListener("click",function(e){
+    if(e.target.closest("#entFinalizarMes")) entFecharMes(true);
   });
   document.getElementById("entSync").addEventListener("click",function(e){
     if(e.target.closest("#entRetry")){ entFila.forEach(function(f){ f.proxima=0; }); entFilaProcessar(true); }
