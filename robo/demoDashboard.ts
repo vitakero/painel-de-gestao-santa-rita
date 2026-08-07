@@ -11417,25 +11417,30 @@ function entRanking(){
     let dias=0; const nd=diasDoMes(entAno,entMes);
     for(let d=1;d<=nd;d++){ if(!entFechado(entAno,entMes,d)) continue; }
     for(let d=1;d<=nd;d++){ if(!entFechado(entAno,entMes,d) && entGetRaw(entAno,entMes,id,d)!=="") dias++; }
+    // Comparar TOTAL de um mês de 5 dias com um mês inteiro dá -80% e não quer dizer
+    // nada. A comparação certa é MÉDIA POR DIA LANÇADO dos dois lados.
     const ant=entTotalEntregador(antA,antM,id);
+    let diasAnt=0; const ndAnt=diasDoMes(antA,antM);
+    for(let d=1;d<=ndAnt;d++){ if(!entFechado(antA,antM,d) && entGetRaw(antA,antM,id,d)!=="") diasAnt++; }
     const fin=entfFaixa(tot,cfg);
     return { id:id, nome:entNomeDe(id,mk), total:tot, dias:dias,
-             media:dias>0?tot/dias:0, ant:ant, fin:fin,
+             media:dias>0?tot/dias:0, ant:ant, mediaAnt:diasAnt>0?ant/diasAnt:0, fin:fin,
              ritmo:(fin.faltam>0 && restantes>0)?Math.ceil(fin.faltam/restantes):0 };
   }).sort(function(a,b){ return b.total-a.total; });
 
   // Cabeçalhos curtos: a tabela tem que caber na largura, sem barra de rolagem.
   const cab=['#','Entregador','Entregas','Dias','Média<br>por dia',
              '% Meta 1','% Meta 2','Falta p/<br>próxima','Ritmo<br>por dia',
-             'Vs. mês<br>anterior','Faixa']
+             'Vs. mês ant.<br>(por dia)','Faixa']
             .concat(dinheiro?['R$ por<br>entrega','Valor até<br>agora']:[]);
   let head='<tr>'+cab.map(function(c,i){ return '<th'+(i===1?' class="nm"':'')+'>'+c+'</th>'; }).join("")+'</tr>';
   let body="";
   linhas.forEach(function(l,i){
     const p=entPessoa(l.id), inat=(p&&!p.ativo);
     let vs='<span class="sem">—</span>';
-    if(l.ant>0){ const v=(l.total-l.ant)/l.ant*100;
-      vs='<span class="'+(v>=0?'sobe':'desce')+'">'+(v>=0?'+':'−')+entPct1(Math.abs(v))+'</span>'; }
+    if(l.mediaAnt>0 && l.dias>0){ const v=(l.media-l.mediaAnt)/l.mediaAnt*100;
+      vs='<span class="'+(v>=0?'sobe':'desce')+'" title="'+entEsc("média por dia: "+entDec(l.media)+" agora, "+entDec(l.mediaAnt)+" no mês passado")+'">'+
+         (v>=0?'+':'−')+entPct1(Math.abs(v))+'</span>'; }
     const cls={sem:'f-sem',base:'f-base',desafio:'f-des'}[l.fin.faixa];
     body+='<tr>'+
       '<td class="pos">'+(i+1)+'</td>'+
@@ -11453,11 +11458,16 @@ function entRanking(){
       (dinheiro?'<td class="n">'+entfNum2(l.fin.unitario)+'</td><td class="n forte">'+entfNum2(l.fin.total)+'</td>':'')+
       '</tr>';
   });
+  // A linha do total tem que ter EXATAMENTE o mesmo número de células do cabeçalho,
+  // senão o fundo verde para no meio da tabela. São 11 colunas + 2 de dinheiro.
   let rodape="";
-  if(dinheiro){
+  {
     const t=entfTotalEquipe(linhas.map(function(l){ return l.total; }),cfg);
-    rodape='<tr class="tot"><td></td><td class="nm">Total da equipe</td><td class="n forte">'+num(t.entregas)+'</td>'+
-      '<td colspan="7"></td><td class="n" colspan="2">'+entfMoeda(t.total)+'</td></tr>';
+    rodape='<tr class="tot"><td></td><td class="nm">Total da equipe</td>'+
+      '<td class="n forte">'+num(t.entregas)+'</td>'+
+      '<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>'+
+      (dinheiro?'<td></td><td class="n forte">'+entfNum2(t.total)+'</td>':'')+
+      '</tr>';
   }
   const nota=dinheiro
     ? '<p class="ent-sub">Valor calculado para a folha. O Painel não calcula encargos.</p>'
