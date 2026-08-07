@@ -2928,7 +2928,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #entKpis .kpi .l{font-size:11px;letter-spacing:.2px;}
         #entKpis .ent-ksub{font-size:10.5px;}
         #entKpis .kpi.din{border-left:4px solid #157a35;}
-        #entKpis .kpi.din .v{color:#0c5a26;}
+        #entKpis .kpi.din .v{color:#0c5a26;font-size:21px;letter-spacing:-.3px;}
         #entKpis .kpi.din.proj{border-left-color:#a9d8b6;}
         #entKpis .kpi.din.proj .v{color:#46535f;}
         @media (max-width:1200px){ #entKpis{grid-template-columns:repeat(4,minmax(0,1fr))!important;} }
@@ -10708,7 +10708,11 @@ function entCfgLoad(a,m,depois){
     sb.from("entregas_competencia").select("*").eq("competencia", a+"-"+("0"+(m+1)).slice(-2)+"-01")
   ]).then(function(rs){
     entCfg.carregado=true;
-    var c=(rs[0]&&!rs[0].error&&rs[0].data&&rs[0].data[0])||null;
+    // Falhou a consulta (sessão caiu, rede)? MANTÉM a última configuração boa.
+    // Zerar aqui fazia as metas voltarem pro padrão e o dinheiro sumir da tela sem
+    // motivo nenhum — o usuário via número diferente por causa de um soluço de rede.
+    if(rs[0]&&rs[0].error){ if(depois) depois(); return; }
+    var c=(rs[0]&&rs[0].data&&rs[0].data[0])||null;
     if(c){
       entCfg.base=+c.meta_base_qtd||ENT_META_PADRAO_BASE;
       entCfg.desafio=+c.meta_desafio_qtd||ENT_META_PADRAO_DESAFIO;
@@ -11348,7 +11352,15 @@ function entRenderKpis(){
     cartaoDinheiro;
   // Uma fileira só: o número de colunas acompanha quantos cartões existem.
   var kb=document.getElementById("entKpis");
-  if(kb) kb.style.gridTemplateColumns="repeat("+kb.children.length+",minmax(0,1fr))";
+  if(kb){
+    // As caixas de dinheiro precisam de mais largura: "R$ 4.648,80" é o texto mais
+    // comprido da fileira. As outras cedem um pouco para ninguém ficar cortado.
+    var nDin=kb.querySelectorAll(".kpi.din").length;
+    var nCom=kb.children.length-nDin;
+    kb.style.gridTemplateColumns=
+      (nCom>0?"repeat("+nCom+",minmax(0,1fr)) ":"")+
+      (nDin>0?"repeat("+nDin+",minmax(0,1.45fr))":"");
+  }
   var boxD=document.getElementById("entDinheiro");
   if(boxD) boxD.innerHTML="";
 
