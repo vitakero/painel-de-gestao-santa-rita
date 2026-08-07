@@ -2876,7 +2876,19 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         table.ent-grade input.lanc{border-color:#8ec9a4;background:#fff;font-weight:800;color:#0c5a26;}
         .ent-hoje-tag{display:block;font-size:8.5px;font-weight:800;color:#157a35;text-transform:uppercase;
                       letter-spacing:.3px;line-height:1;margin-bottom:2px;white-space:nowrap;}
+        /* Dia já CONFIRMADO: não se digita mais nele. */
+        table.ent-grade td.conf{background:#f4f6f9;color:#5a6b7d;font-weight:700;}
+        table.ent-grade th.conf{background:#eef2f6;color:#5a6b7d;}
+        table.ent-grade input.conf{background:#fbfcfd;color:#46535f;border-style:dashed;border-color:#cbd4de;}
+        .ent-lock{display:block;font-size:9px;line-height:1;margin-bottom:2px;opacity:.75;}
         .ent-final.ok2{background:#f6faf7;border-color:#dfeee5;color:#0c5a26;}
+        .ent-final.conf{background:#eef4fa;border-color:#d4e2ef;color:#1f4d7a;}
+        .ent-final button.sec{background:transparent;color:inherit;border:1px solid currentColor;
+                              padding:8px 14px;font-size:12.5px;opacity:.8;}
+        .ent-final button.sec:hover{background:rgba(0,0,0,.05);}
+        .ent-conf-nota{font-size:12px;color:#8a97a8;margin:8px 2px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+        .ent-conf-nota button{border:0;background:transparent;color:#1f4d7a;font:inherit;font-weight:700;
+                              text-decoration:underline;cursor:pointer;padding:0;}
         .ent-grade-info{font-size:12.5px;color:#8a97a8;margin:0 0 8px;}
         .ent-graf{background:#fff;border:1px solid #e6ebf1;border-radius:12px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(20,40,70,.05);}
         .ent-graf h3{margin:0 0 14px;font-size:14px;font-weight:800;color:#0c5a26;text-align:center;text-transform:uppercase;letter-spacing:.6px;}
@@ -10740,6 +10752,39 @@ function entSoLanca(){
 }
 function entMostraDinheiro(){ return !!(entCfg.master && entfConfigOk(entCfg)); }
 function entMesFechado(){ return !!(entFech && entFech.status==="fechado"); }
+
+/* --- DIAS CONFIRMADOS ---------------------------------------------------
+   A pessoa lança o dia e CONFIRMA. Dali em diante aquele dia está travado: ela não
+   altera mais o que já passou, sem precisar esperar o mês inteiro acabar.
+   A trava DE VERDADE está no banco (gatilho trg_entregas_lanc_dia). O que está aqui
+   é só a tela — tirar o campo da frente de quem não pode mais mexer.
+   O administrador continua conseguindo corrigir; toda correção fica registrada. */
+var entDiasConf={};
+function entDiaConfirmado(a,m,d){ var s=entDiasConf[entMesKey(a,m)]; return !!(s&&s[d]); }
+function entDiaTravado(a,m,d){ return entDiaConfirmado(a,m,d) && !entCfg.master; }
+function entDiasConfDoMes(a,m){
+  var s=entDiasConf[entMesKey(a,m)]||{};
+  return Object.keys(s).map(Number).sort(function(x,y){ return x-y; });
+}
+function entConfAplicar(linhas){
+  var novo={};
+  (linhas||[]).forEach(function(x){
+    var k=entMesKey(+x.ano,+x.mes-1);
+    if(!novo[k]) novo[k]={};
+    novo[k][+x.dia]=true;
+  });
+  entDiasConf=novo;
+}
+function entConfLoad(depois){
+  var sb=entSB();
+  if(!sb){ if(depois) depois(); return; }
+  sb.from("entregas_dias_confirmados").select("ano,mes,dia").then(function(r){
+    // Erro aqui é o SQL da trava diária ainda não ter sido rodado. Não é motivo pra
+    // quebrar a tela: sem a tabela, simplesmente nenhum dia está confirmado.
+    if(r&&!r.error) entConfAplicar(r.data);
+    if(depois) depois();
+  },function(){ if(depois) depois(); });
+}
 function entCfgAtual(){ return {base:entCfg.base, desafio:entCfg.desafio, vbase:entCfg.vbase, vdes:entCfg.vdes}; }
 
 function entCfgLoad(a,m,depois){
@@ -10794,7 +10839,8 @@ function entCloudLoad(){
   entCarregando=true;
   Promise.all([
     sb.rpc("entregas_listar_equipe",{p_incluir_inativos:true}),
-    sb.from("entregas_lancamentos").select("entregador_id,ano,mes,dia,quantidade,nome_snapshot")
+    sb.from("entregas_lancamentos").select("entregador_id,ano,mes,dia,quantidade,nome_snapshot"),
+    sb.from("entregas_dias_confirmados").select("ano,mes,dia")
   ]).then(function(rs){
     entCarregando=false;
     if(rs[0].error||rs[1].error) return;   // sem login / sem permissão -> segue no cache
@@ -10858,6 +10904,7 @@ function entCloudLoad(){
       else dados[mk][f.entregador_id][f.dia]=+f.quantidade||0;
     });
     entDados=dados; entNomes=nomes;
+    if(rs[2]&&!rs[2].error) entConfAplicar(rs[2].data);
     entCacheSalvar();
     entRealtime(); entSyncPintar(); entFilaProcessar();
     var pg=document.getElementById("page-entregas");
@@ -11233,7 +11280,8 @@ var ENT_SIT_ICO={
   "atencao":'<path d="M12 4.2 3.2 19.4h17.6L12 4.2Z"/><path d="M12 10.2v3.8"/><path d="M12 16.8h.01"/>',
   "risco":'<path d="M8.3 3.2h7.4l5.1 5.1v7.4l-5.1 5.1H8.3l-5.1-5.1V8.3l5.1-5.1Z"/><path d="M12 7.6v5.2"/><path d="M12 16.2h.01"/>',
   "concluido":'<circle cx="12" cy="12" r="9"/><path d="m8.4 12.3 2.5 2.5 4.7-5"/>',
-  "sem-dados":'<circle cx="12" cy="12" r="9"/><path d="M12 11.2v5"/><path d="M12 7.9h.01"/>'
+  "sem-dados":'<circle cx="12" cy="12" r="9"/><path d="M12 11.2v5"/><path d="M12 7.9h.01"/>',
+  "cadeado":'<rect x="4.5" y="10.5" width="15" height="10" rx="2.2"/><path d="M8.2 10.5V7.8a3.8 3.8 0 0 1 7.6 0v2.7"/>'
 };
 function entIco(chave){
   var d=ENT_SIT_ICO[chave]||ENT_SIT_ICO["sem-dados"];
@@ -11816,6 +11864,67 @@ function entFecharMes(porQuemLanca){
   });
 }
 
+// Confirma os dias em fila, um de cada vez. Se um falhar, para e mostra o motivo —
+// melhor confirmar três de cinco e dizer qual travou do que fingir que deu tudo certo.
+function entConfirmarDias(dias){
+  var sb=entSB(); if(!sb||!dias.length) return;
+  if(entFilaPendentes().length){
+    return uiConfirm({titulo:"Ainda tem coisa pra salvar",
+      msg:"Há "+entFilaPendentes().length+" alteração(ões) que ainda não chegaram à nuvem. Espere a faixa dizer \\"Tudo salvo\\" antes de confirmar o dia.",
+      ok:"OK",cancel:""});
+  }
+  var quais = dias.length===1 ? "o dia "+dias[0] : "os dias "+entLista(dias);
+  uiConfirm({titulo:"Confirmar "+quais,
+    msg:"Depois de confirmar, "+(dias.length===1?"este dia":"estes dias")+" não pode"+(dias.length===1?"":"m")+
+        " mais ser alterado"+(dias.length===1?"":"s")+" por você. Confira os números antes.\\n\\n"+
+        "Se precisar corrigir depois, o administrador tem que reabrir o dia.",
+    ok:"Confirmar",cancel:"Cancelar"}).then(function(ok){
+    if(!ok) return;
+    var i=0;
+    (function passo(){
+      if(i>=dias.length){ entConfLoad(function(){ renderEntregas(); }); return; }
+      var d=dias[i++];
+      sb.rpc("entregas_confirmar_dia",{p_request_id:entUuid(),p_ano:entAno,p_mes:entMes+1,p_dia:d}).then(function(r){
+        if(r&&r.error){
+          entConfLoad(function(){ renderEntregas(); });
+          uiConfirm({titulo:"Não deu pra confirmar o dia "+d,msg:r.error.message,ok:"OK",cancel:""});
+          return;
+        }
+        passo();
+      });
+    })();
+  });
+}
+// Reabrir um dia confirmado: só o administrador, com senha e motivo. É a mesma
+// assimetria do fechamento do mês — quem lança tranca, só o dono destranca.
+function entReabrirDia(){
+  var confs=entDiasConfDoMes(entAno,entMes);
+  if(!confs.length) return;
+  uiPrompt({titulo:"Reabrir um dia",icone:"🔓",inputType:"text",
+    msg:"Dias confirmados em "+MESES[entMes].toLowerCase()+": "+entLista(confs)+".\\nQual deles você quer reabrir?",
+    placeholder:"número do dia",ok:"Continuar"}).then(function(txt){
+    if(txt===null) return;
+    var d=parseInt(String(txt).replace(/[^0-9]/g,""),10);
+    if(!d||confs.indexOf(d)<0){
+      return uiConfirm({titulo:"Dia inválido",msg:"Escolha um dos dias confirmados: "+entLista(confs)+".",ok:"OK",cancel:""});
+    }
+    autorizarMaster("reabrir o dia "+d+" de "+MESES[entMes]+" "+entAno,true,false).then(function(ok){
+      if(!ok) return;
+      uiPrompt({titulo:"Motivo",icone:"📝",inputType:"text",
+        msg:"Por que o dia "+d+" está sendo reaberto? Fica registrado.",placeholder:"ex.: erro de digitação no lançamento",
+        ok:"Reabrir o dia"}).then(function(mot){
+        if(mot===null) return;
+        if(!String(mot).trim()) return uiConfirm({titulo:"Aviso",msg:"O motivo é obrigatório.",ok:"OK",cancel:""});
+        var sb=entSB(); if(!sb) return;
+        sb.rpc("entregas_reabrir_dia",{p_request_id:entUuid(),p_ano:entAno,p_mes:entMes+1,p_dia:d,p_motivo:String(mot).trim()}).then(function(r){
+          if(r&&r.error){ uiConfirm({titulo:"Não deu certo",msg:r.error.message,ok:"OK",cancel:""}); return; }
+          entConfLoad(function(){ renderEntregas(); });
+        });
+      });
+    });
+  });
+}
+
 function entReabrirMes(){
   autorizarMaster("reabrir o mês de "+MESES[entMes]+" "+entAno,true,false).then(function(ok){
     if(!ok) return;
@@ -11880,6 +11989,25 @@ function entFaltaPreencher(a,m){
     }
     if(dias.length) out.push({id:id, nome:entNomeDe(id,mk), dias:dias});
   });
+  return out;
+}
+// Dias que já podem ser CONFIRMADOS: dia útil que já passou, ainda não confirmado, e
+// com valor para TODO MUNDO que trabalhou no mês. Confirmar dia pela metade seria
+// congelar um número errado.
+function entDiasParaConfirmar(a,m){
+  // Cobra as MESMAS pessoas que o servidor cobra: quem teve lançamento no mês. Usar a
+  // lista de ativos travaria a confirmação toda vez que alguém fosse cadastrado e
+  // ainda não tivesse feito entrega nenhuma.
+  var nd=diasDoMes(a,m), ids=Object.keys(entDados[entMesKey(a,m)]||{}), out=[];
+  if(!ids.length) return out;
+  for(var d=1;d<=nd;d++){
+    if(entFechado(a,m,d)) continue;
+    if(!entcJaPassou(a,m,d,HOJE)) continue;
+    if(entDiaConfirmado(a,m,d)) continue;
+    var cheio=true;
+    for(var i=0;i<ids.length;i++){ if(entGetRaw(a,m,ids[i],d)===""){ cheio=false; break; } }
+    if(cheio) out.push(d);
+  }
   return out;
 }
 function entMesCompleto(a,m){
@@ -11978,12 +12106,26 @@ function entRenderFinal(){
       '<div><b>Mês finalizado.</b><div class="det">Os lançamentos e os valores estão congelados. Para mudar alguma coisa, o administrador precisa reabrir o mês.</div></div></div>';
     return;
   }
+  var confirmar=entDiasParaConfirmar(entAno,entMes);
   var falta=entFaltaPreencher(entAno,entMes);
+  // Lançou o dia? Então confirma. Isso vem ANTES de qualquer outra mensagem: é a
+  // ação do dia, e é ela que trava o passado.
+  if(confirmar.length){
+    var um=confirmar.length===1;
+    box.innerHTML='<div class="ent-final conf">'+entIco("cadeado")+
+      '<div><b>'+(um?'O dia '+confirmar[0]+' está preenchido.':confirmar.length+' dias estão preenchidos e ainda não confirmados.')+'</b>'+
+      '<div class="det">'+(um?'':'Dias '+entLista(confirmar)+'. ')+
+      'Confira os números e confirme. Depois de confirmado, o dia trava — nem você altera mais.</div></div>'+
+      '<button type="button" id="entConfirmarDia">'+(um?'Confirmar o dia '+confirmar[0]:'Confirmar '+confirmar.length+' dias')+'</button></div>'+
+      entConfNota();
+    return;
+  }
   if(!falta.length && entMesCompleto(entAno,entMes)){
     box.innerHTML='<div class="ent-final pronto">'+entIco("concluido")+
       '<div><b>Todos os dias de '+MESES[entMes].toLowerCase()+' estão preenchidos.</b>'+
       '<div class="det">Está tudo salvo. Ao finalizar, o mês trava: ninguém mais altera sem o administrador reabrir.</div></div>'+
-      '<button type="button" id="entFinalizarMes">Finalizar o mês</button></div>';
+      '<button type="button" id="entFinalizarMes">Finalizar o mês</button></div>'+
+      entConfNota();
     return;
   }
   if(!falta.length){
@@ -11992,11 +12134,11 @@ function entRenderFinal(){
     for(var d2=1;d2<=nd2;d2++){ if(entFechado(entAno,entMes,d2)) continue;
       if(!entcJaPassou(entAno,entMes,d2,HOJE)){ acabou=false; break; } }
     var dl=entDiaParaLancar(entAno,entMes);
-    box.innerHTML= acabou ? "" :
+    box.innerHTML= (acabou ? "" :
       '<div class="ent-final ok2">'+entIco("concluido")+
       '<div><b>Lançamentos em dia.</b><div class="det">'+
-      (dl?'O dia '+dl+' já está lançado. ':'')+
-      'O mês poderá ser finalizado depois que o último dia útil for lançado.</div></div></div>';
+      (dl?'O dia '+dl+' já está lançado e confirmado. ':'')+
+      'O mês poderá ser finalizado depois que o último dia útil for lançado.</div></div></div>')+entConfNota();
     return;
   }
   var det=falta.slice(0,4).map(function(f){
@@ -12006,7 +12148,15 @@ function entRenderFinal(){
   box.innerHTML='<div class="ent-final falta">'+entIco("atencao")+
     '<div><b>Ainda falta preencher para fechar o mês.</b>'+
     '<div class="det">'+det+'</div>'+
-    '<div class="det">Dia em que a pessoa não fez entrega precisa de <b>0</b> — deixar em branco significa "ainda não apurei".</div></div></div>';
+    '<div class="det">Dia em que a pessoa não fez entrega precisa de <b>0</b> — deixar em branco significa "ainda não apurei".</div></div></div>'+
+    entConfNota();
+}
+// Linha discreta com os dias já travados. Só o administrador ganha o botão de destravar.
+function entConfNota(){
+  var confs=entDiasConfDoMes(entAno,entMes);
+  if(!confs.length) return "";
+  return '<div class="ent-conf-nota"><span>🔒 Dias confirmados e travados: <b>'+entLista(confs)+'</b></span>'+
+         (entCfg.master?'<button type="button" id="entReabrirDia">reabrir um dia</button>':'')+'</div>';
 }
 function entRenderMetas(mostrar){
   var box=document.getElementById("entMetas"); if(!box) return;
@@ -12021,8 +12171,12 @@ function entRenderGrade(){
   const diaLanc=entDiaParaLancar(entAno,entMes);
   let head='<tr><th class="nome">Entregador</th>';
   for(let d=1;d<=nd;d++){ const dow=new Date(entAno,entMes,d).getDay();
-    const cl=(dow===0?"dom":"")+(entDiaFuturo(entAno,entMes,d)?" fut":"")+(d===diaLanc?" lanc":"");
-    head+='<th class="'+cl.trim()+'">'+(d===diaLanc?'<span class="ent-hoje-tag">lançar hoje</span>':'')+d+
+    const conf=entDiaConfirmado(entAno,entMes,d);
+    const cl=(dow===0?"dom":"")+(entDiaFuturo(entAno,entMes,d)?" fut":"")+
+             (d===diaLanc&&!conf?" lanc":"")+(conf?" conf":"");
+    const topo = conf ? '<span class="ent-lock" title="Dia confirmado — não pode mais ser alterado">🔒</span>'
+                      : (d===diaLanc?'<span class="ent-hoje-tag">lançar hoje</span>':'');
+    head+='<th class="'+cl.trim()+'">'+topo+d+
           '<br><span class="ent-dow">'+DOW_PT[dow].toUpperCase()+'</span></th>'; }
   head+='<th>Total</th></tr>';
   let body="";
@@ -12036,8 +12190,14 @@ function entRenderGrade(){
       // Dia que ainda não chegou fica travado: não existe entrega feita no futuro.
       if(entDiaFuturo(entAno,entMes,d)){ cels+='<td class="fut" title="Este dia ainda não chegou"></td>'; continue; }
       const v=entGetRaw(entAno,entMes,id,d); const fx=fora[id+"|"+d];
-      const cls=[]; if(fx) cls.push("fora"); if(d===diaLanc) cls.push("lanc");
-      cels+='<td'+(d===diaLanc?' class="tdlanc"':'')+'><input type="text" inputmode="numeric" data-id="'+entEsc(id)+'" data-dia="'+d+'" value="'+v+'"'+
+      // Dia confirmado: para quem lança, não existe mais campo. Só o número.
+      if(entDiaTravado(entAno,entMes,d)){
+        cels+='<td class="conf" title="Dia '+d+' confirmado — não pode mais ser alterado">'+(v===""?"—":v)+'</td>'; continue;
+      }
+      const conf2=entDiaConfirmado(entAno,entMes,d);
+      const cls=[]; if(fx) cls.push("fora"); if(conf2) cls.push("conf"); else if(d===diaLanc) cls.push("lanc");
+      cels+='<td'+(conf2?' class="conf"':(d===diaLanc?' class="tdlanc"':''))+'><input type="text" inputmode="numeric" data-id="'+entEsc(id)+'" data-dia="'+d+'" value="'+v+'"'+
+            (conf2?' title="Dia já confirmado. Como administrador você ainda pode corrigir — a correção fica registrada."':'')+
             (cls.length?' class="'+cls.join(" ")+'"':'')+
             (fx?' title="'+entEsc("Fora do padrão: "+fx.nome+" costuma fazer perto de "+fx.base+" por dia")+'"':'')+
             (inativo?' readonly title="Entregador inativo"':'')+'></td>'; }
@@ -12164,7 +12324,9 @@ function renderEntregas(){
     if(e.target.closest("#entCfgSalvar")){ entCfgSalvar(); return; }
   });
   document.getElementById("entFinal").addEventListener("click",function(e){
-    if(e.target.closest("#entFinalizarMes")) entFecharMes(true);
+    if(e.target.closest("#entFinalizarMes")){ entFecharMes(true); return; }
+    if(e.target.closest("#entConfirmarDia")){ entConfirmarDias(entDiasParaConfirmar(entAno,entMes)); return; }
+    if(e.target.closest("#entReabrirDia")){ entReabrirDia(); return; }
   });
   document.getElementById("entSync").addEventListener("click",function(e){
     if(e.target.closest("#entRetry")){ entFila.forEach(function(f){ f.proxima=0; }); entFilaProcessar(true); }
