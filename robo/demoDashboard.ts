@@ -2920,6 +2920,19 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ent-aviso-conf .acoes{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;}
         .ent-aviso-conf .acoes button{border:1px solid #e0b4ae;background:#fff;color:#a3291c;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;}
         .ent-aviso-conf .acoes button:hover{background:#fbe3e1;}
+        /* Faixa do dinheiro: duas colunas iguais, próprias, que nunca sobram de fila. */
+        .ent-din{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:0 0 22px;}
+        .ent-din-card{background:#fff;border:1px solid #e6ebf1;border-left:4px solid #157a35;border-radius:12px;
+                      padding:16px 20px;box-shadow:0 1px 4px rgba(20,40,70,.06);min-width:0;}
+        .ent-din-card .l{font-size:11px;font-weight:700;color:#8a94a3;text-transform:uppercase;letter-spacing:.5px;}
+        .ent-din-card .v{font-size:30px;font-weight:800;color:#0c5a26;line-height:1.15;margin-top:5px;
+                         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .ent-din-card .s{font-size:11.5px;color:#8a97a8;margin-top:6px;line-height:1.45;}
+        .ent-din-card.proj{border-left-color:#a9d8b6;}
+        .ent-din-card.proj .v{color:#46535f;}
+        .ent-din-card.final{border-left-color:#0c5a26;}
+        .ent-din-nota{grid-column:1/-1;font-size:11.5px;color:#8a97a8;text-align:center;margin-top:-4px;}
+        @media (max-width:700px){ .ent-din{grid-template-columns:1fr;} .ent-din-card .v{font-size:26px;} }
         .ent-kbar{height:5px;border-radius:3px;background:#eef2f6;margin-top:9px;overflow:hidden;}
         .ent-kbar i{display:block;height:100%;border-radius:3px;background:#157a35;}
         .ent-ksub{font-size:11.5px;color:#8a97a8;margin-top:6px;line-height:1.4;overflow-wrap:anywhere;}
@@ -3034,6 +3047,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div class="ent-sync ok" id="entSync"><span class="pt"></span>Tudo salvo</div>
         <div id="entStatus"></div>
         <div id="entAvisos"></div>
+        <div id="entDinheiro"></div>
         <div class="kpis" id="entKpis" style="grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin-bottom:22px;"></div>
         <div id="entGradeWrap" style="display:none;">
           <p class="ent-grade-info">Digite quantas entregas cada entregador fez em cada dia. Escreva <b>0</b> quando a loja abriu e não houve entrega, e deixe <b>em branco</b> o dia que ainda não foi apurado — o painel trata os dois de formas diferentes.</p>
@@ -11288,22 +11302,31 @@ function entRenderKpis(){
     vsSub="por dia lançado, contra "+MESES[antM].toLowerCase();
   }
 
-  // DINHEIRO: só entra quando o SERVIDOR mandou o valor, e ele só manda pro master.
+  // DINHEIRO: faixa PRÓPRIA, não sobra de fila dos cartões operacionais. São duas
+  // colunas iguais que nunca ficam órfãs, e o valor não quebra no meio do número.
   var cartaoDinheiro="";
   if(entMostraDinheiro()){
     var cfg=entCfgAtual();
     var qs=entIdsDoMes(entAno,entMes).map(function(id){ return entTotalEntregador(entAno,entMes,id); });
     var agora=entfTotalEquipe(qs,cfg);
+    function cardD(v,l,sub,cls){
+      return '<div class="ent-din-card '+(cls||"")+'"><div class="l">'+l+'</div><div class="v">'+v+'</div>'+
+             (sub?'<div class="s">'+sub+'</div>':'')+'</div>';
+    }
     if(entMesFechado()){
-      cartaoDinheiro=card(entfMoeda(agora.total),"Valor final","fechado · valor calculado para a folha");
+      cartaoDinheiro=cardD(entfMoeda(agora.total),"Valor final do mês",
+                           "fechado · valor calculado para a folha","final");
     } else {
       var fator=(st1.projecao!==null && ctx.total>0)?(st1.projecao/ctx.total):1;
       var proj=entfTotalEquipe(qs.map(function(q){ return Math.round(q*fator); }),cfg);
-      cartaoDinheiro=card(entfMoeda(agora.total),"Valor até agora",
-                          agora.desafio+" no desafio · "+agora.base+" na base · "+agora.sem+" sem")+
-                     card(st1.projecao===null?"—":entfMoeda(proj.total),"Pagamento projetado",
-                          st1.projecao===null?"Dados insuficientes":"se o ritmo continuar · não é valor devido");
+      cartaoDinheiro=cardD(entfMoeda(agora.total),"Valor até agora",
+                           agora.desafio+" na meta desafio · "+agora.base+" na meta base · "+agora.sem+" sem remuneração")+
+                     cardD(st1.projecao===null?"—":entfMoeda(proj.total),"Pagamento projetado",
+                           st1.projecao===null?"Dados insuficientes para projetar"
+                                              :"se o ritmo continuar até o fim do mês · ainda não é valor devido","proj");
     }
+    cartaoDinheiro='<div class="ent-din">'+cartaoDinheiro+
+      '<div class="ent-din-nota">Remuneração variável por entregas · valor calculado para a folha. O Painel não calcula encargos.</div></div>';
   }
 
   document.getElementById("entKpis").innerHTML=
@@ -11312,8 +11335,9 @@ function entRenderKpis(){
     cardMeta(st1,"Meta base atingida")+
     card(vsTxt,"Vs. mês anterior",vsSub)+
     card(num(ctx.restantes),"Dias úteis restantes",ctx.restantes===0?"o mês acabou":"ainda dá pra lançar")+
-    card(vLider,"Líder do mês",subLider)+
-    cartaoDinheiro;
+    card(vLider,"Líder do mês",subLider);
+  var boxD=document.getElementById("entDinheiro");
+  if(boxD) boxD.innerHTML=cartaoDinheiro;
 
   entRenderStatus(ctx);
   entRenderAvisos(ctx);
