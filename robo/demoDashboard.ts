@@ -2961,17 +2961,21 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         /* Tabela FIXA: cabe na largura, sem barra pra puxar pro lado. */
         .ent-rank-wrap{max-width:100%;}
         table.ent-rank{border-collapse:collapse;width:100%;table-layout:fixed;font-size:12px;white-space:nowrap;}
+        /* Números e etiquetas CENTRALIZADOS na coluna (pedido do Victor). Só o nome
+           do entregador fica à esquerda. */
         table.ent-rank th{background:#f3f6fa;color:#46546a;font-weight:700;font-size:10.5px;line-height:1.2;
-                          padding:7px 5px;text-align:right;border-bottom:1px solid #e6ebf1;vertical-align:bottom;}
+                          padding:7px 5px;text-align:center;border-bottom:1px solid #e6ebf1;vertical-align:bottom;}
         table.ent-rank th.nm{text-align:left;}
         table.ent-rank td{padding:8px 5px;border-bottom:1px solid #f1f4f8;color:#33404f;
                           overflow:hidden;text-overflow:ellipsis;}
         table.ent-rank th:first-child,table.ent-rank td:first-child{width:26px;}
         table.ent-rank th:nth-child(2),table.ent-rank td:nth-child(2){width:auto;}
         table.ent-rank th:nth-child(n+3),table.ent-rank td:nth-child(n+3){width:7.4%;}
-        table.ent-rank td.n{text-align:right;}
+        table.ent-rank td.n{text-align:center;}
+        table.ent-rank td:nth-child(n+3){text-align:center;}
+        table.ent-rank td.nm{text-align:left;}
         table.ent-rank td.forte{font-weight:800;color:#17202b;}
-        table.ent-rank td.pos{color:#9aa7b6;font-weight:700;width:26px;}
+        table.ent-rank td.pos{color:#9aa7b6;font-weight:700;width:26px;text-align:center;}
         table.ent-rank td.nm{font-weight:700;color:#1d2733;}
         table.ent-rank td.nm .pt{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;}
         table.ent-rank tr.tot td{background:#f6faf7;font-weight:800;color:#0c5a26;border-top:2px solid #e6ebf1;}
