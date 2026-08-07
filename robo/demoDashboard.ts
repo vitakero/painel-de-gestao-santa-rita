@@ -10560,8 +10560,19 @@ function entFilaEnviar(sb,f){
 function entRpcOk(r){ if(r&&r.error) throw r.error; return r; }
 
 /* ---------- estado da sincronização na tela ---------- */
+var entSyncUltimo=-1;
 function entSyncPintar(){
   var pend=entFilaPendentes();
+  // O aviso amarelo de "X alterações pendentes" vive fora desta faixa. Quando a fila
+  // muda de tamanho, ele precisa ser repintado junto — senão fica dizendo que há
+  // pendência depois que já foi tudo salvo.
+  if(pend.length!==entSyncUltimo){
+    entSyncUltimo=pend.length;
+    var pgS=document.getElementById("page-entregas");
+    if(pgS && pgS.classList.contains("ativo") && typeof entRenderKpis==="function"){
+      try{ entRenderKpis(); }catch(e){}
+    }
+  }
   entSyncEstado.pendentes=pend.length;
   entSyncEstado.enviando=pend.filter(function(i){ return i.status==="enviando"; }).length;
   entSyncEstado.erro=(pend.find&&pend.find(function(i){ return i.tentativas>2; })||{}).ultimo_erro||"";
