@@ -2874,6 +2874,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         table.ent-grade th.lanc{background:#e4f5ea;color:#0c5a26;position:relative;}
         table.ent-grade td.tdlanc{background:#f2fbf5;}
         table.ent-grade input.lanc{border-color:#8ec9a4;background:#fff;font-weight:800;color:#0c5a26;}
+        /* DIGITADO E AINDA NÃO SALVO. Vem depois de .fora e de .lanc de propósito: esta
+           marca tem que vencer todas as outras, é a única que diz "isto vai se perder". */
+        table.ent-grade input.nsv{border:2px dashed #d08700;background:#fff8e6;color:#7a5600;font-weight:800;padding:2px 1px;}
+        table.ent-grade td:has(> input.nsv){background:#fffcf2;}
         .ent-hoje-tag{display:block;font-size:8.5px;font-weight:800;color:#157a35;text-transform:uppercase;
                       letter-spacing:.3px;line-height:1;margin-bottom:2px;white-space:nowrap;}
         /* Dia já CONFIRMADO: não se digita mais nele. */
@@ -10528,7 +10532,7 @@ function entFilaCarregar(){
   // quem morreu no meio do envio volta pra pendente (o request_id protege da duplicata)
   entFila.forEach(function(i){ if(i.status==="enviando") i.status="pendente"; });
 }
-entCacheCarregar(); entFilaCarregar();
+entCacheCarregar(); entFilaCarregar(); entRasCarregar();
 
 /* ---------- consultas de apoio ---------- */
 function entPessoa(id){ for(var i=0;i<entEquipe.length;i++) if(entEquipe[i].id===id) return entEquipe[i]; return null; }
@@ -10552,10 +10556,79 @@ function entIdsDoMes(a,m){
 }
 
 /* ---------- leitura e escrita das células ---------- */
-function entGet(a,m,id,dia){ var md=entDados[entMesKey(a,m)]; if(!md||!md[id]) return 0; return +md[id][dia]||0; }
-function entGetRaw(a,m,id,dia){ var md=entDados[entMesKey(a,m)]; if(!md||!md[id]||md[id][dia]===undefined) return ""; return +md[id][dia]; }
+/* ==ENTRAS-INICIO==
+   RASCUNHO: digitar NÃO grava.
+   O painel inteiro salvava sozinho a cada tecla. Para o lançamento das entregas isso é
+   errado: o número tem que ser conferido e SALVADO de propósito, porque salvar encerra o
+   dia e ninguém desfaz depois — só o administrador.
+   Então o que é digitado fica num rascunho LOCAL (só neste navegador) até apertar Salvar.
+   Local, e não na memória: fechar a aba sem querer não pode apagar meia hora de digitação.
+   Enquanto está em rascunho, nada foi para o servidor e ninguém mais vê. */
+var entRascunho={};
+function entRasCarregar(){
+  try{ var r=JSON.parse(localStorage.getItem("entregas_v2_rascunho")||"null");
+       if(r&&typeof r==="object") entRascunho=r; }catch(e){}
+}
+function entRasSalvar(){ try{ localStorage.setItem("entregas_v2_rascunho", JSON.stringify(entRascunho)); }catch(e){} }
+function entRasGet(a,m,id,dia){
+  var md=entRascunho[entMesKey(a,m)];
+  if(!md||!md[id]||md[id][dia]===undefined) return undefined;
+  return md[id][dia];
+}
+function entTemRascunho(a,m,id,dia){ return entRasGet(a,m,id,dia)!==undefined; }
+function entRasSet(a,m,id,dia,val){
+  var mk=entMesKey(a,m);
+  if(!entRascunho[mk]) entRascunho[mk]={};
+  if(!entRascunho[mk][id]) entRascunho[mk][id]={};
+  entRascunho[mk][id][dia]=val;
+  entRasSalvar();
+}
+function entRasApaga(a,m,id,dia){
+  var mk=entMesKey(a,m);
+  if(entRascunho[mk]&&entRascunho[mk][id]) delete entRascunho[mk][id][dia];
+  entRasSalvar();
+}
+function entRasLimpaDia(a,m,d){
+  var mk=entMesKey(a,m), md=entRascunho[mk]; if(!md) return;
+  Object.keys(md).forEach(function(id){ delete md[id][d]; });
+}
+// Quantas células estão digitadas e ainda não salvas, e em que dias.
+function entRasResumo(a,m){
+  var md=entRascunho[entMesKey(a,m)]||{}, cel=0, dias={};
+  Object.keys(md).forEach(function(id){
+    Object.keys(md[id]).forEach(function(d){ cel++; dias[+d]=1; });
+  });
+  return { celulas:cel, dias:Object.keys(dias).map(Number).sort(function(x,y){ return x-y; }) };
+}
+function entRasTotal(){
+  var n=0;
+  Object.keys(entRascunho).forEach(function(mk){
+    Object.keys(entRascunho[mk]||{}).forEach(function(id){
+      n+=Object.keys(entRascunho[mk][id]||{}).length;
+    });
+  });
+  return n;
+}
+/* ==ENTRAS-FIM== */
+
+// O rascunho vem SEMPRE na frente do que está gravado: é o que a pessoa está vendo e
+// digitando. O que está no servidor continua intacto até ela salvar.
+function entGet(a,m,id,dia){ var r=entRasGet(a,m,id,dia); if(r!==undefined) return +r||0;
+  var md=entDados[entMesKey(a,m)]; if(!md||!md[id]) return 0; return +md[id][dia]||0; }
+function entGetRaw(a,m,id,dia){ var r=entRasGet(a,m,id,dia); if(r!==undefined) return r;
+  var md=entDados[entMesKey(a,m)]; if(!md||!md[id]||md[id][dia]===undefined) return ""; return +md[id][dia]; }
+// O que está GRAVADO de verdade, ignorando o rascunho. Serve pra saber se o que foi
+// digitado mudou alguma coisa.
+function entGravado(a,m,id,dia){ var md=entDados[entMesKey(a,m)]; if(!md||!md[id]||md[id][dia]===undefined) return ""; return +md[id][dia]; }
 // Aplica na tela agora (otimista) e enfileira a intenção. Quem grava é o servidor.
 function entSet(a,m,id,dia,val){
+  var novo=(val===""||val===null||val===undefined)?"":(+val||0);
+  // Digitou de volta o mesmo número que já estava gravado? Então não há rascunho nenhum.
+  if(novo===entGravado(a,m,id,dia)) entRasApaga(a,m,id,dia);
+  else entRasSet(a,m,id,dia,novo);
+}
+// AQUI é onde grava de verdade. Só o botão Salvar chega neste caminho.
+function entGravarCelula(a,m,id,dia,val){
   var mk=entMesKey(a,m);
   if(!entDados[mk]) entDados[mk]={};
   if(!entDados[mk][id]) entDados[mk][id]={};
@@ -10689,7 +10762,9 @@ function entSyncPintar(){
   try{ entSyncEstado.offline=(navigator.onLine===false); }catch(e){}
   var el=document.getElementById("entSync"); if(!el) return;
   var t,c;
-  if(entSyncEstado.offline){ t="Sem conexão — "+pend.length+" alteração(ões) guardada(s) aqui"; c="pend"; }
+  var nsv=entRasTotal();
+  if(nsv){ t=nsv+" lançamento(s) digitados e NÃO salvos"; c="pend"; }
+  else if(entSyncEstado.offline){ t="Sem conexão — "+pend.length+" alteração(ões) guardada(s) aqui"; c="pend"; }
   else if(entSyncEstado.enviando){ t="Sincronizando…"; c="indo"; }
   else if(entSyncEstado.erro){ t="Falha na sincronização — "+pend.length+" pendente(s)"; c="erro"; }
   else if(pend.length){ t=pend.length+" alteração(ões) pendente(s)"; c="pend"; }
@@ -10704,6 +10779,11 @@ function entSyncPintar(){
     (rec?'<span class="motivo" title="'+entEsc(rec)+'">'+entEsc(rec)+'</span> <button type="button" id="entRecOk">Entendi</button>':'');
 }
 try{
+  // Fechar a aba com número digitado e não salvo tem que doer um pouco.
+  window.addEventListener("beforeunload",function(e){
+    if(!entRasTotal()) return;
+    e.preventDefault(); e.returnValue=""; return "";
+  });
   window.addEventListener("online",function(){ entSyncPintar(); entFilaProcessar(true); });
   window.addEventListener("offline",entSyncPintar);
   // Batida periódica: sem isso, uma intenção que falhou ficaria parada até alguém
@@ -11911,36 +11991,67 @@ function entFecharMes(porQuemLanca){
   });
 }
 
-// Confirma os dias em fila, um de cada vez. Se um falhar, para e mostra o motivo —
-// melhor confirmar três de cinco e dizer qual travou do que fingir que deu tudo certo.
-function entConfirmarDias(dias){
-  var sb=entSB(); if(!sb||!dias.length) return;
-  if(entFilaPendentes().length){
-    return uiConfirm({titulo:"Sincronização pendente",
-      msg:"Há "+entFilaPendentes().length+" alteração(ões) que ainda não chegaram ao servidor. Aguarde a faixa indicar \\"Tudo sincronizado\\" antes de confirmar o dia.",
-      ok:"OK",cancel:""});
-  }
-  var quais = dias.length===1 ? "o dia "+dias[0] : "os dias "+entLista(dias);
-  uiConfirm({titulo:"Confirmar "+quais,
-    msg:"Após a confirmação, "+(dias.length===1?"o dia é encerrado e não aceita":"os dias são encerrados e não aceitam")+
-        " alteração. Confira os números antes de prosseguir.\\n\\n"+
-        "Correção posterior depende de reabertura pelo administrador.",
-    ok:"Confirmar",cancel:"Cancelar"}).then(function(ok){
+// SALVAR. É o único caminho que grava. Faz as três coisas de uma vez, na ordem:
+// manda o rascunho pro servidor, espera confirmar que chegou, e encerra o dia.
+// Se a segunda etapa falhar, NÃO encerra: dia encerrado com número faltando seria pior
+// que dia aberto.
+function entGravar(dias){
+  var sb=entSB();
+  if(!sb) return uiConfirm({titulo:"Sem conexão com o servidor",
+    msg:"Entre no painel de novo para salvar. O que você digitou está guardado neste computador e não se perde.",ok:"OK",cancel:""});
+  if(!dias.length) return;
+  var um=dias.length===1;
+  var res=entRasResumo(entAno,entMes);
+  uiConfirm({titulo:um?"Salvar o dia "+dias[0]:"Salvar "+dias.length+" dias",
+    msg:(res.celulas?res.celulas+" lançamento(s) serão gravados.\\n\\n":"")+
+        "Depois de salvo, "+(um?"o dia é encerrado e não aceita":"os dias são encerrados e não aceitam")+
+        " mais alteração. Confira os números antes de prosseguir.\\n\\n"+
+        "Correção posterior só com o administrador.",
+    ok:"Salvar",cancel:"Cancelar"}).then(function(ok){
     if(!ok) return;
-    var i=0;
-    (function passo(){
-      if(i>=dias.length){ entConfLoad(function(){ renderEntregas(); }); return; }
-      var d=dias[i++];
-      sb.rpc("entregas_confirmar_dia",{p_request_id:entUuid(),p_ano:entAno,p_mes:entMes+1,p_dia:d}).then(function(r){
-        if(r&&r.error){
-          entConfLoad(function(){ renderEntregas(); });
-          uiConfirm({titulo:"Não deu pra confirmar o dia "+d,msg:r.error.message,ok:"OK",cancel:""});
-          return;
-        }
-        passo();
+    var mk=entMesKey(entAno,entMes), ras=entRascunho[mk]||{}, n=0;
+    dias.forEach(function(d){
+      Object.keys(ras).forEach(function(id){
+        if(ras[id][d]===undefined) return;
+        entGravarCelula(entAno,entMes,id,d,ras[id][d]); n++;
       });
-    })();
+      entRasLimpaDia(entAno,entMes,d);
+    });
+    entRasSalvar(); entSyncPintar(); entRenderFinal();
+    entEsperaFila(function(chegou){
+      if(!chegou){
+        entRenderFinal();
+        return uiConfirm({titulo:"Ainda não chegou ao servidor",
+          msg:"Os números foram gravados aqui e o painel continua tentando enviar. O dia NÃO foi encerrado — assim que a faixa disser \\"Tudo sincronizado\\", clique em Salvar de novo para encerrar.",
+          ok:"Entendi",cancel:""});
+      }
+      var i=0;
+      (function passo(){
+        if(i>=dias.length){ entConfLoad(function(){ renderEntregas(); }); return; }
+        var d=dias[i++];
+        if(entDiaConfirmado(entAno,entMes,d)) return passo();
+        sb.rpc("entregas_confirmar_dia",{p_request_id:entUuid(),p_ano:entAno,p_mes:entMes+1,p_dia:d}).then(function(r){
+          if(r&&r.error){
+            entConfLoad(function(){ renderEntregas(); });
+            uiConfirm({titulo:"Não deu pra encerrar o dia "+d,msg:r.error.message,ok:"OK",cancel:""});
+            return;
+          }
+          passo();
+        });
+      })();
+    });
   });
+}
+// Espera a fila esvaziar antes de encerrar o dia. Sem isso dava pra travar um dia cujo
+// último número ainda estava no meio do caminho.
+function entEsperaFila(depois){
+  var t0=Date.now();
+  (function tic(){
+    if(!entFilaPendentes().length) return depois(true);
+    if(Date.now()-t0>25000) return depois(false);
+    entFilaProcessar(true);
+    setTimeout(tic,500);
+  })();
 }
 // Reabrir um dia confirmado: só o administrador, com senha e motivo. É a mesma
 // assimetria do fechamento do mês — quem lança tranca, só o dono destranca.
@@ -12052,13 +12163,24 @@ function entDiasParaConfirmar(a,m){
   if(!ids.length) return out;
   for(var d=1;d<=nd;d++){
     if(entFechado(a,m,d)) continue;
-    if(!entcJaPassou(a,m,d,HOJE)) continue;
+    // Igual ao servidor: o que não dá é salvar dia que ainda não chegou. O dia de HOJE
+    // pode ser salvo — se ela já tem os números, não faz sentido obrigar a esperar.
+    if(entDiaFuturo(a,m,d)) continue;
     if(entDiaConfirmado(a,m,d)) continue;
     var cheio=true;
     for(var i=0;i<ids.length;i++){ if(entGetRaw(a,m,ids[i],d)===""){ cheio=false; break; } }
     if(cheio) out.push(d);
   }
   return out;
+}
+// Dias prontos pra salvar: dia útil que já passou, ainda não encerrado, e COMPLETO —
+// contando o que está em rascunho. É a mesma regra que o servidor cobra.
+function entDiasParaGravar(a,m){ return entDiasParaConfirmar(a,m); }
+// Um dia que está sendo digitado agora: quem ainda falta nele.
+function entFaltamNoDia(a,m,d){
+  var mk=entMesKey(a,m);
+  return entCobrados(a,m).filter(function(id){ return entGetRaw(a,m,id,d)===""; })
+                         .map(function(id){ return entNomeDe(id,mk); });
 }
 function entMesCompleto(a,m){
   var nd=diasDoMes(a,m), md=entDados[entMesKey(a,m)]||{};
@@ -12165,19 +12287,41 @@ function entRenderFinal(){
       '<div class="det">Lançamentos e valores congelados. Qualquer alteração exige reabertura pelo administrador.</div></div></div>';
     return;
   }
-  var confirmar=entDiasParaConfirmar(entAno,entMes);
+  var confirmar=entDiasParaGravar(entAno,entMes);
+  var ras=entRasResumo(entAno,entMes);
   var falta=entFaltaPreencher(entAno,entMes);
-  // Lançou o dia? Então confirma. Isso vem ANTES de qualquer outra mensagem: é a
-  // ação do dia, e é ela que trava o passado.
-  if(confirmar.length){
+  // O dia que ela está digitando AGORA manda na faixa. Se ele ainda não está completo,
+  // a faixa fala dele — não adianta oferecer "salvar o dia 5" enquanto ela preenche o 6.
+  var digitandoIncompleto=ras.dias.filter(function(d){ return confirmar.indexOf(d)<0; });
+  // Tem dia pronto? Então SALVAR. Vem antes de tudo: é a ação do dia, e é ela que
+  // grava e encerra.
+  if(confirmar.length && !digitandoIncompleto.length){
     var um=confirmar.length===1;
     box.innerHTML='<div class="ent-final conf">'+entIco("cadeado")+
-      '<div><div class="eyb">Conferência diária</div>'+
-      '<b>'+(um?'Dia '+confirmar[0]+' lançado, aguardando conferência.'
-               :confirmar.length+' dias lançados aguardam conferência.')+'</b>'+
-      '<div class="det">Confira os números antes de confirmar. Após a confirmação o dia é encerrado e não aceita alteração.</div>'+
+      '<div><div class="eyb">Lançamento diário</div>'+
+      '<b>'+(um?'Dia '+confirmar[0]+' completo, pronto para salvar.'
+               :confirmar.length+' dias completos, prontos para salvar.')+'</b>'+
+      '<div class="det">'+(ras.celulas?'<b>'+ras.celulas+' lançamento(s) ainda não salvos.</b> ':'')+
+      'Confira os números antes de salvar. Depois de salvo o dia é encerrado e não aceita alteração.</div>'+
       entChips(confirmar)+'</div>'+
-      '<button type="button" id="entConfirmarDia">'+(um?'Confirmar o dia '+confirmar[0]:'Confirmar '+confirmar.length+' dias')+'</button></div>'+
+      '<button type="button" id="entSalvarDia">'+(um?'Salvar o dia '+confirmar[0]:'Salvar '+confirmar.length+' dias')+'</button></div>'+
+      entConfNota();
+    return;
+  }
+  // Está digitando e o dia ainda não fechou: diz quem falta e deixa claro que NADA foi
+  // salvo. Sem isso ela larga o dia pela metade achando que já foi.
+  if(digitandoIncompleto.length){
+    var dIn=digitandoIncompleto[digitandoIncompleto.length-1];
+    var quem=entFaltamNoDia(entAno,entMes,dIn);
+    box.innerHTML='<div class="ent-final falta">'+entIco("atencao")+
+      '<div><div class="eyb">Lançamento em andamento</div>'+
+      '<b>Dia '+dIn+' em lançamento — '+ras.celulas+' número(s) ainda NÃO salvos.</b>'+
+      '<div class="det">'+(quem.length
+        ? 'O dia '+dIn+' só pode ser salvo com todos os entregadores lançados. Falta: '+quem.slice(0,6).map(entEsc).join(', ')+(quem.length>6?' e mais '+(quem.length-6):'')+'.'
+        : 'Confira e salve.')+'</div>'+
+      '<div class="det">Quem não fez entrega no dia precisa de <b>0</b>. Nada vai para o servidor até você salvar.</div>'+
+      entChips(ras.dias)+'</div></div>'+
+      (confirmar.length?'<div class="ent-conf-nota"><span>Pronto para salvar assim que terminar: dia '+entLista(confirmar)+'</span></div>':'')+
       entConfNota();
     return;
   }
@@ -12265,6 +12409,7 @@ function entRenderGrade(){
       }
       const conf2=entDiaConfirmado(entAno,entMes,d);
       const cls=[]; if(fx) cls.push("fora"); if(conf2) cls.push("conf"); else if(d===diaLanc) cls.push("lanc");
+      if(entTemRascunho(entAno,entMes,id,d)) cls.push("nsv");
       cels+='<td'+(conf2?' class="conf"':(d===diaLanc?' class="tdlanc"':''))+'><input type="text" inputmode="numeric" data-id="'+entEsc(id)+'" data-dia="'+d+'" value="'+v+'"'+
             (conf2?' title="Dia já confirmado. Como administrador você ainda pode corrigir — a correção fica registrada."':'')+
             (cls.length?' class="'+cls.join(" ")+'"':'')+
@@ -12394,7 +12539,7 @@ function renderEntregas(){
   });
   document.getElementById("entFinal").addEventListener("click",function(e){
     if(e.target.closest("#entFinalizarMes")){ entFecharMes(true); return; }
-    if(e.target.closest("#entConfirmarDia")){ entConfirmarDias(entDiasParaConfirmar(entAno,entMes)); return; }
+    if(e.target.closest("#entSalvarDia")){ entGravar(entDiasParaGravar(entAno,entMes)); return; }
     if(e.target.closest("#entReabrirDia")){ entReabrirDia(); return; }
   });
   document.getElementById("entSync").addEventListener("click",function(e){
@@ -12414,8 +12559,9 @@ function renderEntregas(){
       v=entcValidaLancamento(inp.value);
     } else entAvisoDigitacao("");
     entSet(entAno,entMes,inp.dataset.id,+inp.dataset.dia, v.vazio?"":v.valor);
+    inp.classList.toggle("nsv", entTemRascunho(entAno,entMes,inp.dataset.id,+inp.dataset.dia));
     if(!entSoLanca()) entRenderKpis();
-    entUpdGradeTotais(); entRenderFinal();
+    entUpdGradeTotais(); entRenderFinal(); entSyncPintar();
   });
   // Guarda o valor anterior pra poder desfazer se o usuário disser que errou.
   document.getElementById("entGrade").addEventListener("focusin",function(e){
