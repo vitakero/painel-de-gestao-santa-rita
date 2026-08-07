@@ -2910,9 +2910,6 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ent-final button.sec{background:transparent;color:inherit;border:1px solid currentColor;
                               padding:8px 14px;font-size:12.5px;opacity:.8;}
         .ent-final button.sec:hover{background:rgba(0,0,0,.05);}
-        .ent-conf-nota{font-size:12px;color:#8a97a8;margin:8px 2px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-        .ent-conf-nota button{border:0;background:transparent;color:#1f4d7a;font:inherit;font-weight:700;
-                              text-decoration:underline;cursor:pointer;padding:0;}
         .ent-grade-info{font-size:12.5px;color:#8a97a8;margin:0 0 8px;}
         .ent-graf{background:#fff;border:1px solid #e6ebf1;border-radius:12px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(20,40,70,.05);}
         .ent-graf h3{margin:0 0 14px;font-size:14px;font-weight:800;color:#0c5a26;text-align:center;text-transform:uppercase;letter-spacing:.6px;}
@@ -11929,7 +11926,9 @@ function entRenderAdm(){
     h+='<button type="button" class="ent-adm" id="entCfgBtn">'+
        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+
        '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.09A1.65 1.65 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Metas e valores</button>'+
-       '<button type="button" class="ent-adm" id="entFecharBtn">Fechar mês</button>';
+       '<button type="button" class="ent-adm" id="entFecharBtn">Fechar mês</button>'+
+       // só aparece quando existe dia encerrado pra reabrir
+       (entDiasConfDoMes(entAno,entMes).length?'<button type="button" class="ent-adm" id="entReabrirDia">Reabrir um dia</button>':'');
   }
   box.innerHTML=h;
 }
@@ -12657,8 +12656,7 @@ function entRenderFinal(){
       '<div class="det">'+(ras.celulas?'<b>'+ras.celulas+' lançamento(s) ainda não salvos.</b> ':'')+
       'Confira os números antes de salvar. Depois de salvo o dia é encerrado e não aceita alteração.</div>'+
       entChips(confirmar,confirmar.length===1?'Dia:':'Dias:')+'</div>'+
-      '<button type="button" id="entSalvarDia">'+(um?'Salvar o dia '+confirmar[0]:'Salvar '+confirmar.length+' dias')+'</button></div>'+
-      entConfNota();
+      '<button type="button" id="entSalvarDia">'+(um?'Salvar o dia '+confirmar[0]:'Salvar '+confirmar.length+' dias')+'</button></div>';
     return;
   }
   // Está digitando e o dia ainda não fechou: diz quem falta e deixa claro que NADA foi
@@ -12673,9 +12671,7 @@ function entRenderFinal(){
         ? 'O dia '+dIn+' só pode ser salvo com todos os entregadores lançados. Falta: '+quem.slice(0,6).map(entEsc).join(', ')+(quem.length>6?' e mais '+(quem.length-6):'')+'.'
         : 'Confira e salve.')+'</div>'+
       '<div class="det">Quem não fez entrega no dia precisa de <b>0</b>. Nada vai para o servidor até você salvar.</div>'+
-      entChips(ras.dias,ras.dias.length===1?'Dia em lançamento:':'Dias em lançamento:')+'</div></div>'+
-      (confirmar.length?'<div class="ent-conf-nota"><span>Pronto para salvar assim que terminar: dia '+entLista(confirmar)+'</span></div>':'')+
-      entConfNota();
+      entChips(ras.dias,ras.dias.length===1?'Dia em lançamento:':'Dias em lançamento:')+'</div></div>';
     return;
   }
   if(!falta.length && entMesCompleto(entAno,entMes)){
@@ -12684,8 +12680,7 @@ function entRenderFinal(){
       '<b>'+MESES[entMes]+' apurado por completo.</b>'+
       '<div class="det">Todos os dias úteis lançados e conferidos. Ao finalizar, a competência é encerrada: '+
       'nenhum lançamento pode ser alterado sem reabertura pelo administrador.</div></div>'+
-      '<button type="button" id="entFinalizarMes">Finalizar o mês</button></div>'+
-      entConfNota();
+      '<button type="button" id="entFinalizarMes">Finalizar o mês</button></div>';
     return;
   }
   if(!falta.length){
@@ -12698,7 +12693,7 @@ function entRenderFinal(){
       '<div class="ent-final ok2">'+entIco("concluido")+
       '<div><div class="eyb">Apuração diária</div><b>Lançamentos em dia.</b><div class="det">'+
       (dl?'O dia '+dl+' já foi lançado e conferido. ':'')+
-      'A competência poderá ser encerrada após o lançamento do último dia útil.</div></div></div>')+entConfNota();
+      'A competência poderá ser encerrada após o lançamento do último dia útil.</div></div></div>');
     return;
   }
   var det=falta.slice(0,4).map(function(f){
@@ -12709,8 +12704,7 @@ function entRenderFinal(){
     '<div><div class="eyb">Pendências de lançamento</div>'+
     '<b>Há dias sem lançamento para encerrar a competência.</b>'+
     '<div class="det">'+det+'</div>'+
-    '<div class="det">Dia sem entrega deve ser lançado como <b>0</b>. Célula vazia significa <i>não apurado</i>.</div></div></div>'+
-    entConfNota();
+    '<div class="det">Dia sem entrega deve ser lançado como <b>0</b>. Célula vazia significa <i>não apurado</i>.</div></div></div>';
 }
 // Os dias como fichas, em vez de "1, 3, 4, 5 e 6" no meio da frase. Lê-se de relance.
 function entChips(dias,rotulo){
@@ -12718,16 +12712,6 @@ function entChips(dias,rotulo){
   return '<div class="ent-dias">'+(rotulo?'<em>'+rotulo+'</em>':'')+
     dias.map(function(d){ return '<span>'+d+'</span>'; }).join("")+
     '<em class="fim">de '+MESES[entMes].toLowerCase()+'</em></div>';
-}
-// Só o ADMINISTRADOR vê esta linha. Pra quem lança ela não servia pra nada: os dias
-// encerrados são justamente os que ela não pode mexer, e a grade já mostra isso.
-// Aqui é o único lugar de onde se reabre um dia, então some pra ela e fica pra ele.
-function entConfNota(){
-  if(!entCfg.master) return "";
-  var confs=entDiasConfDoMes(entAno,entMes);
-  if(!confs.length) return "";
-  return '<div class="ent-conf-nota"><span>🔒 Dias encerrados: <b>'+entLista(confs)+'</b></span>'+
-         '<button type="button" id="entReabrirDia">reabrir um dia</button></div>';
 }
 // A faixa de metas da tela de quem lança. Mostra também QUANTO vale cada entrega, pra
 // ela poder informar a equipe. É só a tabela de preços — quanto cada entregador ganhou
@@ -12910,6 +12894,7 @@ function renderEntregas(){
   document.getElementById("entAdm").addEventListener("click",function(e){
     if(e.target.closest("#entCfgBtn")){ entCfgAberto=!entCfgAberto; entRenderCfgBox(); return; }
     if(e.target.closest("#entFecharBtn")){ entFecharMes(); return; }
+    if(e.target.closest("#entReabrirDia")){ entReabrirDia(); return; }
     if(e.target.closest("#entReabrir")){ entReabrirMes(); return; }
     if(e.target.closest("#entRelRH")){ entRelatorioRH(); return; }
   });
@@ -12920,7 +12905,6 @@ function renderEntregas(){
   document.getElementById("entFinal").addEventListener("click",function(e){
     if(e.target.closest("#entFinalizarMes")){ entFecharMes(true); return; }
     if(e.target.closest("#entSalvarDia")){ entGravar(entDiasParaGravar(entAno,entMes)); return; }
-    if(e.target.closest("#entReabrirDia")){ entReabrirDia(); return; }
   });
   document.getElementById("entSync").addEventListener("click",function(e){
     if(e.target.closest("#entRetry")){ entFila.forEach(function(f){ f.proxima=0; }); entFilaProcessar(true); return; }
