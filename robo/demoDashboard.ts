@@ -3008,6 +3008,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ent-sync.indo{color:#2a6fb0;border-color:#cfdcea;} .ent-sync.indo .pt{background:#2a6fb0;}
         .ent-sync.pend{color:#7a5600;border-color:#f0e0b6;background:#fdf6e3;} .ent-sync.pend .pt{background:#c98a00;}
         .ent-sync.erro{color:#a3291c;border-color:#f3cfcb;background:#fdecec;} .ent-sync.erro .pt{background:#c0392b;}
+        .ent-sync .motivo{display:block;width:100%;font-weight:600;font-size:11.5px;opacity:.9;margin-top:4px;
+                          overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:520px;}
+        .ent-sync{flex-wrap:wrap;}
         .ent-sync button{border:1px solid currentColor;background:transparent;color:inherit;border-radius:12px;
                          padding:2px 10px;font-size:11.5px;font-weight:700;cursor:pointer;margin-left:4px;}
         .ent-inat{font-size:10.5px;font-weight:700;color:#8a97a8;background:#eef2f6;border-radius:4px;padding:1px 5px;margin-left:5px;text-transform:uppercase;letter-spacing:.3px;}
@@ -10569,7 +10572,8 @@ function entSyncPintar(){
   else if(pend.length){ t=pend.length+" alteração(ões) pendente(s)"; c="pend"; }
   else { t="Tudo salvo"; c="ok"; }
   el.className="ent-sync "+c;
-  el.innerHTML='<span class="pt"></span>'+t+(pend.length?' <button type="button" id="entRetry">Tentar novamente</button>':'');
+  el.innerHTML='<span class="pt"></span>'+t+(pend.length?' <button type="button" id="entRetry">Tentar novamente</button>':'')+
+    (entSyncEstado.erro?'<span class="motivo" title="'+entEsc(entSyncEstado.erro)+'">'+entEsc(entSyncEstado.erro)+'</span>':'');
 }
 try{
   window.addEventListener("online",function(){ entSyncPintar(); entFilaProcessar(true); });
@@ -11155,7 +11159,7 @@ function entRenderStatus(ctx){
   box.innerHTML='<div class="ent-status sit-'+s.c+'">'+
     '<div class="ent-status-ico">'+entIco(st1.situacao)+'</div>'+
     '<div class="ent-status-txt">'+
-      '<div class="ent-status-tit">'+s.t+'<span> — meta base '+ENT_META1+'</span></div>'+
+      '<div class="ent-status-tit">'+s.t+'<span> — meta base '+ENT_META1()+'</span></div>'+
       '<div class="ent-status-sub">'+linha+'</div>'+
       '<div class="ent-status-des">'+des+'</div>'+
     '</div>'+
