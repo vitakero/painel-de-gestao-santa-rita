@@ -10918,7 +10918,7 @@ function entfFaixa(qtd,cfg){
   else { faixa="sem"; unit=0; prox="base"; faltam=Math.max(0,base-q); }
   return { faixa:faixa, unitario:unit, total:q*unit, faltam:faltam, proxima:prox, quantidade:q };
 }
-var ENTF_ROTULO={ sem:"Abaixo da meta base", base:"Meta base atingida", desafio:"Meta desafio atingida" };
+var ENTF_ROTULO={ sem:"Abaixo da meta 1", base:"Meta 1 atingida", desafio:"Meta 2 atingida" };
 function entfRotulo(f){ return ENTF_ROTULO[f]||ENTF_ROTULO.sem; }
 
 // Soma da equipe. Devolve o total e quantos caíram em cada faixa.
@@ -11221,7 +11221,7 @@ function entRenderStatus(ctx){
   if(st1.situacao==="sem-dados"){
     linha="Nenhum dia lançado em "+MESES[ctx.mes]+". Lance as entregas pra ver o ritmo do mês.";
   } else if(st1.situacao==="concluido"){
-    linha=entPct1(st1.pct)+" da meta base · os "+ctx.diasOperacionais+" dias úteis do mês estão lançados";
+    linha=entPct1(st1.pct)+" da meta 1 · os "+ctx.diasOperacionais+" dias úteis do mês estão lançados";
   } else {
     var sinal=st1.dif>=0?"+":"−";
     linha=entPct1(st1.pct)+" realizado · "+entPct1(st1.esperado)+" esperado até aqui · "+
@@ -11237,10 +11237,10 @@ function entRenderStatus(ctx){
   } else {
     var p=Math.round(st1.projecao), d=p-st1.meta;
     projV=num(p);
-    projS="meta base "+num(st1.meta)+" · "+(d>=0?"+":"−")+num(Math.abs(d));
+    projS="meta 1: "+num(st1.meta)+" · "+(d>=0?"+":"−")+num(Math.abs(d));
   }
 
-  var des="Meta desafio ("+ENT_META2()+"): "+entPct1(st2.pct)+" atingida";
+  var des="Meta 2 ("+ENT_META2()+"): "+entPct1(st2.pct)+" atingida";
   if(st2.projecao!==null){
     var d2=Math.round(st2.projecao)-st2.meta;
     des+= fechado
@@ -11251,7 +11251,7 @@ function entRenderStatus(ctx){
   box.innerHTML='<div class="ent-status sit-'+s.c+'">'+
     '<div class="ent-status-ico">'+entIco(st1.situacao)+'</div>'+
     '<div class="ent-status-txt">'+
-      '<div class="ent-status-tit">'+s.t+'<span> — meta base '+ENT_META1()+'</span></div>'+
+      '<div class="ent-status-tit">'+s.t+'<span> — meta 1: '+ENT_META1()+'</span></div>'+
       '<div class="ent-status-sub">'+linha+'</div>'+
       '<div class="ent-status-des">'+des+'</div>'+
     '</div>'+
@@ -11320,7 +11320,7 @@ function entRenderKpis(){
   if(lider){
     vLider=lider.nomes.join(" e ");
     var dif=lider.total-mediaEnt;
-    subLider=num(lider.total)+" entregas · "+entPct1(lider.total/ENT_META1()*100)+" da meta base · "+
+    subLider=num(lider.total)+" entregas · "+entPct1(lider.total/ENT_META1()*100)+" da meta 1 · "+
       num(Math.round(Math.abs(dif)))+(dif>=0?" acima":" abaixo")+" da média";
   }
 
@@ -11356,7 +11356,7 @@ function entRenderKpis(){
       var fator=(st1.projecao!==null && ctx.total>0)?(st1.projecao/ctx.total):1;
       var proj=entfTotalEquipe(qs.map(function(q){ return Math.round(q*fator); }),cfg);
       cartaoDinheiro=cardD(entfMoeda(agora.total),"Valor até agora",
-                           agora.desafio+" na meta desafio · "+agora.base+" na meta base · "+agora.sem+" sem remuneração")+
+                           agora.desafio+" na meta 2 · "+agora.base+" na meta 1 · "+agora.sem+" sem remuneração")+
                      cardD(st1.projecao===null?"—":entfMoeda(proj.total),"Pagamento projetado",
                            st1.projecao===null?"Dados insuficientes para projetar"
                                               :"se o ritmo continuar até o fim do mês · ainda não é valor devido","proj");
@@ -11368,7 +11368,7 @@ function entRenderKpis(){
   document.getElementById("entKpis").innerHTML=
     card(num(ctx.total),"Entregas no mês",ctx.diasOperacionais+" dias úteis no mês")+
     card(entDec(st1.media),"Média por dia operacional",subMedia)+
-    cardMeta(st1,"Meta base atingida")+
+    cardMeta(st1,"Meta 1 atingida")+
     card(vsTxt,"Vs. mês anterior",vsSub)+
     card(num(ctx.restantes),"Dias úteis restantes",ctx.restantes===0?"o mês acabou":"ainda dá pra lançar")+
     card(vLider,"Líder do mês",subLider,null,"nome");
@@ -11419,7 +11419,7 @@ function entRanking(){
 
   // Cabeçalhos curtos: a tabela tem que caber na largura, sem barra de rolagem.
   const cab=['#','Entregador','Entregas','Dias','Média<br>por dia',
-             '% Meta<br>base','% Meta<br>desafio','Falta p/<br>próxima','Ritmo<br>por dia',
+             '% Meta 1','% Meta 2','Falta p/<br>próxima','Ritmo<br>por dia',
              'Vs. mês<br>anterior','Faixa']
             .concat(dinheiro?['R$ por<br>entrega','Valor até<br>agora']:[]);
   let head='<tr>'+cab.map(function(c,i){ return '<th'+(i===1?' class="nm"':'')+'>'+c+'</th>'; }).join("")+'</tr>';
@@ -11442,7 +11442,7 @@ function entRanking(){
       '<td class="n">'+(l.ritmo>0?num(l.ritmo):'<span class="sem">—</span>')+'</td>'+
       '<td class="n">'+vs+'</td>'+
       '<td><span class="ent-faixa '+cls+'" title="'+entEsc(entfRotulo(l.fin.faixa))+'">'+
-        ({sem:"Abaixo",base:"Base",desafio:"Desafio"}[l.fin.faixa])+'</span></td>'+
+        ({sem:"Abaixo",base:"Meta 1",desafio:"Meta 2"}[l.fin.faixa])+'</span></td>'+
       (dinheiro?'<td class="n">'+entfNum2(l.fin.unitario)+'</td><td class="n forte">'+entfNum2(l.fin.total)+'</td>':'')+
       '</tr>';
   });
@@ -11557,7 +11557,7 @@ function entChartAcumulado(){
   const svg='<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:auto;max-width:'+w+'px;display:block">'+grid+
     '<path class="ent-acum-esp" d="'+esp+'" fill="none" stroke-width="2" stroke-dasharray="6 5"/>'+
     '<path class="ent-acum-real" d="'+real+'" fill="none" stroke-width="2.4"/>'+bolas+eixo+metaTxt+valor+'</svg>';
-  const leg='<div class="ent-leg"><span><i class="ent-lg-real"></i>Acumulado real</span><span><i class="ent-lg-esp"></i>Necessário para a meta base</span></div>';
+  const leg='<div class="ent-leg"><span><i class="ent-lg-real"></i>Acumulado real</span><span><i class="ent-lg-esp"></i>Necessário para a meta 1</span></div>';
   return '<div class="ent-graf"><h3>Acumulado Real × Necessário</h3>'+
     '<p class="ent-sub">Cada ponto é um dia útil do mês. Linha verde acima da cinza = mês adiantado.</p>'+
     leg+'<div class="ent-svg-wrap">'+svg+'</div></div>';
@@ -11601,7 +11601,7 @@ function entChartMensal(){
   const totals=[]; let mx=1; for(let m=0;m<12;m++){ const t=entTotalMes(entAno,m); totals.push(t); if(t>mx) mx=t; }
   const metaTot=ENT_META1()*(entIdsDoMes(entAno,entMes).length||1);
   if(metaTot>mx) mx=metaTot;
-  let bars='<div class="ent-mes-wrap"><div class="ent-mes-meta" style="bottom:'+(metaTot/mx*130).toFixed(0)+'px"><span>Meta base '+num(metaTot)+'</span></div>'+
+  let bars='<div class="ent-mes-wrap"><div class="ent-mes-meta" style="bottom:'+(metaTot/mx*130).toFixed(0)+'px"><span>Meta 1: '+num(metaTot)+'</span></div>'+
     '<div style="display:flex;align-items:flex-end;gap:8px;height:170px;padding:0 4px;">';
   for(let m=0;m<12;m++){ const hgt=totals[m]/mx*130; bars+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">'+(totals[m]>0?'<div style="font-size:11px;font-weight:700;color:#33404f;margin-bottom:3px;">'+num(totals[m])+'</div>':'')+'<div style="width:62%;background:'+(m===entMes?'#157a35':'#a9d8b6')+';border-radius:4px 4px 0 0;height:'+hgt.toFixed(0)+'px;"></div></div>'; }
   bars+='</div></div>';
@@ -11663,9 +11663,9 @@ function entRenderCfgBox(){
     '<button type="button" class="ent-edit-toggle" id="entCfgFechar">Fechar</button></div>'+
     '<div class="ent-edit-body">'+
       '<div class="ent-cfg-grid">'+
-        '<label>Meta base — entregas<input type="text" inputmode="numeric" id="entCfgB" value="'+entCfg.base+'"></label>'+
+        '<label>Meta 1 — entregas<input type="text" inputmode="numeric" id="entCfgB" value="'+entCfg.base+'"></label>'+
         '<label>Valor por entrega (R$)<input type="text" inputmode="decimal" id="entCfgVB" value="'+v(entCfg.vbase)+'" placeholder="0,00"></label>'+
-        '<label>Meta desafio — entregas<input type="text" inputmode="numeric" id="entCfgD" value="'+entCfg.desafio+'"></label>'+
+        '<label>Meta 2 — entregas<input type="text" inputmode="numeric" id="entCfgD" value="'+entCfg.desafio+'"></label>'+
         '<label>Valor por entrega (R$)<input type="text" inputmode="decimal" id="entCfgVD" value="'+v(entCfg.vdes)+'" placeholder="0,00"></label>'+
       '</div>'+
       '<p class="ent-sub" style="text-align:left;margin:10px 0 0">Vale só para <b>'+MESES[entMes]+' '+entAno+'</b>. Meses anteriores continuam com os valores deles.'+
@@ -11679,8 +11679,8 @@ function entCfgSalvar(){
   var d=parseInt((document.getElementById("entCfgD").value||"").replace(/[^0-9]/g,""),10);
   var vb=entfCent(document.getElementById("entCfgVB").value);
   var vd=entfCent(document.getElementById("entCfgVD").value);
-  if(!(b>0)) return uiConfirm({titulo:"Aviso",msg:"A meta base tem que ser maior que zero.",ok:"OK",cancel:""});
-  if(!(d>b)) return uiConfirm({titulo:"Aviso",msg:"A meta desafio tem que ser maior que a meta base.",ok:"OK",cancel:""});
+  if(!(b>0)) return uiConfirm({titulo:"Aviso",msg:"A meta 1 tem que ser maior que zero.",ok:"OK",cancel:""});
+  if(!(d>b)) return uiConfirm({titulo:"Aviso",msg:"A meta 2 tem que ser maior que a meta 1.",ok:"OK",cancel:""});
   if(vb===null||vd===null) return uiConfirm({titulo:"Aviso",msg:"Digite os dois valores por entrega, como 0,50.",ok:"OK",cancel:""});
   uiConfirm({titulo:"Confirmar alteração",
     msg:"Esta alteração recalculará a remuneração variável de todos os entregadores em "+MESES[entMes]+" "+entAno+". Deseja continuar?",
@@ -11718,7 +11718,7 @@ function entFecharMes(){
     var t=entfTotalEquipe(qs,cfg);
     uiConfirm({titulo:"Fechar "+MESES[entMes].toLowerCase()+"/"+entAno,
       msg:"Entregas da equipe: "+num(t.entregas)+
-          "\\nNa meta desafio: "+t.desafio+"   ·   na meta base: "+t.base+"   ·   sem remuneração: "+t.sem+
+          "\\nNa meta 2: "+t.desafio+"   ·   na meta 1: "+t.base+"   ·   sem remuneração: "+t.sem+
           (entMostraDinheiro()?"\\nValor variável total: "+entfMoeda(t.total):"")+
           "\\n\\nDepois de fechado, nenhum lançamento deste mês pode ser alterado sem reabrir.",
       ok:"Confirmar fechamento",cancel:"Cancelar"}).then(function(ok){
@@ -11813,8 +11813,8 @@ function entRelatorioRH(){
   '<div class="sub">Supermercado Santa Rita · '+MESES[entMes]+' de '+entAno+
     ' · '+(fechado?'mês FECHADO':'mês ainda ABERTO — valores podem mudar')+
     ' · emitido em '+dt+'</div>'+
-  '<div class="aviso">Meta base: <b>'+num(cfg.base)+'</b> entregas a '+entfMoeda(cfg.vbase)+' por entrega.<br>'+
-    'Meta desafio: <b>'+num(cfg.desafio)+'</b> entregas a '+entfMoeda(cfg.vdes)+' por entrega.<br>'+
+  '<div class="aviso">Meta 1: <b>'+num(cfg.base)+'</b> entregas a '+entfMoeda(cfg.vbase)+' por entrega.<br>'+
+    'Meta 2: <b>'+num(cfg.desafio)+'</b> entregas a '+entfMoeda(cfg.vdes)+' por entrega.<br>'+
     'Ao atingir uma meta, <b>todas</b> as entregas do mês passam a valer o valor daquela faixa.</div>'+
   '<table><thead><tr><th></th><th class="nm">Entregador</th><th>Entregas</th>'+
   '<th>Faixa atingida</th><th>R$ por entrega</th><th>Valor a receber</th></tr></thead><tbody>'+
@@ -11822,7 +11822,7 @@ function entRelatorioRH(){
   '<tr class="tot"><td></td><td class="nm">Total da equipe</td><td class="n">'+num(t.entregas)+'</td>'+
   '<td></td><td></td><td class="n">'+entfNum2(t.total)+'</td></tr>'+
   '</tbody></table>'+
-  '<div class="res">Atingiram a <b>meta desafio</b>: '+t.desafio+' · atingiram a <b>meta base</b>: '+t.base+
+  '<div class="res">Atingiram a <b>meta 2</b>: '+t.desafio+' · atingiram a <b>meta 1</b>: '+t.base+
     ' · <b>sem remuneração</b> variável: '+t.sem+'.<br>'+
     'Total a lançar na folha: <b>'+entfMoeda(t.total)+'</b>.</div>'+
   '<div class="ass">Este documento traz apenas a <b>remuneração variável por entregas</b>. '+
@@ -11838,8 +11838,8 @@ function entRenderMetas(mostrar){
   var box=document.getElementById("entMetas"); if(!box) return;
   if(!mostrar){ box.innerHTML=""; return; }
   box.innerHTML='<div class="ent-metas">'+
-    '<span><b>'+num(ENT_META1())+'</b> entregas — meta base</span>'+
-    '<span><b>'+num(ENT_META2())+'</b> entregas — meta desafio</span>'+
+    '<span><b>'+num(ENT_META1())+'</b> entregas — meta 1</span>'+
+    '<span><b>'+num(ENT_META2())+'</b> entregas — meta 2</span>'+
     '<span class="obs">por entregador, no mês</span></div>';
 }
 function entRenderGrade(){
