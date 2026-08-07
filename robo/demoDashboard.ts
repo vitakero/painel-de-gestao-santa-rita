@@ -11701,7 +11701,6 @@ function entRenderAdm(){
     h+='<button type="button" class="ent-adm" id="entCfgBtn">'+
        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+
        '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.09A1.65 1.65 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Metas e valores</button>'+
-       '<button type="button" class="ent-adm" id="entRelRH">Relatório para o RH</button>'+
        '<button type="button" class="ent-adm" id="entFecharBtn">Fechar mês</button>';
   }
   box.innerHTML=h;
@@ -11820,6 +11819,14 @@ function entForaDoPadrao(a,m){
 // salvar em PDF. Mostra entregas, faixa atingida, valor por entrega e valor de cada
 // um — e deixa explícito que é remuneração variável, não a folha inteira.
 function entRelatorioRH(){
+  // Só de mês FECHADO. Relatório de mês aberto é número que ainda vai mudar — e o RH
+  // não pode receber uma coisa hoje e outra amanhã.
+  if(!entMesFechado()){
+    uiConfirm({titulo:"Feche o mês primeiro",
+      msg:"O relatório para o RH sai do mês fechado. Enquanto o mês está aberto os valores ainda podem mudar.",
+      ok:"Entendi",cancel:""});
+    return;
+  }
   if(!entMostraDinheiro()){
     uiConfirm({titulo:"Configure antes",msg:"Defina as metas e os valores por entrega em \\"Metas e valores\\" antes de gerar o relatório.",ok:"OK",cancel:""});
     return;
@@ -11864,7 +11871,7 @@ function entRelatorioRH(){
   '</style></head><body>'+
   '<h1>Remuneração variável por entregas</h1>'+
   '<div class="sub">Supermercado Santa Rita · '+MESES[entMes]+' de '+entAno+
-    ' · '+(fechado?'mês FECHADO':'mês ainda ABERTO — valores podem mudar')+
+    ' · mês FECHADO'+
     ' · emitido em '+dt+'</div>'+
   '<div class="aviso">Meta 1: <b>'+num(cfg.base)+'</b> entregas a '+entfMoeda(cfg.vbase)+' por entrega.<br>'+
     'Meta 2: <b>'+num(cfg.desafio)+'</b> entregas a '+entfMoeda(cfg.vdes)+' por entrega.<br>'+
