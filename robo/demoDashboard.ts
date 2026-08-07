@@ -10544,7 +10544,9 @@ function entFilaEnviar(sb,f){
     return sb.rpc("entregas_remover_dia",{p_request_id:f.request_id,p_entregador_id:f.entregador_id,
       p_ano:f.ano,p_mes:f.mes,p_dia:f.dia}).then(entRpcOk);
   if(f.tipo==="criar_pessoa")
-    return sb.rpc("entregas_criar_pessoa",{p_request_id:f.request_id,p_nome:f.nome}).then(entRpcOk);
+    // manda o código gerado AQUI: o servidor tem que usar o mesmo, senão o lançamento
+    // feito em seguida aponta para alguém que não existe lá.
+    return sb.rpc("entregas_criar_pessoa",{p_request_id:f.request_id,p_nome:f.nome,p_id:f.entregador_id}).then(entRpcOk);
   if(f.tipo==="renomear_pessoa")
     return sb.rpc("entregas_renomear_pessoa",{p_request_id:f.request_id,p_id:f.entregador_id,p_nome:f.nome}).then(entRpcOk);
   if(f.tipo==="inativar_pessoa")
@@ -10712,7 +10714,33 @@ function entCloudLoad(){
     entCarregando=false;
     if(rs[0].error||rs[1].error) return;   // sem login / sem permissão -> segue no cache
     entCloudOK=true;
-    entEquipe=(rs[0].data||[]).map(function(p){ return {id:p.id,nome:p.nome,ativo:!!p.ativo}; });
+    var doServidor=(rs[0].data||[]).map(function(p){ return {id:p.id,nome:p.nome,ativo:!!p.ativo}; });
+    // CONSERTO: cadastro provisório que o servidor criou com OUTRO código deixa os
+    // lançamentos apontando pra ninguém. Casa pelo nome quando só existe um com
+    // aquele nome lá — se houver dúvida, não adivinha.
+    var mapa={};
+    entEquipe.forEach(function(loc){
+      if(!loc.provisorio) return;
+      if(doServidor.some(function(p){ return p.id===loc.id; })) return;
+      var iguais=doServidor.filter(function(p){ return p.nome===loc.nome; });
+      if(iguais.length===1) mapa[loc.id]=iguais[0].id;
+    });
+    if(Object.keys(mapa).length){
+      Object.keys(entDados).forEach(function(mk){
+        Object.keys(mapa).forEach(function(velho){
+          if(entDados[mk][velho]!==undefined){
+            var novo=mapa[velho];
+            entDados[mk][novo]=Object.assign({}, entDados[mk][novo]||{}, entDados[mk][velho]);
+            delete entDados[mk][velho];
+            if(entNomes[mk] && entNomes[mk][velho]){ entNomes[mk][novo]=entNomes[mk][velho]; delete entNomes[mk][velho]; }
+          }
+        });
+      });
+      entFila.forEach(function(f){ if(mapa[f.entregador_id]) f.entregador_id=mapa[f.entregador_id]; });
+      entFilaSalvar();
+      try{ console.warn("[Entregas] códigos provisórios casados com os do servidor:",mapa); }catch(e){}
+    }
+    entEquipe=doServidor;
     var dados={}, nomes={};
     (rs[1].data||[]).forEach(function(r){
       var mk=entMesKey(r.ano,r.mes-1);
