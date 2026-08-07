@@ -2882,6 +2882,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
            marca tem que vencer todas as outras, é a única que diz "isto vai se perder". */
         table.ent-grade input.nsv{border:2px dashed #d08700;background:#fff8e6;color:#7a5600;font-weight:800;padding:2px 1px;}
         table.ent-grade td:has(> input.nsv){background:#fffcf2;}
+        .ent-metas .mt{display:inline-flex;align-items:baseline;gap:6px;}
+        .ent-metas .mt i{font-style:normal;font-size:10px;font-weight:800;text-transform:uppercase;
+                         letter-spacing:.6px;color:#6f8a78;}
+        .ent-metas .mt em{font-style:normal;font-weight:800;color:#0c5a26;background:#dff0e6;
+                          border-radius:6px;padding:2px 8px;font-size:12px;}
         .ent-hoje-tag{display:block;font-size:8.5px;font-weight:800;color:#157a35;text-transform:uppercase;
                       letter-spacing:.3px;line-height:1;margin-bottom:2px;white-space:nowrap;}
         /* Dia já salvo: MESMA APARÊNCIA de antes (pedido do dono). O que muda é só que
@@ -3105,6 +3110,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
                    border:1px solid #dfeee5;border-radius:10px;padding:10px 16px;margin-bottom:16px;
                    font-size:13px;color:#46535f;}
         .ent-metas b{color:#0c5a26;font-size:15px;}
+        .ent-metas .obs b{font-size:inherit;color:inherit;font-weight:800;}
         .ent-metas .obs{color:#8a97a8;font-size:11.5px;}
         .ent-inat{font-size:10.5px;font-weight:700;color:#8a97a8;background:#eef2f6;border-radius:4px;padding:1px 5px;margin-left:5px;text-transform:uppercase;letter-spacing:.3px;}
         .ent-edit-inativos{margin-top:12px;border-top:1px dashed #d9e2ea;padding-top:11px;}
@@ -12392,13 +12398,25 @@ function entConfNota(){
   return '<div class="ent-conf-nota"><span>🔒 Dias encerrados: <b>'+entLista(confs)+'</b></span>'+
          '<button type="button" id="entReabrirDia">reabrir um dia</button></div>';
 }
+// A faixa de metas da tela de quem lança. Mostra também QUANTO vale cada entrega, pra
+// ela poder informar a equipe. É só a tabela de preços — quanto cada entregador ganhou
+// no mês continua sendo só do dono, e quem esconde isso é o servidor, não esta tela.
+// Enquanto o SQL do arquivo 8 não roda, o valor vem nulo e a faixa fica só com as
+// quantidades, como era antes.
 function entRenderMetas(mostrar){
   var box=document.getElementById("entMetas"); if(!box) return;
   if(!mostrar){ box.innerHTML=""; return; }
+  var temValor=(entCfg.vbase!==null&&entCfg.vbase!==undefined&&entCfg.vdes!==null&&entCfg.vdes!==undefined);
+  function meta(n,qtd,val){
+    return '<span class="mt"><i>Meta '+n+'</i><b>'+num(qtd)+'</b> entregas'+
+           (temValor?'<em>'+entfMoeda(val)+' por entrega</em>':'')+'</span>';
+  }
   box.innerHTML='<div class="ent-metas">'+
-    '<span><b>'+num(ENT_META1())+'</b> entregas — meta 1</span>'+
-    '<span><b>'+num(ENT_META2())+'</b> entregas — meta 2</span>'+
-    '<span class="obs">por entregador, no mês</span></div>';
+    meta(1,ENT_META1(),entCfg.vbase)+
+    meta(2,ENT_META2(),entCfg.vdes)+
+    '<span class="obs">por entregador, no mês'+
+    (temValor?' · ao bater uma meta, <b>todas</b> as entregas do mês passam a valer aquele valor':'')+
+    '</span></div>';
 }
 function entRenderGrade(){
   const nd=diasDoMes(entAno,entMes);
