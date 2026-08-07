@@ -2940,6 +2940,24 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ent-mes-meta{position:absolute;left:4px;right:4px;border-top:2px dashed #8a97a8;pointer-events:none;}
         .ent-mes-meta span{position:absolute;right:0;top:-17px;font-size:11px;font-weight:700;color:#5a6b7d;background:#fff;padding:1px 5px;border-radius:4px;}
         .ent-digita-erro{font-size:12.5px;color:#c0392b;font-weight:600;margin:0 0 8px;}
+        /* Estado da gravação. Discreto quando está tudo certo, visível quando não está. */
+        .ent-sync{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;
+                  border-radius:20px;padding:5px 13px;margin-bottom:12px;border:1px solid #e2e8ee;color:#5a6b7d;background:#fff;}
+        .ent-sync .pt{width:8px;height:8px;border-radius:50%;background:#9aa7b6;flex:none;}
+        .ent-sync.ok{color:#0c5a26;border-color:#cfe0d6;} .ent-sync.ok .pt{background:#157a35;}
+        .ent-sync.indo{color:#2a6fb0;border-color:#cfdcea;} .ent-sync.indo .pt{background:#2a6fb0;}
+        .ent-sync.pend{color:#7a5600;border-color:#f0e0b6;background:#fdf6e3;} .ent-sync.pend .pt{background:#c98a00;}
+        .ent-sync.erro{color:#a3291c;border-color:#f3cfcb;background:#fdecec;} .ent-sync.erro .pt{background:#c0392b;}
+        .ent-sync button{border:1px solid currentColor;background:transparent;color:inherit;border-radius:12px;
+                         padding:2px 10px;font-size:11.5px;font-weight:700;cursor:pointer;margin-left:4px;}
+        .ent-inat{font-size:10.5px;font-weight:700;color:#8a97a8;background:#eef2f6;border-radius:4px;padding:1px 5px;margin-left:5px;text-transform:uppercase;letter-spacing:.3px;}
+        .ent-edit-inativos{margin-top:12px;border-top:1px dashed #d9e2ea;padding-top:11px;}
+        .ent-edit-inativos b{font-size:12px;color:#8a97a8;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:8px;}
+        .ent-edit-row.inat .nm{flex:1;max-width:280px;color:#8a97a8;font-size:13px;}
+        .ent-edit-row .reat{border:1px solid #cfe0d6;background:#fff;color:#157a35;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;flex:none;}
+        .ent-edit-row .reat:hover{background:#e3f0e8;}
+        .ent-edit-row .rm{width:auto;padding:0 11px;font-size:12px;}
+        table.ent-grade input[readonly]{color:#9aa7b6;background:#f7f9fb;}
       </style>
       <div class="card">
         <div class="ent-top">
@@ -2948,6 +2966,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <button class="ent-btn" id="entHoje" type="button">Hoje</button>
           <button class="ent-btn" id="entEditar" type="button" style="margin-left:auto;">Lançar entregas</button>
         </div>
+        <div class="ent-sync ok" id="entSync"><span class="pt"></span>Tudo salvo</div>
         <div id="entStatus"></div>
         <div id="entAvisos"></div>
         <div class="kpis" id="entKpis" style="grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin-bottom:22px;"></div>
@@ -10221,95 +10240,19 @@ function fluxExemplo(){
 // ---- Entregas (dashboard de entregas — dados diários por entregador) ----
 const ENT_META1=600, ENT_META2=850;
 const ENT_SEED=["Anderson","Josinaldo","Lucas","Joseildo","Francisco","Nilton"];
-const ENT_CORES=["#e6194b","#f58231","#3cb44b","#4363d8","#911eb4","#000000"];
+// 12 cores legíveis nos dois temas. O preto saiu: era aplicado direto no SVG e
+// ficava invisível no modo noturno. A cor é presa ao id, então não muda quando
+// entra gente nova e a lista se reordena.
+const ENT_CORES=["#c0392b","#dd6b12","#157a35","#2a6fb0","#7048b6","#0e7c8b","#b0398e","#8a6d1f","#2a9d8f","#5a4fcf","#a03e2a","#3f6f2a"];
 const ENT_COR_BARRA="#157a35";
 let entAno=HOJE.getFullYear(), entMes=HOJE.getMonth(), entEdit=false;
 let entEntEditOpen=false;
 let entDiaTipData=[];
-function entLoadEntregadores(){ let arr=ENT_SEED.slice(); try{ const s=localStorage.getItem("entregas_entregadores"); if(s){ const a=JSON.parse(s); if(Array.isArray(a)&&a.length) arr=a; } }catch(e){} return arr.slice().sort(function(x,y){ return x.localeCompare(y,"pt-BR",{sensitivity:"base"}); }); }
-let entEntregadores=entLoadEntregadores();
-function entOrdena(){ entEntregadores.sort(function(x,y){ return x.localeCompare(y,"pt-BR",{sensitivity:"base"}); }); }
-function entSaveEntregadores(){ try{ localStorage.setItem("entregas_entregadores", JSON.stringify(entEntregadores)); }catch(e){} }
-function entAddEntregador(nm){ nm=(nm||"").trim(); if(!nm) return false; if(entEntregadores.some(function(x){ return x.toLowerCase()===nm.toLowerCase(); })) return false; entEntregadores.push(nm); entOrdena(); entSaveEntregadores(); entCloudAddEnt(nm); return true; }
-function entRenameEntregador(old,nv){ nv=(nv||"").trim(); if(!nv||nv===old) return false; if(entEntregadores.some(function(x){ return x.toLowerCase()===nv.toLowerCase() && x!==old; })) return false; const i=entEntregadores.indexOf(old); if(i<0) return false; entEntregadores[i]=nv; Object.keys(entDados).forEach(function(mk){ const md=entDados[mk]; if(md && md[old]!==undefined){ md[nv]=md[old]; delete md[old]; } }); entOrdena(); entSaveEntregadores(); entSaveDados(); entCloudRenameEnt(old,nv); return true; }
-function entRemoveEntregador(nm){ const i=entEntregadores.indexOf(nm); if(i<0) return false; entEntregadores.splice(i,1); entSaveEntregadores(); entCloudDelEnt(nm); return true; }
-function entLoadDados(){ try{ const s=localStorage.getItem("entregas_dados"); if(s) return JSON.parse(s)||{}; }catch(e){} return {}; }
-let entDados=entLoadDados();
-function entSaveDados(){ try{ localStorage.setItem("entregas_dados", JSON.stringify(entDados)); }catch(e){} }
-function entMesKey(a,m){ return a+"-"+m; }
-/* --- Entregas na NUVEM (Supabase): tabelas entregas_entregadores + entregas_registros --- */
-function entSB(){ return window.__SB||null; }
-var entCloudOK=false, entCarregando=false, entRT=null;
-function entPad2(n){ return ("0"+n).slice(-2); }
-function entCellId(a,m,dia,nome){ return a+"-"+entPad2(m+1)+"-"+entPad2(dia)+"|"+nome; }
-function entCloudCell(a,m,nome,dia,val){
-  var sb=entSB(); if(!sb||!entCloudOK) return;
-  var id=entCellId(a,m,dia,nome);
-  if(val===""||val===null||val===undefined){ sb.from("entregas_registros").delete().eq("id",id).then(function(){},function(){}); }
-  else { sb.from("entregas_registros").upsert({id:id,ano:a,mes:m+1,dia:dia,entregador:nome,quantidade:+val||0,atualizado_em:new Date().toISOString()}).then(function(){},function(){}); }
-}
-function entCloudAddEnt(nm){ var sb=entSB(); if(!sb||!entCloudOK) return; sb.from("entregas_entregadores").upsert({nome:nm}).then(function(){},function(){}); }
-function entCloudDelEnt(nm){ var sb=entSB(); if(!sb||!entCloudOK) return; sb.from("entregas_entregadores").delete().eq("nome",nm).then(function(){},function(){}); }
-function entCloudRenameEnt(old,nv){
-  var sb=entSB(); if(!sb||!entCloudOK) return;
-  sb.from("entregas_entregadores").delete().eq("nome",old).then(function(){
-    sb.from("entregas_entregadores").upsert({nome:nv}).then(function(){},function(){});
-  },function(){});
-  sb.from("entregas_registros").select("*").eq("entregador",old).then(function(r){
-    if(r.error||!r.data||!r.data.length) return;
-    var novos=r.data.map(function(row){ return {id:entCellId(row.ano,row.mes-1,row.dia,nv),ano:row.ano,mes:row.mes,dia:row.dia,entregador:nv,quantidade:row.quantidade,atualizado_em:new Date().toISOString()}; });
-    sb.from("entregas_registros").upsert(novos).then(function(){
-      sb.from("entregas_registros").delete().eq("entregador",old).then(function(){},function(){});
-    },function(){});
-  },function(){});
-}
-function entCloudMigrar(){
-  var sb=entSB(); if(!sb) return;
-  var linhas=[];
-  Object.keys(entDados).forEach(function(mk){
-    var pt=mk.split("-"); var a=+pt[0], m=+pt[1];
-    var md=entDados[mk]||{};
-    Object.keys(md).forEach(function(nome){
-      Object.keys(md[nome]||{}).forEach(function(dia){
-        var v=+md[nome][dia]||0;
-        linhas.push({id:entCellId(a,m,+dia,nome),ano:a,mes:m+1,dia:+dia,entregador:nome,quantidade:v,atualizado_em:new Date().toISOString()});
-      });
-    });
-  });
-  var ents=entEntregadores.map(function(n){ return {nome:n}; });
-  var p1=ents.length?sb.from("entregas_entregadores").upsert(ents):Promise.resolve({});
-  Promise.resolve(p1).then(function(){
-    return linhas.length?sb.from("entregas_registros").upsert(linhas):{};
-  }).then(function(){
-    try{ localStorage.setItem("ent_migrado","1"); }catch(e){}
-    entCloudLoad();
-  }).catch(function(){});
-}
-function entRealtime(){
-  var sb=entSB(); if(!sb||entRT) return;
-  try{
-    var deb=null; function rec(){ clearTimeout(deb); deb=setTimeout(entCloudLoad,700); }
-    entRT=sb.channel("entregas_sync")
-      .on("postgres_changes",{event:"*",schema:"public",table:"entregas_registros"},rec)
-      .on("postgres_changes",{event:"*",schema:"public",table:"entregas_entregadores"},rec)
-      .subscribe();
-  }catch(e){}
-}
 /* ==ENTSYNC-INICIO==
-   HOTFIX 07/08/2026 — o painel APAGAVA os lançamentos guardados no navegador.
-   Como era: bastava existir UMA linha na nuvem para entCloudLoad() trocar entDados
-   inteiro pelo conteúdo da nuvem E regravar o localStorage por cima. Rodava a cada
-   login, em qualquer página. Quem lançava sem a página "entregas" liberada nunca
-   mandava nada pra nuvem (entCloudOK ficava falso) — então o trabalho dessa pessoa
-   sumia na primeira vez que alguém com permissão entrava no painel.
-   Como ficou: a nuvem só é adotada quando NÃO tira nada do que está no navegador.
-   Havendo qualquer célula local que a nuvem não tenha (ou com valor diferente), o
-   local é PRESERVADO, um backup é criado e a divergência aparece na tela.
-   Nada aqui apaga chave antiga. NÃO REMOVER sem substituir por reconciliação real. */
-
-var entConflito=null;   // {local:{...}, nuvem:{...}, divergentes:n, backup:"chave"}
-
-// Retrato de um conjunto de lançamentos (o do navegador ou o da nuvem).
+   Diagnóstico do armazenamento ANTIGO (v1) deste navegador.
+   A v2 não usa mais essas chaves e nunca escreve nelas — mas elas continuam lá, e este
+   bloco é a única forma de olhar o que sobrou e exportar antes de descartar.
+   Não apaga nada. Só lê e faz cópia. Rode window.entDiagnostico() no console. */
 function entDiagRetrato(dados){
   var comp=0, cel=0, soma=0, nomes={}, ultimo="";
   Object.keys(dados||{}).forEach(function(mk){
@@ -10324,9 +10267,7 @@ function entDiagRetrato(dados){
   });
   return {competencias:comp, celulas:cel, soma:soma, entregadores:Object.keys(nomes).sort(), ultimoMes:ultimo};
 }
-
-// Células que existem no navegador e a nuvem NÃO tem, ou tem com valor diferente.
-// É a conta que decide se adotar a nuvem apagaria trabalho de alguém.
+// Células que existem de um lado e não do outro (ou com valor diferente).
 function entDiagDivergentes(local,nuvem){
   var out=[];
   Object.keys(local||{}).forEach(function(mk){
@@ -10340,9 +10281,6 @@ function entDiagDivergentes(local,nuvem){
   });
   return out;
 }
-
-// Cópia de segurança do que está no navegador. Não sobrescreve backup igual e
-// não apaga nenhum backup anterior.
 function entBackupLocal(){
   try{
     var atual=localStorage.getItem("entregas_dados")||"{}";
@@ -10355,8 +10293,6 @@ function entBackupLocal(){
     return k;
   }catch(e){ return null; }
 }
-
-// Diagnóstico completo do que está guardado neste navegador (Fase 1).
 function entDiagLocal(){
   var dados={}, ents=[], migrado=null, backups=[];
   try{ dados=JSON.parse(localStorage.getItem("entregas_dados")||"{}")||{}; }catch(e){}
@@ -10377,8 +10313,6 @@ function entDiagLocal(){
   };
 }
 try{ window.entDiagnostico=entDiagLocal; }catch(e){}
-
-// Exporta o que está no navegador. Só leitura — não manda nada pra nuvem.
 function entExportarLocal(){
   var pac={_painel:"Santa Rita", _modulo:"entregas", _versao:1, _data:new Date().toISOString(),
            diagnostico:entDiagLocal(), entregas_dados:null, entregas_entregadores:null};
@@ -10391,57 +10325,286 @@ function entExportarLocal(){
   setTimeout(function(){ URL.revokeObjectURL(url); },1000);
 }
 /* ==ENTSYNC-FIM== */
+
+/* ==ENTV2-INICIO==
+   Camada de dados do módulo de Entregas — versão 2 (07/08/2026).
+
+   O QUE MUDOU E POR QUÊ:
+   - A identidade do entregador é um CÓDIGO FIXO (uuid), não o nome. Renomear alguém
+     não move nem recria lançamento nenhum, e duas pessoas podem se chamar igual.
+   - Cada lançamento guarda o nome DA ÉPOCA (nome_snapshot). Mês antigo continua
+     mostrando como a pessoa se chamava naquele mês.
+   - Nada é gravado direto na tabela. Toda alteração vira uma INTENÇÃO com identificador
+     próprio, entra numa fila que sobrevive a reload, e é enviada por função no servidor.
+     Se a internet cair, a intenção fica pendente e VISÍVEL — não some calada, que era o
+     defeito que apagava o trabalho de quem lançava.
+   - O estado do servidor e a fila de intenções são coisas SEPARADAS. Carregar da nuvem
+     nunca por cima de intenção pendente.
+
+   Chaves novas no navegador (as antigas, v1, ficam intactas de propósito):
+     entregas_v2_cache  — cópia do que o servidor tem, só pra abrir rápido
+     entregas_v2_fila   — as intenções ainda não confirmadas
+*/
+var entEquipe=[];   // [{id,nome,ativo}] — cadastro atual
+var entDados={};    // entDados[mesKey][entregadorId][dia] = quantidade
+var entNomes={};    // entNomes[mesKey][entregadorId] = nome da época
+var entFila=[];     // intenções de escrita ainda não confirmadas
+var entSyncEstado={ enviando:0, pendentes:0, erro:"", offline:false };
+
+function entMesKey(a,m){ return a+"-"+m; }
+function entUuid(){
+  try{ if(window.crypto && crypto.randomUUID) return crypto.randomUUID(); }catch(e){}
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,function(c){
+    var r=Math.random()*16|0, v=(c==="x")?r:((r&0x3)|0x8); return v.toString(16); });
+}
+
+/* ---------- cache local (só leitura rápida; a verdade é o servidor) ---------- */
+function entCacheSalvar(){
+  try{ localStorage.setItem("entregas_v2_cache", JSON.stringify({equipe:entEquipe,dados:entDados,nomes:entNomes})); }catch(e){}
+}
+function entCacheCarregar(){
+  try{
+    var c=JSON.parse(localStorage.getItem("entregas_v2_cache")||"null");
+    if(c && c.equipe){ entEquipe=c.equipe||[]; entDados=c.dados||{}; entNomes=c.nomes||{}; }
+  }catch(e){}
+}
+
+/* ---------- fila de intenções ---------- */
+function entFilaSalvar(){ try{ localStorage.setItem("entregas_v2_fila", JSON.stringify(entFila)); }catch(e){} }
+function entFilaCarregar(){
+  try{ var f=JSON.parse(localStorage.getItem("entregas_v2_fila")||"[]"); if(Array.isArray(f)) entFila=f; }catch(e){}
+  // quem morreu no meio do envio volta pra pendente (o request_id protege da duplicata)
+  entFila.forEach(function(i){ if(i.status==="enviando") i.status="pendente"; });
+}
+entCacheCarregar(); entFilaCarregar();
+
+/* ---------- consultas de apoio ---------- */
+function entPessoa(id){ for(var i=0;i<entEquipe.length;i++) if(entEquipe[i].id===id) return entEquipe[i]; return null; }
+// Nome a mostrar: o da ÉPOCA quando existe, senão o atual.
+function entNomeDe(id,mk){
+  var snap=(entNomes[mk]||{})[id];
+  if(snap) return snap;
+  var p=entPessoa(id);
+  return p?p.nome:"(entregador removido)";
+}
+function entAtivos(){ return entEquipe.filter(function(p){ return p.ativo; }); }
+// Quem aparece num mês: os ativos de hoje MAIS quem teve lançamento naquele mês
+// (mesmo já inativo). É o que impede o total de um mês antigo de cair quando
+// alguém é desligado.
+function entIdsDoMes(a,m){
+  var mk=entMesKey(a,m), vistos={}, out=[];
+  entAtivos().forEach(function(p){ if(!vistos[p.id]){ vistos[p.id]=1; out.push(p.id); } });
+  Object.keys(entDados[mk]||{}).forEach(function(id){ if(!vistos[id]){ vistos[id]=1; out.push(id); } });
+  out.sort(function(x,y){ return entNomeDe(x,mk).localeCompare(entNomeDe(y,mk),"pt-BR",{sensitivity:"base"}); });
+  return out;
+}
+
+/* ---------- leitura e escrita das células ---------- */
+function entGet(a,m,id,dia){ var md=entDados[entMesKey(a,m)]; if(!md||!md[id]) return 0; return +md[id][dia]||0; }
+function entGetRaw(a,m,id,dia){ var md=entDados[entMesKey(a,m)]; if(!md||!md[id]||md[id][dia]===undefined) return ""; return +md[id][dia]; }
+// Aplica na tela agora (otimista) e enfileira a intenção. Quem grava é o servidor.
+function entSet(a,m,id,dia,val){
+  var mk=entMesKey(a,m);
+  if(!entDados[mk]) entDados[mk]={};
+  if(!entDados[mk][id]) entDados[mk][id]={};
+  var apagar=(val===""||val===null||val===undefined);
+  if(apagar) delete entDados[mk][id][dia]; else entDados[mk][id][dia]=+val;
+  if(!entNomes[mk]) entNomes[mk]={};
+  if(!entNomes[mk][id]){ var p=entPessoa(id); if(p) entNomes[mk][id]=p.nome; }
+  entCacheSalvar();
+  entFilaAdd({ tipo: apagar?"remover_dia":"salvar_dia", entregador_id:id,
+               ano:a, mes:m+1, dia:dia, quantidade: apagar?null:(+val||0) });
+}
+
+/* ---------- a fila ---------- */
+function entFilaAdd(intencao){
+  // Uma célula só precisa da ÚLTIMA intenção. Se a anterior ainda não saiu, ela é
+  // substituída — senão digitar 3 vezes no mesmo campo mandaria 3 gravações.
+  if(intencao.tipo==="salvar_dia"||intencao.tipo==="remover_dia"){
+    for(var i=entFila.length-1;i>=0;i--){
+      var f=entFila[i];
+      if(f.status==="pendente" && (f.tipo==="salvar_dia"||f.tipo==="remover_dia") &&
+         f.entregador_id===intencao.entregador_id && f.ano===intencao.ano &&
+         f.mes===intencao.mes && f.dia===intencao.dia){ entFila.splice(i,1); }
+    }
+  }
+  intencao.request_id=entUuid();
+  intencao.status="pendente";
+  intencao.tentativas=0;
+  intencao.ultimo_erro="";
+  intencao.criado_em=new Date().toISOString();
+  intencao.proxima=0;
+  entFila.push(intencao);
+  entFilaSalvar(); entSyncPintar(); entFilaProcessar();
+}
+var entFilaRodando=false;
+function entFilaPendentes(){ return entFila.filter(function(i){ return i.status!=="sincronizado"; }); }
+function entFilaProcessar(forcar){
+  if(entFilaRodando) return;
+  var sb=entSB(); if(!sb) return;
+  var agora=Date.now();
+  var proximo=null;
+  for(var i=0;i<entFila.length;i++){
+    var f=entFila[i];
+    if(f.status==="sincronizado") continue;
+    if(!forcar && f.proxima && f.proxima>agora) continue;
+    proximo=f; break;
+  }
+  if(!proximo){ entSyncPintar(); return; }
+  entFilaRodando=true; proximo.status="enviando"; entSyncPintar();
+  entFilaEnviar(sb,proximo).then(function(){
+    proximo.status="sincronizado"; proximo.ultimo_erro="";
+    entFila=entFila.filter(function(x){ return x.status!=="sincronizado"; });
+    entFilaSalvar(); entFilaRodando=false; entSyncPintar();
+    entFilaProcessar(forcar);
+  },function(err){
+    proximo.status="erro"; proximo.tentativas++;
+    proximo.ultimo_erro=(err&&(err.message||err.msg))||String(err||"falha");
+    // espera crescente: 2s, 4s, 8s… até 5 min. Não avalanche.
+    var espera=Math.min(300000, 2000*Math.pow(2,Math.min(proximo.tentativas,8)));
+    proximo.proxima=Date.now()+espera;
+    proximo.status="pendente";
+    entFilaSalvar(); entFilaRodando=false; entSyncPintar();
+    try{ console.warn("[Entregas] falha ao salvar; vai tentar de novo",proximo); }catch(e){}
+  });
+}
+function entFilaEnviar(sb,f){
+  if(f.tipo==="salvar_dia")
+    return sb.rpc("entregas_salvar_dia",{p_request_id:f.request_id,p_entregador_id:f.entregador_id,
+      p_ano:f.ano,p_mes:f.mes,p_dia:f.dia,p_quantidade:f.quantidade}).then(entRpcOk);
+  if(f.tipo==="remover_dia")
+    return sb.rpc("entregas_remover_dia",{p_request_id:f.request_id,p_entregador_id:f.entregador_id,
+      p_ano:f.ano,p_mes:f.mes,p_dia:f.dia}).then(entRpcOk);
+  if(f.tipo==="criar_pessoa")
+    return sb.rpc("entregas_criar_pessoa",{p_request_id:f.request_id,p_nome:f.nome}).then(entRpcOk);
+  if(f.tipo==="renomear_pessoa")
+    return sb.rpc("entregas_renomear_pessoa",{p_request_id:f.request_id,p_id:f.entregador_id,p_nome:f.nome}).then(entRpcOk);
+  if(f.tipo==="inativar_pessoa")
+    return sb.rpc("entregas_inativar_pessoa",{p_request_id:f.request_id,p_id:f.entregador_id}).then(entRpcOk);
+  if(f.tipo==="reativar_pessoa")
+    return sb.rpc("entregas_reativar_pessoa",{p_request_id:f.request_id,p_id:f.entregador_id}).then(entRpcOk);
+  return Promise.reject(new Error("intenção desconhecida: "+f.tipo));
+}
+function entRpcOk(r){ if(r&&r.error) throw r.error; return r; }
+
+/* ---------- estado da sincronização na tela ---------- */
+function entSyncPintar(){
+  var pend=entFilaPendentes();
+  entSyncEstado.pendentes=pend.length;
+  entSyncEstado.enviando=pend.filter(function(i){ return i.status==="enviando"; }).length;
+  entSyncEstado.erro=(pend.find&&pend.find(function(i){ return i.tentativas>2; })||{}).ultimo_erro||"";
+  try{ entSyncEstado.offline=(navigator.onLine===false); }catch(e){}
+  var el=document.getElementById("entSync"); if(!el) return;
+  var t,c;
+  if(entSyncEstado.offline){ t="Sem conexão — "+pend.length+" alteração(ões) guardada(s) aqui"; c="pend"; }
+  else if(entSyncEstado.enviando){ t="Salvando…"; c="indo"; }
+  else if(entSyncEstado.erro){ t="Falha ao salvar — "+pend.length+" pendente(s)"; c="erro"; }
+  else if(pend.length){ t=pend.length+" alteração(ões) pendente(s)"; c="pend"; }
+  else { t="Tudo salvo"; c="ok"; }
+  el.className="ent-sync "+c;
+  el.innerHTML='<span class="pt"></span>'+t+(pend.length?' <button type="button" id="entRetry">Tentar novamente</button>':'');
+}
+try{
+  window.addEventListener("online",function(){ entSyncPintar(); entFilaProcessar(true); });
+  window.addEventListener("offline",entSyncPintar);
+  // Batida periódica: sem isso, uma intenção que falhou ficaria parada até alguém
+  // abrir o módulo de novo. Só faz alguma coisa quando há pendência.
+  setInterval(function(){ if(entFilaPendentes().length) entFilaProcessar(); }, 30000);
+}catch(e){}
+
+/* ---------- cadastro (também pela fila) ---------- */
+function entAddEntregador(nm){
+  nm=(nm||"").trim(); if(!nm) return false;
+  var id=entUuid();
+  // id provisório na tela; o servidor devolve o definitivo na próxima carga
+  entEquipe.push({id:id,nome:nm,ativo:true,provisorio:true});
+  entCacheSalvar();
+  entFilaAdd({tipo:"criar_pessoa",nome:nm,entregador_id:id});
+  return true;
+}
+function entRenameEntregador(id,nv){
+  nv=(nv||"").trim(); if(!nv) return false;
+  var p=entPessoa(id); if(!p||p.nome===nv) return false;
+  p.nome=nv; entCacheSalvar();
+  entFilaAdd({tipo:"renomear_pessoa",entregador_id:id,nome:nv});
+  return true;
+}
+function entInativar(id){
+  var p=entPessoa(id); if(!p||!p.ativo) return false;
+  p.ativo=false; entCacheSalvar();
+  entFilaAdd({tipo:"inativar_pessoa",entregador_id:id});
+  return true;
+}
+function entReativar(id){
+  var p=entPessoa(id); if(!p||p.ativo) return false;
+  p.ativo=true; entCacheSalvar();
+  entFilaAdd({tipo:"reativar_pessoa",entregador_id:id});
+  return true;
+}
+/* ==ENTV2-FIM== */
+
+/* --- Entregas na NUVEM (Supabase) — leitura sob RLS, escrita só por função --- */
+function entSB(){ return window.__SB||null; }
+var entCloudOK=false, entCarregando=false, entRT=null;
+
 function entCloudLoad(){
   var sb=entSB(); if(!sb||entCarregando) return;
   entCarregando=true;
-  Promise.all([sb.from("entregas_entregadores").select("*"),sb.from("entregas_registros").select("*")]).then(function(rs){
+  Promise.all([
+    sb.rpc("entregas_listar_equipe",{p_incluir_inativos:true}),
+    sb.from("entregas_lancamentos").select("entregador_id,ano,mes,dia,quantidade,nome_snapshot")
+  ]).then(function(rs){
     entCarregando=false;
-    if(rs[0].error||rs[1].error) return; // sem tabelas / sem login -> modo local
+    if(rs[0].error||rs[1].error) return;   // sem login / sem permissão -> segue no cache
     entCloudOK=true;
-    var jaMigrou=false; try{ jaMigrou=localStorage.getItem("ent_migrado")==="1"; }catch(e){}
-    var temNuvem=(rs[0].data.length||rs[1].data.length);
-    var temLocal=(Object.keys(entDados).length>0);
-    if(!temNuvem && temLocal && !jaMigrou){ entCloudMigrar(); return; }
-    if(temNuvem){
-      var daNuvem={};
-      rs[1].data.forEach(function(r){
-        var mk=entMesKey(r.ano,r.mes-1);
-        if(!daNuvem[mk]) daNuvem[mk]={};
-        if(!daNuvem[mk][r.entregador]) daNuvem[mk][r.entregador]={};
-        daNuvem[mk][r.entregador][r.dia]=+r.quantidade||0;
-      });
-      // HOTFIX: só adota a nuvem se isso NÃO tirar nada do que está no navegador.
-      var div=entDiagDivergentes(entDados,daNuvem);
-      if(div.length){
-        var bk=entBackupLocal();
-        entConflito={ local:entDiagRetrato(entDados), nuvem:entDiagRetrato(daNuvem),
-                      divergentes:div.length, exemplos:div.slice(0,5), backup:bk };
-        try{ console.warn("[Entregas] Seus lançamentos locais foram preservados. Existe divergência com a nuvem.",
-             {celulas_so_no_navegador:div.length, backup:bk, detalhe:entDiagLocal()}); }catch(e){}
-      } else {
-        entConflito=null;
-        if(rs[0].data.length){ entEntregadores=rs[0].data.map(function(r){ return r.nome; }); entOrdena(); }
-        entDados=daNuvem;
-        try{ localStorage.setItem("entregas_entregadores",JSON.stringify(entEntregadores)); }catch(e){}
-        try{ localStorage.setItem("entregas_dados",JSON.stringify(entDados)); }catch(e){}
-        try{ localStorage.setItem("ent_migrado","1"); }catch(e){}
-      }
-      var pg=document.getElementById("page-entregas");
-      if(pg && pg.classList.contains("ativo") && typeof renderEntregas==="function") renderEntregas();
-    }
-    entRealtime();
+    entEquipe=(rs[0].data||[]).map(function(p){ return {id:p.id,nome:p.nome,ativo:!!p.ativo}; });
+    var dados={}, nomes={};
+    (rs[1].data||[]).forEach(function(r){
+      var mk=entMesKey(r.ano,r.mes-1);
+      if(!dados[mk]) dados[mk]={};
+      if(!dados[mk][r.entregador_id]) dados[mk][r.entregador_id]={};
+      dados[mk][r.entregador_id][r.dia]=+r.quantidade||0;
+      if(!nomes[mk]) nomes[mk]={};
+      nomes[mk][r.entregador_id]=r.nome_snapshot;
+    });
+    // RECONCILIAÇÃO: o servidor é a verdade, MAS o que ainda está na fila entra por
+    // cima. Sem isso, carregar a nuvem apagaria da tela a edição ainda não enviada.
+    entFilaPendentes().forEach(function(f){
+      if(f.tipo!=="salvar_dia" && f.tipo!=="remover_dia") return;
+      var mk=entMesKey(f.ano,f.mes-1);
+      if(!dados[mk]) dados[mk]={};
+      if(!dados[mk][f.entregador_id]) dados[mk][f.entregador_id]={};
+      if(f.tipo==="remover_dia") delete dados[mk][f.entregador_id][f.dia];
+      else dados[mk][f.entregador_id][f.dia]=+f.quantidade||0;
+    });
+    entDados=dados; entNomes=nomes;
+    entCacheSalvar();
+    entRealtime(); entSyncPintar(); entFilaProcessar();
+    var pg=document.getElementById("page-entregas");
+    if(pg && pg.classList.contains("ativo") && typeof renderEntregas==="function") renderEntregas();
   }).catch(function(){ entCarregando=false; });
 }
-function entCor(i){ return ENT_CORES[i%ENT_CORES.length]; }
+function entRealtime(){
+  var sb=entSB(); if(!sb||entRT) return;
+  try{
+    var deb=null; function rec(){ clearTimeout(deb); deb=setTimeout(entCloudLoad,900); }
+    entRT=sb.channel("entregas_sync_v2")
+      .on("postgres_changes",{event:"*",schema:"public",table:"entregas_lancamentos"},rec)
+      .on("postgres_changes",{event:"*",schema:"public",table:"entregas_equipe"},rec)
+      .subscribe();
+  }catch(e){}
+}
+function entCor(id){
+  var h=0, t=String(id||"");
+  for(var i=0;i<t.length;i++){ h=(h*31+t.charCodeAt(i))>>>0; }
+  return ENT_CORES[h%ENT_CORES.length];
+}
 function entDec(n){ return (n||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function entPct(n){ return entDec(n)+"%"; }
-function entGet(a,m,nome,dia){ const md=entDados[entMesKey(a,m)]; if(!md||!md[nome]) return 0; return +md[nome][dia]||0; }
-function entGetRaw(a,m,nome,dia){ const md=entDados[entMesKey(a,m)]; if(!md||!md[nome]||md[nome][dia]===undefined) return ""; return +md[nome][dia]; }
-function entSet(a,m,nome,dia,val){ const mk=entMesKey(a,m); if(!entDados[mk]) entDados[mk]={}; if(!entDados[mk][nome]) entDados[mk][nome]={}; if(val===""||val===null||val===undefined) delete entDados[mk][nome][dia]; else entDados[mk][nome][dia]=+val; entSaveDados(); entCloudCell(a,m,nome,dia,val); }
 function entFechado(a,m,d){ if(new Date(a,m,d).getDay()===0) return true; return feriadosFechado(a).has(fmtKey(a,m,d)); }
-function entTotalEntregador(a,m,nome){ let t=0; const nd=diasDoMes(a,m); for(let d=1;d<=nd;d++){ if(entFechado(a,m,d)) continue; t+=entGet(a,m,nome,d); } return t; }
-function entTotalDia(a,m,dia){ if(entFechado(a,m,dia)) return 0; let t=0; entEntregadores.forEach(function(nm){ t+=entGet(a,m,nm,dia); }); return t; }
-function entTotalMes(a,m){ let t=0; entEntregadores.forEach(function(nm){ t+=entTotalEntregador(a,m,nm); }); return t; }
+function entTotalEntregador(a,m,id){ let t=0; const nd=diasDoMes(a,m); for(let d=1;d<=nd;d++){ if(entFechado(a,m,d)) continue; t+=entGet(a,m,id,d); } return t; }
+function entTotalDia(a,m,dia){ if(entFechado(a,m,dia)) return 0; let t=0; entIdsDoMes(a,m).forEach(function(id){ t+=entGet(a,m,id,dia); }); return t; }
+function entTotalMes(a,m){ let t=0; entIdsDoMes(a,m).forEach(function(id){ t+=entTotalEntregador(a,m,id); }); return t; }
 /* ==ENTCALC-INICIO==
    Base de cálculo das Entregas. Tudo aqui é FUNÇÃO PURA: só depende do que recebe
    por parâmetro (nada de entDados, entEntregadores, DOM ou HOJE lá de fora), pra
@@ -10627,10 +10790,8 @@ function entcAcumulado(a,m,ehFechado,totalDia,temLancamento,meta){
 // zero confirmado ("abriu e não teve entrega") é diferente de dia não preenchido.
 function entTemLancamento(a,m,dia){
   var md=entDados[entMesKey(a,m)]; if(!md) return false;
-  for(var i=0;i<entEntregadores.length;i++){
-    var reg=md[entEntregadores[i]];
-    if(reg && reg[dia]!==undefined) return true;
-  }
+  var ids=Object.keys(md);
+  for(var i=0;i<ids.length;i++){ if(md[ids[i]] && md[ids[i]][dia]!==undefined) return true; }
   return false;
 }
 // Valores que ficaram guardados em domingo/feriado. Não entram em conta nenhuma —
@@ -10641,16 +10802,16 @@ function entValoresEmDiaFechado(a,m){
   for(var d=1;d<=nd;d++){
     if(!entFechado(a,m,d)) continue;
     var achou=false;
-    entEntregadores.forEach(function(nm){ var r=md[nm]; if(r && (+r[d]||0)>0) achou=true; });
+    Object.keys(md).forEach(function(id){ var r=md[id]; if(r && (+r[d]||0)>0) achou=true; });
     if(achou) out.push(d);
   }
   return out;
 }
 // Lançamentos anteriores da pessoa, em ordem de data, pulando a célula em edição.
-function entHistorico(nome,exA,exM,exD){
+function entHistorico(id,exA,exM,exD){
   var out=[];
   Object.keys(entDados).forEach(function(mk){
-    var pt=mk.split("-"), a=+pt[0], m=+pt[1], reg=(entDados[mk]||{})[nome];
+    var pt=mk.split("-"), a=+pt[0], m=+pt[1], reg=(entDados[mk]||{})[id];
     if(!reg) return;
     Object.keys(reg).forEach(function(d){
       var dd=+d;
@@ -10669,7 +10830,7 @@ function entCtx(a,m){
   return {
     ano:a, mes:m, ehFechado:ehF, temLancamento:temL,
     total:entTotalMes(a,m),
-    ne:entEntregadores.length||1,
+    ne:entIdsDoMes(a,m).length||1,   // a meta da equipe é 600 x quem trabalha NAQUELE mês
     diasOperacionais:entcDiasOperacionais(a,m,ehF),
     diasLancados:entcDiasLancados(a,m,ehF,temL),
     restantes:entcDiasOperRestantes(a,m,ehF,temL,HOJE),
@@ -10770,23 +10931,7 @@ function entRenderStatus(ctx){
 // Avisos de confiabilidade do lançamento. Não bloqueiam nada: informam.
 function entRenderAvisos(ctx){
   var box=document.getElementById("entAvisos"); if(!box) return;
-  // Divergência entre o que está neste navegador e o que está na nuvem (hotfix).
-  // Fica em cima de tudo: é a única coisa que pode custar dado.
-  var conf="";
-  if(entConflito){
-    var L=entConflito.local;
-    conf='<div class="ent-aviso erro ent-aviso-conf">'+entIco("risco")+
-      '<div><b>Seus lançamentos locais foram preservados. Existe divergência com a nuvem.</b>'+
-      '<div class="det">'+num(entConflito.divergentes)+' lançamento'+(entConflito.divergentes>1?'s':'')+
-        (entConflito.divergentes>1?' estão':' está')+' só neste computador · '+
-        L.competencias+(L.competencias>1?' meses':' mês')+' · '+num(L.soma)+' entregas no total'+
-        (entConflito.backup?' · cópia de segurança guardada no navegador':'')+
-      '</div>'+
-      '<div class="acoes"><button type="button" data-entconf="baixar">Baixar cópia (JSON)</button>'+
-      '<button type="button" data-entconf="detalhes">Ver detalhes</button></div>'+
-      '<div class="det">Nada foi apagado. Enquanto isso não for resolvido, o painel não substitui o que está aqui pelo que está na nuvem.</div>'+
-      '</div></div>';
-  }
+  var conf="";   // a v2 reconcilia pela fila; não existe mais esse conflito
   var av=[];
   var n=ctx.semLancamento.length;
   if(n===1) av.push({c:"aviso",txt:"Existe 1 dia útil sem lançamento: "+entLista(ctx.semLancamento)+". Ele fica de fora da média e da projeção."});
@@ -10802,7 +10947,8 @@ function entRenderKpis(){
   var ctx=entCtx(entAno,entMes);
   var st1=entcStatus({total:ctx.total,meta:ENT_META1*ctx.ne,diasLancados:ctx.diasLancados,diasOperacionais:ctx.diasOperacionais});
   var st2=entcStatus({total:ctx.total,meta:ENT_META2*ctx.ne,diasLancados:ctx.diasLancados,diasOperacionais:ctx.diasOperacionais});
-  var totais=entEntregadores.map(function(nm){ return {nome:nm,total:entTotalEntregador(entAno,entMes,nm)}; });
+  var mkAtual=entMesKey(entAno,entMes);
+  var totais=entIdsDoMes(entAno,entMes).map(function(id){ return {nome:entNomeDe(id,mkAtual),total:entTotalEntregador(entAno,entMes,id)}; });
   var lider=entcLider(totais);
   var mediaEnt=ctx.total/ctx.ne;
 
@@ -10842,7 +10988,8 @@ function entRenderKpis(){
   entRenderAvisos(ctx);
 }
 function entChartPorEntregador(){
-  const items=entEntregadores.map(function(nm,i){ return {nm:nm,v:entTotalEntregador(entAno,entMes,nm),cor:entCor(i)}; });
+  const mk=entMesKey(entAno,entMes);
+  const items=entIdsDoMes(entAno,entMes).map(function(id){ return {nm:entNomeDe(id,mk),v:entTotalEntregador(entAno,entMes,id),cor:entCor(id)}; });
   items.sort(function(a,b){ return b.v-a.v; });
   let mx=ENT_META2; items.forEach(function(x){ if(x.v>mx) mx=x.v; }); if(mx<1) mx=1;
   let rows="";
@@ -10863,14 +11010,16 @@ function entChartBarras(items,titulo,sub){
   return '<div class="ent-graf"><h3>'+titulo+'</h3>'+(sub?'<p class="ent-sub">'+sub+'</p>':'')+rows+'</div>';
 }
 function entChartFaltam(meta,titulo){
-  const items=entEntregadores.map(function(nm,i){ return {nm:nm,v:Math.max(0,meta-entTotalEntregador(entAno,entMes,nm)),cor:entCor(i)}; });
+  const mk=entMesKey(entAno,entMes);
+  const items=entIdsDoMes(entAno,entMes).map(function(id){ return {nm:entNomeDe(id,mk),v:Math.max(0,meta-entTotalEntregador(entAno,entMes,id)),cor:entCor(id)}; });
   return entChartBarras(items,titulo);
 }
 function entChartAtingir(meta,titulo){
   // dr agora são DIAS ÚTEIS que ainda dá pra usar (sem domingo, sem feriado, sem dia
   // já lançado). Antes contava domingo e feriado e o ritmo saía otimista demais.
   const dr=entDiasRestantes();
-  const items=entEntregadores.map(function(nm,i){ const falta=Math.max(0,meta-entTotalEntregador(entAno,entMes,nm)); return {nm:nm,v:dr>0?Math.ceil(falta/dr):0,cor:entCor(i)}; });
+  const mk=entMesKey(entAno,entMes);
+  const items=entIdsDoMes(entAno,entMes).map(function(id){ const falta=Math.max(0,meta-entTotalEntregador(entAno,entMes,id)); return {nm:entNomeDe(id,mk),v:dr>0?Math.ceil(falta/dr):0,cor:entCor(id)}; });
   const sub = dr>0 ? "por dia, nos "+dr+" dias úteis que ainda restam" : "não há mais dia útil a lançar neste mês";
   return entChartBarras(items,titulo,sub);
 }
@@ -10932,7 +11081,8 @@ function entChartDiarioTotal(){
 function entChartDiarioPorEntregador(){
   const nd=diasDoMes(entAno,entMes);
   let mx=1;
-  const series=entEntregadores.map(function(nm,i){ const vals=[]; for(let d=1;d<=nd;d++){ const v=entGet(entAno,entMes,nm,d); vals.push(v); if(v>mx) mx=v; } return {nm:nm,cor:entCor(i),vals:vals}; });
+  const mk=entMesKey(entAno,entMes);
+  const series=entIdsDoMes(entAno,entMes).map(function(id){ const vals=[]; for(let d=1;d<=nd;d++){ const v=entGet(entAno,entMes,id,d); vals.push(v); if(v>mx) mx=v; } return {nm:entNomeDe(id,mk),cor:entCor(id),vals:vals}; });
   const stepX=46,padL=14,padR=14,h=220,padT=16,padB=24,plotH=h-padT-padB;
   const w=padL+padR+(nd-1)*stepX;
   function X(i){ return padL+i*stepX; } function Y(v){ return padT+plotH-(v/mx*plotH); }
@@ -10952,7 +11102,7 @@ function entChartDiarioPorEntregador(){
 }
 function entChartMensal(){
   const totals=[]; let mx=1; for(let m=0;m<12;m++){ const t=entTotalMes(entAno,m); totals.push(t); if(t>mx) mx=t; }
-  const metaTot=ENT_META1*(entEntregadores.length||1);
+  const metaTot=ENT_META1*(entIdsDoMes(entAno,entMes).length||1);
   if(metaTot>mx) mx=metaTot;
   let bars='<div class="ent-mes-wrap"><div class="ent-mes-meta" style="bottom:'+(metaTot/mx*130).toFixed(0)+'px"><span>Meta base '+num(metaTot)+'</span></div>'+
     '<div style="display:flex;align-items:flex-end;gap:8px;height:170px;padding:0 4px;">';
@@ -10968,15 +11118,36 @@ function entAvisoDigitacao(erro){
   const m=msgs[erro]||"";
   el.textContent=m; el.style.display=m?"":"none";
 }
+function entEsc(t){ return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;"); }
+// Homônimo é PERMITIDO (o id é que identifica). Só confirma, pra não virar cadastro
+// duplicado por engano.
+function entNovoEntregador(nome){
+  var nm=(nome||"").trim();
+  if(!nm){ uiConfirm({titulo:"Aviso",msg:"Digite o nome do entregador.",ok:"OK",cancel:""}); return; }
+  var igual=entEquipe.filter(function(p){ return p.nome.toLowerCase()===nm.toLowerCase(); });
+  if(igual.length){
+    uiConfirm({titulo:"Já existe alguém com esse nome",
+      msg:'Já existe "'+igual[0].nome+'" na equipe'+(igual[0].ativo?"":" (inativo)")+
+          '. São duas pessoas diferentes mesmo? Se for a mesma, cancele e reative a que já existe.',
+      ok:"São duas pessoas",cancel:"Cancelar"}).then(function(ok){
+        if(ok){ entAddEntregador(nm); renderEntregas(); }
+      });
+    return;
+  }
+  entAddEntregador(nm); renderEntregas();
+}
 function entRenderGrade(){
   const nd=diasDoMes(entAno,entMes);
   let head='<tr><th class="nome">Entregador</th>';
   for(let d=1;d<=nd;d++){ const dow=new Date(entAno,entMes,d).getDay(); head+='<th class="'+(dow===0?"dom":"")+'">'+d+'<br><span class="ent-dow">'+DOW_PT[dow].toUpperCase()+'</span></th>'; }
   head+='<th>Total</th></tr>';
   let body="";
-  entEntregadores.forEach(function(nm){
-    let cels=""; for(let d=1;d<=nd;d++){ if(entFechado(entAno,entMes,d)){ cels+='<td class="dom-fix">0</td>'; continue; } const v=entGetRaw(entAno,entMes,nm,d); cels+='<td><input type="text" inputmode="numeric" data-nome="'+nm+'" data-dia="'+d+'" value="'+v+'"></td>'; }
-    body+='<tr><td class="nome">'+nm+'</td>'+cels+'<td class="tot">'+num(entTotalEntregador(entAno,entMes,nm))+'</td></tr>';
+  const mkG=entMesKey(entAno,entMes);
+  // A chave da célula é o ID, nunca o nome — é isso que faz renomear não mover nada.
+  entIdsDoMes(entAno,entMes).forEach(function(id){
+    const p=entPessoa(id), inativo=(p&&!p.ativo);
+    let cels=""; for(let d=1;d<=nd;d++){ if(entFechado(entAno,entMes,d)){ cels+='<td class="dom-fix">0</td>'; continue; } const v=entGetRaw(entAno,entMes,id,d); cels+='<td><input type="text" inputmode="numeric" data-id="'+entEsc(id)+'" data-dia="'+d+'" value="'+v+'"'+(inativo?' readonly title="Entregador inativo"':'')+'></td>'; }
+    body+='<tr><td class="nome">'+entEsc(entNomeDe(id,mkG))+(inativo?' <span class="ent-inat">inativo</span>':'')+'</td>'+cels+'<td class="tot">'+num(entTotalEntregador(entAno,entMes,id))+'</td></tr>';
   });
   let totRow='<tr class="linha-tot"><td class="nome">Total do dia</td>'; for(let d=1;d<=nd;d++) totRow+='<td>'+num(entTotalDia(entAno,entMes,d))+'</td>'; totRow+='<td>'+num(entTotalMes(entAno,entMes))+'</td></tr>';
   document.getElementById("entGrade").innerHTML='<table class="ent-grade"><thead>'+head+'</thead><tbody>'+body+totRow+'</tbody></table>';
@@ -10984,7 +11155,7 @@ function entRenderGrade(){
 function entUpdGradeTotais(){
   const tbl=document.querySelector("#entGrade table"); if(!tbl) return;
   const rows=tbl.querySelectorAll("tbody tr");
-  entEntregadores.forEach(function(nm,ri){ const tr=rows[ri]; if(!tr) return; const c=tr.querySelector("td.tot"); if(c) c.textContent=num(entTotalEntregador(entAno,entMes,nm)); });
+  entIdsDoMes(entAno,entMes).forEach(function(id,ri){ const tr=rows[ri]; if(!tr) return; const c=tr.querySelector("td.tot"); if(c) c.textContent=num(entTotalEntregador(entAno,entMes,id)); });
   const last=rows[rows.length-1]; if(last){ const tds=last.querySelectorAll("td"); const nd=diasDoMes(entAno,entMes); for(let d=1;d<=nd;d++){ if(tds[d]) tds[d].textContent=num(entTotalDia(entAno,entMes,d)); } if(tds[nd+1]) tds[nd+1].textContent=num(entTotalMes(entAno,entMes)); }
 }
 function entRenderGraficos(){
@@ -10997,11 +11168,26 @@ function entRenderGraficos(){
 }
 function entRenderEntregadoresEdit(){
   const box=document.getElementById("entEntregadoresEdit");
+  // Ninguém é EXCLUÍDO: quem sai é INATIVADO, e o histórico dele fica de pé.
   let rows="";
-  entEntregadores.forEach(function(nm){ rows+='<div class="ent-edit-row"><input type="text" class="ent-nome-edit" data-old="'+nm.replace(/"/g,"&quot;")+'" value="'+nm.replace(/"/g,"&quot;")+'"><button type="button" class="rm" data-rm="'+nm.replace(/"/g,"&quot;")+'" title="Remover">×</button></div>'; });
+  entEquipe.filter(function(p){ return p.ativo; })
+    .sort(function(x,y){ return x.nome.localeCompare(y.nome,"pt-BR",{sensitivity:"base"}); })
+    .forEach(function(p){
+      rows+='<div class="ent-edit-row"><input type="text" class="ent-nome-edit" data-id="'+entEsc(p.id)+'" value="'+entEsc(p.nome)+'">'+
+            '<button type="button" class="rm" data-inativar="'+entEsc(p.id)+'" title="Inativar">Inativar</button></div>';
+    });
+  const inativos=entEquipe.filter(function(p){ return !p.ativo; })
+    .sort(function(x,y){ return x.nome.localeCompare(y.nome,"pt-BR",{sensitivity:"base"}); });
+  let rowsIn="";
+  inativos.forEach(function(p){
+    rowsIn+='<div class="ent-edit-row inat"><span class="nm">'+entEsc(p.nome)+'</span>'+
+            '<button type="button" class="reat" data-reativar="'+entEsc(p.id)+'">Reativar</button></div>';
+  });
   const corpo=entEntEditOpen
     ? '<div class="ent-edit-body">'+rows+
-      '<div class="ent-edit-add"><input type="text" id="entNovoNome" placeholder="Nome do novo entregador"><button type="button" id="entAddBtn">+ Adicionar</button></div></div>'
+      '<div class="ent-edit-add"><input type="text" id="entNovoNome" placeholder="Nome do novo entregador"><button type="button" id="entAddBtn">+ Adicionar</button></div>'+
+      (inativos.length?'<div class="ent-edit-inativos"><b>Inativos</b>'+rowsIn+'</div>':'')+
+      '</div>'
     : '';
   box.innerHTML='<div class="ent-edit-box"><div class="ent-edit-tit"><b><svg class="ent-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Entregadores</b><button type="button" class="ent-edit-toggle" id="entEditToggle">'+(entEntEditOpen?"Fechar":"Editar entregadores")+'</button></div>'+corpo+'</div>';
 }
@@ -11014,6 +11200,7 @@ function renderEntregas(){
   // uma sprint futura — o rótulo antigo prometia o que o botão não faz.
   be.innerHTML=entEdit?"Finalizar edição":"Lançar entregas";
   document.getElementById("entGradeWrap").style.display=entEdit?"":"none";
+  entSyncPintar();
   entRenderKpis();
   if(entEdit){ entRenderEntregadoresEdit(); entRenderGrade(); }
   entRenderGraficos();
@@ -11025,35 +11212,31 @@ function renderEntregas(){
   document.getElementById("entEditar").addEventListener("click",function(){ entEdit=!entEdit; renderEntregas(); });
   document.getElementById("entEntregadoresEdit").addEventListener("click",function(e){
     if(e.target.closest("#entEditToggle")){ entEntEditOpen=!entEntEditOpen; entRenderEntregadoresEdit(); return; }
-    if(e.target.closest("#entAddBtn")){ const inp=document.getElementById("entNovoNome"); if(entAddEntregador(inp.value)){ renderEntregas(); } else { uiConfirm({titulo:"Aviso",msg:"Nome inválido ou já existe.",ok:"OK",cancel:""}); } return; }
-    const rm=e.target.closest("[data-rm]");
-    if(rm){ const nm=rm.getAttribute("data-rm"); uiConfirm({titulo:"Remover entregador",msg:'Tirar "'+nm+'" da lista? Os lançamentos antigos dele continuam guardados, mas ele some da grade.',ok:"Remover",cancel:"Cancelar"}).then(function(ok){ if(ok){ entRemoveEntregador(nm); renderEntregas(); } }); return; }
+    if(e.target.closest("#entAddBtn")){ const inp=document.getElementById("entNovoNome"); entNovoEntregador(inp.value); return; }
+    const rm=e.target.closest("[data-inativar]");
+    if(rm){ const id=rm.getAttribute("data-inativar"); const p=entPessoa(id); if(!p) return;
+      uiConfirm({titulo:"Inativar entregador",
+        msg:'"'+p.nome+'" sai da lista de quem pode receber lançamento novo. Todo o histórico dele continua igual — nenhum mês muda de total. Dá pra reativar depois.',
+        ok:"Inativar",cancel:"Cancelar"}).then(function(ok){ if(ok){ entInativar(id); renderEntregas(); } }); return; }
+    const rt=e.target.closest("[data-reativar]");
+    if(rt){ entReativar(rt.getAttribute("data-reativar")); renderEntregas(); return; }
   });
   document.getElementById("entEntregadoresEdit").addEventListener("keydown",function(e){
-    if(e.key==="Enter" && e.target.id==="entNovoNome"){ e.preventDefault(); if(entAddEntregador(e.target.value)){ renderEntregas(); } else { uiConfirm({titulo:"Aviso",msg:"Nome inválido ou já existe.",ok:"OK",cancel:""}); } }
+    if(e.key==="Enter" && e.target.id==="entNovoNome"){ e.preventDefault(); entNovoEntregador(e.target.value); }
   });
   document.getElementById("entEntregadoresEdit").addEventListener("change",function(e){
     const inp=e.target.closest(".ent-nome-edit"); if(!inp) return;
-    const old=inp.getAttribute("data-old"), nv=inp.value.trim();
-    if(nv===old) return;
-    if(entRenameEntregador(old,nv)){ renderEntregas(); } else { inp.value=old; uiConfirm({titulo:"Aviso",msg:"Nome inválido ou já existe.",ok:"OK",cancel:""}); }
+    const id=inp.getAttribute("data-id"), p=entPessoa(id), nv=inp.value.trim();
+    if(!p || nv===p.nome) return;
+    // Renomear NÃO mexe em lançamento nenhum: os meses antigos guardam o nome da época.
+    if(entRenameEntregador(id,nv)){ renderEntregas(); }
+    else { inp.value=p?p.nome:""; uiConfirm({titulo:"Aviso",msg:"Digite um nome válido.",ok:"OK",cancel:""}); }
   });
-  document.getElementById("entAvisos").addEventListener("click",function(e){
-    var b=e.target.closest("[data-entconf]"); if(!b) return;
-    if(b.getAttribute("data-entconf")==="baixar"){ entExportarLocal(); return; }
-    var d=entDiagLocal();
-    try{ console.log("=== Entregas — o que está guardado NESTE navegador ==="); console.log(d);
-         if(d.por_competencia.length) console.table(d.por_competencia); }catch(e2){}
-    uiConfirm({titulo:"O que está neste computador",
-      msg:d.competencias+" mês(es) · "+d.celulas+" lançamentos · "+d.total_entregas+" entregas no total."+
-          (d.entregadores_encontrados.length?"\\nEntregadores: "+d.entregadores_encontrados.join(", "):"")+
-          (d.ultimo_mes_com_dado?"\\nÚltimo mês com dado: "+d.ultimo_mes_com_dado:"")+
-          "\\nCópias de segurança guardadas: "+d.backups.length+
-          "\\n\\nA lista completa saiu no console (F12).",
-      ok:"OK",cancel:""});
+  document.getElementById("entSync").addEventListener("click",function(e){
+    if(e.target.closest("#entRetry")){ entFila.forEach(function(f){ f.proxima=0; }); entFilaProcessar(true); }
   });
   document.getElementById("entGrade").addEventListener("input",function(e){
-    const inp=e.target.closest("input[data-nome]"); if(!inp) return;
+    const inp=e.target.closest("input[data-id]"); if(!inp) return;
     const bruto=inp.value||"";
     let v=entcValidaLancamento(bruto);
     if(!v.ok){
@@ -11064,20 +11247,20 @@ function renderEntregas(){
       inp.value=bruto.replace(/[^0-9]/g,"");
       v=entcValidaLancamento(inp.value);
     } else entAvisoDigitacao("");
-    entSet(entAno,entMes,inp.dataset.nome,+inp.dataset.dia, v.vazio?"":v.valor);
+    entSet(entAno,entMes,inp.dataset.id,+inp.dataset.dia, v.vazio?"":v.valor);
     entRenderKpis(); entUpdGradeTotais();
   });
   // Guarda o valor anterior pra poder desfazer se o usuário disser que errou.
   document.getElementById("entGrade").addEventListener("focusin",function(e){
-    const inp=e.target.closest("input[data-nome]"); if(inp) inp.setAttribute("data-prev",inp.value||"");
+    const inp=e.target.closest("input[data-id]"); if(inp) inp.setAttribute("data-prev",inp.value||"");
   });
   document.getElementById("entGrade").addEventListener("change",function(e){
-    const inp=e.target.closest("input[data-nome]"); if(!inp) return;
-    const nome=inp.dataset.nome, dia=+inp.dataset.dia;
+    const inp=e.target.closest("input[data-id]"); if(!inp) return;
+    const id=inp.dataset.id, dia=+inp.dataset.dia, nome=entNomeDe(id,entMesKey(entAno,entMes));
     const v=entcValidaLancamento(inp.value);
     const sujo=inp.getAttribute("data-sujo")==="1";
     inp.removeAttribute("data-sujo");
-    const an=(v.ok&&!v.vazio)?entcAnormal(v.valor,entHistorico(nome,entAno,entMes,dia)):null;
+    const an=(v.ok&&!v.vazio)?entcAnormal(v.valor,entHistorico(id,entAno,entMes,dia)):null;
     let titulo="", msg="";
     if(sujo&&v.ok&&!v.vazio){
       titulo="Confira o número";
@@ -11093,7 +11276,7 @@ function renderEntregas(){
       if(!ok){
         inp.value=prev;
         const pv=entcValidaLancamento(prev);
-        entSet(entAno,entMes,nome,dia,(pv.ok&&!pv.vazio)?pv.valor:"");
+        entSet(entAno,entMes,id,dia,(pv.ok&&!pv.vazio)?pv.valor:"");
         entRenderKpis(); entUpdGradeTotais();
       }
       entRenderGraficos();
@@ -11101,7 +11284,7 @@ function renderEntregas(){
   });
   document.getElementById("entGrade").addEventListener("keydown",function(e){
     if(e.key!=="Enter") return;
-    const inp=e.target.closest("input[data-nome]"); if(!inp) return;
+    const inp=e.target.closest("input[data-id]"); if(!inp) return;
     e.preventDefault();
     const inputs=[].slice.call(document.querySelectorAll('#entGrade input[data-dia="'+inp.dataset.dia+'"]'));
     let next=inputs[inputs.indexOf(inp)+1];
@@ -13164,7 +13347,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="fardamento") renderFardamento();
     if(btn.dataset.page==="acessos") renderAcessos();
     if(btn.dataset.page==="escala") voltarSetores();
-    if(btn.dataset.page==="entregas"){ renderEntregas(); entCloudLoad(); }
+    if(btn.dataset.page==="entregas"){ renderEntregas(); entCloudLoad(); entFilaProcessar(true); }
     if(btn.dataset.page==="cartaz") renderCartaz();
     if(btn.dataset.page==="ferias"){ if(!document.getElementById("ferConsultaDia").value){ document.getElementById("ferConsultaDia").value=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2)+"-"+("0"+HOJE.getDate()).slice(-2); } renderFerias(); }
     if(btn.dataset.page==="negociar") renderNegociar();
