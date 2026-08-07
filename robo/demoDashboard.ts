@@ -3038,6 +3038,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ent-sync{flex-wrap:wrap;}
         .ent-sync button{border:1px solid currentColor;background:transparent;color:inherit;border-radius:12px;
                          padding:2px 10px;font-size:11.5px;font-weight:700;cursor:pointer;margin-left:4px;}
+        .ent-metas{display:flex;gap:22px;flex-wrap:wrap;align-items:center;background:#f6faf7;
+                   border:1px solid #dfeee5;border-radius:10px;padding:10px 16px;margin-bottom:16px;
+                   font-size:13px;color:#46535f;}
+        .ent-metas b{color:#0c5a26;font-size:15px;}
+        .ent-metas .obs{color:#8a97a8;font-size:11.5px;}
         .ent-inat{font-size:10.5px;font-weight:700;color:#8a97a8;background:#eef2f6;border-radius:4px;padding:1px 5px;margin-left:5px;text-transform:uppercase;letter-spacing:.3px;}
         .ent-edit-inativos{margin-top:12px;border-top:1px dashed #d9e2ea;padding-top:11px;}
         .ent-edit-inativos b{font-size:12px;color:#8a97a8;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:8px;}
@@ -3061,6 +3066,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div id="entAvisos"></div>
         <div class="kpis" id="entKpis" style="grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin-bottom:22px;"></div>
         <div id="entDinheiro"></div>
+        <div id="entMetas"></div>
         <div id="entGradeWrap" style="display:none;">
           <p class="ent-grade-info">Digite quantas entregas cada entregador fez em cada dia. Escreva <b>0</b> quando a loja abriu e não houve entrega, e deixe <b>em branco</b> o dia que ainda não foi apurado — o painel trata os dois de formas diferentes.</p>
           <p class="ent-digita-erro" id="entAvisoDigita" style="display:none;"></p>
@@ -10694,6 +10700,11 @@ var entCfg={ base:ENT_META_PADRAO_BASE, desafio:ENT_META_PADRAO_DESAFIO,
 var entFech=null;         // {status, fechado_em, total_entregas, total_remuneracao, ...}
 var entCfgMes="";         // competência que está carregada
 
+// Quem tem só "entregas_lancar" (e não "entregas") enxerga a versão enxuta:
+// grade + cadastro de entregadores. Nada de gestão, nada de dinheiro.
+function entSoLanca(){
+  try{ return podePagina("entregas_lancar") && !podePagina("entregas"); }catch(e){ return false; }
+}
 function entMostraDinheiro(){ return !!(entCfg.master && entfConfigOk(entCfg)); }
 function entMesFechado(){ return !!(entFech && entFech.status==="fechado"); }
 function entCfgAtual(){ return {base:entCfg.base, desafio:entCfg.desafio, vbase:entCfg.vbase, vdes:entCfg.vdes}; }
@@ -11631,11 +11642,13 @@ function entRenderAdm(){
   if(entMesFechado()){
     var q=entFech&&entFech.fechado_em?(" em "+String(entFech.fechado_em).slice(8,10)+"/"+String(entFech.fechado_em).slice(5,7)+"/"+String(entFech.fechado_em).slice(0,4)):"";
     h+='<span class="ent-fechado">'+entIco("concluido")+'Mês fechado'+q+'</span>';
-    if(entCfg.master) h+='<button type="button" class="ent-adm" id="entReabrir">Reabrir mês</button>';
+    if(entCfg.master) h+='<button type="button" class="ent-adm" id="entRelRH">Relatório para o RH</button>'+
+                          '<button type="button" class="ent-adm" id="entReabrir">Reabrir mês</button>';
   } else if(entCfg.master){
     h+='<button type="button" class="ent-adm" id="entCfgBtn">'+
        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+
        '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.09A1.65 1.65 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Metas e valores</button>'+
+       '<button type="button" class="ent-adm" id="entRelRH">Relatório para o RH</button>'+
        '<button type="button" class="ent-adm" id="entFecharBtn">Fechar mês</button>';
   }
   box.innerHTML=h;
@@ -11748,6 +11761,87 @@ function entForaDoPadrao(a,m){
   });
   return out;
 }
+// Para quem só lança: uma linha discreta com as duas metas. Sem dinheiro.
+// Saber a meta ajuda a pessoa a perceber erro de digitação.
+// Relatório de fechamento para o RH lançar na folha. Abre pronto pra imprimir ou
+// salvar em PDF. Mostra entregas, faixa atingida, valor por entrega e valor de cada
+// um — e deixa explícito que é remuneração variável, não a folha inteira.
+function entRelatorioRH(){
+  if(!entMostraDinheiro()){
+    uiConfirm({titulo:"Configure antes",msg:"Defina as metas e os valores por entrega em \\"Metas e valores\\" antes de gerar o relatório.",ok:"OK",cancel:""});
+    return;
+  }
+  var cfg=entCfgAtual(), mk=entMesKey(entAno,entMes);
+  var linhas=entIdsDoMes(entAno,entMes).map(function(id){
+    var tot=entTotalEntregador(entAno,entMes,id);
+    return {nome:entNomeDe(id,mk), total:tot, fin:entfFaixa(tot,cfg)};
+  }).sort(function(a,b){ return b.total-a.total; });
+  var t=entfTotalEquipe(linhas.map(function(l){ return l.total; }),cfg);
+  var fechado=entMesFechado();
+  var hoje=new Date();
+  var dt=("0"+hoje.getDate()).slice(-2)+"/"+("0"+(hoje.getMonth()+1)).slice(-2)+"/"+hoje.getFullYear();
+
+  var corpo="";
+  linhas.forEach(function(l,i){
+    corpo+='<tr><td class="p">'+(i+1)+'</td><td class="nm">'+entEsc(l.nome)+'</td>'+
+      '<td class="n">'+num(l.total)+'</td>'+
+      '<td class="f">'+entfRotulo(l.fin.faixa)+'</td>'+
+      '<td class="n">'+entfNum2(l.fin.unitario)+'</td>'+
+      '<td class="n forte">'+entfNum2(l.fin.total)+'</td></tr>';
+  });
+
+  var html='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">'+
+  '<title>Remuneracao variavel - Entregas - '+MESES[entMes]+' '+entAno+'</title><style>'+
+  '@page{size:A4;margin:16mm 14mm}'+
+  'body{font:12pt/1.5 -apple-system,Helvetica,Arial,sans-serif;color:#1d2733;margin:0}'+
+  'h1{font-size:17pt;color:#0c5a26;margin:0 0 2mm}'+
+  '.sub{font-size:10pt;color:#5a6b7d;margin-bottom:7mm}'+
+  '.aviso{font-size:9.5pt;color:#5a6b7d;border-left:3pt solid #cfe0d6;padding:2mm 0 2mm 4mm;margin:0 0 6mm}'+
+  'table{width:100%;border-collapse:collapse;font-size:11pt}'+
+  'th{background:#eef4f0;color:#0c5a26;font-size:9.5pt;text-transform:uppercase;letter-spacing:.4px;'+
+  'padding:2.5mm;border-bottom:1pt solid #cfe0d6;text-align:center}'+
+  'th.nm{text-align:left}'+
+  'td{padding:2.5mm;border-bottom:.5pt solid #e6ebf1;text-align:center}'+
+  'td.nm{text-align:left;font-weight:600}td.p{color:#8a97a8;width:8mm}'+
+  'td.n{text-align:center}td.forte{font-weight:800}'+
+  'tr.tot td{background:#f6faf7;font-weight:800;color:#0c5a26;border-top:1.5pt solid #cfe0d6}'+
+  '.res{margin-top:6mm;font-size:10.5pt;color:#46535f}'+
+  '.res b{color:#0c5a26}'+
+  '.ass{margin-top:16mm;font-size:10pt;color:#5a6b7d}'+
+  '</style></head><body>'+
+  '<h1>Remuneração variável por entregas</h1>'+
+  '<div class="sub">Supermercado Santa Rita · '+MESES[entMes]+' de '+entAno+
+    ' · '+(fechado?'mês FECHADO':'mês ainda ABERTO — valores podem mudar')+
+    ' · emitido em '+dt+'</div>'+
+  '<div class="aviso">Meta base: <b>'+num(cfg.base)+'</b> entregas a '+entfMoeda(cfg.vbase)+' por entrega.<br>'+
+    'Meta desafio: <b>'+num(cfg.desafio)+'</b> entregas a '+entfMoeda(cfg.vdes)+' por entrega.<br>'+
+    'Ao atingir uma meta, <b>todas</b> as entregas do mês passam a valer o valor daquela faixa.</div>'+
+  '<table><thead><tr><th></th><th class="nm">Entregador</th><th>Entregas</th>'+
+  '<th>Faixa atingida</th><th>R$ por entrega</th><th>Valor a receber</th></tr></thead><tbody>'+
+  corpo+
+  '<tr class="tot"><td></td><td class="nm">Total da equipe</td><td class="n">'+num(t.entregas)+'</td>'+
+  '<td></td><td></td><td class="n">'+entfNum2(t.total)+'</td></tr>'+
+  '</tbody></table>'+
+  '<div class="res">Atingiram a <b>meta desafio</b>: '+t.desafio+' · atingiram a <b>meta base</b>: '+t.base+
+    ' · <b>sem remuneração</b> variável: '+t.sem+'.<br>'+
+    'Total a lançar na folha: <b>'+entfMoeda(t.total)+'</b>.</div>'+
+  '<div class="ass">Este documento traz apenas a <b>remuneração variável por entregas</b>. '+
+    'Não inclui salário, encargos, descontos nem qualquer outra verba.</div>'+
+  '</body></html>';
+
+  var w=window.open("","_blank");
+  if(!w){ uiConfirm({titulo:"Bloqueado",msg:"O navegador bloqueou a janela. Libere pop-ups para este site e tente de novo.",ok:"OK",cancel:""}); return; }
+  w.document.write(html); w.document.close();
+  setTimeout(function(){ try{ w.focus(); w.print(); }catch(e){} }, 400);
+}
+function entRenderMetas(mostrar){
+  var box=document.getElementById("entMetas"); if(!box) return;
+  if(!mostrar){ box.innerHTML=""; return; }
+  box.innerHTML='<div class="ent-metas">'+
+    '<span><b>'+num(ENT_META1())+'</b> entregas — meta base</span>'+
+    '<span><b>'+num(ENT_META2())+'</b> entregas — meta desafio</span>'+
+    '<span class="obs">por entregador, no mês</span></div>';
+}
 function entRenderGrade(){
   const nd=diasDoMes(entAno,entMes);
   let head='<tr><th class="nome">Entregador</th>';
@@ -11823,11 +11917,19 @@ function renderEntregas(){
   be.innerHTML=entEdit?"Finalizar edição":"Lançar entregas";
   document.getElementById("entGradeWrap").style.display=entEdit?"":"none";
   entCfgLoad(entAno,entMes);
+  var soLanca=entSoLanca();
+  if(soLanca) entEdit=true;                       // a grade fica sempre aberta
+  ["entStatus","entKpis","entDinheiro","entGraficos"].forEach(function(id){
+    var e=document.getElementById(id); if(e) e.style.display=soLanca?"none":"";
+  });
+  be.style.display=soLanca?"none":"";              // sem o botão de mostrar/esconder
+  document.getElementById("entGradeWrap").style.display=entEdit?"":"none";
   entRenderAdm(); entRenderCfgBox();
   entSyncPintar();
-  entRenderKpis();
+  if(!soLanca) entRenderKpis(); else entRenderAvisos(entCtx(entAno,entMes));
+  entRenderMetas(soLanca);
   if(entEdit){ entRenderEntregadoresEdit(); entRenderGrade(); }
-  entRenderGraficos();
+  if(!soLanca) entRenderGraficos(); else document.getElementById("entGraficos").innerHTML="";
 }
 (function initEntregas(){
   function entVaiPara(a,m){ entAno=a; entMes=m; entCfg.carregado=false; entCfgMes=""; renderEntregas(); }
@@ -11870,6 +11972,7 @@ function renderEntregas(){
     if(e.target.closest("#entCfgBtn")){ entCfgAberto=!entCfgAberto; entRenderCfgBox(); return; }
     if(e.target.closest("#entFecharBtn")){ entFecharMes(); return; }
     if(e.target.closest("#entReabrir")){ entReabrirMes(); return; }
+    if(e.target.closest("#entRelRH")){ entRelatorioRH(); return; }
   });
   document.getElementById("entCfgBox").addEventListener("click",function(e){
     if(e.target.closest("#entCfgFechar")){ entCfgAberto=false; entRenderCfgBox(); return; }
@@ -16413,7 +16516,9 @@ function pedEnviar(){
     navs.forEach(function(b){
       // Abas "só master" (ex: Galpões = patrimônio pessoal do dono) ficam OCULTAS pra qualquer não-master.
       if(b.classList.contains('nav-mo')){ b.style.display='none'; return; }
-      var allow=ok.indexOf(b.dataset.page)>=0;
+      // "entregas_lancar" abre a MESMA aba de Entregas, só que na versão enxuta.
+      var allow=ok.indexOf(b.dataset.page)>=0 ||
+                (b.dataset.page==="entregas" && ok.indexOf("entregas_lancar")>=0);
       b.style.display='';
       b.classList.toggle('nav-locked',!allow);
       if(allow&&!first)first=b;
@@ -16632,6 +16737,11 @@ function renderAcessos(){
   _acsTries=0;
   el.innerHTML='<p style="color:#8a97a8">Carregando...</p>';
   var pages=[]; document.querySelectorAll('.nav-item[data-page]').forEach(function(b){ var pg=b.dataset.page; if(pg!=="acessos"){ pages.push({key:pg,label:b.textContent.trim()}); } });
+  // Acesso reduzido: só a grade de lançamento e o cadastro de entregadores.
+  // Não vê ritmo, projeção, ranking, gráficos nem dinheiro.
+  (function(){ var i=-1; pages.forEach(function(p,k){ if(p.key==="entregas") i=k; });
+    var item={key:"entregas_lancar",label:"Entregas — só lançar"};
+    if(i>=0) pages.splice(i+1,0,item); else pages.push(item); })();
   SB.from('perfis').select('*').then(function(r){
     if(r&&r.error){ el.innerHTML='<p style="color:#c0392b">Erro: '+r.error.message+'</p>'; return; }
     var perfis=(r&&r.data)?r.data:[];
