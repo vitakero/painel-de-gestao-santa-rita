@@ -11989,12 +11989,31 @@ function entFecharMes(porQuemLanca){
     if(r&&r.error){ uiConfirm({titulo:"Não deu certo",msg:r.error.message,ok:"OK",cancel:""}); return; }
     var pend=(r&&r.data)||[];
     if(pend.length){
-      // A lista pode ser longa (um item por pessoa e por dia em branco). Mostra as
-      // primeiras e diz quantas sobraram, pra caber na tela.
-      var lista=pend.slice(0,12).map(function(p){ return "• "+p.detalhe; }).join("\\n");
-      if(pend.length>12) lista+="\\n… e mais "+(pend.length-12)+" pendência(s).";
-      uiConfirm({titulo:"Não foi possível fechar "+MESES[entMes].toLowerCase()+"/"+entAno,
-        msg:"A competência só é encerrada com TODOS os dias úteis lançados, para todos os entregadores. Dia sem entrega precisa do ZERO lançado.\\n\\n"+lista,
+      // Listar item por item dava 26 linhas de "dia XX sem nenhum lançamento" —
+      // informação demais pra dizer uma coisa só: o mês ainda não acabou. Agora resume.
+      var porTipo={};
+      pend.forEach(function(p){ (porTipo[p.tipo]=porTipo[p.tipo]||[]).push(p.detalhe||""); });
+      var partes=[];
+      var semLanc=porTipo.dia_sem_lancamento||[];
+      if(semLanc.length){
+        var ds=semLanc.map(function(x){ var m=String(x).match(/\\d+/); return m?+m[0]:0; })
+                      .filter(Boolean).sort(function(a,b){ return a-b; });
+        partes.push("• "+ds.length+(ds.length>1?" dias úteis":" dia útil")+" sem nenhum lançamento"+
+                    (ds.length<=6?" ("+entLista(ds)+")":" (do dia "+ds[0]+" ao "+ds[ds.length-1]+")"));
+      }
+      var incomp=porTipo.pessoa_incompleta||[];
+      if(incomp.length) partes.push("• "+incomp.length+" entregador"+(incomp.length>1?"es":"")+" com dia em branco");
+      // os raros aparecem inteiros: são poucos e cada um pede uma ação diferente
+      ["config","dia_fechado","orfao"].forEach(function(t){
+        (porTipo[t]||[]).slice(0,2).forEach(function(x){ partes.push("• "+x); });
+      });
+      // O mês ainda está correndo? Essa é a explicação, não a lista.
+      var hojeAqui=(entAno===HOJE.getFullYear()&&entMes===HOJE.getMonth());
+      var cabeca=hojeAqui
+        ? MESES[entMes]+" ainda está em andamento — só dá pra encerrar depois que o último dia útil for lançado."
+        : "A competência só é encerrada com todos os dias úteis lançados, para todos os entregadores.";
+      uiConfirm({titulo:MESES[entMes]+"/"+entAno+" ainda não pode ser encerrado",
+        msg:cabeca+"\\n\\n"+partes.join("\\n")+"\\n\\nDia sem entrega precisa do 0 lançado.",
         ok:"Entendi",cancel:""});
       return;
     }
