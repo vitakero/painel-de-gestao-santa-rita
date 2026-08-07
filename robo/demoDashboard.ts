@@ -2921,21 +2921,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ent-aviso-conf .acoes button{border:1px solid #e0b4ae;background:#fff;color:#a3291c;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;}
         .ent-aviso-conf .acoes button:hover{background:#fbe3e1;}
         /* Faixa do dinheiro: duas colunas iguais, próprias, que nunca sobram de fila. */
-        /* Oito cartões numa fileira só: aperta o miolo em vez de quebrar a linha. */
-        #entKpis{gap:12px;}
-        #entKpis .kpi{padding:16px 13px;}
-        #entKpis .kpi .v{font-size:23px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        /* Nome de gente não é número: prefere quebrar linha a ser cortado. */
-        #entKpis .kpi.nome .v{white-space:normal;overflow:visible;overflow-wrap:anywhere;
-                              font-size:19px;line-height:1.15;}
-        #entKpis .kpi .l{font-size:11px;letter-spacing:.2px;}
-        #entKpis .ent-ksub{font-size:10.5px;}
-        #entKpis .kpi.din{border-left:4px solid #157a35;}
-        #entKpis .kpi.din .v{color:#0c5a26;font-size:21px;letter-spacing:-.3px;}
-        #entKpis .kpi.din.proj{border-left-color:#a9d8b6;}
-        #entKpis .kpi.din.proj .v{color:#46535f;}
-        @media (max-width:1200px){ #entKpis{grid-template-columns:repeat(4,minmax(0,1fr))!important;} }
-        @media (max-width:700px){  #entKpis{grid-template-columns:repeat(2,minmax(0,1fr))!important;} }
+        /* Nome de gente pode quebrar linha; número, não. */
+        #entKpis .kpi.nome .v{overflow-wrap:anywhere;line-height:1.15;}
         .ent-din{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:0 0 22px;}
         .ent-din-card{background:#fff;border:1px solid #e6ebf1;border-left:4px solid #157a35;border-radius:12px;
                       padding:16px 20px;box-shadow:0 1px 4px rgba(20,40,70,.06);min-width:0;}
@@ -3062,8 +3049,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div class="ent-sync ok" id="entSync"><span class="pt"></span>Tudo salvo</div>
         <div id="entStatus"></div>
         <div id="entAvisos"></div>
-        <div id="entDinheiro"></div>
         <div class="kpis" id="entKpis" style="grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin-bottom:22px;"></div>
+        <div id="entDinheiro"></div>
         <div id="entGradeWrap" style="display:none;">
           <p class="ent-grade-info">Digite quantas entregas cada entregador fez em cada dia. Escreva <b>0</b> quando a loja abriu e não houve entrega, e deixe <b>em branco</b> o dia que ainda não foi apurado — o painel trata os dois de formas diferentes.</p>
           <p class="ent-digita-erro" id="entAvisoDigita" style="display:none;"></p>
@@ -11328,21 +11315,26 @@ function entRenderKpis(){
     var cfg=entCfgAtual();
     var qs=entIdsDoMes(entAno,entMes).map(function(id){ return entTotalEntregador(entAno,entMes,id); });
     var agora=entfTotalEquipe(qs,cfg);
-    // Os cartões de dinheiro ficam na MESMA fileira dos outros — só com destaque.
+    // O dinheiro tem FAIXA PRÓPRIA embaixo dos seis cartões: duas colunas iguais,
+    // largas, que nunca ficam órfãs nem cortam o valor no meio.
     function cardD(v,l,sub,cls){
-      return '<div class="kpi din '+(cls||"")+'"><div class="v">'+v+'</div><div class="l">'+l+'</div>'+
-             (sub?'<div class="ent-ksub">'+sub+'</div>':'')+'</div>';
+      return '<div class="ent-din-card '+(cls||"")+'"><div class="l">'+l+'</div><div class="v">'+v+'</div>'+
+             (sub?'<div class="s">'+sub+'</div>':'')+'</div>';
     }
     if(entMesFechado()){
-      cartaoDinheiro=cardD(entfMoeda(agora.total),"Valor final","fechado · para a folha","final");
+      cartaoDinheiro=cardD(entfMoeda(agora.total),"Valor final do mês",
+                           "mês fechado · valor calculado para a folha","final");
     } else {
       var fator=(st1.projecao!==null && ctx.total>0)?(st1.projecao/ctx.total):1;
       var proj=entfTotalEquipe(qs.map(function(q){ return Math.round(q*fator); }),cfg);
       cartaoDinheiro=cardD(entfMoeda(agora.total),"Valor até agora",
-                           agora.desafio+" no desafio · "+agora.base+" na base · "+agora.sem+" sem")+
+                           agora.desafio+" na meta desafio · "+agora.base+" na meta base · "+agora.sem+" sem remuneração")+
                      cardD(st1.projecao===null?"—":entfMoeda(proj.total),"Pagamento projetado",
-                           st1.projecao===null?"Dados insuficientes":"se o ritmo continuar · não é valor devido","proj");
+                           st1.projecao===null?"Dados insuficientes para projetar"
+                                              :"se o ritmo continuar até o fim do mês · ainda não é valor devido","proj");
     }
+    cartaoDinheiro='<div class="ent-din">'+cartaoDinheiro+
+      '<div class="ent-din-nota">Remuneração variável por entregas · valor calculado para a folha. O Painel não calcula encargos.</div></div>';
   }
 
   document.getElementById("entKpis").innerHTML=
@@ -11351,21 +11343,9 @@ function entRenderKpis(){
     cardMeta(st1,"Meta base atingida")+
     card(vsTxt,"Vs. mês anterior",vsSub)+
     card(num(ctx.restantes),"Dias úteis restantes",ctx.restantes===0?"o mês acabou":"ainda dá pra lançar")+
-    card(vLider,"Líder do mês",subLider,null,"nome")+
-    cartaoDinheiro;
-  // Uma fileira só: o número de colunas acompanha quantos cartões existem.
-  var kb=document.getElementById("entKpis");
-  if(kb){
-    // As caixas de dinheiro precisam de mais largura: "R$ 4.648,80" é o texto mais
-    // comprido da fileira. As outras cedem um pouco para ninguém ficar cortado.
-    var nDin=kb.querySelectorAll(".kpi.din").length;
-    var nCom=kb.children.length-nDin;
-    kb.style.gridTemplateColumns=
-      (nCom>0?"repeat("+nCom+",minmax(0,1fr)) ":"")+
-      (nDin>0?"repeat("+nDin+",minmax(0,1.45fr))":"");
-  }
+    card(vLider,"Líder do mês",subLider,null,"nome");
   var boxD=document.getElementById("entDinheiro");
-  if(boxD) boxD.innerHTML="";
+  if(boxD) boxD.innerHTML=cartaoDinheiro;
 
   entRenderStatus(ctx);
   entRenderAvisos(ctx);
