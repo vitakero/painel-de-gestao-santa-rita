@@ -1,0 +1,26 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "_comentario": [
+    "TRAVA DE PUBLICACAO NO VERCEL.",
+    "",
+    "O PROBLEMA: GitHub Pages e Vercel servem o MESMO arquivo do MESMO repositorio.",
+    "Cada commit disparava uma publicacao no Vercel, e o plano gratuito so permite 100",
+    "por dia (janela de 24h). Num dia de muitos ajustes o limite estourava e o site do",
+    "dominio proprio congelava numa versao velha, parecendo que o codigo nao tinha subido.",
+    "",
+    "A REGRA AGORA: o Vercel so publica quando a mensagem do commit tiver [publicar].",
+    "Todo o resto continua indo pro GitHub normalmente — entao o endereco de teste",
+    "(vitakero.github.io/painel-de-gestao-santa-rita) atualiza a cada ajuste, e o dominio",
+    "de producao (painel.supermercadosantarita.com.br) so muda quando o dono mandar.",
+    "",
+    "QUEM MARCA [publicar]:",
+    "  - o robo da loja (publicar.cjs sem FORCAR): producao TEM que receber dado fresco",
+    "  - o Mac, so quando rodar com SUBIR=1",
+    "",
+    "exit 1 = publica  /  exit 0 = ignora  (regra do Vercel, nao inverter)",
+    "grep -F compara texto puro: sem isso os colchetes viram curinga e casam com qualquer commit.",
+    "",
+    "PARA DESFAZER: apague este arquivo do repositorio. O Vercel volta a publicar a cada commit."
+  ],
+  "ignoreCommand": "printf '%s' \"$VERCEL_GIT_COMMIT_MESSAGE\" | grep -qF '[publicar]' && exit 1 || exit 0"
+}
