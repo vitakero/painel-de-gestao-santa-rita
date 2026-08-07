@@ -10715,31 +10715,43 @@ function entCloudLoad(){
     if(rs[0].error||rs[1].error) return;   // sem login / sem permissão -> segue no cache
     entCloudOK=true;
     var doServidor=(rs[0].data||[]).map(function(p){ return {id:p.id,nome:p.nome,ativo:!!p.ativo}; });
-    // CONSERTO: cadastro provisório que o servidor criou com OUTRO código deixa os
-    // lançamentos apontando pra ninguém. Casa pelo nome quando só existe um com
-    // aquele nome lá — se houver dúvida, não adivinha.
-    var mapa={};
-    entEquipe.forEach(function(loc){
-      if(!loc.provisorio) return;
-      if(doServidor.some(function(p){ return p.id===loc.id; })) return;
-      var iguais=doServidor.filter(function(p){ return p.nome===loc.nome; });
-      if(iguais.length===1) mapa[loc.id]=iguais[0].id;
-    });
-    if(Object.keys(mapa).length){
+    // CONSERTO DE CÓDIGO ÓRFÃO.
+    // O servidor já criou a pessoa com OUTRO código, e o que está guardado aqui aponta
+    // pra ninguém. Não dá pra procurar na lista local (ela já foi substituída numa
+    // carga anterior) — então o nome vem do PRÓPRIO LANÇAMENTO (nome_snapshot local).
+    // Só casa quando existe exatamente UM com aquele nome no servidor. Havendo dúvida,
+    // não adivinha: deixa como está e avisa no console.
+    (function(){
+      var existe={}; doServidor.forEach(function(p){ existe[p.id]=1; });
+      var nomePorId={}, ambiguos=[];
+      Object.keys(entNomes).forEach(function(mk){
+        Object.keys(entNomes[mk]||{}).forEach(function(id){
+          if(!existe[id] && !nomePorId[id]) nomePorId[id]=entNomes[mk][id];
+        });
+      });
+      var mapa={};
+      Object.keys(nomePorId).forEach(function(velho){
+        var iguais=doServidor.filter(function(p){ return p.nome===nomePorId[velho]; });
+        if(iguais.length===1) mapa[velho]=iguais[0].id;
+        else if(iguais.length>1) ambiguos.push(nomePorId[velho]);
+      });
+      if(!Object.keys(mapa).length){
+        if(ambiguos.length) try{ console.warn("[Entregas] nome repetido no servidor, não dá pra casar sozinho:",ambiguos); }catch(e){}
+        return;
+      }
       Object.keys(entDados).forEach(function(mk){
         Object.keys(mapa).forEach(function(velho){
-          if(entDados[mk][velho]!==undefined){
-            var novo=mapa[velho];
-            entDados[mk][novo]=Object.assign({}, entDados[mk][novo]||{}, entDados[mk][velho]);
-            delete entDados[mk][velho];
-            if(entNomes[mk] && entNomes[mk][velho]){ entNomes[mk][novo]=entNomes[mk][velho]; delete entNomes[mk][velho]; }
-          }
+          if(entDados[mk][velho]===undefined) return;
+          var novoId=mapa[velho];
+          entDados[mk][novoId]=Object.assign({}, entDados[mk][novoId]||{}, entDados[mk][velho]);
+          delete entDados[mk][velho];
+          if(entNomes[mk] && entNomes[mk][velho]){ entNomes[mk][novoId]=entNomes[mk][velho]; delete entNomes[mk][velho]; }
         });
       });
       entFila.forEach(function(f){ if(mapa[f.entregador_id]) f.entregador_id=mapa[f.entregador_id]; });
-      entFilaSalvar();
+      entFilaSalvar(); entCacheSalvar();
       try{ console.warn("[Entregas] códigos provisórios casados com os do servidor:",mapa); }catch(e){}
-    }
+    })();
     entEquipe=doServidor;
     var dados={}, nomes={};
     (rs[1].data||[]).forEach(function(r){
