@@ -12414,9 +12414,7 @@ function entRenderMetas(mostrar){
   box.innerHTML='<div class="ent-metas">'+
     meta(1,ENT_META1(),entCfg.vbase)+
     meta(2,ENT_META2(),entCfg.vdes)+
-    '<span class="obs">por entregador, no mês'+
-    (temValor?' · ao bater uma meta, <b>todas</b> as entregas do mês passam a valer aquele valor':'')+
-    '</span></div>';
+    '</div>';
 }
 function entRenderGrade(){
   const nd=diasDoMes(entAno,entMes);
