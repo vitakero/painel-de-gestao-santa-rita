@@ -60,13 +60,22 @@ const headers = {
   if (r1.status === 200) { sha = (await r1.json()).sha; }
   else if (r1.status !== 404) { console.log("Erro ao ler arquivo atual:", r1.status, await r1.text()); process.exit(1); }
 
-  const body = { message: "Atualizacao automatica do painel", content: b64 };
+  // MARCA [publicar] -> o Vercel publica (regra em vercel.json, na raiz do repo).
+  // Sem a marca, o commit vai pro GitHub do mesmo jeito (e o endereco de teste do
+  // github.io atualiza), mas o dominio de producao fica na versao anterior.
+  //   robo da loja (sem FORCAR) -> SEMPRE marca: producao precisa do dado fresco
+  //   Mac (FORCAR=1)            -> so marca com SUBIR=1
+  const vaiPraProducao = (process.env.FORCAR !== "1") || (process.env.SUBIR === "1");
+  const msg = "Atualizacao automatica do painel" + (vaiPraProducao ? " [publicar]" : "");
+  const body = { message: msg, content: b64 };
   if (sha) body.sha = sha;
 
   const r2 = await fetch(api, { method: "PUT", headers, body: JSON.stringify(body) });
   if (r2.status === 200 || r2.status === 201) {
     try { fs.writeFileSync(statePath, JSON.stringify({ hash: hash, ts: Date.now(), dia: hoje, pubs: pubsHoje + 1 })); } catch (e) {}
-    console.log(">>> PUBLICADO no GitHub! O painel online atualiza em ~1 min.");
+    console.log(vaiPraProducao
+    ? ">>> PUBLICADO. Vai para o dominio de producao em ~1 min."
+    : ">>> Publicado so para TESTE (github.io). O dominio de producao NAO mudou.\n    Para subir para producao: SUBIR=1 FORCAR=1 node scripts/publicar.cjs");
     console.log("    https://vitakero.github.io/painel-de-gestao-santa-rita/");
   } else {
     console.log("FALHOU ao publicar:", r2.status);
