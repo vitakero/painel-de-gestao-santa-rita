@@ -2943,6 +2943,13 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         /* stroke conta como "cor de texto" no gerador do tema escuro, e cor clara ali
            volta clarinha — o que num fundo escuro vira linha branca. Por isso a linha de
            grade usa cor média + opacidade baixa: fica discreta nos dois temas. */
+        .ent-dia-linha{stroke:#157a35;} .ent-dia-area{fill:rgba(21,122,53,.10);}
+        .ent-dia-pt{fill:#157a35;} .ent-dia-base{fill:#9bb7a6;}
+        .ent-dia-melhor{fill:#0c5a26;} .ent-dia-pior{fill:#c98a00;}
+        .ent-dia-txt{fill:#33404f;} .ent-dia-tmelhor{fill:#0c5a26;} .ent-dia-tpior{fill:#9a6a00;}
+        .ent-dia-eixo{fill:#5a6b7d;}
+        .ent-dia-med{stroke:#8a97a8;stroke-width:1;stroke-opacity:.5;}
+        .ent-dia-medtxt{fill:#8a97a8;}
         .ent-acum-grid{stroke:#8a97a8;stroke-width:1;stroke-opacity:.35;}
         .ent-acum-eixo{fill:#9aa7b6;}
         .ent-acum-dia{fill:#5a6b7d;}
@@ -11564,16 +11571,52 @@ function entChartAcumulado(){
 }
 function entChartDiarioTotal(){
   const nd=diasDoMes(entAno,entMes);
-  const vals=[]; let mx=1; for(let d=1;d<=nd;d++){ const v=entTotalDia(entAno,entMes,d); vals.push(v); if(v>mx) mx=v; }
-  const stepX=46,padL=14,padR=14,h=200,padT=30,padB=24,plotH=h-padT-padB;
+  // Dia que ainda não foi lançado NÃO é zero entrega — é dia que não chegou. A linha
+  // para no último dia lançado, em vez de despencar e fingir que a loja parou.
+  const temL=[]; let ultimo=-1;
+  for(let d=1;d<=nd;d++){
+    const t=entTemLancamento(entAno,entMes,d) || entFechado(entAno,entMes,d);
+    temL.push(t); if(entTemLancamento(entAno,entMes,d)) ultimo=d;
+  }
+  if(ultimo<1) return "";
+  const vals=[]; let mx=1;
+  for(let d=1;d<=nd;d++){ const v=entTotalDia(entAno,entMes,d); vals.push(v); if(d<=ultimo && v>mx) mx=v; }
+  const stepX=46,padL=16,padR=16,h=200,padT=30,padB=24,plotH=h-padT-padB;
   const w=padL+padR+(nd-1)*stepX;
   function X(i){ return padL+i*stepX; } function Y(v){ return padT+plotH-(v/mx*plotH); }
-  let pts=""; for(let i=0;i<nd;i++) pts+=X(i).toFixed(1)+","+Y(vals[i]).toFixed(1)+" ";
-  let area="M "+X(0).toFixed(1)+","+(padT+plotH); for(let i=0;i<nd;i++) area+=" L "+X(i).toFixed(1)+","+Y(vals[i]).toFixed(1); area+=" L "+X(nd-1).toFixed(1)+","+(padT+plotH)+" Z";
   const baseY=padT+plotH;
-  let extra=""; for(let i=0;i<nd;i++){ extra+='<circle cx="'+X(i).toFixed(1)+'" cy="'+baseY.toFixed(1)+'" r="2.5" fill="#9bb7a6"/>'+'<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(vals[i]).toFixed(1)+'" r="4" fill="#157a35" stroke="#fff" stroke-width="1.5"/>'+'<text x="'+X(i).toFixed(1)+'" y="'+(Y(vals[i])-9).toFixed(1)+'" text-anchor="middle" font-size="13" font-weight="800" fill="#33404f">'+vals[i]+'</text>'+'<text x="'+X(i).toFixed(1)+'" y="'+(h-6)+'" text-anchor="middle" font-size="11" font-weight="700" fill="#5a6b7d">'+(i+1)+'</text>'; }
-  const svg='<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'"><path d="'+area+'" fill="rgba(21,122,53,.10)"/><polyline points="'+pts.trim()+'" fill="none" stroke="#157a35" stroke-width="2"/>'+extra+'</svg>';
-  return '<div class="ent-graf"><h3>Total de Entregas por Dia</h3><div class="ent-svg-wrap">'+svg+'</div></div>';
+  let pts=""; for(let i=0;i<ultimo;i++) pts+=X(i).toFixed(1)+","+Y(vals[i]).toFixed(1)+" ";
+  let area="M "+X(0).toFixed(1)+","+baseY; for(let i=0;i<ultimo;i++) area+=" L "+X(i).toFixed(1)+","+Y(vals[i]).toFixed(1);
+  area+=" L "+X(ultimo-1).toFixed(1)+","+baseY+" Z";
+  // média dos dias lançados que a loja abriu — a régua do mês
+  let soma=0,qtd=0;
+  for(let d=1;d<=ultimo;d++){ if(entFechado(entAno,entMes,d)) continue; if(!entTemLancamento(entAno,entMes,d)) continue; soma+=vals[d-1]; qtd++; }
+  const med=qtd?soma/qtd:0;
+  let melhor=-1, pior=-1;
+  for(let d=1;d<=ultimo;d++){ if(entFechado(entAno,entMes,d)||!entTemLancamento(entAno,entMes,d)) continue;
+    if(melhor<0||vals[d-1]>vals[melhor-1]) melhor=d;
+    if(pior<0||vals[d-1]<vals[pior-1]) pior=d; }
+  let extra="";
+  for(let i=0;i<nd;i++){
+    const d=i+1, dentro=(d<=ultimo);
+    extra+='<circle cx="'+X(i).toFixed(1)+'" cy="'+baseY.toFixed(1)+'" r="2.5" class="ent-dia-base"/>';
+    if(dentro){
+      const cls=(d===melhor)?"ent-dia-melhor":((d===pior)?"ent-dia-pior":"ent-dia-pt");
+      extra+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(vals[i]).toFixed(1)+'" r="4" class="'+cls+'" stroke="#fff" stroke-width="1.5"/>'+
+             '<text x="'+X(i).toFixed(1)+'" y="'+(Y(vals[i])-9).toFixed(1)+'" text-anchor="middle" font-size="12.5" font-weight="800" class="'+
+             ((d===melhor)?"ent-dia-tmelhor":((d===pior)?"ent-dia-tpior":"ent-dia-txt"))+'">'+vals[i]+'</text>';
+    }
+    extra+='<text x="'+X(i).toFixed(1)+'" y="'+(h-6)+'" text-anchor="middle" font-size="11" font-weight="700" class="ent-dia-eixo">'+d+'</text>';
+  }
+  const linhaMed=med>0?'<line x1="'+padL+'" y1="'+Y(med).toFixed(1)+'" x2="'+(w-padR)+'" y2="'+Y(med).toFixed(1)+
+    '" class="ent-dia-med" stroke-dasharray="5 4"/>'+
+    '<text x="'+(w-padR-2)+'" y="'+(Y(med)-5).toFixed(1)+'" text-anchor="end" font-size="10.5" font-weight="700" class="ent-dia-medtxt">média '+entDec(med)+'</text>':"";
+  // Encolhe pra caber em vez de rolar pro lado.
+  const svg='<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:auto;max-width:'+w+'px;display:block">'+
+    '<path d="'+area+'" class="ent-dia-area"/>'+linhaMed+
+    '<polyline points="'+pts.trim()+'" fill="none" class="ent-dia-linha" stroke-width="2"/>'+extra+'</svg>';
+  const leg=(melhor>0)?'<p class="ent-sub">Melhor dia: <b>'+melhor+'</b> ('+num(vals[melhor-1])+') · pior dia útil: <b>'+pior+'</b> ('+num(vals[pior-1])+') · média por dia lançado: <b>'+entDec(med)+'</b></p>':"";
+  return '<div class="ent-graf"><h3>Total de Entregas por Dia</h3>'+leg+'<div class="ent-svg-wrap">'+svg+'</div></div>';
 }
 function entChartDiarioPorEntregador(){
   const nd=diasDoMes(entAno,entMes);
