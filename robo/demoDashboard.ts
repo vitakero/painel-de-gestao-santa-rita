@@ -2854,14 +2854,18 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ent-edit-add input:focus{outline:none;border-color:#157a35;box-shadow:0 0 0 2px rgba(21,122,53,.15);}
         .ent-edit-add button{border:0;background:#157a35;color:#fff;border-radius:7px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;flex:none;}
         .ent-edit-add button:hover{background:#0c5a26;}
-        table.ent-grade{border-collapse:collapse;font-size:12px;white-space:nowrap;width:100%;}
-        table.ent-grade th,table.ent-grade td{border:1px solid #eef2f6;padding:4px 6px;text-align:center;}
+        /* LARGURA FIXA. Sem isto o navegador dava mais espaço pra coluna que tinha mais
+           coisa dentro, e a grade ficava com dia largo e dia estreito conforme fosse
+           preenchida. Toda coluna de dia tem a MESMA largura, cheia ou vazia. */
+        table.ent-grade{border-collapse:collapse;font-size:12px;white-space:nowrap;width:100%;table-layout:fixed;}
+        table.ent-grade th,table.ent-grade td{border:1px solid #eef2f6;padding:4px 6px;text-align:center;width:56px;}
         table.ent-grade th{background:#f3f6fa;color:#46546a;font-weight:700;}
         table.ent-grade th.dom{background:#dcebfb;color:#0c5a26;}
         table.ent-grade th .ent-dow{font-weight:400;font-size:10px;color:#8a97a8;letter-spacing:.3px;}
         table.ent-grade td.dom-fix{background:#eef4fb;color:#9aa7b6;font-weight:600;}
-        table.ent-grade th.nome,table.ent-grade td.nome{position:sticky;left:0;text-align:left;min-width:130px;background:#fff;font-weight:600;color:#33404f;z-index:2;}
+        table.ent-grade th.nome,table.ent-grade td.nome{position:sticky;left:0;text-align:left;width:158px;min-width:158px;background:#fff;font-weight:600;color:#33404f;z-index:2;overflow:hidden;text-overflow:ellipsis;}
         table.ent-grade th.nome{background:#f3f6fa;z-index:3;}
+        table.ent-grade th.tot,table.ent-grade td.tot{width:66px;}
         table.ent-grade td.tot{background:#f6faf7;font-weight:700;color:#0c5a26;}
         table.ent-grade tr.linha-tot td{background:#eef6f0;font-weight:700;color:#0c5a26;}
         table.ent-grade input{width:42px;border:1px solid transparent;border-radius:5px;padding:3px 2px;text-align:center;font:inherit;color:#1d2733;background:transparent;}
@@ -12398,7 +12402,7 @@ function entRenderGrade(){
     const topo = (!conf&&d===diaLanc)?'<span class="ent-hoje-tag">lançar hoje</span>':'';
     head+='<th class="'+cl.trim()+'"'+(conf?' title="Dia '+d+' já salvo e encerrado"':'')+'>'+topo+d+
           '<br><span class="ent-dow">'+DOW_PT[dow].toUpperCase()+'</span></th>'; }
-  head+='<th>Total</th></tr>';
+  head+='<th class="tot">Total</th></tr>';
   let body="";
   const mkG=entMesKey(entAno,entMes);
   const fora={}; entForaDoPadrao(entAno,entMes).forEach(function(f){ fora[f.id+"|"+f.dia]=f; });
@@ -12434,7 +12438,7 @@ function entRenderGrade(){
             (dica?' title="'+entEsc(dica)+'"':'')+'></td>'; }
     body+='<tr><td class="nome">'+entEsc(entNomeDe(id,mkG))+(inativo?' <span class="ent-inat">inativo</span>':'')+'</td>'+cels+'<td class="tot">'+num(entTotalEntregador(entAno,entMes,id))+'</td></tr>';
   });
-  let totRow='<tr class="linha-tot"><td class="nome">Total do dia</td>'; for(let d=1;d<=nd;d++) totRow+='<td>'+num(entTotalDia(entAno,entMes,d))+'</td>'; totRow+='<td>'+num(entTotalMes(entAno,entMes))+'</td></tr>';
+  let totRow='<tr class="linha-tot"><td class="nome">Total do dia</td>'; for(let d=1;d<=nd;d++) totRow+='<td>'+num(entTotalDia(entAno,entMes,d))+'</td>'; totRow+='<td class="tot">'+num(entTotalMes(entAno,entMes))+'</td></tr>';
   document.getElementById("entGrade").innerHTML='<table class="ent-grade"><thead>'+head+'</thead><tbody>'+body+totRow+'</tbody></table>';
 }
 function entUpdGradeTotais(){
