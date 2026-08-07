@@ -3075,8 +3075,13 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ent-cfg-grid input{display:block;width:100%;margin-top:5px;border:1px solid #d4dde6;border-radius:7px;padding:7px 10px;font:inherit;font-size:14px;color:#1d2733;}
         .ent-cfg-grid input:focus{outline:none;border-color:#157a35;box-shadow:0 0 0 2px rgba(21,122,53,.15);}
         @media (max-width:700px){ .ent-cfg-grid{grid-template-columns:1fr;} }
-        .ent-fechado{display:inline-flex;align-items:center;gap:7px;background:#eef2f6;border:1px solid #dbe2ea;
-                     color:#46535f;border-radius:20px;padding:5px 13px;font-size:12px;font-weight:700;}
+        /* O svg de entIco não tem width/height próprios — sem esta regra ele nasce
+           gigante e empurra o texto. Toda caixa que usa entIco precisa dimensionar. */
+        .ent-fechado{display:inline-flex;align-items:center;gap:8px;background:#eef2f6;border:1px solid #dbe2ea;
+                     color:#46535f;border-radius:20px;padding:6px 14px;font-size:12.5px;white-space:nowrap;}
+        .ent-fechado svg{width:16px;height:16px;flex:none;color:#3f8d5b;}
+        .ent-fechado b{font-weight:700;}
+        .ent-fechado i{font-style:normal;font-weight:600;opacity:.62;}
         @media (max-width:820px){
           table.ent-rank{font-size:12px;}
           table.ent-rank th,table.ent-rank td{padding:6px 7px;}
@@ -11912,8 +11917,12 @@ function entRenderAdm(){
   var box=document.getElementById("entAdm"); if(!box) return;
   var h="";
   if(entMesFechado()){
-    var q=entFech&&entFech.fechado_em?(" em "+String(entFech.fechado_em).slice(8,10)+"/"+String(entFech.fechado_em).slice(5,7)+"/"+String(entFech.fechado_em).slice(0,4)):"";
-    h+='<span class="ent-fechado">'+entIco("concluido")+'Mês fechado'+q+'</span>';
+    var f=entFech&&entFech.fechado_em?String(entFech.fechado_em):"";
+    var q=f?(f.slice(8,10)+"/"+f.slice(5,7)+"/"+f.slice(0,4)):"";
+    // Nome do mês em vez de "Mês", e a data numa linha própria: "Mês fechado em
+    // 07/08/2026" quebrava em três linhas dentro da etiqueta.
+    h+='<span class="ent-fechado">'+entIco("concluido")+
+       '<b>'+MESES[entMes]+' '+entAno+' fechado</b>'+(q?'<i>em '+q+'</i>':'')+'</span>';
     if(entCfg.master) h+='<button type="button" class="ent-adm" id="entRelRH">Relatório para o RH</button>'+
                           '<button type="button" class="ent-adm" id="entReabrir">Reabrir mês</button>';
   } else if(entCfg.master){
