@@ -2880,11 +2880,13 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         table.ent-grade td:has(> input.nsv){background:#fffcf2;}
         .ent-hoje-tag{display:block;font-size:8.5px;font-weight:800;color:#157a35;text-transform:uppercase;
                       letter-spacing:.3px;line-height:1;margin-bottom:2px;white-space:nowrap;}
-        /* Dia já CONFIRMADO: não se digita mais nele. */
-        table.ent-grade td.conf{background:#f4f6f9;color:#5a6b7d;font-weight:700;}
-        table.ent-grade th.conf{background:#eef2f6;color:#5a6b7d;}
-        table.ent-grade input.conf{background:#fbfcfd;color:#46535f;border-style:dashed;border-color:#cbd4de;}
-        .ent-lock{display:block;font-size:9px;line-height:1;margin-bottom:2px;opacity:.75;}
+        /* Dia já salvo: MESMA APARÊNCIA de antes (pedido do dono). O que muda é só que
+           o campo não aceita mais digitação. Sem cinza, sem cadeado, sem coluna
+           encolhendo — a grade tem que continuar igual depois de salvar.
+           Quem diz que o dia está travado é a linha "Dias encerrados" embaixo da grade,
+           a dica ao passar o mouse, e o aviso ao clicar. */
+        table.ent-grade input:read-only{cursor:default;}
+        table.ent-grade input:read-only:focus{border-color:transparent;background:transparent;box-shadow:none;}
         .ent-final.ok2{background:#f6faf7;border-color:#dfeee5;color:#0c5a26;}
         .ent-final.conf{background:#eef4fa;border-color:#d4e2ef;color:#1f4d7a;}
         .ent-final .eyb{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;
@@ -3107,7 +3109,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ent-edit-row .reat{border:1px solid #cfe0d6;background:#fff;color:#157a35;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;flex:none;}
         .ent-edit-row .reat:hover{background:#e3f0e8;}
         .ent-edit-row .rm{width:auto;padding:0 11px;font-size:12px;}
-        table.ent-grade input[readonly]{color:#9aa7b6;background:#f7f9fb;}
+        /* Só o campo de ENTREGADOR INATIVO fica apagado. Dia salvo NÃO: ele mantém a
+           mesma cara de antes — o que muda é só não aceitar digitação. */
+        table.ent-grade input[readonly].inat{color:#9aa7b6;background:#f7f9fb;}
       </style>
       <div class="card">
         <div class="ent-top">
@@ -12390,10 +12394,9 @@ function entRenderGrade(){
   for(let d=1;d<=nd;d++){ const dow=new Date(entAno,entMes,d).getDay();
     const conf=entDiaConfirmado(entAno,entMes,d);
     const cl=(dow===0?"dom":"")+(entDiaFuturo(entAno,entMes,d)?" fut":"")+
-             (d===diaLanc&&!conf?" lanc":"")+(conf?" conf":"");
-    const topo = conf ? '<span class="ent-lock" title="Dia confirmado — não pode mais ser alterado">🔒</span>'
-                      : (d===diaLanc?'<span class="ent-hoje-tag">lançar hoje</span>':'');
-    head+='<th class="'+cl.trim()+'">'+topo+d+
+             (d===diaLanc&&!conf?" lanc":"");
+    const topo = (!conf&&d===diaLanc)?'<span class="ent-hoje-tag">lançar hoje</span>':'';
+    head+='<th class="'+cl.trim()+'"'+(conf?' title="Dia '+d+' já salvo e encerrado"':'')+'>'+topo+d+
           '<br><span class="ent-dow">'+DOW_PT[dow].toUpperCase()+'</span></th>'; }
   head+='<th>Total</th></tr>';
   let body="";
@@ -12407,18 +12410,28 @@ function entRenderGrade(){
       // Dia que ainda não chegou fica travado: não existe entrega feita no futuro.
       if(entDiaFuturo(entAno,entMes,d)){ cels+='<td class="fut" title="Este dia ainda não chegou"></td>'; continue; }
       const v=entGetRaw(entAno,entMes,id,d); const fx=fora[id+"|"+d];
-      // Dia confirmado: para quem lança, não existe mais campo. Só o número.
-      if(entDiaTravado(entAno,entMes,d)){
-        cels+='<td class="conf" title="Dia '+d+' confirmado — não pode mais ser alterado">'+(v===""?"—":v)+'</td>'; continue;
-      }
+      // Dia já salvo: continua sendo o MESMO campo, com a mesma cara. Só não aceita
+      // digitação. Trocar por texto mudava a largura da coluna e a grade inteira
+      // parecia outra depois de salvar.
+      const travado=entDiaTravado(entAno,entMes,d);
       const conf2=entDiaConfirmado(entAno,entMes,d);
-      const cls=[]; if(fx) cls.push("fora"); if(conf2) cls.push("conf"); else if(d===diaLanc) cls.push("lanc");
+      // Um class e um title só. Antes saíam dois de cada quando a célula era, ao mesmo
+      // tempo, fora do padrão e de entregador inativo — e o navegador ignora o segundo.
+      const cls=[];
+      if(fx) cls.push("fora");
+      if(!conf2&&d===diaLanc) cls.push("lanc");
       if(entTemRascunho(entAno,entMes,id,d)) cls.push("nsv");
-      cels+='<td'+(conf2?' class="conf"':(d===diaLanc?' class="tdlanc"':''))+'><input type="text" inputmode="numeric" data-id="'+entEsc(id)+'" data-dia="'+d+'" value="'+v+'"'+
-            (conf2?' title="Dia já confirmado. Como administrador você ainda pode corrigir — a correção fica registrada."':'')+
+      if(inativo) cls.push("inat");
+      const dica = fx ? "Fora do padrão: "+fx.nome+" costuma fazer perto de "+fx.base+" por dia"
+                : inativo ? "Entregador inativo"
+                : conf2 ? ("Dia "+d+" já salvo e encerrado."+(travado?" Não pode mais ser alterado.":" Como administrador você ainda pode corrigir — a correção fica registrada."))
+                : "";
+      cels+='<td'+(!conf2&&d===diaLanc?' class="tdlanc"':'')+'>'+
+            '<input type="text" inputmode="numeric" data-id="'+entEsc(id)+'" data-dia="'+d+'" value="'+v+'"'+
             (cls.length?' class="'+cls.join(" ")+'"':'')+
-            (fx?' title="'+entEsc("Fora do padrão: "+fx.nome+" costuma fazer perto de "+fx.base+" por dia")+'"':'')+
-            (inativo?' readonly title="Entregador inativo"':'')+'></td>'; }
+            ((travado||inativo)?' readonly':'')+
+            (travado?' data-travado="'+d+'"':'')+
+            (dica?' title="'+entEsc(dica)+'"':'')+'></td>'; }
     body+='<tr><td class="nome">'+entEsc(entNomeDe(id,mkG))+(inativo?' <span class="ent-inat">inativo</span>':'')+'</td>'+cels+'<td class="tot">'+num(entTotalEntregador(entAno,entMes,id))+'</td></tr>';
   });
   let totRow='<tr class="linha-tot"><td class="nome">Total do dia</td>'; for(let d=1;d<=nd;d++) totRow+='<td>'+num(entTotalDia(entAno,entMes,d))+'</td>'; totRow+='<td>'+num(entTotalMes(entAno,entMes))+'</td></tr>';
@@ -12549,6 +12562,14 @@ function renderEntregas(){
   document.getElementById("entSync").addEventListener("click",function(e){
     if(e.target.closest("#entRetry")){ entFila.forEach(function(f){ f.proxima=0; }); entFilaProcessar(true); return; }
     if(e.target.closest("#entRecOk")){ entRecusas=[]; entSyncPintar(); return; }
+  });
+  // Sem cinza e sem cadeado, clicar numa célula travada não pode ser um nada. O aviso
+  // aparece no mesmo lugar dos outros avisos de digitação e some ao clicar num campo bom.
+  document.getElementById("entGrade").addEventListener("mousedown",function(e){
+    const inp=e.target.closest("input[data-travado]");
+    const el=document.getElementById("entAvisoDigita"); if(!el) return;
+    if(inp){ el.textContent="O dia "+inp.getAttribute("data-travado")+" já foi salvo e encerrado. Só o administrador altera."; el.style.display=""; }
+    else if(e.target.closest("input[data-id]")){ el.textContent=""; el.style.display="none"; }
   });
   document.getElementById("entGrade").addEventListener("input",function(e){
     const inp=e.target.closest("input[data-id]"); if(!inp) return;
