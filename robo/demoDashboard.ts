@@ -10603,8 +10603,23 @@ function entFilaProcessar(forcar){
     entFilaSalvar(); entFilaRodando=false; entSyncPintar();
     entFilaProcessar(forcar);
   },function(err){
-    proximo.status="erro"; proximo.tentativas++;
+    proximo.tentativas++;
     proximo.ultimo_erro=(err&&(err.message||err.msg))||String(err||"falha");
+    // RECUSA DE REGRA não é falha de rede: tentar de novo dá o mesmo "não" para sempre.
+    // Um item preso assim travava a fila inteira — e, com ela, os botões de confirmar o
+    // dia e fechar o mês, que só funcionam com a fila vazia.
+    if(entRecusaDefinitiva(err)){
+      entFila=entFila.filter(function(x){ return x!==proximo; });
+      entRecusas.push({quando:Date.now(), motivo:proximo.ultimo_erro, item:proximo});
+      if(entRecusas.length>5) entRecusas.shift();
+      entFilaSalvar(); entFilaRodando=false; entSyncPintar();
+      // O que está na tela não é o que está no banco: recarrega pra mostrar a verdade.
+      entCloudLoad();
+      try{ console.warn("[Entregas] alteração recusada pela regra; descartada",proximo); }catch(e){}
+      entFilaProcessar(forcar);
+      return;
+    }
+    proximo.status="erro";
     // espera crescente: 2s, 4s, 8s… até 5 min. Não avalanche.
     var espera=Math.min(300000, 2000*Math.pow(2,Math.min(proximo.tentativas,8)));
     proximo.proxima=Date.now()+espera;
@@ -10635,6 +10650,17 @@ function entFilaEnviar(sb,f){
   return Promise.reject(new Error("intenção desconhecida: "+f.tipo));
 }
 function entRpcOk(r){ if(r&&r.error) throw r.error; return r; }
+// O banco disse NÃO por causa de uma regra (dia confirmado, mês fechado, entregador
+// inativo, data inválida). Insistir não muda nada. Códigos de rede/sessão ficam de fora
+// de propósito: esses valem a pena tentar de novo.
+var ENT_RECUSA_CODIGOS={"23514":1,"22003":1,"22007":1,"22004":1,"P0002":1,"42501":1};
+var entRecusas=[];
+function entRecusaDefinitiva(err){
+  if(!err) return false;
+  if(err.code && ENT_RECUSA_CODIGOS[String(err.code)]) return true;
+  var m=String(err.message||err.msg||"");
+  return /já foi confirmado|está fechado|Reabra antes|está inativo|Data inválida/i.test(m);
+}
 
 /* ---------- estado da sincronização na tela ---------- */
 var entSyncUltimo=-1;
@@ -10660,10 +10686,15 @@ function entSyncPintar(){
   else if(entSyncEstado.enviando){ t="Salvando…"; c="indo"; }
   else if(entSyncEstado.erro){ t="Falha ao salvar — "+pend.length+" pendente(s)"; c="erro"; }
   else if(pend.length){ t=pend.length+" alteração(ões) pendente(s)"; c="pend"; }
+  else if(entRecusas.length){ t="Alteração recusada"; c="erro"; }
   else { t="Tudo salvo"; c="ok"; }
+  // Recusa de regra some da fila, mas não pode sumir da vista: a pessoa digitou e o
+  // número não entrou. Ela precisa saber o motivo, não descobrir depois pelo total.
+  var rec=entRecusas.length?entRecusas[entRecusas.length-1].motivo:"";
   el.className="ent-sync "+c;
   el.innerHTML='<span class="pt"></span>'+t+(pend.length?' <button type="button" id="entRetry">Tentar novamente</button>':'')+
-    (entSyncEstado.erro?'<span class="motivo" title="'+entEsc(entSyncEstado.erro)+'">'+entEsc(entSyncEstado.erro)+'</span>':'');
+    (entSyncEstado.erro?'<span class="motivo" title="'+entEsc(entSyncEstado.erro)+'">'+entEsc(entSyncEstado.erro)+'</span>':'')+
+    (rec?'<span class="motivo" title="'+entEsc(rec)+'">'+entEsc(rec)+'</span> <button type="button" id="entRecOk">Entendi</button>':'');
 }
 try{
   window.addEventListener("online",function(){ entSyncPintar(); entFilaProcessar(true); });
@@ -10915,9 +10946,18 @@ function entRealtime(){
   var sb=entSB(); if(!sb||entRT) return;
   try{
     var deb=null; function rec(){ clearTimeout(deb); deb=setTimeout(entCloudLoad,900); }
+    // A confirmação PRECISA chegar aos outros aparelhos. Sem isso a aba aberta em outro
+    // computador continua com o campo do dia aberto, alguém digita, e o banco recusa.
+    function recConf(){ clearTimeout(deb); deb=setTimeout(function(){
+      entConfLoad(function(){
+        var pg=document.getElementById("page-entregas");
+        if(pg && pg.classList.contains("ativo") && typeof renderEntregas==="function") renderEntregas();
+      });
+    },900); }
     entRT=sb.channel("entregas_sync_v2")
       .on("postgres_changes",{event:"*",schema:"public",table:"entregas_lancamentos"},rec)
       .on("postgres_changes",{event:"*",schema:"public",table:"entregas_equipe"},rec)
+      .on("postgres_changes",{event:"*",schema:"public",table:"entregas_dias_confirmados"},recConf)
       .subscribe();
   }catch(e){}
 }
@@ -11976,15 +12016,18 @@ function entDiaParaLancar(a,m){
   return 0;
 }
 function entFaltaPreencher(a,m){
-  var nd=diasDoMes(a,m), md=entDados[entMesKey(a,m)]||{}, mk=entMesKey(a,m);
+  var nd=diasDoMes(a,m), mk=entMesKey(a,m);
   var out=[];
-  Object.keys(md).forEach(function(id){
+  entCobrados(a,m).forEach(function(id){
     var dias=[];
     for(var d=1;d<=nd;d++){
       if(entFechado(a,m,d)) continue;
       // Só cobra dia que JÁ PASSOU. O de hoje ainda está acontecendo — as entregas
       // de hoje são anotadas amanhã de manhã.
       if(!entcJaPassou(a,m,d,HOJE)) continue;
+      // Dia confirmado está apurado e travado. Cobrar célula nele seria mandar preencher
+      // um campo que a tela nem desenha mais.
+      if(entDiaConfirmado(a,m,d)) continue;
       if(entGetRaw(a,m,id,d)==="") dias.push(d);
     }
     if(dias.length) out.push({id:id, nome:entNomeDe(id,mk), dias:dias});
@@ -11998,7 +12041,7 @@ function entDiasParaConfirmar(a,m){
   // Cobra as MESMAS pessoas que o servidor cobra: quem teve lançamento no mês. Usar a
   // lista de ativos travaria a confirmação toda vez que alguém fosse cadastrado e
   // ainda não tivesse feito entrega nenhuma.
-  var nd=diasDoMes(a,m), ids=Object.keys(entDados[entMesKey(a,m)]||{}), out=[];
+  var nd=diasDoMes(a,m), ids=entCobrados(a,m), out=[];
   if(!ids.length) return out;
   for(var d=1;d<=nd;d++){
     if(entFechado(a,m,d)) continue;
@@ -12012,13 +12055,21 @@ function entDiasParaConfirmar(a,m){
 }
 function entMesCompleto(a,m){
   var nd=diasDoMes(a,m), md=entDados[entMesKey(a,m)]||{};
-  var ids=Object.keys(md);
+  var ids=entCobrados(a,m);
   if(!ids.length) return false;
   for(var d=1;d<=nd;d++){
     if(entFechado(a,m,d)) continue;
+    if(entDiaConfirmado(a,m,d)) continue;      // já apurado
     for(var i=0;i<ids.length;i++){ if(entGetRaw(a,m,ids[i],d)==="") return false; }
   }
   return true;
+}
+// Quem é COBRADO num mês: entregador ATIVO que teve lançamento nele. Exatamente o que o
+// servidor exige. Inativo fica de fora porque o banco recusa lançamento novo pra ele —
+// exigir uma célula que não pode ser criada travaria o fechamento pra sempre.
+function entCobrados(a,m){
+  var md=entDados[entMesKey(a,m)]||{};
+  return Object.keys(md).filter(function(id){ var p=entPessoa(id); return !!(p&&p.ativo); });
 }
 function entRelatorioRH(){
   // Só de mês FECHADO. Relatório de mês aberto é número que ainda vai mudar — e o RH
@@ -12329,7 +12380,8 @@ function renderEntregas(){
     if(e.target.closest("#entReabrirDia")){ entReabrirDia(); return; }
   });
   document.getElementById("entSync").addEventListener("click",function(e){
-    if(e.target.closest("#entRetry")){ entFila.forEach(function(f){ f.proxima=0; }); entFilaProcessar(true); }
+    if(e.target.closest("#entRetry")){ entFila.forEach(function(f){ f.proxima=0; }); entFilaProcessar(true); return; }
+    if(e.target.closest("#entRecOk")){ entRecusas=[]; entSyncPintar(); return; }
   });
   document.getElementById("entGrade").addEventListener("input",function(e){
     const inp=e.target.closest("input[data-id]"); if(!inp) return;
