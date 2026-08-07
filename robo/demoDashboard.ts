@@ -2867,6 +2867,16 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         table.ent-grade input{width:42px;border:1px solid transparent;border-radius:5px;padding:3px 2px;text-align:center;font:inherit;color:#1d2733;background:transparent;}
         table.ent-grade input:focus{outline:none;border-color:#157a35;background:#fff;box-shadow:0 0 0 2px rgba(21,122,53,.15);}
         table.ent-grade input.fora{background:#fdf6e3;border-color:#e0c477;color:#7a5600;font-weight:700;}
+        /* Dia que ainda não chegou: travado, sem campo pra digitar. */
+        table.ent-grade td.fut{background:#f7f9fb;}
+        table.ent-grade th.fut{color:#c3cbd6;}
+        /* O dia que precisa ser lançado hoje. */
+        table.ent-grade th.lanc{background:#e4f5ea;color:#0c5a26;position:relative;}
+        table.ent-grade td.tdlanc{background:#f2fbf5;}
+        table.ent-grade input.lanc{border-color:#8ec9a4;background:#fff;font-weight:800;color:#0c5a26;}
+        .ent-hoje-tag{display:block;font-size:8.5px;font-weight:800;color:#157a35;text-transform:uppercase;
+                      letter-spacing:.3px;line-height:1;margin-bottom:2px;white-space:nowrap;}
+        .ent-final.ok2{background:#f6faf7;border-color:#dfeee5;color:#0c5a26;}
         .ent-grade-info{font-size:12.5px;color:#8a97a8;margin:0 0 8px;}
         .ent-graf{background:#fff;border:1px solid #e6ebf1;border-radius:12px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(20,40,70,.05);}
         .ent-graf h3{margin:0 0 14px;font-size:14px;font-weight:800;color:#0c5a26;text-align:center;text-transform:uppercase;letter-spacing:.6px;}
@@ -11844,6 +11854,18 @@ function entForaDoPadrao(a,m){
 // O mês está inteiro preenchido? Mesma regra que o servidor cobra no fechamento:
 // todo dia útil, para todo mundo que trabalhou no mês. Zero conta; branco não.
 // O que ainda falta preencher, por pessoa. É o que a tela mostra embaixo da grade.
+// Dia que ainda não chegou: não dá pra ter entrega feita. Fica travado.
+function entDiaFuturo(a,m,d){
+  var h=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate()).getTime();
+  return new Date(a,m,d).getTime() > h;
+}
+// O dia que precisa ser lançado HOJE: o último dia útil antes de hoje. As entregas
+// de ontem são anotadas hoje de manhã.
+function entDiaParaLancar(a,m){
+  if(a!==HOJE.getFullYear()||m!==HOJE.getMonth()) return 0;
+  for(var d=HOJE.getDate()-1; d>=1; d--){ if(!entFechado(a,m,d)) return d; }
+  return 0;
+}
 function entFaltaPreencher(a,m){
   var nd=diasDoMes(a,m), md=entDados[entMesKey(a,m)]||{}, mk=entMesKey(a,m);
   var out=[];
@@ -11851,6 +11873,9 @@ function entFaltaPreencher(a,m){
     var dias=[];
     for(var d=1;d<=nd;d++){
       if(entFechado(a,m,d)) continue;
+      // Só cobra dia que JÁ PASSOU. O de hoje ainda está acontecendo — as entregas
+      // de hoje são anotadas amanhã de manhã.
+      if(!entcJaPassou(a,m,d,HOJE)) continue;
       if(entGetRaw(a,m,id,d)==="") dias.push(d);
     }
     if(dias.length) out.push({id:id, nome:entNomeDe(id,mk), dias:dias});
@@ -11961,7 +11986,19 @@ function entRenderFinal(){
       '<button type="button" id="entFinalizarMes">Finalizar o mês</button></div>';
     return;
   }
-  if(!falta.length){ box.innerHTML=""; return; }
+  if(!falta.length){
+    // Em dia, mas o mês ainda não acabou: não há nada a fazer hoje.
+    var nd2=diasDoMes(entAno,entMes), acabou=true;
+    for(var d2=1;d2<=nd2;d2++){ if(entFechado(entAno,entMes,d2)) continue;
+      if(!entcJaPassou(entAno,entMes,d2,HOJE)){ acabou=false; break; } }
+    var dl=entDiaParaLancar(entAno,entMes);
+    box.innerHTML= acabou ? "" :
+      '<div class="ent-final ok2">'+entIco("concluido")+
+      '<div><b>Lançamentos em dia.</b><div class="det">'+
+      (dl?'O dia '+dl+' já está lançado. ':'')+
+      'O mês poderá ser finalizado depois que o último dia útil for lançado.</div></div></div>';
+    return;
+  }
   var det=falta.slice(0,4).map(function(f){
     return entEsc(f.nome)+" ("+f.dias.length+" dia"+(f.dias.length>1?"s":"")+": "+entLista(f.dias)+")";
   }).join(" · ");
@@ -11981,8 +12018,12 @@ function entRenderMetas(mostrar){
 }
 function entRenderGrade(){
   const nd=diasDoMes(entAno,entMes);
+  const diaLanc=entDiaParaLancar(entAno,entMes);
   let head='<tr><th class="nome">Entregador</th>';
-  for(let d=1;d<=nd;d++){ const dow=new Date(entAno,entMes,d).getDay(); head+='<th class="'+(dow===0?"dom":"")+'">'+d+'<br><span class="ent-dow">'+DOW_PT[dow].toUpperCase()+'</span></th>'; }
+  for(let d=1;d<=nd;d++){ const dow=new Date(entAno,entMes,d).getDay();
+    const cl=(dow===0?"dom":"")+(entDiaFuturo(entAno,entMes,d)?" fut":"")+(d===diaLanc?" lanc":"");
+    head+='<th class="'+cl.trim()+'">'+(d===diaLanc?'<span class="ent-hoje-tag">lançar hoje</span>':'')+d+
+          '<br><span class="ent-dow">'+DOW_PT[dow].toUpperCase()+'</span></th>'; }
   head+='<th>Total</th></tr>';
   let body="";
   const mkG=entMesKey(entAno,entMes);
@@ -11990,9 +12031,15 @@ function entRenderGrade(){
   // A chave da célula é o ID, nunca o nome — é isso que faz renomear não mover nada.
   entIdsDoMes(entAno,entMes).forEach(function(id){
     const p=entPessoa(id), inativo=(p&&!p.ativo);
-    let cels=""; for(let d=1;d<=nd;d++){ if(entFechado(entAno,entMes,d)){ cels+='<td class="dom-fix">0</td>'; continue; } const v=entGetRaw(entAno,entMes,id,d); const fx=fora[id+"|"+d];
-      cels+='<td><input type="text" inputmode="numeric" data-id="'+entEsc(id)+'" data-dia="'+d+'" value="'+v+'"'+
-            (fx?' class="fora" title="'+entEsc("Fora do padrão: "+fx.nome+" costuma fazer perto de "+fx.base+" por dia")+'"':'')+
+    let cels=""; for(let d=1;d<=nd;d++){
+      if(entFechado(entAno,entMes,d)){ cels+='<td class="dom-fix">0</td>'; continue; }
+      // Dia que ainda não chegou fica travado: não existe entrega feita no futuro.
+      if(entDiaFuturo(entAno,entMes,d)){ cels+='<td class="fut" title="Este dia ainda não chegou"></td>'; continue; }
+      const v=entGetRaw(entAno,entMes,id,d); const fx=fora[id+"|"+d];
+      const cls=[]; if(fx) cls.push("fora"); if(d===diaLanc) cls.push("lanc");
+      cels+='<td'+(d===diaLanc?' class="tdlanc"':'')+'><input type="text" inputmode="numeric" data-id="'+entEsc(id)+'" data-dia="'+d+'" value="'+v+'"'+
+            (cls.length?' class="'+cls.join(" ")+'"':'')+
+            (fx?' title="'+entEsc("Fora do padrão: "+fx.nome+" costuma fazer perto de "+fx.base+" por dia")+'"':'')+
             (inativo?' readonly title="Entregador inativo"':'')+'></td>'; }
     body+='<tr><td class="nome">'+entEsc(entNomeDe(id,mkG))+(inativo?' <span class="ent-inat">inativo</span>':'')+'</td>'+cels+'<td class="tot">'+num(entTotalEntregador(entAno,entMes,id))+'</td></tr>';
   });
