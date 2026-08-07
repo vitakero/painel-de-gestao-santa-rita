@@ -2958,12 +2958,17 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ent-mes-meta span{position:absolute;right:0;top:-17px;font-size:11px;font-weight:700;color:#5a6b7d;background:#fff;padding:1px 5px;border-radius:4px;}
         .ent-digita-erro{font-size:12.5px;color:#c0392b;font-weight:600;margin:0 0 8px;}
         /* ---- Ranking gerencial ---- */
-        .ent-rank-wrap{overflow-x:auto;max-width:100%;}
-        table.ent-rank{border-collapse:collapse;width:100%;font-size:12.5px;white-space:nowrap;}
-        table.ent-rank th{background:#f3f6fa;color:#46546a;font-weight:700;font-size:11px;line-height:1.25;
-                          padding:7px 9px;text-align:right;border-bottom:1px solid #e6ebf1;vertical-align:bottom;}
+        /* Tabela FIXA: cabe na largura, sem barra pra puxar pro lado. */
+        .ent-rank-wrap{max-width:100%;}
+        table.ent-rank{border-collapse:collapse;width:100%;table-layout:fixed;font-size:12px;white-space:nowrap;}
+        table.ent-rank th{background:#f3f6fa;color:#46546a;font-weight:700;font-size:10.5px;line-height:1.2;
+                          padding:7px 5px;text-align:right;border-bottom:1px solid #e6ebf1;vertical-align:bottom;}
         table.ent-rank th.nm{text-align:left;}
-        table.ent-rank td{padding:8px 9px;border-bottom:1px solid #f1f4f8;color:#33404f;}
+        table.ent-rank td{padding:8px 5px;border-bottom:1px solid #f1f4f8;color:#33404f;
+                          overflow:hidden;text-overflow:ellipsis;}
+        table.ent-rank th:first-child,table.ent-rank td:first-child{width:26px;}
+        table.ent-rank th:nth-child(2),table.ent-rank td:nth-child(2){width:auto;}
+        table.ent-rank th:nth-child(n+3),table.ent-rank td:nth-child(n+3){width:7.4%;}
         table.ent-rank td.n{text-align:right;}
         table.ent-rank td.forte{font-weight:800;color:#17202b;}
         table.ent-rank td.pos{color:#9aa7b6;font-weight:700;width:26px;}
@@ -2972,7 +2977,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         table.ent-rank tr.tot td{background:#f6faf7;font-weight:800;color:#0c5a26;border-top:2px solid #e6ebf1;}
         table.ent-rank .sem{color:#b5bcc7;}
         table.ent-rank .sobe{color:#157a35;font-weight:700;} table.ent-rank .desce{color:#c0392b;font-weight:700;}
-        .ent-faixa{font-size:10.5px;font-weight:700;border-radius:5px;padding:3px 8px;white-space:nowrap;}
+        .ent-faixa{font-size:10px;font-weight:700;border-radius:5px;padding:3px 6px;white-space:nowrap;}
         .ent-faixa.f-sem{background:#f1f4f8;color:#7d8794;}
         .ent-faixa.f-base{background:#e8f0fb;color:#2a6fb0;}
         .ent-faixa.f-des{background:#e4f5ea;color:#157a35;}
@@ -11397,8 +11402,9 @@ function entRanking(){
              ritmo:(fin.faltam>0 && restantes>0)?Math.ceil(fin.faltam/restantes):0 };
   }).sort(function(a,b){ return b.total-a.total; });
 
-  const cab=['#','Entregador','Entregas','Dias com<br>lançamento','Média por<br>dia lançado',
-             '% Meta<br>base','% Meta<br>desafio','Falta p/<br>próxima','Ritmo<br>necessário',
+  // Cabeçalhos curtos: a tabela tem que caber na largura, sem barra de rolagem.
+  const cab=['#','Entregador','Entregas','Dias','Média<br>por dia',
+             '% Meta<br>base','% Meta<br>desafio','Falta p/<br>próxima','Ritmo<br>por dia',
              'Vs. mês<br>anterior','Faixa']
             .concat(dinheiro?['R$ por<br>entrega','Valor até<br>agora']:[]);
   let head='<tr>'+cab.map(function(c,i){ return '<th'+(i===1?' class="nm"':'')+'>'+c+'</th>'; }).join("")+'</tr>';
@@ -11418,9 +11424,10 @@ function entRanking(){
       '<td class="n">'+entPct1(cfg.base>0?l.total/cfg.base*100:0)+'</td>'+
       '<td class="n">'+entPct1(cfg.desafio>0?l.total/cfg.desafio*100:0)+'</td>'+
       '<td class="n">'+(l.fin.faltam>0?num(l.fin.faltam):'<span class="sem">—</span>')+'</td>'+
-      '<td class="n">'+(l.ritmo>0?num(l.ritmo)+'/dia':'<span class="sem">—</span>')+'</td>'+
+      '<td class="n">'+(l.ritmo>0?num(l.ritmo):'<span class="sem">—</span>')+'</td>'+
       '<td class="n">'+vs+'</td>'+
-      '<td><span class="ent-faixa '+cls+'">'+entfRotulo(l.fin.faixa)+'</span></td>'+
+      '<td><span class="ent-faixa '+cls+'" title="'+entEsc(entfRotulo(l.fin.faixa))+'">'+
+        ({sem:"Abaixo",base:"Base",desafio:"Desafio"}[l.fin.faixa])+'</span></td>'+
       (dinheiro?'<td class="n">'+entfNum2(l.fin.unitario)+'</td><td class="n forte">'+entfNum2(l.fin.total)+'</td>':'')+
       '</tr>';
   });
