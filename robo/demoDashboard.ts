@@ -12344,16 +12344,6 @@ function entRelDocHtml(d){
   ".fecha-v .r{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;opacity:.82}"+
   ".fecha-v .v{font-size:26px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums;margin-top:1px}"+
 
-  /* conferência */
-  ".conf{display:flex;gap:26px;align-items:flex-start}"+
-  ".conf-c{flex:none}"+
-  ".cx{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#46535f;margin-bottom:9px}"+
-  ".cx i{display:inline-block;width:12px;height:12px;border:1.2px solid #8a97a8;border-radius:2px;flex:none}"+
-  ".conf-l{flex:1;min-width:0}"+
-  ".ln{border-bottom:1px solid #c8d0da;height:19px;margin-top:15px}"+
-  ".ln-r{font-size:8.5px;font-weight:700;color:#8a97a8;text-transform:uppercase;letter-spacing:.7px}"+
-  ".ln-2{display:flex;gap:22px}.ln-2 .a{flex:2}.ln-2 .b{flex:1}"+
-
   ".obs{font-size:10.5px;color:#5a6b7d;line-height:1.6;background:#fafbfc;border:1px solid #eef2f6;"+
     "border-radius:5px;padding:11px 14px}"+
   ".diverg{font-size:10.5px;color:#7a5600;background:#fdf6e3;border:1px solid #f0e0b6;"+
@@ -12382,7 +12372,7 @@ function entRelDocHtml(d){
     /* Só os blocos PEQUENOS ficam inteiros. O detalhamento NÃO pode: com 38 entregadores
        ele não cabe em folha nenhuma, e proibir a quebra fazia o Chrome empurrar a tabela
        inteira pra frente, deixando a primeira página quase em branco. */
-    ".res,.fecha,.conf,.obs,.cab{break-inside:avoid;page-break-inside:avoid}"+
+    ".res,.fecha,.obs,.cab{break-inside:avoid;page-break-inside:avoid}"+
     ".sec{break-after:avoid;page-break-after:avoid}"+
     "td{padding:5px 8px}"+
     ".res-n .v{font-size:15pt}.res-total .v{font-size:19pt}.fecha-v .v{font-size:20pt}"+
@@ -12398,9 +12388,7 @@ function entRelDocHtml(d){
     ".nota{margin-top:5px;font-size:8.5pt}"+
     ".fecha{margin-top:9px}"+
     ".fecha-t,.fecha-q{padding:8px 13px}.fecha-v{padding:8px 15px}.fecha-v .v{font-size:18pt}"+
-    ".ln{height:13px;margin-top:9px}"+
     ".obs{padding:7px 10px;font-size:8.5pt}"+
-    ".cx{margin-bottom:7px}"+
     ".rod{display:none}"+
     /* rodapé que se repete em TODA página impressa: qualquer folha solta continua
        identificando a competência e a data de emissão. */
@@ -12426,7 +12414,6 @@ function entRelDocHtml(d){
     ".res-total{border-left:0;border-top:2px solid #0c5a26;min-width:0}"+
     ".fecha{flex-direction:column}.fecha-q{border-left:0;border-top:1px solid #cfe0d6;text-align:left}"+
     ".fecha-v{text-align:left;min-width:0}"+
-    ".conf{flex-direction:column;gap:6px}"+
     "table{font-size:11.5px}td,th{padding-left:5px;padding-right:5px}"+
   "}";
 
@@ -12496,17 +12483,6 @@ function entRelDocHtml(d){
        '<div class="fecha-v"><div class="r">Valor calculado para a folha</div>'+
        '<div class="v">'+entfMoeda(t.total||0)+'</div></div>'+
      '</div></section>';
-
-  /* ---- conferência ---- */
-  h+='<section class="bloco"><h2 class="sec">Conferência — Departamento Pessoal</h2>'+
-     '<div class="conf"><div class="conf-c">'+
-       '<div class="cx"><i></i>Valores conferidos</div>'+
-       '<div class="cx"><i></i>Lançado na folha</div>'+
-     '</div><div class="conf-l">'+
-       '<div class="ln-2"><div class="a"><div class="ln-r">Responsável</div><div class="ln"></div></div>'+
-       '<div class="b"><div class="ln-r">Data</div><div class="ln"></div></div></div>'+
-       '<div class="ln-r" style="margin-top:14px">Observações</div><div class="ln"></div><div class="ln"></div>'+
-     '</div></div></section>';
 
   /* ---- observação ---- */
   h+='<section class="bloco"><h2 class="sec">Observação</h2><p class="obs">'+
