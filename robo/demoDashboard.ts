@@ -3048,6 +3048,18 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ent-sync{flex-wrap:wrap;}
         .ent-sync button{border:1px solid currentColor;background:transparent;color:inherit;border-radius:12px;
                          padding:2px 10px;font-size:11.5px;font-weight:700;cursor:pointer;margin-left:4px;}
+        .ent-final{display:flex;align-items:flex-start;gap:12px;border-radius:12px;padding:14px 18px;
+                   margin:14px 0 22px;border:1px solid #e6ebf1;background:#fff;}
+        .ent-final svg{width:22px;height:22px;flex:none;margin-top:1px;}
+        .ent-final b{font-size:14px;}
+        .ent-final .det{font-size:12px;opacity:.9;margin-top:4px;line-height:1.5;}
+        .ent-final>div{flex:1;min-width:0;}
+        .ent-final.pronto{background:#e9f5ed;border-color:#cfe0d6;color:#0c5a26;}
+        .ent-final.falta{background:#fdf6e3;border-color:#f0e0b6;color:#7a5600;}
+        .ent-final.feito{background:#eef2f6;border-color:#dbe2ea;color:#46535f;}
+        .ent-final button{border:0;background:#157a35;color:#fff;border-radius:9px;padding:11px 22px;
+                          font-size:14px;font-weight:700;cursor:pointer;flex:none;align-self:center;}
+        .ent-final button:hover{background:#0c5a26;}
         .ent-metas{display:flex;gap:22px;flex-wrap:wrap;align-items:center;background:#f6faf7;
                    border:1px solid #dfeee5;border-radius:10px;padding:10px 16px;margin-bottom:16px;
                    font-size:13px;color:#46535f;}
@@ -3082,6 +3094,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <p class="ent-digita-erro" id="entAvisoDigita" style="display:none;"></p>
           <div id="entEntregadoresEdit"></div>
           <div class="ent-grade-wrap" id="entGrade"></div>
+          <div id="entFinal"></div>
         </div>
         <div id="entGraficos"></div>
         <div id="entTip" class="ent-tip"></div>
@@ -11277,12 +11290,6 @@ function entRenderAvisos(ctx){
   var n=ctx.semLancamento.length;
   if(n===1) av.push({c:"aviso",txt:"Existe 1 dia útil sem lançamento: "+entLista(ctx.semLancamento)+". Ele fica de fora da média e da projeção."});
   else if(n>1) av.push({c:"aviso",txt:"Existem "+n+" dias úteis sem lançamento: "+entLista(ctx.semLancamento)+". Eles ficam de fora da média e da projeção."});
-  // Mês inteiro preenchido e ainda aberto: convida a finalizar ali mesmo, sem
-  // precisar chamar o dono. Quem finaliza fica registrado.
-  if(!entMesFechado() && entMesCompleto(ctx.ano,ctx.mes)){
-    av.push({c:"ok",acao:"finalizar",
-      txt:"Todos os dias de "+MESES[ctx.mes].toLowerCase()+" estão preenchidos. Pode finalizar o mês — depois disso nada mais pode ser alterado sem autorização do administrador."});
-  }
   var f=entValoresEmDiaFechado(ctx.ano,ctx.mes);
   if(f.length) av.push({c:"erro",txt:"Há entrega lançada em dia fechado ("+entLista(f)+"). Domingo e feriado não contam — esses números não entram em conta nenhuma."});
   // O que precisa da atenção do gerente, sem virar central de alertas.
@@ -11836,6 +11843,20 @@ function entForaDoPadrao(a,m){
 // um — e deixa explícito que é remuneração variável, não a folha inteira.
 // O mês está inteiro preenchido? Mesma regra que o servidor cobra no fechamento:
 // todo dia útil, para todo mundo que trabalhou no mês. Zero conta; branco não.
+// O que ainda falta preencher, por pessoa. É o que a tela mostra embaixo da grade.
+function entFaltaPreencher(a,m){
+  var nd=diasDoMes(a,m), md=entDados[entMesKey(a,m)]||{}, mk=entMesKey(a,m);
+  var out=[];
+  Object.keys(md).forEach(function(id){
+    var dias=[];
+    for(var d=1;d<=nd;d++){
+      if(entFechado(a,m,d)) continue;
+      if(entGetRaw(a,m,id,d)==="") dias.push(d);
+    }
+    if(dias.length) out.push({id:id, nome:entNomeDe(id,mk), dias:dias});
+  });
+  return out;
+}
 function entMesCompleto(a,m){
   var nd=diasDoMes(a,m), md=entDados[entMesKey(a,m)]||{};
   var ids=Object.keys(md);
@@ -11921,6 +11942,34 @@ function entRelatorioRH(){
   if(!w){ uiConfirm({titulo:"Bloqueado",msg:"O navegador bloqueou a janela. Libere pop-ups para este site e tente de novo.",ok:"OK",cancel:""}); return; }
   w.document.write(html); w.document.close();
   setTimeout(function(){ try{ w.focus(); w.print(); }catch(e){} }, 400);
+}
+// Fim da grade: é aqui que a pessoa termina de digitar. Ou diz o que falta, ou
+// oferece o botão de finalizar. Nada de "salvar" — a gravação já é automática, e
+// dizer o contrário faria alguém achar que perdeu trabalho ao esquecer de clicar.
+function entRenderFinal(){
+  var box=document.getElementById("entFinal"); if(!box) return;
+  if(entMesFechado()){
+    box.innerHTML='<div class="ent-final feito">'+entIco("concluido")+
+      '<div><b>Mês finalizado.</b><div class="det">Os lançamentos e os valores estão congelados. Para mudar alguma coisa, o administrador precisa reabrir o mês.</div></div></div>';
+    return;
+  }
+  var falta=entFaltaPreencher(entAno,entMes);
+  if(!falta.length && entMesCompleto(entAno,entMes)){
+    box.innerHTML='<div class="ent-final pronto">'+entIco("concluido")+
+      '<div><b>Todos os dias de '+MESES[entMes].toLowerCase()+' estão preenchidos.</b>'+
+      '<div class="det">Está tudo salvo. Ao finalizar, o mês trava: ninguém mais altera sem o administrador reabrir.</div></div>'+
+      '<button type="button" id="entFinalizarMes">Finalizar o mês</button></div>';
+    return;
+  }
+  if(!falta.length){ box.innerHTML=""; return; }
+  var det=falta.slice(0,4).map(function(f){
+    return entEsc(f.nome)+" ("+f.dias.length+" dia"+(f.dias.length>1?"s":"")+": "+entLista(f.dias)+")";
+  }).join(" · ");
+  if(falta.length>4) det+=" · e mais "+(falta.length-4);
+  box.innerHTML='<div class="ent-final falta">'+entIco("atencao")+
+    '<div><b>Ainda falta preencher para fechar o mês.</b>'+
+    '<div class="det">'+det+'</div>'+
+    '<div class="det">Dia em que a pessoa não fez entrega precisa de <b>0</b> — deixar em branco significa "ainda não apurei".</div></div></div>';
 }
 function entRenderMetas(mostrar){
   var box=document.getElementById("entMetas"); if(!box) return;
@@ -12016,7 +12065,8 @@ function renderEntregas(){
   entSyncPintar();
   if(!soLanca) entRenderKpis(); else entRenderAvisos(entCtx(entAno,entMes));
   entRenderMetas(soLanca);
-  if(entEdit){ entRenderEntregadoresEdit(); entRenderGrade(); }
+  if(entEdit){ entRenderEntregadoresEdit(); entRenderGrade(); entRenderFinal(); }
+  else { var bf=document.getElementById("entFinal"); if(bf) bf.innerHTML=""; }
   if(!soLanca) entRenderGraficos(); else document.getElementById("entGraficos").innerHTML="";
 }
 (function initEntregas(){
@@ -12066,7 +12116,7 @@ function renderEntregas(){
     if(e.target.closest("#entCfgFechar")){ entCfgAberto=false; entRenderCfgBox(); return; }
     if(e.target.closest("#entCfgSalvar")){ entCfgSalvar(); return; }
   });
-  document.getElementById("entAvisos").addEventListener("click",function(e){
+  document.getElementById("entFinal").addEventListener("click",function(e){
     if(e.target.closest("#entFinalizarMes")) entFecharMes(true);
   });
   document.getElementById("entSync").addEventListener("click",function(e){
@@ -12085,7 +12135,8 @@ function renderEntregas(){
       v=entcValidaLancamento(inp.value);
     } else entAvisoDigitacao("");
     entSet(entAno,entMes,inp.dataset.id,+inp.dataset.dia, v.vazio?"":v.valor);
-    entRenderKpis(); entUpdGradeTotais();
+    if(!entSoLanca()) entRenderKpis();
+    entUpdGradeTotais(); entRenderFinal();
   });
   // Guarda o valor anterior pra poder desfazer se o usuário disser que errou.
   document.getElementById("entGrade").addEventListener("focusin",function(e){
