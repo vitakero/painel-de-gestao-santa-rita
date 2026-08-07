@@ -10483,6 +10483,8 @@ function entFilaEnviar(sb,f){
     return sb.rpc("entregas_inativar_pessoa",{p_request_id:f.request_id,p_id:f.entregador_id}).then(entRpcOk);
   if(f.tipo==="reativar_pessoa")
     return sb.rpc("entregas_reativar_pessoa",{p_request_id:f.request_id,p_id:f.entregador_id}).then(entRpcOk);
+  if(f.tipo==="excluir_pessoa")
+    return sb.rpc("entregas_excluir_pessoa",{p_request_id:f.request_id,p_id:f.entregador_id}).then(entRpcOk);
   return Promise.reject(new Error("intenção desconhecida: "+f.tipo));
 }
 function entRpcOk(r){ if(r&&r.error) throw r.error; return r; }
@@ -10527,6 +10529,35 @@ function entRenameEntregador(id,nv){
   var p=entPessoa(id); if(!p||p.nome===nv) return false;
   p.nome=nv; entCacheSalvar();
   entFilaAdd({tipo:"renomear_pessoa",entregador_id:id,nome:nv});
+  return true;
+}
+// Tem lançamento em QUALQUER mês? É o que separa "pode excluir" de "só inativar".
+// A tela usa isso pra decidir qual botão mostrar; quem decide de verdade é o servidor.
+function entTemHistorico(id){
+  var mks=Object.keys(entDados);
+  for(var i=0;i<mks.length;i++){
+    var reg=entDados[mks[i]][id];
+    if(reg && Object.keys(reg).length) return true;
+  }
+  return false;
+}
+// Excluir de vez. Só para quem NÃO tem lançamento nenhum — quem tem, inativa.
+function entExcluirPessoa(id){
+  if(entTemHistorico(id)) return false;
+  // Se o cadastro nem chegou a subir, é só tirar a intenção da fila: não adianta
+  // criar no servidor pra apagar em seguida.
+  var criarPendente=-1;
+  for(var i=0;i<entFila.length;i++){
+    if(entFila[i].tipo==="criar_pessoa" && entFila[i].entregador_id===id && entFila[i].status!=="enviando"){ criarPendente=i; break; }
+  }
+  entEquipe=entEquipe.filter(function(p){ return p.id!==id; });
+  entCacheSalvar();
+  if(criarPendente>=0){
+    entFila.splice(criarPendente,1);
+    entFilaSalvar(); entSyncPintar();
+  } else {
+    entFilaAdd({tipo:"excluir_pessoa",entregador_id:id});
+  }
   return true;
 }
 function entInativar(id){
@@ -11173,15 +11204,21 @@ function entRenderEntregadoresEdit(){
   entEquipe.filter(function(p){ return p.ativo; })
     .sort(function(x,y){ return x.nome.localeCompare(y.nome,"pt-BR",{sensitivity:"base"}); })
     .forEach(function(p){
+      var temHist=entTemHistorico(p.id);
       rows+='<div class="ent-edit-row"><input type="text" class="ent-nome-edit" data-id="'+entEsc(p.id)+'" value="'+entEsc(p.nome)+'">'+
-            '<button type="button" class="rm" data-inativar="'+entEsc(p.id)+'" title="Inativar">Inativar</button></div>';
+            (temHist
+              ? '<button type="button" class="rm" data-inativar="'+entEsc(p.id)+'" title="Já tem lançamento: só pode ser inativado">Inativar</button>'
+              : '<button type="button" class="rm" data-excluir="'+entEsc(p.id)+'" title="Ainda não tem nenhum lançamento">Excluir</button>')+
+            '</div>';
     });
   const inativos=entEquipe.filter(function(p){ return !p.ativo; })
     .sort(function(x,y){ return x.nome.localeCompare(y.nome,"pt-BR",{sensitivity:"base"}); });
   let rowsIn="";
   inativos.forEach(function(p){
     rowsIn+='<div class="ent-edit-row inat"><span class="nm">'+entEsc(p.nome)+'</span>'+
-            '<button type="button" class="reat" data-reativar="'+entEsc(p.id)+'">Reativar</button></div>';
+            '<button type="button" class="reat" data-reativar="'+entEsc(p.id)+'">Reativar</button>'+
+            (entTemHistorico(p.id)?'':'<button type="button" class="rm" data-excluir="'+entEsc(p.id)+'">Excluir</button>')+
+            '</div>';
   });
   const corpo=entEntEditOpen
     ? '<div class="ent-edit-body">'+rows+
@@ -11220,6 +11257,15 @@ function renderEntregas(){
         ok:"Inativar",cancel:"Cancelar"}).then(function(ok){ if(ok){ entInativar(id); renderEntregas(); } }); return; }
     const rt=e.target.closest("[data-reativar]");
     if(rt){ entReativar(rt.getAttribute("data-reativar")); renderEntregas(); return; }
+    const ex=e.target.closest("[data-excluir]");
+    if(ex){ const id=ex.getAttribute("data-excluir"); const p=entPessoa(id); if(!p) return;
+      if(entTemHistorico(id)){
+        uiConfirm({titulo:"Não dá pra excluir",
+          msg:'"'+p.nome+'" já tem entregas lançadas. Excluir mudaria o total dos meses antigos. Use Inativar.',
+          ok:"Entendi",cancel:""}); return; }
+      uiConfirm({titulo:"Excluir entregador",
+        msg:'"'+p.nome+'" ainda não tem nenhuma entrega lançada, então dá pra apagar de vez. Confirma?',
+        ok:"Excluir",cancel:"Cancelar"}).then(function(ok){ if(ok){ entExcluirPessoa(id); renderEntregas(); } }); return; }
   });
   document.getElementById("entEntregadoresEdit").addEventListener("keydown",function(e){
     if(e.key==="Enter" && e.target.id==="entNovoNome"){ e.preventDefault(); entNovoEntregador(e.target.value); }
