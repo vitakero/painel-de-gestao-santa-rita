@@ -12136,6 +12136,13 @@ function entDiaFuturo(a,m,d){
   var h=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate()).getTime();
   return new Date(a,m,d).getTime() > h;
 }
+// UM DIA SÓ ABRE NO DIA SEGUINTE. As entregas do dia 7 acontecem ao longo do dia 7 e
+// são anotadas no dia 8 — então no dia 7 a coluna do 7 fica travada igual às futuras.
+// Aberto = dia que JÁ TERMINOU.
+function entDiaAberto(a,m,d){
+  var h=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate()).getTime();
+  return new Date(a,m,d).getTime() < h;
+}
 // O dia que precisa ser lançado HOJE: o último dia útil antes de hoje. As entregas
 // de ontem são anotadas hoje de manhã.
 function entDiaParaLancar(a,m){
@@ -12173,9 +12180,8 @@ function entDiasParaConfirmar(a,m){
   if(!ids.length) return out;
   for(var d=1;d<=nd;d++){
     if(entFechado(a,m,d)) continue;
-    // Igual ao servidor: o que não dá é salvar dia que ainda não chegou. O dia de HOJE
-    // pode ser salvo — se ela já tem os números, não faz sentido obrigar a esperar.
-    if(entDiaFuturo(a,m,d)) continue;
+    // O dia de hoje NÃO entra: ele ainda está acontecendo. Só entra amanhã.
+    if(!entDiaAberto(a,m,d)) continue;
     if(entDiaConfirmado(a,m,d)) continue;
     var cheio=true;
     for(var i=0;i<ids.length;i++){ if(entGetRaw(a,m,ids[i],d)===""){ cheio=false; break; } }
@@ -12376,12 +12382,15 @@ function entChips(dias,rotulo){
     dias.map(function(d){ return '<span>'+d+'</span>'; }).join("")+
     '<em class="fim">de '+MESES[entMes].toLowerCase()+'</em></div>';
 }
-// Linha discreta com os dias já travados. Só o administrador ganha o botão de destravar.
+// Só o ADMINISTRADOR vê esta linha. Pra quem lança ela não servia pra nada: os dias
+// encerrados são justamente os que ela não pode mexer, e a grade já mostra isso.
+// Aqui é o único lugar de onde se reabre um dia, então some pra ela e fica pra ele.
 function entConfNota(){
+  if(!entCfg.master) return "";
   var confs=entDiasConfDoMes(entAno,entMes);
   if(!confs.length) return "";
   return '<div class="ent-conf-nota"><span>🔒 Dias encerrados: <b>'+entLista(confs)+'</b></span>'+
-         (entCfg.master?'<button type="button" id="entReabrirDia">reabrir um dia</button>':'')+'</div>';
+         '<button type="button" id="entReabrirDia">reabrir um dia</button></div>';
 }
 function entRenderMetas(mostrar){
   var box=document.getElementById("entMetas"); if(!box) return;
@@ -12397,7 +12406,7 @@ function entRenderGrade(){
   let head='<tr><th class="nome">Entregador</th>';
   for(let d=1;d<=nd;d++){ const dow=new Date(entAno,entMes,d).getDay();
     const conf=entDiaConfirmado(entAno,entMes,d);
-    const cl=(dow===0?"dom":"")+(entDiaFuturo(entAno,entMes,d)?" fut":"")+
+    const cl=(dow===0?"dom":"")+(entDiaAberto(entAno,entMes,d)?"":" fut")+
              (d===diaLanc&&!conf?" lanc":"");
     const topo = (!conf&&d===diaLanc)?'<span class="ent-hoje-tag">lançar hoje</span>':'';
     head+='<th class="'+cl.trim()+'"'+(conf?' title="Dia '+d+' já salvo e encerrado"':'')+'>'+topo+d+
@@ -12412,7 +12421,10 @@ function entRenderGrade(){
     let cels=""; for(let d=1;d<=nd;d++){
       if(entFechado(entAno,entMes,d)){ cels+='<td class="dom-fix">0</td>'; continue; }
       // Dia que ainda não chegou fica travado: não existe entrega feita no futuro.
-      if(entDiaFuturo(entAno,entMes,d)){ cels+='<td class="fut" title="Este dia ainda não chegou"></td>'; continue; }
+      if(!entDiaAberto(entAno,entMes,d)){
+        cels+='<td class="fut" title="'+(entDiaFuturo(entAno,entMes,d)
+          ? "Este dia ainda não chegou"
+          : "As entregas do dia "+d+" só são lançadas amanhã")+'"></td>'; continue; }
       const v=entGetRaw(entAno,entMes,id,d); const fx=fora[id+"|"+d];
       // Dia já salvo: continua sendo o MESMO campo, com a mesma cara. Só não aceita
       // digitação. Trocar por texto mudava a largura da coluna e a grade inteira
