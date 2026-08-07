@@ -2914,6 +2914,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ent-aviso svg{width:17px;height:17px;flex:none;margin-top:1px;}
         .ent-aviso.aviso{background:#fdf6e3;color:#7a5600;border:1px solid #f0e0b6;}
         .ent-aviso.erro{background:#fdecec;color:#a3291c;border:1px solid #f3cfcb;}
+        .ent-aviso.ok{background:#e9f5ed;color:#0c5a26;border:1px solid #cfe0d6;}
         .ent-aviso-conf{align-items:flex-start;}
         .ent-aviso-conf .det{font-size:11.5px;opacity:.85;margin-top:4px;line-height:1.45;}
         .ent-aviso-conf .acoes{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;}
@@ -2940,6 +2941,65 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ent-mes-meta{position:absolute;left:4px;right:4px;border-top:2px dashed #8a97a8;pointer-events:none;}
         .ent-mes-meta span{position:absolute;right:0;top:-17px;font-size:11px;font-weight:700;color:#5a6b7d;background:#fff;padding:1px 5px;border-radius:4px;}
         .ent-digita-erro{font-size:12.5px;color:#c0392b;font-weight:600;margin:0 0 8px;}
+        /* ---- Ranking gerencial ---- */
+        .ent-rank-wrap{overflow-x:auto;max-width:100%;}
+        table.ent-rank{border-collapse:collapse;width:100%;font-size:12.5px;white-space:nowrap;}
+        table.ent-rank th{background:#f3f6fa;color:#46546a;font-weight:700;font-size:11px;line-height:1.25;
+                          padding:7px 9px;text-align:right;border-bottom:1px solid #e6ebf1;vertical-align:bottom;}
+        table.ent-rank th.nm{text-align:left;}
+        table.ent-rank td{padding:8px 9px;border-bottom:1px solid #f1f4f8;color:#33404f;}
+        table.ent-rank td.n{text-align:right;}
+        table.ent-rank td.forte{font-weight:800;color:#17202b;}
+        table.ent-rank td.pos{color:#9aa7b6;font-weight:700;width:26px;}
+        table.ent-rank td.nm{font-weight:700;color:#1d2733;}
+        table.ent-rank td.nm .pt{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;}
+        table.ent-rank tr.tot td{background:#f6faf7;font-weight:800;color:#0c5a26;border-top:2px solid #e6ebf1;}
+        table.ent-rank .sem{color:#b5bcc7;}
+        table.ent-rank .sobe{color:#157a35;font-weight:700;} table.ent-rank .desce{color:#c0392b;font-weight:700;}
+        .ent-faixa{font-size:10.5px;font-weight:700;border-radius:5px;padding:3px 8px;white-space:nowrap;}
+        .ent-faixa.f-sem{background:#f1f4f8;color:#7d8794;}
+        .ent-faixa.f-base{background:#e8f0fb;color:#2a6fb0;}
+        .ent-faixa.f-des{background:#e4f5ea;color:#157a35;}
+        /* ---- Mapa de calor ---- */
+        .ent-heat-wrap{overflow-x:auto;max-width:100%;}
+        table.ent-heat{border-collapse:separate;border-spacing:2px;font-size:11px;white-space:nowrap;}
+        table.ent-heat th{font-size:10px;font-weight:700;color:#8a97a8;padding:2px 0;text-align:center;min-width:22px;}
+        table.ent-heat th.nm{text-align:left;min-width:110px;}
+        table.ent-heat th.off{color:#c3cbd6;}
+        table.ent-heat td{text-align:center;border-radius:4px;padding:5px 3px;min-width:22px;color:#33404f;}
+        table.ent-heat td.nm{text-align:left;font-weight:600;color:#33404f;padding-right:9px;background:transparent;}
+        table.ent-heat td.off{background:#eef2f6;}
+        table.ent-heat td.vazio{background:#fafcfe;color:#c3cbd6;border:1px dashed #e2e8ee;}
+        table.ent-heat td.zero{background:#fdf6e3;color:#9a6a00;font-weight:700;}
+        table.ent-heat td.n1{background:#dcefe3;color:#2a3340;}
+        table.ent-heat td.n2{background:#a9d8b6;color:#17202b;}
+        table.ent-heat td.n3{background:#5aa877;color:#fff;font-weight:700;}
+        table.ent-heat td.n4{background:#157a35;color:#fff;font-weight:800;}
+        .ent-heat-leg{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:11.5px;color:#8a97a8;margin-bottom:11px;justify-content:center;}
+        .ent-heat-leg .q{display:inline-block;min-width:20px;text-align:center;border-radius:4px;padding:2px 5px;margin-left:10px;}
+        .ent-heat-leg .q.vazio{background:#fafcfe;color:#c3cbd6;border:1px dashed #e2e8ee;}
+        .ent-heat-leg .q.zero{background:#fdf6e3;color:#9a6a00;font-weight:700;}
+        .ent-heat-leg .q.off{background:#eef2f6;}
+        .ent-heat-leg .esc{display:inline-flex;gap:2px;margin-left:10px;}
+        .ent-heat-leg .esc i{width:16px;height:14px;border-radius:3px;display:inline-block;}
+        .ent-heat-leg .esc .n1{background:#dcefe3;} .ent-heat-leg .esc .n2{background:#a9d8b6;}
+        .ent-heat-leg .esc .n3{background:#5aa877;} .ent-heat-leg .esc .n4{background:#157a35;}
+        /* ---- Botões administrativos ---- */
+        .ent-adm{display:inline-flex;align-items:center;gap:6px;border:1px solid #d7dee7;background:#fff;
+                 border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:600;color:#56606d;cursor:pointer;}
+        .ent-adm:hover{background:#f4f7fb;}
+        .ent-adm svg{width:15px;height:15px;}
+        .ent-cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;max-width:560px;}
+        .ent-cfg-grid label{display:block;font-size:11.5px;font-weight:700;color:#8a94a3;text-transform:uppercase;letter-spacing:.4px;}
+        .ent-cfg-grid input{display:block;width:100%;margin-top:5px;border:1px solid #d4dde6;border-radius:7px;padding:7px 10px;font:inherit;font-size:14px;color:#1d2733;}
+        .ent-cfg-grid input:focus{outline:none;border-color:#157a35;box-shadow:0 0 0 2px rgba(21,122,53,.15);}
+        @media (max-width:700px){ .ent-cfg-grid{grid-template-columns:1fr;} }
+        .ent-fechado{display:inline-flex;align-items:center;gap:7px;background:#eef2f6;border:1px solid #dbe2ea;
+                     color:#46535f;border-radius:20px;padding:5px 13px;font-size:12px;font-weight:700;}
+        @media (max-width:820px){
+          table.ent-rank{font-size:12px;}
+          table.ent-rank th,table.ent-rank td{padding:6px 7px;}
+        }
         /* Estado da gravação. Discreto quando está tudo certo, visível quando não está. */
         .ent-sync{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;
                   border-radius:20px;padding:5px 13px;margin-bottom:12px;border:1px solid #e2e8ee;color:#5a6b7d;background:#fff;}
@@ -2964,8 +3024,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <div class="ent-nav"><button id="entPrev" type="button">‹</button><button id="entNext" type="button">›</button></div>
           <div class="ent-titulo" id="entTitulo"></div>
           <button class="ent-btn" id="entHoje" type="button">Hoje</button>
-          <button class="ent-btn" id="entEditar" type="button" style="margin-left:auto;">Lançar entregas</button>
+          <span id="entAdm" style="margin-left:auto;display:inline-flex;gap:8px;align-items:center;"></span>
+          <button class="ent-btn" id="entEditar" type="button">Lançar entregas</button>
         </div>
+        <div id="entCfgBox"></div>
         <div class="ent-sync ok" id="entSync"><span class="pt"></span>Tudo salvo</div>
         <div id="entStatus"></div>
         <div id="entAvisos"></div>
@@ -10238,7 +10300,10 @@ function fluxExemplo(){
 
 // Painel Santa Rita: troca a página visível ao clicar no menu lateral.
 // ---- Entregas (dashboard de entregas — dados diários por entregador) ----
-const ENT_META1=600, ENT_META2=850;
+// As metas agora vêm do banco (entCfg), com vigência mensal. Estas duas viraram
+// só o valor de referência de quando o servidor ainda não respondeu.
+function ENT_META1(){ return entCfg.base||600; }
+function ENT_META2(){ return entCfg.desafio||850; }
 const ENT_SEED=["Anderson","Josinaldo","Lucas","Joseildo","Francisco","Nilton"];
 // 12 cores legíveis nos dois temas. O preto saiu: era aplicado direto no SVG e
 // ficava invisível no modo noturno. A cor é presa ao id, então não muda quando
@@ -10574,6 +10639,61 @@ function entReativar(id){
 }
 /* ==ENTV2-FIM== */
 
+/* ==ENTCFG-INICIO==
+   Configuração de metas e remuneração, e o estado de fechamento do mês.
+   As metas SAÍRAM do código: vêm do banco, com vigência mensal. Enquanto o servidor
+   não responder (sem login, sem permissão, SQL v3 ainda não rodado), o painel cai
+   nos valores de referência e NÃO mostra dinheiro nenhum — dinheiro só aparece
+   quando o servidor manda, e o servidor só manda para o master. */
+var ENT_META_PADRAO_BASE=600, ENT_META_PADRAO_DESAFIO=850;
+var entCfg={ base:ENT_META_PADRAO_BASE, desafio:ENT_META_PADRAO_DESAFIO,
+             vbase:null, vdes:null, master:false, existe:false, atualizado_em:null, carregado:false };
+var entFech=null;         // {status, fechado_em, total_entregas, total_remuneracao, ...}
+var entCfgMes="";         // competência que está carregada
+
+function entMostraDinheiro(){ return !!(entCfg.master && entfConfigOk(entCfg)); }
+function entMesFechado(){ return !!(entFech && entFech.status==="fechado"); }
+function entCfgAtual(){ return {base:entCfg.base, desafio:entCfg.desafio, vbase:entCfg.vbase, vdes:entCfg.vdes}; }
+
+function entCfgLoad(a,m,depois){
+  var sb=entSB(); var chave=a+"-"+m;
+  if(!sb){ entCfg.carregado=true; if(depois) depois(); return; }
+  if(entCfgMes===chave && entCfg.carregado){ if(depois) depois(); return; }
+  entCfgMes=chave;
+  Promise.all([
+    sb.rpc("entregas_config_do_mes",{p_ano:a,p_mes:m+1}),
+    sb.from("entregas_competencia").select("*").eq("competencia", a+"-"+("0"+(m+1)).slice(-2)+"-01")
+  ]).then(function(rs){
+    entCfg.carregado=true;
+    var c=(rs[0]&&!rs[0].error&&rs[0].data&&rs[0].data[0])||null;
+    if(c){
+      entCfg.base=+c.meta_base_qtd||ENT_META_PADRAO_BASE;
+      entCfg.desafio=+c.meta_desafio_qtd||ENT_META_PADRAO_DESAFIO;
+      entCfg.vbase=(c.valor_base===null||c.valor_base===undefined)?null:Math.round(+c.valor_base*100);
+      entCfg.vdes=(c.valor_desafio===null||c.valor_desafio===undefined)?null:Math.round(+c.valor_desafio*100);
+      entCfg.master=!!c.sou_master; entCfg.existe=!!c.existe; entCfg.atualizado_em=c.atualizado_em;
+    } else {
+      entCfg.base=ENT_META_PADRAO_BASE; entCfg.desafio=ENT_META_PADRAO_DESAFIO;
+      entCfg.vbase=null; entCfg.vdes=null; entCfg.existe=false;
+    }
+    var f=(rs[1]&&!rs[1].error&&rs[1].data&&rs[1].data[0])||null;
+    entFech=f||null;
+    // mês fechado usa o que foi CONGELADO, nunca a configuração de hoje
+    if(entMesFechado()){
+      if(f.meta_base_qtd) entCfg.base=+f.meta_base_qtd;
+      if(f.meta_desafio_qtd) entCfg.desafio=+f.meta_desafio_qtd;
+      if(entCfg.master){
+        if(f.valor_base!==null&&f.valor_base!==undefined) entCfg.vbase=Math.round(+f.valor_base*100);
+        if(f.valor_desafio!==null&&f.valor_desafio!==undefined) entCfg.vdes=Math.round(+f.valor_desafio*100);
+      }
+    }
+    if(depois) depois();
+    var pg=document.getElementById("page-entregas");
+    if(pg && pg.classList.contains("ativo") && typeof renderEntregas==="function") renderEntregas();
+  }).catch(function(){ entCfg.carregado=true; if(depois) depois(); });
+}
+/* ==ENTCFG-FIM== */
+
 /* --- Entregas na NUVEM (Supabase) — leitura sob RLS, escrita só por função --- */
 function entSB(){ return window.__SB||null; }
 var entCloudOK=false, entCarregando=false, entRT=null;
@@ -10653,6 +10773,73 @@ function entFechado(a,m,d){ if(new Date(a,m,d).getDay()===0) return true; return
 function entTotalEntregador(a,m,id){ let t=0; const nd=diasDoMes(a,m); for(let d=1;d<=nd;d++){ if(entFechado(a,m,d)) continue; t+=entGet(a,m,id,d); } return t; }
 function entTotalDia(a,m,dia){ if(entFechado(a,m,dia)) return 0; let t=0; entIdsDoMes(a,m).forEach(function(id){ t+=entGet(a,m,id,dia); }); return t; }
 function entTotalMes(a,m){ let t=0; entIdsDoMes(a,m).forEach(function(id){ t+=entTotalEntregador(a,m,id); }); return t; }
+/* ==ENTFIN-INICIO==
+   REMUNERAÇÃO VARIÁVEL POR ENTREGAS. Funções PURAS: só dependem do que recebem.
+
+   A REGRA (definida pelo dono): FAIXA FINAL RETROATIVA.
+     abaixo da meta base ............ não recebe nada
+     da meta base à meta desafio .... TODAS as entregas valem o valor da base
+     meta desafio ou mais ........... TODAS as entregas valem o valor do desafio
+   Exemplo com base 600 a R$ 0,50 e desafio 850 a R$ 0,80:
+     599 -> R$ 0,00 · 600 -> R$ 300,00 · 849 -> R$ 424,50 · 850 -> R$ 680,00
+   O salto de R$ 255,50 entre 849 e 850 é INTENCIONAL. Não suavizar.
+
+   DINHEIRO É SEMPRE CENTAVO INTEIRO aqui dentro. Float com centavo erra:
+   0.1+0.2 não dá 0.3 em JavaScript. Formata só na hora de mostrar. */
+
+// "R$ 0,50" | "0,50" | "0.50" | 0.5  ->  50 centavos. Devolve null se não entender.
+function entfCent(v){
+  if(v===null||v===undefined||v==="") return null;
+  if(typeof v==="number"){ if(!isFinite(v)||v<0) return null; return Math.round(v*100); }
+  var t=String(v).replace(/[R$\\s]/g,"").trim();
+  if(t==="") return null;
+  if(t.indexOf(",")>=0) t=t.replace(/\\./g,"").replace(",",".");   // 1.234,56 -> 1234.56
+  if(!/^[0-9]+(\\.[0-9]*)?$/.test(t)) return null;
+  var n=parseFloat(t);
+  if(!isFinite(n)||n<0) return null;
+  return Math.round(n*100);
+}
+function entfMoeda(cent){
+  var c=Math.round(+cent||0);
+  return (c/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+}
+// Só o número, sem o R$ — para caber em coluna estreita.
+function entfNum2(cent){
+  var c=Math.round(+cent||0);
+  return (c/100).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+// cfg = {base, desafio, vbase (centavos), vdes (centavos)}
+// Devolve a faixa, quanto vale cada entrega e o total, tudo em centavos.
+function entfFaixa(qtd,cfg){
+  var q=Math.max(0,Math.floor(+qtd||0));
+  cfg=cfg||{};
+  var base=+cfg.base||0, des=+cfg.desafio||0;
+  var vb=Math.round(+cfg.vbase||0), vd=Math.round(+cfg.vdes||0);
+  var faixa, unit, prox, faltam;
+  if(base>0 && des>base && q>=des){ faixa="desafio"; unit=vd; prox=null; faltam=0; }
+  else if(base>0 && q>=base){ faixa="base"; unit=vb; prox="desafio"; faltam=Math.max(0,des-q); }
+  else { faixa="sem"; unit=0; prox="base"; faltam=Math.max(0,base-q); }
+  return { faixa:faixa, unitario:unit, total:q*unit, faltam:faltam, proxima:prox, quantidade:q };
+}
+var ENTF_ROTULO={ sem:"Abaixo da meta base", base:"Meta base atingida", desafio:"Meta desafio atingida" };
+function entfRotulo(f){ return ENTF_ROTULO[f]||ENTF_ROTULO.sem; }
+
+// Soma da equipe. Devolve o total e quantos caíram em cada faixa.
+function entfTotalEquipe(quantidades,cfg){
+  var t={ total:0, sem:0, base:0, desafio:0, entregas:0 };
+  (quantidades||[]).forEach(function(q){
+    var r=entfFaixa(q,cfg);
+    t.total+=r.total; t.entregas+=r.quantidade; t[r.faixa]++;
+  });
+  return t;
+}
+// A configuração está utilizável? Sem isso não dá pra mostrar dinheiro nenhum.
+function entfConfigOk(cfg){
+  return !!(cfg && +cfg.base>0 && +cfg.desafio>+cfg.base && cfg.vbase!==null && cfg.vbase!==undefined);
+}
+/* ==ENTFIN-FIM== */
+
 /* ==ENTCALC-INICIO==
    Base de cálculo das Entregas. Tudo aqui é FUNÇÃO PURA: só depende do que recebe
    por parâmetro (nada de entDados, entEntregadores, DOM ou HOJE lá de fora), pra
@@ -10930,8 +11117,8 @@ function entIco(chave){
 function entRenderStatus(ctx){
   var box=document.getElementById("entStatus"); if(!box) return;
   var base={total:ctx.total,diasLancados:ctx.diasLancados,diasOperacionais:ctx.diasOperacionais};
-  var st1=entcStatus({total:base.total,meta:ENT_META1*ctx.ne,diasLancados:base.diasLancados,diasOperacionais:base.diasOperacionais});
-  var st2=entcStatus({total:base.total,meta:ENT_META2*ctx.ne,diasLancados:base.diasLancados,diasOperacionais:base.diasOperacionais});
+  var st1=entcStatus({total:base.total,meta:ENT_META1()*ctx.ne,diasLancados:base.diasLancados,diasOperacionais:base.diasOperacionais});
+  var st2=entcStatus({total:base.total,meta:ENT_META2()*ctx.ne,diasLancados:base.diasLancados,diasOperacionais:base.diasOperacionais});
   var s=ENT_SIT[st1.situacao]||ENT_SIT["sem-dados"];
 
   var linha;
@@ -10957,7 +11144,7 @@ function entRenderStatus(ctx){
     projS="meta base "+num(st1.meta)+" · "+(d>=0?"+":"−")+num(Math.abs(d));
   }
 
-  var des="Meta desafio ("+ENT_META2+"): "+entPct1(st2.pct)+" atingida";
+  var des="Meta desafio ("+ENT_META2()+"): "+entPct1(st2.pct)+" atingida";
   if(st2.projecao!==null){
     var d2=Math.round(st2.projecao)-st2.meta;
     des+= fechado
@@ -10986,15 +11173,25 @@ function entRenderAvisos(ctx){
   else if(n>1) av.push({c:"aviso",txt:"Existem "+n+" dias úteis sem lançamento: "+entLista(ctx.semLancamento)+". Eles ficam de fora da média e da projeção."});
   var f=entValoresEmDiaFechado(ctx.ano,ctx.mes);
   if(f.length) av.push({c:"erro",txt:"Há entrega lançada em dia fechado ("+entLista(f)+"). Domingo e feriado não contam — esses números não entram em conta nenhuma."});
+  // O que precisa da atenção do gerente, sem virar central de alertas.
+  var pend=entFilaPendentes().length;
+  if(pend) av.push({c:"aviso",txt:pend+" alteração(ões) ainda não chegaram à nuvem. Não dá pra fechar o mês assim."});
+  if(entCfg.master && entCfg.carregado && !entfConfigOk(entCfg))
+    av.push({c:"aviso",txt:"Este mês ainda não tem metas e valores definidos. Clique em \\"Metas e valores\\" para configurar."});
+  if(entMesFechado())
+    av.push({c:"ok",txt:"Mês fechado. Os lançamentos e os valores estão congelados — para mudar algo, é preciso reabrir."});
+  else if(!pend && ctx.semLancamento.length===0 && ctx.restantes===0 && ctx.total>0 && entCfg.master)
+    av.push({c:"ok",txt:"Todos os dias úteis estão lançados. Este mês está pronto para ser fechado."});
   box.innerHTML=conf+av.map(function(a){
-    return '<div class="ent-aviso '+a.c+'">'+entIco(a.c==="erro"?"risco":"atencao")+'<span>'+a.txt+'</span></div>';
+    var ico=a.c==="erro"?"risco":(a.c==="ok"?"concluido":"atencao");
+    return '<div class="ent-aviso '+a.c+'">'+entIco(ico)+'<span>'+a.txt+'</span></div>';
   }).join("");
 }
 
 function entRenderKpis(){
   var ctx=entCtx(entAno,entMes);
-  var st1=entcStatus({total:ctx.total,meta:ENT_META1*ctx.ne,diasLancados:ctx.diasLancados,diasOperacionais:ctx.diasOperacionais});
-  var st2=entcStatus({total:ctx.total,meta:ENT_META2*ctx.ne,diasLancados:ctx.diasLancados,diasOperacionais:ctx.diasOperacionais});
+  var st1=entcStatus({total:ctx.total,meta:ENT_META1()*ctx.ne,diasLancados:ctx.diasLancados,diasOperacionais:ctx.diasOperacionais});
+  var st2=entcStatus({total:ctx.total,meta:ENT_META2()*ctx.ne,diasLancados:ctx.diasLancados,diasOperacionais:ctx.diasOperacionais});
   var mkAtual=entMesKey(entAno,entMes);
   var totais=entIdsDoMes(entAno,entMes).map(function(id){ return {nome:entNomeDe(id,mkAtual),total:entTotalEntregador(entAno,entMes,id)}; });
   var lider=entcLider(totais);
@@ -11020,17 +11217,48 @@ function entRenderKpis(){
   if(lider){
     vLider=lider.nomes.join(" e ");
     var dif=lider.total-mediaEnt;
-    subLider=num(lider.total)+" entregas · "+entPct1(lider.total/ENT_META1*100)+" da meta base · "+
+    subLider=num(lider.total)+" entregas · "+entPct1(lider.total/ENT_META1()*100)+" da meta base · "+
       num(Math.round(Math.abs(dif)))+(dif>=0?" acima":" abaixo")+" da média";
+  }
+
+  // Comparação com o mês anterior, na mesma quantidade de dias lançados — comparar
+  // mês parcial com mês fechado inteiro enganaria.
+  var antA=entMes===0?entAno-1:entAno, antM=entMes===0?11:entMes-1;
+  var ctxAnt=entCtx(antA,antM);
+  var vsTxt="—", vsSub="Sem histórico suficiente";
+  if(ctxAnt.total>0 && ctxAnt.diasLancados>0 && ctx.diasLancados>0){
+    var mAtual=ctx.total/ctx.diasLancados, mAnt=ctxAnt.total/ctxAnt.diasLancados;
+    var dif=mAnt>0?((mAtual-mAnt)/mAnt*100):0;
+    vsTxt=(dif>=0?"+":"−")+entPct1(Math.abs(dif));
+    vsSub="por dia lançado, contra "+MESES[antM].toLowerCase();
+  }
+
+  // DINHEIRO: só entra quando o SERVIDOR mandou o valor, e ele só manda pro master.
+  var cartaoDinheiro="";
+  if(entMostraDinheiro()){
+    var cfg=entCfgAtual();
+    var qs=entIdsDoMes(entAno,entMes).map(function(id){ return entTotalEntregador(entAno,entMes,id); });
+    var agora=entfTotalEquipe(qs,cfg);
+    if(entMesFechado()){
+      cartaoDinheiro=card(entfMoeda(agora.total),"Valor final","fechado · valor calculado para a folha");
+    } else {
+      var fator=(st1.projecao!==null && ctx.total>0)?(st1.projecao/ctx.total):1;
+      var proj=entfTotalEquipe(qs.map(function(q){ return Math.round(q*fator); }),cfg);
+      cartaoDinheiro=card(entfMoeda(agora.total),"Valor até agora",
+                          agora.desafio+" no desafio · "+agora.base+" na base · "+agora.sem+" sem")+
+                     card(st1.projecao===null?"—":entfMoeda(proj.total),"Pagamento projetado",
+                          st1.projecao===null?"Dados insuficientes":"se o ritmo continuar · não é valor devido");
+    }
   }
 
   document.getElementById("entKpis").innerHTML=
     card(num(ctx.total),"Entregas no mês",ctx.diasOperacionais+" dias úteis no mês")+
     card(entDec(st1.media),"Média por dia operacional",subMedia)+
     cardMeta(st1,"Meta base atingida")+
-    cardMeta(st2,"Meta desafio atingida")+
-    card(entDec(mediaEnt),"Acumulado médio por entregador",ctx.ne+(ctx.ne>1?" entregadores":" entregador"))+
-    card(vLider,"Líder do mês",subLider);
+    card(vsTxt,"Vs. mês anterior",vsSub)+
+    card(num(ctx.restantes),"Dias úteis restantes",ctx.restantes===0?"o mês acabou":"ainda dá pra lançar")+
+    card(vLider,"Líder do mês",subLider)+
+    cartaoDinheiro;
 
   entRenderStatus(ctx);
   entRenderAvisos(ctx);
@@ -11039,11 +11267,11 @@ function entChartPorEntregador(){
   const mk=entMesKey(entAno,entMes);
   const items=entIdsDoMes(entAno,entMes).map(function(id){ return {nm:entNomeDe(id,mk),v:entTotalEntregador(entAno,entMes,id),cor:entCor(id)}; });
   items.sort(function(a,b){ return b.v-a.v; });
-  let mx=ENT_META2; items.forEach(function(x){ if(x.v>mx) mx=x.v; }); if(mx<1) mx=1;
+  let mx=ENT_META2(); items.forEach(function(x){ if(x.v>mx) mx=x.v; }); if(mx<1) mx=1;
   let rows="";
   items.forEach(function(x,idx){
-    const p1=ENT_META1/mx*100, p2=ENT_META2/mx*100;
-    const lbl1=idx===0?'<span'+(p1>=88?' class="esq"':'')+'>Meta '+ENT_META1+'</span>':'', lbl2=idx===0?'<span'+(p2>=88?' class="esq"':'')+'>Meta '+ENT_META2+'</span>':'';
+    const p1=ENT_META1()/mx*100, p2=ENT_META2()/mx*100;
+    const lbl1=idx===0?'<span'+(p1>=88?' class="esq"':'')+'>Meta '+ENT_META1()+'</span>':'', lbl2=idx===0?'<span'+(p2>=88?' class="esq"':'')+'>Meta '+ENT_META2()+'</span>':'';
     rows+='<div class="ent-barra-row"><div class="nm">'+x.nm+'</div><div class="ent-barra-track">'+
       '<div class="ent-barra-fill" style="width:'+(x.v/mx*100).toFixed(1)+'%;background:'+ENT_COR_BARRA+';">'+num(x.v)+'</div>'+
       '<div class="ent-meta-line" style="left:'+p1.toFixed(1)+'%;">'+lbl1+'</div>'+
@@ -11051,6 +11279,110 @@ function entChartPorEntregador(){
       '</div></div>';
   });
   return '<div class="ent-graf" style="padding-top:24px;"><h3>Total por Entregador</h3>'+rows+'</div>';
+}
+// Ranking gerencial. Substitui o gráfico de barras "Total por entregador" e absorve
+// os quatro gráficos que morreram (quanto falta e ritmo, para as duas metas).
+// Dinheiro só aparece quando o SERVIDOR mandou o valor — e ele só manda pro master.
+function entRanking(){
+  const ctx=entCtx(entAno,entMes), mk=entMesKey(entAno,entMes);
+  const cfg=entCfgAtual(), dinheiro=entMostraDinheiro();
+  const ids=entIdsDoMes(entAno,entMes);
+  if(!ids.length) return "";
+  const restantes=entDiasRestantes();
+  const antA=entMes===0?entAno-1:entAno, antM=entMes===0?11:entMes-1;
+  const linhas=ids.map(function(id){
+    const tot=entTotalEntregador(entAno,entMes,id);
+    let dias=0; const nd=diasDoMes(entAno,entMes);
+    for(let d=1;d<=nd;d++){ if(!entFechado(entAno,entMes,d)) continue; }
+    for(let d=1;d<=nd;d++){ if(!entFechado(entAno,entMes,d) && entGetRaw(entAno,entMes,id,d)!=="") dias++; }
+    const ant=entTotalEntregador(antA,antM,id);
+    const fin=entfFaixa(tot,cfg);
+    return { id:id, nome:entNomeDe(id,mk), total:tot, dias:dias,
+             media:dias>0?tot/dias:0, ant:ant, fin:fin,
+             ritmo:(fin.faltam>0 && restantes>0)?Math.ceil(fin.faltam/restantes):0 };
+  }).sort(function(a,b){ return b.total-a.total; });
+
+  const cab=['#','Entregador','Entregas','Dias com<br>lançamento','Média por<br>dia lançado',
+             '% Meta<br>base','% Meta<br>desafio','Falta p/<br>próxima','Ritmo<br>necessário',
+             'Vs. mês<br>anterior','Faixa']
+            .concat(dinheiro?['R$ por<br>entrega','Valor até<br>agora']:[]);
+  let head='<tr>'+cab.map(function(c,i){ return '<th'+(i===1?' class="nm"':'')+'>'+c+'</th>'; }).join("")+'</tr>';
+  let body="";
+  linhas.forEach(function(l,i){
+    const p=entPessoa(l.id), inat=(p&&!p.ativo);
+    let vs='<span class="sem">—</span>';
+    if(l.ant>0){ const v=(l.total-l.ant)/l.ant*100;
+      vs='<span class="'+(v>=0?'sobe':'desce')+'">'+(v>=0?'+':'−')+entPct1(Math.abs(v))+'</span>'; }
+    const cls={sem:'f-sem',base:'f-base',desafio:'f-des'}[l.fin.faixa];
+    body+='<tr>'+
+      '<td class="pos">'+(i+1)+'</td>'+
+      '<td class="nm"><i class="pt" style="background:'+entCor(l.id)+'"></i>'+entEsc(l.nome)+(inat?' <span class="ent-inat">inativo</span>':'')+'</td>'+
+      '<td class="n forte">'+num(l.total)+'</td>'+
+      '<td class="n">'+l.dias+'</td>'+
+      '<td class="n">'+entDec(l.media)+'</td>'+
+      '<td class="n">'+entPct1(cfg.base>0?l.total/cfg.base*100:0)+'</td>'+
+      '<td class="n">'+entPct1(cfg.desafio>0?l.total/cfg.desafio*100:0)+'</td>'+
+      '<td class="n">'+(l.fin.faltam>0?num(l.fin.faltam):'<span class="sem">—</span>')+'</td>'+
+      '<td class="n">'+(l.ritmo>0?num(l.ritmo)+'/dia':'<span class="sem">—</span>')+'</td>'+
+      '<td class="n">'+vs+'</td>'+
+      '<td><span class="ent-faixa '+cls+'">'+entfRotulo(l.fin.faixa)+'</span></td>'+
+      (dinheiro?'<td class="n">'+entfNum2(l.fin.unitario)+'</td><td class="n forte">'+entfNum2(l.fin.total)+'</td>':'')+
+      '</tr>';
+  });
+  let rodape="";
+  if(dinheiro){
+    const t=entfTotalEquipe(linhas.map(function(l){ return l.total; }),cfg);
+    rodape='<tr class="tot"><td></td><td class="nm">Total da equipe</td><td class="n forte">'+num(t.entregas)+'</td>'+
+      '<td colspan="7"></td><td class="n" colspan="2">'+entfMoeda(t.total)+'</td></tr>';
+  }
+  const nota=dinheiro
+    ? '<p class="ent-sub">Valor calculado para a folha. O Painel não calcula encargos.</p>'
+    : '';
+  return '<div class="ent-graf"><h3>Ranking do mês</h3>'+nota+
+    '<div class="ent-rank-wrap"><table class="ent-rank"><thead>'+head+'</thead><tbody>'+body+rodape+'</tbody></table></div>'+
+    '<p class="ent-sub" style="margin:10px 0 0">“Dias com lançamento” são os dias em que existe quantidade registrada para a pessoa, inclusive zero. O painel não tem folha de presença.</p></div>';
+}
+
+// Mapa de calor entregador x dia. Substitui as seis linhas sobrepostas.
+// Três estados diferentes, nunca misturados: dia fechado, sem lançamento e zero.
+function entHeatmap(){
+  const nd=diasDoMes(entAno,entMes), mk=entMesKey(entAno,entMes);
+  const ids=entIdsDoMes(entAno,entMes);
+  if(!ids.length) return "";
+  let mx=0;
+  ids.forEach(function(id){ for(let d=1;d<=nd;d++){ const v=entGet(entAno,entMes,id,d); if(v>mx) mx=v; } });
+  if(mx<1) mx=1;
+  let head='<tr><th class="nm">Entregador</th>';
+  for(let d=1;d<=nd;d++){ const dow=new Date(entAno,entMes,d).getDay();
+    head+='<th class="'+(entFechado(entAno,entMes,d)?"off":"")+'">'+d+'</th>'; }
+  head+='</tr>';
+  let body="";
+  ids.forEach(function(id){
+    const tot=entTotalEntregador(entAno,entMes,id);
+    let dias=0; for(let d=1;d<=nd;d++){ if(!entFechado(entAno,entMes,d)&&entGetRaw(entAno,entMes,id,d)!=="") dias++; }
+    const media=dias>0?tot/dias:0;
+    let cels="";
+    for(let d=1;d<=nd;d++){
+      if(entFechado(entAno,entMes,d)){ cels+='<td class="off" title="Dia fechado"></td>'; continue; }
+      const raw=entGetRaw(entAno,entMes,id,d);
+      if(raw===""){ cels+='<td class="vazio" title="Sem lançamento">·</td>'; continue; }
+      const v=+raw||0;
+      const dif=media>0?(v-media):0;
+      const tit=entNomeDe(id,mk)+" — dia "+d+"\\n"+v+" entregas\\nmédia dela: "+entDec(media)+
+                "\\ndiferença: "+(dif>=0?"+":"−")+entDec(Math.abs(dif));
+      if(v===0){ cels+='<td class="zero" title="'+entEsc(tit)+'">0</td>'; continue; }
+      const nivel=Math.min(4,Math.max(1,Math.ceil(v/mx*4)));
+      cels+='<td class="n'+nivel+'" title="'+entEsc(tit)+'">'+v+'</td>';
+    }
+    body+='<tr><td class="nm">'+entEsc(entNomeDe(id,mk))+'</td>'+cels+'</tr>';
+  });
+  const leg='<div class="ent-heat-leg"><span class="q vazio">·</span> sem lançamento'+
+            '<span class="q zero">0</span> zero confirmado'+
+            '<span class="q off"></span> domingo/feriado'+
+            '<span class="esc"><i class="n1"></i><i class="n2"></i><i class="n3"></i><i class="n4"></i></span> menos → mais';
+  return '<div class="ent-graf"><h3>Mapa de calor — entregador × dia</h3>'+
+    '<p class="ent-sub">Quanto mais escuro, mais entregas naquele dia. Passe o mouse para ver a comparação com a média da própria pessoa.</p>'+
+    leg+'</div><div class="ent-heat-wrap"><table class="ent-heat"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div></div>';
 }
 function entChartBarras(items,titulo,sub){
   let mx=1; items.forEach(function(x){ if(x.v>mx) mx=x.v; });
@@ -11076,7 +11408,7 @@ function entChartAtingir(meta,titulo){
 // ou atrasados?" — a linha verde acima da cinza é mês adiantado.
 function entChartAcumulado(){
   const ctx=entCtx(entAno,entMes);
-  const meta=ENT_META1*ctx.ne;
+  const meta=ENT_META1()*ctx.ne;
   const pts=entcAcumulado(entAno,entMes,ctx.ehFechado,function(d){ return entTotalDia(entAno,entMes,d); },ctx.temLancamento,meta);
   if(pts.length<2) return "";
   let ultimo=-1; pts.forEach(function(p,i){ if(p.lancado) ultimo=i; });
@@ -11150,7 +11482,7 @@ function entChartDiarioPorEntregador(){
 }
 function entChartMensal(){
   const totals=[]; let mx=1; for(let m=0;m<12;m++){ const t=entTotalMes(entAno,m); totals.push(t); if(t>mx) mx=t; }
-  const metaTot=ENT_META1*(entIdsDoMes(entAno,entMes).length||1);
+  const metaTot=ENT_META1()*(entIdsDoMes(entAno,entMes).length||1);
   if(metaTot>mx) mx=metaTot;
   let bars='<div class="ent-mes-wrap"><div class="ent-mes-meta" style="bottom:'+(metaTot/mx*130).toFixed(0)+'px"><span>Meta base '+num(metaTot)+'</span></div>'+
     '<div style="display:flex;align-items:flex-end;gap:8px;height:170px;padding:0 4px;">';
@@ -11184,6 +11516,115 @@ function entNovoEntregador(nome){
   }
   entAddEntregador(nm); renderEntregas();
 }
+/* ==ENTADM-INICIO== Configuração de metas/valores e fechamento do mês. Só master. */
+var entCfgAberto=false;
+
+function entRenderAdm(){
+  var box=document.getElementById("entAdm"); if(!box) return;
+  var h="";
+  if(entMesFechado()){
+    var q=entFech&&entFech.fechado_em?(" em "+String(entFech.fechado_em).slice(8,10)+"/"+String(entFech.fechado_em).slice(5,7)+"/"+String(entFech.fechado_em).slice(0,4)):"";
+    h+='<span class="ent-fechado">'+entIco("concluido")+'Mês fechado'+q+'</span>';
+    if(entCfg.master) h+='<button type="button" class="ent-adm" id="entReabrir">Reabrir mês</button>';
+  } else if(entCfg.master){
+    h+='<button type="button" class="ent-adm" id="entCfgBtn">'+
+       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+
+       '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.09A1.65 1.65 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Metas e valores</button>'+
+       '<button type="button" class="ent-adm" id="entFecharBtn">Fechar mês</button>';
+  }
+  box.innerHTML=h;
+}
+
+function entRenderCfgBox(){
+  var box=document.getElementById("entCfgBox"); if(!box) return;
+  if(!entCfgAberto || !entCfg.master){ box.innerHTML=""; return; }
+  var v=function(c){ return (c===null||c===undefined)?"":entfNum2(c); };
+  box.innerHTML='<div class="ent-edit-box" style="margin-bottom:14px">'+
+    '<div class="ent-edit-tit"><b>Metas e remuneração — '+MESES[entMes]+' '+entAno+'</b>'+
+    '<button type="button" class="ent-edit-toggle" id="entCfgFechar">Fechar</button></div>'+
+    '<div class="ent-edit-body">'+
+      '<div class="ent-cfg-grid">'+
+        '<label>Meta base — entregas<input type="text" inputmode="numeric" id="entCfgB" value="'+entCfg.base+'"></label>'+
+        '<label>Valor por entrega (R$)<input type="text" inputmode="decimal" id="entCfgVB" value="'+v(entCfg.vbase)+'" placeholder="0,00"></label>'+
+        '<label>Meta desafio — entregas<input type="text" inputmode="numeric" id="entCfgD" value="'+entCfg.desafio+'"></label>'+
+        '<label>Valor por entrega (R$)<input type="text" inputmode="decimal" id="entCfgVD" value="'+v(entCfg.vdes)+'" placeholder="0,00"></label>'+
+      '</div>'+
+      '<p class="ent-sub" style="text-align:left;margin:10px 0 0">Vale só para <b>'+MESES[entMes]+' '+entAno+'</b>. Meses anteriores continuam com os valores deles.'+
+      (entCfg.existe?'':' <b>Este mês ainda não tem configuração própria</b> — o que está aí veio do mês anterior.')+'</p>'+
+      '<div class="ent-edit-add"><button type="button" id="entCfgSalvar">Salvar configuração</button></div>'+
+    '</div></div>';
+}
+
+function entCfgSalvar(){
+  var b=parseInt((document.getElementById("entCfgB").value||"").replace(/[^0-9]/g,""),10);
+  var d=parseInt((document.getElementById("entCfgD").value||"").replace(/[^0-9]/g,""),10);
+  var vb=entfCent(document.getElementById("entCfgVB").value);
+  var vd=entfCent(document.getElementById("entCfgVD").value);
+  if(!(b>0)) return uiConfirm({titulo:"Aviso",msg:"A meta base tem que ser maior que zero.",ok:"OK",cancel:""});
+  if(!(d>b)) return uiConfirm({titulo:"Aviso",msg:"A meta desafio tem que ser maior que a meta base.",ok:"OK",cancel:""});
+  if(vb===null||vd===null) return uiConfirm({titulo:"Aviso",msg:"Digite os dois valores por entrega, como 0,50.",ok:"OK",cancel:""});
+  uiConfirm({titulo:"Confirmar alteração",
+    msg:"Esta alteração recalculará a remuneração variável de todos os entregadores em "+MESES[entMes]+" "+entAno+". Deseja continuar?",
+    ok:"Salvar",cancel:"Cancelar"}).then(function(ok){
+    if(!ok) return;
+    var sb=entSB(); if(!sb) return;
+    sb.rpc("entregas_salvar_config",{p_request_id:entUuid(),p_ano:entAno,p_mes:entMes+1,
+      p_meta_base:b,p_meta_desafio:d,p_valor_base:vb/100,p_valor_desafio:vd/100}).then(function(r){
+      if(r&&r.error){ uiConfirm({titulo:"Não deu certo",msg:r.error.message||"Falha ao salvar.",ok:"OK",cancel:""}); return; }
+      entCfgAberto=false; entCfg.carregado=false; entCfgMes="";
+      entCfgLoad(entAno,entMes,function(){ renderEntregas(); });
+    },function(e){ uiConfirm({titulo:"Não deu certo",msg:String((e&&e.message)||e),ok:"OK",cancel:""}); });
+  });
+}
+
+// Fechar o mês: o servidor confere as pendências e recusa se houver.
+function entFecharMes(){
+  var sb=entSB(); if(!sb) return;
+  var nd=diasDoMes(entAno,entMes), fechados=[];
+  for(var d=1;d<=nd;d++){ if(entFechado(entAno,entMes,d) && new Date(entAno,entMes,d).getDay()!==0) fechados.push(d); }
+  if(entFilaPendentes().length){
+    return uiConfirm({titulo:"Ainda tem coisa pra salvar",
+      msg:"Há "+entFilaPendentes().length+" alteração(ões) que ainda não chegaram à nuvem. Espere a faixa dizer \\"Tudo salvo\\" antes de fechar o mês.",ok:"OK",cancel:""});
+  }
+  sb.rpc("entregas_pendencias_mes",{p_ano:entAno,p_mes:entMes+1,p_dias_fechados:fechados}).then(function(r){
+    if(r&&r.error){ uiConfirm({titulo:"Não deu certo",msg:r.error.message,ok:"OK",cancel:""}); return; }
+    var pend=(r&&r.data)||[];
+    if(pend.length){
+      uiConfirm({titulo:"Não foi possível fechar "+MESES[entMes].toLowerCase()+"/"+entAno,
+        msg:pend.map(function(p){ return "• "+p.detalhe; }).join("\\n"),ok:"Entendi",cancel:""});
+      return;
+    }
+    var ctx=entCtx(entAno,entMes), cfg=entCfgAtual();
+    var qs=entIdsDoMes(entAno,entMes).map(function(id){ return entTotalEntregador(entAno,entMes,id); });
+    var t=entfTotalEquipe(qs,cfg);
+    uiConfirm({titulo:"Fechar "+MESES[entMes].toLowerCase()+"/"+entAno,
+      msg:"Entregas da equipe: "+num(t.entregas)+
+          "\\nNa meta desafio: "+t.desafio+"   ·   na meta base: "+t.base+"   ·   sem remuneração: "+t.sem+
+          (entMostraDinheiro()?"\\nValor variável total: "+entfMoeda(t.total):"")+
+          "\\n\\nDepois de fechado, nenhum lançamento deste mês pode ser alterado sem reabrir.",
+      ok:"Confirmar fechamento",cancel:"Cancelar"}).then(function(ok){
+      if(!ok) return;
+      sb.rpc("entregas_fechar_mes",{p_request_id:entUuid(),p_ano:entAno,p_mes:entMes+1,p_dias_fechados:fechados}).then(function(r2){
+        if(r2&&r2.error){ uiConfirm({titulo:"Não deu certo",msg:r2.error.message,ok:"OK",cancel:""}); return; }
+        entCfg.carregado=false; entCfgMes=""; entCfgLoad(entAno,entMes,function(){ renderEntregas(); });
+      });
+    });
+  });
+}
+
+function entReabrirMes(){
+  autorizarMaster("reabrir o mês de "+MESES[entMes]+" "+entAno,true,false).then(function(ok){
+    if(!ok) return;
+    var motivo=window.prompt("Por que este mês está sendo reaberto? (fica registrado)");
+    if(!motivo||!motivo.trim()) return uiConfirm({titulo:"Aviso",msg:"O motivo é obrigatório.",ok:"OK",cancel:""});
+    var sb=entSB(); if(!sb) return;
+    sb.rpc("entregas_reabrir_mes",{p_request_id:entUuid(),p_ano:entAno,p_mes:entMes+1,p_motivo:motivo.trim()}).then(function(r){
+      if(r&&r.error){ uiConfirm({titulo:"Não deu certo",msg:r.error.message,ok:"OK",cancel:""}); return; }
+      entCfg.carregado=false; entCfgMes=""; entCfgLoad(entAno,entMes,function(){ renderEntregas(); });
+    });
+  });
+}
+/* ==ENTADM-FIM== */
 function entRenderGrade(){
   const nd=diasDoMes(entAno,entMes);
   let head='<tr><th class="nome">Entregador</th>';
@@ -11209,10 +11650,10 @@ function entUpdGradeTotais(){
 function entRenderGraficos(){
   const g=document.getElementById("entGraficos");
   if(entTotalMes(entAno,entMes)<=0){ g.innerHTML='<div class="ent-graf"><div class="ent-vazio">Nenhuma entrega lançada em '+MESES[entMes]+" "+entAno+'.<br>Clique em <b>Lançar entregas</b> pra começar.</div></div>'; return; }
-  g.innerHTML=entChartAcumulado()+entChartPorEntregador()+
-    '<div class="ent-graf2">'+entChartFaltam(ENT_META1,"Quanto Falta para "+ENT_META1)+entChartFaltam(ENT_META2,"Quanto Falta para "+ENT_META2)+'</div>'+
-    '<div class="ent-graf2">'+entChartAtingir(ENT_META1,"Ritmo Diário para Bater "+ENT_META1)+entChartAtingir(ENT_META2,"Ritmo Diário para Bater "+ENT_META2)+'</div>'+
-    entChartDiarioTotal()+entChartDiarioPorEntregador()+entChartMensal();
+  // Nove blocos viraram cinco. Saíram: "quanto falta" x2 e "ritmo diário" x2 — essa
+  // informação virou coluna do ranking — e o gráfico de seis linhas sobrepostas,
+  // que virou mapa de calor.
+  g.innerHTML=entChartAcumulado()+entRanking()+entChartDiarioTotal()+entHeatmap()+entChartMensal();
 }
 function entRenderEntregadoresEdit(){
   const box=document.getElementById("entEntregadoresEdit");
@@ -11254,15 +11695,18 @@ function renderEntregas(){
   // uma sprint futura — o rótulo antigo prometia o que o botão não faz.
   be.innerHTML=entEdit?"Finalizar edição":"Lançar entregas";
   document.getElementById("entGradeWrap").style.display=entEdit?"":"none";
+  entCfgLoad(entAno,entMes);
+  entRenderAdm(); entRenderCfgBox();
   entSyncPintar();
   entRenderKpis();
   if(entEdit){ entRenderEntregadoresEdit(); entRenderGrade(); }
   entRenderGraficos();
 }
 (function initEntregas(){
-  document.getElementById("entPrev").addEventListener("click",function(){ entMes--; if(entMes<0){entMes=11;entAno--;} renderEntregas(); });
-  document.getElementById("entNext").addEventListener("click",function(){ entMes++; if(entMes>11){entMes=0;entAno++;} renderEntregas(); });
-  document.getElementById("entHoje").addEventListener("click",function(){ entAno=HOJE.getFullYear(); entMes=HOJE.getMonth(); renderEntregas(); });
+  function entVaiPara(a,m){ entAno=a; entMes=m; entCfg.carregado=false; entCfgMes=""; renderEntregas(); }
+  document.getElementById("entPrev").addEventListener("click",function(){ var m=entMes-1,a=entAno; if(m<0){m=11;a--;} entVaiPara(a,m); });
+  document.getElementById("entNext").addEventListener("click",function(){ var m=entMes+1,a=entAno; if(m>11){m=0;a++;} entVaiPara(a,m); });
+  document.getElementById("entHoje").addEventListener("click",function(){ entVaiPara(HOJE.getFullYear(),HOJE.getMonth()); });
   document.getElementById("entEditar").addEventListener("click",function(){ entEdit=!entEdit; renderEntregas(); });
   document.getElementById("entEntregadoresEdit").addEventListener("click",function(e){
     if(e.target.closest("#entEditToggle")){ entEntEditOpen=!entEntEditOpen; entRenderEntregadoresEdit(); return; }
@@ -11294,6 +11738,15 @@ function renderEntregas(){
     // Renomear NÃO mexe em lançamento nenhum: os meses antigos guardam o nome da época.
     if(entRenameEntregador(id,nv)){ renderEntregas(); }
     else { inp.value=p?p.nome:""; uiConfirm({titulo:"Aviso",msg:"Digite um nome válido.",ok:"OK",cancel:""}); }
+  });
+  document.getElementById("entAdm").addEventListener("click",function(e){
+    if(e.target.closest("#entCfgBtn")){ entCfgAberto=!entCfgAberto; entRenderCfgBox(); return; }
+    if(e.target.closest("#entFecharBtn")){ entFecharMes(); return; }
+    if(e.target.closest("#entReabrir")){ entReabrirMes(); return; }
+  });
+  document.getElementById("entCfgBox").addEventListener("click",function(e){
+    if(e.target.closest("#entCfgFechar")){ entCfgAberto=false; entRenderCfgBox(); return; }
+    if(e.target.closest("#entCfgSalvar")){ entCfgSalvar(); return; }
   });
   document.getElementById("entSync").addEventListener("click",function(e){
     if(e.target.closest("#entRetry")){ entFila.forEach(function(f){ f.proxima=0; }); entFilaProcessar(true); }
