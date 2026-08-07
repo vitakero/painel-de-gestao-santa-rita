@@ -2914,6 +2914,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .ent-aviso svg{width:17px;height:17px;flex:none;margin-top:1px;}
         .ent-aviso.aviso{background:#fdf6e3;color:#7a5600;border:1px solid #f0e0b6;}
         .ent-aviso.erro{background:#fdecec;color:#a3291c;border:1px solid #f3cfcb;}
+        .ent-aviso-conf{align-items:flex-start;}
+        .ent-aviso-conf .det{font-size:11.5px;opacity:.85;margin-top:4px;line-height:1.45;}
+        .ent-aviso-conf .acoes{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;}
+        .ent-aviso-conf .acoes button{border:1px solid #e0b4ae;background:#fff;color:#a3291c;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;}
+        .ent-aviso-conf .acoes button:hover{background:#fbe3e1;}
         .ent-kbar{height:5px;border-radius:3px;background:#eef2f6;margin-top:9px;overflow:hidden;}
         .ent-kbar i{display:block;height:100%;border-radius:3px;background:#157a35;}
         .ent-ksub{font-size:11.5px;color:#8a97a8;margin-top:6px;line-height:1.4;overflow-wrap:anywhere;}
@@ -10290,6 +10295,102 @@ function entRealtime(){
       .subscribe();
   }catch(e){}
 }
+/* ==ENTSYNC-INICIO==
+   HOTFIX 07/08/2026 — o painel APAGAVA os lançamentos guardados no navegador.
+   Como era: bastava existir UMA linha na nuvem para entCloudLoad() trocar entDados
+   inteiro pelo conteúdo da nuvem E regravar o localStorage por cima. Rodava a cada
+   login, em qualquer página. Quem lançava sem a página "entregas" liberada nunca
+   mandava nada pra nuvem (entCloudOK ficava falso) — então o trabalho dessa pessoa
+   sumia na primeira vez que alguém com permissão entrava no painel.
+   Como ficou: a nuvem só é adotada quando NÃO tira nada do que está no navegador.
+   Havendo qualquer célula local que a nuvem não tenha (ou com valor diferente), o
+   local é PRESERVADO, um backup é criado e a divergência aparece na tela.
+   Nada aqui apaga chave antiga. NÃO REMOVER sem substituir por reconciliação real. */
+
+var entConflito=null;   // {local:{...}, nuvem:{...}, divergentes:n, backup:"chave"}
+
+// Retrato de um conjunto de lançamentos (o do navegador ou o da nuvem).
+function entDiagRetrato(dados){
+  var comp=0, cel=0, soma=0, nomes={}, ultimo="";
+  Object.keys(dados||{}).forEach(function(mk){
+    comp++;
+    var pt=mk.split("-"), a=+pt[0], m=+pt[1];
+    var rot=a+"-"+("0"+(m+1)).slice(-2);
+    if(rot>ultimo) ultimo=rot;
+    Object.keys(dados[mk]||{}).forEach(function(nome){
+      nomes[nome]=true;
+      Object.keys(dados[mk][nome]||{}).forEach(function(d){ cel++; soma+=+dados[mk][nome][d]||0; });
+    });
+  });
+  return {competencias:comp, celulas:cel, soma:soma, entregadores:Object.keys(nomes).sort(), ultimoMes:ultimo};
+}
+
+// Células que existem no navegador e a nuvem NÃO tem, ou tem com valor diferente.
+// É a conta que decide se adotar a nuvem apagaria trabalho de alguém.
+function entDiagDivergentes(local,nuvem){
+  var out=[];
+  Object.keys(local||{}).forEach(function(mk){
+    Object.keys(local[mk]||{}).forEach(function(nome){
+      Object.keys(local[mk][nome]||{}).forEach(function(d){
+        var vl=local[mk][nome][d];
+        var vn=(((nuvem||{})[mk]||{})[nome]||{})[d];
+        if(vn===undefined || (+vn||0)!==(+vl||0)) out.push({mes:mk, nome:nome, dia:+d, local:+vl||0, nuvem:vn===undefined?null:(+vn||0)});
+      });
+    });
+  });
+  return out;
+}
+
+// Cópia de segurança do que está no navegador. Não sobrescreve backup igual e
+// não apaga nenhum backup anterior.
+function entBackupLocal(){
+  try{
+    var atual=localStorage.getItem("entregas_dados")||"{}";
+    var chaves=Object.keys(localStorage).filter(function(k){ return k.indexOf("entregas_dados_backup_")===0; });
+    for(var i=0;i<chaves.length;i++){ if(localStorage.getItem(chaves[i])===atual) return chaves[i]; }
+    var ts=new Date().toISOString().replace(/[:.]/g,"-");
+    var k="entregas_dados_backup_"+ts;
+    localStorage.setItem(k,atual);
+    try{ localStorage.setItem("entregas_entregadores_backup_"+ts, localStorage.getItem("entregas_entregadores")||"[]"); }catch(e){}
+    return k;
+  }catch(e){ return null; }
+}
+
+// Diagnóstico completo do que está guardado neste navegador (Fase 1).
+function entDiagLocal(){
+  var dados={}, ents=[], migrado=null, backups=[];
+  try{ dados=JSON.parse(localStorage.getItem("entregas_dados")||"{}")||{}; }catch(e){}
+  try{ ents=JSON.parse(localStorage.getItem("entregas_entregadores")||"[]")||[]; }catch(e){}
+  try{ migrado=localStorage.getItem("ent_migrado"); }catch(e){}
+  try{ backups=Object.keys(localStorage).filter(function(k){ return k.indexOf("entregas_dados_backup_")===0; }).sort(); }catch(e){}
+  var r=entDiagRetrato(dados);
+  var porMes=Object.keys(dados).sort().map(function(mk){
+    var pt=mk.split("-"), a=+pt[0], m=+pt[1], soma=0, cel=0;
+    Object.keys(dados[mk]||{}).forEach(function(n){ Object.keys(dados[mk][n]||{}).forEach(function(d){ cel++; soma+=+dados[mk][n][d]||0; }); });
+    return {competencia:a+"-"+("0"+(m+1)).slice(-2), celulas:cel, entregas:soma};
+  });
+  return {
+    existe_entregas_dados: Object.keys(dados).length>0,
+    competencias: r.competencias, celulas: r.celulas, total_entregas: r.soma,
+    entregadores_encontrados: r.entregadores, ultimo_mes_com_dado: r.ultimoMes,
+    cadastro_local: ents, ent_migrado: migrado, backups: backups, por_competencia: porMes
+  };
+}
+try{ window.entDiagnostico=entDiagLocal; }catch(e){}
+
+// Exporta o que está no navegador. Só leitura — não manda nada pra nuvem.
+function entExportarLocal(){
+  var pac={_painel:"Santa Rita", _modulo:"entregas", _versao:1, _data:new Date().toISOString(),
+           diagnostico:entDiagLocal(), entregas_dados:null, entregas_entregadores:null};
+  try{ pac.entregas_dados=JSON.parse(localStorage.getItem("entregas_dados")||"{}"); }catch(e){}
+  try{ pac.entregas_entregadores=JSON.parse(localStorage.getItem("entregas_entregadores")||"[]"); }catch(e){}
+  var blob=new Blob([JSON.stringify(pac,null,2)],{type:"application/json"});
+  var url=URL.createObjectURL(blob);
+  var d=new Date(), nome="entregas-local-"+d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2)+".json";
+  var a=document.createElement("a"); a.href=url; a.download=nome; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); },1000);
+}
+/* ==ENTSYNC-FIM== */
 function entCloudLoad(){
   var sb=entSB(); if(!sb||entCarregando) return;
   entCarregando=true;
@@ -10302,18 +10403,29 @@ function entCloudLoad(){
     var temLocal=(Object.keys(entDados).length>0);
     if(!temNuvem && temLocal && !jaMigrou){ entCloudMigrar(); return; }
     if(temNuvem){
-      if(rs[0].data.length){ entEntregadores=rs[0].data.map(function(r){ return r.nome; }); entOrdena(); }
-      var novo={};
+      var daNuvem={};
       rs[1].data.forEach(function(r){
         var mk=entMesKey(r.ano,r.mes-1);
-        if(!novo[mk]) novo[mk]={};
-        if(!novo[mk][r.entregador]) novo[mk][r.entregador]={};
-        novo[mk][r.entregador][r.dia]=+r.quantidade||0;
+        if(!daNuvem[mk]) daNuvem[mk]={};
+        if(!daNuvem[mk][r.entregador]) daNuvem[mk][r.entregador]={};
+        daNuvem[mk][r.entregador][r.dia]=+r.quantidade||0;
       });
-      entDados=novo;
-      try{ localStorage.setItem("entregas_entregadores",JSON.stringify(entEntregadores)); }catch(e){}
-      try{ localStorage.setItem("entregas_dados",JSON.stringify(entDados)); }catch(e){}
-      try{ localStorage.setItem("ent_migrado","1"); }catch(e){}
+      // HOTFIX: só adota a nuvem se isso NÃO tirar nada do que está no navegador.
+      var div=entDiagDivergentes(entDados,daNuvem);
+      if(div.length){
+        var bk=entBackupLocal();
+        entConflito={ local:entDiagRetrato(entDados), nuvem:entDiagRetrato(daNuvem),
+                      divergentes:div.length, exemplos:div.slice(0,5), backup:bk };
+        try{ console.warn("[Entregas] Seus lançamentos locais foram preservados. Existe divergência com a nuvem.",
+             {celulas_so_no_navegador:div.length, backup:bk, detalhe:entDiagLocal()}); }catch(e){}
+      } else {
+        entConflito=null;
+        if(rs[0].data.length){ entEntregadores=rs[0].data.map(function(r){ return r.nome; }); entOrdena(); }
+        entDados=daNuvem;
+        try{ localStorage.setItem("entregas_entregadores",JSON.stringify(entEntregadores)); }catch(e){}
+        try{ localStorage.setItem("entregas_dados",JSON.stringify(entDados)); }catch(e){}
+        try{ localStorage.setItem("ent_migrado","1"); }catch(e){}
+      }
       var pg=document.getElementById("page-entregas");
       if(pg && pg.classList.contains("ativo") && typeof renderEntregas==="function") renderEntregas();
     }
@@ -10658,13 +10770,30 @@ function entRenderStatus(ctx){
 // Avisos de confiabilidade do lançamento. Não bloqueiam nada: informam.
 function entRenderAvisos(ctx){
   var box=document.getElementById("entAvisos"); if(!box) return;
+  // Divergência entre o que está neste navegador e o que está na nuvem (hotfix).
+  // Fica em cima de tudo: é a única coisa que pode custar dado.
+  var conf="";
+  if(entConflito){
+    var L=entConflito.local;
+    conf='<div class="ent-aviso erro ent-aviso-conf">'+entIco("risco")+
+      '<div><b>Seus lançamentos locais foram preservados. Existe divergência com a nuvem.</b>'+
+      '<div class="det">'+num(entConflito.divergentes)+' lançamento'+(entConflito.divergentes>1?'s':'')+
+        (entConflito.divergentes>1?' estão':' está')+' só neste computador · '+
+        L.competencias+(L.competencias>1?' meses':' mês')+' · '+num(L.soma)+' entregas no total'+
+        (entConflito.backup?' · cópia de segurança guardada no navegador':'')+
+      '</div>'+
+      '<div class="acoes"><button type="button" data-entconf="baixar">Baixar cópia (JSON)</button>'+
+      '<button type="button" data-entconf="detalhes">Ver detalhes</button></div>'+
+      '<div class="det">Nada foi apagado. Enquanto isso não for resolvido, o painel não substitui o que está aqui pelo que está na nuvem.</div>'+
+      '</div></div>';
+  }
   var av=[];
   var n=ctx.semLancamento.length;
   if(n===1) av.push({c:"aviso",txt:"Existe 1 dia útil sem lançamento: "+entLista(ctx.semLancamento)+". Ele fica de fora da média e da projeção."});
   else if(n>1) av.push({c:"aviso",txt:"Existem "+n+" dias úteis sem lançamento: "+entLista(ctx.semLancamento)+". Eles ficam de fora da média e da projeção."});
   var f=entValoresEmDiaFechado(ctx.ano,ctx.mes);
   if(f.length) av.push({c:"erro",txt:"Há entrega lançada em dia fechado ("+entLista(f)+"). Domingo e feriado não contam — esses números não entram em conta nenhuma."});
-  box.innerHTML=av.map(function(a){
+  box.innerHTML=conf+av.map(function(a){
     return '<div class="ent-aviso '+a.c+'">'+entIco(a.c==="erro"?"risco":"atencao")+'<span>'+a.txt+'</span></div>';
   }).join("");
 }
@@ -10774,8 +10903,12 @@ function entChartAcumulado(){
   }
   let eixo=""; pts.forEach(function(p,i){ if(n<=16||i%2===0||i===n-1) eixo+='<text class="ent-acum-dia" x="'+X(i).toFixed(1)+'" y="'+(h-8)+'" text-anchor="middle" font-size="11" font-weight="700">'+p.dia+'</text>'; });
   const valor='<text class="ent-acum-val" x="'+X(ultimo).toFixed(1)+'" y="'+(Y(pts[ultimo].real)-10).toFixed(1)+'" text-anchor="'+(ultimo>n-3?"end":"middle")+'" font-size="12.5" font-weight="800">'+num(Math.round(pts[ultimo].real))+'</text>';
-  const metaTxt='<text class="ent-acum-espt" x="'+X(n-1).toFixed(1)+'" y="'+(Y(meta)-9).toFixed(1)+'" text-anchor="end" font-size="11.5" font-weight="700">meta '+num(meta)+'</text>';
-  const svg='<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'">'+grid+
+  // Rótulo da meta encostado na ESQUERDA: o gráfico é mais largo que a tela em mês
+  // cheio e rola na horizontal — no canto direito ele ficava cortado.
+  const metaTxt='<text class="ent-acum-espt" x="'+(padL+6)+'" y="'+(Y(meta)-8).toFixed(1)+'" text-anchor="start" font-size="11.5" font-weight="700">meta '+num(meta)+'</text>';
+  // Encolhe pra caber em vez de rolar na horizontal: num mês cheio o gráfico passava
+  // da largura do cartão e cortava justamente o último dia e o total acumulado.
+  const svg='<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:auto;max-width:'+w+'px;display:block">'+grid+
     '<path class="ent-acum-esp" d="'+esp+'" fill="none" stroke-width="2" stroke-dasharray="6 5"/>'+
     '<path class="ent-acum-real" d="'+real+'" fill="none" stroke-width="2.4"/>'+bolas+eixo+metaTxt+valor+'</svg>';
   const leg='<div class="ent-leg"><span><i class="ent-lg-real"></i>Acumulado real</span><span><i class="ent-lg-esp"></i>Necessário para a meta base</span></div>';
@@ -10904,6 +11037,20 @@ function renderEntregas(){
     const old=inp.getAttribute("data-old"), nv=inp.value.trim();
     if(nv===old) return;
     if(entRenameEntregador(old,nv)){ renderEntregas(); } else { inp.value=old; uiConfirm({titulo:"Aviso",msg:"Nome inválido ou já existe.",ok:"OK",cancel:""}); }
+  });
+  document.getElementById("entAvisos").addEventListener("click",function(e){
+    var b=e.target.closest("[data-entconf]"); if(!b) return;
+    if(b.getAttribute("data-entconf")==="baixar"){ entExportarLocal(); return; }
+    var d=entDiagLocal();
+    try{ console.log("=== Entregas — o que está guardado NESTE navegador ==="); console.log(d);
+         if(d.por_competencia.length) console.table(d.por_competencia); }catch(e2){}
+    uiConfirm({titulo:"O que está neste computador",
+      msg:d.competencias+" mês(es) · "+d.celulas+" lançamentos · "+d.total_entregas+" entregas no total."+
+          (d.entregadores_encontrados.length?"\\nEntregadores: "+d.entregadores_encontrados.join(", "):"")+
+          (d.ultimo_mes_com_dado?"\\nÚltimo mês com dado: "+d.ultimo_mes_com_dado:"")+
+          "\\nCópias de segurança guardadas: "+d.backups.length+
+          "\\n\\nA lista completa saiu no console (F12).",
+      ok:"OK",cancel:""});
   });
   document.getElementById("entGrade").addEventListener("input",function(e){
     const inp=e.target.closest("input[data-nome]"); if(!inp) return;
