@@ -12231,6 +12231,337 @@ function entCobrados(a,m){
   var md=entDados[entMesKey(a,m)]||{};
   return Object.keys(md).filter(function(id){ var p=entPessoa(id); return !!(p&&p.ativo); });
 }
+/* ==ENTDOC-INICIO==
+   DOCUMENTO OFICIAL DE FECHAMENTO — remuneração variável por entregas.
+   Mesma família visual dos documentos de Pontos Extras: a barra pxDocBarraHtml, a folha
+   .doc-page sobre fundo cinza, e o mesmo tratamento de impressão (@page + esconder a
+   barra). O que muda é o conteúdo: aquilo é instrumento jurídico (serifa, texto
+   corrido), isto é peça de RH (tabela, valores, conferência).
+
+   ESTA FUNÇÃO NÃO CALCULA NADA. Recebe pronto o que já foi calculado pelos módulos
+   ==ENTFIN-*== e devolve só HTML. Mexer aqui não pode mudar um centavo. */
+function entRelFaixaCurta(f){
+  return f==="desafio" ? "Meta 2" : f==="base" ? "Meta 1" : "Sem remuneração";
+}
+function entRelDocHtml(d){
+  var E=entEsc;
+  var comp=("0"+(d.mes+1)).slice(-2)+"/"+d.ano;
+  var compExt=(MESES[d.mes]||"").toUpperCase()+" / "+d.ano;
+  var linhas=d.linhas||[], t=d.tot||{};
+
+  var corpo="";
+  linhas.forEach(function(l,i){
+    corpo+='<tr>'+
+      '<td class="pos">'+("0"+(i+1)).slice(-2)+'</td>'+
+      '<td class="nm">'+E(l.nome)+'</td>'+
+      '<td class="qt">'+num(l.total)+'</td>'+
+      '<td class="fx"><span class="tag tag-'+l.fin.faixa+'">'+entRelFaixaCurta(l.fin.faixa)+'</span></td>'+
+      '<td class="vl">'+entfNum2(l.fin.unitario)+'</td>'+
+      '<td class="vl forte">'+entfNum2(l.fin.total)+'</td></tr>';
+  });
+
+  var barra=pxDocBarraHtml({
+    titulo:"Relatório de remuneração variável",
+    codigo:"Entregas · competência "+comp,
+    badge:"Fechado",
+    emissao:d.emitidoData+" às "+d.emitidoHora,
+    printLabel:"Imprimir / Salvar PDF"
+  });
+
+  var css=barra.css+
+  "*{box-sizing:border-box}"+
+  "html{background:#f4f5f6}"+
+  "body{margin:0;background:#f4f5f6;color:#1d2733;font-family:'Inter',-apple-system,'Segoe UI',Roboto,Arial,sans-serif;font-size:13px;line-height:1.5}"+
+  ".doc-page-wrap{padding:32px 20px 64px}"+
+  ".doc-page{max-width:820px;margin:0 auto;background:#fff;padding:34px 40px 30px;border-radius:10px;"+
+    "box-shadow:0 1px 3px rgba(16,24,32,.06),0 1px 2px rgba(16,24,32,.04)}"+
+
+  /* cabeçalho institucional */
+  ".cab{display:flex;justify-content:space-between;align-items:flex-start;gap:28px;"+
+    "border-bottom:2px solid #0c5a26;padding-bottom:16px}"+
+  ".cab-l{display:flex;gap:14px;align-items:flex-start;min-width:0}"+
+  ".cab-l img{height:42px;width:auto;flex:none}"+
+  ".emp{font-size:13.5px;font-weight:700;color:#0c5a26;letter-spacing:.2px;line-height:1.3}"+
+  ".emp-sub{font-size:10.5px;color:#8a97a8;margin-top:1px}"+
+  ".tit{font-size:18px;font-weight:700;color:#1d2733;margin-top:14px;line-height:1.25;letter-spacing:-.1px}"+
+  ".tit-sub{font-size:11.5px;color:#5a6b7d;margin-top:3px;text-transform:uppercase;letter-spacing:.9px;font-weight:600}"+
+  ".cab-r{text-align:right;flex:none}"+
+  ".cab-r .rot{font-size:9px;font-weight:700;color:#8a97a8;text-transform:uppercase;letter-spacing:1px}"+
+  ".cab-r .val{font-size:14px;font-weight:700;color:#1d2733;margin:1px 0 10px}"+
+  ".selo{display:inline-block;border:1px solid #9cc9ad;color:#0c5a26;background:#f1f8f3;"+
+    "border-radius:4px;padding:2px 10px;font-size:11px;font-weight:800;letter-spacing:.8px}"+
+
+  /* faixa de identificação */
+  ".ident{display:flex;flex-wrap:wrap;gap:10px 34px;border-bottom:1px solid #e6ebf1;padding:11px 0 12px;margin-bottom:20px}"+
+  ".ident div{font-size:11px;color:#5a6b7d}"+
+  ".ident div b{display:block;font-size:8.5px;font-weight:700;color:#8a97a8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:1px}"+
+
+  ".sec{font-size:10px;font-weight:800;color:#0c5a26;text-transform:uppercase;letter-spacing:1.1px;"+
+    "margin:0 0 9px;padding-bottom:5px;border-bottom:1px solid #e6ebf1}"+
+  ".bloco{margin-bottom:22px}"+
+
+  /* resumo */
+  ".res{display:flex;align-items:stretch;border:1px solid #e6ebf1;border-radius:6px;overflow:hidden}"+
+  ".res-n{flex:1;padding:11px 14px;border-right:1px solid #eef2f6}"+
+  ".res-n .r{font-size:8.5px;font-weight:700;color:#8a97a8;text-transform:uppercase;letter-spacing:.7px;line-height:1.3}"+
+  ".res-n .v{font-size:19px;font-weight:700;color:#1d2733;margin-top:3px;font-variant-numeric:tabular-nums}"+
+  ".res-n .u{font-size:9.5px;color:#8a97a8;font-weight:500}"+
+  ".res-total{background:#f1f8f3;border-left:2px solid #0c5a26;padding:11px 18px;min-width:190px;border-right:0}"+
+  ".res-total .r{color:#3f7d55}"+
+  ".res-total .v{font-size:25px;color:#0c5a26;letter-spacing:-.4px}"+
+
+  /* tabelas */
+  "table{width:100%;border-collapse:collapse}"+
+  "th{font-size:8.5px;font-weight:800;color:#5a6b7d;text-transform:uppercase;letter-spacing:.8px;"+
+    "padding:0 9px 7px;border-bottom:1.5px solid #cfd8e3;text-align:left;white-space:nowrap}"+
+  "td{padding:8px 9px;border-bottom:1px solid #eef2f6;font-size:12.5px;vertical-align:middle}"+
+  "th.num,td.qt,td.vl,th.vl{text-align:right;font-variant-numeric:tabular-nums}"+
+  "td.pos{width:30px;color:#a7b1bd;font-size:11px;font-variant-numeric:tabular-nums}"+
+  "th.pos{width:30px}"+
+  "td.nm{font-weight:600;color:#1d2733}"+
+  "td.forte{font-weight:700;color:#0c5a26}"+
+  "tbody tr:nth-child(even) td{background:#fbfcfd}"+
+  ".tag{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.3px;padding:1.5px 8px;"+
+    "border-radius:3px;border:1px solid #d7dee7;color:#5a6b7d;white-space:nowrap}"+
+  ".tag-base{border-color:#a9cdb8;color:#1e6b36;background:#f4faf6}"+
+  ".tag-desafio{border-color:#0c5a26;color:#0c5a26;background:#e7f3ec}"+
+  ".tag-sem{border-color:#dfe4ea;color:#8a97a8;background:#fafbfc}"+
+
+  /* critério */
+  "table.crit td{font-size:12px}"+
+  "table.crit td:first-child{font-weight:600}"+
+  ".nota{font-size:10.5px;color:#5a6b7d;line-height:1.55;margin-top:9px;padding-left:11px;border-left:2px solid #e6ebf1}"+
+
+  /* totalização */
+  ".fecha{margin-top:14px;border:1.5px solid #0c5a26;border-radius:6px;display:flex;align-items:stretch;overflow:hidden}"+
+  ".fecha-t{flex:1;padding:13px 18px}"+
+  ".fecha-t .r{font-size:9px;font-weight:800;color:#0c5a26;text-transform:uppercase;letter-spacing:1px}"+
+  ".fecha-t .s{font-size:11px;color:#5a6b7d;margin-top:3px}"+
+  ".fecha-q{padding:13px 18px;border-left:1px solid #cfe0d6;text-align:right}"+
+  ".fecha-q .r{font-size:8.5px;font-weight:700;color:#8a97a8;text-transform:uppercase;letter-spacing:.8px}"+
+  ".fecha-q .v{font-size:16px;font-weight:700;color:#1d2733;font-variant-numeric:tabular-nums}"+
+  ".fecha-v{background:#0c5a26;color:#fff;padding:13px 22px;text-align:right;min-width:210px}"+
+  ".fecha-v .r{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;opacity:.82}"+
+  ".fecha-v .v{font-size:26px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums;margin-top:1px}"+
+
+  /* conferência */
+  ".conf{display:flex;gap:26px;align-items:flex-start}"+
+  ".conf-c{flex:none}"+
+  ".cx{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#46535f;margin-bottom:9px}"+
+  ".cx i{display:inline-block;width:12px;height:12px;border:1.2px solid #8a97a8;border-radius:2px;flex:none}"+
+  ".conf-l{flex:1;min-width:0}"+
+  ".ln{border-bottom:1px solid #c8d0da;height:19px;margin-top:15px}"+
+  ".ln-r{font-size:8.5px;font-weight:700;color:#8a97a8;text-transform:uppercase;letter-spacing:.7px}"+
+  ".ln-2{display:flex;gap:22px}.ln-2 .a{flex:2}.ln-2 .b{flex:1}"+
+
+  ".obs{font-size:10.5px;color:#5a6b7d;line-height:1.6;background:#fafbfc;border:1px solid #eef2f6;"+
+    "border-radius:5px;padding:11px 14px}"+
+  ".diverg{font-size:10.5px;color:#7a5600;background:#fdf6e3;border:1px solid #f0e0b6;"+
+    "border-radius:5px;padding:9px 13px;margin-bottom:16px;line-height:1.55}"+
+
+  ".rod{margin-top:26px;padding-top:12px;border-top:1px solid #e6ebf1;display:flex;"+
+    "justify-content:space-between;gap:20px;font-size:9.5px;color:#8a97a8;line-height:1.5}"+
+  ".rod b{color:#5a6b7d;font-weight:700}"+
+  ".rod-r{text-align:right;flex:none}"+
+  ".rodape-print{display:none}"+
+
+  "";
+
+  /* ---------- IMPRESSÃO ----------
+     Fica numa variável porque o auto-ajuste lá embaixo precisa reaplicar exatamente
+     estas mesmas regras pra MEDIR quantas folhas o documento vai ocupar. */
+  var PR=""+
+    ".docbar{display:none!important}"+
+    "html,body{background:#fff}"+
+    "body{font-size:10.5pt}"+
+    ".doc-page-wrap{padding:0}"+
+    ".doc-page{max-width:none;margin:0;padding:0;border-radius:0;box-shadow:none}"+
+    "thead{display:table-header-group}"+
+    "tfoot{display:table-footer-group}"+
+    "tr{break-inside:avoid;page-break-inside:avoid}"+
+    /* Só os blocos PEQUENOS ficam inteiros. O detalhamento NÃO pode: com 38 entregadores
+       ele não cabe em folha nenhuma, e proibir a quebra fazia o Chrome empurrar a tabela
+       inteira pra frente, deixando a primeira página quase em branco. */
+    ".res,.fecha,.conf,.obs,.cab{break-inside:avoid;page-break-inside:avoid}"+
+    ".sec{break-after:avoid;page-break-after:avoid}"+
+    "td{padding:5px 8px}"+
+    ".res-n .v{font-size:15pt}.res-total .v{font-size:19pt}.fecha-v .v{font-size:20pt}"+
+    /* A folha é cara: com 5 ou 6 entregadores o relatório TEM que caber numa página.
+       O que encolhe é só o espaço vazio — nenhum número, nenhum rótulo. */
+    ".bloco{margin-bottom:10px}"+
+    ".cab{padding-bottom:9px}"+
+    ".cab-l img{height:36px}"+
+    ".ident{padding:7px 0 8px;margin-bottom:11px;gap:6px 28px}"+
+    ".tit{margin-top:8px;font-size:16px}"+
+    ".sec{margin-bottom:5px;padding-bottom:4px}"+
+    ".res-n{padding:7px 10px}.res-n .v{font-size:14pt}.res-total .v{font-size:17.5pt}"+
+    ".nota{margin-top:5px;font-size:8.5pt}"+
+    ".fecha{margin-top:9px}"+
+    ".fecha-t,.fecha-q{padding:8px 13px}.fecha-v{padding:8px 15px}.fecha-v .v{font-size:18pt}"+
+    ".ln{height:13px;margin-top:9px}"+
+    ".obs{padding:7px 10px;font-size:8.5pt}"+
+    ".cx{margin-bottom:7px}"+
+    ".rod{display:none}"+
+    /* rodapé que se repete em TODA página impressa: qualquer folha solta continua
+       identificando a competência e a data de emissão. */
+    /* bottom NEGATIVO empurrava o rodapé pra fora da caixa da página e o Chrome
+       criava uma folha a mais. Fica em 0, dentro da área útil, e o conteúdo ganha um
+       respiro embaixo pra nunca passar por cima dele. */
+    ".doc-page{padding-bottom:9mm}"+
+    ".rodape-print{display:block;position:fixed;bottom:0;left:0;right:0;"+
+      "font-size:7.5pt;color:#8a97a8;border-top:.5pt solid #e6ebf1;padding-top:2.5mm;"+
+      "display:flex;justify-content:space-between;gap:14px}"+
+    ".tag{border-width:.7pt}"+
+    ".fecha-v{background:#0c5a26!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}"+
+    ".res-total,.tag-desafio,.tag-base{-webkit-print-color-adjust:exact;print-color-adjust:exact}"+
+    "tbody tr:nth-child(even) td{background:transparent}"+
+  "";
+
+  css+="@page{size:A4;margin:11mm 11mm 15mm}"+
+  "@media print{"+PR+"}"+
+  "@media (max-width:700px){"+
+    ".doc-page{padding:22px 16px}"+
+    ".cab{flex-direction:column;gap:14px}.cab-r{text-align:left}"+
+    ".res{flex-direction:column}.res-n{border-right:0;border-bottom:1px solid #eef2f6}"+
+    ".res-total{border-left:0;border-top:2px solid #0c5a26;min-width:0}"+
+    ".fecha{flex-direction:column}.fecha-q{border-left:0;border-top:1px solid #cfe0d6;text-align:left}"+
+    ".fecha-v{text-align:left;min-width:0}"+
+    ".conf{flex-direction:column;gap:6px}"+
+    "table{font-size:11.5px}td,th{padding-left:5px;padding-right:5px}"+
+  "}";
+
+  var h='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">'+
+    '<meta name="viewport" content="width=device-width,initial-scale=1">'+
+    '<title>Remuneração variável — Entregas — '+comp.replace("/","-")+'</title>'+
+    '<link rel="preconnect" href="https://fonts.googleapis.com">'+
+    '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">'+
+    '<style>'+css+'</style></head><body>';
+  h+=barra.html;
+  h+='<div class="doc-page-wrap"><main class="doc-page">';
+
+  /* ---- cabeçalho ---- */
+  h+='<header class="cab"><div class="cab-l">'+
+     (d.logo?'<img src="'+d.logo+'" alt="">':'')+
+     '<div><div class="emp">'+E(d.empresa.fantasia)+'</div>'+
+     '<div class="emp-sub">Painel de Inteligência Operacional</div>'+
+     '<h1 class="tit">Relatório de Remuneração Variável</h1>'+
+     '<div class="tit-sub">Entregas · Delivery</div></div></div>'+
+     '<div class="cab-r">'+
+       '<div class="rot">Competência</div><div class="val">'+compExt+'</div>'+
+       '<div class="rot">Situação</div><div class="val"><span class="selo">FECHADO</span></div>'+
+     '</div></header>';
+
+  /* ---- identificação / rastreabilidade ---- */
+  h+='<section class="ident">'+
+     '<div><b>Empresa</b>'+E(d.empresa.razao)+'</div>'+
+     '<div><b>CNPJ</b>'+E(d.empresa.cnpj)+'</div>'+
+     '<div><b>Competência</b>'+comp+'</div>'+
+     (d.fechadoEm?'<div><b>Fechado em</b>'+E(d.fechadoEm)+'</div>':'')+
+     (d.fechadoPor?'<div><b>Fechado por</b>'+E(d.fechadoPor)+'</div>':'')+
+     '<div><b>Emitido em</b>'+E(d.emitidoData)+' às '+E(d.emitidoHora)+'</div>'+
+     '</section>';
+
+  if(d.diverg) h+='<div class="diverg">'+E(d.diverg)+'</div>';
+
+  /* ---- resumo ---- */
+  h+='<section class="bloco"><h2 class="sec">Resumo da competência</h2><div class="res">'+
+     '<div class="res-n"><div class="r">Entregadores</div><div class="v">'+num(linhas.length)+'</div></div>'+
+     '<div class="res-n"><div class="r">Entregas</div><div class="v">'+num(t.entregas||0)+'</div></div>'+
+     '<div class="res-n"><div class="r">Meta 2 atingida</div><div class="v">'+num(t.desafio||0)+'<span class="u"> de '+num(linhas.length)+'</span></div></div>'+
+     '<div class="res-n"><div class="r">Meta 1 atingida</div><div class="v">'+num(t.base||0)+'<span class="u"> de '+num(linhas.length)+'</span></div></div>'+
+     '<div class="res-n"><div class="r">Sem remuneração</div><div class="v">'+num(t.sem||0)+'<span class="u"> de '+num(linhas.length)+'</span></div></div>'+
+     '<div class="res-n res-total"><div class="r">Total para folha</div><div class="v">'+entfMoeda(t.total||0)+'</div></div>'+
+     '</div></section>';
+
+  /* ---- critério ---- */
+  h+='<section class="bloco"><h2 class="sec">Critério de remuneração</h2>'+
+     '<table class="crit"><thead><tr><th>Faixa</th><th>Critério</th><th class="vl">Valor por entrega</th></tr></thead><tbody>'+
+     '<tr><td>Sem remuneração</td><td>até '+num(d.cfg.base-1)+' entregas</td><td class="vl">'+entfMoeda(0)+'</td></tr>'+
+     '<tr><td>Meta 1</td><td>de '+num(d.cfg.base)+' a '+num(d.cfg.desafio-1)+' entregas</td><td class="vl">'+entfMoeda(d.cfg.vbase)+'</td></tr>'+
+     '<tr><td>Meta 2</td><td>'+num(d.cfg.desafio)+' entregas ou mais</td><td class="vl">'+entfMoeda(d.cfg.vdes)+'</td></tr>'+
+     '</tbody></table>'+
+     '<p class="nota">Ao atingir uma faixa, <b>todas</b> as entregas realizadas na competência são remuneradas pelo valor unitário correspondente à faixa alcançada. Metas e valores são os que estavam vigentes no fechamento desta competência.</p>'+
+     '</section>';
+
+  /* ---- detalhamento ---- */
+  h+='<section class="bloco"><h2 class="sec">Detalhamento por entregador</h2>'+
+     '<table><thead><tr><th class="pos">#</th><th>Entregador</th><th class="num">Entregas</th>'+
+     '<th>Faixa atingida</th><th class="vl">R$ / entrega</th><th class="vl">Valor calculado</th></tr></thead>'+
+     '<tbody>'+corpo+'</tbody></table>'+
+
+     '<div class="fecha">'+
+       '<div class="fecha-t"><div class="r">Total da competência</div>'+
+       '<div class="s">'+num(linhas.length)+' entregador(es) · competência '+comp+'</div></div>'+
+       '<div class="fecha-q"><div class="r">Entregas</div><div class="v">'+num(t.entregas||0)+'</div></div>'+
+       '<div class="fecha-v"><div class="r">Valor calculado para a folha</div>'+
+       '<div class="v">'+entfMoeda(t.total||0)+'</div></div>'+
+     '</div></section>';
+
+  /* ---- conferência ---- */
+  h+='<section class="bloco"><h2 class="sec">Conferência — Departamento Pessoal</h2>'+
+     '<div class="conf"><div class="conf-c">'+
+       '<div class="cx"><i></i>Valores conferidos</div>'+
+       '<div class="cx"><i></i>Lançado na folha</div>'+
+     '</div><div class="conf-l">'+
+       '<div class="ln-2"><div class="a"><div class="ln-r">Responsável</div><div class="ln"></div></div>'+
+       '<div class="b"><div class="ln-r">Data</div><div class="ln"></div></div></div>'+
+       '<div class="ln-r" style="margin-top:14px">Observações</div><div class="ln"></div><div class="ln"></div>'+
+     '</div></div></section>';
+
+  /* ---- observação ---- */
+  h+='<section class="bloco"><h2 class="sec">Observação</h2><p class="obs">'+
+     'Este documento apresenta exclusivamente a <b>remuneração variável</b> calculada com base nas entregas '+
+     'realizadas na competência. Não representa salário líquido nem custo total do colaborador e não contempla '+
+     'salário-base, encargos, descontos ou quaisquer outras verbas da folha de pagamento.</p></section>';
+
+  /* ---- rodapé ---- */
+  h+='<footer class="rod"><div><b>'+E(d.empresa.razao)+'</b> · CNPJ '+E(d.empresa.cnpj)+'<br>'+
+     E(d.empresa.endereco)+'</div>'+
+     '<div class="rod-r">Documento gerado automaticamente pelo Painel Santa Rita<br>'+
+     'Competência '+comp+' · emitido em '+E(d.emitidoData)+' às '+E(d.emitidoHora)+'</div></footer>';
+
+  h+='</main></div>';
+  h+='<div class="rodape-print"><span>'+E(d.empresa.fantasia)+' · Remuneração variável por entregas · competência '+comp+'</span>'+
+     '<span>Emitido em '+E(d.emitidoData)+' às '+E(d.emitidoHora)+'</span></div>';
+
+  /* AUTO-AJUSTE DE FOLHA — mesma ideia do contrato de Ponto Extra, adaptada.
+     Mede o documento COM as regras de impressão e, se ele passar POUCO da folha
+     (sobrando uma página quase vazia só pra levar a conferência), encolhe de leve até
+     fechar. Se passar muito, não força nada: relatório de 40 entregadores é 3 páginas
+     mesmo, e espremer viraria letra ilegível. O limite é 12% — abaixo disso a folha
+     fica com corpo menor que o do contrato. */
+  h+="<scr"+"ipt>(function(){var PR="+JSON.stringify(PR)+";"
+    +"var UTIL=271;"                       /* 297mm - 11mm de topo - 15mm de pé */
+    +"function alturaMM(){var pg=document.querySelector('.doc-page');if(!pg)return 0;"
+    +"var r=pg.getBoundingClientRect();if(!r.width)return 0;return r.height/(r.width/188);}"
+    +"function ajustar(){"
+    /* A largura TEM que ser a da folha (188mm). Medindo numa janela mais larga, a letra
+       fica pequena em relação à caixa, o texto quebra menos e a conta dá menos folhas
+       do que a impressão real vai dar. */
+    +"var st=document.createElement('style');"
+    +"st.textContent='@media screen{'+PR+'.doc-page-wrap{padding:0;width:188mm;overflow:visible}'"
+    +"+'.doc-page{width:188mm;max-width:188mm}}';document.head.appendChild(st);"
+    +"var alt=alturaMM();st.remove();"
+    +"if(!alt)return;"
+    +"var folhas=alt/UTIL, cheias=Math.floor(folhas), sobra=folhas-cheias;"
+    +"if(cheias<1||sobra<=0||sobra>0.22)return;"          /* já cabe, ou falta muito */
+    /* Numa folha só a conta é exata. Em várias, os blocos que não podem partir
+       (resumo, total, conferência) pulam de página e desperdiçam espaço que a altura
+       somada não enxerga — por isso o alvo fica 5% abaixo do papel disponível. */
+    +"var alvo=(cheias===1?cheias*UTIL:cheias*UTIL*0.95);"
+    +"var k=alvo/alt;"
+    +"if(k<0.88)return;"                                  /* encolher demais = ilegível */
+    +"k=Math.floor(k*1000)/1000;"
+    +"var f=document.createElement('style');"
+    +"f.textContent='@media print{body{zoom:'+k+'}}';document.head.appendChild(f);}"
+    +"var feito=false;function go(){if(feito)return;feito=true;ajustar();}"
+    +"setTimeout(go,90);window.addEventListener('load',function(){setTimeout(go,50);});"
+    +"window.addEventListener('beforeprint',function(){feito=false;go();});"
+    +"})();</scr"+"ipt>";
+  h+='</body></html>';
+  return h;
+}
+/* ==ENTDOC-FIM== */
 function entRelatorioRH(){
   // Só de mês FECHADO. Relatório de mês aberto é número que ainda vai mudar — e o RH
   // não pode receber uma coisa hoje e outra amanhã.
@@ -12244,68 +12575,64 @@ function entRelatorioRH(){
     uiConfirm({titulo:"Configure antes",msg:"Defina as metas e os valores por entrega em \\"Metas e valores\\" antes de gerar o relatório.",ok:"OK",cancel:""});
     return;
   }
+  // ---- OS NÚMEROS: exatamente a mesma conta de antes. Não mexer. ----
   var cfg=entCfgAtual(), mk=entMesKey(entAno,entMes);
   var linhas=entIdsDoMes(entAno,entMes).map(function(id){
     var tot=entTotalEntregador(entAno,entMes,id);
     return {nome:entNomeDe(id,mk), total:tot, fin:entfFaixa(tot,cfg)};
   }).sort(function(a,b){ return b.total-a.total; });
   var t=entfTotalEquipe(linhas.map(function(l){ return l.total; }),cfg);
-  var fechado=entMesFechado();
-  var hoje=new Date();
-  var dt=("0"+hoje.getDate()).slice(-2)+"/"+("0"+(hoje.getMonth()+1)).slice(-2)+"/"+hoje.getFullYear();
 
-  var corpo="";
-  linhas.forEach(function(l,i){
-    corpo+='<tr><td class="p">'+(i+1)+'</td><td class="nm">'+entEsc(l.nome)+'</td>'+
-      '<td class="n">'+num(l.total)+'</td>'+
-      '<td class="f">'+entfRotulo(l.fin.faixa)+'</td>'+
-      '<td class="n">'+entfNum2(l.fin.unitario)+'</td>'+
-      '<td class="n forte">'+entfNum2(l.fin.total)+'</td></tr>';
-  });
+  // CONFERÊNCIA DE INTEGRIDADE: o servidor congelou totais no fechamento. Se o que a
+  // tela calcula não bate com o que foi congelado, o RH tem que saber — em vez de
+  // receber um número diferente do que foi fechado, sem aviso nenhum.
+  var diverg="";
+  try{
+    if(entFech){
+      var tE=(entFech.total_entregas===null||entFech.total_entregas===undefined)?null:+entFech.total_entregas;
+      var tV=(entFech.total_remuneracao===null||entFech.total_remuneracao===undefined)?null:Math.round(+entFech.total_remuneracao*100);
+      var d1=(tE!==null && tE!==t.entregas), d2=(tV!==null && tV!==t.total);
+      if(d1||d2) diverg="Atenção: os totais desta tela não batem com os que foram congelados no fechamento"+
+        (d1?" (entregas: "+num(t.entregas)+" aqui, "+num(tE)+" no fechamento)":"")+
+        (d2?" (valor: "+entfMoeda(t.total)+" aqui, "+entfMoeda(tV)+" no fechamento)":"")+
+        ". Confira antes de enviar ao RH.";
+    }
+  }catch(e){}
 
-  var html='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">'+
-  '<title>Remuneracao variavel - Entregas - '+MESES[entMes]+' '+entAno+'</title><style>'+
-  '@page{size:A4;margin:16mm 14mm}'+
-  'body{font:12pt/1.5 -apple-system,Helvetica,Arial,sans-serif;color:#1d2733;margin:0}'+
-  'h1{font-size:17pt;color:#0c5a26;margin:0 0 2mm}'+
-  '.sub{font-size:10pt;color:#5a6b7d;margin-bottom:7mm}'+
-  '.aviso{font-size:9.5pt;color:#5a6b7d;border-left:3pt solid #cfe0d6;padding:2mm 0 2mm 4mm;margin:0 0 6mm}'+
-  'table{width:100%;border-collapse:collapse;font-size:11pt}'+
-  'th{background:#eef4f0;color:#0c5a26;font-size:9.5pt;text-transform:uppercase;letter-spacing:.4px;'+
-  'padding:2.5mm;border-bottom:1pt solid #cfe0d6;text-align:center}'+
-  'th.nm{text-align:left}'+
-  'td{padding:2.5mm;border-bottom:.5pt solid #e6ebf1;text-align:center}'+
-  'td.nm{text-align:left;font-weight:600}td.p{color:#8a97a8;width:8mm}'+
-  'td.n{text-align:center}td.forte{font-weight:800}'+
-  'tr.tot td{background:#f6faf7;font-weight:800;color:#0c5a26;border-top:1.5pt solid #cfe0d6}'+
-  '.res{margin-top:6mm;font-size:10.5pt;color:#46535f}'+
-  '.res b{color:#0c5a26}'+
-  '.ass{margin-top:16mm;font-size:10pt;color:#5a6b7d}'+
-  '</style></head><body>'+
-  '<h1>Remuneração variável por entregas</h1>'+
-  '<div class="sub">Supermercado Santa Rita · '+MESES[entMes]+' de '+entAno+
-    ' · mês FECHADO'+
-    ' · emitido em '+dt+'</div>'+
-  '<div class="aviso">Meta 1: <b>'+num(cfg.base)+'</b> entregas a '+entfMoeda(cfg.vbase)+' por entrega.<br>'+
-    'Meta 2: <b>'+num(cfg.desafio)+'</b> entregas a '+entfMoeda(cfg.vdes)+' por entrega.<br>'+
-    'Ao atingir uma meta, <b>todas</b> as entregas do mês passam a valer o valor daquela faixa.</div>'+
-  '<table><thead><tr><th></th><th class="nm">Entregador</th><th>Entregas</th>'+
-  '<th>Faixa atingida</th><th>R$ por entrega</th><th>Valor a receber</th></tr></thead><tbody>'+
-  corpo+
-  '<tr class="tot"><td></td><td class="nm">Total da equipe</td><td class="n">'+num(t.entregas)+'</td>'+
-  '<td></td><td></td><td class="n">'+entfNum2(t.total)+'</td></tr>'+
-  '</tbody></table>'+
-  '<div class="res">Atingiram a <b>meta 2</b>: '+t.desafio+' · atingiram a <b>meta 1</b>: '+t.base+
-    ' · <b>sem remuneração</b> variável: '+t.sem+'.<br>'+
-    'Total a lançar na folha: <b>'+entfMoeda(t.total)+'</b>.</div>'+
-  '<div class="ass">Este documento traz apenas a <b>remuneração variável por entregas</b>. '+
-    'Não inclui salário, encargos, descontos nem qualquer outra verba.</div>'+
-  '</body></html>';
+  var ag=new Date();
+  var p2=function(n){ return ("0"+n).slice(-2); };
+  var dados={
+    ano:entAno, mes:entMes, cfg:cfg, linhas:linhas, tot:t, diverg:diverg,
+    emitidoData:p2(ag.getDate())+"/"+p2(ag.getMonth()+1)+"/"+ag.getFullYear(),
+    emitidoHora:p2(ag.getHours())+":"+p2(ag.getMinutes()),
+    fechadoEm:"", fechadoPor:"",
+    empresa:(typeof PX_LOCADOR!=="undefined"?PX_LOCADOR:{razao:"",fantasia:"Supermercado Santa Rita",cnpj:"",endereco:""}),
+    logo:(typeof LOGO_URI!=="undefined"&&LOGO_URI)?LOGO_URI:""
+  };
+  if(entFech && entFech.fechado_em){
+    var f=String(entFech.fechado_em), dd=new Date(f);
+    dados.fechadoEm=isNaN(dd.getTime())
+      ? (f.slice(8,10)+"/"+f.slice(5,7)+"/"+f.slice(0,4))
+      : (p2(dd.getDate())+"/"+p2(dd.getMonth()+1)+"/"+dd.getFullYear()+" às "+p2(dd.getHours())+":"+p2(dd.getMinutes()));
+  }
 
-  var w=window.open("","_blank");
-  if(!w){ uiConfirm({titulo:"Bloqueado",msg:"O navegador bloqueou a janela. Libere pop-ups para este site e tente de novo.",ok:"OK",cancel:""}); return; }
-  w.document.write(html); w.document.close();
-  setTimeout(function(){ try{ w.focus(); w.print(); }catch(e){} }, 400);
+  function abrir(){
+    var w=window.open("","_blank");
+    if(!w){ uiConfirm({titulo:"Bloqueado",msg:"O navegador bloqueou a janela. Libere pop-ups para este site e tente de novo.",ok:"OK",cancel:""}); return; }
+    w.document.write(entRelDocHtml(dados)); w.document.close();
+    setTimeout(function(){ try{ w.focus(); }catch(e){} }, 300);
+  }
+
+  // Quem fechou: só entra no documento se o servidor souber dizer. Nada de inventar
+  // nome nem mostrar um código cru que não diz nada pro RH.
+  var sb=entSB();
+  if(sb && entFech && entFech.fechado_por){
+    sb.from("perfis").select("email,setor").eq("id",entFech.fechado_por).maybeSingle().then(function(r){
+      var p=(r&&!r.error&&r.data)||null;
+      if(p&&p.email) dados.fechadoPor=p.email+(p.setor?" · "+p.setor:"");
+      abrir();
+    },abrir);
+  } else abrir();
 }
 // Fim da grade: é aqui que a pessoa termina de digitar. Ou diz o que falta, ou
 // oferece o botão de finalizar. Nada de "salvar" — a gravação já é automática, e
