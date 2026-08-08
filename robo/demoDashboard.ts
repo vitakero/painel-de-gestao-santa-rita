@@ -2641,6 +2641,37 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       .cl-tab.cl-print:hover{background:#f4f6f9;}
       .cl-integ{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-radius:12px;padding:12px 18px;margin-bottom:16px;font-size:13px;line-height:1.45;}
       .cl-integ.demo{background:#fff8ec;border:1px solid #f2dcb3;color:#8a5a12;}
+      /* ---- Caixa de pedidos dos fornecedores ---- */
+      /* Fica ACIMA das abas de propósito: é a única coisa da Central que espera uma AÇÃO.
+         Some inteira quando não há pedido — caixa vazia todo dia vira paisagem. */
+      .cl-ped{border:1px solid #e0c477;background:#fdf6e3;border-radius:12px;padding:14px 16px;margin-bottom:16px;}
+      .cl-ped-cab{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:10px;}
+      .cl-ped-cab b{font-size:14.5px;color:#7a5600;}
+      .cl-ped-cab .qt{background:#7a5600;color:#fff;border-radius:20px;padding:1px 9px;font-size:12px;font-weight:800;}
+      .cl-ped-lista{display:flex;flex-direction:column;gap:8px;}
+      .cl-ped-item{background:#fff;border:1px solid #eadfc2;border-radius:9px;padding:11px 13px;
+                   display:flex;gap:14px;align-items:center;flex-wrap:wrap;}
+      .cl-ped-quando{font-weight:800;color:#0c5a26;font-size:14px;white-space:nowrap;}
+      .cl-ped-quem{flex:1;min-width:160px;}
+      .cl-ped-quem b{display:block;font-size:14px;color:#1d2733;}
+      .cl-ped-quem span{font-size:12px;color:#8a97a8;}
+      .cl-ped-acoes{display:flex;gap:8px;flex-shrink:0;}
+      .cl-ped-acoes button{border:0;border-radius:8px;padding:8px 15px;font-size:13px;font-weight:700;
+                           cursor:pointer;font-family:inherit;}
+      .cl-ped-sim{background:#157a35;color:#fff;}
+      .cl-ped-sim:hover{background:#0c5a26;}
+      .cl-ped-nao{background:#fff;color:#8a5a12;border:1px solid #e0c477!important;}
+      .cl-ped-nao:hover{background:#fdf6e3;}
+      .cl-ped-acoes button[disabled]{opacity:.5;cursor:default;}
+      .cl-conf{margin-bottom:16px;}
+      .cl-conf-lin{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:13.5px;
+                   border:1px solid #dfe6e0;border-radius:9px;padding:10px 13px;background:#fff;margin-bottom:7px;}
+      .cl-conf-lin .qd{font-weight:800;color:#0c5a26;white-space:nowrap;}
+      .cl-conf-lin .nm{flex:1;min-width:150px;color:#1d2733;font-weight:600;}
+      .cl-conf-lin .selo{font-size:11px;font-weight:700;color:#0c5a26;background:#e9f5ed;
+                         border:1px solid #cfe0d6;border-radius:5px;padding:2px 8px;}
+      .cl-sec-tit{font-size:12px;font-weight:800;color:#8a97a8;text-transform:uppercase;
+                  letter-spacing:.6px;margin:0 0 8px;}
       /* ---- Conferência dos carros ---- */
       /* Enquanto for exemplo, a tela fica listrada e cada linha ganha selo vermelho:
          ninguém pode confundir maquete com dado da loja e decidir em cima disso. */
@@ -2734,6 +2765,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         </div>
         <p style="font-size:12.5px;color:#8a97a8;margin:2px 0 16px;">Programação de recebimentos — os agendamentos vêm do sistema VR; aqui você enxerga o dia, a semana e os atrasos num relance.</p>
         <div id="clIntegBanner"></div>
+        <div id="clPedidos"></div>
         <div class="cl-tabs">
           <button type="button" class="cl-tab on" data-clview="hoje">Visão de hoje</button>
           <button type="button" class="cl-tab" data-clview="agenda">Agenda da semana</button>
@@ -5172,9 +5204,111 @@ function clLinkFornecedor(){
   try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(url); }catch(e){}
   uiConfirm({titulo:"Link de agendamento do fornecedor",msg:"Copiei o link! Mande pros seus fornecedores agendarem a entrega:   "+url,ok:"Abrir página",cancel:"Fechar"}).then(function(ok){ if(ok){ try{ window.open(url,"_blank"); }catch(e){} } });
 }
+/* ---------- PEDIDOS DOS FORNECEDORES ----------
+   O fornecedor agenda pelo link público e o pedido nasce PENDENTE. Até existir esta tela,
+   ele ficava gravado e invisível: a loja não tinha como aprovar nem recusar.
+   Quem pode decidir é o master OU quem tem a página Central — a mesma regra que o banco
+   já cobra em ent_definir_status, então a tela não inventa permissão nenhuma. */
+var clPedidos=[], clPedidosCarregando=false;
+
+function clPodeDecidir(){
+  try{ return !!(window.__PERFIL && window.__PERFIL.is_master) || podePagina("central"); }catch(e){ return false; }
+}
+function clPedidosLoad(){
+  var sb=window.__SB; if(!sb||clPedidosCarregando) return;
+  clPedidosCarregando=true;
+  sb.from("entregas_agendamento")
+    .select("id,fornecedor,documento,contato,data,hora,pedido,descricao,status,criado_em")
+    .in("status",["pendente","aprovado"])
+    .gte("data", clDataISO(new Date()))
+    .order("data").order("hora")
+    .then(function(r){
+      clPedidosCarregando=false;
+      if(r&&r.error) return;                    // sem permissão ou sem rede: não inventa lista
+      clPedidos=(r&&r.data)||[];
+      renderClPedidos();
+    }, function(){ clPedidosCarregando=false; });
+}
+function clHoraCurta(h){ return String(h||"").slice(0,5); }
+function clDataLonga(iso){
+  var p=String(iso||"").split("-"); if(p.length<3) return iso||"";
+  var d=new Date(+p[0],+p[1]-1,+p[2]);
+  var dias=["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
+  return dias[d.getDay()]+", "+p[2]+"/"+p[1];
+}
+function renderClPedidos(){
+  var box=document.getElementById("clPedidos"); if(!box) return;
+  var pend=clPedidos.filter(function(p){ return p.status==="pendente"; });
+  var apro=clPedidos.filter(function(p){ return p.status==="aprovado"; });
+  var h="";
+
+  if(pend.length){
+    h+='<div class="cl-ped"><div class="cl-ped-cab">'+
+       '<b>Pedidos de fornecedor aguardando resposta</b>'+
+       '<span class="qt">'+pend.length+'</span></div><div class="cl-ped-lista">';
+    pend.forEach(function(p){
+      var extra=[];
+      if(p.documento) extra.push(pxEsc(p.documento));
+      if(p.contato) extra.push(pxEsc(p.contato));
+      if(p.pedido) extra.push("pedido "+pxEsc(p.pedido));
+      if(p.descricao) extra.push(pxEsc(p.descricao));
+      h+='<div class="cl-ped-item" data-pid="'+pxEsc(p.id)+'">'+
+         '<span class="cl-ped-quando">'+clDataLonga(p.data)+' · '+clHoraCurta(p.hora)+'</span>'+
+         '<span class="cl-ped-quem"><b>'+pxEsc(p.fornecedor)+'</b>'+
+         (extra.length?'<span>'+extra.join(" · ")+'</span>':'')+'</span>'+
+         (clPodeDecidir()
+           ? '<span class="cl-ped-acoes">'+
+             '<button type="button" class="cl-ped-nao" data-pnao="'+pxEsc(p.id)+'">Recusar</button>'+
+             '<button type="button" class="cl-ped-sim" data-psim="'+pxEsc(p.id)+'">Aprovar</button></span>'
+           : '<span style="font-size:12.5px;color:#8a97a8;">aguardando o responsável</span>')+
+         '</div>';
+    });
+    h+='</div></div>';
+  }
+
+  if(apro.length){
+    h+='<div class="cl-conf"><p class="cl-sec-tit">Entregas confirmadas</p>';
+    apro.slice(0,12).forEach(function(p){
+      h+='<div class="cl-conf-lin"><span class="qd">'+clDataLonga(p.data)+' · '+clHoraCurta(p.hora)+'</span>'+
+         '<span class="nm">'+pxEsc(p.fornecedor)+(p.pedido?' <span style="color:#8a97a8;font-weight:400;">· pedido '+pxEsc(p.pedido)+'</span>':'')+'</span>'+
+         '<span class="selo">confirmada</span></div>';
+    });
+    if(apro.length>12) h+='<p style="font-size:12.5px;color:#8a97a8;margin:4px 0 0;">e mais '+(apro.length-12)+'.</p>';
+    h+='</div>';
+  }
+  box.innerHTML=h;
+}
+function clDecidir(id,status){
+  var sb=window.__SB; if(!sb) return;
+  var item=clPedidos.filter(function(p){ return p.id===id; })[0];
+  var quem=item?item.fornecedor:"este fornecedor";
+  var quando=item?(clDataLonga(item.data)+" às "+clHoraCurta(item.hora)):"";
+  uiConfirm({
+    titulo:(status==="aprovado"?"Aprovar ":"Recusar ")+quem,
+    msg:quando+"\\n\\n"+(status==="aprovado"
+      ? "A janela fica reservada para este fornecedor e ninguém mais consegue agendar nesse horário."
+      : "O horário volta a ficar livre para outro fornecedor."),
+    ok:(status==="aprovado"?"Aprovar":"Recusar"), cancel:"Cancelar"
+  }).then(function(ok){
+    if(!ok) return;
+    var bts=document.querySelectorAll('[data-psim="'+id+'"],[data-pnao="'+id+'"]');
+    for(var i=0;i<bts.length;i++) bts[i].disabled=true;
+    sb.rpc("ent_definir_status",{p_id:id,p_status:status}).then(function(r){
+      var d=(r&&r.data)||null;
+      if((r&&r.error)||(d&&d.ok===false)){
+        for(var j=0;j<bts.length;j++) bts[j].disabled=false;
+        uiConfirm({titulo:"Não deu certo",
+          msg:((r&&r.error&&r.error.message)||(d&&d.erro)||"Tente de novo."),ok:"OK",cancel:""});
+        return;
+      }
+      clPedidosLoad();
+    });
+  });
+}
 function renderCentral(){
   if(!centralAg||!centralAg.length){ if(centralModo!=="live"){ centralAg=clSeed(); } }
   renderClInteg();
+  renderClPedidos(); clPedidosLoad();
   var vh=document.getElementById("clHoje"), va=document.getElementById("clAgenda"), vc=document.getElementById("clConf");
   if(vh)vh.style.display="none"; if(va)va.style.display="none"; if(vc)vc.style.display="none";
   if(clView==="conf"){ if(vc)vc.style.display=""; renderClConf(); }
@@ -5519,6 +5653,12 @@ function clImprimir(){
   var di=document.getElementById("clDiaInp"); if(di) di.onchange=function(){ if(this.value) clMudaDia(this.value); };
   var dh=document.getElementById("clDiaHoje"); if(dh) dh.onclick=function(){ clMudaDia(clDataISO(new Date())); };
   var ib=document.getElementById("clImprimirBtn"); if(ib) ib.addEventListener("click",clImprimir);
+  // Aprovar/recusar: um listener só no bloco, porque a lista é redesenhada a cada carga.
+  var cp=document.getElementById("clPedidos");
+  if(cp) cp.addEventListener("click",function(e){
+    var s=e.target.closest("[data-psim]"); if(s){ clDecidir(s.getAttribute("data-psim"),"aprovado"); return; }
+    var n=e.target.closest("[data-pnao]"); if(n){ clDecidir(n.getAttribute("data-pnao"),"recusado"); return; }
+  });
   var lb=document.getElementById("clLinkBtn"); if(lb) lb.addEventListener("click",clLinkFornecedor);
 })();
 // CALENDÁRIO DE COBRANÇAS do galpão — mesmo formato dos pontos extras (uma linha por mensalidade).
