@@ -17498,19 +17498,31 @@ function pedEnviar(){
     var navs=document.querySelectorAll('.nav-item[data-page]');
     if(!perfil || perfil.is_master){ navs.forEach(function(b){ b.style.display=''; b.classList.remove('nav-locked'); }); return; }
     var ok=perfil.paginas||[], first=null;
+    /* UMA regra só pra "pode ver esta aba?".
+       Antes o laço usava uma regra e a conferência final usava outra (indexOf cru), e a
+       diferença jogava a pessoa pra fora da página em que ela estava ao recarregar:
+       quem tem "entregas_lancar" mas não "entregas" caía na primeira aba liberada da lista
+       — Escala, por exemplo. Duas regras pro mesmo conceito sempre divergem. */
+    function podeAba(p){
+      if(!p) return false;
+      if(ok.indexOf(p)>=0) return true;
+      if(p==="entregas" && ok.indexOf("entregas_lancar")>=0) return true;   // versão enxuta abre a MESMA aba
+      // estas vivem DENTRO de Receitas e não têm item de menu próprio
+      if(["insumos","custosop","material","rateio"].indexOf(p)>=0 && ok.indexOf("receitas")>=0) return true;
+      return false;
+    }
     navs.forEach(function(b){
       // Abas "só master" (ex: Galpões = patrimônio pessoal do dono) ficam OCULTAS pra qualquer não-master.
       if(b.classList.contains('nav-mo')){ b.style.display='none'; return; }
-      // "entregas_lancar" abre a MESMA aba de Entregas, só que na versão enxuta.
-      var allow=ok.indexOf(b.dataset.page)>=0 ||
-                (b.dataset.page==="entregas" && ok.indexOf("entregas_lancar")>=0);
+      var allow=podeAba(b.dataset.page);
       b.style.display='';
       b.classList.toggle('nav-locked',!allow);
       if(allow&&!first)first=b;
     });
     var ativa=document.querySelector('.page.ativo');
     var aid=ativa?ativa.id.replace('page-',''):'';
-    if(ok.indexOf(aid)<0 && first){ first.click(); }
+    // Só tira a pessoa do lugar se ela REALMENTE não pode estar ali.
+    if(!podeAba(aid) && first){ first.click(); }
   }
   function showUser(perfil,email){
     window.__PERFIL=perfil; window.__EMAIL=email;
