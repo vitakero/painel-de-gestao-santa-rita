@@ -2675,6 +2675,40 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       /* ---- Conferência dos carros ---- */
       /* Enquanto for exemplo, a tela fica listrada e cada linha ganha selo vermelho:
          ninguém pode confundir maquete com dado da loja e decidir em cima disso. */
+      .cl-conf-lin.clicavel{cursor:pointer;}
+      .cl-conf-lin.clicavel:hover{background:#f7fbf8;border-color:#cfe0d6;}
+      .cl-conf-ver{display:inline-block;margin-left:7px;font-size:11px;font-weight:700;color:#1f4d7a;
+                   text-decoration:underline;}
+      /* ---- detalhe da divergência ---- */
+      .cl-dv-bg{position:fixed;inset:0;background:rgba(16,24,32,.45);z-index:99998;display:none;
+                align-items:center;justify-content:center;padding:18px;}
+      .cl-dv-bg.show{display:flex;}
+      .cl-dv{background:#fff;border-radius:14px;max-width:900px;width:100%;max-height:88vh;
+             display:flex;flex-direction:column;box-shadow:0 18px 50px rgba(16,24,32,.28);}
+      .cl-dv-top{padding:18px 22px 14px;border-bottom:1px solid #eef2f6;}
+      .cl-dv-top h3{margin:0;font-size:17px;color:#0c5a26;}
+      .cl-dv-top .sub{font-size:12.5px;color:#8a97a8;margin-top:3px;}
+      .cl-dv-corpo{padding:16px 22px 20px;overflow:auto;}
+      .cl-dv-tipos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+      .cl-dv-tipo{border:1px solid #e6ebf1;border-radius:8px;padding:6px 12px;font-size:12.5px;color:#46535f;}
+      .cl-dv-tipo b{color:#1d2733;font-size:15px;margin-right:5px;}
+      .cl-dv-tipo.grave{border-color:#e6c9c6;background:#fdf3f2;color:#8c2f28;}
+      .cl-dv-tipo.grave b{color:#8c2f28;}
+      .cl-dv-tipo.ruido{opacity:.7;}
+      table.cl-dv-t{width:100%;border-collapse:collapse;font-size:13px;}
+      table.cl-dv-t th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;
+                       color:#8a97a8;padding:6px 8px;border-bottom:1px solid #e6ebf1;white-space:nowrap;}
+      table.cl-dv-t td{padding:7px 8px;border-bottom:1px solid #f2f5f8;vertical-align:top;}
+      table.cl-dv-t td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+      table.cl-dv-t .tp{font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+                        color:#8a97a8;white-space:nowrap;}
+      table.cl-dv-t tr.g .tp{color:#8c2f28;}
+      table.cl-dv-t tr.g td.pd{font-weight:700;color:#8c2f28;}
+      .cl-dv-nota{margin-top:14px;font-size:12.5px;color:#8a5a12;background:#fdf6e3;
+                  border:1px solid #f0e0b6;border-radius:8px;padding:10px 13px;line-height:1.5;}
+      .cl-dv-fim{padding:12px 22px 16px;border-top:1px solid #eef2f6;display:flex;justify-content:flex-end;}
+      .cl-dv-fim button{border:0;background:#157a35;color:#fff;border-radius:9px;padding:9px 20px;
+                        font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;}
       .cl-fake-aviso{background:#fbf4e2;border:1px solid #e8dbb4;border-left:4px solid #c0392b;border-radius:10px;
                      padding:13px 16px;margin-top:14px;font-size:13px;color:#6b5000;line-height:1.6;}
       .cl-fake-aviso b{color:#a3341f;}
@@ -2766,6 +2800,13 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <p style="font-size:12.5px;color:#8a97a8;margin:2px 0 16px;">Programação de recebimentos — os agendamentos vêm do sistema VR; aqui você enxerga o dia, a semana e os atrasos num relance.</p>
         <div id="clIntegBanner"></div>
         <div id="clPedidos"></div>
+        <div class="cl-dv-bg" id="clDvBg">
+          <div class="cl-dv">
+            <div class="cl-dv-top"><h3 id="clDvTit"></h3><div class="sub" id="clDvSub"></div></div>
+            <div class="cl-dv-corpo" id="clDvCorpo"></div>
+            <div class="cl-dv-fim"><button type="button" id="clDvFechar">Fechar</button></div>
+          </div>
+        </div>
         <div class="cl-tabs">
           <button type="button" class="cl-tab on" data-clview="hoje">Visão de hoje</button>
           <button type="button" class="cl-tab" data-clview="agenda">Agenda da semana</button>
@@ -5362,6 +5403,58 @@ function clConfDias(){
   var d={}; centralConf.forEach(function(c){ if(c.data) d[c.data]=1; });
   return Object.keys(d).sort().reverse();
 }
+/* O número solto escondia o que importa: 8 divergências pode ser 8 produtos que não vieram
+   ou 8 arredondamentos de fração de centavo. Aqui o número vira a conta POR TIPO. */
+var CL_DV_GRAVE={"NAO ENTREGUE":1,"QUANTIDADE":1,"QUANTIDADE/CUSTO":1,"CUSTO":1,"SEM PEDIDO":1};
+function clConfResumoTipos(c,dv){
+  var t=(c.divergencia_detalhe&&c.divergencia_detalhe.tipos)||[];
+  if(!t.length) return dv+" com divergência";
+  return t.slice(0,3).map(function(x){ return x.qtd+" "+String(x.tipo||"").toLowerCase(); }).join(" · ")
+       + (t.length>3?" · +"+(t.length-3):"");
+}
+function clConfAcha(id){
+  for(var i=0;i<centralConf.length;i++) if(String(centralConf[i].id)===String(id)) return centralConf[i];
+  return null;
+}
+function clNum(v){ v=+v||0; return v.toLocaleString("pt-BR",{maximumFractionDigits:3}); }
+function clDinheiro(v){ v=+v||0; return v?("R$ "+v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})):"—"; }
+function clAbreDivergencia(id){
+  var c=clConfAcha(id); if(!c) return;
+  var d=c.divergencia_detalhe||{}, tipos=d.tipos||[], itens=d.itens||[];
+  var bg=document.getElementById("clDvBg"); if(!bg) return;
+
+  var chips=tipos.map(function(x){
+    var g=CL_DV_GRAVE[String(x.tipo||"").toUpperCase()];
+    return '<span class="cl-dv-tipo '+(g?"grave":"ruido")+'"><b>'+x.qtd+'</b>'+pxEsc(String(x.tipo||"").toLowerCase())+'</span>';
+  }).join("");
+
+  var linhas=itens.map(function(i){
+    var tp=String(i.tipo||"").toUpperCase(), g=CL_DV_GRAVE[tp];
+    var falta=(tp==="NAO ENTREGUE");
+    return '<tr class="'+(g?"g":"")+'">'
+      +'<td class="tp">'+pxEsc(String(i.tipo||"").toLowerCase())+'</td>'
+      +'<td class="pd">'+pxEsc(i.produto||"")+'</td>'
+      +'<td class="n">'+clNum(i.pedido)+'</td>'
+      +'<td class="n">'+(falta?'<b style="color:#8c2f28">0</b>':clNum(i.veio))+'</td>'
+      +'<td class="n">'+clDinheiro(i.custo_pedido)+'</td>'
+      +'<td class="n">'+clDinheiro(i.custo_nota)+'</td></tr>';
+  }).join("");
+
+  document.getElementById("clDvTit").textContent=c.fornecedor||"(sem nota ligada)";
+  document.getElementById("clDvSub").textContent=
+    clDataLonga(c.data)+" · senha "+(c.senha||"")+" · "+(c.bipagens||0)+" itens bipados · "
+    +(c.notas||0)+(+c.notas===1?" nota":" notas");
+  document.getElementById("clDvCorpo").innerHTML=
+    '<div class="cl-dv-tipos">'+chips+'</div>'
+    +'<table class="cl-dv-t"><thead><tr><th>Tipo</th><th>Produto</th>'
+    +'<th style="text-align:right">Pedido</th><th style="text-align:right">Veio</th>'
+    +'<th style="text-align:right">Custo pedido</th><th style="text-align:right">Custo nota</th>'
+    +'</tr></thead><tbody>'+linhas+'</tbody></table>'
+    +'<div class="cl-dv-nota"><b>O VR não registra se a divergência foi resolvida.</b> '
+    +'A nota ter finalizado quer dizer que a entrada foi concluída assim — não que alguém corrigiu. '
+    +'O que veio com <b>0</b> não foi cobrado na nota: o fornecedor simplesmente não mandou.</div>';
+  bg.classList.add("show");
+}
 function renderClConf(){
   var el=document.getElementById("clConf"); if(!el) return;
   if(!centralConf.length){ centralConf=clConfSeed(); centralConfModo="demo"; }
@@ -5398,7 +5491,9 @@ function renderClConf(){
   doDia.forEach(function(c){
     var st=clConfSt(c), mm=clConfMin(c.minutos), dv=+c.divergencias||0;
     var notas=(+c.notas||0), nf=(+c.notas_finalizadas||0);
-    h+='<div class="cl-conf-lin'+(clConfEhExemplo()?" fake":"")+'">'
+    var temDet=!!(c.divergencia_detalhe&&c.divergencia_detalhe.itens&&c.divergencia_detalhe.itens.length);
+    h+='<div class="cl-conf-lin'+(clConfEhExemplo()?" fake":"")+(temDet?" clicavel":"")+'"'
+      +(temDet?' data-conf="'+pxEsc(c.id)+'" title="Clique para ver o que divergiu"':'')+'>'
       +'<div class="cl-conf-a"><div class="cl-conf-f">'
         +(clConfEhExemplo()?'<span class="cl-fake-tag">exemplo</span>':'')
         +pxEsc(c.fornecedor||"(sem nota ligada)")+'</div>'
@@ -5409,7 +5504,7 @@ function renderClConf(){
       +'<div class="cl-conf-t '+mm.cls+'">'+mm.t+'</div>'
       +'<div><span class="cl-conf-st '+st.k+'"><span class="pt"></span>'+st.t+'</span>'
         +(c.situacao==="finalizado"
-           ? (dv>0?'<div class="cl-conf-dv">⚠ '+dv+' com divergência</div>'
+           ? (dv>0?'<div class="cl-conf-dv">⚠ '+clConfResumoTipos(c,dv)+(temDet?'<span class="cl-conf-ver">ver</span>':'')+'</div>'
                   :'<div class="cl-conf-ok">✓ recebido 100%</div>')
            : (c.situacao==="aguardando"?'<div class="cl-conf-m">a nota ainda não foi finalizada</div>':''))
       +'</div></div>';
@@ -5654,6 +5749,21 @@ function clImprimir(){
   var dh=document.getElementById("clDiaHoje"); if(dh) dh.onclick=function(){ clMudaDia(clDataISO(new Date())); };
   var ib=document.getElementById("clImprimirBtn"); if(ib) ib.addEventListener("click",clImprimir);
   // Aprovar/recusar: um listener só no bloco, porque a lista é redesenhada a cada carga.
+  // Abrir o detalhe da divergência: um listener na seção inteira, porque a lista é
+  // redesenhada toda vez que a Central recarrega.
+  sec.addEventListener("click",function(e){
+    var l=e.target.closest("[data-conf]"); if(!l) return;
+    clAbreDivergencia(l.getAttribute("data-conf"));
+  });
+  var dvbg=document.getElementById("clDvBg");
+  if(dvbg){
+    dvbg.addEventListener("click",function(e){ if(e.target===dvbg) dvbg.classList.remove("show"); });
+    var fc=document.getElementById("clDvFechar");
+    if(fc) fc.onclick=function(){ dvbg.classList.remove("show"); };
+    document.addEventListener("keydown",function(e){
+      if(e.key==="Escape" && dvbg.classList.contains("show")) dvbg.classList.remove("show");
+    });
+  }
   var cp=document.getElementById("clPedidos");
   if(cp) cp.addEventListener("click",function(e){
     var s=e.target.closest("[data-psim]"); if(s){ clDecidir(s.getAttribute("data-psim"),"aprovado"); return; }
