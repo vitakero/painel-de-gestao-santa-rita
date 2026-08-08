@@ -3141,7 +3141,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <button class="ent-btn" id="entEditar" type="button">Lançar entregas</button>
         </div>
         <div id="entCfgBox"></div>
-        <div class="ent-sync ok" id="entSync"><span class="pt"></span>Tudo sincronizado</div>
+        <div class="ent-sync ok" id="entSync" style="display:none"></div>
         <div id="entStatus"></div>
         <div id="entAvisos"></div>
         <div class="kpis" id="entKpis" style="grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin-bottom:22px;"></div>
@@ -10819,7 +10819,14 @@ function entSyncPintar(){
   else if(entSyncEstado.erro){ t="Falha na sincronização — "+pend.length+" pendente(s)"; c="erro"; }
   else if(pend.length){ t=pend.length+" alteração(ões) pendente(s)"; c="pend"; }
   else if(entRecusas.length){ t="Alteração recusada"; c="erro"; }
-  else { t="Tudo sincronizado"; c="ok"; }
+  else {
+    // TUDO CERTO NÃO PRECISA DE AVISO. A faixa verde "Tudo sincronizado" ficava na tela o
+    // tempo todo sem informar nada — virou ruído. Ela some quando não há o que dizer e
+    // volta sozinha se aparecer coisa não salva, queda de conexão ou recusa do servidor.
+    el.className="ent-sync ok"; el.innerHTML=""; el.style.display="none";
+    return;
+  }
+  el.style.display="";
   // Recusa de regra some da fila, mas não pode sumir da vista: a pessoa digitou e o
   // número não entrou. Ela precisa saber o motivo, não descobrir depois pelo total.
   var rec=entRecusas.length?entRecusas[entRecusas.length-1].motivo:"";
