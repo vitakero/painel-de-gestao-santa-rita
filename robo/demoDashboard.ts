@@ -11534,8 +11534,11 @@ function entRenderAvisos(ctx){
   else if(n>1) av.push({c:"aviso",txt:"Existem "+n+" dias úteis sem lançamento: "+entLista(ctx.semLancamento)+". Eles ficam de fora da média e da projeção."});
   var f=entValoresEmDiaFechado(ctx.ano,ctx.mes);
   if(f.length) av.push({c:"erro",txt:"Há entrega lançada em dia fechado ("+entLista(f)+"). Domingo e feriado não contam — esses números não entram em conta nenhuma."});
-  // O que precisa da atenção do gerente, sem virar central de alertas.
-  var fora=entForaDoPadrao(ctx.ano,ctx.mes);
+  // FORA DO PADRÃO é assunto de GERENTE, não de quem digita.
+  // Na tela de quem lança isso só criaria dúvida sobre um número que ela acabou de copiar
+  // do papel — e ela não tem como julgar se 15 entregas do Anderson foi dia fraco ou erro.
+  // A célula amarela na grade continua para os dois; some só o texto.
+  var fora=entSoLanca()?[]:entForaDoPadrao(ctx.ano,ctx.mes);
   if(fora.length){
     var ex=fora.slice(0,3).map(function(f){ return f.nome+" dia "+f.dia+" ("+num(f.valor)+")"; }).join(", ");
     av.push({c:"aviso",txt:(fora.length===1?"1 lançamento está":fora.length+" lançamentos estão")+
