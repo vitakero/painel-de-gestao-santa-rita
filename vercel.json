@@ -1,26 +1,25 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "_comentario": [
-    "TRAVA DE PUBLICACAO NO VERCEL.",
+    "TRAVA DE PUBLICACAO NO VERCEL — com FALHA SEGURA.",
     "",
-    "O PROBLEMA: GitHub Pages e Vercel servem o MESMO arquivo do MESMO repositorio.",
-    "Cada commit disparava uma publicacao no Vercel, e o plano gratuito so permite 100",
-    "por dia (janela de 24h). Num dia de muitos ajustes o limite estourava e o site do",
-    "dominio proprio congelava numa versao velha, parecendo que o codigo nao tinha subido.",
+    "O Vercel so publica quando a mensagem do commit tiver [publicar]. Todo o resto vai pro",
+    "GitHub normalmente, entao o endereco de teste (vitakero.github.io) atualiza sempre e o",
+    "dominio de producao so muda quando o dono mandar.",
     "",
-    "A REGRA AGORA: o Vercel so publica quando a mensagem do commit tiver [publicar].",
-    "Todo o resto continua indo pro GitHub normalmente — entao o endereco de teste",
-    "(vitakero.github.io/painel-de-gestao-santa-rita) atualiza a cada ajuste, e o dominio",
-    "de producao (painel.supermercadosantarita.com.br) so muda quando o dono mandar.",
+    "FALHA SEGURA (licao de 08/08/2026): a primeira versao usava grep na variavel",
+    "VERCEL_GIT_COMMIT_MESSAGE. Se essa variavel nao chega ate aqui, o grep falha, a regra",
+    "manda IGNORAR e o site CONGELA — foi o que aconteceu: 2 commits marcados [publicar] e",
+    "nenhum publicou. Agora, se a mensagem vier VAZIA, a regra PUBLICA. Errar publicando",
+    "demais custa uma vaga do limite diario; errar ignorando deixa a loja com o site velho.",
     "",
-    "QUEM MARCA [publicar]:",
-    "  - o robo da loja (publicar.cjs sem FORCAR): producao TEM que receber dado fresco",
-    "  - o Mac, so quando rodar com SUBIR=1",
+    "Usa 'case' (embutido no shell) em vez de grep, e os colchetes vao entre aspas pra serem",
+    "texto literal — sem aspas viram curinga e casam com qualquer mensagem.",
     "",
     "exit 1 = publica  /  exit 0 = ignora  (regra do Vercel, nao inverter)",
-    "grep -F compara texto puro: sem isso os colchetes viram curinga e casam com qualquer commit.",
     "",
-    "PARA DESFAZER: apague este arquivo do repositorio. O Vercel volta a publicar a cada commit."
+    "QUEM MARCA [publicar]: o robo da loja (sempre) e o Mac so com SUBIR=1.",
+    "PARA DESFAZER: apague este arquivo. O Vercel volta a publicar a cada commit."
   ],
-  "ignoreCommand": "printf '%s' \"$VERCEL_GIT_COMMIT_MESSAGE\" | grep -qF '[publicar]' && exit 1 || exit 0"
+  "ignoreCommand": "if [ -z \"$VERCEL_GIT_COMMIT_MESSAGE\" ]; then exit 1; fi; case \"$VERCEL_GIT_COMMIT_MESSAGE\" in *\"[publicar]\"*) exit 1;; *) exit 0;; esac"
 }
