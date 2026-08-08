@@ -12787,7 +12787,11 @@ function entRenderGrade(){
   head+='<th class="tot">Total</th></tr>';
   let body="";
   const mkG=entMesKey(entAno,entMes);
-  const fora={}; entForaDoPadrao(entAno,entMes).forEach(function(f){ fora[f.id+"|"+f.dia]=f; });
+  // A marca amarela de "fora do padrão" também é leitura de GERENTE: some da grade de quem
+  // lança, fica na do administrador. Ela copia o número do papel e não tem como julgar se
+  // 15 foi dia fraco ou dedo errado — a marca só geraria dúvida no meio da digitação.
+  const fora={};
+  if(!entSoLanca()) entForaDoPadrao(entAno,entMes).forEach(function(f){ fora[f.id+"|"+f.dia]=f; });
   // A chave da célula é o ID, nunca o nome — é isso que faz renomear não mover nada.
   entIdsDoMes(entAno,entMes).forEach(function(id){
     const p=entPessoa(id), inativo=(p&&!p.ativo);
