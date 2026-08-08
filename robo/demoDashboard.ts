@@ -3849,7 +3849,25 @@ const MESES=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agos
    Getters LOCAIS de propósito: os antigos eram UTC, e em Caicó (UTC-3) das 21h em diante
    o UTC já está no dia seguinte — o painel virava o dia três horas antes da loja.
    A hora em que os dados do VR foram lidos continua sendo outra coisa: geradoEm. */
-const HOJE=(function(){ var d=new Date(); return new Date(d.getFullYear(),d.getMonth(),d.getDate()); })();
+let HOJE=(function(){ var d=new Date(); return new Date(d.getFullYear(),d.getMonth(),d.getDate()); })();
+/* E VIRA SOZINHO À MEIA-NOITE.
+   A data era lida UMA vez, no carregamento. Na loja o painel fica aberto o dia inteiro —
+   então quem deixasse a aba aberta atravessava a virada com a data de ontem, e a coluna
+   do dia novo não abria até alguém recarregar. Confere de minuto em minuto (custo zero) e,
+   quando o dia muda, atualiza a data e redesenha a tela que estiver aberta.
+   É let (e não const) de propósito: quem lê HOJE lê a variável, então todo mundo enxerga o valor novo. */
+setInterval(function(){
+  var d=new Date(), h=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  if(h.getTime()===HOJE.getTime()) return;
+  HOJE=h;
+  try{
+    var pg=document.querySelector(".page.ativo")||document.querySelector("[id^='page-'].ativo");
+    var id=pg?pg.id.replace("page-",""):"";
+    if(id==="entregas" && typeof renderEntregas==="function") renderEntregas();
+    else if(id==="central" && typeof renderCentral==="function") renderCentral();
+    else if(typeof renderCalendario==="function" && id==="calendario") renderCalendario();
+  }catch(e){}
+},60000);
 let calAno=HOJE.getFullYear(), calMes=HOJE.getMonth(), calView="ano";
 let calModo="campanhas"; // "campanhas" ou "operacao"
 // O que aparece em cada dia: campanhas OU as tarefas de operação (do Calendário Comercial).
