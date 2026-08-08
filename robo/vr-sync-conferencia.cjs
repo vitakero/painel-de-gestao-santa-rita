@@ -68,12 +68,47 @@ select s.senha, s.id_loja, s.ini, s.fim, s.bipagens, s.itens,
        count(distinct n.id_nota) filter (where n.fin = 1)::int notas_fin,
        max(f.razaosocial) fornecedor,
        coalesce(sum((select count(*) from notaentradadivergencia d
-                      where d.id_notaentrada = n.id_nota)), 0)::int divergencias
+                      where d.id_notaentrada = n.id_nota)), 0)::int divergencias,
+       -- DETALHE: 8 divergências pode ser 8 produtos que não vieram ou 8 arredondamentos
+       -- de centavo. Somar tipos diferentes num número só esconde justamente o que importa.
+       coalesce((
+         select jsonb_agg(x order by x->>'tipo', x->>'produto')
+           from (
+             select distinct jsonb_build_object(
+                      'tipo',   coalesce(td.descricao,'?'),
+                      'produto',coalesce(pr.descricaocompleta,'produto '||d.id_produto),
+                      'pedido', d.quantidadepedido,
+                      'veio',   d.quantidadenota,
+                      'cp',     d.custopedido,
+                      'cn',     d.custonota) x
+               from notaentradadivergencia d
+               left join tipodivergenciaentrada td on td.id = d.id_tipodivergenciaentrada
+               left join produto pr on pr.id = d.id_produto
+              where d.id_notaentrada in (
+                    select n2.id_nota from nt n2
+                     where n2.senha = s.senha and n2.id_loja is not distinct from s.id_loja)
+              limit 60
+           ) t), '[]'::jsonb) detalhe
   from ses s
   left join nt n on n.senha = s.senha and n.id_loja = s.id_loja
   left join fornecedor f on f.id = n.id_fornecedor
  group by s.senha, s.id_loja, s.ini, s.fim, s.bipagens, s.itens
  order by s.ini desc`;
+
+// Agrupa por tipo e devolve {tipos:[{tipo,qtd}], itens:[...]}. A tela mostra o resumo por
+// tipo primeiro; a lista de produtos só quando a pessoa abre.
+function montaDetalhe(lista){
+  const itens = Array.isArray(lista) ? lista : [];
+  const conta = {};
+  for (const i of itens) conta[i.tipo] = (conta[i.tipo] || 0) + 1;
+  const tipos = Object.keys(conta).map(t => ({ tipo: t, qtd: conta[t] }))
+                      .sort((a,b) => b.qtd - a.qtd);
+  return { tipos, itens: itens.map(i => ({
+    tipo: i.tipo, produto: i.produto,
+    pedido: Number(i.pedido) || 0, veio: Number(i.veio) || 0,
+    custo_pedido: Number(i.cp) || 0, custo_nota: Number(i.cn) || 0
+  })) };
+}
 
 function situacao(r, minutosDesdeUltima){
   const notas = r.notas || 0, fin = r.notas_fin || 0;
@@ -106,6 +141,7 @@ function situacao(r, minutosDesdeUltima){
       bipagens: x.bipagens, itens: Number(x.itens) || 0,
       notas: x.notas, notas_finalizadas: x.notas_fin,
       divergencias: x.divergencias,
+      divergencia_detalhe: montaDetalhe(x.detalhe),
       situacao: situacao(x, desdeUltima),
       atualizado_em: new Date().toISOString()
     };
