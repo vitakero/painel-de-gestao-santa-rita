@@ -3838,7 +3838,14 @@ renderEstoque();
 
 // ---- Calendário ----
 const MESES=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-const HOJE=new Date(${JSON.stringify(new Date().getUTCFullYear())},${JSON.stringify(new Date().getUTCMonth())},${JSON.stringify(new Date().getUTCDate())});
+/* HOJE É O DIA DE QUEM ABRE O PAINEL, não o dia em que ele foi publicado.
+   Antes esta data vinha CARIMBADA no build. Com o robô da loja pausado desde julho, o
+   painel ficou achando que "hoje" era a data da última publicação — e a coluna do dia
+   anterior não abria para lançamento no Controle de Entregas.
+   Getters LOCAIS de propósito: os antigos eram UTC, e em Caicó (UTC-3) das 21h em diante
+   o UTC já está no dia seguinte — o painel virava o dia três horas antes da loja.
+   A hora em que os dados do VR foram lidos continua sendo outra coisa: geradoEm. */
+const HOJE=(function(){ var d=new Date(); return new Date(d.getFullYear(),d.getMonth(),d.getDate()); })();
 let calAno=HOJE.getFullYear(), calMes=HOJE.getMonth(), calView="ano";
 let calModo="campanhas"; // "campanhas" ou "operacao"
 // O que aparece em cada dia: campanhas OU as tarefas de operação (do Calendário Comercial).
