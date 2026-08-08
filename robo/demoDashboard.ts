@@ -2862,7 +2862,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
            preenchida. Toda coluna de dia tem a MESMA largura, cheia ou vazia. */
         table.ent-grade{border-collapse:collapse;font-size:12px;white-space:nowrap;width:100%;table-layout:fixed;}
         table.ent-grade th,table.ent-grade td{border:1px solid #eef2f6;padding:4px 6px;text-align:center;width:56px;}
-        table.ent-grade th{background:#f3f6fa;color:#46546a;font-weight:700;}
+        table.ent-grade th{background:#f3f6fa;color:#46546a;font-weight:700;position:relative;padding-bottom:15px;}
         table.ent-grade th.dom{background:#dcebfb;color:#0c5a26;}
         table.ent-grade th .ent-dow{font-weight:400;font-size:10px;color:#8a97a8;letter-spacing:.3px;}
         table.ent-grade td.dom-fix{background:#eef4fb;color:#9aa7b6;font-weight:600;}
@@ -2890,8 +2890,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
                          letter-spacing:.6px;color:#6f8a78;}
         .ent-metas .mt em{font-style:normal;font-weight:800;color:#0c5a26;background:#dff0e6;
                           border-radius:6px;padding:2px 8px;font-size:12px;}
-        .ent-hoje-tag{display:block;font-size:8.5px;font-weight:800;color:#157a35;text-transform:uppercase;
-                      letter-spacing:.3px;line-height:1;margin-bottom:2px;white-space:nowrap;}
+        /* A etiqueta NÃO pode empurrar o número pra baixo: se ela ocupasse espaço no fluxo,
+           só aquela coluna ficaria com o número mais embaixo que todas as outras. Ela flutua
+           na faixa que o cabeçalho reserva embaixo — igual em todas as colunas, cheia ou vazia. */
+        .ent-hoje-tag{position:absolute;left:0;right:0;bottom:2px;font-size:8.5px;font-weight:800;
+                      color:#157a35;text-transform:uppercase;letter-spacing:.2px;line-height:1;
+                      white-space:nowrap;overflow:hidden;text-align:center;}
         /* Dia já salvo: MESMA APARÊNCIA de antes (pedido do dono). O que muda é só que
            o campo não aceita mais digitação. Sem cinza, sem cadeado, sem coluna
            encolhendo — a grade tem que continuar igual depois de salvar.
@@ -12749,7 +12753,7 @@ function entRenderGrade(){
     const conf=entDiaConfirmado(entAno,entMes,d);
     const cl=(dow===0?"dom":"")+(entDiaAberto(entAno,entMes,d)?"":" fut")+
              (d===diaLanc&&!conf?" lanc":"");
-    const topo = (!conf&&d===diaLanc)?'<span class="ent-hoje-tag">lançar hoje</span>':'';
+    const topo = (!conf&&d===diaLanc)?'<span class="ent-hoje-tag">lançar</span>':'';
     head+='<th class="'+cl.trim()+'"'+(conf?' title="Dia '+d+' já salvo e encerrado"':'')+'>'+topo+d+
           '<br><span class="ent-dow">'+DOW_PT[dow].toUpperCase()+'</span></th>'; }
   head+='<th class="tot">Total</th></tr>';
