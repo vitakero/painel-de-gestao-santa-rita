@@ -82,10 +82,20 @@ select s.senha, s.id_loja, s.ini, s.fim, s.bipagens, s.itens,
                       'cp',     d.custopedido,
                       'cn',     d.custonota,
                       -- PREÇO DA UNIDADE, tirado da própria nota (busca por índice: nota+produto).
-                      -- Sem ele a linha do COLETOR ficava com custo "—", porque o VR só preenche
-                      -- custo nas divergências de preço. É esse número que transforma
-                      -- "4 a mais" em "R$ 18,00 cobrados a mais".
-                      'pu',     (select ni.valortotal/nullif(ni.quantidade,0)
+                      -- ATENÇÃO À UNIDADE (conferido no VR em 08/08/2026):
+                      --   notaentradaitem.quantidade  está em CAIXAS
+                      --   a divergência (quantidadenota/pedido) está em UNIDADES
+                      -- Logo o preço unitário é valortotal / (caixas × unidades por caixa).
+                      -- Dividir só por quantidade dava o preço da CAIXA e inflava o prejuízo
+                      -- na proporção da embalagem: num produto de caixa com 40, 40 vezes.
+                      'pu',     (select ni.valortotal
+                                        / nullif(ni.quantidade * greatest(ni.qtdembalagem,1), 0)
+                                   from notaentradaitem ni
+                                  where ni.id_notaentrada = d.id_notaentrada
+                                    and ni.id_produto = d.id_produto
+                                  limit 1),
+                      -- quantas unidades vêm na caixa, pra tela poder dizer "200 un (5 cx de 40)"
+                      'emb',    (select greatest(ni.qtdembalagem,1)
                                    from notaentradaitem ni
                                   where ni.id_notaentrada = d.id_notaentrada
                                     and ni.id_produto = d.id_produto
@@ -116,8 +126,9 @@ function montaDetalhe(lista){
     tipo: i.tipo, produto: i.produto,
     pedido: Number(i.pedido) || 0, veio: Number(i.veio) || 0,
     custo_pedido: Number(i.cp) || 0, custo_nota: Number(i.cn) || 0,
-    // preço da unidade na nota; sem isso não dá pra dizer quanto vale a diferença
-    preco: Number(i.pu) || Number(i.cn) || Number(i.cp) || 0
+    // preço da UNIDADE na nota; sem isso não dá pra dizer quanto vale a diferença
+    preco: Number(i.pu) || 0,
+    emb: Number(i.emb) || 1
   })) };
 }
 
