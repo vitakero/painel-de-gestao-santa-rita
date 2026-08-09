@@ -2704,6 +2704,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
                         color:#8a97a8;white-space:nowrap;}
       table.cl-dv-t tr.g .tp{color:#8c2f28;}
       table.cl-dv-t tr.g td.pd{font-weight:700;color:#8c2f28;}
+      .cl-dv-bloco{margin-bottom:18px;}
+      .cl-dv-bloco:last-child{margin-bottom:0;}
+      .cl-dv-bt{font-size:13px;font-weight:800;color:#1d2733;margin-bottom:7px;}
+      .cl-dv-bt span{display:block;font-size:11.5px;font-weight:400;color:#8a97a8;margin-top:1px;}
+      .cl-dv-bloco.ruido{opacity:.62;border-top:1px solid #eef2f6;padding-top:14px;}
+      table.cl-dv-t td.tp2{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:#8a97a8;}
       table.cl-dv-t th.r{text-align:right;}
       table.cl-dv-t td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
       table.cl-dv-t td.vz{color:#c3ccd6;}
@@ -5434,41 +5440,69 @@ function clDinheiro(v){ v=+v||0; return v?("R$ "+v.toLocaleString("pt-BR",{minim
      COLETOR   -> a 1ª é o que o COLETOR BIPOU (provado: bipou 56 e a linha traz 56)
      QUANTIDADE / NAO ENTREGUE -> a 1ª é o que foi PEDIDO
    Por isso a tela deixou de mostrar dois números soltos e passou a escrever a frase. */
-// CADA TIPO COMPARA COISAS DIFERENTES — conferido no banco do VR em 08/08/2026.
-//   COLETOR   -> o que o CONFERENTE CONTOU  contra  o que a NOTA cobra
-//   QUANTIDADE / NAO ENTREGUE -> o que foi PEDIDO  contra  o que a NOTA traz
-// Por isso PEDIDO e CONTADO são colunas SEPARADAS: cada linha preenche a sua e deixa a
-// outra vazia. Somar as duas na mesma coluna foi o erro que fez o mesmo produto aparecer
-// com 56 e 30 no mesmo lugar.
-function clDvCelulas(tp,i){
-  var vazio='<td class="n vz">—</td>';
-  var ped=vazio, cont=vazio, nota=vazio, dif=vazio, val=vazio;
-  var p=+i.preco||0;
-  function moeda(q){ return p? clDinheiro(Math.abs(q)*p) : "—"; }
+/* CADA TIPO COMPARA COISAS DIFERENTES — conferido no banco do VR em 08/08/2026.
+     PEDIDO × NOTA    -> quantidade, não entregue, sem pedido
+     CONTAGEM × NOTA  -> coletor (o que o conferente bipou na doca)
+     SÓ PREÇO         -> custo, custo anterior
 
-  if(tp==="COLETOR"){
-    var d=(+i.veio||0)-(+i.pedido||0);
-    cont='<td class="n">'+clNum(i.pedido)+'</td>';
-    nota='<td class="n">'+clNum(i.veio)+'</td>';
-    dif='<td class="n '+(d>0?"ruim":"bom")+'">'+(d>0?"+":"")+clNum(d)+'</td>';
-    val='<td class="n '+(d>0?"ruim":"bom")+'">'+moeda(d)+'</td>';
-  } else if(tp==="NAO ENTREGUE"){
-    ped='<td class="n">'+clNum(i.pedido)+'</td>';
-    nota='<td class="n zero">0</td>';
-    dif='<td class="n ruim">-'+clNum(i.pedido)+'</td>';
-    val='<td class="n ruim">'+moeda(i.pedido)+'</td>';
-  } else if(tp==="QUANTIDADE"||tp==="QUANTIDADE/CUSTO"){
-    var q=(+i.veio||0)-(+i.pedido||0);
-    ped='<td class="n">'+clNum(i.pedido)+'</td>';
-    nota='<td class="n">'+clNum(i.veio)+'</td>';
-    dif='<td class="n '+(q<0?"ruim":"bom")+'">'+(q>0?"+":"")+clNum(q)+'</td>';
-    val='<td class="n '+(q<0?"ruim":"bom")+'">'+moeda(q)+'</td>';
-  } else if(tp==="SEM PEDIDO"){
-    nota='<td class="n">'+clNum(i.veio)+'</td>';
-    val='<td class="n">'+moeda(i.veio)+'</td>';
-  }
-  // custo anterior / custo: só preço mudou, quantidade não diz nada
-  return ped+cont+nota+dif+'<td class="n">'+(p?clDinheiro(p):"—")+'</td>'+val;
+   Antes era UMA tabela com as duas comparações misturadas, e a coluna que não valia pra
+   aquela linha ficava em branco. O dono leu o branco como "não foi pedido" e "o conferente
+   não conferiu" — as duas leituras erradas, e óbvias: coluna vazia parece zero, não parece
+   "não se aplica". Agora cada comparação é um BLOCO com as suas próprias colunas, e não
+   sobra nenhuma célula vazia pra interpretar torto. */
+var CL_DV_BLOCOS=[
+  { chave:"pedido", tipos:["QUANTIDADE","QUANTIDADE/CUSTO","NAO ENTREGUE","SEM PEDIDO"],
+    titulo:"O que foi pedido × o que a nota trouxe",
+    ajuda:"Compara o pedido de compra com a nota do fornecedor.",
+    cols:["Pedido","Na nota","Diferença"] },
+  { chave:"doca", tipos:["COLETOR"],
+    titulo:"O que foi contado na doca × o que a nota cobra",
+    ajuda:"Compara a bipagem do conferente com a nota. É aqui que aparece cobrança sem mercadoria.",
+    cols:["Contado","Na nota","Diferença"] },
+  { chave:"preco", tipos:["CUSTO","CUSTO ANTERIOR"],
+    titulo:"Só mudança de preço",
+    ajuda:"A quantidade bateu. Mudou o custo em relação à compra anterior — quase sempre centavo de arredondamento.",
+    cols:[] }
+];
+function clDvLinha(b,i){
+  var p=+i.preco||0, tp=String(i.tipo||"").toUpperCase();
+  function moeda(q){ return p? clDinheiro(Math.abs(q)*p) : "—"; }
+  var nome='<td class="pd" title="'+pxEsc(i.produto||"")+'">'+pxEsc(i.produto||"")
+          +((+i.emb||1)>1?'<span class="emb">caixa com '+clNum(i.emb)+'</span>':'')+'</td>';
+
+  if(b.chave==="preco")
+    return '<tr>'+nome+'<td class="n">'+(p?clDinheiro(p):"—")+'</td>'
+      +'<td class="tp2">'+pxEsc(String(i.tipo||"").toLowerCase())+'</td></tr>';
+
+  var esq = (b.chave==="doca") ? (+i.pedido||0) : (+i.pedido||0);   // doca: 1ª coluna é a contagem
+  var nota = (+i.veio||0);
+  var d = nota-esq, ruim = (b.chave==="doca") ? (d>0) : (d<0);
+  if(tp==="NAO ENTREGUE"){ d=-esq; ruim=true; }
+  return '<tr class="'+(ruim?"g":"")+'">'+nome
+    +'<td class="n">'+clNum(esq)+'</td>'
+    +'<td class="n'+(tp==="NAO ENTREGUE"?" zero":"")+'">'+clNum(nota)+'</td>'
+    +'<td class="n '+(ruim?"ruim":"bom")+'">'+(d>0?"+":"")+clNum(d)+'</td>'
+    +'<td class="n">'+(p?clDinheiro(p):"—")+'</td>'
+    +'<td class="n '+(ruim?"ruim":"bom")+'">'+moeda(d)+'</td></tr>';
+}
+function clDvBlocosHtml(itens){
+  var h="";
+  CL_DV_BLOCOS.forEach(function(b){
+    var lista=itens.filter(function(i){ return b.tipos.indexOf(String(i.tipo||"").toUpperCase())>=0; });
+    if(!lista.length) return;
+    h+='<div class="cl-dv-bloco'+(b.chave==="preco"?" ruido":"")+'">'
+      +'<div class="cl-dv-bt">'+b.titulo+'<span>'+b.ajuda+'</span></div>'
+      +'<table class="cl-dv-t"><thead><tr><th>Produto</th>'
+      +(b.chave==="preco"
+         ? '<th class="r">Preço por un</th><th>Motivo</th>'
+         : '<th class="r">'+b.cols[0]+'<i>un</i></th><th class="r">'+b.cols[1]+'<i>un</i></th>'
+          +'<th class="r">'+b.cols[2]+'<i>un</i></th><th class="r">Preço<i>por un</i></th>'
+          +'<th class="r">Valor</th>')
+      +'</tr></thead><tbody>'
+      +lista.map(function(i){ return clDvLinha(b,i); }).join("")
+      +'</tbody></table></div>';
+  });
+  return h;
 }
 function clAbreDivergencia(id){
   var c=clConfAcha(id); if(!c) return;
@@ -5480,14 +5514,7 @@ function clAbreDivergencia(id){
     return '<span class="cl-dv-tipo '+(g?"grave":"ruido")+'"><b>'+x.qtd+'</b>'+pxEsc(String(x.tipo||"").toLowerCase())+'</span>';
   }).join("");
 
-  var linhas=itens.map(function(i){
-    var tp=String(i.tipo||"").toUpperCase(), g=CL_DV_GRAVE[tp];
-    return '<tr class="'+(g?"g":"")+'">'
-      +'<td class="tp">'+pxEsc(String(i.tipo||"").toLowerCase())+'</td>'
-      +'<td class="pd" title="'+pxEsc(i.produto||"")+'">'+pxEsc(i.produto||"")
-        +((+i.emb||1)>1?'<span class="emb">caixa com '+clNum(i.emb)+'</span>':'')+'</td>'
-      +clDvCelulas(tp,i)+'</tr>';
-  }).join("");
+
 
   document.getElementById("clDvTit").textContent=c.fornecedor||"(sem nota ligada)";
   document.getElementById("clDvSub").textContent=
@@ -5495,10 +5522,7 @@ function clAbreDivergencia(id){
     +(c.notas||0)+(+c.notas===1?" nota":" notas");
   document.getElementById("clDvCorpo").innerHTML=
     '<div class="cl-dv-tipos">'+chips+'</div>'
-    +'<table class="cl-dv-t"><thead><tr><th>Tipo</th><th>Produto</th>'
-    +'<th class="r">Pedido<i>un</i></th><th class="r">Contado<i>un</i></th><th class="r">Na nota<i>un</i></th>'
-    +'<th class="r">Diferença<i>un</i></th><th class="r">Preço<i>por un</i></th><th class="r">Valor</th>'
-    +'</tr></thead><tbody>'+linhas+'</tbody></table>'
+    +clDvBlocosHtml(itens)
     +'<div class="cl-dv-nota"><b>O VR não registra se a divergência foi resolvida.</b> '
     +'A nota ter finalizado quer dizer que a entrada foi concluída assim — não que alguém corrigiu. '
     +'O que veio com <b>0</b> não foi cobrado na nota: o fornecedor simplesmente não mandou.</div>';
