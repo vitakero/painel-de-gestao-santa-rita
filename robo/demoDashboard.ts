@@ -2704,6 +2704,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
                         color:#8a97a8;white-space:nowrap;}
       table.cl-dv-t tr.g .tp{color:#8c2f28;}
       table.cl-dv-t tr.g td.pd{font-weight:700;color:#8c2f28;}
+      table.cl-dv-t td.oq{font-size:12.5px;color:#46535f;}
+      table.cl-dv-t td.oq b{color:#1d2733;font-variant-numeric:tabular-nums;}
+      .cl-dv-al{color:#8c2f28;font-weight:700;font-size:11.5px;}
+      .cl-dv-ok2{color:#1e6b36;font-weight:700;font-size:11.5px;}
+      .cl-dv-zero{color:#8c2f28;}
       .cl-dv-nota{margin-top:14px;font-size:12.5px;color:#8a5a12;background:#fdf6e3;
                   border:1px solid #f0e0b6;border-radius:8px;padding:10px 13px;line-height:1.5;}
       .cl-dv-fim{padding:12px 22px 16px;border-top:1px solid #eef2f6;display:flex;justify-content:flex-end;}
@@ -5418,6 +5423,30 @@ function clConfAcha(id){
 }
 function clNum(v){ v=+v||0; return v.toLocaleString("pt-BR",{maximumFractionDigits:3}); }
 function clDinheiro(v){ v=+v||0; return v?("R$ "+v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})):"—"; }
+/* CADA TIPO COMPARA COISAS DIFERENTES — conferido no banco do VR em 08/08/2026.
+   As duas colunas cruas do VR (quantidadepedido, quantidadenota) NÃO significam a mesma
+   coisa em todas as linhas, e rotular as duas como "pedido" e "veio" estava mentindo:
+     COLETOR   -> a 1ª é o que o COLETOR BIPOU (provado: bipou 56 e a linha traz 56)
+     QUANTIDADE / NAO ENTREGUE -> a 1ª é o que foi PEDIDO
+   Por isso a tela deixou de mostrar dois números soltos e passou a escrever a frase. */
+function clDvFrase(tp,i){
+  var a=clNum(i.pedido), b=clNum(i.veio);
+  if(tp==="COLETOR")
+    return 'contou <b>'+a+'</b> · a nota cobra <b>'+b+'</b>'+
+           (i.veio>i.pedido?' <span class="cl-dv-al">cobrado a mais</span>':
+            i.veio<i.pedido?' <span class="cl-dv-ok2">veio a mais</span>':'');
+  if(tp==="NAO ENTREGUE")
+    return 'pediu <b>'+a+'</b> · <b class="cl-dv-zero">não veio nada</b>';
+  if(tp==="QUANTIDADE"||tp==="QUANTIDADE/CUSTO")
+    return 'pediu <b>'+a+'</b> · a nota traz <b>'+b+'</b>'+
+           (i.veio<i.pedido?' <span class="cl-dv-al">faltou '+clNum(i.pedido-i.veio)+'</span>':
+            i.veio>i.pedido?' <span class="cl-dv-ok2">'+clNum(i.veio-i.pedido)+' a mais</span>':'');
+  if(tp==="CUSTO"||tp==="CUSTO ANTERIOR")
+    return 'custo do pedido '+clDinheiro(i.custo_pedido)+' · na nota '+clDinheiro(i.custo_nota);
+  if(tp==="SEM PEDIDO")
+    return 'veio <b>'+b+'</b> sem pedido no sistema';
+  return a+' → '+b;
+}
 function clAbreDivergencia(id){
   var c=clConfAcha(id); if(!c) return;
   var d=c.divergencia_detalhe||{}, tipos=d.tipos||[], itens=d.itens||[];
@@ -5430,14 +5459,11 @@ function clAbreDivergencia(id){
 
   var linhas=itens.map(function(i){
     var tp=String(i.tipo||"").toUpperCase(), g=CL_DV_GRAVE[tp];
-    var falta=(tp==="NAO ENTREGUE");
     return '<tr class="'+(g?"g":"")+'">'
       +'<td class="tp">'+pxEsc(String(i.tipo||"").toLowerCase())+'</td>'
       +'<td class="pd">'+pxEsc(i.produto||"")+'</td>'
-      +'<td class="n">'+clNum(i.pedido)+'</td>'
-      +'<td class="n">'+(falta?'<b style="color:#8c2f28">0</b>':clNum(i.veio))+'</td>'
-      +'<td class="n">'+clDinheiro(i.custo_pedido)+'</td>'
-      +'<td class="n">'+clDinheiro(i.custo_nota)+'</td></tr>';
+      +'<td class="oq">'+clDvFrase(tp,i)+'</td>'
+      +'<td class="n">'+clDinheiro(i.custo_nota||i.custo_pedido)+'</td></tr>';
   }).join("");
 
   document.getElementById("clDvTit").textContent=c.fornecedor||"(sem nota ligada)";
@@ -5447,8 +5473,7 @@ function clAbreDivergencia(id){
   document.getElementById("clDvCorpo").innerHTML=
     '<div class="cl-dv-tipos">'+chips+'</div>'
     +'<table class="cl-dv-t"><thead><tr><th>Tipo</th><th>Produto</th>'
-    +'<th style="text-align:right">Pedido</th><th style="text-align:right">Veio</th>'
-    +'<th style="text-align:right">Custo pedido</th><th style="text-align:right">Custo nota</th>'
+    +'<th>O que divergiu</th><th style="text-align:right">Custo</th>'
     +'</tr></thead><tbody>'+linhas+'</tbody></table>'
     +'<div class="cl-dv-nota"><b>O VR não registra se a divergência foi resolvida.</b> '
     +'A nota ter finalizado quer dizer que a entrada foi concluída assim — não que alguém corrigiu. '
