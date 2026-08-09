@@ -2683,7 +2683,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       .cl-dv-bg{position:fixed;inset:0;background:rgba(16,24,32,.45);z-index:99998;display:none;
                 align-items:center;justify-content:center;padding:18px;}
       .cl-dv-bg.show{display:flex;}
-      .cl-dv{background:#fff;border-radius:14px;max-width:900px;width:100%;max-height:88vh;
+      .cl-dv{background:#fff;border-radius:14px;max-width:1020px;width:100%;max-height:88vh;
              display:flex;flex-direction:column;box-shadow:0 18px 50px rgba(16,24,32,.28);}
       .cl-dv-top{padding:18px 22px 14px;border-bottom:1px solid #eef2f6;}
       .cl-dv-top h3{margin:0;font-size:17px;color:#0c5a26;}
@@ -2704,13 +2704,16 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
                         color:#8a97a8;white-space:nowrap;}
       table.cl-dv-t tr.g .tp{color:#8c2f28;}
       table.cl-dv-t tr.g td.pd{font-weight:700;color:#8c2f28;}
-      table.cl-dv-t td.oq{font-size:12.5px;color:#46535f;}
-      table.cl-dv-t td.oq b{color:#1d2733;font-variant-numeric:tabular-nums;}
-      .cl-dv-al{color:#8c2f28;font-weight:700;font-size:11.5px;}
-      .cl-dv-ok2{color:#1e6b36;font-weight:700;font-size:11.5px;}
-      .cl-dv-rs{font-weight:800;font-size:12px;color:#1d2733;font-variant-numeric:tabular-nums;
-                background:#f2f5f8;border-radius:4px;padding:1px 6px;margin-left:4px;}
-      .cl-dv-zero{color:#8c2f28;}
+      table.cl-dv-t th.r{text-align:right;}
+      table.cl-dv-t td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+      table.cl-dv-t td.vz{color:#c3ccd6;}
+      table.cl-dv-t td.n.ruim{color:#8c2f28;font-weight:700;}
+      table.cl-dv-t td.n.bom{color:#1e6b36;font-weight:600;}
+      table.cl-dv-t td.n.zero{color:#8c2f28;font-weight:700;}
+      table.cl-dv-t td.pd{max-width:250px;}
+      table.cl-dv-t td.pd .emb{display:block;font-size:10.5px;color:#8a97a8;font-weight:400;margin-top:1px;}
+      table.cl-dv-t th i{display:block;font-style:normal;font-size:9px;font-weight:500;
+                         color:#a7b1bd;letter-spacing:.3px;text-transform:none;margin-top:1px;}
       .cl-dv-nota{margin-top:14px;font-size:12.5px;color:#8a5a12;background:#fdf6e3;
                   border:1px solid #f0e0b6;border-radius:8px;padding:10px 13px;line-height:1.5;}
       .cl-dv-fim{padding:12px 22px 16px;border-top:1px solid #eef2f6;display:flex;justify-content:flex-end;}
@@ -5431,31 +5434,41 @@ function clDinheiro(v){ v=+v||0; return v?("R$ "+v.toLocaleString("pt-BR",{minim
      COLETOR   -> a 1ª é o que o COLETOR BIPOU (provado: bipou 56 e a linha traz 56)
      QUANTIDADE / NAO ENTREGUE -> a 1ª é o que foi PEDIDO
    Por isso a tela deixou de mostrar dois números soltos e passou a escrever a frase. */
-// Quanto vale a diferença, no preço da própria nota. Sem valor, a frase fica em quantidade
-// e não inventa reais — melhor não dizer do que dizer errado.
-function clVale(qtd,i){
+// CADA TIPO COMPARA COISAS DIFERENTES — conferido no banco do VR em 08/08/2026.
+//   COLETOR   -> o que o CONFERENTE CONTOU  contra  o que a NOTA cobra
+//   QUANTIDADE / NAO ENTREGUE -> o que foi PEDIDO  contra  o que a NOTA traz
+// Por isso PEDIDO e CONTADO são colunas SEPARADAS: cada linha preenche a sua e deixa a
+// outra vazia. Somar as duas na mesma coluna foi o erro que fez o mesmo produto aparecer
+// com 56 e 30 no mesmo lugar.
+function clDvCelulas(tp,i){
+  var vazio='<td class="n vz">—</td>';
+  var ped=vazio, cont=vazio, nota=vazio, dif=vazio, val=vazio;
   var p=+i.preco||0;
-  return p ? ' <span class="cl-dv-rs">'+clDinheiro(Math.abs(qtd)*p)+'</span>' : '';
-}
-function clDvFrase(tp,i){
-  var a=clNum(i.pedido), b=clNum(i.veio);
+  function moeda(q){ return p? clDinheiro(Math.abs(q)*p) : "—"; }
+
   if(tp==="COLETOR"){
-    var dif=(+i.veio||0)-(+i.pedido||0);
-    return 'contou <b>'+a+'</b> · a nota cobra <b>'+b+'</b>'+
-           (dif>0?' <span class="cl-dv-al">cobrou '+clNum(dif)+' a mais</span>'+clVale(dif,i):
-            dif<0?' <span class="cl-dv-ok2">veio '+clNum(-dif)+' a mais</span>'+clVale(dif,i):'');
+    var d=(+i.veio||0)-(+i.pedido||0);
+    cont='<td class="n">'+clNum(i.pedido)+'</td>';
+    nota='<td class="n">'+clNum(i.veio)+'</td>';
+    dif='<td class="n '+(d>0?"ruim":"bom")+'">'+(d>0?"+":"")+clNum(d)+'</td>';
+    val='<td class="n '+(d>0?"ruim":"bom")+'">'+moeda(d)+'</td>';
+  } else if(tp==="NAO ENTREGUE"){
+    ped='<td class="n">'+clNum(i.pedido)+'</td>';
+    nota='<td class="n zero">0</td>';
+    dif='<td class="n ruim">-'+clNum(i.pedido)+'</td>';
+    val='<td class="n ruim">'+moeda(i.pedido)+'</td>';
+  } else if(tp==="QUANTIDADE"||tp==="QUANTIDADE/CUSTO"){
+    var q=(+i.veio||0)-(+i.pedido||0);
+    ped='<td class="n">'+clNum(i.pedido)+'</td>';
+    nota='<td class="n">'+clNum(i.veio)+'</td>';
+    dif='<td class="n '+(q<0?"ruim":"bom")+'">'+(q>0?"+":"")+clNum(q)+'</td>';
+    val='<td class="n '+(q<0?"ruim":"bom")+'">'+moeda(q)+'</td>';
+  } else if(tp==="SEM PEDIDO"){
+    nota='<td class="n">'+clNum(i.veio)+'</td>';
+    val='<td class="n">'+moeda(i.veio)+'</td>';
   }
-  if(tp==="NAO ENTREGUE")
-    return 'pediu <b>'+a+'</b> · <b class="cl-dv-zero">não veio nada</b>'+clVale(i.pedido,i);
-  if(tp==="QUANTIDADE"||tp==="QUANTIDADE/CUSTO")
-    return 'pediu <b>'+a+'</b> · a nota traz <b>'+b+'</b>'+
-           (i.veio<i.pedido?' <span class="cl-dv-al">faltou '+clNum(i.pedido-i.veio)+'</span>'+clVale(i.pedido-i.veio,i):
-            i.veio>i.pedido?' <span class="cl-dv-ok2">'+clNum(i.veio-i.pedido)+' a mais</span>'+clVale(i.veio-i.pedido,i):'');
-  if(tp==="CUSTO"||tp==="CUSTO ANTERIOR")
-    return 'custo do pedido '+clDinheiro(i.custo_pedido)+' · na nota '+clDinheiro(i.custo_nota);
-  if(tp==="SEM PEDIDO")
-    return 'veio <b>'+b+'</b> sem pedido no sistema';
-  return a+' → '+b;
+  // custo anterior / custo: só preço mudou, quantidade não diz nada
+  return ped+cont+nota+dif+'<td class="n">'+(p?clDinheiro(p):"—")+'</td>'+val;
 }
 function clAbreDivergencia(id){
   var c=clConfAcha(id); if(!c) return;
@@ -5471,9 +5484,9 @@ function clAbreDivergencia(id){
     var tp=String(i.tipo||"").toUpperCase(), g=CL_DV_GRAVE[tp];
     return '<tr class="'+(g?"g":"")+'">'
       +'<td class="tp">'+pxEsc(String(i.tipo||"").toLowerCase())+'</td>'
-      +'<td class="pd">'+pxEsc(i.produto||"")+'</td>'
-      +'<td class="oq">'+clDvFrase(tp,i)+'</td>'
-      +'<td class="n">'+clDinheiro(i.preco||i.custo_nota||i.custo_pedido)+'</td></tr>';
+      +'<td class="pd" title="'+pxEsc(i.produto||"")+'">'+pxEsc(i.produto||"")
+        +((+i.emb||1)>1?'<span class="emb">caixa com '+clNum(i.emb)+'</span>':'')+'</td>'
+      +clDvCelulas(tp,i)+'</tr>';
   }).join("");
 
   document.getElementById("clDvTit").textContent=c.fornecedor||"(sem nota ligada)";
@@ -5483,7 +5496,8 @@ function clAbreDivergencia(id){
   document.getElementById("clDvCorpo").innerHTML=
     '<div class="cl-dv-tipos">'+chips+'</div>'
     +'<table class="cl-dv-t"><thead><tr><th>Tipo</th><th>Produto</th>'
-    +'<th>O que divergiu</th><th style="text-align:right">Preço unit.</th>'
+    +'<th class="r">Pedido<i>un</i></th><th class="r">Contado<i>un</i></th><th class="r">Na nota<i>un</i></th>'
+    +'<th class="r">Diferença<i>un</i></th><th class="r">Preço<i>por un</i></th><th class="r">Valor</th>'
     +'</tr></thead><tbody>'+linhas+'</tbody></table>'
     +'<div class="cl-dv-nota"><b>O VR não registra se a divergência foi resolvida.</b> '
     +'A nota ter finalizado quer dizer que a entrada foi concluída assim — não que alguém corrigiu. '
