@@ -1,25 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "_comentario": [
-    "TRAVA DE PUBLICACAO NO VERCEL — com FALHA SEGURA.",
-    "",
-    "O Vercel so publica quando a mensagem do commit tiver [publicar]. Todo o resto vai pro",
-    "GitHub normalmente, entao o endereco de teste (vitakero.github.io) atualiza sempre e o",
-    "dominio de producao so muda quando o dono mandar.",
-    "",
-    "FALHA SEGURA (licao de 08/08/2026): a primeira versao usava grep na variavel",
-    "VERCEL_GIT_COMMIT_MESSAGE. Se essa variavel nao chega ate aqui, o grep falha, a regra",
-    "manda IGNORAR e o site CONGELA — foi o que aconteceu: 2 commits marcados [publicar] e",
-    "nenhum publicou. Agora, se a mensagem vier VAZIA, a regra PUBLICA. Errar publicando",
-    "demais custa uma vaga do limite diario; errar ignorando deixa a loja com o site velho.",
-    "",
-    "Usa 'case' (embutido no shell) em vez de grep, e os colchetes vao entre aspas pra serem",
-    "texto literal — sem aspas viram curinga e casam com qualquer mensagem.",
-    "",
-    "exit 1 = publica  /  exit 0 = ignora  (regra do Vercel, nao inverter)",
-    "",
-    "QUEM MARCA [publicar]: o robo da loja (sempre) e o Mac so com SUBIR=1.",
-    "PARA DESFAZER: apague este arquivo. O Vercel volta a publicar a cada commit."
-  ],
   "ignoreCommand": "if [ -z \"$VERCEL_GIT_COMMIT_MESSAGE\" ]; then exit 1; fi; case \"$VERCEL_GIT_COMMIT_MESSAGE\" in *\"[publicar]\"*) exit 1;; *) exit 0;; esac"
 }
