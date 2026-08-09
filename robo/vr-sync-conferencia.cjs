@@ -80,7 +80,16 @@ select s.senha, s.id_loja, s.ini, s.fim, s.bipagens, s.itens,
                       'pedido', d.quantidadepedido,
                       'veio',   d.quantidadenota,
                       'cp',     d.custopedido,
-                      'cn',     d.custonota) x
+                      'cn',     d.custonota,
+                      -- PREÇO DA UNIDADE, tirado da própria nota (busca por índice: nota+produto).
+                      -- Sem ele a linha do COLETOR ficava com custo "—", porque o VR só preenche
+                      -- custo nas divergências de preço. É esse número que transforma
+                      -- "4 a mais" em "R$ 18,00 cobrados a mais".
+                      'pu',     (select ni.valortotal/nullif(ni.quantidade,0)
+                                   from notaentradaitem ni
+                                  where ni.id_notaentrada = d.id_notaentrada
+                                    and ni.id_produto = d.id_produto
+                                  limit 1)) x
                from notaentradadivergencia d
                left join tipodivergenciaentrada td on td.id = d.id_tipodivergenciaentrada
                left join produto pr on pr.id = d.id_produto
@@ -106,7 +115,9 @@ function montaDetalhe(lista){
   return { tipos, itens: itens.map(i => ({
     tipo: i.tipo, produto: i.produto,
     pedido: Number(i.pedido) || 0, veio: Number(i.veio) || 0,
-    custo_pedido: Number(i.cp) || 0, custo_nota: Number(i.cn) || 0
+    custo_pedido: Number(i.cp) || 0, custo_nota: Number(i.cn) || 0,
+    // preço da unidade na nota; sem isso não dá pra dizer quanto vale a diferença
+    preco: Number(i.pu) || Number(i.cn) || Number(i.cp) || 0
   })) };
 }
 
