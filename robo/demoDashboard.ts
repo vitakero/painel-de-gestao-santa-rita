@@ -2708,6 +2708,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       table.cl-dv-t td.oq b{color:#1d2733;font-variant-numeric:tabular-nums;}
       .cl-dv-al{color:#8c2f28;font-weight:700;font-size:11.5px;}
       .cl-dv-ok2{color:#1e6b36;font-weight:700;font-size:11.5px;}
+      .cl-dv-rs{font-weight:800;font-size:12px;color:#1d2733;font-variant-numeric:tabular-nums;
+                background:#f2f5f8;border-radius:4px;padding:1px 6px;margin-left:4px;}
       .cl-dv-zero{color:#8c2f28;}
       .cl-dv-nota{margin-top:14px;font-size:12.5px;color:#8a5a12;background:#fdf6e3;
                   border:1px solid #f0e0b6;border-radius:8px;padding:10px 13px;line-height:1.5;}
@@ -5429,18 +5431,26 @@ function clDinheiro(v){ v=+v||0; return v?("R$ "+v.toLocaleString("pt-BR",{minim
      COLETOR   -> a 1ª é o que o COLETOR BIPOU (provado: bipou 56 e a linha traz 56)
      QUANTIDADE / NAO ENTREGUE -> a 1ª é o que foi PEDIDO
    Por isso a tela deixou de mostrar dois números soltos e passou a escrever a frase. */
+// Quanto vale a diferença, no preço da própria nota. Sem valor, a frase fica em quantidade
+// e não inventa reais — melhor não dizer do que dizer errado.
+function clVale(qtd,i){
+  var p=+i.preco||0;
+  return p ? ' <span class="cl-dv-rs">'+clDinheiro(Math.abs(qtd)*p)+'</span>' : '';
+}
 function clDvFrase(tp,i){
   var a=clNum(i.pedido), b=clNum(i.veio);
-  if(tp==="COLETOR")
+  if(tp==="COLETOR"){
+    var dif=(+i.veio||0)-(+i.pedido||0);
     return 'contou <b>'+a+'</b> · a nota cobra <b>'+b+'</b>'+
-           (i.veio>i.pedido?' <span class="cl-dv-al">cobrado a mais</span>':
-            i.veio<i.pedido?' <span class="cl-dv-ok2">veio a mais</span>':'');
+           (dif>0?' <span class="cl-dv-al">cobrou '+clNum(dif)+' a mais</span>'+clVale(dif,i):
+            dif<0?' <span class="cl-dv-ok2">veio '+clNum(-dif)+' a mais</span>'+clVale(dif,i):'');
+  }
   if(tp==="NAO ENTREGUE")
-    return 'pediu <b>'+a+'</b> · <b class="cl-dv-zero">não veio nada</b>';
+    return 'pediu <b>'+a+'</b> · <b class="cl-dv-zero">não veio nada</b>'+clVale(i.pedido,i);
   if(tp==="QUANTIDADE"||tp==="QUANTIDADE/CUSTO")
     return 'pediu <b>'+a+'</b> · a nota traz <b>'+b+'</b>'+
-           (i.veio<i.pedido?' <span class="cl-dv-al">faltou '+clNum(i.pedido-i.veio)+'</span>':
-            i.veio>i.pedido?' <span class="cl-dv-ok2">'+clNum(i.veio-i.pedido)+' a mais</span>':'');
+           (i.veio<i.pedido?' <span class="cl-dv-al">faltou '+clNum(i.pedido-i.veio)+'</span>'+clVale(i.pedido-i.veio,i):
+            i.veio>i.pedido?' <span class="cl-dv-ok2">'+clNum(i.veio-i.pedido)+' a mais</span>'+clVale(i.veio-i.pedido,i):'');
   if(tp==="CUSTO"||tp==="CUSTO ANTERIOR")
     return 'custo do pedido '+clDinheiro(i.custo_pedido)+' · na nota '+clDinheiro(i.custo_nota);
   if(tp==="SEM PEDIDO")
@@ -5463,7 +5473,7 @@ function clAbreDivergencia(id){
       +'<td class="tp">'+pxEsc(String(i.tipo||"").toLowerCase())+'</td>'
       +'<td class="pd">'+pxEsc(i.produto||"")+'</td>'
       +'<td class="oq">'+clDvFrase(tp,i)+'</td>'
-      +'<td class="n">'+clDinheiro(i.custo_nota||i.custo_pedido)+'</td></tr>';
+      +'<td class="n">'+clDinheiro(i.preco||i.custo_nota||i.custo_pedido)+'</td></tr>';
   }).join("");
 
   document.getElementById("clDvTit").textContent=c.fornecedor||"(sem nota ligada)";
@@ -5473,7 +5483,7 @@ function clAbreDivergencia(id){
   document.getElementById("clDvCorpo").innerHTML=
     '<div class="cl-dv-tipos">'+chips+'</div>'
     +'<table class="cl-dv-t"><thead><tr><th>Tipo</th><th>Produto</th>'
-    +'<th>O que divergiu</th><th style="text-align:right">Custo</th>'
+    +'<th>O que divergiu</th><th style="text-align:right">Preço unit.</th>'
     +'</tr></thead><tbody>'+linhas+'</tbody></table>'
     +'<div class="cl-dv-nota"><b>O VR não registra se a divergência foi resolvida.</b> '
     +'A nota ter finalizado quer dizer que a entrada foi concluída assim — não que alguém corrigiu. '
