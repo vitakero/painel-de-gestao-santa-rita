@@ -5397,8 +5397,44 @@ function clDecidir(id,status){
         return;
       }
       clPedidosLoad();
+      clAvisarFornecedor(id, status, quem);
     });
   });
+}
+/* O AVISO É SEPARADO DA DECISÃO, DE PROPÓSITO.
+   Aprovar já valeu no banco antes de o email existir. Se o envio falhar (chave errada,
+   Resend fora do ar, fornecedor sem email), a aprovação NÃO pode ser desfeita nem ficar
+   pela metade — some o aviso, não a decisão. Por isso ele roda depois e só informa. */
+function clAvisarFornecedor(id, status, quem){
+  var sb=window.__SB; if(!sb||!sb.functions) return;
+  if(["aprovado","recusado","conferido"].indexOf(status)<0) return;
+  sb.functions.invoke("avisar-agendamento",{ body:{ id:id, status:status } })
+    .then(function(r){
+      var d=(r&&r.data)||null, erro=(r&&r.error)||null;
+      if(erro||!d||d.ok!==true){
+        var motivo=(d&&d.erro)||(erro&&erro.message)||"não deu pra enviar";
+        clAvisoToast("Decisão salva, mas o email não saiu: "+motivo, false);
+        return;
+      }
+      clAvisoToast("Avisamos "+(quem||"o fornecedor")+" em "+d.para+".", true);
+    }, function(){
+      clAvisoToast("Decisão salva, mas o email não saiu (sem resposta do servidor).", false);
+    });
+}
+function clAvisoToast(msg, bom){
+  var t=document.getElementById("clAvisoT");
+  if(!t){ t=document.createElement("div"); t.id="clAvisoT";
+    t.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;"
+      +"max-width:min(560px,92vw);padding:12px 18px;border-radius:10px;font-size:13.5px;"
+      +"font-weight:500;box-shadow:0 6px 22px rgba(16,24,32,.18);line-height:1.45;";
+    document.body.appendChild(t); }
+  t.style.background = bom ? "#eaf7ee" : "#fdf6e3";
+  t.style.color      = bom ? "#1e6b36" : "#8a5a12";
+  t.style.border     = "1px solid "+(bom ? "#bfe0cb" : "#f0e0b8");
+  t.textContent=msg;
+  t.style.display="block";
+  clearTimeout(window.__clAvisoT);
+  window.__clAvisoT=setTimeout(function(){ t.style.display="none"; }, bom?4200:9000);
 }
 function renderCentral(){
   if(!centralAg||!centralAg.length){ if(centralModo!=="live"){ centralAg=clSeed(); } }
