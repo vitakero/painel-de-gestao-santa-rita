@@ -5522,15 +5522,33 @@ function rcbNumero(iso, i){
    Funcionário padrão e fiscal de loja não recebem o mesmo pelo domingo, e o recibo tem que
    sair com o valor certo de cada um. Então o valor deixou de ser um número e virou uma
    LISTA de tipos; a impressão pode misturar os dois no mesmo lote. */
-var RCB_TIPOS_PADRAO=[{nome:"Funcionário", valor:0},{nome:"Fiscal de loja", valor:0}];
+var RCB_TIPOS_PADRAO=[
+  { nome:"Funcionário padrão", alias:["Funcionário"] },
+  { nome:"Fiscal de loja",     alias:[] }
+];
+/* Os dois tipos existem SEMPRE, mesmo sem valor salvo — senão o dono não teria onde digitar
+   o segundo. (Foi o que aconteceu: a configuração antiga tinha um valor só, virou um tipo só,
+   e o Fiscal de loja não tinha mais linha nenhuma na tela.)
+   O campo alias recupera o nome antigo sem perder o valor que já estava salvo. */
 function rcbNormalizaTipos(cfg){
   cfg=cfg||{};
-  if(Array.isArray(cfg.tipos) && cfg.tipos.length)
-    return cfg.tipos.map(function(t){
-      return { nome:(String((t&&t.nome)||"").trim()||"Funcionário"), valor:+((t&&t.valor))||0 }; });
-  // Configuração antiga tinha um valor só. Vira o primeiro tipo, sem perder o que já valia.
-  if(+cfg.valor>0) return [{nome:"Funcionário", valor:+cfg.valor}];
-  return RCB_TIPOS_PADRAO.map(function(t){ return {nome:t.nome, valor:0}; });
+  var salvos=Array.isArray(cfg.tipos)?cfg.tipos:[];
+  if(!salvos.length && +cfg.valor>0) salvos=[{nome:RCB_TIPOS_PADRAO[0].nome, valor:+cfg.valor}];
+  var out=RCB_TIPOS_PADRAO.map(function(p){
+    var achado=null;
+    salvos.forEach(function(t){
+      var n=String((t&&t.nome)||"").trim();
+      if(n===p.nome || p.alias.indexOf(n)>=0) achado=t;
+    });
+    return { nome:p.nome, valor:+((achado&&achado.valor))||0 };
+  });
+  salvos.forEach(function(t){          // tipo extra que alguém tenha criado continua existindo
+    var n=String((t&&t.nome)||"").trim();
+    if(!n) return;
+    var conhecido=RCB_TIPOS_PADRAO.some(function(p){ return n===p.nome || p.alias.indexOf(n)>=0; });
+    if(!conhecido) out.push({ nome:n, valor:+t.valor||0 });
+  });
+  return out;
 }
 function rcbGrupos(cfg){
   return (((cfg&&cfg.grupos))||[])
@@ -5656,8 +5674,10 @@ function rcbRender(){
       window.__rcbRetry=null; rcbRender(); },600);
     return;
   }
-  var master=rcbEhMaster(), h=rcbHist(), tipos=rcbTipos();
-  var semValor=tipos.every(function(t){ return !t.valor; });
+  var master=rcbEhMaster(), h=rcbHist(), todos=rcbTipos();
+  // Tipo sem valor não aparece pra quem imprime: seria uma linha que não dá pra usar.
+  var tipos = master ? todos : todos.filter(function(t){ return t.valor>0; });
+  var semValor=todos.every(function(t){ return !t.valor; });
   /* Os valores vêm da nuvem junto com o resto e podem chegar depois da tela. Enquanto não
      chegarem, o funcionário veria "o administrador não definiu" sem ser verdade. */
   if(semValor && !window.__rcbEspera){
