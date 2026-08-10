@@ -27,6 +27,10 @@ const FILES = [
   ["robo/pixWorker.cjs", "pixWorker.cjs", "pix_cobrancas"],
   ["robo/vr-descobrir-agendamento.cjs", "vr-descobrir-agendamento.cjs", "DETETIVE do VR"],
   ["robo/vr-sync-agendamento.cjs", "vr-sync-agendamento.cjs", "SYNC: le os agendamentos"],
+  // Faltava aqui: o deploy MANDAVA este arquivo pro GitHub e a loja nunca BAIXAVA.
+  // Por isso a aba Conferencia so atualizava quando alguem rodava na mao, de dentro da loja.
+  ["robo/vr-sync-conferencia.cjs", "vr-sync-conferencia.cjs", "SYNC: le as CONFERENCIAS"],
+  ["robo/vr-sync-despesas.cjs", "vr-sync-despesas.cjs", "SYNC: le as DESPESAS"],
   ["robo/puxar-codigo.cjs", "puxar-codigo.cjs", "Baixa o codigo mais recente do GitHub via API"],
 ];
 
