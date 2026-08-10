@@ -5573,6 +5573,35 @@ function rcbValidar(cfg){
   return e;
 }
 
+/* O MESMO CSS serve o papel e a prévia da tela.
+   Se fossem duas cópias, uma hora a prévia mostraria uma coisa e a impressora outra — e a
+   prévia existe justamente pra a pessoa confiar no que vai sair. O prefixo escopa as regras
+   quando elas entram na página do painel. */
+function rcbCssRecibo(pfx){
+  var p=pfx||"";
+  return p+".rcb{border:1px dashed #b9c2cc;border-radius:6px;padding:13px 16px 15px;margin-bottom:11px;background:#fff}"+
+    p+".rcb:last-child{margin-bottom:0}"+
+    p+".rcb-cab{display:flex;align-items:center;gap:11px;"+
+      "border-bottom:1px solid #e6eaef;padding-bottom:7px;margin-bottom:9px}"+
+    p+".rcb-logo{height:30px;width:auto;flex-shrink:0}"+
+    p+".rcb-emp{flex:1;min-width:0}"+
+    p+".rcb-emp b{display:block;font-size:11.5px;font-weight:700;letter-spacing:.2px;color:#14181c}"+
+    p+".rcb-emp span{display:block;font-size:9.5px;color:#7a848f;margin-top:1px}"+
+    p+".rcb-n{font-size:10px;color:#7a848f;white-space:nowrap;font-variant-numeric:tabular-nums}"+
+    p+".rcb-tit{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#1d2733}"+
+    p+".rcb-val{margin:7px 0 8px;font-size:21px;font-weight:700;color:#14181c;"+
+      "font-variant-numeric:tabular-nums}"+
+    p+".rcb-val span{display:block;font-size:10.5px;font-weight:400;color:#6b7480;"+
+      "font-style:italic;margin-top:1px}"+
+    p+".rcb-txt{margin:0 0 14px;font-size:11.5px;line-height:1.55;text-align:justify;color:#14181c}"+
+    p+".rcb-linhas{display:flex;gap:18px}"+
+    p+".rcb-ln{flex:1}"+p+".rcb-ln.curta{flex:0 0 150px}"+
+    p+".rcb-ln .ln,"+p+".rcb-ass .ln{display:block;border-bottom:1px solid #1a1a1a;height:19px}"+
+    p+".rcb-ln i,"+p+".rcb-ass i{display:block;font-style:normal;font-size:9px;color:#7a848f;"+
+      "text-transform:uppercase;letter-spacing:.5px;margin-top:2px}"+
+    p+".rcb-ass{margin-top:16px;max-width:320px}"+
+    p+".rcb-pe{margin-top:11px;font-size:10px;color:#7a848f}";
+}
 function rcbLogo(){
   // O documento pode ser montado fora do painel (teste); sem logo ele continua válido.
   return (typeof LOGO_URI!=="undefined" && LOGO_URI)
@@ -5706,8 +5735,19 @@ function rcbRender(){
       +'</td></tr>';
   }).join("");
 
+  /* O CSS do recibo entra na página uma vez, escopado em .rcb-prev, pra a prévia ser
+     literalmente o mesmo desenho do papel — e não uma imitação que envelhece sozinha. */
+  if(!document.getElementById("rcbPrevCss")){
+    var st=document.createElement("style"); st.id="rcbPrevCss";
+    st.textContent=rcbCssRecibo(".rcb-prev ")
+      +".rcb-prev{zoom:.82}"
+      +".rcb-prev .rcb{box-shadow:0 1px 3px rgba(16,24,32,.05)}";
+    document.head.appendChild(st);
+  }
+
   el.innerHTML=''
-   +'<div class="card" style="max-width:660px;">'
+   +'<div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;">'
+   +'<div class="card" style="flex:1 1 420px;min-width:340px;max-width:620px;">'
    +'<h2 style="margin:0 0 4px;font-size:19px;">Recibos de domingo</h2>'
    +'<p style="margin:0 0 18px;color:#68727e;font-size:13.5px;line-height:1.5;">'
      +'Imprime os recibos do pagamento em dinheiro pelo trabalho no domingo. '
@@ -5727,6 +5767,13 @@ function rcbRender(){
    +'<div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">'
      +'<button type="button" id="rcbGerar" style="'+RCB_BTN+'">Gerar recibos para imprimir</button>'
      +(master?'<button type="button" id="rcbSalvarValor" style="'+RCB_BTN+'">Salvar valores</button>':'')
+   +'</div>'
+   +'</div>'
+   +'<div class="card" style="flex:1 1 380px;min-width:330px;max-width:520px;">'
+     +'<h3 style="margin:0 0 3px;font-size:15px;">Como o recibo vai sair</h3>'
+     +'<p style="margin:0 0 12px;font-size:12.5px;color:#8a939e;line-height:1.45;">'
+       +'Espelho do papel. O nome e a assinatura ficam em branco — quem recebe preenche na hora.</p>'
+     +'<div id="rcbPrevia" class="rcb-prev"></div>'
    +'</div>'
    +'</div>'
    +(h.length
@@ -5787,6 +5834,25 @@ function rcbRender(){
     document.getElementById("rcbErro").textContent = erros.length ? erros[0] : "";
     rcbBotaoEstado(document.getElementById("rcbGerar"), erros.length===0);
     rcbBotaoEstado(document.getElementById("rcbSalvarValor"), pendente());
+    previa(c);
+  }
+  /* A prévia mostra UM recibo de cada tipo que vai ser impresso. Se ainda não escolheu
+     quantidade nenhuma, mostra os tipos que têm valor — pra a tela nunca ficar vazia. */
+  function previa(c){
+    var alvo=document.getElementById("rcbPrevia"); if(!alvo) return;
+    var d=(document.getElementById("rcbData")||{}).value||"";
+    var mostrar=rcbGrupos(c);
+    if(!mostrar.length) mostrar=(master?digitados():tipos).filter(function(t){ return t.valor>0; });
+    if(!rcbData(d) || !mostrar.length){
+      alvo.innerHTML='<div style="border:1px dashed #dbe1e8;border-radius:8px;padding:22px;'
+        +'text-align:center;color:#a9b2bc;font-size:12.5px;">Defina o valor e a data para ver o recibo.</div>';
+      return;
+    }
+    alvo.innerHTML=mostrar.slice(0,3).map(function(g,i){
+      return '<div style="font-size:11px;font-weight:600;color:#8a939e;text-transform:uppercase;'
+        +'letter-spacing:.5px;margin:'+(i?'14px':'0')+' 0 5px;">'+pxEsc(g.nome)+'</div>'
+        + rcbUmHtml({ data:d, valor:g.valor }, i);
+    }).join("");
   }
   el.querySelectorAll("[data-rcbval],[data-rcbqtd]").forEach(function(i){
     i.addEventListener("input",atualiza); i.addEventListener("change",atualiza);
@@ -5851,28 +5917,7 @@ function rcbAbrir(cfg){
     ".rcb-wrap{padding:26px 18px 60px}"+
     ".rcb-folha{max-width:780px;margin:0 auto 22px;background:#fff;padding:14mm 16mm;"+
       "border-radius:10px;box-shadow:0 1px 3px rgba(16,24,32,.06)}"+
-    ".rcb{border:1px dashed #b9c2cc;border-radius:6px;padding:13px 16px 15px;margin-bottom:11px}"+
-    ".rcb:last-child{margin-bottom:0}"+
-    ".rcb-cab{display:flex;align-items:center;gap:11px;"+
-      "border-bottom:1px solid #e6eaef;padding-bottom:7px;margin-bottom:9px}"+
-    ".rcb-logo{height:30px;width:auto;flex-shrink:0}"+
-    ".rcb-emp{flex:1;min-width:0}"+
-    ".rcb-emp b{display:block;font-size:11.5px;font-weight:700;letter-spacing:.2px}"+
-    ".rcb-emp span{display:block;font-size:9.5px;color:#7a848f;margin-top:1px}"+
-    ".rcb-n{font-size:10px;color:#7a848f;white-space:nowrap;font-variant-numeric:tabular-nums}"+
-    ".rcb-tit{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#1d2733}"+
-    ".rcb-val{margin:7px 0 8px;font-size:21px;font-weight:700;color:#14181c;"+
-      "font-variant-numeric:tabular-nums}"+
-    ".rcb-val span{display:block;font-size:10.5px;font-weight:400;color:#6b7480;"+
-      "font-style:italic;margin-top:1px}"+
-    ".rcb-txt{margin:0 0 14px;font-size:11.5px;line-height:1.55;text-align:justify}"+
-    ".rcb-linhas{display:flex;gap:18px}"+
-    ".rcb-ln{flex:1}.rcb-ln.curta{flex:0 0 150px}"+
-    ".rcb-ln .ln,.rcb-ass .ln{display:block;border-bottom:1px solid #1a1a1a;height:19px}"+
-    ".rcb-ln i,.rcb-ass i{display:block;font-style:normal;font-size:9px;color:#7a848f;"+
-      "text-transform:uppercase;letter-spacing:.5px;margin-top:2px}"+
-    ".rcb-ass{margin-top:16px;max-width:320px}"+
-    ".rcb-pe{margin-top:11px;font-size:10px;color:#7a848f}"+
+    rcbCssRecibo("")+
     "@page{margin:0}"+
     "@media print{.docbar{display:none}html,body{background:#fff}.rcb-wrap{padding:0}"+
       ".rcb-folha{box-shadow:none;border-radius:0;margin:0;max-width:none;padding:10mm 12mm;"+
