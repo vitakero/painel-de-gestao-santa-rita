@@ -5690,6 +5690,39 @@ function rcbBotaoEstado(b, ligado){
   b.style.opacity = ligado ? "1" : ".42";
   b.style.cursor  = ligado ? "pointer" : "default";
 }
+/* A PRÉVIA TEM QUE CABER NA TELA.
+   Com tamanho fixo, o segundo recibo ficava cortado embaixo e a pessoa tinha que rolar — o
+   que derruba o motivo da prévia existir, que é bater o olho e conferir antes de imprimir.
+   Ela mede o espaço que sobrou até o rodapé da janela e encolhe só o quanto precisa.
+   Piso de 0,45: abaixo disso o papel fica ilegível, e aí é melhor rolar do que não enxergar. */
+function rcbPreviaCabe(){
+  var alvo=document.getElementById("rcbPrevia"); if(!alvo) return;
+  alvo.style.zoom=1;
+  var topo=alvo.getBoundingClientRect().top, natural=alvo.scrollHeight;
+  // Nem todo navegador responde os três; pega o primeiro que souber a altura da janela.
+  var tela=window.innerHeight
+        || (document.documentElement && document.documentElement.clientHeight)
+        || (window.visualViewport && window.visualViewport.height) || 0;
+  /* Se a página ainda não assentou (aba escondida, layout não calculado), a medida vem zerada
+     e a conta encolheria a prévia à toa. Nesse caso mantém o tamanho normal e tenta de novo
+     no quadro seguinte, quando o navegador já sabe onde as coisas estão. */
+  if(!natural || tela<400 || topo<=0){
+    alvo.style.zoom=.82;
+    if(!alvo.__rcbTentou){
+      alvo.__rcbTentou=true;
+      requestAnimationFrame(function(){ alvo.__rcbTentou=false; rcbPreviaCabe(); });
+    }
+    return;
+  }
+  alvo.style.zoom=Math.min(.86, Math.max(.45, (tela-topo-22)/natural));
+}
+if(!window.__rcbResize){
+  window.__rcbResize=true;
+  window.addEventListener("resize",function(){
+    var pg=document.getElementById("page-recibos");
+    if(pg && pg.classList.contains("ativo")) rcbPreviaCabe();
+  });
+}
 
 function rcbRender(){
   var el=document.getElementById("rcbRoot"); if(!el) return;
@@ -5740,7 +5773,7 @@ function rcbRender(){
   if(!document.getElementById("rcbPrevCss")){
     var st=document.createElement("style"); st.id="rcbPrevCss";
     st.textContent=rcbCssRecibo(".rcb-prev ")
-      +".rcb-prev{zoom:.82}"
+      +".rcb-prev{zoom:.82}"                     // ponto de partida; o JS ajusta pela tela
       +".rcb-prev .rcb{box-shadow:0 1px 3px rgba(16,24,32,.05)}";
     document.head.appendChild(st);
   }
@@ -5853,6 +5886,7 @@ function rcbRender(){
         +'letter-spacing:.5px;margin:'+(i?'14px':'0')+' 0 5px;">'+pxEsc(g.nome)+'</div>'
         + rcbUmHtml({ data:d, valor:g.valor }, i);
     }).join("");
+    rcbPreviaCabe();
   }
   el.querySelectorAll("[data-rcbval],[data-rcbqtd]").forEach(function(i){
     i.addEventListener("input",atualiza); i.addEventListener("change",atualiza);
