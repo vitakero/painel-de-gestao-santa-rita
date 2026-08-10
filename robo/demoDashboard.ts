@@ -769,6 +769,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item nav-mo" data-page="galpoes" style="display:none;"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-6 9 6v12"/><path d="M3 21h18"/><path d="M9 21v-6h6v6"/></svg></span> Galpões</button>
     <button class="nav-item nav-mo" data-page="planta" style="display:none;"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 9v12"/></svg></span> Planta dos galpões</button>
     <button class="nav-item nav-mo" data-page="despesas" style="display:none;"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Despesas<span class="soon">novo</span></button>
+    <button class="nav-item" data-page="recibos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a1 1 0 0 1 1 1v14l-3-2-3 2-3-2-3 2-3-2-3 2V5a1 1 0 0 1 1-1z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="13" y2="13"/></svg></span> Recibos</button>
     <button class="nav-item" data-page="layout"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></span> Layout da loja</button>
     <button class="nav-item" data-page="organograma"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="5" rx="1"/><rect x="2" y="17" width="6" height="5" rx="1"/><rect x="16" y="17" width="6" height="5" rx="1"/><path d="M12 7v6"/><path d="M5 17v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/></svg></span> Organograma</button>
     <button class="nav-item" data-page="fluxograma"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg></span> Fluxograma</button>
@@ -2716,6 +2717,13 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       table.cl-dv-t td.n.ruim{color:#8c2f28;font-weight:700;}
       table.cl-dv-t td.n.bom{color:#1e6b36;font-weight:600;}
       table.cl-dv-t td.n.zero{color:#8c2f28;font-weight:700;}
+      table.cl-dv-t td.n.nb{color:#8a5a12;font-weight:600;font-size:11.5px;}
+      /* o dinheiro embaixo da quantidade: herda a cor da célula (vermelho, âmbar ou neutro)
+         e recua com opacidade, pra o olho bater primeiro no número e depois no valor. */
+      table.cl-dv-t .dv{display:block;font-size:10.5px;font-weight:400;opacity:.72;margin-top:1px;}
+      table.cl-dv-t td.tot{border-top:1.5px solid #e3e9ef;border-bottom:none;padding-top:9px;
+        font-weight:700;color:#1d2733;font-size:12.5px;}
+      table.cl-dv-t td.tot .dv{font-weight:600;opacity:1;color:#8a5a12;}
       table.cl-dv-t td.pd{max-width:250px;}
       table.cl-dv-t td.pd .emb{display:block;font-size:10.5px;color:#8a97a8;font-weight:400;margin-top:1px;}
       table.cl-dv-t th i{display:block;font-style:normal;font-size:9px;font-weight:500;
@@ -3505,6 +3513,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       </div>
     </section>
     <section id="page-despesas" class="page"><div id="despRoot"></div></section>
+    <section id="page-recibos" class="page"><div id="rcbRoot"></div></section>
   </main>
   </div>
   <footer>Dados reais lidos do sistema VR da loja · resumos gerados em ${geradoEm} · o filtro recalcula no seu navegador.</footer>
@@ -5456,17 +5465,420 @@ var CL_DV_BLOCOS=[
     ajuda:"Compara o pedido de compra com a nota do fornecedor.",
     cols:["Pedido","Na nota","Diferença"] },
   { chave:"doca", tipos:["COLETOR"],
-    titulo:"O que foi contado na doca × o que a nota cobra",
-    ajuda:"Compara a bipagem do conferente com a nota. É aqui que aparece cobrança sem mercadoria.",
+    titulo:"Erro de contagem que ficou sem correção",
+    ajuda:"Quando o conferente reconfere e bate com a nota, a linha sai sozinha. O que está aqui foi finalizado sem ninguém conferir de novo.",
     cols:["Contado","Na nota","Diferença"] },
   { chave:"preco", tipos:["CUSTO","CUSTO ANTERIOR"],
     titulo:"Só mudança de preço",
     ajuda:"A quantidade bateu. Mudou o custo em relação à compra anterior — quase sempre centavo de arredondamento.",
     cols:[] }
 ];
+/* ==RCB-INICIO== RECIBO DE DOMINGO — módulo puro (testado em
+   scripts/testes/recibo-domingo.test.cjs). Sem DOM aqui dentro.
+
+   POR QUE ISTO EXISTE
+     Alguns funcionários trabalham no domingo e recebem em dinheiro, na hora. Sem papel, não
+     fica registro nenhum de que o pagamento foi feito — nem pra loja nem pra pessoa.
+     O painel imprime o recibo pronto; o NOME e a ASSINATURA são preenchidos à mão na entrega.
+
+   DECISÃO: o valor e a data saem impressos, o nome não.
+     Imprimir o nome exigiria escolher a pessoa antes, e o pagamento é decidido no próprio
+     domingo, com quem apareceu. Deixar a linha em branco é o que casa com a operação real. */
+var RCB_DIAS=["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
+var RCB_MESES=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto",
+               "setembro","outubro","novembro","dezembro"];
+
+function rcbData(iso){
+  var p=String(iso||"").split("-");
+  if(p.length!==3) return null;
+  var d=new Date(+p[0], +p[1]-1, +p[2]);
+  if(isNaN(d.getTime()) || d.getDate()!==+p[2]) return null;   // 31/02 vira 03/03: recusa
+  return d;
+}
+function rcbDataExtenso(iso){
+  var d=rcbData(iso); if(!d) return "";
+  return RCB_DIAS[d.getDay()]+", "+("0"+d.getDate()).slice(-2)+" de "
+       + RCB_MESES[d.getMonth()]+" de "+d.getFullYear();
+}
+function rcbEhDomingo(iso){ var d=rcbData(iso); return !!d && d.getDay()===0; }
+function rcbMoeda(v){
+  return "R$ "+(+v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+/* Por extenso com os centavos — recibo sem valor por extenso é recibo que se altera com uma
+   canetada. pxNumExtenso já resolve a parte inteira; aqui entram os centavos. */
+function rcbExtenso(v){
+  v=Math.round((+v||0)*100)/100;
+  var i=Math.floor(v), c=Math.round((v-i)*100);
+  var t=pxNumExtenso(i)+(i===1?" real":" reais");
+  if(c) t+=" e "+pxNumExtenso(c)+(c===1?" centavo":" centavos");
+  return t;
+}
+/* Numeração: data do domingo + sequência. Dois recibos do mesmo domingo nunca colidem, e
+   o número diz de cara a que dia pertence. */
+function rcbNumero(iso, i){
+  return String(iso||"").replace(/-/g,"")+"-"+("00"+(i+1)).slice(-3);
+}
+function rcbValidar(cfg){
+  cfg=cfg||{};
+  var e=[];
+  if(!rcbData(cfg.data)) e.push("Escolha a data do domingo trabalhado.");
+  else if(!rcbEhDomingo(cfg.data)) e.push("A data escolhida não é um domingo — confira antes de imprimir.");
+  var v=+cfg.valor||0;
+  if(v<=0) e.push("Informe o valor pago a cada pessoa.");
+  var q=+cfg.quantidade||0;
+  if(q<1) e.push("Informe quantos recibos imprimir.");
+  else if(q>60) e.push("Máximo de 60 recibos por vez.");
+  return e;
+}
+function rcbTotal(cfg){ return (+cfg.valor||0)*(+cfg.quantidade||0); }
+
+function rcbLogo(){
+  // O documento pode ser montado fora do painel (teste); sem logo ele continua válido.
+  return (typeof LOGO_URI!=="undefined" && LOGO_URI)
+    ? '<img class="rcb-logo" src="'+LOGO_URI+'" alt="Supermercado Santa Rita">' : '';
+}
+function rcbUmHtml(cfg, i){
+  var v=+cfg.valor||0;
+  return '<div class="rcb">'
+    +'<div class="rcb-cab">'
+      +rcbLogo()
+      +'<div class="rcb-emp"><b>'+pxEsc(PX_LOCADOR.razao)+'</b>'
+        +'<span>CNPJ '+pxEsc(PX_LOCADOR.cnpj)+' · '+pxEsc(PX_LOCADOR.endereco)+'</span></div>'
+      +'<div class="rcb-n">Nº '+rcbNumero(cfg.data,i)+'</div>'
+    +'</div>'
+    +'<div class="rcb-tit">Recibo de pagamento referente ao trabalho do domingo</div>'
+    +'<div class="rcb-val">'+rcbMoeda(v)+'<span>('+rcbExtenso(v)+')</span></div>'
+    /* O valor por extenso vai DENTRO da frase, não só na tarja de cima.
+       "A quantia acima" obriga a olhar pra outro lugar do papel pra saber quanto é — e um
+       recibo que se lê sozinho vale mais do que um que depende do desenho. */
+    +'<p class="rcb-txt">Recebi de <b>'+pxEsc(PX_LOCADOR.razao)+'</b>, CNPJ '+pxEsc(PX_LOCADOR.cnpj)
+      +', a quantia de <b>'+rcbMoeda(v)+' ('+rcbExtenso(v)+')</b>, em dinheiro, '
+      +'referente ao trabalho prestado no dia '
+      +'<b>'+rcbDataExtenso(cfg.data)+'</b>, dando plena quitação deste valor.</p>'
+    +'<div class="rcb-linhas">'
+      +'<div class="rcb-ln"><span class="ln"></span><i>Nome completo</i></div>'
+      +'<div class="rcb-ln curta"><span class="ln"></span><i>CPF</i></div>'
+    +'</div>'
+    +'<div class="rcb-ass"><span class="ln"></span><i>Assinatura</i></div>'
+    +'<div class="rcb-pe">'+pxEsc(PX_LOCADOR.cidade)+', '+rcbDataExtenso(cfg.data)+'</div>'
+  +'</div>';
+}
+function rcbFolhaHtml(cfg){
+  var q=+cfg.quantidade||0, partes=[];
+  for(var i=0;i<q;i++) partes.push(rcbUmHtml(cfg,i));
+  var blocos="";
+  for(var j=0;j<partes.length;j+=3)
+    blocos+='<div class="rcb-folha">'+partes.slice(j,j+3).join("")+'</div>';
+  return blocos;
+}
+/* ==RCB-FIM== */
+
+/* ---- Recibos de domingo: tela e impressão (só master) ---- */
+function rcbUltimoDomingo(){
+  var d=new Date(HOJE.getTime());
+  d.setDate(d.getDate()-d.getDay());          // volta pro domingo desta semana
+  if(d.getTime()>HOJE.getTime()) d.setDate(d.getDate()-7);
+  return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
+}
+function rcbHist(){ try{ return JSON.parse(localStorage.getItem("rcb_historico")||"[]"); }catch(e){ return []; } }
+function rcbHistAdd(cfg){
+  var h=rcbHist();
+  h.unshift({ data:cfg.data, valor:+cfg.valor||0, qtd:+cfg.quantidade||0, quando:new Date().toISOString() });
+  try{ localStorage.setItem("rcb_historico", JSON.stringify(h.slice(0,60))); }catch(e){}
+}
+/* O VALOR É PADRÃO DA LOJA, NÃO ESCOLHA DE QUEM IMPRIME.
+   Quem entrega o recibo no domingo é o encarregado, não o dono. Se o campo ficasse aberto,
+   o valor do pagamento passaria a ser decidido por quem está no balcão. Então: o master
+   define uma vez, fica valendo, e para os outros o campo aparece travado.
+   Mora em rcb_config (sincronizado na nuvem) — se ficasse no navegador do master, o
+   funcionário abriria a tela sem valor nenhum. */
+function rcbCfg(){ try{ return JSON.parse(localStorage.getItem("rcb_config")||"{}"); }catch(e){ return {}; } }
+function rcbValorPadrao(){ return +(rcbCfg().valor)||0; }
+function rcbSetValorPadrao(v){
+  var c=rcbCfg(); c.valor=+v||0; c.atualizado=new Date().toISOString();
+  try{ localStorage.setItem("rcb_config", JSON.stringify(c)); }catch(e){}
+}
+function rcbEhMaster(){ return !!(window.__PERFIL && window.__PERFIL.is_master); }
+
+function rcbRender(){
+  var el=document.getElementById("rcbRoot"); if(!el) return;
+  var master=rcbEhMaster(), h=rcbHist(), padrao=rcbValorPadrao();
+  var inputBase="width:100%;margin-top:5px;padding:9px 10px;border:1px solid #dbe1e8;border-radius:8px;font-size:14px;";
+  var travado=master?"":inputBase+"background:#f4f6f8;color:#49525d;cursor:not-allowed;";
+
+  el.innerHTML=''
+   +'<div class="card" style="max-width:640px;">'
+   +'<h2 style="margin:0 0 4px;font-size:19px;">Recibos de domingo</h2>'
+   +'<p style="margin:0 0 18px;color:#68727e;font-size:13.5px;line-height:1.5;">'
+     +'Imprime os recibos do pagamento em dinheiro pelo trabalho no domingo. '
+     +'O <b>valor</b> e a <b>data</b> saem impressos; o <b>nome</b> e a <b>assinatura</b> '
+     +'a pessoa preenche na hora de receber.</p>'
+   +'<div style="display:flex;gap:12px;flex-wrap:wrap;">'
+     +'<label style="flex:1;min-width:165px;font-size:12.5px;font-weight:600;color:#49525d;">Domingo trabalhado'
+       +'<input type="date" id="rcbData" value="'+rcbUltimoDomingo()+'" style="'+inputBase+'"></label>'
+     +'<label style="flex:1;min-width:'+(master?'215':'150')+'px;font-size:12.5px;font-weight:600;color:#49525d;">'
+       +'Valor por pessoa'+(master?'':' <span style="font-weight:400;color:#8a939e;">(fixo)</span>')
+       +'<span style="display:flex;gap:7px;align-items:stretch;">'
+       +'<input type="number" id="rcbValor" min="0" step="0.01" placeholder="80,00"'
+         +(padrao?' value="'+padrao+'"':'')
+         +(master?'':' disabled')
+         +' style="'+(master?inputBase+"flex:1;min-width:0;":travado)+'">'
+       +(master?'<button type="button" id="rcbSalvarValor" style="margin-top:5px;border:0;'
+         +'border-radius:8px;padding:0 14px;font-size:13px;font-weight:600;cursor:pointer;'
+         +'background:#157a35;color:#fff;white-space:nowrap;">Salvar</button>':'')
+       +'</span>'
+       +'<span id="rcbValorNota" style="display:block;font-size:11px;font-weight:400;color:#8a939e;margin-top:4px;"></span>'
+       +'</label>'
+     +'<label style="flex:1;min-width:120px;font-size:12.5px;font-weight:600;color:#49525d;">Quantos recibos'
+       +'<input type="number" id="rcbQtd" min="1" max="60" value="10" style="'+inputBase+'"></label>'
+   +'</div>'
+   +'<div id="rcbResumo" style="margin-top:14px;font-size:13.5px;color:#49525d;"></div>'
+   +'<div id="rcbErro" style="margin-top:10px;font-size:13px;color:#8c2f28;"></div>'
+   +'<button class="btn" id="rcbGerar" type="button" style="margin-top:16px;">Gerar recibos para imprimir</button>'
+   +'</div>'
+   +(h.length
+      ? '<div class="card" style="max-width:640px;margin-top:16px;">'
+        +'<div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px;">'
+          +'<h3 style="margin:0;font-size:15px;">Domingos já impressos</h3>'
+          +(master?'<button type="button" id="rcbLimpar" style="border:0;background:transparent;'
+            +'color:#8c2f28;font-size:12.5px;font-weight:600;cursor:pointer;padding:0;">Limpar tudo</button>':'')
+        +'</div>'
+        +'<div style="font-size:13px;color:#49525d;">'
+        + h.slice(0,10).map(function(x,i){
+            return '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #f2f5f8;">'
+              +'<span>'+rcbDataExtenso(x.data)+'</span>'
+              +'<span style="display:flex;align-items:center;gap:10px;">'
+              +'<span><b>'+x.qtd+'</b> × '+rcbMoeda(x.valor)+' = <b>'+rcbMoeda(x.qtd*x.valor)+'</b></span>'
+              +(master?'<button type="button" data-rcbdel="'+i+'" title="Tirar do histórico" '
+                +'style="border:0;background:transparent;color:#b3bcc6;font-size:17px;line-height:1;'
+                +'cursor:pointer;padding:0 2px;">×</button>':'')
+              +'</span></div>';
+          }).join("")
+        +'</div>'
+        +'<p style="margin:10px 0 0;font-size:12px;color:#8a939e;">Só entra aqui depois que alguém '
+          +'confirma que os recibos saíram na impressora.</p></div>'
+      : '');
+
+  /* O recibo imprime SEMPRE o valor salvo — nunca o que está digitado e ainda não foi salvo.
+     Senão o master imprimiria com um valor que o funcionário não vê em lugar nenhum, e o
+     papel deixaria de bater com o combinado da loja. */
+  function digitado(){ var v=document.getElementById("rcbValor"); return v? +(v.value||0) : 0; }
+  function pendente(){ return master && digitado()!==rcbValorPadrao(); }
+  function ler(){
+    return { data:(document.getElementById("rcbData")||{}).value||"",
+             valor: rcbValorPadrao(),
+             quantidade:+((document.getElementById("rcbQtd")||{}).value||0) };
+  }
+  function atualiza(){
+    var c=ler(), erros=rcbValidar(c);
+    if(!master && !rcbValorPadrao())
+      erros=["O administrador ainda não definiu o valor do domingo. Peça para ele configurar."];
+    if(pendente()) erros=["Você mudou o valor e ainda não salvou. Clique em Salvar."];
+    var nota=document.getElementById("rcbValorNota");
+    if(nota) nota.innerHTML = master
+      ? (pendente()
+          ? '<b style="color:#8a5a12;">Não salvo.</b> Em vigor: '+(rcbValorPadrao()?rcbMoeda(rcbValorPadrao()):"nenhum valor")
+          : (rcbValorPadrao()? 'Em vigor: <b>'+rcbMoeda(rcbValorPadrao())+'</b> — é o que o funcionário vê.'
+                             : 'Nenhum valor salvo ainda.'))
+      : 'Definido pelo administrador.';
+    var bs=document.getElementById("rcbSalvarValor");
+    if(bs){ bs.disabled=!pendente(); bs.style.opacity=pendente()?"1":".45";
+            bs.style.cursor=pendente()?"pointer":"default"; }
+    var r=document.getElementById("rcbResumo"), e=document.getElementById("rcbErro");
+    r.innerHTML = (c.quantidade&&c.valor)
+      ? '<b>'+c.quantidade+'</b> recibo(s) de <b>'+rcbMoeda(c.valor)+'</b> · total do domingo: <b>'+rcbMoeda(rcbTotal(c))+'</b>'
+      : '';
+    e.textContent = erros.length ? erros[0] : "";
+    document.getElementById("rcbGerar").disabled = erros.length>0;
+  }
+  ["rcbData","rcbValor","rcbQtd"].forEach(function(id){
+    var i=document.getElementById(id); if(!i) return;
+    i.addEventListener("input",atualiza); i.addEventListener("change",atualiza);
+  });
+  /* Salvar é um ATO, não um efeito colateral de digitar.
+     Antes gravava sozinho ao sair do campo: o master encostava no valor sem querer e o
+     funcionário passava a imprimir com outro número, sem ninguém decidir nada. */
+  var bs=document.getElementById("rcbSalvarValor");
+  if(bs) bs.addEventListener("click",function(){
+    var v=digitado();
+    if(v<=0){ document.getElementById("rcbErro").textContent="O valor tem que ser maior que zero."; return; }
+    rcbSetValorPadrao(v);
+    atualiza();
+    var nota=document.getElementById("rcbValorNota");
+    if(nota) nota.innerHTML='<b style="color:#1e6b36;">Salvo.</b> O funcionário já vê '+rcbMoeda(v)+'.';
+  });
+  atualiza();
+
+  /* GERAR NÃO É IMPRIMIR.
+     Antes o histórico anotava no clique de gerar, e bastava abrir a janela pra o painel dizer
+     que o domingo tinha sido pago. Agora quem registra é a própria janela do recibo, depois da
+     impressão — e ela PERGUNTA, porque o navegador avisa a mesma coisa quando você imprime e
+     quando cancela. Só o "sim" entra no histórico. */
+  document.getElementById("rcbGerar").addEventListener("click",function(){ rcbAbrir(ler()); });
+
+  el.querySelectorAll("[data-rcbdel]").forEach(function(b){
+    b.addEventListener("click",function(){
+      var i=+b.getAttribute("data-rcbdel"), lista=rcbHist();
+      lista.splice(i,1);
+      try{ localStorage.setItem("rcb_historico", JSON.stringify(lista)); }catch(e){}
+      rcbRender();
+    });
+  });
+  var lp=document.getElementById("rcbLimpar");
+  if(lp) lp.addEventListener("click",function(){
+    uiConfirm({titulo:"Limpar o histórico",
+      msg:"Isto apaga o registro de todos os domingos já impressos. Os recibos em papel continuam valendo.",
+      ok:"Apagar tudo", cancel:"Cancelar"}).then(function(ok){
+        if(!ok) return;
+        try{ localStorage.setItem("rcb_historico","[]"); }catch(e){}
+        rcbRender();
+      });
+  });
+}
+function rcbAbrir(cfg){
+  var w=window.open("","_blank");
+  if(!w){ uiConfirm({titulo:"Pop-up bloqueado",msg:"Libere os pop-ups deste site no navegador para gerar os recibos.",ok:"OK",cancel:""}); return; }
+  var barra=pxDocBarraHtml({ titulo:"Recibos de domingo",
+    codigo:rcbDataExtenso(cfg.data),
+    badge:cfg.quantidade+" × "+rcbMoeda(cfg.valor)+" = "+rcbMoeda(rcbTotal(cfg)),
+    emissao:pxFmtData(pxDateKey(new Date())), printLabel:"Imprimir / Salvar PDF" });
+  var css=barra.css+
+    "*{box-sizing:border-box}html{background:#f4f5f6}body{margin:0;background:#f4f5f6;"+
+      "font-family:'Inter',-apple-system,'Segoe UI',Arial,sans-serif;color:#14181c}"+
+    ".rcb-wrap{padding:26px 18px 60px}"+
+    ".rcb-folha{max-width:780px;margin:0 auto 22px;background:#fff;padding:14mm 16mm;"+
+      "border-radius:10px;box-shadow:0 1px 3px rgba(16,24,32,.06)}"+
+    ".rcb{border:1px dashed #b9c2cc;border-radius:6px;padding:13px 16px 15px;margin-bottom:11px}"+
+    ".rcb:last-child{margin-bottom:0}"+
+    ".rcb-cab{display:flex;align-items:center;gap:11px;"+
+      "border-bottom:1px solid #e6eaef;padding-bottom:7px;margin-bottom:9px}"+
+    ".rcb-logo{height:30px;width:auto;flex-shrink:0}"+
+    ".rcb-emp{flex:1;min-width:0}"+
+    ".rcb-emp b{display:block;font-size:11.5px;font-weight:700;letter-spacing:.2px}"+
+    ".rcb-emp span{display:block;font-size:9.5px;color:#7a848f;margin-top:1px}"+
+    ".rcb-n{font-size:10px;color:#7a848f;white-space:nowrap;font-variant-numeric:tabular-nums}"+
+    ".rcb-tit{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#1d2733}"+
+    ".rcb-val{margin:7px 0 8px;font-size:21px;font-weight:700;color:#14181c;"+
+      "font-variant-numeric:tabular-nums}"+
+    ".rcb-val span{display:block;font-size:10.5px;font-weight:400;color:#6b7480;"+
+      "font-style:italic;margin-top:1px}"+
+    ".rcb-txt{margin:0 0 14px;font-size:11.5px;line-height:1.55;text-align:justify}"+
+    ".rcb-linhas{display:flex;gap:18px}"+
+    ".rcb-ln{flex:1}.rcb-ln.curta{flex:0 0 150px}"+
+    ".rcb-ln .ln,.rcb-ass .ln{display:block;border-bottom:1px solid #1a1a1a;height:19px}"+
+    ".rcb-ln i,.rcb-ass i{display:block;font-style:normal;font-size:9px;color:#7a848f;"+
+      "text-transform:uppercase;letter-spacing:.5px;margin-top:2px}"+
+    ".rcb-ass{margin-top:16px;max-width:320px}"+
+    ".rcb-pe{margin-top:11px;font-size:10px;color:#7a848f}"+
+    "@page{margin:0}"+
+    "@media print{.docbar{display:none}html,body{background:#fff}.rcb-wrap{padding:0}"+
+      ".rcb-folha{box-shadow:none;border-radius:0;margin:0;max-width:none;padding:10mm 12mm;"+
+      "page-break-after:always}.rcb-folha:last-child{page-break-after:auto}"+
+      ".rcb{page-break-inside:avoid}}";
+  var t="<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'>"+
+    "<title>Recibos — "+pxEsc(rcbDataExtenso(cfg.data))+"</title>"+
+    "<link rel='preconnect' href='https://fonts.googleapis.com'>"+
+    "<link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap' rel='stylesheet'>"+
+    "<style>"+css+"</style></head><body>"+barra.html+
+    "<div class='rcb-wrap'>"+rcbFolhaHtml(cfg)+"</div>"+rcbScriptConfirma(cfg)+"</body></html>";
+  w.document.write(t); w.document.close();
+}
+/* A janela do recibo se registra sozinha — e só depois que a pessoa confirma.
+   O navegador dispara "afterprint" tanto quando imprime quanto quando cancela, então não dá
+   pra confiar nele sozinho: ele serve só pra saber a HORA de perguntar. */
+function rcbScriptConfirma(cfg){
+  var bt="border:0;border-radius:8px;padding:9px 15px;font-size:13.5px;font-weight:600;cursor:pointer;";
+  /* O HTML da barra é montado AQUI e entra no script via JSON.stringify.
+     Escrever aspas dentro de aspas dentro de um script gerado dentro de um template não
+     sobrevive a três níveis de escape — a primeira versão saiu com o quote comido e o
+     script inteiro morreu com "Unexpected identifier". JSON.stringify escapa uma vez, certo. */
+  var htmlBarra='<span>Os recibos saíram na impressora?</span>'
+    +'<button id="rcbSim" style="'+bt+'background:#2f9e5b;color:#fff">Sim, registrar</button>'
+    +'<button id="rcbNao" style="'+bt+'background:#3a424c;color:#e7ebf0">Não imprimi</button>';
+  return "<script>(function(){"
+    +"var C="+JSON.stringify(cfg)+",feito=false;"
+    +"function fecha(){var b=document.getElementById('rcbConf'); if(b) b.style.display='none';}"
+    +"function registra(){"
+      +"feito=true;"
+      +"try{"
+        +"if(window.opener&&!window.opener.closed&&window.opener.rcbHistAdd){"
+          +"window.opener.rcbHistAdd(C);"
+          +"if(window.opener.rcbRender) window.opener.rcbRender();"
+        +"} else { throw 0; }"
+      +"}catch(e){"
+        +"try{var h=JSON.parse(localStorage.getItem('rcb_historico')||'[]');"
+          +"h.unshift({data:C.data,valor:C.valor,qtd:C.quantidade,quando:new Date().toISOString()});"
+          +"localStorage.setItem('rcb_historico',JSON.stringify(h.slice(0,60)));}catch(_){}"
+      +"}"
+      +"var b=document.getElementById('rcbConf');"
+      +"if(b){b.innerHTML="+JSON.stringify('<span>Registrado no histórico: ')+"+C.quantidade+"
+        +JSON.stringify(' recibo(s).</span>')+";setTimeout(fecha,2600);}"
+    +"}"
+    +"function pergunta(){"
+      +"if(feito) return;"
+      +"var b=document.getElementById('rcbConf');"
+      +"if(b){b.style.display='flex';return;}"
+      +"b=document.createElement('div');b.id='rcbConf';"
+      +"b.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99;background:#14181c;"
+        +"color:#fff;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;"
+        +"padding:14px 18px;font-size:14px;box-shadow:0 -2px 14px rgba(0,0,0,.2)';"
+      +"b.innerHTML="+JSON.stringify(htmlBarra)+";"
+      +"document.body.appendChild(b);"
+      +"document.getElementById('rcbSim').onclick=registra;"
+      +"document.getElementById('rcbNao').onclick=fecha;"
+    +"}"
+    +"window.addEventListener('afterprint',pergunta);"
+  +"})();<\\/script>";
+}
+
+/* ==CONFDV-INICIO== módulo puro de leitura da divergência (testado em
+   scripts/testes/conferencia-divergencia.test.cjs). Não usar DOM aqui dentro. */
+
+/* UNIDADE TROCADA — o dinheiro da tela explodia sem ninguém perceber.
+   Caso real (senha 24672, SACO PP PAO SEDA): a nota traz 12 (fardos) a R$ 39,93 o fardo e o
+   conferente bipou 2000 (sacos avulsos). A tela fazia |12-2000| x 39,93 = R$ 79.384,15 numa
+   nota que inteira vale R$ 479,18 — e pintava de VERDE, porque contou "a mais".
+   Essa única linha era 87% de todo o dinheiro do bloco da doca.
+   Não dá pra saber a unidade certa só com o que chega aqui, então a régua é a desproporção:
+   quando um lado é 20x o outro, não é falta nem sobra, é unidade diferente. */
+var CL_DV_FATOR_ABSURDO = 20;
+function clDvUnidadeSuspeita(a, b){
+  a = Math.abs(+a||0); b = Math.abs(+b||0);
+  if(!a || !b) return false;
+  return (a/b >= CL_DV_FATOR_ABSURDO) || (b/a >= CL_DV_FATOR_ABSURDO);
+}
+
+/* CÓPIA FANTASMA — o VR grava a divergência de contagem em TODAS as notas do caminhão,
+   inclusive nas que não têm o produto; nessas a quantidade da nota vem 0.
+   Se a nota cobra 0, não existe erro de contagem nenhum: era só a cópia. Ela chegava na tela
+   como "contado 116 / na nota 0 / -116" em VERDE, e o rodapé concluía que o fornecedor não
+   tinha mandado 116 kg que o conferente pesou com a mão. */
+function clDvFantasma(i){
+  return String(i.tipo||"").toUpperCase()==="COLETOR" && (+i.veio||0)===0 && (+i.pedido||0)>0;
+}
+function clDvFantasmaAviso(n){
+  if(!n) return "";
+  return '<b>'+n+(n===1?' linha escondida':' linhas escondidas')+':</b> cópia que o VR grava '
+       + 'na nota que não tem o produto. Não é erro de contagem.';
+}
+
+/* PREÇO — a nota é a fonte, mas em NÃO ENTREGUE o produto não está na nota (é isso que ele
+   quer dizer), então não há preço nenhum e a coluna Valor saía "—" em 99,9% das linhas.
+   O custo do PEDIDO já viaja no mesmo dado e está na mesma unidade da quantidade. */
+function clDvPreco(i){ return (+i.preco||0) || (+i.custo_pedido||0) || 0; }
+
+/* DINHEIRO EM CADA ETAPA, não só na diferença (pedido do dono, 09/08/2026).
+   Ver "-10" e "R$ 40,00" separados obriga a fazer a conta de cabeça pra saber o tamanho do
+   problema. Agora cada quantidade carrega o próprio valor embaixo: pediu R$ 120, veio R$ 80,
+   faltou R$ 40. A coluna "Valor" solta no fim deixou de existir — virou o rodapé de cada célula. */
+function clDvCel(q, p, classe, titulo){
+  return '<td class="n'+(classe?" "+classe:"")+'"'+(titulo?' title="'+titulo+'"':'')+'>'
+    + clNum(q)
+    + '<span class="dv">'+(p ? clDinheiro(Math.abs(q)*p) : "—")+'</span></td>';
+}
+
 function clDvLinha(b,i){
-  var p=+i.preco||0, tp=String(i.tipo||"").toUpperCase();
-  function moeda(q){ return p? clDinheiro(Math.abs(q)*p) : "—"; }
+  var p=clDvPreco(i), tp=String(i.tipo||"").toUpperCase();
   var nome='<td class="pd" title="'+pxEsc(i.produto||"")+'">'+pxEsc(i.produto||"")
           +((+i.emb||1)>1?'<span class="emb">caixa com '+clNum(i.emb)+'</span>':'')+'</td>';
 
@@ -5474,36 +5886,146 @@ function clDvLinha(b,i){
     return '<tr>'+nome+'<td class="n">'+(p?clDinheiro(p):"—")+'</td>'
       +'<td class="tp2">'+pxEsc(String(i.tipo||"").toLowerCase())+'</td></tr>';
 
-  var esq = (b.chave==="doca") ? (+i.pedido||0) : (+i.pedido||0);   // doca: 1ª coluna é a contagem
+  var esq = (+i.pedido||0);            // doca: é a contagem do conferente; nos outros, o pedido
   var nota = (+i.veio||0);
+
+  /* NÃO FOI CONTADO é um TERCEIRO estado, não "contou zero".
+     Antes só a primeira célula mudava: a linha continuava com "+133" e "R$ 266,00" em
+     vermelho, igual a uma falta confirmada. Ela dizia ao mesmo tempo "ninguém contou isto"
+     e "faltaram 133". Não se sabe se faltou — ninguém olhou. Então aqui não há diferença
+     nem prejuízo: há VALOR EM JOGO, em âmbar, e um pedido de conferência. */
+  if(b.chave==="doca" && i.nunca)
+    return '<tr>'+nome
+      +'<td class="n nb">não foi contado<span class="dv">ninguém bipou</span></td>'
+      +clDvCel(nota, p, "nb", "A nota cobra isto e ninguém bipou. Não é falta comprovada: é valor a conferir.")
+      +'<td class="n vz">—<span class="dv">a conferir</span></td>'
+      +'<td class="n">'+(p?clDinheiro(p):"—")+'</td></tr>';
+
+  /* UNIDADE TROCADA: mostra os dois números crus e recusa a conta. Inventar R$ 79 mil de
+     prejuízo é pior do que admitir que aqui a comparação não fecha. */
+  if(b.chave==="doca" && clDvUnidadeSuspeita(esq, nota))
+    return '<tr>'+nome
+      +'<td class="n">'+clNum(esq)+'</td>'
+      +'<td class="n">'+clNum(nota)+'</td>'
+      +'<td class="n nb" colspan="2" title="O conferente e a nota contaram em unidades diferentes (um em caixa, outro avulso). Sem a mesma unidade a conta de dinheiro não vale.">unidades diferentes — conferir</td></tr>';
+
   var d = nota-esq, ruim = (b.chave==="doca") ? (d>0) : (d<0);
   if(tp==="NAO ENTREGUE"){ d=-esq; ruim=true; }
   return '<tr class="'+(ruim?"g":"")+'">'+nome
-    +'<td class="n">'+clNum(esq)+'</td>'
-    +'<td class="n'+(tp==="NAO ENTREGUE"?" zero":"")+'">'+clNum(nota)+'</td>'
-    +'<td class="n '+(ruim?"ruim":"bom")+'">'+(d>0?"+":"")+clNum(d)+'</td>'
-    +'<td class="n">'+(p?clDinheiro(p):"—")+'</td>'
-    +'<td class="n '+(ruim?"ruim":"bom")+'">'+moeda(d)+'</td></tr>';
+    +clDvCel(esq, p, "")
+    +clDvCel(nota, p, tp==="NAO ENTREGUE"?"zero":"")
+    +'<td class="n '+(ruim?"ruim":"bom")+'">'+(d>0?"+":"")+clNum(d)
+      +'<span class="dv">'+(p?clDinheiro(Math.abs(d)*p):"—")+'</span></td>'
+    +'<td class="n">'+(p?clDinheiro(p):"—")+'</td></tr>';
+}
+/* Ordem dentro do bloco: DINHEIRO primeiro. Antes era alfabética por tipo e produto — num
+   caminhão grande, o corte de 60 linhas jogava fora justamente as caras e enchia a tela de
+   arredondamento de centavo. Quem abre isto abre pra decidir cobrança. */
+function clDvPeso(i){
+  var p=clDvPreco(i), e=(+i.pedido||0), n=(+i.veio||0);
+  if(clDvFantasma(i)) return -1;
+  if(i.nunca) return n*p;
+  if(clDvUnidadeSuspeita(e,n)) return 0;
+  return Math.abs(n-e)*p;
+}
+/* TOTAL DE CADA COLUNA (pedido do dono, 09/08/2026).
+   A soma boa é COLUNA A COLUNA: quanto eu comprei, quanto ele faturou, e a diferença entre as
+   duas. Assim a diferença é NOTA MENOS PEDIDO — número líquido — em vez da soma dos módulos.
+   Somar módulo juntava numa cifra só o que faltou com o que veio a mais: na MASSAS QUIXABA
+   dava R$ 1.640,10 quando o buraco real do caminhão é R$ 1.218,90.
+
+   Só o DINHEIRO é somado. Quantidade não: 260 bolachas mais 3,5 kg de frango não é 263 de nada. */
+function clDvTotais(b, lista){
+  var pedido=0, nota=0, aConferir=0, semConta=0, linhas=0, falta=0, sobra=0;
+  lista.forEach(function(i){
+    var p=clDvPreco(i), e=(+i.pedido||0), n=(+i.veio||0);
+    // Fora da soma: sem contagem não há comparação, e com unidade trocada a conta não vale.
+    if(b.chave==="doca" && i.nunca){ aConferir += n*p; return; }
+    if(b.chave==="doca" && clDvUnidadeSuspeita(e,n)){ semConta++; return; }
+    pedido += e*p; nota += n*p; linhas++;
+    var v=(n-e)*p; if(v<0) falta += -v; else sobra += v;
+  });
+  return { pedido:pedido, nota:nota, dif:nota-pedido, falta:falta, sobra:sobra,
+           aConferir:aConferir, semConta:semConta, linhas:linhas };
+}
+function clDvTotalHtml(b, lista){
+  if(b.chave==="preco" || !lista.length) return "";
+  var t=clDvTotais(b,lista);
+  if(!t.linhas && !t.aConferir && !t.semConta) return "";
+  // O sinal quer dizer coisas opostas nos dois blocos, então o rótulo é escrito por extenso.
+  var ruim = (b.chave==="doca") ? (t.dif>0) : (t.dif<0);
+  var rotulo = (b.chave==="doca")
+      ? (t.dif>0 ? "cobrado e não achado" : (t.dif<0 ? "contado a mais" : "bateu"))
+      : (t.dif<0 ? "faltou do pedido"     : (t.dif>0 ? "veio a mais"    : "bateu"));
+  var extra="";
+  /* O LÍQUIDO SOZINHO ESCONDE UM DOS DOIS LADOS.
+     GRANJA CASCAVEL 21/07: faltou R$ 3.900 e veio a mais R$ 16.400 — o líquido mostra
+     "R$ 12.500 veio a mais" e a falta de R$ 3.900 desaparece da tela. Varredura de 09/08:
+     66 caminhões dos 654 nessa situação. Quando os dois lados existem, os dois aparecem. */
+  if(t.falta>0.005 && t.sobra>0.005)
+    extra+='<span class="dv">faltou '+clDinheiro(t.falta)+' · veio a mais '+clDinheiro(t.sobra)+'</span>';
+  if(t.aConferir) extra+='<span class="dv nb">+ '+clDinheiro(t.aConferir)+' a conferir</span>';
+  if(t.semConta) extra+='<span class="dv">'+t.semConta+(t.semConta===1?' linha sem conta':' linhas sem conta')+'</span>';
+  return '<tfoot><tr><td class="tot">Total</td>'
+    + '<td class="n tot">'+(t.linhas?clDinheiro(t.pedido):"—")+'</td>'
+    + '<td class="n tot">'+(t.linhas?clDinheiro(t.nota):"—")+'</td>'
+    + '<td class="n tot '+(t.linhas?(ruim?"ruim":"bom"):"")+'">'
+      + (t.linhas?clDinheiro(Math.abs(t.dif)):"—")
+      + (t.linhas?'<span class="dv">'+rotulo+'</span>':'')
+      + extra + '</td><td></td></tr></tfoot>';
+}
+/* O RODAPÉ TEM QUE FALAR DO QUE ESTÁ NA TELA.
+   Ele explicava erro de contagem em TODO cartão — e 529 dos 654 caminhões não têm nenhuma
+   linha de contagem. A pessoa lia uma explicação sobre uma tabela que não existe ali. */
+function clDvRodapeHtml(itens){
+  var temDoca=itens.some(function(i){ return String(i.tipo||"").toUpperCase()==="COLETOR"
+                                          && !clDvFantasma(i); });
+  var temNunca=itens.some(function(i){ return i.nunca && !clDvFantasma(i); });
+  if(!temDoca)
+    return '<div class="cl-dv-nota">Este caminhão não teve erro de contagem: o que está acima é '
+      +'diferença entre o <b>pedido</b> e a <b>nota</b>, ou mudança de <b>preço</b>. '
+      +'Essas não somem com reconferência — ficam registradas de qualquer jeito.</div>';
+  return '<div class="cl-dv-nota"><b>Erro de contagem que aparece aqui é erro que ficou.</b> '
+    +'O conferente reconferindo e batendo com a nota, a linha sai — então o que sobra é o que '
+    +'entrou sem ninguém conferir de novo. Diferença de <b>pedido</b> e de <b>preço</b> não some '
+    +'assim: essas ficam registradas de qualquer jeito.'
+    +(temNunca
+       ? '<br><b>Cuidado com “não foi contado”:</b> ali ninguém bipou o produto, então não é '
+        +'falta comprovada — é valor a conferir. Só o que tem número em vermelho é falta que '
+        +'alguém viu.'
+       : '')
+    +'</div>';
 }
 function clDvBlocosHtml(itens){
   var h="";
   CL_DV_BLOCOS.forEach(function(b){
     var lista=itens.filter(function(i){ return b.tipos.indexOf(String(i.tipo||"").toUpperCase())>=0; });
-    if(!lista.length) return;
+    var fantasmas=lista.filter(clDvFantasma).length;
+    lista=lista.filter(function(i){ return !clDvFantasma(i); })
+               .sort(function(x,y){ return clDvPeso(y)-clDvPeso(x); });
+    if(!lista.length && !fantasmas) return;
+    if(!lista.length){
+      h+='<div class="cl-dv-bloco"><div class="cl-dv-bt">'+b.titulo
+        +'<span>'+clDvFantasmaAviso(fantasmas)+'</span></div></div>';
+      return;
+    }
     h+='<div class="cl-dv-bloco'+(b.chave==="preco"?" ruido":"")+'">'
-      +'<div class="cl-dv-bt">'+b.titulo+'<span>'+b.ajuda+'</span></div>'
+      +'<div class="cl-dv-bt">'+b.titulo+'<span>'+b.ajuda
+        +(fantasmas?' '+clDvFantasmaAviso(fantasmas):'')+'</span></div>'
       +'<table class="cl-dv-t"><thead><tr><th>Produto</th>'
       +(b.chave==="preco"
          ? '<th class="r">Preço por un</th><th>Motivo</th>'
-         : '<th class="r">'+b.cols[0]+'<i>un</i></th><th class="r">'+b.cols[1]+'<i>un</i></th>'
-          +'<th class="r">'+b.cols[2]+'<i>un</i></th><th class="r">Preço<i>por un</i></th>'
-          +'<th class="r">Valor</th>')
+         : '<th class="r">'+b.cols[0]+'<i>un e R$</i></th>'
+          +'<th class="r">'+b.cols[1]+'<i>un e R$</i></th>'
+          +'<th class="r">'+b.cols[2]+'<i>un e R$</i></th>'
+          +'<th class="r">Preço<i>por un</i></th>')
       +'</tr></thead><tbody>'
       +lista.map(function(i){ return clDvLinha(b,i); }).join("")
-      +'</tbody></table></div>';
+      +'</tbody>'+clDvTotalHtml(b,lista)+'</table></div>';
   });
   return h;
 }
+/* ==CONFDV-FIM== */
 function clAbreDivergencia(id){
   var c=clConfAcha(id); if(!c) return;
   var d=c.divergencia_detalhe||{}, tipos=d.tipos||[], itens=d.itens||[];
@@ -5518,14 +6040,12 @@ function clAbreDivergencia(id){
 
   document.getElementById("clDvTit").textContent=c.fornecedor||"(sem nota ligada)";
   document.getElementById("clDvSub").textContent=
-    clDataLonga(c.data)+" · senha "+(c.senha||"")+" · "+(c.bipagens||0)+" itens bipados · "
+    clDataLonga(c.data)+" · senha "+(c.senha||"")+" · "+(c.bipagens||0)+" produtos bipados · "
     +(c.notas||0)+(+c.notas===1?" nota":" notas");
   document.getElementById("clDvCorpo").innerHTML=
     '<div class="cl-dv-tipos">'+chips+'</div>'
     +clDvBlocosHtml(itens)
-    +'<div class="cl-dv-nota"><b>O VR não registra se a divergência foi resolvida.</b> '
-    +'A nota ter finalizado quer dizer que a entrada foi concluída assim — não que alguém corrigiu. '
-    +'O que veio com <b>0</b> não foi cobrado na nota: o fornecedor simplesmente não mandou.</div>';
+    +clDvRodapeHtml(itens);
   bg.classList.add("show");
 }
 function renderClConf(){
@@ -5570,7 +6090,7 @@ function renderClConf(){
       +'<div class="cl-conf-a"><div class="cl-conf-f">'
         +(clConfEhExemplo()?'<span class="cl-fake-tag">exemplo</span>':'')
         +pxEsc(c.fornecedor||"(sem nota ligada)")+'</div>'
-        +'<div class="cl-conf-m">'+(+c.bipagens||0)+' itens bipados · <b>'+notas+(notas===1?' nota':' notas')+'</b>'
+        +'<div class="cl-conf-m">'+(+c.bipagens||0)+' produtos bipados · <b>'+notas+(notas===1?' nota':' notas')+'</b>'
         +(notas>nf?(' · <b>'+nf+' fechada'+(nf===1?'':'s')+'</b>'):'')
         +' · senha '+pxEsc(c.senha||"")+'</div></div>'
       +'<div class="cl-conf-j">'+pxEsc(c.inicio||"")+(c.fim&&c.fim!==c.inicio?(' → '+pxEsc(c.fim)):'')+'</div>'
@@ -15393,6 +15913,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="pontos"||btn.dataset.page==="mapa"){ pxCloudLoad(); try{ if(typeof pixCobLoad==="function") pixCobLoad(); }catch(e){} }
     if(btn.dataset.page==="galpoes"){ try{ glCloudLoad(); glRealtime(); renderGalpoes(); }catch(e){} }
     if(btn.dataset.page==="despesas"){ try{ despRender(); despCloudLoad(); }catch(e){} }
+    if(btn.dataset.page==="recibos"){ try{ rcbRender(); }catch(e){} }
     if(btn.dataset.page==="planta"){ try{ glCloudLoad(); glRealtime(); renderPlanta(); }catch(e){} }
     if(btn.dataset.page==="central"){ try{ clCloudLoad(); }catch(e){} }
     if(btn.dataset.page==="jornada"){ try{ jorCloudLoad(); jorRealtime(); renderJornada(); }catch(e){} }
@@ -17622,7 +18143,12 @@ function pedEnviar(){
     {chave:"layout_plano",        tabela:"layout",               modo:"doc", rowId:"plano"},
     {chave:"pix_config",          tabela:"configuracoes",        modo:"doc", rowId:"pix_config", masterOnly:true},
     {chave:"pix_master",          tabela:"configuracoes",        modo:"doc", rowId:"pix_master", masterOnly:true},
-    {chave:"gl_salario",          tabela:"configuracoes",        modo:"doc", rowId:"gl_salario", masterOnly:true}
+    {chave:"gl_salario",          tabela:"configuracoes",        modo:"doc", rowId:"gl_salario", masterOnly:true},
+    /* Recibos de domingo. NÃO é masterOnly: quem imprime no domingo é o encarregado, e ele
+       precisa BAIXAR o valor que o dono definiu. A trava de EDITAR está na tela (campo
+       desabilitado para não-master) — quem manda no dinheiro continua sendo um só. */
+    {chave:"rcb_config",          tabela:"configuracoes",        modo:"doc", rowId:"rcb_config",    pagina:"recibos"},
+    {chave:"rcb_historico",       tabela:"configuracoes",        modo:"doc", rowId:"rcb_historico", pagina:"recibos"}
   ];
   function ehMaster(){ return !!(window.__PERFIL && window.__PERFIL.is_master); }
   function podeVer(m){ // dado sensível: só quem tem acesso baixa/sobe
