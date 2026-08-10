@@ -5518,19 +5518,42 @@ function rcbExtenso(v){
 function rcbNumero(iso, i){
   return String(iso||"").replace(/-/g,"")+"-"+("00"+(i+1)).slice(-3);
 }
+/* TIPO DE PAGAMENTO — a loja paga diferente por função.
+   Funcionário padrão e fiscal de loja não recebem o mesmo pelo domingo, e o recibo tem que
+   sair com o valor certo de cada um. Então o valor deixou de ser um número e virou uma
+   LISTA de tipos; a impressão pode misturar os dois no mesmo lote. */
+var RCB_TIPOS_PADRAO=[{nome:"Funcionário", valor:0},{nome:"Fiscal de loja", valor:0}];
+function rcbNormalizaTipos(cfg){
+  cfg=cfg||{};
+  if(Array.isArray(cfg.tipos) && cfg.tipos.length)
+    return cfg.tipos.map(function(t){
+      return { nome:(String((t&&t.nome)||"").trim()||"Funcionário"), valor:+((t&&t.valor))||0 }; });
+  // Configuração antiga tinha um valor só. Vira o primeiro tipo, sem perder o que já valia.
+  if(+cfg.valor>0) return [{nome:"Funcionário", valor:+cfg.valor}];
+  return RCB_TIPOS_PADRAO.map(function(t){ return {nome:t.nome, valor:0}; });
+}
+function rcbGrupos(cfg){
+  return (((cfg&&cfg.grupos))||[])
+    .map(function(g){ return { nome:String((g&&g.nome)||""), valor:+((g&&g.valor))||0,
+                               quantidade:Math.floor(+((g&&g.quantidade))||0) }; })
+    .filter(function(g){ return g.quantidade>0; });
+}
+function rcbQuantos(cfg){ return rcbGrupos(cfg).reduce(function(a,g){ return a+g.quantidade; },0); }
+function rcbTotal(cfg){ return rcbGrupos(cfg).reduce(function(a,g){ return a+g.valor*g.quantidade; },0); }
 function rcbValidar(cfg){
   cfg=cfg||{};
   var e=[];
   if(!rcbData(cfg.data)) e.push("Escolha a data do domingo trabalhado.");
   else if(!rcbEhDomingo(cfg.data)) e.push("A data escolhida não é um domingo — confira antes de imprimir.");
-  var v=+cfg.valor||0;
-  if(v<=0) e.push("Informe o valor pago a cada pessoa.");
-  var q=+cfg.quantidade||0;
-  if(q<1) e.push("Informe quantos recibos imprimir.");
-  else if(q>60) e.push("Máximo de 60 recibos por vez.");
+  var g=rcbGrupos(cfg);
+  if(!g.length) e.push("Informe quantos recibos você quer imprimir.");
+  else {
+    var semValor=g.filter(function(x){ return x.valor<=0; });
+    if(semValor.length) e.push("O valor de "+semValor[0].nome+" ainda não foi definido.");
+    if(rcbQuantos(cfg)>60) e.push("Máximo de 60 recibos por vez.");
+  }
   return e;
 }
-function rcbTotal(cfg){ return (+cfg.valor||0)*(+cfg.quantidade||0); }
 
 function rcbLogo(){
   // O documento pode ser montado fora do painel (teste); sem logo ele continua válido.
@@ -5563,9 +5586,13 @@ function rcbUmHtml(cfg, i){
     +'<div class="rcb-pe">'+pxEsc(PX_LOCADOR.cidade)+', '+rcbDataExtenso(cfg.data)+'</div>'
   +'</div>';
 }
+/* A numeração corre pelo LOTE inteiro, não por tipo: 001..010 funcionário, 011..013 fiscal.
+   Dois recibos com o mesmo número no mesmo domingo seria o pior defeito possível aqui. */
 function rcbFolhaHtml(cfg){
-  var q=+cfg.quantidade||0, partes=[];
-  for(var i=0;i<q;i++) partes.push(rcbUmHtml(cfg,i));
+  var partes=[], n=0;
+  rcbGrupos(cfg).forEach(function(g){
+    for(var k=0;k<g.quantidade;k++){ partes.push(rcbUmHtml({data:cfg.data, valor:g.valor}, n)); n++; }
+  });
   var blocos="";
   for(var j=0;j<partes.length;j+=3)
     blocos+='<div class="rcb-folha">'+partes.slice(j,j+3).join("")+'</div>';
@@ -5581,21 +5608,29 @@ function rcbUltimoDomingo(){
   return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
 }
 function rcbHist(){ try{ return JSON.parse(localStorage.getItem("rcb_historico")||"[]"); }catch(e){ return []; } }
+// Guarda o lote inteiro, com a quebra por tipo escrita — assim o histórico continua legível
+// mesmo que os valores da loja mudem depois.
+function rcbResumoGrupos(cfg){
+  return rcbGrupos(cfg).map(function(g){
+    return g.quantidade+" × "+g.nome+" ("+rcbMoeda(g.valor)+")"; }).join(" · ");
+}
 function rcbHistAdd(cfg){
   var h=rcbHist();
-  h.unshift({ data:cfg.data, valor:+cfg.valor||0, qtd:+cfg.quantidade||0, quando:new Date().toISOString() });
+  h.unshift({ data:cfg.data, qtd:rcbQuantos(cfg), total:rcbTotal(cfg),
+              detalhe:rcbResumoGrupos(cfg), quando:new Date().toISOString() });
   try{ localStorage.setItem("rcb_historico", JSON.stringify(h.slice(0,60))); }catch(e){}
 }
 /* O VALOR É PADRÃO DA LOJA, NÃO ESCOLHA DE QUEM IMPRIME.
    Quem entrega o recibo no domingo é o encarregado, não o dono. Se o campo ficasse aberto,
    o valor do pagamento passaria a ser decidido por quem está no balcão. Então: o master
-   define uma vez, fica valendo, e para os outros o campo aparece travado.
+   define uma vez, fica valendo, e para os outros o valor aparece só de leitura.
    Mora em rcb_config (sincronizado na nuvem) — se ficasse no navegador do master, o
    funcionário abriria a tela sem valor nenhum. */
 function rcbCfg(){ try{ return JSON.parse(localStorage.getItem("rcb_config")||"{}"); }catch(e){ return {}; } }
-function rcbValorPadrao(){ return +(rcbCfg().valor)||0; }
-function rcbSetValorPadrao(v){
-  var c=rcbCfg(); c.valor=+v||0; c.atualizado=new Date().toISOString();
+function rcbTipos(){ return rcbNormalizaTipos(rcbCfg()); }
+function rcbSetTipos(tipos){
+  var c=rcbCfg(); c.tipos=tipos; c.atualizado=new Date().toISOString();
+  delete c.valor;                       // some com o formato antigo de um valor só
   try{ localStorage.setItem("rcb_config", JSON.stringify(c)); }catch(e){}
 }
 function rcbEhMaster(){ return !!(window.__PERFIL && window.__PERFIL.is_master); }
@@ -5621,49 +5656,61 @@ function rcbRender(){
       window.__rcbRetry=null; rcbRender(); },600);
     return;
   }
-  var master=rcbEhMaster(), h=rcbHist(), padrao=rcbValorPadrao();
-  /* O valor vem da nuvem junto com o resto e pode chegar depois da tela. Enquanto não
-     chegar, o funcionário veria "o administrador não definiu" sem ser verdade. */
-  if(!padrao && !window.__rcbEspera){
+  var master=rcbEhMaster(), h=rcbHist(), tipos=rcbTipos();
+  var semValor=tipos.every(function(t){ return !t.valor; });
+  /* Os valores vêm da nuvem junto com o resto e podem chegar depois da tela. Enquanto não
+     chegarem, o funcionário veria "o administrador não definiu" sem ser verdade. */
+  if(semValor && !window.__rcbEspera){
     window.__rcbEspera=setTimeout(function(){
       window.__rcbEspera=null;
       var pg=document.getElementById("page-recibos");
-      if(pg && pg.classList.contains("ativo") && rcbValorPadrao()) rcbRender();
+      if(pg && pg.classList.contains("ativo")
+         && !rcbTipos().every(function(t){ return !t.valor; })) rcbRender();
     },2500);
   }
   var inputBase="width:100%;margin-top:5px;padding:9px 10px;border:1px solid #dbe1e8;border-radius:8px;font-size:14px;";
-  var travado=master?"":inputBase+"background:#f4f6f8;color:#49525d;cursor:not-allowed;";
+  var inputMini="width:100%;padding:8px 10px;border:1px solid #dbe1e8;border-radius:8px;font-size:14px;";
+  var travado=inputMini+"background:#f4f6f8;color:#49525d;cursor:not-allowed;";
+
+  var linhasTipo=tipos.map(function(t,i){
+    return '<tr>'
+      +'<td style="padding:7px 10px 7px 0;font-size:13.5px;font-weight:600;color:#1d2733;">'+pxEsc(t.nome)+'</td>'
+      +'<td style="padding:7px 10px 7px 0;width:140px;">'
+        +(master
+           ? '<input type="number" min="0" step="0.01" data-rcbval="'+i+'" placeholder="0,00"'
+             +(t.valor?' value="'+t.valor+'"':'')+' style="'+inputMini+'">'
+           : '<input type="text" disabled value="'+(t.valor?rcbMoeda(t.valor):"—")+'" style="'+travado+'">')
+      +'</td>'
+      +'<td style="padding:7px 0;width:120px;">'
+        +'<input type="number" min="0" max="60" step="1" data-rcbqtd="'+i+'" value="0" style="'+inputMini+'">'
+      +'</td></tr>';
+  }).join("");
 
   el.innerHTML=''
-   +'<div class="card" style="max-width:640px;">'
+   +'<div class="card" style="max-width:660px;">'
    +'<h2 style="margin:0 0 4px;font-size:19px;">Recibos de domingo</h2>'
    +'<p style="margin:0 0 18px;color:#68727e;font-size:13.5px;line-height:1.5;">'
      +'Imprime os recibos do pagamento em dinheiro pelo trabalho no domingo. '
      +'O <b>valor</b> e a <b>data</b> saem impressos; o <b>nome</b> e a <b>assinatura</b> '
      +'a pessoa preenche na hora de receber.</p>'
-   +'<div style="display:flex;gap:12px;flex-wrap:wrap;">'
-     +'<label style="flex:1;min-width:165px;font-size:12.5px;font-weight:600;color:#49525d;">Domingo trabalhado'
-       +'<input type="date" id="rcbData" value="'+rcbUltimoDomingo()+'" style="'+inputBase+'"></label>'
-     +'<label style="flex:1;min-width:'+(master?'215':'150')+'px;font-size:12.5px;font-weight:600;color:#49525d;">'
-       +'Valor por pessoa'+(master?'':' <span style="font-weight:400;color:#8a939e;">(fixo)</span>')
-       +'<input type="number" id="rcbValor" min="0" step="0.01" placeholder="80,00"'
-         +(padrao?' value="'+padrao+'"':'')
-         +(master?'':' disabled')
-         +' style="'+(master?inputBase:travado)+'">'
-       +'<span id="rcbValorNota" style="display:block;font-size:11px;font-weight:400;color:#8a939e;margin-top:4px;"></span>'
-       +'</label>'
-     +'<label style="flex:1;min-width:120px;font-size:12.5px;font-weight:600;color:#49525d;">Quantos recibos'
-       +'<input type="number" id="rcbQtd" min="1" max="60" value="10" style="'+inputBase+'"></label>'
-   +'</div>'
-   +'<div id="rcbResumo" style="margin-top:14px;font-size:13.5px;color:#49525d;"></div>'
-   +'<div id="rcbErro" style="margin-top:10px;font-size:13px;color:#8c2f28;"></div>'
+   +'<label style="display:block;max-width:230px;font-size:12.5px;font-weight:600;color:#49525d;">Domingo trabalhado'
+     +'<input type="date" id="rcbData" value="'+rcbUltimoDomingo()+'" style="'+inputBase+'"></label>'
+   +'<table style="width:100%;border-collapse:collapse;margin-top:16px;">'
+     +'<thead><tr style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#8a939e;">'
+       +'<th style="text-align:left;padding-bottom:2px;font-weight:600;">Quem trabalhou</th>'
+       +'<th style="text-align:left;padding-bottom:2px;font-weight:600;">Valor por pessoa</th>'
+       +'<th style="text-align:left;padding-bottom:2px;font-weight:600;">Quantos</th>'
+     +'</tr></thead><tbody>'+linhasTipo+'</tbody></table>'
+   +'<div id="rcbValorNota" style="font-size:11.5px;color:#8a939e;margin-top:6px;"></div>'
+   +'<div id="rcbResumo" style="margin-top:12px;font-size:13.5px;color:#49525d;"></div>'
+   +'<div id="rcbErro" style="margin-top:8px;font-size:13px;color:#8c2f28;"></div>'
    +'<div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">'
      +'<button type="button" id="rcbGerar" style="'+RCB_BTN+'">Gerar recibos para imprimir</button>'
-     +(master?'<button type="button" id="rcbSalvarValor" style="'+RCB_BTN+'">Salvar valor</button>':'')
+     +(master?'<button type="button" id="rcbSalvarValor" style="'+RCB_BTN+'">Salvar valores</button>':'')
    +'</div>'
    +'</div>'
    +(h.length
-      ? '<div class="card" style="max-width:640px;margin-top:16px;">'
+      ? '<div class="card" style="max-width:660px;margin-top:16px;">'
         +'<div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px;">'
           +'<h3 style="margin:0;font-size:15px;">Domingos já impressos</h3>'
           +(master?'<button type="button" id="rcbLimpar" style="border:0;background:transparent;'
@@ -5672,9 +5719,9 @@ function rcbRender(){
         +'<div style="font-size:13px;color:#49525d;">'
         + h.slice(0,10).map(function(x,i){
             return '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #f2f5f8;">'
-              +'<span>'+rcbDataExtenso(x.data)+'</span>'
+              +'<span>'+rcbDataExtenso(x.data)+(x.detalhe?'<span style="display:block;font-size:11.5px;color:#8a939e;">'+pxEsc(x.detalhe)+'</span>':'')+'</span>'
               +'<span style="display:flex;align-items:center;gap:10px;">'
-              +'<span><b>'+x.qtd+'</b> × '+rcbMoeda(x.valor)+' = <b>'+rcbMoeda(x.qtd*x.valor)+'</b></span>'
+              +'<span><b>'+x.qtd+'</b> recibo(s) = <b>'+rcbMoeda(x.total!=null?x.total:(x.qtd*(x.valor||0)))+'</b></span>'
               +(master?'<button type="button" data-rcbdel="'+i+'" title="Tirar do histórico" '
                 +'style="border:0;background:transparent;color:#b3bcc6;font-size:17px;line-height:1;'
                 +'cursor:pointer;padding:0 2px;">×</button>':'')
@@ -5685,51 +5732,62 @@ function rcbRender(){
           +'confirma que os recibos saíram na impressora.</p></div>'
       : '');
 
-  /* O recibo imprime SEMPRE o valor salvo — nunca o que está digitado e ainda não foi salvo.
-     Senão o master imprimiria com um valor que o funcionário não vê em lugar nenhum, e o
-     papel deixaria de bater com o combinado da loja. */
-  function digitado(){ var v=document.getElementById("rcbValor"); return v? +(v.value||0) : 0; }
-  function pendente(){ return master && digitado()!==rcbValorPadrao(); }
+  function digitados(){
+    return tipos.map(function(t,i){
+      var c=el.querySelector('[data-rcbval="'+i+'"]');
+      return { nome:t.nome, valor: master ? (c? +(c.value||0) : 0) : t.valor };
+    });
+  }
+  function pendente(){
+    if(!master) return false;
+    var d=digitados();
+    return tipos.some(function(t,i){ return t.valor!==d[i].valor; });
+  }
   function ler(){
+    var salvos=rcbTipos();
     return { data:(document.getElementById("rcbData")||{}).value||"",
-             valor: rcbValorPadrao(),
-             quantidade:+((document.getElementById("rcbQtd")||{}).value||0) };
+             grupos: salvos.map(function(t,i){
+               var q=el.querySelector('[data-rcbqtd="'+i+'"]');
+               return { nome:t.nome, valor:t.valor, quantidade:q? +(q.value||0) : 0 };
+             }) };
   }
   function atualiza(){
     var c=ler(), erros=rcbValidar(c);
-    if(!master && !rcbValorPadrao())
-      erros=["O administrador ainda não definiu o valor do domingo. Peça para ele configurar."];
-    if(pendente()) erros=["Você mudou o valor e ainda não salvou. Clique em Salvar."];
+    if(pendente()) erros=["Você mudou o valor e ainda não salvou. Clique em Salvar valores."];
     var nota=document.getElementById("rcbValorNota");
     if(nota) nota.innerHTML = master
-      ? (pendente()
-          ? '<b style="color:#8a5a12;">Não salvo.</b> Em vigor: '+(rcbValorPadrao()?rcbMoeda(rcbValorPadrao()):"nenhum valor")
-          : (rcbValorPadrao()? 'Em vigor: <b>'+rcbMoeda(rcbValorPadrao())+'</b> — é o que o funcionário vê.'
-                             : 'Nenhum valor salvo ainda.'))
-      : 'Definido pelo administrador.';
-    rcbBotaoEstado(document.getElementById("rcbSalvarValor"), pendente());
-    var r=document.getElementById("rcbResumo"), e=document.getElementById("rcbErro");
-    r.innerHTML = (c.quantidade&&c.valor)
-      ? '<b>'+c.quantidade+'</b> recibo(s) de <b>'+rcbMoeda(c.valor)+'</b> · total do domingo: <b>'+rcbMoeda(rcbTotal(c))+'</b>'
+      ? (pendente() ? '<b style="color:#8a5a12;">Valor alterado e não salvo.</b>'
+                    : 'Os valores acima são os que o funcionário vê. Só você pode mudar.')
+      : 'Valores definidos pelo administrador.';
+    var g=rcbGrupos(c), r=document.getElementById("rcbResumo");
+    r.innerHTML = g.length
+      ? g.map(function(x){ return x.quantidade+' × '+pxEsc(x.nome)+' ('+rcbMoeda(x.valor)+')'; }).join(' · ')
+        +' &nbsp;=&nbsp; <b>'+rcbQuantos(c)+' recibo(s), total '+rcbMoeda(rcbTotal(c))+'</b>'
       : '';
-    e.textContent = erros.length ? erros[0] : "";
+    document.getElementById("rcbErro").textContent = erros.length ? erros[0] : "";
     rcbBotaoEstado(document.getElementById("rcbGerar"), erros.length===0);
+    rcbBotaoEstado(document.getElementById("rcbSalvarValor"), pendente());
   }
-  ["rcbData","rcbValor","rcbQtd"].forEach(function(id){
-    var i=document.getElementById(id); if(!i) return;
+  el.querySelectorAll("[data-rcbval],[data-rcbqtd]").forEach(function(i){
     i.addEventListener("input",atualiza); i.addEventListener("change",atualiza);
   });
+  var di=document.getElementById("rcbData");
+  if(di){ di.addEventListener("input",atualiza); di.addEventListener("change",atualiza); }
+
   /* Salvar é um ATO, não um efeito colateral de digitar.
      Antes gravava sozinho ao sair do campo: o master encostava no valor sem querer e o
      funcionário passava a imprimir com outro número, sem ninguém decidir nada. */
   var bs=document.getElementById("rcbSalvarValor");
   if(bs) bs.addEventListener("click",function(){
-    var v=digitado();
-    if(v<=0){ document.getElementById("rcbErro").textContent="O valor tem que ser maior que zero."; return; }
-    rcbSetValorPadrao(v);
-    atualiza();
+    var d=digitados();
+    if(d.every(function(x){ return x.valor<=0; })){
+      document.getElementById("rcbErro").textContent="Defina pelo menos um valor maior que zero."; return; }
+    rcbSetTipos(d);
+    rcbRender();
     var nota=document.getElementById("rcbValorNota");
-    if(nota) nota.innerHTML='<b style="color:#1e6b36;">Salvo.</b> O funcionário já vê '+rcbMoeda(v)+'.';
+    if(nota) nota.innerHTML='<b style="color:#1e6b36;">Salvo.</b> O funcionário já vê '
+      + d.filter(function(x){return x.valor>0;})
+         .map(function(x){ return pxEsc(x.nome)+' '+rcbMoeda(x.valor); }).join(' · ')+'.';
   });
   atualiza();
 
@@ -5759,12 +5817,13 @@ function rcbRender(){
       });
   });
 }
+
 function rcbAbrir(cfg){
   var w=window.open("","_blank");
   if(!w){ uiConfirm({titulo:"Pop-up bloqueado",msg:"Libere os pop-ups deste site no navegador para gerar os recibos.",ok:"OK",cancel:""}); return; }
   var barra=pxDocBarraHtml({ titulo:"Recibos de domingo",
     codigo:rcbDataExtenso(cfg.data),
-    badge:cfg.quantidade+" × "+rcbMoeda(cfg.valor)+" = "+rcbMoeda(rcbTotal(cfg)),
+    badge:rcbQuantos(cfg)+" recibo(s) = "+rcbMoeda(rcbTotal(cfg)),
     emissao:pxFmtData(pxDateKey(new Date())), printLabel:"Imprimir / Salvar PDF" });
   var css=barra.css+
     "*{box-sizing:border-box}html{background:#f4f5f6}body{margin:0;background:#f4f5f6;"+
@@ -5831,12 +5890,13 @@ function rcbScriptConfirma(cfg){
         +"} else { throw 0; }"
       +"}catch(e){"
         +"try{var h=JSON.parse(localStorage.getItem('rcb_historico')||'[]');"
-          +"h.unshift({data:C.data,valor:C.valor,qtd:C.quantidade,quando:new Date().toISOString()});"
+          +"h.unshift({data:C.data,qtd:"+rcbQuantos(cfg)+",total:"+rcbTotal(cfg)+","
+            +"detalhe:"+JSON.stringify(rcbResumoGrupos(cfg))+",quando:new Date().toISOString()});"
           +"localStorage.setItem('rcb_historico',JSON.stringify(h.slice(0,60)));}catch(_){}"
       +"}"
       +"var b=document.getElementById('rcbConf');"
-      +"if(b){b.innerHTML="+JSON.stringify('<span>Registrado no histórico: ')+"+C.quantidade+"
-        +JSON.stringify(' recibo(s).</span>')+";setTimeout(fecha,2600);}"
+      +"if(b){b.innerHTML="+JSON.stringify('<span>Registrado no histórico: '+rcbQuantos(cfg)+' recibo(s).</span>')
+        +";setTimeout(fecha,2600);}"
     +"}"
     +"function pergunta(){"
       +"if(feito) return;"
