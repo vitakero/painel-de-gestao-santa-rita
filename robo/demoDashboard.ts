@@ -5599,10 +5599,38 @@ function rcbSetValorPadrao(v){
   try{ localStorage.setItem("rcb_config", JSON.stringify(c)); }catch(e){}
 }
 function rcbEhMaster(){ return !!(window.__PERFIL && window.__PERFIL.is_master); }
+// Os dois botões da tela são o mesmo botão. Um estilo só, num lugar só.
+var RCB_BTN="border:0;border-radius:8px;padding:10px 18px;font-size:13.5px;font-weight:600;"
+  +"background:#157a35;color:#fff;white-space:nowrap;cursor:pointer;";
+function rcbBotaoEstado(b, ligado){
+  if(!b) return;
+  b.disabled=!ligado;
+  b.style.opacity = ligado ? "1" : ".42";
+  b.style.cursor  = ligado ? "pointer" : "default";
+}
 
 function rcbRender(){
   var el=document.getElementById("rcbRoot"); if(!el) return;
+  /* ESPERA O PERFIL CHEGAR.
+     O login vem da nuvem e demora um instante. Sem isto, a tela desenhava com __PERFIL
+     ainda nulo, concluía "não é master" e mostrava ao DONO a versão travada do funcionário,
+     sem o botão Salvar — e nunca mais se redesenhava. */
+  if(window.__PERFIL==null){
+    el.innerHTML='<div class="cfg-nao" style="font-style:italic;">Carregando…</div>';
+    if(!window.__rcbRetry) window.__rcbRetry=setTimeout(function(){
+      window.__rcbRetry=null; rcbRender(); },600);
+    return;
+  }
   var master=rcbEhMaster(), h=rcbHist(), padrao=rcbValorPadrao();
+  /* O valor vem da nuvem junto com o resto e pode chegar depois da tela. Enquanto não
+     chegar, o funcionário veria "o administrador não definiu" sem ser verdade. */
+  if(!padrao && !window.__rcbEspera){
+    window.__rcbEspera=setTimeout(function(){
+      window.__rcbEspera=null;
+      var pg=document.getElementById("page-recibos");
+      if(pg && pg.classList.contains("ativo") && rcbValorPadrao()) rcbRender();
+    },2500);
+  }
   var inputBase="width:100%;margin-top:5px;padding:9px 10px;border:1px solid #dbe1e8;border-radius:8px;font-size:14px;";
   var travado=master?"":inputBase+"background:#f4f6f8;color:#49525d;cursor:not-allowed;";
 
@@ -5618,15 +5646,10 @@ function rcbRender(){
        +'<input type="date" id="rcbData" value="'+rcbUltimoDomingo()+'" style="'+inputBase+'"></label>'
      +'<label style="flex:1;min-width:'+(master?'215':'150')+'px;font-size:12.5px;font-weight:600;color:#49525d;">'
        +'Valor por pessoa'+(master?'':' <span style="font-weight:400;color:#8a939e;">(fixo)</span>')
-       +'<span style="display:flex;gap:7px;align-items:stretch;">'
        +'<input type="number" id="rcbValor" min="0" step="0.01" placeholder="80,00"'
          +(padrao?' value="'+padrao+'"':'')
          +(master?'':' disabled')
-         +' style="'+(master?inputBase+"flex:1;min-width:0;":travado)+'">'
-       +(master?'<button type="button" id="rcbSalvarValor" style="margin-top:5px;border:0;'
-         +'border-radius:8px;padding:0 14px;font-size:13px;font-weight:600;cursor:pointer;'
-         +'background:#157a35;color:#fff;white-space:nowrap;">Salvar</button>':'')
-       +'</span>'
+         +' style="'+(master?inputBase:travado)+'">'
        +'<span id="rcbValorNota" style="display:block;font-size:11px;font-weight:400;color:#8a939e;margin-top:4px;"></span>'
        +'</label>'
      +'<label style="flex:1;min-width:120px;font-size:12.5px;font-weight:600;color:#49525d;">Quantos recibos'
@@ -5634,7 +5657,10 @@ function rcbRender(){
    +'</div>'
    +'<div id="rcbResumo" style="margin-top:14px;font-size:13.5px;color:#49525d;"></div>'
    +'<div id="rcbErro" style="margin-top:10px;font-size:13px;color:#8c2f28;"></div>'
-   +'<button class="btn" id="rcbGerar" type="button" style="margin-top:16px;">Gerar recibos para imprimir</button>'
+   +'<div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">'
+     +'<button type="button" id="rcbGerar" style="'+RCB_BTN+'">Gerar recibos para imprimir</button>'
+     +(master?'<button type="button" id="rcbSalvarValor" style="'+RCB_BTN+'">Salvar valor</button>':'')
+   +'</div>'
    +'</div>'
    +(h.length
       ? '<div class="card" style="max-width:640px;margin-top:16px;">'
@@ -5681,15 +5707,13 @@ function rcbRender(){
           : (rcbValorPadrao()? 'Em vigor: <b>'+rcbMoeda(rcbValorPadrao())+'</b> — é o que o funcionário vê.'
                              : 'Nenhum valor salvo ainda.'))
       : 'Definido pelo administrador.';
-    var bs=document.getElementById("rcbSalvarValor");
-    if(bs){ bs.disabled=!pendente(); bs.style.opacity=pendente()?"1":".45";
-            bs.style.cursor=pendente()?"pointer":"default"; }
+    rcbBotaoEstado(document.getElementById("rcbSalvarValor"), pendente());
     var r=document.getElementById("rcbResumo"), e=document.getElementById("rcbErro");
     r.innerHTML = (c.quantidade&&c.valor)
       ? '<b>'+c.quantidade+'</b> recibo(s) de <b>'+rcbMoeda(c.valor)+'</b> · total do domingo: <b>'+rcbMoeda(rcbTotal(c))+'</b>'
       : '';
     e.textContent = erros.length ? erros[0] : "";
-    document.getElementById("rcbGerar").disabled = erros.length>0;
+    rcbBotaoEstado(document.getElementById("rcbGerar"), erros.length===0);
   }
   ["rcbData","rcbValor","rcbQtd"].forEach(function(id){
     var i=document.getElementById(id); if(!i) return;
@@ -18416,6 +18440,9 @@ function pedEnviar(){
         }
       }catch(e){}
       try{ var _pa=document.getElementById('page-acessos'); if(_pa && _pa.classList.contains('ativo') && typeof renderAcessos==='function'){ _acsTries=0; renderAcessos(); } }catch(e){}
+      // O perfil só chega aqui. Quem já estava com a aba Recibos aberta desenhou sem saber
+      // se era master — agora dá pra desenhar certo.
+      try{ var _pr=document.getElementById('page-recibos'); if(_pr && _pr.classList.contains('ativo') && typeof rcbRender==='function'){ rcbRender(); } }catch(e){}
     });
   }
   function mostrarReset(){ fimChecagem(); ov.style.display="flex"; var lb=document.getElementById("authLoginBox"); if(lb) lb.style.display="none"; var rb=document.getElementById("authReset"); if(rb) rb.style.display=""; }
