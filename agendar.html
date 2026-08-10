@@ -70,6 +70,12 @@
         <input id="contato" type="text" maxlength="40" inputmode="tel" placeholder="(84) 9 9999-9999">
       </div>
       <div class="field">
+        <label>Email</label>
+        <input id="email" type="email" maxlength="160" inputmode="email"
+               autocomplete="email" placeholder="compras@suaempresa.com.br">
+        <span class="opt" style="display:block;margin-top:4px;">É por aqui que avisamos se o horário foi confirmado.</span>
+      </div>
+      <div class="field">
         <label>Dia da entrega</label>
         <input id="dia" type="date">
       </div>
@@ -144,13 +150,18 @@
     erro("");
     var empresa=el("empresa").value.trim();
     var d=el("dia").value;
+    var mail=el("email").value.trim();
     if(!empresa) return erro("Escreva o nome da sua empresa.");
+    if(!mail) return erro("Escreva seu email — é por onde avisamos se o horário foi confirmado.");
+    // Conferência leve aqui só pra avisar cedo; quem decide de verdade é o servidor.
+    if(!/^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$/.test(mail)) return erro("Esse email não parece válido. Confira.");
     if(!d) return erro("Escolha o dia da entrega.");
     if(horaSel===null) return erro("Escolha um horário disponível.");
     var btn=el("enviar"); btn.disabled=true; btn.textContent="Enviando…";
     SB.rpc("ent_solicitar",{
       p_fornecedor:empresa, p_documento:el("doc").value.trim()||null, p_contato:el("contato").value.trim()||null,
-      p_data:d, p_hora:horaSel, p_pedido:el("pedido").value.trim()||null, p_descricao:el("descricao").value.trim()||null
+      p_data:d, p_hora:horaSel, p_pedido:el("pedido").value.trim()||null, p_descricao:el("descricao").value.trim()||null,
+      p_email:mail
     }).then(function(r){
       btn.disabled=false; btn.textContent="Solicitar agendamento";
       if(r.error){ return erro("Não deu pra enviar. Verifique a conexão e tente de novo."); }
