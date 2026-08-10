@@ -62,50 +62,118 @@ nt as (
     join notaentradareferenciacoletor rc on rc.id_notaentradacoletor = k.id
     join notaentrada ne on ne.id = rc.id_notaentrada
    where k.created_at >= now() - ($1 || ' days')::interval
+),
+-- dv  = as divergências dessas notas, cada uma já com a CONTAGEM DE HOJE do coletor
+--
+-- POR QUE BUSCAR A CONTAGEM DE HOJE
+--   Quando dá diferença de contagem, a entrada de nota devolve a lista pro conferente, ele
+--   RECONFERE e normalmente acha a mercadoria. Aí a linha de divergência sai do VR sozinha.
+--   Conferido em 09/08/2026 sobre 364 divergências de COLETOR de 30 dias:
+--     275 com a contagem de hoje IGUAL à de quando a divergência nasceu (ninguém reconferiu)
+--      89 com o produto NUNCA bipado
+--       0 recontadas · 0 batendo com a nota
+--   Ou seja: o que sobra na tabela é o que ficou SEM correção. Mesmo assim conferimos de novo
+--   aqui, porque a nota que ainda está aberta pode ser corrigida depois desta leitura.
+--
+--   UNIDADE (a pegadinha): notaentradacoletor.quantidade está em CAIXAS e a divergência está
+--   em UNIDADES. Sem multiplicar por qtdembalagem, 19 caixas de 7 viram "19" contra "133" e
+--   toda linha parece recontada. Foi exatamente esse o erro na primeira medição.
+-- cont = a contagem de HOJE, uma linha por (nota, produto). Agrupar de uma vez em vez de
+-- perguntar por divergência: com subconsulta linha-a-linha a leitura levava 80s, assim leva 6s.
+cont as (
+  select rc.id_notaentrada, k.id_produto,
+         sum(k.quantidade * greatest(k.qtdembalagem,1)) qun
+    from notaentradacoletor k
+    join notaentradareferenciacoletor rc on rc.id_notaentradacoletor = k.id
+   where rc.id_notaentrada in (select id_nota from nt)
+   group by rc.id_notaentrada, k.id_produto
+),
+-- item = o que a NOTA cobra daquele produto: valor total e unidades, somados.
+--
+-- PREÇO DA UNIDADE (conferido no VR em 08/08/2026):
+--   notaentradaitem.quantidade está em CAIXAS e a divergência está em UNIDADES.
+--   Logo o preço unitário é valortotal / (caixas × unidades por caixa). Dividir só por
+--   quantidade dava o preço da CAIXA e inflava o prejuízo na proporção da embalagem:
+--   num produto de caixa com 40, 40 vezes.
+-- Somar em vez de pegar "limit 1" também resolve o produto que aparece em duas linhas da
+-- mesma nota — antes o preço saía de uma linha sorteada.
+item as (
+  select ni.id_notaentrada, ni.id_produto,
+         sum(ni.valortotal) valor,
+         sum(ni.quantidade * greatest(ni.qtdembalagem,1)) unidades,
+         max(greatest(ni.qtdembalagem,1)) emb
+    from notaentradaitem ni
+   where ni.id_notaentrada in (select id_nota from nt)
+   group by ni.id_notaentrada, ni.id_produto
+),
+dvraw as (
+  select n.senha, n.id_loja, d.id_produto,
+         coalesce(td.descricao,'?') tipo,
+         d.quantidadepedido, d.quantidadenota, d.custopedido, d.custonota,
+         c.qun contagem_atual,
+         i.valor / nullif(i.unidades, 0) pu,
+         i.emb
+    from notaentradadivergencia d
+    join nt n on n.id_nota = d.id_notaentrada
+    left join tipodivergenciaentrada td on td.id = d.id_tipodivergenciaentrada
+    left join cont c on c.id_notaentrada = d.id_notaentrada and c.id_produto = d.id_produto
+    left join item i on i.id_notaentrada = d.id_notaentrada and i.id_produto = d.id_produto
+),
+-- UMA DIFERENÇA CONTA UMA VEZ POR CAMINHÃO.
+--   O VR grava a MESMA divergência em TODAS as notas da conferência — inclusive nas notas
+--   que nem têm aquele produto. Conferido em 09/08/2026 na GUARAVES (senha 1452774):
+--   4 notas, 2 diferenças reais, 8 linhas gravadas, e o cartão dizia "13 divergências".
+--   Na tela o mesmo produto saía duas vezes, uma com preço e outra sem — o preço só existe
+--   na nota que realmente tem o item, e as outras vinham em branco.
+--   Agrupando por produto+quantidades, o número do cartão volta a ser o número de problemas
+--   e o preço vem da nota que de fato cobra (max ignora os nulos das outras).
+dvu as (
+  select senha, id_loja, tipo, id_produto,
+         quantidadepedido, quantidadenota, custopedido, custonota,
+         max(contagem_atual) contagem_atual, max(pu) pu, max(emb) emb
+    from dvraw
+   group by senha, id_loja, tipo, id_produto,
+            quantidadepedido, quantidadenota, custopedido, custonota
+),
+dvv as (
+  -- RESOLVIDA só existe para contagem: reconferiu e hoje bate com a nota.
+  -- Diferença de pedido e de preço não se resolve recontando, então nunca entra aqui.
+  select dvu.*,
+         coalesce(tipo = 'COLETOR'
+                  and contagem_atual is not null
+                  and contagem_atual = quantidadenota, false) resolvida
+    from dvu
 )
 select s.senha, s.id_loja, s.ini, s.fim, s.bipagens, s.itens,
        count(distinct n.id_nota)::int notas,
        count(distinct n.id_nota) filter (where n.fin = 1)::int notas_fin,
        max(f.razaosocial) fornecedor,
-       coalesce(sum((select count(*) from notaentradadivergencia d
-                      where d.id_notaentrada = n.id_nota)), 0)::int divergencias,
+       (select count(*) from dvv
+         where dvv.senha = s.senha and dvv.id_loja is not distinct from s.id_loja
+           and not dvv.resolvida)::int divergencias,
        -- DETALHE: 8 divergências pode ser 8 produtos que não vieram ou 8 arredondamentos
        -- de centavo. Somar tipos diferentes num número só esconde justamente o que importa.
        coalesce((
          select jsonb_agg(x order by x->>'tipo', x->>'produto')
            from (
-             select distinct jsonb_build_object(
-                      'tipo',   coalesce(td.descricao,'?'),
+             select jsonb_build_object(
+                      'tipo',   d.tipo,
                       'produto',coalesce(pr.descricaocompleta,'produto '||d.id_produto),
                       'pedido', d.quantidadepedido,
                       'veio',   d.quantidadenota,
                       'cp',     d.custopedido,
                       'cn',     d.custonota,
-                      -- PREÇO DA UNIDADE, tirado da própria nota (busca por índice: nota+produto).
-                      -- ATENÇÃO À UNIDADE (conferido no VR em 08/08/2026):
-                      --   notaentradaitem.quantidade  está em CAIXAS
-                      --   a divergência (quantidadenota/pedido) está em UNIDADES
-                      -- Logo o preço unitário é valortotal / (caixas × unidades por caixa).
-                      -- Dividir só por quantidade dava o preço da CAIXA e inflava o prejuízo
-                      -- na proporção da embalagem: num produto de caixa com 40, 40 vezes.
-                      'pu',     (select ni.valortotal
-                                        / nullif(ni.quantidade * greatest(ni.qtdembalagem,1), 0)
-                                   from notaentradaitem ni
-                                  where ni.id_notaentrada = d.id_notaentrada
-                                    and ni.id_produto = d.id_produto
-                                  limit 1),
-                      -- quantas unidades vêm na caixa, pra tela poder dizer "200 un (5 cx de 40)"
-                      'emb',    (select greatest(ni.qtdembalagem,1)
-                                   from notaentradaitem ni
-                                  where ni.id_notaentrada = d.id_notaentrada
-                                    and ni.id_produto = d.id_produto
-                                  limit 1)) x
-               from notaentradadivergencia d
-               left join tipodivergenciaentrada td on td.id = d.id_tipodivergenciaentrada
+                      -- contagem de hoje em UNIDADES; null = o produto nunca foi bipado.
+                      -- A tela precisa saber a diferença entre "contou zero" e "nem contou".
+                      'atual',  d.contagem_atual,
+                      'pu',     d.pu,
+                      -- quantas unidades vêm na caixa, pra tela poder dizer "caixa com 40"
+                      'emb',    d.emb) x
+               from dvv d
                left join produto pr on pr.id = d.id_produto
-              where d.id_notaentrada in (
-                    select n2.id_nota from nt n2
-                     where n2.senha = s.senha and n2.id_loja is not distinct from s.id_loja)
+              where d.senha = s.senha and d.id_loja is not distinct from s.id_loja
+                and not d.resolvida
+              order by d.tipo, d.id_produto
               limit 60
            ) t), '[]'::jsonb) detalhe
   from ses s
@@ -128,7 +196,11 @@ function montaDetalhe(lista){
     custo_pedido: Number(i.cp) || 0, custo_nota: Number(i.cn) || 0,
     // preço da UNIDADE na nota; sem isso não dá pra dizer quanto vale a diferença
     preco: Number(i.pu) || 0,
-    emb: Number(i.emb) || 1
+    emb: Number(i.emb) || 1,
+    // "nem foi contado" é diferente de "contaram e deu zero": 89 das 364 diferenças de
+    // contagem de 30 dias são produto que o conferente nunca bipou. Mostrar 0 nas duas
+    // situações some com a pior delas.
+    nunca: String(i.tipo || "").toUpperCase() === "COLETOR" && i.atual == null
   })) };
 }
 
