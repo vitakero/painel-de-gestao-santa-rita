@@ -2825,7 +2825,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:2px;">
           <h2 style="margin:0;display:flex;align-items:center;gap:9px;font-size:18px;color:#0c5a26;"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#157a35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Central Logística</h2>
         </div>
-        <p style="font-size:12.5px;color:#8a97a8;margin:2px 0 16px;">Programação de recebimentos — o que o fornecedor agenda pelo link e o que vem do VR, juntos: o dia, a semana e os atrasos num relance.</p>
+        <p style="font-size:12.5px;color:#8a97a8;margin:2px 0 16px;">Programação de recebimentos — os fornecedores marcam a janela pelo link e você enxerga aqui o dia, a semana e os atrasos num relance.</p>
         <div id="clIntegBanner"></div>
         <div id="clPedidos"></div>
         <div class="cl-dv-bg" id="clDvBg">
@@ -5252,42 +5252,20 @@ function clStatus(a){
   if(nowMin>=ini) return {k:"andamento",t:"Em andamento"};
   return {k:"programado",t:"Programado"};
 }
-// Exemplos ancorados na hora ATUAL, pra sempre haver concluído/andamento/programado ao abrir.
-function clSeed(){
-  var agora=new Date(), hoje=clDataISO(agora);
-  var nowMin=agora.getHours()*60+agora.getMinutes();
-  function at(off){ var m=Math.max(CL_HINI*60, Math.min(CL_HFIM*60-60, Math.round((nowMin+off)/60)*60)); return clHM(m); }
-  var fs=["Coca-Cola FEMSA","Nestlé","Ambev","Friboi","Vigor","Piracanjuba","M. Dias Branco","Bettanin"];
-  function row(id,dISO,hi,forn,situ,ped){ return {id:id,vrId:id,loja:"Loja 1",data:dISO,hi:hi,hf:clHM(clToMin(hi)+60),fornecedor:forn,situacao:situ||"",pedido:ped||"",origem:"exemplo"}; }
-  var L=[];
-  L.push(row("cx1",hoje,at(-180),fs[0],"concluido","PC-10231"));
-  L.push(row("cx2",hoje,at(-120),fs[1],"concluido","PC-10244"));
-  L.push(row("cx3",hoje,at(-10),fs[2],"","PC-10250"));
-  L.push(row("cx4",hoje,at(95),fs[3],"","PC-10258"));
-  L.push(row("cx5",hoje,at(185),fs[4],"","PC-10261"));
-  var seg=clSegDa(agora);
-  for(var k=0;k<6;k++){ var dd=new Date(seg); dd.setDate(seg.getDate()+k); var di=clDataISO(dd);
-    if(di===hoje) continue;
-    if(k%2===0) L.push(row("wk"+k+"a",di,clHM((CL_HINI+1)*60),fs[(k+2)%fs.length],"",""));
-    L.push(row("wk"+k+"b",di,clHM((CL_HINI+3)*60),fs[(k+4)%fs.length],"",""));
-    if(k===2) L.push(row("wk"+k+"c",di,clHM((CL_HINI+5)*60),fs[(k+1)%fs.length],"",""));
-  }
-  return L;
-}
 function clSB(){ try{ return window.__SB||null; }catch(e){ return null; } }
 // Lê a tabela central_agendamentos (que o robô vai preencher com os dados do VR). Vazia/inexistente → exemplos.
 function clCloudLoad(){
   var sb=clSB();
-  if(!sb){ centralAg=clSeed(); centralModo="demo"; renderCentral(); return; }
+  if(!sb){ centralAg=[]; centralModo="vazio"; renderCentral(); return; }
   try{
     sb.from("central_agendamentos").select("*").then(function(r){
       if(r&&!r.error&&r.data&&r.data.length){
         centralAg=r.data.map(function(x){ return {id:x.id,vrId:x.vr_id||x.id,loja:x.loja||"",data:x.data||"",hi:x.hi||"",hf:x.hf||"",fornecedor:x.fornecedor||"",situacao:x.situacao||"",pedido:x.pedido||""}; });
         centralModo="live"; centralAtz=clAgoraHM();
-      } else { centralAg=clSeed(); centralModo="demo"; }
+      } else { centralAg=[]; centralModo="vazio"; }
       renderCentral();
-    }, function(){ centralAg=clSeed(); centralModo="demo"; renderCentral(); });
-  }catch(e){ centralAg=clSeed(); centralModo="demo"; renderCentral(); }
+    }, function(){ centralAg=[]; centralModo="vazio"; renderCentral(); });
+  }catch(e){ centralAg=[]; centralModo="vazio"; renderCentral(); }
   clConfLoad();
 }
 // Lê central_conferencias — o resumo do que o conferente já bipou no coletor.
@@ -5473,7 +5451,6 @@ function clAvisoToast(msg, bom){
   window.__clAvisoT=setTimeout(function(){ t.style.display="none"; }, bom?4200:9000);
 }
 function renderCentral(semRecarregar){
-  if(!centralAg||!centralAg.length){ if(centralModo!=="live"){ centralAg=clSeed(); } }
   renderClInteg();
   renderClPedidos();
   if(!semRecarregar) clPedidosLoad();
@@ -6452,18 +6429,16 @@ function clConfRankings(){
 }
 function renderClInteg(){
   var el=document.getElementById("clIntegBanner"); if(!el) return;
-  if(centralModo==="live"){
-    var doPainel=clDoPainel().length;
-    el.innerHTML='<div class="cl-integ live"><b>Conectado ao VR</b> — a agenda junta o que vem do VR '
-      +'com o que os fornecedores agendam pelo link'
-      +(doPainel? ' ('+doPainel+' pelo link)' : '')+'.'
-      +'<span class="cl-atz">Atualizado '+pxEsc(centralAtz||"agora")+'</span></div>';
+  var pn=clDoPainel().length, vr=(centralAg||[]).length;
+  if(pn || vr){
+    var partes=[];
+    if(pn) partes.push("<b>"+pn+"</b> pelo link do fornecedor");
+    if(vr) partes.push("<b>"+vr+"</b> vindo(s) do VR");
+    el.innerHTML='<div class="cl-integ live">'+partes.join(" e ")
+      +' na agenda.<span class="cl-atz">Atualizado '+pxEsc(centralAtz||clAgoraHM())+'</span></div>';
   } else {
-    var pn=clDoPainel().length;
-    el.innerHTML= pn
-      ? '<div class="cl-integ live"><b>'+pn+' agendamento(s) do link</b> — o VR ainda não está sincronizado, '
-        +'então a agenda mostra só o que os fornecedores marcaram.<span class="cl-atz">Atualizado '+pxEsc(clAgoraHM())+'</span></div>'
-      : '<div class="cl-integ demo"><b>Dados de exemplo</b> — a Central ainda não está ligada ao VR e nenhum fornecedor agendou pelo link. Quando um dos dois acontecer, os dados reais entram aqui sozinhos.</div>';
+    el.innerHTML='<div class="cl-integ demo"><b>Nenhum agendamento por enquanto.</b> '
+      +'Os fornecedores marcam pelo link — use o botão “Link do fornecedor” para enviar.</div>';
   }
 }
 function clItensDoDia(){
