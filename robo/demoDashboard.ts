@@ -2648,6 +2648,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       .cl-ped{border:1px solid #e0c477;background:#fdf6e3;border-radius:12px;padding:14px 16px;margin-bottom:16px;}
       .cl-ped-cab{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:10px;}
       .cl-ped-cab b{font-size:14.5px;color:#7a5600;}
+      .cl-ped-atras{font-size:11.5px;font-weight:700;color:#8c2f28;background:#fdecea;
+        border:1px solid #f3cfca;border-radius:999px;padding:2px 9px;}
+      .cl-ped-item.venceu{background:#fffaf9;}
+      .cl-ped-quando .av{display:block;font-size:11px;font-weight:700;color:#8c2f28;margin-top:1px;}
       .cl-ped-cab .qt{background:#7a5600;color:#fff;border-radius:20px;padding:1px 9px;font-size:12px;font-weight:800;}
       .cl-ped-lista{display:flex;flex-direction:column;gap:8px;}
       .cl-ped-item{background:#fff;border:1px solid #eadfc2;border-radius:9px;padding:11px 13px;
@@ -5283,10 +5287,16 @@ function clPodeDecidir(){
 function clPedidosLoad(){
   var sb=window.__SB; if(!sb||clPedidosCarregando) return;
   clPedidosCarregando=true;
+  /* PEDIDO PENDENTE NUNCA SOME DA TELA.
+     Antes a busca cortava tudo antes de hoje, e um pedido que ninguém respondeu a tempo
+     desaparecia sozinho — o fornecedor ficava esperando uma resposta que não vinha, e a loja
+     não sabia que devia uma. Achei dois assim (03/08) parados havia uma semana.
+     Agora: PENDENTE aparece sempre, de qualquer data; aprovado só de hoje em diante, porque
+     esse já foi respondido e o passado dele é histórico. */
+  var hoje=clDataISO(new Date());
   sb.from("entregas_agendamento")
     .select("id,fornecedor,documento,contato,data,hora,pedido,descricao,status,criado_em")
-    .in("status",["pendente","aprovado"])
-    .gte("data", clDataISO(new Date()))
+    .or("status.eq.pendente,and(status.eq.aprovado,data.gte."+hoje+")")
     .order("data").order("hora")
     .then(function(r){
       clPedidosCarregando=false;
@@ -5309,23 +5319,30 @@ function renderClPedidos(){
   var h="";
 
   if(pend.length){
+    var hoje=clDataISO(new Date());
+    var vencidos=pend.filter(function(p){ return p.data<hoje; }).length;
     h+='<div class="cl-ped"><div class="cl-ped-cab">'+
        '<b>Pedidos de fornecedor aguardando resposta</b>'+
-       '<span class="qt">'+pend.length+'</span></div><div class="cl-ped-lista">';
+       '<span class="qt">'+pend.length+'</span>'+
+       (vencidos?'<span class="cl-ped-atras">'+vencidos+' já passou da data</span>':'')+
+       '</div><div class="cl-ped-lista">';
     pend.forEach(function(p){
       var extra=[];
       if(p.documento) extra.push(pxEsc(p.documento));
       if(p.contato) extra.push(pxEsc(p.contato));
       if(p.pedido) extra.push("pedido "+pxEsc(p.pedido));
       if(p.descricao) extra.push(pxEsc(p.descricao));
-      h+='<div class="cl-ped-item" data-pid="'+pxEsc(p.id)+'">'+
-         '<span class="cl-ped-quando">'+clDataLonga(p.data)+' · '+clHoraCurta(p.hora)+'</span>'+
+      var passou=p.data<hoje;
+      h+='<div class="cl-ped-item'+(passou?" venceu":"")+'" data-pid="'+pxEsc(p.id)+'">'+
+         '<span class="cl-ped-quando">'+clDataLonga(p.data)+' · '+clHoraCurta(p.hora)+
+           (passou?'<span class="av">passou da data</span>':'')+'</span>'+
          '<span class="cl-ped-quem"><b>'+pxEsc(p.fornecedor)+'</b>'+
          (extra.length?'<span>'+extra.join(" · ")+'</span>':'')+'</span>'+
          (clPodeDecidir()
            ? '<span class="cl-ped-acoes">'+
              '<button type="button" class="cl-ped-nao" data-pnao="'+pxEsc(p.id)+'">Recusar</button>'+
-             '<button type="button" class="cl-ped-sim" data-psim="'+pxEsc(p.id)+'">Aprovar</button></span>'
+             (passou ? '' : '<button type="button" class="cl-ped-sim" data-psim="'+pxEsc(p.id)+'">Aprovar</button>')+
+             '</span>'
            : '<span style="font-size:12.5px;color:#8a97a8;">aguardando o responsável</span>')+
          '</div>';
     });
@@ -5333,11 +5350,21 @@ function renderClPedidos(){
   }
 
   if(apro.length){
+    /* CONFERIDO É AÇÃO DE GENTE, NÃO RELÓGIO.
+       O status "concluído" da agenda é calculado por horário ter passado — o caminhão pode
+       nem ter aparecido e a tela dá por encerrado. Aqui alguém marca que conferiu de fato.
+       O botão só nasce quando o dia chega: marcar como conferido um caminhão que ainda não
+       veio seria criar a mesma mentira, só que na mão. */
+    var hj=clDataISO(new Date());
     h+='<div class="cl-conf"><p class="cl-sec-tit">Entregas confirmadas</p>';
     apro.slice(0,12).forEach(function(p){
+      var chegou=p.data<=hj;
       h+='<div class="cl-conf-lin"><span class="qd">'+clDataLonga(p.data)+' · '+clHoraCurta(p.hora)+'</span>'+
          '<span class="nm">'+pxEsc(p.fornecedor)+(p.pedido?' <span style="color:#8a97a8;font-weight:400;">· pedido '+pxEsc(p.pedido)+'</span>':'')+'</span>'+
-         '<span class="selo">confirmada</span></div>';
+         (chegou && clPodeDecidir()
+           ? '<button type="button" class="cl-ped-sim" data-pconf="'+pxEsc(p.id)+'">✓ Conferido</button>'
+           : '<span class="selo">confirmada</span>')+
+         '</div>';
     });
     if(apro.length>12) h+='<p style="font-size:12.5px;color:#8a97a8;margin:4px 0 0;">e mais '+(apro.length-12)+'.</p>';
     h+='</div>';
@@ -5349,12 +5376,14 @@ function clDecidir(id,status){
   var item=clPedidos.filter(function(p){ return p.id===id; })[0];
   var quem=item?item.fornecedor:"este fornecedor";
   var quando=item?(clDataLonga(item.data)+" às "+clHoraCurta(item.hora)):"";
+  var TXT={
+    aprovado:{ t:"Aprovar ", m:"A janela fica reservada para este fornecedor e ninguém mais consegue agendar nesse horário.", ok:"Aprovar" },
+    recusado:{ t:"Recusar ", m:"O horário volta a ficar livre para outro fornecedor.", ok:"Recusar" },
+    conferido:{ t:"Marcar como conferido: ", m:"Registra que este caminhão chegou e foi conferido de verdade — não é o relógio que decide.", ok:"Conferido" }
+  };
+  var cfg=TXT[status]||TXT.recusado;
   uiConfirm({
-    titulo:(status==="aprovado"?"Aprovar ":"Recusar ")+quem,
-    msg:quando+"\\n\\n"+(status==="aprovado"
-      ? "A janela fica reservada para este fornecedor e ninguém mais consegue agendar nesse horário."
-      : "O horário volta a ficar livre para outro fornecedor."),
-    ok:(status==="aprovado"?"Aprovar":"Recusar"), cancel:"Cancelar"
+    titulo:cfg.t+quem, msg:quando+"\\n\\n"+cfg.m, ok:cfg.ok, cancel:"Cancelar"
   }).then(function(ok){
     if(!ok) return;
     var bts=document.querySelectorAll('[data-psim="'+id+'"],[data-pnao="'+id+'"]');
@@ -6544,6 +6573,7 @@ function clImprimir(){
   if(cp) cp.addEventListener("click",function(e){
     var s=e.target.closest("[data-psim]"); if(s){ clDecidir(s.getAttribute("data-psim"),"aprovado"); return; }
     var n=e.target.closest("[data-pnao]"); if(n){ clDecidir(n.getAttribute("data-pnao"),"recusado"); return; }
+    var cf=e.target.closest("[data-pconf]"); if(cf){ clDecidir(cf.getAttribute("data-pconf"),"conferido"); return; }
   });
   var lb=document.getElementById("clLinkBtn"); if(lb) lb.addEventListener("click",clLinkFornecedor);
 })();
