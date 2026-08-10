@@ -2825,7 +2825,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:2px;">
           <h2 style="margin:0;display:flex;align-items:center;gap:9px;font-size:18px;color:#0c5a26;"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#157a35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Central Logística</h2>
         </div>
-        <p style="font-size:12.5px;color:#8a97a8;margin:2px 0 16px;">Programação de recebimentos — os agendamentos vêm do sistema VR; aqui você enxerga o dia, a semana e os atrasos num relance.</p>
+        <p style="font-size:12.5px;color:#8a97a8;margin:2px 0 16px;">Programação de recebimentos — o que o fornecedor agenda pelo link e o que vem do VR, juntos: o dia, a semana e os atrasos num relance.</p>
         <div id="clIntegBanner"></div>
         <div id="clPedidos"></div>
         <div class="cl-dv-bg" id="clDvBg">
@@ -5207,7 +5207,41 @@ function clToMin(hm){ var p=String(hm||"").split(":"); return (+p[0]||0)*60+(+p[
 function clAgoraHM(){ var d=new Date(); return clPad(d.getHours())+":"+clPad(d.getMinutes()); }
 function clSegDa(d){ var x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); var wd=(x.getDay()+6)%7; x.setDate(x.getDate()-wd); return x; } // 2ª-feira da semana
 // Status: o oficial vem do VR; "atrasado/andamento/programado" o painel calcula pela hora (rótulo visual, não grava no VR).
+/* AS DUAS AGENDAS VIRAM UMA SÓ.
+   A tela mostrava a agenda do VR — que tem 3 registros na vida inteira — e ignorava a do
+   painel, onde o fornecedor agenda de verdade pelo link. Resultado: caminhão aprovado, email
+   de confirmação enviado, e quem recebe a mercadoria não via nada. Caminhão na doca sem
+   ninguém esperando.
+   Aqui as duas se juntam, cada uma com sua origem, e tudo que lê a agenda passa a ler daqui:
+   visão de hoje, semana, KPIs, filtros e impressão. */
+function clDoPainel(){
+  return (clPedidos||[])
+    .filter(function(p){ return p.status==="aprovado" || p.status==="conferido"; })
+    .map(function(p){
+      var hi=clHoraCurta(p.hora);
+      return { id:"pn-"+p.id, vrId:"", loja:"", data:p.data||"", hi:hi,
+               hf:clHM(clToMin(hi)+60), fornecedor:p.fornecedor||"",
+               situacao:p.status, pedido:p.pedido||"", origem:"painel" };
+    });
+}
+function clAgendaTudo(){
+  var pn=clDoPainel();
+  var vr=(centralAg||[]).map(function(a){
+    return a.origem ? a : Object.assign({}, a, {origem:"vr"});
+  });
+  /* EXEMPLO É ENFEITE DE TELA VAZIA — havendo caminhão de verdade, ele sai.
+     Misturar fornecedor inventado com agendamento real é pior do que tela vazia: a pessoa
+     não tem como saber qual dos dois esperar na doca. */
+  if(pn.length) vr=vr.filter(function(a){ return a.origem!=="exemplo"; });
+  return vr.concat(pn);
+}
 function clStatus(a){
+  /* O que veio do painel a gente SABE se foi conferido — não precisa adivinhar pelo relógio.
+     Aprovado com a data já passada e ninguém conferiu não é "concluído": é pendência. */
+  if(a.origem==="painel"){
+    if(a.situacao==="conferido") return {k:"concluido",t:"Conferido"};
+    if(a.data<clDataISO(new Date())) return {k:"atrasado",t:"Não conferido"};
+  }
   if(a.situacao==="cancelado") return {k:"cancelado",t:"Cancelado"};
   if(a.situacao==="concluido") return {k:"concluido",t:"Concluído"};
   var agora=new Date(), hoje=clDataISO(agora);
@@ -5224,7 +5258,7 @@ function clSeed(){
   var nowMin=agora.getHours()*60+agora.getMinutes();
   function at(off){ var m=Math.max(CL_HINI*60, Math.min(CL_HFIM*60-60, Math.round((nowMin+off)/60)*60)); return clHM(m); }
   var fs=["Coca-Cola FEMSA","Nestlé","Ambev","Friboi","Vigor","Piracanjuba","M. Dias Branco","Bettanin"];
-  function row(id,dISO,hi,forn,situ,ped){ return {id:id,vrId:id,loja:"Loja 1",data:dISO,hi:hi,hf:clHM(clToMin(hi)+60),fornecedor:forn,situacao:situ||"",pedido:ped||""}; }
+  function row(id,dISO,hi,forn,situ,ped){ return {id:id,vrId:id,loja:"Loja 1",data:dISO,hi:hi,hf:clHM(clToMin(hi)+60),fornecedor:forn,situacao:situ||"",pedido:ped||"",origem:"exemplo"}; }
   var L=[];
   L.push(row("cx1",hoje,at(-180),fs[0],"concluido","PC-10231"));
   L.push(row("cx2",hoje,at(-120),fs[1],"concluido","PC-10244"));
@@ -5296,13 +5330,15 @@ function clPedidosLoad(){
   var hoje=clDataISO(new Date());
   sb.from("entregas_agendamento")
     .select("id,fornecedor,documento,contato,data,hora,pedido,descricao,status,criado_em")
-    .or("status.eq.pendente,and(status.eq.aprovado,data.gte."+hoje+")")
+    .or("status.eq.pendente,and(status.in.(aprovado,conferido),data.gte."+clDataISO(new Date(Date.now()-30*86400000))+")")
     .order("data").order("hora")
     .then(function(r){
       clPedidosCarregando=false;
       if(r&&r.error) return;                    // sem permissão ou sem rede: não inventa lista
       clPedidos=(r&&r.data)||[];
-      renderClPedidos();
+      // A agenda também depende disto: sem redesenhar, o caminhão aprovado só apareceria
+      // na próxima vez que alguém trocasse de aba.
+      renderCentral(true);
     }, function(){ clPedidosCarregando=false; });
 }
 function clHoraCurta(h){ return String(h||"").slice(0,5); }
@@ -5436,10 +5472,11 @@ function clAvisoToast(msg, bom){
   clearTimeout(window.__clAvisoT);
   window.__clAvisoT=setTimeout(function(){ t.style.display="none"; }, bom?4200:9000);
 }
-function renderCentral(){
+function renderCentral(semRecarregar){
   if(!centralAg||!centralAg.length){ if(centralModo!=="live"){ centralAg=clSeed(); } }
   renderClInteg();
-  renderClPedidos(); clPedidosLoad();
+  renderClPedidos();
+  if(!semRecarregar) clPedidosLoad();
   var vh=document.getElementById("clHoje"), va=document.getElementById("clAgenda"), vc=document.getElementById("clConf");
   if(vh)vh.style.display="none"; if(va)va.style.display="none"; if(vc)vc.style.display="none";
   if(clView==="conf"){ if(vc)vc.style.display=""; renderClConf(); }
@@ -6416,14 +6453,22 @@ function clConfRankings(){
 function renderClInteg(){
   var el=document.getElementById("clIntegBanner"); if(!el) return;
   if(centralModo==="live"){
-    el.innerHTML='<div class="cl-integ live"><b>Conectado ao VR</b> — os agendamentos abaixo vêm do sistema VR.<span class="cl-atz">Atualizado '+pxEsc(centralAtz||"agora")+'</span></div>';
+    var doPainel=clDoPainel().length;
+    el.innerHTML='<div class="cl-integ live"><b>Conectado ao VR</b> — a agenda junta o que vem do VR '
+      +'com o que os fornecedores agendam pelo link'
+      +(doPainel? ' ('+doPainel+' pelo link)' : '')+'.'
+      +'<span class="cl-atz">Atualizado '+pxEsc(centralAtz||"agora")+'</span></div>';
   } else {
-    el.innerHTML='<div class="cl-integ demo"><b>Dados de exemplo</b> — a Central ainda não está ligada ao VR. Quando o robô sincronizar os agendamentos, os dados reais entram aqui sozinhos.</div>';
+    var pn=clDoPainel().length;
+    el.innerHTML= pn
+      ? '<div class="cl-integ live"><b>'+pn+' agendamento(s) do link</b> — o VR ainda não está sincronizado, '
+        +'então a agenda mostra só o que os fornecedores marcaram.<span class="cl-atz">Atualizado '+pxEsc(clAgoraHM())+'</span></div>'
+      : '<div class="cl-integ demo"><b>Dados de exemplo</b> — a Central ainda não está ligada ao VR e nenhum fornecedor agendou pelo link. Quando um dos dois acontecer, os dados reais entram aqui sozinhos.</div>';
   }
 }
 function clItensDoDia(){
   var dia=clDiaAtual();
-  return centralAg.filter(function(a){
+  return clAgendaTudo().filter(function(a){
     if(a.data!==dia) return false;
     if(clFiltroForn && a.fornecedor!==clFiltroForn) return false;
     if(clFiltroSt && clStatus(a).k!==clFiltroSt) return false;
@@ -6438,7 +6483,7 @@ function renderClDataNav(){
 function renderClFiltros(){
   var el=document.getElementById("clFiltros"); if(!el) return;
   var forns={}, hoje=clDiaAtual();
-  centralAg.forEach(function(a){ if(a.data===hoje) forns[a.fornecedor]=1; });
+  clAgendaTudo().forEach(function(a){ if(a.data===hoje) forns[a.fornecedor]=1; });
   var opt='<option value="">Todos os fornecedores</option>';
   Object.keys(forns).sort().forEach(function(f){ opt+='<option value="'+pxEsc(f)+'"'+(clFiltroForn===f?" selected":"")+'>'+pxEsc(f)+'</option>'; });
   var sts=[["","Todos os status"],["programado","Programado"],["andamento","Em andamento"],["concluido","Concluído"],["atrasado","Atrasado"]];
@@ -6451,7 +6496,7 @@ function renderClKpis(){
   var el=document.getElementById("clKpis"); if(!el) return;
   var hoje=clDiaAtual(), ehHoje=(hoje===clDataISO(new Date()));
   var rotDia=ehHoje?"hoje":("em "+hoje.split("-").reverse().slice(0,2).join("/"));
-  var doDia=centralAg.filter(function(a){ return a.data===hoje && clStatus(a).k!=="cancelado"; });
+  var doDia=clAgendaTudo().filter(function(a){ return a.data===hoje && clStatus(a).k!=="cancelado"; });
   var conc=0,and=0,atr=0,prox=null;
   doDia.forEach(function(a){ var k=clStatus(a).k;
     if(k==="concluido")conc++; else if(k==="andamento")and++; else if(k==="atrasado")atr++;
@@ -6510,7 +6555,7 @@ function renderClAgenda(){
     h+='<tr><td class="hcol">'+clPad(hr)+':00</td>';
     for(var j2=0;j2<6;j2++){
       var diso2=clDataISO(dias[j2]), cell="";
-      var itens=centralAg.filter(function(a){ return a.data===diso2 && Math.floor(clToMin(a.hi)/60)===hr; });
+      var itens=clAgendaTudo().filter(function(a){ return a.data===diso2 && Math.floor(clToMin(a.hi)/60)===hr; });
       itens.forEach(function(a){ var st=clStatus(a); cell+='<div class="cl-wk-blk '+st.k+'" title="'+pxEsc(a.fornecedor)+' — '+st.t+'">'+pxEsc(a.fornecedor)+'</div>'; });
       h+='<td>'+cell+'</td>';
     }
@@ -6543,13 +6588,13 @@ function clImprimir(){
     var f=new Date(dias[0]+"T00:00:00"), l=new Date(dias[5]+"T00:00:00");
     titulo="Semana de "+clPad(f.getDate())+"/"+clPad(f.getMonth()+1)+" a "+clPad(l.getDate())+"/"+clPad(l.getMonth()+1)+"/"+l.getFullYear();
     corpo=dias.map(function(diso){
-      var itens=centralAg.filter(function(a){ return a.data===diso; });
+      var itens=clAgendaTudo().filter(function(a){ return a.data===diso; });
       return '<div class="cl-p-dia"><h3>'+clFmtDiaLongo(diso)+'</h3>'+clTabelaHtml(itens)+'</div>';
     }).join("");
   } else {
     var dia=clDiaAtual();
     titulo=clFmtDiaLongo(dia);
-    var itens=centralAg.filter(function(a){ return a.data===dia; });
+    var itens=clAgendaTudo().filter(function(a){ return a.data===dia; });
     corpo='<div class="cl-p-dia">'+clTabelaHtml(itens)+'</div>';
   }
   var barra=pxDocBarraHtml({ titulo:"Programação de recebimentos", codigo:titulo, badge:"Fonte: sistema VR", emissao:pxFmtData(pxDateKey(new Date())), printLabel:"Imprimir" });
