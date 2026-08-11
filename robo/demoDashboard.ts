@@ -17574,7 +17574,13 @@ function recSalvarForm(){
   var _tot=Math.round(fin.total*100)/100, _ult=histCusto.length?+histCusto[histCusto.length-1].c:null;
   if(_tot>0 && (_ult==null || Math.abs(_ult-_tot)>=0.01)) histCusto.push({d:new Date().toISOString().slice(0,10), c:_tot});
   if(histCusto.length>12) histCusto=histCusto.slice(-12);
-  var embalagem=(document.getElementById("recEmb").value||"").trim();
+  // CAMPO ANTIGO DE EMBALAGEM (texto livre).
+  //   Saiu da tela em 04/08, quando as Embalagens viraram tabela de linhas — mas esta
+  //   função continuou lendo ".value" dele. Sem o campo, isso ESTOURA no meio do salvar:
+  //   a receita nunca era criada e a tela não dizia nada. Foi o "aperto Adicionar e não
+  //   acontece nada". Agora: sem o campo, mantemos o texto que já estava salvo na receita.
+  var _elEmb=document.getElementById("recEmb");
+  var embalagem = _elEmb ? (_elEmb.value||"").trim() : ((_o0&&_o0.embalagem)||"");
   // texto derivado das linhas — MAS se o dono não mexeu nos ingredientes, o texto original fica intacto
   var _orig=recEdit?recData.find(function(x){return x.id===recEdit;}):null;
   var ingredientes = recIngTocado ? recIngTexto(ingr) : ((_orig&&_orig.ingredientes)||"");
@@ -19289,6 +19295,43 @@ const comTema = injetarTemaEscuro(comCentral);
     process.exit(1);
   }
   console.log("   trava do build: " + n + " scripts compilam.");
+}
+
+/* TRAVA DO BUILD 2 — ler elemento que NÃO existe na tela.
+   `document.getElementById("x").value` sem nenhum id="x" no painel lança TypeError e mata
+   a função no meio, calada: o botão "não faz nada" e não aparece erro nenhum pra quem usa.
+   Foi assim que o Adicionar das Receitas ficou quebrado (campo recEmb, tirado da tela em
+   04/08 e ainda lido no salvar) — dias sem ninguém perceber.
+   As CONHECIDAS abaixo foram conferidas uma a uma em 11/08: ou a leitura já está protegida
+   por um `if(!el) return` antes dela, ou mora em função que ninguém chama. Esta lista só
+   pode DIMINUIR: id novo aqui significa defeito novo. */
+{
+  const existe = new Set<string>();
+  let m: RegExpExecArray | null;
+  const reId = /\bid\s*=\s*\\?["']([A-Za-z0-9_-]+)\\?["']/g;
+  while ((m = reId.exec(comTema))) existe.add(m[1]);
+
+  const CONHECIDAS = new Set([
+    "manAgData", "manAgFone", "manAgResp",          // manAgSaveFromForm: função sem chamador
+    "opHoje", "opHojeTitulo", "opProximos",          // renderOperacao: função sem chamador
+    "pixChave", "pixNome", "pixSalvarCfg",           // bloco antigo do Pix estático: guardado
+    "pixTravaBtn", "pixTravaNota",                   //   por if(!ch) return / if(_pixTravaBtn)
+  ]);
+
+  const fantasmas = new Set<string>();
+  const reUso = /getElementById\(\s*\\?["']([A-Za-z0-9_-]+)\\?["']\s*\)\s*\./g;
+  while ((m = reUso.exec(comTema))) {
+    const id = m[1];
+    if (!existe.has(id) && !CONHECIDAS.has(id)) fantasmas.add(id);
+  }
+  if (fantasmas.size) {
+    console.error("\n>>> BUILD RECUSADO: o painel lê elemento que não existe na tela:\n    " +
+      [...fantasmas].join(", ") +
+      "\n    Isso estoura no meio da função — o botão fica \"sem fazer nada\", sem erro visível.\n" +
+      "    Conserte o id, ou proteja a leitura assim: (document.getElementById(\"x\")||{}).value\n");
+    process.exit(1);
+  }
+  console.log("   trava do build: nenhuma leitura de elemento inexistente (" + CONHECIDAS.size + " conhecidas ignoradas).");
 }
 
 await writeFile("output/index.html", comTema);
