@@ -16761,12 +16761,19 @@ function recFinCalc(e){
   var margVenda = preco>0 ? (preco-total)/preco*100 : null;
   var vendaUn   = (rend>0 && preco>0) ? preco/rend : null;
   var lucroUn   = (custoUn!=null && vendaUn!=null) ? vendaUn-custoUn : null;
-  var peso      = Math.max(0,+e.pesoFinal||0);
+  // PESO QUE MANDA NAS CONTAS "POR QUILO".
+  //   Vale o "Peso final (kg)" digitado. Se ele estiver vazio MAS o rendimento já for em kg
+  //   (açougue e rotisseria medem assim), o próprio rendimento É o peso — não faz sentido
+  //   obrigar a digitar o mesmo número duas vezes só pra ver o preço do quilo.
+  var _u        = String(e.rendUn||"").trim().toLowerCase();
+  var emKg      = (_u==="kg" || _u==="quilo" || _u==="quilos");
+  var peso      = Math.max(0,+e.pesoFinal||0) || (emKg ? rend : 0);
   var custoKg   = peso>0 ? total/peso : null;
+  var vendaKg   = (peso>0 && preco>0) ? preco/peso : null;
   var fatia     = function(v){ return total>0 ? v/total*100 : null; };
   return { ing:ing, emb:emb, outros:out, total:total, rend:rend, un:recSing(e.rendUn||""),
            custoUn:custoUn, preco:preco, markup:markup, lucro:lucro, margVenda:margVenda,
-           vendaUn:vendaUn, lucroUn:lucroUn, peso:peso, custoKg:custoKg,
+           vendaUn:vendaUn, lucroUn:lucroUn, peso:peso, custoKg:custoKg, vendaKg:vendaKg, emKg:emKg,
            comp:{ ing:fatia(ing), emb:fatia(emb), outros:fatia(out) },
            precos:recPrecosSugeridos(total),
            saude:recSaude(margVenda) };
@@ -17357,6 +17364,12 @@ function recFinPintar(f){
   recPoe("rfMargV",   recPct(f.margVenda));
   ["rfUn1","rfUn2","rfUn3","rtUnLbl"].forEach(function(id){ recPoe(id,f.un); });
   recPoe("rfCustoKg",  recMoeda(f.custoKg));
+  recPoe("rfVendaKg",  recMoeda(f.vendaKg));
+  // Quando o rendimento já é em kg, "por unidade" JÁ QUER DIZER "por kg": mostrar as duas
+  // caixas repetiria o mesmo número na tela. Some com o par nesse caso.
+  ["rfBoxCustoKg","rfBoxVendaKg"].forEach(function(id){
+    var b=document.getElementById(id); if(b) b.style.display=f.emKg?"none":"";
+  });
   recPoe("rfLucroPct", recPct(f.markup));
   // resumo executivo (topo)
   recPoe("rtCusto", recMoeda(f.total)); recPoe("rtPreco", recMoeda(f.preco>0?f.preco:null));
@@ -17490,10 +17503,10 @@ function recRenderForm(){
         +'<select id="recRendUn" class="rec-fin-sel">'+recUnOpts(_rend.u,REC_REND_UNS)+'</select>'
       +'</div></div>'
       +'<div class="rec-fin-i"><span>Tempo de preparo</span><input id="recTempo" class="rec-fin-inp" style="width:96px;text-align:left;" placeholder="1h20" value="'+(ed?recEsc(ed.tempo||''):'')+'"></div>'
-      +'<div class="rec-fin-i"><span>Peso final (kg)</span><input id="recPeso" inputmode="decimal" class="rec-fin-inp" style="width:84px;" placeholder="2,35" title="Opcional — permite calcular o custo por kg" value="'+(ed&&ed.pesoFinal?recEsc(String(ed.pesoFinal).replace(".",",")):'')+'"></div>'
+      +'<div class="rec-fin-i"><span>Peso final (kg)</span><input id="recPeso" inputmode="decimal" class="rec-fin-inp" style="width:84px;" placeholder="2,35" title="Opcional — é o que permite calcular o custo e a venda por kg" value="'+(ed&&ed.pesoFinal?recEsc(String(ed.pesoFinal).replace(".",",")):'')+'"></div>'
       +'<div class="rec-fin-i"><span>Validade (dias)</span><input id="recValidade" inputmode="numeric" class="rec-fin-inp" style="width:74px;" placeholder="3" title="Opcional" value="'+(ed&&ed.validade?recEsc(String(ed.validade)):'')+'"></div>'
       +'<div class="rec-fin-i"><span>Custo por <em id="rfUn1">unidade</em></span><div class="rec-fin-v verde" id="rfCustoUn">—</div></div>'
-      +'<div class="rec-fin-i"><span>Custo por kg</span><div class="rec-fin-v" id="rfCustoKg">—</div></div>'
+      +'<div class="rec-fin-i" id="rfBoxCustoKg"><span>Custo por kg</span><div class="rec-fin-v" id="rfCustoKg">—</div></div>'
     +'</div></div></div>'
     // ---- 5 venda ----
     +recSecao(6,"Venda")
@@ -17503,6 +17516,7 @@ function recRenderForm(){
         +'<div class="rec-fin-i"><span>Markup (%)</span><input id="recMarkup" inputmode="decimal" class="rec-fin-inp" placeholder="60"></div>'
         +'<div class="rec-fin-i"><span>Preço de venda</span><input id="recPreco" inputmode="decimal" class="rec-fin-inp" placeholder="0,00" value="'+(ed&&ed.preco?recEsc(String(ed.preco).replace(".",",")):'')+'"></div>'
         +'<div class="rec-fin-i"><span>Venda por <em id="rfUn2">unidade</em></span><div class="rec-fin-v" id="rfVendaUn">—</div></div>'
+        +'<div class="rec-fin-i" id="rfBoxVendaKg"><span>Venda por kg</span><div class="rec-fin-v" id="rfVendaKg">—</div></div>'
       +'</div>'
       +'<div class="rec-sug" id="rfSug"></div>'
     +'</div></div>'
