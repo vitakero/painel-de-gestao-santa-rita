@@ -16652,7 +16652,24 @@ var recData=(function(){ try{ var a=JSON.parse(localStorage.getItem("receitas_da
 var recForm=null, recEdit=null, recBusca="", recFormId="", recFotoUrl="";
 var recProdForm=null, recProdFoto="", recProdFotoId="", recProdHist={};
 function recUid(){ return "rc_"+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36); }
-function recSave(){ try{ localStorage.setItem("receitas_dados", JSON.stringify(recData)); }catch(e){} }
+// recSave(aviso) - grava aqui e sobe para a nuvem NA HORA (sem os 800ms de espera).
+//   O "aviso" e opcional: recebe (erro|null). Quem passa aviso mostra o problema na tela,
+//   em vez de deixar a pessoa achar que salvou quando nao salvou.
+function recSave(aviso){
+  try{ localStorage.setItem("receitas_dados", JSON.stringify(recData)); }
+  catch(e){ if(aviso) aviso("este navegador recusou guardar (memoria cheia)"); return; }
+  if(window.__syncFlush) window.__syncFlush("receitas_dados", aviso||null);
+  else if(aviso) aviso(null);
+}
+// Monta o aviso de falha para passar ao recSave. So aparece quando a nuvem REALMENTE recusou.
+function recAvisoFalha(acao){
+  return function(erro){
+    if(!erro) return;
+    uiConfirm({titulo:"Nao salvou na nuvem",
+      msg:"A tela mudou, mas a nuvem recusou "+recEsc(acao)+": "+recEsc(String(erro))+".<br><br>Se voce atualizar a pagina, isso pode voltar como estava. Tente de novo - se insistir, me chame.",
+      ok:"Entendi", cancel:""});
+  };
+}
 function recEsc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
 function recSetores(){ var l=[]; recData.forEach(function(x){ var s=(x.setor||"").trim(); if(s&&l.indexOf(s)<0) l.push(s); }); return l.sort(function(a,b){return a.localeCompare(b,"pt");}); }
 function recEmbMatch(nome){
@@ -17552,7 +17569,7 @@ function recSalvarForm(){
   if(!nome){ uiConfirm({titulo:"Aviso",msg:"Informe o nome da receita.",ok:"OK",cancel:""}); return; }
   if(recEdit){ var e=recData.find(function(x){return x.id===recEdit;}); if(e){ e.nome=nome; e.setor=setor; e.rendimento=rendimento; e.rendQtd=rendQtd; e.rendUn=rendUn; e.custo=custo; e.preco=preco; e.tempo=tempo; e.custoEmb=custoEmb; e.embalagens=embalagens; e.outros=outros; e.custosOp=custosOp; e.pesoFinal=pesoFinal; e.validade=validade; e.histCusto=histCusto; e.embalagem=embalagem; e.ingr=ingr; e.ingredientes=ingredientes; e.preparo=preparo; e.foto=recFotoUrl; } }
   else { recData.push({id:recFormId||recUid(),nome:nome,setor:setor,rendimento:rendimento,rendQtd:rendQtd,rendUn:rendUn,custo:custo,preco:preco,tempo:tempo,custoEmb:custoEmb,embalagens:embalagens,outros:outros,custosOp:custosOp,pesoFinal:pesoFinal,validade:validade,histCusto:histCusto,embalagem:embalagem,ingr:ingr,ingredientes:ingredientes,preparo:preparo,foto:recFotoUrl}); }
-  recSave(); recForm=null; recEdit=null; recFotoUrl=""; recFormId=""; renderReceitas();
+  recSave(recAvisoFalha(recEdit?"salvar a alteracao":"adicionar a receita")); recForm=null; recEdit=null; recFotoUrl=""; recFormId=""; renderReceitas();
 }
 function recRenderLista(){
   var el=document.getElementById("recLista"); if(!el) return;
@@ -17783,7 +17800,7 @@ function recProdSalvar(recipeId){
   if(!data){ uiConfirm({titulo:"Aviso",msg:"Informe a data da produção.",ok:"OK",cancel:""}); return; }
   if(!x.producoes) x.producoes=[];
   x.producoes.push({id:recProdFotoId||recUid(),data:data,quantidade:quantidade,perdidas:perdidas,tempo:tempo,peso:peso,quemFez:quemFez,resultado:resultado,quemConferiu:quemConferiu,obs:obs,foto:recProdFoto});
-  recSave(); recProdForm=null; recProdFoto=""; recProdFotoId=""; recProdHist[recipeId]=true; renderReceitas();
+  recSave(recAvisoFalha("guardar a producao")); recProdForm=null; recProdFoto=""; recProdFotoId=""; recProdHist[recipeId]=true; renderReceitas();
 }
 function recImprimir(){
   var q=recBusca.trim().toLowerCase();
@@ -18200,9 +18217,9 @@ function recAbaIr(id){
     var ps=ev.target.closest("[data-recprodsalvar]"); if(ps){ recProdSalvar(ps.getAttribute("data-recprodsalvar")); return; }
     if(ev.target.closest("[data-recprodcancel]")){ recProdForm=null; recProdFoto=""; recProdFotoId=""; renderReceitas(); return; }
     if(ev.target.closest("[data-recprodfotodel]")){ recProdFoto=""; var pvp=document.getElementById("recPqFotoPrev"); if(pvp) pvp.innerHTML='<span style="color:#8a97a8;font-size:12px;">Nenhuma foto ainda.</span>'; return; }
-    var pd=ev.target.closest("[data-recproddel]"); if(pd){ var par=pd.getAttribute("data-recproddel").split("|"); uiConfirm({titulo:"Remover produção",msg:"Remover este registro de produção?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(sim){ var rec=recData.find(function(x){return x.id===par[0];}); if(rec&&rec.producoes){ rec.producoes=rec.producoes.filter(function(p){return p.id!==par[1];}); recSave(); renderReceitas(); } } }); return; }
+    var pd=ev.target.closest("[data-recproddel]"); if(pd){ var par=pd.getAttribute("data-recproddel").split("|"); uiConfirm({titulo:"Remover produção",msg:"Remover este registro de produção?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(sim){ var rec=recData.find(function(x){return x.id===par[0];}); if(rec&&rec.producoes){ rec.producoes=rec.producoes.filter(function(p){return p.id!==par[1];}); recSave(recAvisoFalha("remover")); renderReceitas(); } } }); return; }
     var e=ev.target.closest("[data-recedit]"); if(e){ var rid=e.getAttribute("data-recedit"); var reg=recData.find(function(x){return x.id===rid;}); recEdit=rid; recForm="edit"; recFotoUrl=(reg&&reg.foto)||""; recFormId=rid; recRenderForm(); var w=document.getElementById("recFormWrap"); if(w) w.scrollIntoView({behavior:"smooth",block:"center"}); return; }
-    var d=ev.target.closest("[data-recdel]"); if(d){ var id=d.getAttribute("data-recdel"); var it=recData.find(function(x){return x.id===id;}); uiConfirm({titulo:"Remover receita",msg:'Remover "'+recEsc(it?it.nome:"")+'" das receitas?',ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(sim){ recData=recData.filter(function(x){return x.id!==id;}); recSave(); renderReceitas(); } }); return; }
+    var d=ev.target.closest("[data-recdel]"); if(d){ var id=d.getAttribute("data-recdel"); var it=recData.find(function(x){return x.id===id;}); uiConfirm({titulo:"Remover receita",msg:'Remover "'+recEsc(it?it.nome:"")+'" das receitas?',ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(sim){ recData=recData.filter(function(x){return x.id!==id;}); recSave(recAvisoFalha("remover")); renderReceitas(); } }); return; }
     });
   }
 })();
@@ -18448,31 +18465,88 @@ function pedEnviar(){
     }
     return m.chave+"_v_"+ix;
   }
-  function pushChave(k){
-    var s=sb(); if(!s) return;
-    var m=porChave[k]; if(!m) return;
-    if(!podeVer(m)) return; // dado sensível: só quem tem acesso sobe
+  /* ==SYNCPUSH-INICIO== subida para a nuvem (testado em scripts/testes/sync-nuvem.test.cjs) */
+  // pushChave(chave, aviso) - sobe a chave para a nuvem.
+  //   O "aviso" e opcional e recebe (erro|null) quando termina. ANTES daqui todo erro era
+  //   engolido; era assim que a exclusao sumia sem deixar rastro (ver conferirSumiu abaixo).
+  function pushChave(k,aviso){
+    var avisou=false;
+    function fim(e){ if(avisou) return; avisou=true; if(aviso){ try{ aviso(e||null); }catch(x){} } }
+    var s=sb(); if(!s) return fim(null);            // painel sem nuvem (teste local): nada a subir
+    var m=porChave[k]; if(!m) return fim(null);
+    if(!podeVer(m)) return fim(null); // dado sensível: só quem tem acesso sobe
     var raw=null; try{ raw=window.localStorage.getItem(k); }catch(e){}
-    if(raw==null) return;
+    if(raw==null) return fim(null);
     lastPush[k]=raw;
     var agora=new Date().toISOString();
+    function msgErro(r,padrao){ return (r && r.error && (r.error.message||r.error.hint)) || padrao; }
     if(m.modo==="doc"){
-      s.from(m.tabela).upsert({id:m.rowId,valor:parseVal(raw),atualizado_em:agora}).then(function(){},function(){});
+      s.from(m.tabela).upsert({id:m.rowId,valor:parseVal(raw),atualizado_em:agora})
+        .then(function(r){ fim(r&&r.error?msgErro(r,"a nuvem recusou salvar"):null); },function(){ fim("nao consegui falar com a nuvem"); });
       return;
     }
     var arr=parseVal(raw); if(!Array.isArray(arr)) arr=[];
     var ids=[];
     var rows=arr.map(function(it,ix){ var id=itemId(m,it,ix); ids.push(id); return {id:id,dados:it,ordem:ix,atualizado_em:agora}; });
     try{ var novo=JSON.stringify(arr); if(novo!==raw){ _set.call(window.localStorage,k,novo); lastPush[k]=novo; } }catch(e){}
+    // APAGAR DE VERDADE.
+    //   Quando a regra de acesso do banco barra um DELETE, o PostgREST NAO devolve erro:
+    //   ele apaga zero linhas e responde "deu certo". O painel dava por apagado, e no
+    //   proximo carregamento a linha descia da nuvem de volta - foi exatamente o que
+    //   aconteceu com a receita. Por isso, depois de apagar, RELEMOS os ids: se algum
+    //   sobreviveu, isso e uma falha e tem que aparecer na tela.
+    function conferirSumiu(mortos){
+      s.from(m.tabela).select("id").in("id",mortos).then(function(r3){
+        if(r3 && !r3.error && r3.data && r3.data.length) return fim("a nuvem nao deixou apagar (permissao)");
+        fim(null);
+      },function(){ fim(null); });
+    }
     function limparRemovidos(){
       s.from(m.tabela).select("id").then(function(r){
-        if(r.error||!r.data) return;
+        if(r.error||!r.data) return fim(msgErro(r,null));
         var mortos=r.data.map(function(x){ return x.id; }).filter(function(id){ return ids.indexOf(id)<0; });
-        if(mortos.length){ s.from(m.tabela).delete().in("id",mortos).then(function(){},function(){}); }
-      },function(){});
+        if(!mortos.length) return fim(null);
+        s.from(m.tabela).delete().in("id",mortos).then(function(r2){
+          if(r2 && r2.error) return fim(msgErro(r2,"a nuvem recusou apagar"));
+          conferirSumiu(mortos);
+        },function(){ fim("nao consegui falar com a nuvem"); });
+      },function(){ fim("nao consegui falar com a nuvem"); });
     }
-    if(rows.length){ s.from(m.tabela).upsert(rows).then(limparRemovidos,function(){}); } else { limparRemovidos(); }
+    if(rows.length){ s.from(m.tabela).upsert(rows).then(function(r){
+      if(r && r.error) return fim(msgErro(r,"a nuvem recusou salvar"));
+      limparRemovidos();
+    },function(){ fim("nao consegui falar com a nuvem"); }); } else { limparRemovidos(); }
   }
+  // __syncFlush(chave, aviso) - sobe AGORA, sem esperar os 800ms.
+  //   A espera de 800ms existe para nao martelar a nuvem a cada tecla digitada. Mas em acao
+  //   de botao (adicionar / remover) ela vira armadilha: quem atualiza a pagina antes de
+  //   completar 1 segundo perde a mudanca, e ela "volta" no proximo carregamento.
+  //   Enquanto a nuvem nao terminou de ser lida NAO subimos: o que esta aqui pode estar
+  //   velho, e subir apagaria na nuvem o que veio depois.
+  window.__syncEspera=500;   // ms entre tentativas enquanto a nuvem carrega
+  window.__syncFlush=function(k,aviso,__tent){
+    function fim(e){ if(aviso){ try{ aviso(e||null); }catch(x){} } }
+    if(!sb()) return fim(null);                      // sem nuvem (teste local)
+    if(!pronto){
+      // A leitura da nuvem leva ~1s depois do login. Salvar nesse instante NAO e erro:
+      // esperamos ela chegar. So reclamamos se ela realmente nao vier (~8s).
+      var t=(__tent||0)+1;
+      if(t<=16){ setTimeout(function(){ window.__syncFlush(k,aviso,t); },window.__syncEspera); return; }
+      return fim("a nuvem nao respondeu - atualize a pagina e confira se ficou salvo");
+    }
+    if(k){
+      if(debs[k]){ clearTimeout(debs[k]); delete debs[k]; }
+      pushChave(k,aviso); return;
+    }
+    Object.keys(debs).forEach(function(x){
+      if(!porChave[x]) return;                       // pula os controles internos (rt_*)
+      clearTimeout(debs[x]); delete debs[x]; pushChave(x);
+    });
+    fim(null);
+  };
+  // Se a pagina for fechada/atualizada com algo ainda na espera dos 800ms, tenta subir antes de sair.
+  try{ window.addEventListener("pagehide",function(){ try{ window.__syncFlush(); }catch(e){} }); }catch(e){}
+  /* ==SYNCPUSH-FIM== */
   // Descobre qual se\u00e7\u00e3o do painel mudou, a partir da tabela/linha que veio na sincroniza\u00e7\u00e3o.
   function syncSecao(alvo){
     if(!alvo) return {label:"dados do painel",page:null};
