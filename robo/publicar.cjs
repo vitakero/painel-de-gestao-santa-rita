@@ -38,7 +38,15 @@ const headers = {
   //    estiver chegando perto do limite: 60+ publicacoes -> minimo 15 min;
   //    80+ -> minimo 30 min. (FORCAR=1 ignora tudo isso.)
   const statePath = path.join(__dirname, "..", "output", ".pub-state.json");
-  const normalizado = buf.toString("utf8").replace(/gerados? em [0-9\/:,\s]+/g, "gerado em X");
+  // NORMALIZAR O RELOGIO ANTES DE COMPARAR.
+  //   O painel carimba "Atualizado 10/08 as 20:03". Esse texto muda em TODA construcao, entao
+  //   sem apagar ele daqui o arquivo parece sempre diferente e a economia de deploy nunca vale.
+  //   Foi o que aconteceu: 59 publicacoes numa noite de loja fechada, sem nada ter mudado.
+  //   Conferido comparando duas construcoes seguidas: o relogio era a UNICA diferenca.
+  //   O "gerado em" e de uma versao antiga do carimbo; fica pra nao quebrar arquivo velho.
+  const normalizado = buf.toString("utf8")
+    .replace(/ger[ao]d[ao]s? em [0-9\/:,\s]+/g, "gerado em X")
+    .replace(/Atualizado \d{2}\/\d{2}[^<"]{0,10}\d{2}:\d{2}/g, "Atualizado X");
   const hash = require("crypto").createHash("sha256").update(normalizado).digest("hex");
   const hoje = new Date().toISOString().slice(0, 10);
   let st = null;
