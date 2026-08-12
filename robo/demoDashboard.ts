@@ -193,6 +193,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   @keyframes modalIn { from { transform:translateY(10px); opacity:0; } to { transform:none; opacity:1; } }
   .modal-top { display:flex; align-items:center; gap:12px; padding:20px 24px 0; }
   .modal-ic { width:40px; height:40px; border-radius:50%; background:#fff4e0; color:#e08600; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+  /* Escolher item de uma lista não é aviso: círculo no verde da casa, não no âmbar de alerta. */
+  .modal-ic.neutro { background:#eef7f0; color:#157a35; }
   .modal-tit { font-size:16px; font-weight:700; color:#1a2233; }
   .modal-msg { padding:12px 24px 4px; color:#46535f; font-size:14px; line-height:1.5; white-space:pre-line; }
   .modal-acts { display:flex; justify-content:flex-end; gap:10px; padding:18px 24px 20px; }
@@ -2445,9 +2447,16 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .rec-ing-add:hover{border-color:#157a35;background:#f4f9f5;}
         /* Janela de ESCOLHER DO CATÁLOGO (insumo / embalagem). Classes de verdade, e não
            estilo solto na tag, pra o modo noturno ser derivado no build como no resto. */
+        /* O corpo da janela repete o recuo lateral do texto do aviso (24px). Sem isto a busca
+           e a lista encostam na borda do modal, e a janela fica com cara de encaixe torto. */
+        .rec-pick-corpo{padding:0 24px 2px;}
         .rec-pick-cab{display:flex;align-items:center;gap:8px;margin:2px 0 10px;flex-wrap:wrap;}
-        .rec-pick-bus{flex:1;min-width:180px;box-sizing:border-box;border:1px solid #d7dee6;border-radius:9px;padding:9px 12px;font-size:14px;}
-        .rec-pick-bus:focus{outline:none;border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.12);}
+        .rec-pick-busw{position:relative;flex:1;min-width:170px;display:flex;align-items:center;}
+        .rec-pick-busw svg{position:absolute;left:11px;color:#a9b4c0;pointer-events:none;}
+        .rec-pick-bus{width:100%;box-sizing:border-box;border:1px solid #e6ebf0;background:#f6f9fb;border-radius:10px;padding:10px 12px 10px 35px;font-size:13.5px;color:#1d2733;transition:background .12s,border-color .12s;}
+        .rec-pick-bus::placeholder{color:#a9b4c0;}
+        .rec-pick-bus:focus{outline:none;background:#fff;border-color:#157a35;}
+        .rec-pick-busw:focus-within svg{color:#157a35;}
         .rec-pick-chip{border:1px solid #d7dee6;background:#fff;border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:700;color:#56606d;cursor:pointer;white-space:nowrap;}
         .rec-pick-chip.on{background:#eef7f0;border-color:#157a35;color:#157a35;}
         .rec-pick-cont{font-size:12px;color:#8a97a8;margin:0 0 8px;}
@@ -17583,10 +17592,14 @@ function recPickAbrir(tipo, fw){
   if(!bg){
     bg=document.createElement("div"); bg.id="recPickModal"; bg.className="modal-bg";
     bg.innerHTML='<div class="modal-cx" style="max-width:580px;">'
-      +'<div class="modal-top"><div class="modal-ic">\u{1F4CB}</div><div class="modal-tit" id="recPickTit"></div></div>'
+      +'<div class="modal-top"><div class="modal-ic neutro"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6h10"/><path d="M10 12h10"/><path d="M10 18h10"/><path d="m3 6 1.6 1.6L7.5 4.8"/><path d="m3 12 1.6 1.6L7.5 10.8"/><path d="m3 18 1.6 1.6L7.5 16.8"/></svg></div><div class="modal-tit" id="recPickTit"></div></div>'
       +'<div class="modal-msg" id="recPickSub"></div>'
+      +'<div class="rec-pick-corpo">'
       +'<div class="rec-pick-cab">'
-        +'<input type="text" class="rec-pick-bus" id="recPickBusca" placeholder="Buscar pelo nome...">'
+        +'<span class="rec-pick-busw">'
+          +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>'
+          +'<input type="text" class="rec-pick-bus" id="recPickBusca" placeholder="Buscar pelo nome...">'
+        +'</span>'
         +'<button type="button" class="rec-pick-chip" id="recPickSoFalta">Só os que faltam</button>'
       +'</div>'
       +'<div class="rec-pick-cont" id="recPickCont"></div>'
@@ -17600,7 +17613,7 @@ function recPickAbrir(tipo, fw){
           +'<button type="button" class="btn-s" id="recPickCancel">Cancelar</button>'
           +'<button type="button" class="btn-p" id="recPickOk">Adicionar</button>'
         +'</div>'
-      +'</div></div>';
+      +'</div></div></div>';
     document.body.appendChild(bg);
   }
   var elTit=document.getElementById("recPickTit"), elSub=document.getElementById("recPickSub");
@@ -17785,7 +17798,11 @@ function recBarraHtml(rot,pct,cls){
 function recVal(id){ var el=document.getElementById(id); return el?el.value:""; }
 function recPoe(id,txt){ var el=document.getElementById(id); if(el) el.textContent=txt; }
 function recFinLer(){
-  return { ingr:recIngr, custoIngLegado:recCustoManual,
+  // custoIngLegado só vale ENQUANTO o dono não mexeu nas linhas (receita antiga, em texto,
+  // sem preço em lugar nenhum). Depois que ele mexe, a linha é a verdade — inclusive quando
+  // ele apaga TUDO. Sem esta condição o custo antigo renascia a cada gravação e não havia
+  // jeito de zerar os ingredientes de uma receita. (12/08/2026)
+  return { ingr:recIngr, custoIngLegado:(recIngTocado?"":recCustoManual),
            embalagens:recEmbL, custoEmb:despParseValor(recVal("recCustoEmb")),
            custosOp:recCop,
            rendQtd:despParseValor(recVal("recRendQtd")),
@@ -17883,9 +17900,15 @@ function recRenderForm(){
   // linhas de ingrediente: usa as salvas; receita antiga (texto) é convertida em linhas
   var _jaEmLinhas = !!(ed && Array.isArray(ed.ingr) && ed.ingr.length);
   recIngr = ed ? (_jaEmLinhas ? ed.ingr.map(recIngNorm) : recIngDeTexto(ed.ingredientes||"")) : [];
-  if(!recIngr.length) recIngr=[{q:"",u:"",n:"",p:0,pu:""}];
+  // NÃO semear linha em branco. Antes a ficha abria sempre com uma linha vazia; quem apagava
+  // ela, salvava e reabria, via a linha de volta e achava que não tinha excluído. Agora, sem
+  // ingrediente, aparece o texto "clique em ＋ Adicionar" — e o ＋ abre a janela do catálogo.
   recIngTocado=_jaEmLinhas;                              // receita ainda em texto: só a mão do dono libera a soma
-  recCustoManual=(ed&&ed.custo!=null&&ed.custo!=="")?ed.custo:"";
+  // O custo salvo só protege a receita ANTIGA: a que tem o texto dos ingredientes e nenhum
+  // preço por linha. Receita sem linha E sem texto não tem o que proteger — guardar o custo
+  // aí é o que fazia um valor fantasma renascer para sempre depois de esvaziar a ficha.
+  var _temTextoAntigo = !!String((ed&&ed.ingredientes)||"").trim();
+  recCustoManual=(ed && !_jaEmLinhas && _temTextoAntigo && ed.custo!=null && ed.custo!=="")?ed.custo:"";
   var _rend=recRendSplit(ed?(ed.rendimento||""):"");
   if(ed&&ed.rendQtd!=null&&ed.rendQtd!=="") _rend={q:ed.rendQtd,u:(ed.rendUn||_rend.u||"")};
   var setSug=recSetores().map(function(s){ return '<option value="'+recEsc(s)+'">'; }).join('');
@@ -18001,7 +18024,7 @@ function recSalvarForm(){
   var rendimento=[rendQtd,rendUn].filter(Boolean).join(" ");
   var ingr=recIngLimpas();
   // MESMO cálculo da tela (uma regra só): custo dos ingredientes, embalagem, outros e preço saem daqui
-  var fin=recFinCalc({ingr:ingr, custoIngLegado:recCustoManual, embalagens:recEmbL, custosOp:recCop, rendQtd:despParseValor(recVal("recRendQtd")),
+  var fin=recFinCalc({ingr:ingr, custoIngLegado:(recIngTocado?"":recCustoManual), embalagens:recEmbL, custosOp:recCop, rendQtd:despParseValor(recVal("recRendQtd")),
                       rendUn:recVal("recRendUn"), preco:despParseValor(recVal("recPreco")),
                       markup:despParseValor(recVal("recMarkup")), modo:recFinModo});
   var custo=Math.round(fin.ing*100)/100;
