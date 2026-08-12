@@ -2374,7 +2374,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         </style>
         <div class="mat-top">
           <div class="mat-titulo"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#157a35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8"/><rect x="2" y="3" width="20" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>Embalagens e materiais</div>
-          <input id="matBusca" class="mat-busca" placeholder="Buscar embalagem...">
+          <input id="matBusca" class="mat-busca" placeholder="Buscar por nome, tipo, tamanho, setor...">
+          <select id="matFiltroTipo" class="ins-sel"><option value="">Todos os tipos</option></select>
+          <select id="matFiltroAtivo" class="ins-sel"><option value="1">Só ativos</option><option value="">Todos</option><option value="0">Só inativos</option></select>
           <button class="mat-btn prim" id="matAdd" type="button">＋ Nova embalagem</button>
         </div>
         <p class="mat-sub">Cadastre as embalagens e materiais padrão da loja, com o tamanho certo de cada um — pra sempre usar o correto e economizar.</p>
@@ -16731,6 +16733,29 @@ function copRenderLista(){
 })();
 var matData=(function(){ try{ var a=JSON.parse(localStorage.getItem("material_uso")||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } })();
 var matForm=null, matEdit=null, matBusca="";
+// A lista de embalagens era um mural de quadradinhos e a de insumos, uma tabela. O dono pediu
+// as duas iguais (12/08/2026). Reaproveitamos as MESMAS classes .ins-* da tabela de insumos:
+// fica idêntica de verdade, sem CSS novo, e o modo noturno já vem junto (é derivado no build).
+var MAT_POR_PAG=25;
+var matPag=1, matTipoF="", matAtivoF="1", matVerUso="";
+// Quantas receitas usam esta embalagem — mesma ideia da coluna "Uso" dos insumos.
+function matUsoReceitas(id){
+  return (typeof recData!=="undefined"?recData:[]).filter(function(r){
+    return (r.embalagens||[]).some(function(e){ return e && e.refId===id; });
+  });
+}
+function matUsoCount(id){ return matUsoReceitas(id).length; }
+function matFiltrados(){
+  var q=matBusca.trim().toLowerCase();
+  return matData.filter(function(x){
+    if(matTipoF && (x.tipo||"")!==matTipoF) return false;
+    if(matAtivoF==="1" && x.ativo===false) return false;
+    if(matAtivoF==="0" && x.ativo!==false) return false;
+    if(!q) return true;
+    return ((x.nome||"")+" "+(x.codigo||"")+" "+(x.tipo||"")+" "+(x.tamanho||"")+" "+
+            (x.setor||"")+" "+(x.fornecedor||"")+" "+(x.obs||"")).toLowerCase().indexOf(q)>=0;
+  }).sort(function(a,b){ return (a.nome||"").localeCompare(b.nome||"","pt",{numeric:true}); });
+}
 function matUid(){ return "m_"+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36); }
 function matProxCodigo(){
   var mx=0; matData.forEach(function(x){ var m=String(x.codigo||"").match(/(\\d+)$/); if(m) mx=Math.max(mx,+m[1]); });
@@ -16783,31 +16808,50 @@ function matSalvarForm(){
 }
 function matRenderLista(){
   var el=document.getElementById("matLista"); if(!el) return;
-  if(!matData.length){ el.innerHTML='<p class="mat-vazio">Nenhum material cadastrado ainda.<br>Clique em <b>＋ Novo material</b> para começar.</p>'; return; }
-  var q=matBusca.trim().toLowerCase();
-  var itens=matData.filter(function(x){ if(!q) return true; return ((x.nome||"")+" "+(x.tipo||"")+" "+(x.tamanho||"")+" "+(x.setor||"")+" "+(x.obs||"")).toLowerCase().indexOf(q)>=0; });
-  if(!itens.length){ el.innerHTML='<p class="mat-vazio">Nada encontrado para "'+matEsc(matBusca)+'".</p>'; return; }
-  var grupos={}; itens.forEach(function(x){ var s=(x.setor||"").trim()||"Sem setor"; (grupos[s]=grupos[s]||[]).push(x); });
-  var setores=Object.keys(grupos).sort(function(a,b){ return a.localeCompare(b,"pt"); });
-  var h="";
-  setores.forEach(function(s){
-    h+='<div class="mat-setor">'+matEsc(s)+' <span class="mat-count">'+grupos[s].length+'</span></div><div class="mat-cards">';
-    grupos[s].sort(function(a,b){ return (a.nome||"").localeCompare(b.nome||"","pt",{numeric:true}); }).forEach(function(x){
-      h+='<div class="mat-card"><div class="mat-card-top"><div class="mat-nome">'+matEsc(x.nome)+'</div>'+(x.tipo?'<span class="mat-tag">'+matEsc(x.tipo)+'</span>':'')+'</div>'
-        +(x.tamanho?'<div class="mat-tam">Tamanho: <b>'+matEsc(x.tamanho)+'</b></div>':'')
-        +((+x.preco>0)?'<div class="mat-tam">Preço: <b>'+brl(+x.preco)+'</b> cada</div>':'')
-        +(x.obs?'<div class="mat-obs">'+matEsc(x.obs)+'</div>':'')
-        +'<div class="mat-acoes"><button class="mat-mini" data-matedit="'+x.id+'" type="button">Editar</button><button class="mat-mini del" data-matdel="'+x.id+'" type="button">Remover</button></div></div>';
-    });
-    h+='</div>';
+  var ft=document.getElementById("matFiltroTipo");
+  if(ft && ft.options.length<=1){ MAT_TIPOS.forEach(function(t){ var o=document.createElement("option"); o.value=t; o.textContent=t; ft.appendChild(o); }); }
+  if(!matData.length){ el.innerHTML='<p class="mat-vazio">Nenhuma embalagem cadastrada ainda.<br>Clique em <b>＋ Nova embalagem</b> para começar.</p>'; return; }
+  var itens=matFiltrados();
+  if(!itens.length){ el.innerHTML='<p class="mat-vazio">Nada encontrado com esses filtros.</p>'; return; }
+  var tot=Math.ceil(itens.length/MAT_POR_PAG); if(matPag>tot) matPag=tot; if(matPag<1) matPag=1;
+  var pag=itens.slice((matPag-1)*MAT_POR_PAG, matPag*MAT_POR_PAG);
+  var h='<div class="ins-twrap"><table class="ins-tbl"><thead><tr><th>Código</th><th>Embalagem</th><th>Tipo</th><th>Setor</th><th>Fornecedor</th><th class="num">Preço</th><th>Uso</th><th></th></tr></thead><tbody>';
+  pag.forEach(function(x){
+    var uso=matUsoCount(x.id);
+    h+='<tr'+(x.ativo===false?' class="ins-off"':'')+'>'
+      +'<td class="ins-cod">'+matEsc(x.codigo||"")+'</td>'
+      +'<td><div class="ins-nome">'+matEsc(x.nome)+(x.ativo===false?' <span class="ins-chip">inativo</span>':'')+'</div>'
+        +'<div class="ins-meta">'+[ (x.tamanho?("tamanho "+matEsc(x.tamanho)):""), matEsc(x.obs||"") ].filter(Boolean).join(" · ")+'</div></td>'
+      +'<td>'+matEsc(x.tipo||"—")+'</td>'
+      +'<td>'+matEsc(x.setor||"—")+'</td>'
+      +'<td>'+matEsc(x.fornecedor||"—")+'</td>'
+      +'<td class="num"><span class="ins-preco">'+brl(+x.preco||0)+'</span><span style="color:#8a97a8;font-size:11px;">/'+matEsc(x.un||"un")+'</span></td>'
+      +'<td>'+(uso?('<button class="ins-uso" data-matuso="'+x.id+'" type="button">'+uso+' receita'+(uso>1?"s":"")+'</button>'):'<span style="color:#a9b4c0;font-size:12px;">—</span>')+'</td>'
+      +'<td style="text-align:right;white-space:nowrap;"><button class="ins-mini" data-matedit="'+x.id+'" type="button">Editar</button> <button class="ins-mini del" data-matdel="'+x.id+'" type="button">Remover</button></td>'
+      +'</tr>';
+    if(matVerUso===x.id){
+      var rs=matUsoReceitas(x.id);
+      h+='<tr><td colspan="8" style="background:#f8fafb;"><b style="font-size:12px;color:#56606d;">Receitas que usam esta embalagem:</b> '
+        +(rs.length?rs.map(function(r){ return matEsc(r.nome); }).join(" · "):"nenhuma")+'</td></tr>';
+    }
   });
+  h+='</tbody></table></div>';
+  h+='<div class="ins-pag"><span>'+itens.length+' embalagem(ns) · página '+matPag+' de '+tot+'</span><span>'
+    +'<button type="button" data-matpag="-1"'+(matPag<=1?' disabled':'')+'>‹ Anterior</button> '
+    +'<button type="button" data-matpag="1"'+(matPag>=tot?' disabled':'')+'>Próxima ›</button></span></div>';
   el.innerHTML=h;
 }
 (function initMaterial(){
   var add=document.getElementById("matAdd"); if(add) add.addEventListener("click",function(){ matForm=matForm?null:"new"; matEdit=null; matRenderForm(); });
-  var bus=document.getElementById("matBusca"); if(bus) bus.addEventListener("input",function(){ matBusca=this.value; matRenderLista(); });
+  var bus=document.getElementById("matBusca"); if(bus) bus.addEventListener("input",function(){ matBusca=this.value; matPag=1; matRenderLista(); });
+  var ft=document.getElementById("matFiltroTipo"); if(ft) ft.addEventListener("change",function(){ matTipoF=this.value; matPag=1; matRenderLista(); });
+  var fa=document.getElementById("matFiltroAtivo"); if(fa) fa.addEventListener("change",function(){ matAtivoF=this.value; matPag=1; matRenderLista(); });
   var fw=document.getElementById("matFormWrap"); if(fw) fw.addEventListener("click",function(ev){ if(ev.target.closest("#matSalvar")){ matSalvarForm(); } else if(ev.target.closest("#matCancelar")){ matForm=null; matEdit=null; matRenderForm(); } });
   var lst=document.getElementById("matLista"); if(lst) lst.addEventListener("click",function(ev){
+    var pg=ev.target.closest("[data-matpag]");
+    if(pg && !pg.disabled){ matPag+=(+pg.getAttribute("data-matpag")||0); matRenderLista(); return; }
+    var us=ev.target.closest("[data-matuso]");
+    if(us){ var uid=us.getAttribute("data-matuso"); matVerUso=(matVerUso===uid)?"":uid; matRenderLista(); return; }
     var e=ev.target.closest("[data-matedit]"); if(e){ matEdit=e.getAttribute("data-matedit"); matForm="edit"; matRenderForm(); var w=document.getElementById("matFormWrap"); if(w) w.scrollIntoView({behavior:"smooth",block:"center"}); return; }
     var d=ev.target.closest("[data-matdel]"); if(d){ var id=d.getAttribute("data-matdel"); var it=matData.find(function(x){return x.id===id;}); uiConfirm({titulo:"Remover material",msg:'Remover "'+matEsc(it?it.nome:"")+'" da lista?',ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(sim){ matData=matData.filter(function(x){return x.id!==id;}); matSave(); renderMaterial(); } }); return; }
   });
