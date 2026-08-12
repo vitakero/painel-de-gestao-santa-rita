@@ -16850,12 +16850,16 @@ var recIngTocado=false, recCustoManual="";
    REGRA: o que o dono digita na linha é o PREÇO DE REFERÊNCIA (preço de 1 kg / 1 L / 1 un).
    O CUSTO NA RECEITA é sempre calculado: quantidade convertida para a unidade de referência × preço.
    Nunca somar preços de referência. */
-var REC_UNS=["kg","g","L","ml","un"];
+var REC_UNS=["kg","g","L","ml","un","m"];
 var REC_UN={ kg:{tipo:"peso",   base:"kg", fator:1},
              g :{tipo:"peso",   base:"kg", fator:0.001},
              L :{tipo:"volume", base:"L",  fator:1},
              ml:{tipo:"volume", base:"L",  fator:0.001},
-             un:{tipo:"unidade",base:"un", fator:1} };
+             un:{tipo:"unidade",base:"un", fator:1},
+             // METRO (12/08/2026): filme, papel manteiga, barbante — o que se compra em rolo
+             // e o preço vem por metro. Tipo PRÓPRIO: metro não converte com kg nem com litro,
+             // então continua impossível somar 1 m com 1 kg por engano.
+             m :{tipo:"comprimento", base:"m", fator:1} };
 function recUnValida(u){ return Object.prototype.hasOwnProperty.call(REC_UN,String(u||"")); }
 function recUnTipo(u){ return recUnValida(u)?REC_UN[u].tipo:""; }
 function recUnRef(u){ return recUnValida(u)?REC_UN[u].base:""; }          // unidade do preço de referência
