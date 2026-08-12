@@ -11780,6 +11780,17 @@ function entRasTotal(){
 //               todo mundo continuava vendo o número velho. Aconteceu em 12/08/2026.
 //   parcial   = dia aberto e ainda incompleto -> dá pra guardar no servidor sem
 //               encerrar, pra não perder o que já foi digitado.
+// Um dia "ficou VAZIO" quando ninguém tem número nele — contando o que está digitado.
+//   Apagar tudo de um dia já encerrado não é corrigir: é DESFAZER o lançamento. E aí o dia
+//   precisa voltar a aceitar digitação, senão o funcionário vê a coluna em branco e não
+//   consegue preencher (dia encerrado só o administrador digita). Foi o que aconteceu em
+//   12/08/2026 com um lançamento de demonstração.
+// Pura: recebe quem é cobrado e uma função que devolve o valor de cada um.
+function entRasDiaVazio(cobrados, valorDe){
+  if(!cobrados || !cobrados.length) return false;
+  for(var i=0;i<cobrados.length;i++){ if(valorDe(cobrados[i])!=="") return false; }
+  return true;
+}
 // Função PURA de propósito: recebe as listas prontas, pra poder ser testada.
 function entRasClassifica(diasComRascunho, ehConfirmado, diasProntos){
   var corr=[], parc=[], pron=[];
@@ -13281,12 +13292,27 @@ function entSalvarSemEncerrar(dias, ehCorrecao){
     Object.keys(ras).forEach(function(id){ if(ras[id][d]!==undefined) n++; });
   });
   if(!n) return;
+  // Quais desses dias ficam SEM NENHUM número depois de salvar. Dá pra saber antes,
+  // porque entGetRaw já enxerga o que está digitado.
+  function esvaziados(){
+    var cob=entCobrados(entAno,entMes);
+    return dias.filter(function(d){
+      return entDiaConfirmado(entAno,entMes,d) &&
+             entRasDiaVazio(cob,function(id){ return entGetRaw(entAno,entMes,id,d); });
+    });
+  }
+  var vaiEsvaziar=esvaziados();
+  var aviso = vaiEsvaziar.length
+    ? ("\\n\\nO(s) dia(s) "+entLista(vaiEsvaziar)+" ficam SEM NENHUM lançamento. Como apagar tudo é "+
+       "desfazer o lançamento, vou REABRIR esse(s) dia(s) em seguida — é o que devolve a coluna "+
+       "em branco para quem lança preencher. Vou pedir sua senha.")
+    : "";
   uiConfirm({titulo: ehCorrecao?"Salvar correção":"Salvar sem encerrar",
     msg: n+" alteração(ões) vão para o servidor.\\n\\n"+
       (ehCorrecao
-        ? "O dia continua ENCERRADO. Por ser correção em dia fechado, cada alteração fica registrada com o seu nome, o valor anterior e o novo."
+        ? "Por ser correção em dia fechado, cada alteração fica registrada com o seu nome, o valor anterior e o novo."
         : "O dia NÃO será encerrado: quem lança continua podendo completar e encerrar depois.")+
-      "\\n\\nCampo deixado em branco APAGA aquele número no servidor.",
+      "\\n\\nCampo deixado em branco APAGA aquele número no servidor."+aviso,
     ok:"Salvar",cancel:"Cancelar"}).then(function(ok){
     if(!ok) return;
     dias.forEach(function(d){
@@ -13298,12 +13324,43 @@ function entSalvarSemEncerrar(dias, ehCorrecao){
     });
     entRasSalvar(); entSyncPintar(); entRenderFinal();
     entEsperaFila(function(chegou){
-      entConfLoad(function(){ renderEntregas(); });
-      if(!chegou) uiConfirm({titulo:"Ainda não chegou ao servidor",
-        msg:"As alterações foram guardadas aqui e o painel continua tentando enviar. Confira a faixa de sincronização — assim que ela disser que está tudo sincronizado, elas valem para todo mundo.",
-        ok:"Entendi",cancel:""});
+      if(!chegou){
+        entConfLoad(function(){ renderEntregas(); });
+        return uiConfirm({titulo:"Ainda não chegou ao servidor",
+          msg:"As alterações foram guardadas aqui e o painel continua tentando enviar. Confira a faixa de sincronização — assim que ela disser que está tudo sincronizado, elas valem para todo mundo.",
+          ok:"Entendi",cancel:""});
+      }
+      // Apagou tudo? Então devolve o dia para quem lança. Sem isso o funcionário vê a
+      // coluna em branco e o campo continua trancado — que era o problema original.
+      var lim=esvaziados();
+      if(!lim.length){ entConfLoad(function(){ renderEntregas(); }); return; }
+      entReabrirDias(lim,function(){ entConfLoad(function(){ renderEntregas(); }); });
     });
   });
+}
+// Reabre uma lista de dias, um atrás do outro. A senha do master é pedida UMA vez;
+// o motivo é escrito pelo painel, porque ele sabe exatamente o que aconteceu — e um
+// motivo preciso vale mais no registro do que um digitado com pressa.
+function entReabrirDias(dias, depois){
+  var motivo="Lançamento apagado pelo administrador — dia devolvido para novo lançamento.";
+  autorizarMaster("reabrir "+(dias.length===1?("o dia "+dias[0]):(dias.length+" dias"))+" de "+MESES[entMes]+" "+entAno,true,false)
+    .then(function(ok){
+      if(!ok) return depois&&depois();
+      var sb=entSB(); if(!sb) return depois&&depois();
+      var i=0;
+      (function passo(){
+        if(i>=dias.length) return depois&&depois();
+        var d=dias[i++];
+        sb.rpc("entregas_reabrir_dia",{p_request_id:entUuid(),p_ano:entAno,p_mes:entMes+1,p_dia:d,p_motivo:motivo})
+          .then(function(r){
+            if(r&&r.error){
+              return uiConfirm({titulo:"Não deu pra reabrir o dia "+d,msg:r.error.message,ok:"OK",cancel:""})
+                .then(function(){ passo(); });
+            }
+            passo();
+          },function(){ passo(); });
+      })();
+    });
 }
 // Espera a fila esvaziar antes de encerrar o dia. Sem isso dava pra travar um dia cujo
 // último número ainda estava no meio do caminho.
