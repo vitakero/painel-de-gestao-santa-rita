@@ -2441,6 +2441,23 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .rec-ing-pe{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px dashed #d7dee7;margin-top:2px;padding:9px 2px;}
         .rec-ing-add{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px dashed #b9c4d0;border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:700;color:#157a35;cursor:pointer;}
         .rec-ing-add:hover{border-color:#157a35;background:#f4f9f5;}
+        /* Janela de ESCOLHER DO CATÁLOGO (insumo / embalagem). Classes de verdade, e não
+           estilo solto na tag, pra o modo noturno ser derivado no build como no resto. */
+        .rec-pick-bus{width:100%;box-sizing:border-box;border:1px solid #d7dee6;border-radius:9px;padding:9px 12px;font-size:14px;margin-bottom:10px;}
+        .rec-pick-bus:focus{outline:none;border-color:#157a35;}
+        .rec-pick-lista{max-height:46vh;overflow:auto;border:1px solid #e6ebf0;border-radius:10px;}
+        .rec-pick-it{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid #f0f3f6;cursor:pointer;font-size:13.5px;}
+        .rec-pick-it:last-child{border-bottom:0;}
+        .rec-pick-it:hover{background:#f6f9fb;}
+        .rec-pick-it input{width:17px;height:17px;accent-color:#157a35;cursor:pointer;flex:0 0 auto;}
+        .rec-pick-it.ja{opacity:.55;cursor:default;}
+        .rec-pick-it.ja:hover{background:transparent;}
+        .rec-pick-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1d2733;font-weight:600;}
+        .rec-pick-d{flex:0 0 auto;font-size:12px;color:#6b7787;}
+        .rec-pick-tag{flex:0 0 auto;font-size:11px;color:#8a97a8;font-style:italic;}
+        .rec-pick-vazio{padding:18px 12px;text-align:center;color:#8a97a8;font-size:13px;}
+        .rec-pick-pe{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;flex-wrap:wrap;}
+        .rec-pick-branco{background:none;border:0;color:#157a35;font-size:12.5px;font-weight:700;cursor:pointer;text-decoration:underline;padding:0;}
         .rec-ing-somatxt{font-size:12.5px;color:#56606d;}
         .rec-ing-somatxt b{font-size:14.5px;color:#1d2733;}
         .rec-ing-nota{font-size:11px;color:#8a97a8;font-weight:400;margin-top:2px;}
@@ -17423,6 +17440,155 @@ function recCopAplicaCatalogo(i){
   r.u=c.unidade||"Por receita"; r.p=+c.valor||0; r.refId=c.id;
   return true;
 }
+/* ==RECPICK-INICIO== ESCOLHER DO CATÁLOGO (testado em scripts/testes/receitas-escolher.test.cjs)
+   Antes, "＋ Adicionar ingrediente" abria uma LINHA EM BRANCO e a pessoa tinha que lembrar o
+   nome do insumo e digitar de novo — sendo que ele já está cadastrado. O certo é MOSTRAR o
+   catálogo e deixar marcar vários de uma vez; a quantidade se ajusta depois, na linha.
+   A linha em branco continua existindo, como saída pro que ainda não foi cadastrado. */
+// O que a janela mostra. Pura: recebe os itens já normalizados ({id,nome,detalhe}) e a lista
+// do que já está na receita.
+// Busca SEM ACENTO: quem procura digita "acucar", e no cadastro está "Açúcar". Sem isto a
+// busca falha justamente nas palavras mais comuns da cozinha (açúcar, manteiga não, mas
+// açaí, pão, canela em pó...). Descoberto testando de verdade na tela.
+function recPickSemAcento(s){
+  return String(s==null?"":s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+}
+function recPickLista(itens, jaIds, busca){
+  var q=recPickSemAcento(String(busca||"").trim());
+  var ja=(jaIds||[]).map(String);
+  var out=[];
+  (itens||[]).forEach(function(x){
+    if(!x || x.id==null || x.id==="") return;
+    var nome=String(x.nome||"").trim(); if(!nome) return;
+    if(q && recPickSemAcento(nome+" "+String(x.detalhe||"")).indexOf(q)<0) return;
+    out.push({ id:String(x.id), nome:nome, detalhe:String(x.detalhe||""), ja:ja.indexOf(String(x.id))>=0 });
+  });
+  // Quem JÁ está na receita desce pro fim: a lista serve pra achar o que ainda FALTA.
+  out.sort(function(a,b){
+    if(a.ja!==b.ja) return a.ja?1:-1;
+    return a.nome.localeCompare(b.nome,"pt");
+  });
+  return out;
+}
+/* ==RECPICK-FIM== */
+// Os itens do catálogo, já no formato que a janela entende.
+function recPickItens(ehIng){
+  if(ehIng){
+    return (typeof insData!=="undefined"?insData:[]).filter(function(x){ return x && x.ativo!==false; })
+      .map(function(x){ return {id:x.id, nome:x.nome, detalhe:brl(+x.preco||0)+" / "+(x.un||"un")}; });
+  }
+  return (typeof matData!=="undefined"?matData:[]).filter(function(x){ return x && x.ativo!==false; })
+    .map(function(x){ return {id:x.id, nome:String(x.nome||"")+(x.tamanho?(" — "+x.tamanho):""), detalhe:brl(+x.preco||0)+" cada"}; });
+}
+function recPickJa(ehIng){
+  return ehIng ? recIngr.map(function(r){ return String(r.insumoId||""); }).filter(Boolean)
+               : recEmbL.map(function(r){ return String(r.refId||""); }).filter(Boolean);
+}
+function recPickAbrir(tipo, fw){
+  var ehIng=(tipo!=="embalagem");
+  var itens=recPickItens(ehIng), jaIds=recPickJa(ehIng), marcados={};
+  var bg=document.getElementById("recPickModal");
+  if(!bg){
+    bg=document.createElement("div"); bg.id="recPickModal"; bg.className="modal-bg";
+    bg.innerHTML='<div class="modal-cx" style="max-width:560px;">'
+      +'<div class="modal-top"><div class="modal-ic">\\u{1F4CB}</div><div class="modal-tit" id="recPickTit"></div></div>'
+      +'<div class="modal-msg" id="recPickSub"></div>'
+      +'<input type="text" class="rec-pick-bus" id="recPickBusca" placeholder="Buscar pelo nome...">'
+      +'<div class="rec-pick-lista" id="recPickLista"></div>'
+      +'<div class="rec-pick-pe">'
+        +'<button type="button" class="rec-pick-branco" id="recPickBranco"></button>'
+        +'<div class="modal-acts" style="margin:0;">'
+          +'<button type="button" class="btn-s" id="recPickCancel">Cancelar</button>'
+          +'<button type="button" class="btn-p" id="recPickOk">Adicionar</button>'
+        +'</div>'
+      +'</div></div>';
+    document.body.appendChild(bg);
+  }
+  var elTit=document.getElementById("recPickTit"), elSub=document.getElementById("recPickSub");
+  var elBus=document.getElementById("recPickBusca"), elLis=document.getElementById("recPickLista");
+  var elOk=document.getElementById("recPickOk"), elCan=document.getElementById("recPickCancel");
+  var elBr=document.getElementById("recPickBranco");
+  elTit.textContent = ehIng ? "Escolher ingredientes" : "Escolher embalagens";
+  elSub.textContent = ehIng ? "Marque tudo que esta receita usa. A quantidade você ajusta depois, na linha."
+                            : "Marque as embalagens desta receita. A quantidade e a base você ajusta depois.";
+  elBr.textContent = ehIng ? "Não está na lista — abrir linha em branco" : "Não está na lista — abrir linha em branco";
+  elBus.value="";
+
+  function contar(){ var n=0; Object.keys(marcados).forEach(function(k){ if(marcados[k]) n++; }); return n; }
+  function pintarBotao(){
+    var n=contar();
+    elOk.textContent = n ? ("Adicionar "+n) : "Adicionar";
+    elOk.disabled = !n;
+    elOk.style.opacity = n ? "1" : ".5";
+    elOk.style.cursor = n ? "pointer" : "not-allowed";
+  }
+  function desenhar(){
+    var lista=recPickLista(itens,jaIds,elBus.value);
+    if(!itens.length){
+      elLis.innerHTML='<div class="rec-pick-vazio">Nada cadastrado ainda.<br>Cadastre em <b>'
+        +(ehIng?"Receitas &rsaquo; Insumos":"Receitas &rsaquo; Embalagens")+'</b> — ou abra uma linha em branco aqui embaixo.</div>';
+      return;
+    }
+    if(!lista.length){ elLis.innerHTML='<div class="rec-pick-vazio">Nada encontrado com esse nome.</div>'; return; }
+    elLis.innerHTML=lista.map(function(x){
+      return '<label class="rec-pick-it'+(x.ja?" ja":"")+'">'
+        +'<input type="checkbox" data-pickid="'+recEsc(x.id)+'"'+(x.ja?" disabled":"")+(marcados[x.id]?" checked":"")+'>'
+        +'<span class="rec-pick-n">'+recEsc(x.nome)+'</span>'
+        +(x.ja?'<span class="rec-pick-tag">já está na receita</span>':'<span class="rec-pick-d">'+recEsc(x.detalhe)+'</span>')
+        +'</label>';
+    }).join("");
+    pintarBotao();
+  }
+  function fechar(){ bg.classList.remove("show"); elLis.onclick=null; elBus.oninput=null;
+    elOk.onclick=null; elCan.onclick=null; elBr.onclick=null; bg.onclick=null; document.onkeydown=null; }
+
+  elLis.onclick=function(e){
+    var c=e.target.closest("[data-pickid]"); if(!c || c.disabled) return;
+    marcados[c.getAttribute("data-pickid")]=c.checked; pintarBotao();
+  };
+  elBus.oninput=function(){ desenhar(); };
+  elCan.onclick=function(){ fechar(); };
+  bg.onclick=function(e){ if(e.target===bg) fechar(); };
+  document.onkeydown=function(e){ if(e.key==="Escape") fechar(); };
+  elBr.onclick=function(){ fechar(); if(ehIng) recIngNova(fw); else recEmbNova(fw); };
+  elOk.onclick=function(){
+    var ids=Object.keys(marcados).filter(function(k){ return marcados[k]; });
+    if(!ids.length) return;
+    // A ficha já abre com uma linha em branco. Depois de escolher do catálogo ela ficaria
+    // sobrando no topo — some com ela, mas SÓ se não tiver absolutamente nada digitado:
+    // linha meio preenchida é trabalho de alguém, não lixo.
+    if(ehIng){
+      recIngr=recIngr.filter(function(r){
+        return !(!String(r.q||"").trim() && !String(r.u||"").trim() && !String(r.n||"").trim()
+                 && !(+r.p>0) && !r.insumoId);
+      });
+    } else {
+      recEmbL=recEmbL.filter(function(r){
+        return !(!r.refId && !String(r.n||"").trim() && !(+r.p>0));
+      });
+    }
+    ids.forEach(function(id){
+      if(ehIng){
+        var ins=(typeof insPorId==="function")?insPorId(id):null; if(!ins) return;
+        recIngTocado=true;   // a soma das linhas passa a mandar no custo (trava anti-perda)
+        recIngr.push({q:"1", u:ins.un||"", n:ins.nome, p:+ins.preco||0, pu:ins.un||"", insumoId:ins.id});
+      } else {
+        var m=(typeof matData!=="undefined"?matData:[]).filter(function(x){ return x.id===id; })[0]; if(!m) return;
+        recEmbL.push({refId:m.id, q:"1", base:"Por receita",
+                      n:String(m.nome||"")+(m.tamanho?(" — "+m.tamanho):""), p:+m.preco||0});
+      }
+    });
+    fechar();
+    if(ehIng) recIngRender(); else recEmbRender();
+    // foca a QUANTIDADE da primeira linha nova: é o único campo que ainda falta preencher
+    var sel=ehIng?".rec-ing-row .rec-ing-q":'[data-emb] .rec-ing-q';
+    var rows=(fw||document).querySelectorAll(sel);
+    var alvo=rows[rows.length-ids.length]; if(alvo){ alvo.focus(); alvo.select&&alvo.select(); }
+  };
+  marcados={}; desenhar(); pintarBotao();
+  bg.classList.add("show");
+  setTimeout(function(){ elBus.focus(); },30);
+}
 function recIngNova(fw){   // nova linha (não empilha linha vazia atrás de linha vazia)
   var u=recIngr[recIngr.length-1];
   var vazia=u&&!String(u.q||"").trim()&&!String(u.u||"").trim()&&!(u.n||"").trim()&&!(+u.p>0);
@@ -18309,10 +18475,10 @@ function recAbaIr(id){
   var fw=document.getElementById("recFormWrap"); if(fw){
     fw.addEventListener("click",function(ev){
       var add=ev.target.closest("#recIngAdd");
-      if(add){ recIngNova(fw); return; }
+      if(add){ recPickAbrir("ingrediente",fw); return; }
       var del=ev.target.closest("[data-ingdel]");
       if(del){ recIngTocado=true; recIngr.splice(+del.getAttribute("data-ingdel"),1); recIngRender(); return; }
-      if(ev.target.closest("#recEmbAdd")){ recEmbNova(fw); return; }
+      if(ev.target.closest("#recEmbAdd")){ recPickAbrir("embalagem",fw); return; }
       var edel=ev.target.closest("[data-embdel]");
       if(edel){ recEmbL.splice(+edel.getAttribute("data-embdel"),1); recEmbRender(); return; }
       if(ev.target.closest("#recCopAdd")){ recCopNova(fw); return; }
