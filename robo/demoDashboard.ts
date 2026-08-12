@@ -17563,6 +17563,25 @@ function recPickResumo(total, jaNaReceita, mostrando, temBusca){
   return {tipo:"ok", txt:total+" cadastrado"+(total>1?"s":"")+
     (jaNaReceita?(" · "+jaNaReceita+" já nesta receita"):"")};
 }
+// ORDEM ALFABÉTICA das linhas da ficha (pedido do dono, 12/08/2026): marcou na janela em
+// qualquer ordem, a ficha organiza. Ordena pelo nome que APARECE na tela — que, quando a linha
+// vem do catálogo, é o nome do cadastro, não o que estiver gravado na linha.
+//   Linha SEM nome (em branco, sendo digitada) fica no FIM e na ordem em que estava: mover o
+//   campo debaixo do dedo de quem escreve é hostil.
+//   Empate resolve pela posição original -> a ordenação é estável, não embaralha igual.
+function recOrdenaLinhas(linhas, nomeDe){
+  var comNome=[], semNome=[];
+  (linhas||[]).forEach(function(r,ix){
+    var n="";
+    try{ n=String((nomeDe?nomeDe(r):(r&&r.n))||"").trim(); }catch(e){ n=""; }
+    (n?comNome:semNome).push({r:r, n:n, ix:ix});
+  });
+  comNome.sort(function(a,b){
+    var c=a.n.localeCompare(b.n,"pt",{numeric:true,sensitivity:"base"});
+    return c || (a.ix-b.ix);
+  });
+  return comNome.concat(semNome).map(function(x){ return x.r; });
+}
 /* ==RECPICK-FIM== */
 // Os itens do catálogo, já no formato que a janela entende.
 //   grupo = como o cadastro organiza (categoria do insumo, tipo da embalagem)
@@ -17694,19 +17713,9 @@ function recPickAbrir(tipo, fw){
   elOk.onclick=function(){
     var ids=Object.keys(marcados).filter(function(k){ return marcados[k]; });
     if(!ids.length) return;
-    // A ficha já abre com uma linha em branco. Depois de escolher do catálogo ela ficaria
-    // sobrando no topo — some com ela, mas SÓ se não tiver absolutamente nada digitado:
-    // linha meio preenchida é trabalho de alguém, não lixo.
-    if(ehIng){
-      recIngr=recIngr.filter(function(r){
-        return !(!String(r.q||"").trim() && !String(r.u||"").trim() && !String(r.n||"").trim()
-                 && !(+r.p>0) && !r.insumoId);
-      });
-    } else {
-      recEmbL=recEmbL.filter(function(r){
-        return !(!r.refId && !String(r.n||"").trim() && !(+r.p>0));
-      });
-    }
+    // NÃO limpar linha em branco aqui. Isso existia pra matar a linha que a ficha semeava
+    // sozinha; agora ela não é semeada, e a única linha em branco que existe é a que o dono
+    // abriu de propósito no "não está na lista". Apagar a dele seria tirar o trabalho da mão.
     ids.forEach(function(id){
       if(ehIng){
         var ins=(typeof insPorId==="function")?insPorId(id):null; if(!ins) return;
@@ -17718,12 +17727,26 @@ function recPickAbrir(tipo, fw){
                       n:String(m.nome||"")+(m.tamanho?(" — "+m.tamanho):""), p:+m.preco||0});
       }
     });
+    // Ordem alfabética depois de entrar: a ordem em que ele marcou não é a ordem em que ele
+    // quer ler. Feito AQUI (ação de botão) e não a cada desenho — reordenar enquanto alguém
+    // digita faria a linha fugir do cursor.
+    if(ehIng) recIngr=recOrdenaLinhas(recIngr,function(r){ return recIngResolv(r).n; });
+    else      recEmbL=recOrdenaLinhas(recEmbL,function(r){ return recEmbResolv(r).n; });
     fechar();
     if(ehIng) recIngRender(); else recEmbRender();
-    // foca a QUANTIDADE da primeira linha nova: é o único campo que ainda falta preencher
+    // foca a QUANTIDADE do primeiro que ele escolheu — que depois da ordenação pode estar
+    // em qualquer posição, então procura pelo id em vez de contar do fim.
+    var chave=ehIng?"insumoId":"refId";
+    var lista=ehIng?recIngr:recEmbL, pos=-1;
+    for(var _i=0;_i<lista.length;_i++){ if(String(lista[_i][chave]||"")===String(ids[0])){ pos=_i; break; } }
     var sel=ehIng?".rec-ing-row .rec-ing-q":'[data-emb] .rec-ing-q';
-    var rows=(fw||document).querySelectorAll(sel);
-    var alvo=rows[rows.length-ids.length]; if(alvo){ alvo.focus(); alvo.select&&alvo.select(); }
+    // DEPOIS que a janela terminar de sumir. Focar antes não adianta: ao esconder o modal o
+    // navegador tira o foco de dentro dele e joga no corpo da página — apagando o nosso.
+    setTimeout(function(){
+      var rows=(fw||document).querySelectorAll(sel);
+      var alvo=(pos>=0?rows[pos]:rows[rows.length-1]);
+      if(alvo){ alvo.focus(); if(alvo.select) alvo.select(); }
+    },0);
   };
   marcados={}; soFaltam=false; desenhar(); pintarBotao();
   bg.classList.add("show");
