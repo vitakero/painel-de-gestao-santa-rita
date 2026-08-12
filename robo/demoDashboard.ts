@@ -11771,6 +11771,25 @@ function entRasTotal(){
   });
   return n;
 }
+// TRÊS SITUAÇÕES DIFERENTES PARA O QUE ESTÁ DIGITADO E NÃO SALVO — e cada uma pede
+// um botão diferente. Antes só existiam duas, e por isso uma delas ficava sem saída:
+//   pronto    = dia aberto e completo -> o Salvar de sempre (grava E encerra o dia)
+//   correcao  = dia JÁ ENCERRADO -> é correção do administrador. O servidor aceita
+//               (só do master) e registra cada uma; faltava a tela oferecer o botão.
+//               Sem ele, a correção ficava presa no navegador de quem digitou enquanto
+//               todo mundo continuava vendo o número velho. Aconteceu em 12/08/2026.
+//   parcial   = dia aberto e ainda incompleto -> dá pra guardar no servidor sem
+//               encerrar, pra não perder o que já foi digitado.
+// Função PURA de propósito: recebe as listas prontas, pra poder ser testada.
+function entRasClassifica(diasComRascunho, ehConfirmado, diasProntos){
+  var corr=[], parc=[], pron=[];
+  (diasComRascunho||[]).forEach(function(d){
+    if(ehConfirmado(d)) corr.push(d);
+    else if((diasProntos||[]).indexOf(d)>=0) pron.push(d);
+    else parc.push(d);
+  });
+  return { correcao:corr, parcial:parc, pronto:pron };
+}
 /* ==ENTRAS-FIM== */
 
 // O rascunho vem SEMPRE na frente do que está gravado: é o que a pessoa está vendo e
@@ -13239,6 +13258,53 @@ function entGravar(dias){
     });
   });
 }
+// Em que situação está o que foi digitado no mês aberto. UMA definição só, usada tanto
+// pela faixa quanto pelos botões — se cada um calculasse do seu jeito, um dia o botão
+// mandaria um conjunto de dias diferente do que a faixa está mostrando.
+function entRasSituacao(){
+  return entRasClassifica(entRasResumo(entAno,entMes).dias,
+    function(d){ return entDiaConfirmado(entAno,entMes,d); },
+    entDiasParaGravar(entAno,entMes));
+}
+// MANDA PRO SERVIDOR SEM ENCERRAR NADA. Só administrador.
+//   Dois usos, o mesmo caminho:
+//   - correção em dia já encerrado (o dia continua encerrado, e o servidor registra
+//     cada alteração com autor, valor anterior e valor novo);
+//   - dia ainda incompleto, pra não perder o que já foi digitado.
+//   Campo deixado em branco APAGA o número no servidor — é assim que se desfaz um
+//   lançamento errado.
+function entSalvarSemEncerrar(dias, ehCorrecao){
+  if(!entCfg.master) return;
+  dias=(dias||[]).slice(); if(!dias.length) return;
+  var mk=entMesKey(entAno,entMes), ras=entRascunho[mk]||{}, n=0;
+  dias.forEach(function(d){
+    Object.keys(ras).forEach(function(id){ if(ras[id][d]!==undefined) n++; });
+  });
+  if(!n) return;
+  uiConfirm({titulo: ehCorrecao?"Salvar correção":"Salvar sem encerrar",
+    msg: n+" alteração(ões) vão para o servidor.\\n\\n"+
+      (ehCorrecao
+        ? "O dia continua ENCERRADO. Por ser correção em dia fechado, cada alteração fica registrada com o seu nome, o valor anterior e o novo."
+        : "O dia NÃO será encerrado: quem lança continua podendo completar e encerrar depois.")+
+      "\\n\\nCampo deixado em branco APAGA aquele número no servidor.",
+    ok:"Salvar",cancel:"Cancelar"}).then(function(ok){
+    if(!ok) return;
+    dias.forEach(function(d){
+      Object.keys(ras).forEach(function(id){
+        if(ras[id][d]===undefined) return;
+        entGravarCelula(entAno,entMes,id,d,ras[id][d]);
+      });
+      entRasLimpaDia(entAno,entMes,d);
+    });
+    entRasSalvar(); entSyncPintar(); entRenderFinal();
+    entEsperaFila(function(chegou){
+      entConfLoad(function(){ renderEntregas(); });
+      if(!chegou) uiConfirm({titulo:"Ainda não chegou ao servidor",
+        msg:"As alterações foram guardadas aqui e o painel continua tentando enviar. Confira a faixa de sincronização — assim que ela disser que está tudo sincronizado, elas valem para todo mundo.",
+        ok:"Entendi",cancel:""});
+    });
+  });
+}
 // Espera a fila esvaziar antes de encerrar o dia. Sem isso dava pra travar um dia cujo
 // último número ainda estava no meio do caminho.
 function entEsperaFila(depois){
@@ -13798,7 +13864,26 @@ function entRenderFinal(){
   var falta=entFaltaPreencher(entAno,entMes);
   // O dia que ela está digitando AGORA manda na faixa. Se ele ainda não está completo,
   // a faixa fala dele — não adianta oferecer "salvar o dia 5" enquanto ela preenche o 6.
-  var digitandoIncompleto=ras.dias.filter(function(d){ return confirmar.indexOf(d)<0; });
+  var _sit=entRasSituacao();
+  var corrigindo=_sit.correcao;               // dia já encerrado: é correção, não lançamento
+  var digitandoIncompleto=_sit.parcial;
+  // CORREÇÃO EM DIA ENCERRADO vem antes de tudo. É o caso mais perigoso: o número na
+  // tela de quem corrigiu está diferente do número que todo mundo vê, e antes não havia
+  // botão nenhum pra resolver isso — a correção morria no navegador.
+  if(corrigindo.length && entCfg.master){
+    var umC=corrigindo.length===1;
+    box.innerHTML='<div class="ent-final falta">'+entIco("atencao")+
+      '<div><div class="eyb">Correção em dia encerrado</div>'+
+      '<b>'+(umC?'Dia '+corrigindo[0]+' já encerrado':corrigindo.length+' dias já encerrados')+
+      ' — '+ras.celulas+' alteração(ões) ainda NÃO enviadas.</b>'+
+      '<div class="det">Como administrador você pode corrigir. O dia <b>continua encerrado</b> e cada '+
+      'alteração fica registrada com o seu nome, o valor anterior e o novo.</div>'+
+      '<div class="det">Campo deixado em branco <b>apaga</b> aquele número. Enquanto você não clicar, '+
+      'nada saiu deste navegador — os outros continuam vendo o número antigo.</div>'+
+      entChips(corrigindo,umC?'Dia:':'Dias:')+'</div>'+
+      '<button type="button" id="entSalvarCorrecao">Salvar correção</button></div>';
+    return;
+  }
   // Tem dia pronto? Então SALVAR. Vem antes de tudo: é a ação do dia, e é ela que
   // grava e encerra.
   if(confirmar.length && !digitandoIncompleto.length){
@@ -13825,7 +13910,11 @@ function entRenderFinal(){
         ? 'O dia '+dIn+' só pode ser salvo com todos os entregadores lançados. Falta: '+quem.slice(0,6).map(entEsc).join(', ')+(quem.length>6?' e mais '+(quem.length-6):'')+'.'
         : 'Confira e salve.')+'</div>'+
       '<div class="det">Quem não fez entrega no dia precisa de <b>0</b>. Nada vai para o servidor até você salvar.</div>'+
-      entChips(ras.dias,ras.dias.length===1?'Dia em lançamento:':'Dias em lançamento:')+'</div></div>';
+      entChips(ras.dias,ras.dias.length===1?'Dia em lançamento:':'Dias em lançamento:')+'</div>'+
+      // O administrador pode guardar o que já está digitado SEM encerrar o dia. Serve pra
+      // não perder o meio-preenchido e pra deixar o número certo à vista de quem continua.
+      (entCfg.master?'<button type="button" id="entSalvarParcial" title="Guarda no servidor o que já está digitado, sem encerrar o dia">Salvar sem encerrar</button>':'')+
+      '</div>';
     return;
   }
   if(!falta.length && entMesCompleto(entAno,entMes)){
@@ -14052,6 +14141,8 @@ function renderEntregas(){
   document.getElementById("entAdm").addEventListener("click",function(e){
     if(e.target.closest("#entCfgBtn")){ entCfgAberto=!entCfgAberto; entRenderCfgBox(); return; }
     if(e.target.closest("#entFecharBtn")){ entFecharMes(); return; }
+    if(e.target.closest("#entSalvarCorrecao")){ entSalvarSemEncerrar(entRasSituacao().correcao,true); return; }
+    if(e.target.closest("#entSalvarParcial")){ entSalvarSemEncerrar(entRasSituacao().parcial,false); return; }
     if(e.target.closest("#entReabrirDia")){ entReabrirDia(); return; }
     if(e.target.closest("#entReabrir")){ entReabrirMes(); return; }
     if(e.target.closest("#entRelRH")){ entRelatorioRH(); return; }
