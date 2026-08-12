@@ -2432,8 +2432,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .rec-ing-q,.rec-ing-p{text-align:right;}
         .rec-ing-u{padding:8px 6px !important;cursor:pointer;}
         .rec-ing-pw{position:relative;}
-        .rec-ing-pw input{padding-right:30px !important;}
-        .rec-ing-suf{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:11.5px;color:#8a97a8;pointer-events:none;}
+        .rec-ing-pw input{padding-right:42px !important;}
+        /* A unidade não é enfeite: ela diz se o preço é por kg ou por litro, e errar isso erra
+           o custo da receita inteira. Estava em cinza-claro, menor que todo o resto. */
+        .rec-ing-suf{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:12.5px;font-weight:700;color:#157a35;background:#eef7f0;border-radius:5px;padding:1px 5px;pointer-events:none;}
         .rec-ing-calc{text-align:right;font-weight:700;color:#1d2733;font-variant-numeric:tabular-nums;padding:8px 2px;font-size:13.5px;}
         .rec-ing-calc .err{color:#c0392b;font-weight:600;}
         .rec-ing-calclbl{display:none;color:#8a97a8;font-weight:600;}
@@ -17953,7 +17955,7 @@ function recRenderForm(){
     // ---- 2 ingredientes ----
     +recSecao(2,"Ingredientes")
     +'<div class="rec-ings">'
-      +'<div class="rec-ing-head"><div style="text-align:right;">Qtd</div><div>Unidade</div><div>Ingrediente</div><div style="text-align:right;" title="Preço de 1 kg, 1 L ou 1 unidade — como você compra">Preço de referência</div><div style="text-align:right;" title="Calculado pelo painel conforme a quantidade usada">Custo na receita</div><div></div></div>'
+      +'<div class="rec-ing-head"><div style="text-align:center;">Qtd</div><div style="text-align:center;">Unidade</div><div>Ingrediente</div><div style="text-align:right;" title="Preço de 1 kg, 1 L ou 1 unidade — como você compra">Preço de referência</div><div style="text-align:right;" title="Calculado pelo painel conforme a quantidade usada">Custo na receita</div><div></div></div>'
       +'<div id="recIngBox"></div>'
       +'<datalist id="recInsLista">'+((typeof insData!=="undefined"?insData:[]).filter(function(x){return x.ativo!==false;}).map(function(x){ return '<option value="'+recEsc(x.nome)+'">'+recEsc([(x.categoria||""),(x.marca||""),brl(+x.preco||0)+"/"+(x.un||"")].filter(Boolean).join(" · "))+'</option>'; }).join(''))+'</datalist>'
       +'<div id="recAvisoIns" class="rec-aviso-ins" style="display:none;"></div>' 
@@ -17963,7 +17965,7 @@ function recRenderForm(){
     // ---- 3 custos ----
     +recSecao(3,"Embalagens")
     +'<div class="rec-ings">'
-      +'<div class="rec-ing-head"><div style="text-align:right;">Qtd</div><div>Base</div><div>Embalagem</div><div style="text-align:right;">Custo de 1</div><div style="text-align:right;">Custo na receita</div><div></div></div>'
+      +'<div class="rec-ing-head"><div style="text-align:center;">Qtd</div><div style="text-align:center;">Base</div><div>Embalagem</div><div style="text-align:right;">Custo de 1</div><div style="text-align:right;">Custo na receita</div><div></div></div>'
       +'<div id="recEmbBox"></div>'
       +'<datalist id="recEmbLista2">'+((typeof matData!=="undefined"?matData:[]).filter(function(m){return m.ativo!==false;}).map(function(m){ var v=(m.nome||"")+(m.tamanho?(" — "+m.tamanho):""); return '<option value="'+recEsc(v)+'">'+recEsc(brl(+m.preco||0)+(m.fornecedor?(" · "+m.fornecedor):""))+'</option>'; }).join(''))+'</datalist>'
       +'<div class="rec-ing-pe"><button type="button" class="rec-ing-add" id="recEmbAdd">＋ Adicionar embalagem</button>'
@@ -17971,7 +17973,7 @@ function recRenderForm(){
     +'</div>'
     +recSecao(4,"Custos operacionais")
     +'<div class="rec-ings">'
-      +'<div class="rec-ing-head"><div style="text-align:right;">Qtd</div><div>Unidade</div><div>Custo operacional</div><div style="text-align:right;" title="Valor de referência do cadastro">Valor de ref.</div><div style="text-align:right;">Custo na receita</div><div></div></div>'
+      +'<div class="rec-ing-head"><div style="text-align:center;">Qtd</div><div style="text-align:center;">Unidade</div><div>Custo operacional</div><div style="text-align:right;" title="Valor de referência do cadastro">Valor de ref.</div><div style="text-align:right;">Custo na receita</div><div></div></div>'
       +'<div id="recCopBox"></div>'
       +'<datalist id="recCopLista">'+copAtivos().map(function(c){ return '<option value="'+recEsc(c.nome)+'">'+recEsc((c.categoria||"")+" · "+(c.unidade||"")+" · "+brl(+c.valor||0))+'</option>'; }).join('')+'</datalist>'
       +'<div class="rec-ing-pe"><button type="button" class="rec-ing-add" id="recCopAdd">＋ Adicionar custo operacional</button>'
