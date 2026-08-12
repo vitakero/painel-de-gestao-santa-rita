@@ -14198,8 +14198,6 @@ function renderEntregas(){
   document.getElementById("entAdm").addEventListener("click",function(e){
     if(e.target.closest("#entCfgBtn")){ entCfgAberto=!entCfgAberto; entRenderCfgBox(); return; }
     if(e.target.closest("#entFecharBtn")){ entFecharMes(); return; }
-    if(e.target.closest("#entSalvarCorrecao")){ entSalvarSemEncerrar(entRasSituacao().correcao,true); return; }
-    if(e.target.closest("#entSalvarParcial")){ entSalvarSemEncerrar(entRasSituacao().parcial,false); return; }
     if(e.target.closest("#entReabrirDia")){ entReabrirDia(); return; }
     if(e.target.closest("#entReabrir")){ entReabrirMes(); return; }
     if(e.target.closest("#entRelRH")){ entRelatorioRH(); return; }
@@ -14211,6 +14209,8 @@ function renderEntregas(){
   document.getElementById("entFinal").addEventListener("click",function(e){
     if(e.target.closest("#entFinalizarMes")){ entFecharMes(true); return; }
     if(e.target.closest("#entSalvarDia")){ entGravar(entDiasParaGravar(entAno,entMes)); return; }
+    if(e.target.closest("#entSalvarCorrecao")){ entSalvarSemEncerrar(entRasSituacao().correcao,true); return; }
+    if(e.target.closest("#entSalvarParcial")){ entSalvarSemEncerrar(entRasSituacao().parcial,false); return; }
   });
   document.getElementById("entSync").addEventListener("click",function(e){
     if(e.target.closest("#entRetry")){ entFila.forEach(function(f){ f.proxima=0; }); entFilaProcessar(true); return; }
