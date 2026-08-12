@@ -2445,21 +2445,30 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .rec-ing-add:hover{border-color:#157a35;background:#f4f9f5;}
         /* Janela de ESCOLHER DO CATÁLOGO (insumo / embalagem). Classes de verdade, e não
            estilo solto na tag, pra o modo noturno ser derivado no build como no resto. */
-        .rec-pick-bus{width:100%;box-sizing:border-box;border:1px solid #d7dee6;border-radius:9px;padding:9px 12px;font-size:14px;margin-bottom:10px;}
-        .rec-pick-bus:focus{outline:none;border-color:#157a35;}
-        .rec-pick-lista{max-height:46vh;overflow:auto;border:1px solid #e6ebf0;border-radius:10px;}
-        .rec-pick-it{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid #f0f3f6;cursor:pointer;font-size:13.5px;}
+        .rec-pick-cab{display:flex;align-items:center;gap:8px;margin:2px 0 10px;flex-wrap:wrap;}
+        .rec-pick-bus{flex:1;min-width:180px;box-sizing:border-box;border:1px solid #d7dee6;border-radius:9px;padding:9px 12px;font-size:14px;}
+        .rec-pick-bus:focus{outline:none;border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.12);}
+        .rec-pick-chip{border:1px solid #d7dee6;background:#fff;border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:700;color:#56606d;cursor:pointer;white-space:nowrap;}
+        .rec-pick-chip.on{background:#eef7f0;border-color:#157a35;color:#157a35;}
+        .rec-pick-cont{font-size:12px;color:#8a97a8;margin:0 0 8px;}
+        .rec-pick-lista{max-height:44vh;overflow:auto;border:1px solid #e6ebf0;border-radius:10px;}
+        .rec-pick-grp{position:sticky;top:0;background:#f6f9fb;border-bottom:1px solid #e6ebf0;padding:6px 12px;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#8a97a8;z-index:1;}
+        .rec-pick-it{display:flex;align-items:center;gap:11px;padding:9px 12px;border-bottom:1px solid #f0f3f6;cursor:pointer;font-size:13.5px;}
         .rec-pick-it:last-child{border-bottom:0;}
         .rec-pick-it:hover{background:#f6f9fb;}
+        .rec-pick-it.sel{background:#eef7f0;}
         .rec-pick-it input{width:17px;height:17px;accent-color:#157a35;cursor:pointer;flex:0 0 auto;}
-        .rec-pick-it.ja{opacity:.55;cursor:default;}
+        .rec-pick-it.ja{opacity:.62;cursor:default;}
         .rec-pick-it.ja:hover{background:transparent;}
-        .rec-pick-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1d2733;font-weight:600;}
-        .rec-pick-d{flex:0 0 auto;font-size:12px;color:#6b7787;}
-        .rec-pick-tag{flex:0 0 auto;font-size:11px;color:#8a97a8;font-style:italic;}
-        .rec-pick-vazio{padding:18px 12px;text-align:center;color:#8a97a8;font-size:13px;}
+        .rec-pick-txt{flex:1;min-width:0;}
+        .rec-pick-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1d2733;font-weight:600;}
+        .rec-pick-m{font-size:11.5px;color:#8a97a8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .rec-pick-d{flex:0 0 auto;font-size:12.5px;color:#56606d;font-weight:700;}
+        .rec-pick-tag{flex:0 0 auto;font-size:10.5px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;color:#157a35;background:#eef7f0;border:1px solid #cfe6d6;border-radius:999px;padding:3px 8px;}
+        .rec-pick-vazio{padding:22px 14px;text-align:center;color:#8a97a8;font-size:13px;line-height:1.6;}
+        .rec-pick-vazio b{color:#56606d;}
         .rec-pick-pe{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;flex-wrap:wrap;}
-        .rec-pick-branco{background:none;border:0;color:#157a35;font-size:12.5px;font-weight:700;cursor:pointer;text-decoration:underline;padding:0;}
+        .rec-pick-branco{background:none;border:0;color:#157a35;font-size:12.5px;font-weight:700;cursor:pointer;text-decoration:underline;padding:0;text-align:left;}
         .rec-ing-somatxt{font-size:12.5px;color:#56606d;}
         .rec-ing-somatxt b{font-size:14.5px;color:#1d2733;}
         .rec-ing-nota{font-size:11px;color:#8a97a8;font-weight:400;margin-top:2px;}
@@ -17489,40 +17498,79 @@ function recCopAplicaCatalogo(i){
    nome do insumo e digitar de novo — sendo que ele já está cadastrado. O certo é MOSTRAR o
    catálogo e deixar marcar vários de uma vez; a quantidade se ajusta depois, na linha.
    A linha em branco continua existindo, como saída pro que ainda não foi cadastrado. */
-// O que a janela mostra. Pura: recebe os itens já normalizados ({id,nome,detalhe}) e a lista
-// do que já está na receita.
 // Busca SEM ACENTO: quem procura digita "acucar", e no cadastro está "Açúcar". Sem isto a
-// busca falha justamente nas palavras mais comuns da cozinha (açúcar, manteiga não, mas
-// açaí, pão, canela em pó...). Descoberto testando de verdade na tela.
+// busca falha justamente nas palavras mais comuns da cozinha (açúcar, açaí, pão, pó).
+// Descoberto testando de verdade na tela.
 function recPickSemAcento(s){
   return String(s==null?"":s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 }
-function recPickLista(itens, jaIds, busca){
+// O que a janela mostra. Pura: recebe os itens já normalizados
+// ({id,nome,detalhe,meta,grupo}) e a lista do que já está na receita.
+//   soFaltam=true esconde o que já está lá (a lista fica só com o que dá pra acrescentar).
+function recPickLista(itens, jaIds, busca, soFaltam){
   var q=recPickSemAcento(String(busca||"").trim());
   var ja=(jaIds||[]).map(String);
   var out=[];
   (itens||[]).forEach(function(x){
     if(!x || x.id==null || x.id==="") return;
     var nome=String(x.nome||"").trim(); if(!nome) return;
-    if(q && recPickSemAcento(nome+" "+String(x.detalhe||"")).indexOf(q)<0) return;
-    out.push({ id:String(x.id), nome:nome, detalhe:String(x.detalhe||""), ja:ja.indexOf(String(x.id))>=0 });
+    var estaNaReceita=ja.indexOf(String(x.id))>=0;
+    if(soFaltam && estaNaReceita) return;
+    if(q && recPickSemAcento(nome+" "+String(x.detalhe||"")+" "+String(x.meta||"")+" "+String(x.grupo||"")).indexOf(q)<0) return;
+    out.push({ id:String(x.id), nome:nome, detalhe:String(x.detalhe||""),
+               meta:String(x.meta||""), grupo:String(x.grupo||"").trim(), ja:estaNaReceita });
   });
   // Quem JÁ está na receita desce pro fim: a lista serve pra achar o que ainda FALTA.
   out.sort(function(a,b){
     if(a.ja!==b.ja) return a.ja?1:-1;
-    return a.nome.localeCompare(b.nome,"pt");
+    return a.nome.localeCompare(b.nome,"pt",{numeric:true});
   });
   return out;
 }
+// Agrupa por categoria/tipo, mantendo a ordem que a lista já trouxe. Um catálogo grande sem
+// divisão vira rolagem cega; com o grupo, o olho acha na hora.
+//   "Sem categoria" vai por último — é gaveta de sobra, não seção de verdade.
+function recPickAgrupar(lista){
+  var ordem=[], mapa={};
+  (lista||[]).forEach(function(x){
+    var g=x.grupo||"Sem categoria";
+    if(!mapa[g]){ mapa[g]=[]; ordem.push(g); }
+    mapa[g].push(x);
+  });
+  ordem.sort(function(a,b){
+    var sa=(a==="Sem categoria"), sb=(b==="Sem categoria");
+    if(sa!==sb) return sa?1:-1;
+    return a.localeCompare(b,"pt");
+  });
+  return ordem.map(function(g){ return {grupo:g, itens:mapa[g]}; });
+}
+// A frase de estado da janela. Existe porque a tela sem ela mentia por omissão: com TUDO já
+// na receita, apareciam 5 linhas apagadas e um botão morto, sem dizer o porquê.
+function recPickResumo(total, jaNaReceita, mostrando, temBusca){
+  if(!total) return {tipo:"vazio", txt:"Nada cadastrado ainda."};
+  if(jaNaReceita>=total) return {tipo:"tudoJa",
+    txt:"Todos os "+total+" já estão nesta receita."};
+  if(!mostrando) return {tipo:"nada", txt:temBusca?"Nada encontrado com esse nome.":"Nada para mostrar."};
+  return {tipo:"ok", txt:total+" cadastrado"+(total>1?"s":"")+
+    (jaNaReceita?(" · "+jaNaReceita+" já nesta receita"):"")};
+}
 /* ==RECPICK-FIM== */
 // Os itens do catálogo, já no formato que a janela entende.
+//   grupo = como o cadastro organiza (categoria do insumo, tipo da embalagem)
+//   meta  = o que ajuda a distinguir dois parecidos (marca, tamanho)
 function recPickItens(ehIng){
   if(ehIng){
     return (typeof insData!=="undefined"?insData:[]).filter(function(x){ return x && x.ativo!==false; })
-      .map(function(x){ return {id:x.id, nome:x.nome, detalhe:brl(+x.preco||0)+" / "+(x.un||"un")}; });
+      .map(function(x){ return {id:x.id, nome:x.nome,
+        detalhe:brl(+x.preco||0)+" / "+(x.un||"un"),
+        meta:[x.marca||"", x.subcategoria||"", x.fornecedor||""].filter(Boolean).join(" · "),
+        grupo:x.categoria||""}; });
   }
   return (typeof matData!=="undefined"?matData:[]).filter(function(x){ return x && x.ativo!==false; })
-    .map(function(x){ return {id:x.id, nome:String(x.nome||"")+(x.tamanho?(" — "+x.tamanho):""), detalhe:brl(+x.preco||0)+" cada"}; });
+    .map(function(x){ return {id:x.id, nome:String(x.nome||""),
+      detalhe:brl(+x.preco||0)+" cada",
+      meta:[x.tamanho?("tamanho "+x.tamanho):"", x.setor||"", x.fornecedor||""].filter(Boolean).join(" · "),
+      grupo:x.tipo||""}; });
 }
 function recPickJa(ehIng){
   return ehIng ? recIngr.map(function(r){ return String(r.insumoId||""); }).filter(Boolean)
@@ -17530,17 +17578,24 @@ function recPickJa(ehIng){
 }
 function recPickAbrir(tipo, fw){
   var ehIng=(tipo!=="embalagem");
-  var itens=recPickItens(ehIng), jaIds=recPickJa(ehIng), marcados={};
+  var itens=recPickItens(ehIng), jaIds=recPickJa(ehIng), marcados={}, soFaltam=false;
   var bg=document.getElementById("recPickModal");
   if(!bg){
     bg=document.createElement("div"); bg.id="recPickModal"; bg.className="modal-bg";
-    bg.innerHTML='<div class="modal-cx" style="max-width:560px;">'
-      +'<div class="modal-top"><div class="modal-ic">\\u{1F4CB}</div><div class="modal-tit" id="recPickTit"></div></div>'
+    bg.innerHTML='<div class="modal-cx" style="max-width:580px;">'
+      +'<div class="modal-top"><div class="modal-ic">\u{1F4CB}</div><div class="modal-tit" id="recPickTit"></div></div>'
       +'<div class="modal-msg" id="recPickSub"></div>'
-      +'<input type="text" class="rec-pick-bus" id="recPickBusca" placeholder="Buscar pelo nome...">'
+      +'<div class="rec-pick-cab">'
+        +'<input type="text" class="rec-pick-bus" id="recPickBusca" placeholder="Buscar pelo nome...">'
+        +'<button type="button" class="rec-pick-chip" id="recPickSoFalta">Só os que faltam</button>'
+      +'</div>'
+      +'<div class="rec-pick-cont" id="recPickCont"></div>'
       +'<div class="rec-pick-lista" id="recPickLista"></div>'
       +'<div class="rec-pick-pe">'
-        +'<button type="button" class="rec-pick-branco" id="recPickBranco"></button>'
+        +'<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">'
+          +'<button type="button" class="rec-pick-branco" id="recPickTodos"></button>'
+          +'<button type="button" class="rec-pick-branco" id="recPickBranco"></button>'
+        +'</div>'
         +'<div class="modal-acts" style="margin:0;">'
           +'<button type="button" class="btn-s" id="recPickCancel">Cancelar</button>'
           +'<button type="button" class="btn-p" id="recPickOk">Adicionar</button>'
@@ -17551,11 +17606,13 @@ function recPickAbrir(tipo, fw){
   var elTit=document.getElementById("recPickTit"), elSub=document.getElementById("recPickSub");
   var elBus=document.getElementById("recPickBusca"), elLis=document.getElementById("recPickLista");
   var elOk=document.getElementById("recPickOk"), elCan=document.getElementById("recPickCancel");
-  var elBr=document.getElementById("recPickBranco");
+  var elBr=document.getElementById("recPickBranco"), elTd=document.getElementById("recPickTodos");
+  var elCont=document.getElementById("recPickCont"), elFal=document.getElementById("recPickSoFalta");
   elTit.textContent = ehIng ? "Escolher ingredientes" : "Escolher embalagens";
   elSub.textContent = ehIng ? "Marque tudo que esta receita usa. A quantidade você ajusta depois, na linha."
                             : "Marque as embalagens desta receita. A quantidade e a base você ajusta depois.";
-  elBr.textContent = ehIng ? "Não está na lista — abrir linha em branco" : "Não está na lista — abrir linha em branco";
+  elBr.textContent = ehIng ? "Não está na lista — abrir linha em branco"
+                           : "Não está na lista — abrir linha em branco";
   elBus.value="";
 
   function contar(){ var n=0; Object.keys(marcados).forEach(function(k){ if(marcados[k]) n++; }); return n; }
@@ -17567,33 +17624,59 @@ function recPickAbrir(tipo, fw){
     elOk.style.cursor = n ? "pointer" : "not-allowed";
   }
   function desenhar(){
-    var lista=recPickLista(itens,jaIds,elBus.value);
-    if(!itens.length){
-      elLis.innerHTML='<div class="rec-pick-vazio">Nada cadastrado ainda.<br>Cadastre em <b>'
-        +(ehIng?"Receitas &rsaquo; Insumos":"Receitas &rsaquo; Embalagens")+'</b> — ou abra uma linha em branco aqui embaixo.</div>';
-      return;
+    var lista=recPickLista(itens,jaIds,elBus.value,soFaltam);
+    var res=recPickResumo(itens.length, jaIds.length, lista.length, !!elBus.value.trim());
+    elCont.textContent = res.tipo==="ok" ? res.txt : "";
+    elFal.classList.toggle("on", soFaltam);
+    elFal.style.display = jaIds.length ? "" : "none";
+    // Quantos ainda dá pra marcar nesta tela (o "marcar todos" não pode prometer o impossível)
+    var livres=lista.filter(function(x){ return !x.ja; });
+    elTd.style.display = livres.length>1 ? "" : "none";
+    elTd.textContent = "Marcar os "+livres.length+" da lista";
+
+    if(res.tipo!=="ok"){
+      var extra = res.tipo==="vazio"
+        ? "Cadastre em <b>"+(ehIng?"Receitas &rsaquo; Insumos":"Receitas &rsaquo; Embalagens")+"</b> — ou abra uma linha em branco aqui embaixo."
+        : res.tipo==="tudoJa"
+          ? "Para acrescentar, cadastre "+(ehIng?"um insumo novo":"uma embalagem nova")+" — ou abra uma linha em branco aqui embaixo."
+          : "Tente outro nome.";
+      elLis.innerHTML='<div class="rec-pick-vazio"><b>'+res.txt+'</b><br>'+extra+'</div>';
+      pintarBotao(); return;
     }
-    if(!lista.length){ elLis.innerHTML='<div class="rec-pick-vazio">Nada encontrado com esse nome.</div>'; return; }
-    elLis.innerHTML=lista.map(function(x){
-      return '<label class="rec-pick-it'+(x.ja?" ja":"")+'">'
-        +'<input type="checkbox" data-pickid="'+recEsc(x.id)+'"'+(x.ja?" disabled":"")+(marcados[x.id]?" checked":"")+'>'
-        +'<span class="rec-pick-n">'+recEsc(x.nome)+'</span>'
-        +(x.ja?'<span class="rec-pick-tag">já está na receita</span>':'<span class="rec-pick-d">'+recEsc(x.detalhe)+'</span>')
-        +'</label>';
+    elLis.innerHTML=recPickAgrupar(lista).map(function(g){
+      return '<div class="rec-pick-grp">'+recEsc(g.grupo)+'</div>'+g.itens.map(function(x){
+        return '<label class="rec-pick-it'+(x.ja?" ja":"")+(marcados[x.id]?" sel":"")+'" data-pickrow="'+recEsc(x.id)+'">'
+          +'<input type="checkbox" data-pickid="'+recEsc(x.id)+'"'+(x.ja?" disabled":"")+(marcados[x.id]?" checked":"")+'>'
+          +'<span class="rec-pick-txt"><span class="rec-pick-n">'+recEsc(x.nome)+'</span>'
+            +(x.meta?'<span class="rec-pick-m">'+recEsc(x.meta)+'</span>':'')+'</span>'
+          +(x.ja?'<span class="rec-pick-tag">na receita</span>'
+                :'<span class="rec-pick-d">'+recEsc(x.detalhe)+'</span>')
+          +'</label>';
+      }).join("");
     }).join("");
     pintarBotao();
   }
-  function fechar(){ bg.classList.remove("show"); elLis.onclick=null; elBus.oninput=null;
-    elOk.onclick=null; elCan.onclick=null; elBr.onclick=null; bg.onclick=null; document.onkeydown=null; }
+  function fechar(){ bg.classList.remove("show"); elLis.onclick=null; elBus.oninput=null; elFal.onclick=null;
+    elTd.onclick=null; elOk.onclick=null; elCan.onclick=null; elBr.onclick=null; bg.onclick=null; document.onkeydown=null; }
 
   elLis.onclick=function(e){
     var c=e.target.closest("[data-pickid]"); if(!c || c.disabled) return;
-    marcados[c.getAttribute("data-pickid")]=c.checked; pintarBotao();
+    marcados[c.getAttribute("data-pickid")]=c.checked;
+    var lin=c.closest("[data-pickrow]"); if(lin) lin.classList.toggle("sel", c.checked);
+    pintarBotao();
   };
   elBus.oninput=function(){ desenhar(); };
+  elFal.onclick=function(){ soFaltam=!soFaltam; desenhar(); };
+  elTd.onclick=function(){
+    recPickLista(itens,jaIds,elBus.value,soFaltam).forEach(function(x){ if(!x.ja) marcados[x.id]=true; });
+    desenhar();
+  };
   elCan.onclick=function(){ fechar(); };
   bg.onclick=function(e){ if(e.target===bg) fechar(); };
-  document.onkeydown=function(e){ if(e.key==="Escape") fechar(); };
+  document.onkeydown=function(e){
+    if(e.key==="Escape") fechar();
+    else if(e.key==="Enter" && contar()){ e.preventDefault(); elOk.click(); }
+  };
   elBr.onclick=function(){ fechar(); if(ehIng) recIngNova(fw); else recEmbNova(fw); };
   elOk.onclick=function(){
     var ids=Object.keys(marcados).filter(function(k){ return marcados[k]; });
@@ -17629,7 +17712,7 @@ function recPickAbrir(tipo, fw){
     var rows=(fw||document).querySelectorAll(sel);
     var alvo=rows[rows.length-ids.length]; if(alvo){ alvo.focus(); alvo.select&&alvo.select(); }
   };
-  marcados={}; desenhar(); pintarBotao();
+  marcados={}; soFaltam=false; desenhar(); pintarBotao();
   bg.classList.add("show");
   setTimeout(function(){ elBus.focus(); },30);
 }
