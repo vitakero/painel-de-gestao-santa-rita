@@ -2253,10 +2253,20 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-model .ctz{max-width:150px;margin:0 auto;pointer-events:none;}
         #page-cartaz .cz-model .czLd2{max-width:170px;margin:10px auto;pointer-events:none;display:flex;flex-direction:column;border:1px solid #e8ecf1;border-radius:8px;overflow:hidden;}
         #page-cartaz .cz-model .czLd2 .ctzL+.ctzL{border-top:2px dashed #c9d2dc;}
-        #page-cartaz .cz-temas{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;}
+        #page-cartaz .cz-temas{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;}
         #page-cartaz .cz-tema{position:relative;border:2px solid #e1e7ee;border-radius:14px;background:#fff;padding:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;transition:.12s;}
         #page-cartaz .cz-tema.on{border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.12);}
-        #page-cartaz .cz-tema img{width:100%;aspect-ratio:16/5;object-fit:contain;background:#f6f8fa;border-radius:9px;display:block;}
+        /* Miniatura maior (13/08/2026): em 16/5 o banner ficava pequeno demais pra reconhecer.
+           object-fit:contain continua garantindo que ela nunca deforme. */
+        #page-cartaz .cz-tema img{width:100%;aspect-ratio:16/7;object-fit:contain;background:#f6f8fa;border-radius:9px;display:block;}
+        /* Controle de largura da imagem no cartaz */
+        #page-cartaz .cz-larg{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f7faf9;border:1px solid #e8eef0;border-radius:12px;padding:11px 14px;margin:12px 0 0;}
+        #page-cartaz .cz-larg b{font-size:12.5px;color:#33404f;}
+        #page-cartaz .cz-larg input[type=range]{flex:1;min-width:160px;accent-color:#157a35;}
+        #page-cartaz .cz-largBt{width:30px;height:30px;border:1px solid #d7dee6;background:#fff;border-radius:8px;font-size:17px;font-weight:800;color:#157a35;cursor:pointer;line-height:1;}
+        #page-cartaz .cz-largBt:hover{border-color:#157a35;background:#f4f9f5;}
+        #page-cartaz .cz-largVal{min-width:52px;text-align:right;font-weight:800;color:#157a35;font-size:14px;}
+        #page-cartaz .cz-largDica{width:100%;font-size:11.5px;color:#8a97a8;}
         #page-cartaz .cz-temaTx{width:100%;aspect-ratio:16/5;display:flex;align-items:center;justify-content:center;font-family:'Bangers',cursive;color:#ef1b1b;font-size:30px;background:#ffe600;border-radius:9px;}
         #page-cartaz .cz-tema span{font-size:12px;color:#5c6a7a;font-weight:700;}
         #page-cartaz .cz-temaDel{position:absolute;top:7px;right:7px;border:0;background:rgba(20,25,32,.6);color:#fff;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:11px;line-height:1;}
@@ -16035,6 +16045,65 @@ function manAgSaveFromForm(){
 var czStep=1, czModelo='padrao', czProdutos=[], czTamanho='A4', czImpressao='multi', czValIni='', czValidade='', czLimite='0', czTema=null;
 function czTemasGet(){ try{ return JSON.parse(localStorage.getItem('cz_temas')||'[]'); }catch(e){ return []; } }
 function czTemasSave(l){ try{ localStorage.setItem('cz_temas',JSON.stringify(l)); return true; }catch(e){ return false; } }
+/* ==CZIMG-INICIO== tamanho da imagem do cartaz (testado em scripts/testes/cartaz-imagem.test.cjs)
+   O PROBLEMA (13/08/2026): existia um teto de altura fixo (max-height:32cqw) e a largura era
+   "auto". Resultado medido no cartaz real: banner 3:1 ocupava 90,8% da largura, mas um banner
+   2,3:1 — que é o do dono — só 74%, e um quadrado 31%. Sobrava faixa branca dos dois lados.
+   Só passava de 2,87:1 (=92/32) chegava à largura cheia.
+   A CORREÇÃO: guardar a PROPORÇÃO de cada imagem e decidir por ela.
+     horizontal  -> manda a LARGURA (estica até a largura escolhida, altura acompanha)
+     quadrada/em pé -> manda a ALTURA (largura acompanha; não vira um paredão) */
+var CZ_IMG_MIN=20, CZ_IMG_MAX=100;     // limites do controle manual, em %
+var CZ_IMG_PADRAO=96;                  // largura padrão: quase toda a área útil
+var CZ_IMG_HORIZ=1.8;                  // daqui pra cima é "banner horizontal"
+var CZ_IMG_TETO=55;                    // teto de altura, em cqw — trava de segurança
+// Devolve o estilo da imagem. PURA: só contas, sem tocar na tela.
+//   prop = largura÷altura da imagem   ·   larg = % escolhido   ·   teto = cqw
+function czImgEstilo(prop, larg, teto){
+  var L=Math.round(Math.max(CZ_IMG_MIN, Math.min(CZ_IMG_MAX, (+larg||CZ_IMG_PADRAO))));
+  var T=(+teto>0)?+teto:CZ_IMG_TETO;
+  var p=+prop;
+  if(!isFinite(p)||p<=0){
+    // proporção ainda desconhecida: comportamento seguro, sem esticar nada
+    return "width:auto;height:auto;max-width:"+L+"%;max-height:"+T+"cqw;";
+  }
+  if(p>=CZ_IMG_HORIZ){
+    // banner deitado: ocupa a largura pedida e a altura vem da proporção
+    return "width:"+L+"%;height:auto;max-width:"+L+"%;max-height:"+T+"cqw;";
+  }
+  // quadrada ou em pé: a altura é quem limita
+  return "width:auto;height:auto;max-width:"+L+"%;max-height:"+T+"cqw;";
+}
+// Quanto da largura do cartaz a imagem vai ocupar, em % — serve pra conferir a conta nos testes.
+function czImgLargura(prop, larg, teto){
+  var L=Math.max(CZ_IMG_MIN, Math.min(CZ_IMG_MAX, (+larg||CZ_IMG_PADRAO)));
+  var T=(+teto>0)?+teto:CZ_IMG_TETO;
+  var p=+prop;
+  if(!isFinite(p)||p<=0) return 0;
+  // arredonda em 1 casa: 26.400000000000002 não é número pra ninguém ler
+  return Math.round(Math.min(L, T*p)*10)/10;
+}
+/* ==CZIMG-FIM== */
+var czImgLarg=(function(){ var v=parseInt(localStorage.getItem('cz_img_larg')||'',10); return isFinite(v)?v:CZ_IMG_PADRAO; })();
+function czImgLargSet(v){ czImgLarg=Math.round(Math.max(CZ_IMG_MIN,Math.min(CZ_IMG_MAX,+v||CZ_IMG_PADRAO)));
+  try{ localStorage.setItem('cz_img_larg',String(czImgLarg)); }catch(e){} }
+// Proporção do tema. Se ainda não foi guardada (tema antigo), mede uma vez e guarda.
+function czTemaProp(t){
+  if(!t) return 0;
+  if(+t.r>0) return +t.r;
+  if(t.__medindo) return 0;
+  t.__medindo=true;
+  var im=new Image();
+  im.onload=function(){
+    var r=(im.width||1)/(im.height||1);
+    t.r=r;
+    var l=czTemasGet(); for(var i=0;i<l.length;i++){ if(l[i].d===t.d){ l[i].r=r; } }
+    czTemasSave(l); t.__medindo=false; renderCartaz();
+  };
+  im.onerror=function(){ t.__medindo=false; };
+  im.src=t.d;
+  return 0;
+}
 function czTemaUpload(inp){
   var f=inp.files&&inp.files[0]; if(!f) return;
   if(!f.type || f.type.indexOf('image/')!==0){ uiConfirm({titulo:'Arquivo inválido',msg:'Escolha uma imagem (JPG ou PNG).',ok:'OK',cancel:''}); return; }
@@ -16051,7 +16120,7 @@ function czTemaUpload(inp){
       var cx=cv.getContext('2d'); cx.fillStyle='#fff'; cx.fillRect(0,0,W,H); cx.drawImage(img,0,0,W,H);
       var data=cv.toDataURL('image/jpeg',0.85);
       var nome=(f.name||'Tema').replace(/\\.[^.]+$/,'');
-      var l=czTemasGet(); l.push({n:nome,d:data});
+      var l=czTemasGet(); l.push({n:nome,d:data,r:(W/H)});   // guarda a proporção: é ela que decide o tamanho no cartaz
       if(!czTemasSave(l)){ uiConfirm({titulo:'Sem espaço no navegador',msg:'Não coube mais temas. Exclua algum tema antigo e tente de novo.',ok:'OK',cancel:''}); return; }
       czTema=l[l.length-1]; renderCartaz();
     };
@@ -16096,7 +16165,10 @@ function czInner(p){
   var nomeT=(p.nome||'').toUpperCase(), marcaT=(p.marca||'').toUpperCase();
   var grT=((p.tipo||'')+((p.tipo&&p.gram)?' ':'')+(p.gram||'')).toUpperCase();
   var nd=pp.reais.length+pp.cent.length;
-  var topo = czTema ? ('<div class="ctz-top ctz-topimg"><img class="ofimg" src="'+czTema.d+'" alt=""></div>')
+  // estilo em LINHA de propósito: é o mesmo objeto que vai pra tela e pra impressão, então
+  // não tem como o editor mostrar um tamanho e o papel sair outro.
+  var _est=czImgEstilo(czTemaProp(czTema), czImgLarg, CZ_IMG_TETO);
+  var topo = czTema ? ('<div class="ctz-top ctz-topimg"><img class="ofimg" style="'+_est+'" src="'+czTema.d+'" alt=""></div>')
                     : ('<div class="ctz-top"><div class="of"'+kst(6.5,ofT.length)+'>'+czEsc(ofT)+'</div></div>');
   return topo
    +'<div class="ctz-mid"><div class="nm"'+kst(7.2,nomeT.length)+'>'+czEsc(nomeT)+'</div>'
@@ -16132,7 +16204,8 @@ function czInnerL(p){
   var grT=((p.tipo||'')+((p.tipo&&p.gram)?' ':'')+(p.gram||'')).toUpperCase();
   var nd=pp.reais.length+pp.cent.length;
   var dep=(p.precoDe)?('<div class="ld"><span class="d1">DE:</span> <span class="d2">'+czEsc(p.precoDe)+'</span> <span class="d3">POR APENAS</span></div>'):'';
-  var topo=czTema?('<img class="ofimg" src="'+czTema.d+'" alt="">'):('<div class="lof"'+kst(4.8,ofT.length)+'>'+czEsc(ofT)+'</div>');
+  var _estL=czImgEstilo(czTemaProp(czTema), czImgLarg, 38);   // deitado é mais baixo: teto menor
+  var topo=czTema?('<img class="ofimg" style="'+_estL+'" src="'+czTema.d+'" alt="">'):('<div class="lof"'+kst(4.8,ofT.length)+'>'+czEsc(ofT)+'</div>');
   return '<div class="ctzLin">'+topo
    +'<div class="lnm"'+kst(9.4,nomeT.length)+'>'+czEsc(nomeT)+'</div>'
    +(marcaT?('<div class="lmc"'+kst(9.5,marcaT.length)+'>'+czEsc(marcaT)+'</div>'):'')
@@ -16161,7 +16234,25 @@ function renderCartaz(){
     b+='<div class="cz-tema '+(!czTema?'on':'')+'" data-cztema="-1"><div class="cz-temaTx">OFERTA</div><span>Texto padrão</span></div>';
     for(var t1=0;t1<temas.length;t1++){ b+='<div class="cz-tema '+((czTema&&czTema.d===temas[t1].d)?'on':'')+'" data-cztema="'+t1+'"><img src="'+temas[t1].d+'" alt=""><span>'+czEsc(temas[t1].n)+'</span><button class="cz-temaDel" data-cztemadel="'+t1+'" title="Excluir tema">✕</button></div>'; }
     b+='<label class="cz-tema cz-temaUp"><input type="file" id="czTemaFile" accept="image/*" style="display:none;"><div class="cz-temaPlus">+</div><span>Enviar imagem</span></label>';
-    b+='</div><div class="cz-actions"><button class="cz-btn prim" data-czact="step2">Continuar para produtos →</button></div>';
+    b+='</div>';
+    // Controle de largura — só aparece quando tem imagem escolhida. O PADRÃO já vem aplicado
+    // em qualquer imagem enviada; isto é pra fugir do padrão quando ele quiser.
+    if(czTema){
+      var _pr=czTemaProp(czTema);
+      var _tipo=(_pr>=CZ_IMG_HORIZ)?'banner deitado — ocupa a largura escolhida'
+               :(_pr>0?'imagem alta ou quadrada — a altura é quem limita, pra não virar um paredão'
+                      :'medindo a imagem...');
+      b+='<div class="cz-larg">'
+        +'<b>Largura da imagem</b>'
+        +'<button type="button" class="cz-largBt" data-czlarg="-2" title="Diminuir">−</button>'
+        +'<input type="range" id="czLargR" min="'+CZ_IMG_MIN+'" max="'+CZ_IMG_MAX+'" step="1" value="'+czImgLarg+'">'
+        +'<button type="button" class="cz-largBt" data-czlarg="2" title="Aumentar">+</button>'
+        +'<span class="cz-largVal">'+czImgLarg+'%</span>'
+        +'<button type="button" class="cz-largBt" data-czlarg="padrao" title="Voltar ao padrão" style="width:auto;padding:0 10px;font-size:12px;font-weight:700;">padrão</button>'
+        +'<span class="cz-largDica">'+czEsc(_tipo)+' · a proporção nunca muda, e o que você vê aqui é o que sai no papel.</span>'
+        +'</div>';
+    }
+    b+='<div class="cz-actions"><button class="cz-btn prim" data-czact="step2">Continuar para produtos →</button></div>';
   } else if(czStep===2){
     b='<p class="cz-sub">Coloque sua lista — cada linha vira um cartaz</p>'
      +'<div class="cz-hint">Formato: <b>PRODUTO MARCA GRAMATURA PREÇO</b><br>Ex: Arroz Camil 5KG 29,99</div>'
@@ -16241,6 +16332,11 @@ function renderCartaz(){
   wrap.innerHTML=st+b;
 }
 function czClick(e){
+  // largura da imagem: os botões mexem de 2 em 2 e o "padrão" volta ao valor de fábrica
+  var _bl=e.target.closest&&e.target.closest('[data-czlarg]');
+  if(_bl){ var v=_bl.getAttribute('data-czlarg');
+    czImgLargSet(v==='padrao'?CZ_IMG_PADRAO:(czImgLarg+(+v||0)));
+    renderCartaz(); return; }
   var t;
   if(t=e.target.closest('[data-cztemadel]')){ e.stopPropagation(); var di=parseInt(t.getAttribute('data-cztemadel'),10); var lt=czTemasGet(); var rem=lt.splice(di,1)[0]; czTemasSave(lt); if(czTema&&rem&&czTema.d===rem.d) czTema=null; renderCartaz(); return; }
   if(t=e.target.closest('[data-cztema]')){ var ti2=parseInt(t.getAttribute('data-cztema'),10); czTema=(ti2<0)?null:(czTemasGet()[ti2]||null); renderCartaz(); return; }
@@ -16269,6 +16365,15 @@ function czClick(e){
 function czChange(e){ var t=e.target; if(t.id==='czValidade'){ czValidade=t.value; renderCartaz(); } else if(t.id==='czValIni'){ czValIni=t.value; renderCartaz(); } else if(t.id==='czLimite'){ czLimite=t.value; renderCartaz(); } else if(t.name==='czimp'){ czImpressao=t.value; renderCartaz(); } else if(t.id==='czTemaFile'){ czTemaUpload(t); } }
 function czInput(e){
   var t=e.target;
+  if(t.id==='czLargR'){
+    czImgLargSet(t.value);
+    // mexe só na imagem e no número: redesenhar tudo faria o slider perder o foco no meio do arraste
+    var _v=document.querySelector('#page-cartaz .cz-largVal'); if(_v) _v.textContent=czImgLarg+'%';
+    var _est=czImgEstilo(czTemaProp(czTema), czImgLarg, CZ_IMG_TETO);
+    var _im=document.querySelectorAll('#page-cartaz .cz-model .ofimg');
+    for(var _i=0;_i<_im.length;_i++){ _im[_i].setAttribute('style',_est); }
+    return;
+  }
   if(t.id==='czTexto'){ var n=t.value.split('\\n').filter(function(x){return x.trim();}).length; var c=document.getElementById('czCount'); if(c) c.textContent=n+' linha(s) detectada(s)'; return; }
   if(t.hasAttribute && t.hasAttribute('data-czfield')){ var idx=parseInt(t.getAttribute('data-czidx'),10); var f=t.getAttribute('data-czfield'); if(czProdutos[idx]) czProdutos[idx][f]=t.value; return; }
 }
