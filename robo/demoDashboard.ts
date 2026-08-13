@@ -1091,7 +1091,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <div class="campo"><label for="pxTel">Contato</label><input type="tel" id="pxTel" placeholder="ex: (84) 99999-0000" style="width:160px;"></div>
           <div class="campo"><label for="pxEmail">E-mail (p/ cobrança)</label><input type="email" id="pxEmail" placeholder="ex: financeiro@empresa.com" style="width:230px;"></div>
           <div class="campo" style="flex:1;min-width:200px;"><label for="pxEndereco">Endereço</label><input type="text" id="pxEndereco" placeholder="busque pelo CNPJ ou digite"></div>
-          <div class="campo"><label for="pxValor">Valor (R$)</label><input type="number" id="pxValor" step="0.01" min="0" style="width:120px;"></div>
+          <div class="campo"><label for="pxValor">Valor (R$)</label><input type="text" inputmode="decimal" id="pxValor" style="width:120px;"></div>
           <div class="campo"><label for="pxPag">Modo de pagamento</label>
             <select id="pxPag" class="px-filtro" style="width:150px;">
               <option value="">Selecione...</option>
@@ -1172,7 +1172,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
               <option value="fixo">Valor fixo em R$</option>
             </select>
           </div>
-          <div class="campo"><label for="glValor">Valor (R$)</label><input type="number" id="glValor" step="0.01" min="0" style="width:120px;"></div>
+          <div class="campo"><label for="glValor">Valor (R$)</label><input type="text" inputmode="decimal" id="glValor" style="width:120px;"></div>
           <div class="campo"><label for="glPag">Modo de pagamento</label>
             <select id="glPag" class="px-filtro" style="width:150px;">
               <option value="">Selecione...</option>
@@ -5923,7 +5923,7 @@ function rcbRender(){
       +'<td style="padding:7px 10px 7px 0;font-size:13.5px;font-weight:600;color:#1d2733;">'+pxEsc(t.nome)+'</td>'
       +'<td style="padding:7px 10px 7px 0;width:140px;">'
         +(master
-           ? '<input type="number" min="0" step="0.01" data-rcbval="'+i+'" placeholder="0,00"'
+           ? '<input type="text" inputmode="decimal" data-rcbval="'+i+'" placeholder="0,00"'
              +(t.valor?' value="'+t.valor+'"':'')+' style="'+inputMini+'">'
            : '<input type="text" disabled value="'+(t.valor?rcbMoeda(t.valor):"—")+'" style="'+travado+'">')
       +'</td>'
@@ -5999,7 +5999,7 @@ function rcbRender(){
   function digitados(){
     return tipos.map(function(t,i){
       var c=el.querySelector('[data-rcbval="'+i+'"]');
-      return { nome:t.nome, valor: master ? (c? +(c.value||0) : 0) : t.valor };
+      return { nome:t.nome, valor: master ? (c? despParseValor(c.value) : 0) : t.valor };
     });
   }
   function pendente(){
@@ -7282,7 +7282,7 @@ function renderGalpoes(){
     endereco:glEnderecoDe((document.getElementById("glNum").value||"").trim()),
     enderecoInq:(document.getElementById("glEndInq").value||"").trim(),
     aluguel:(document.getElementById("glAluguel").value||"1"),
-    valor:parseFloat(document.getElementById("glValor").value||"0")||0,
+    valor:despParseValor(document.getElementById("glValor").value),
     pagamento:(document.getElementById("glPag").value||""),
     diaPag:parseInt(document.getElementById("glDiaPag").value||"0",10)||0,
     abertura:(document.getElementById("glAbertura").value||""),
@@ -8827,7 +8827,7 @@ function pxLerForm(){
     contato: document.getElementById("pxTel").value.trim(),
     email: document.getElementById("pxEmail").value.trim(),
     endereco: document.getElementById("pxEndereco").value.trim(),
-    valor: parseFloat(document.getElementById("pxValor").value)||0,
+    valor: despParseValor(document.getElementById("pxValor").value),
     pagamento: document.getElementById("pxPag").value.trim(),
     abertura: document.getElementById("pxAbertura").value,
     vencimento: document.getElementById("pxVenc").value,
@@ -14466,7 +14466,7 @@ function prdRenderEdit(){
     +'<div class="prd-fld"><label>Setor</label><select id="prdNSetor">'+setorOpts+'</select></div>'
     +'<div class="prd-fld"><label>Motivo</label><select id="prdNMotivo">'+motivoOpts+'</select></div>'
     +'<div class="prd-fld"><label>Qtd</label><input id="prdNQtd" type="number" min="0" step="1" placeholder="0"></div>'
-    +'<div class="prd-fld"><label>Valor (R$)</label><input id="prdNValor" type="number" min="0" step="0.01" placeholder="0,00"></div>'
+    +'<div class="prd-fld"><label>Valor (R$)</label><input id="prdNValor" type="text" inputmode="decimal" placeholder="0,00"></div>'
     +'<button class="prd-add" id="prdAddBtn" type="button">Adicionar</button>'
     +'</div></div>';
   if(!itens.length){ h+='<p class="prd-vazio">Nenhuma perda lançada em '+MESES[prdMes]+' '+prdAno+' ainda.</p>'; }
@@ -14515,8 +14515,8 @@ function prdAddFromForm(){
   const produto=(document.getElementById("prdNProd").value||"").trim();
   const setor=document.getElementById("prdNSetor").value;
   const motivo=document.getElementById("prdNMotivo").value;
-  const qtd=parseFloat(document.getElementById("prdNQtd").value)||0;
-  const valor=parseFloat(document.getElementById("prdNValor").value)||0;
+  const qtd=despParseValor(document.getElementById("prdNQtd").value);
+  const valor=despParseValor(document.getElementById("prdNValor").value);
   if(!data){ uiConfirm({titulo:"Aviso",msg:"Informe a data da perda.",ok:"OK",cancel:""}); return; }
   if(!produto && valor===0 && qtd===0){ uiConfirm({titulo:"Aviso",msg:"Preencha pelo menos o produto e o valor (ou a quantidade).",ok:"OK",cancel:""}); return; }
   prdData.push({ id:prdUid(), data:data, produto:produto, setor:setor, motivo:motivo, qtd:qtd, valor:valor, origem:"manual" });
@@ -14569,8 +14569,8 @@ function acoRenderEdit(){
     +'<div class="prd-fld"><label>Data</label><input type="date" id="acoNData" value="'+defData+'"></div>'
     +'<div class="prd-fld"><label>Corte / Produto</label><input id="acoNProd" placeholder="Ex: Costela, Picanha, Frango"></div>'
     +'<div class="prd-fld"><label>Motivo</label><select id="acoNMotivo">'+motivoOpts+'</select></div>'
-    +'<div class="prd-fld"><label>Qtd (kg)</label><input id="acoNQtd" type="number" min="0" step="0.01" placeholder="0"></div>'
-    +'<div class="prd-fld"><label>Valor (R$)</label><input id="acoNValor" type="number" min="0" step="0.01" placeholder="0,00"></div>'
+    +'<div class="prd-fld"><label>Qtd (kg)</label><input id="acoNQtd" type="text" inputmode="decimal" placeholder="0"></div>'
+    +'<div class="prd-fld"><label>Valor (R$)</label><input id="acoNValor" type="text" inputmode="decimal" placeholder="0,00"></div>'
     +'<button class="prd-add" id="acoAddBtn" type="button">Adicionar</button>'
     +'</div></div>';
   if(!itens.length){ h+='<p class="prd-vazio">Nenhuma perda lançada em '+MESES[acoMes]+' '+acoAno+' ainda.</p>'; }
@@ -14614,8 +14614,8 @@ function acoAddFromForm(){
   const data=document.getElementById("acoNData").value;
   const produto=(document.getElementById("acoNProd").value||"").trim();
   const motivo=document.getElementById("acoNMotivo").value;
-  const qtd=parseFloat(document.getElementById("acoNQtd").value)||0;
-  const valor=parseFloat(document.getElementById("acoNValor").value)||0;
+  const qtd=despParseValor(document.getElementById("acoNQtd").value);
+  const valor=despParseValor(document.getElementById("acoNValor").value);
   if(!data){ uiConfirm({titulo:"Aviso",msg:"Informe a data da perda.",ok:"OK",cancel:""}); return; }
   if(!produto && valor===0 && qtd===0){ uiConfirm({titulo:"Aviso",msg:"Preencha pelo menos o corte e o valor (ou a quantidade).",ok:"OK",cancel:""}); return; }
   prdData.push({ id:prdUid(), data:data, produto:produto, setor:"Açougue", motivo:motivo, qtd:qtd, valor:valor, origem:"manual" });
@@ -14644,7 +14644,7 @@ function maskNum(str){ str=String(str).replace(/[^\\d,]/g,""); var p=str.split("
 function unmaskNum(str){ return parseFloat(String(str).replace(/\\./g,"").replace(",","."))||0; }
 function desRenderTabela(){
   document.getElementById("desBody").innerHTML=ACO_CORTES.map(function(c){
-    return '<tr><td>'+prdEsc(c.n)+'</td><td><input class="des-kg" type="number" min="0" step="0.01" placeholder="0"></td><td><input class="des-pv" type="number" min="0" step="0.01" placeholder="0,00"></td><td class="des-cr">—</td><td class="des-lk">—</td><td class="des-lt">—</td></tr>';
+    return '<tr><td>'+prdEsc(c.n)+'</td><td><input class="des-kg" type="text" inputmode="decimal" placeholder="0"></td><td><input class="des-pv" type="text" inputmode="decimal" placeholder="0,00"></td><td class="des-cr">—</td><td class="des-lk">—</td><td class="des-lt">—</td></tr>';
   }).join('');
 }
 function desCalc(){
@@ -14652,7 +14652,7 @@ function desCalc(){
   var custo=unmaskNum(document.getElementById("desCusto").value);
   var rows=document.querySelectorAll("#desBody tr");
   var carne=0, fat=0, dados=[];
-  rows.forEach(function(tr){ var kg=parseFloat(tr.querySelector(".des-kg").value)||0; var pv=parseFloat(tr.querySelector(".des-pv").value)||0; carne+=kg; fat+=kg*pv; dados.push({tr:tr,kg:kg,pv:pv}); });
+  rows.forEach(function(tr){ var kg=despParseValor(tr.querySelector(".des-kg").value); var pv=despParseValor(tr.querySelector(".des-pv").value); carne+=kg; fat+=kg*pv; dados.push({tr:tr,kg:kg,pv:pv}); });
   var custoReal = carne>0 ? custo/carne : 0;
   dados.forEach(function(d){
     var cr=d.tr.querySelector(".des-cr"), lk=d.tr.querySelector(".des-lk"), lt=d.tr.querySelector(".des-lt");
@@ -14677,7 +14677,7 @@ function desSalvar(){
   var peso=unmaskNum(document.getElementById("desPeso").value), custo=unmaskNum(document.getElementById("desCusto").value);
   if(peso<=0||custo<=0){ uiConfirm({titulo:"Aviso",msg:"Preencha o peso e o custo do boi.",ok:"OK",cancel:""}); return; }
   var itens=[], carne=0;
-  document.querySelectorAll("#desBody tr").forEach(function(tr,i){ var kg=parseFloat(tr.querySelector(".des-kg").value)||0; var pv=parseFloat(tr.querySelector(".des-pv").value)||0; if(kg>0){ itens.push({n:ACO_CORTES[i].n,kg:kg,pv:pv}); carne+=kg; } });
+  document.querySelectorAll("#desBody tr").forEach(function(tr,i){ var kg=despParseValor(tr.querySelector(".des-kg").value); var pv=despParseValor(tr.querySelector(".des-pv").value); if(kg>0){ itens.push({n:ACO_CORTES[i].n,kg:kg,pv:pv}); carne+=kg; } });
   if(!itens.length){ uiConfirm({titulo:"Aviso",msg:"Lance pelo menos um corte (kg).",ok:"OK",cancel:""}); return; }
   var iso=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2)+"-"+("0"+HOJE.getDate()).slice(-2);
   desData.unshift({id:prdUid(),data:iso,peso:peso,custo:custo,carne:carne,itens:itens});
@@ -15422,8 +15422,8 @@ function cgRenderForm(){
     +'<div class="cg-fld"><label>Setor</label><select id="cgSetor"><option value="">Selecione...</option>'+ops+'</select></div>'
     +'<div class="cg-fld"><label>Nome do cargo</label><input id="cgNome" placeholder="Ex: Açougueiro I" value="'+manEsc(c.nome||'')+'"></div>'
     +'<div class="cg-fld"><label>Nível</label><input id="cgNivel" type="number" min="1" max="20" value="'+(c.nivel||1)+'"></div>'
-    +'<div class="cg-fld"><label>Salário DE (R$)</label><input id="cgSalMin" type="number" min="0" step="50" value="'+(c.salMin||'')+'"></div>'
-    +'<div class="cg-fld"><label>Salário ATÉ (R$)</label><input id="cgSalMax" type="number" min="0" step="50" value="'+(c.salMax||'')+'"></div>'
+    +'<div class="cg-fld"><label>Salário DE (R$)</label><input id="cgSalMin" type="text" inputmode="decimal" value="'+(c.salMin||'')+'"></div>'
+    +'<div class="cg-fld"><label>Salário ATÉ (R$)</label><input id="cgSalMax" type="text" inputmode="decimal" value="'+(c.salMax||'')+'"></div>'
     +'</div>'
     +'<div class="cg-grid" style="grid-template-columns:1fr 1fr;margin-top:10px;">'
     +'<div class="cg-fld"><label>O que precisa pra chegar aqui (requisitos)</label><textarea id="cgReq" placeholder="Ex: 1 ano de casa, curso de desossa, indicação do encarregado">'+manEsc(c.req||'')+'</textarea></div>'
@@ -15476,8 +15476,8 @@ function renderCargos(){
     var setor=document.getElementById("cgSetor").value;
     var nome=(document.getElementById("cgNome").value||"").trim();
     var nivel=parseInt(document.getElementById("cgNivel").value,10)||1;
-    var salMin=parseFloat(document.getElementById("cgSalMin").value)||0;
-    var salMax=parseFloat(document.getElementById("cgSalMax").value)||0;
+    var salMin=despParseValor(document.getElementById("cgSalMin").value);
+    var salMax=despParseValor(document.getElementById("cgSalMax").value);
     var req=(document.getElementById("cgReq").value||"").trim();
     var resp=(document.getElementById("cgResp").value||"").trim();
     if(!setor||!nome){ uiConfirm({titulo:"Campos obrigatórios",msg:"Preencha pelo menos o Setor e o Nome do cargo.",ok:"OK",cancel:""}); return; }
@@ -15845,7 +15845,7 @@ function manRenderForm(){
       +'<div class="man-fld"><label>Quem fez</label><select id="manSvExec"><option value="interna">Funcionário nosso</option><option value="externa">Empresa terceirizada</option></select></div>'
       +'<div class="man-fld"><label>Responsável / Empresa</label><input id="manSvResp" placeholder="Nome do funcionário ou da empresa"></div>'
       +'<div class="man-fld"><label>Telefone (se empresa)</label><input id="manSvFone" placeholder="(00) 00000-0000"></div>'
-      +'<div class="man-fld"><label>Custo (R$)</label><input id="manSvCusto" type="number" min="0" step="0.01" placeholder="0,00"></div>'
+      +'<div class="man-fld"><label>Custo (R$)</label><input id="manSvCusto" type="text" inputmode="decimal" placeholder="0,00"></div>'
       +'</div>'
       +'<div class="man-grid" style="grid-template-columns:1fr 1fr;margin-top:8px;">'
       +'<div class="man-fld"><label>Foto de ANTES (opcional)</label><label class="man-fotobtn">'+MAN_ICO_CAM+'Tirar / escolher foto<input id="manSvFotoA" type="file" accept="image/*" capture="environment" style="display:none;"></label><div class="man-fotoprev" id="manSvPrevA">'+(manFotoAntes?('<img src="'+manFotoAntes+'">'):'<span class="aguarda">Nenhuma foto ainda</span>')+'</div></div>'
@@ -15951,7 +15951,7 @@ function manSvSaveFromForm(){
   var resp=(document.getElementById("manSvResp").value||"").trim();
   var obs=(document.getElementById("manSvObs").value||"").trim();
   var tipo=document.getElementById("manSvTipo").value;
-  var custo=parseFloat(document.getElementById("manSvCusto").value)||0;
+  var custo=despParseValor(document.getElementById("manSvCusto").value);
   var execucao=((document.getElementById("manSvExec")||{}).value)||"interna";
   var telefone=(((document.getElementById("manSvFone")||{}).value)||"").trim();
   var intervalo=parseInt(((document.getElementById("manSvInt")||{}).value),10)||0;
@@ -16837,7 +16837,11 @@ function matRenderForm(){
   var ed=matEdit?matData.find(function(x){return x.id===matEdit;}):null;
   var tipoOpts='<option value="">Tipo...</option>'+MAT_TIPOS.map(function(t){ return '<option'+(ed&&ed.tipo===t?' selected':'')+'>'+matEsc(t)+'</option>'; }).join('');
   var setSug=matSetores().map(function(s){ return '<option value="'+matEsc(s)+'">'; }).join('');
-  var unOpts=["un","kg","g","L","ml"].map(function(u){ return '<option'+((ed&&ed.un?ed.un:"un")===u?' selected':'')+'>'+u+'</option>'; }).join('');
+  // MESMA LISTA das receitas (REC_UNS). Estava duplicada aqui e ficou pra trás quando o metro
+  // entrou: filme, barbante e fita se compram em metro, e a embalagem não oferecia a unidade.
+  // Duas listas com o mesmo papel sempre divergem — agora é uma só. (13/08/2026)
+  var _uns=(typeof REC_UNS!=="undefined"&&REC_UNS.length)?REC_UNS:["un","kg","g","L","ml","m"];
+  var unOpts=_uns.map(function(u){ return '<option'+((ed&&ed.un?ed.un:"un")===u?' selected':'')+'>'+u+'</option>'; }).join('');
   w.innerHTML='<div class="mat-form"><div class="mat-grid" style="grid-template-columns:110px 1.5fr 1fr 0.9fr;">'
     +'<div class="mat-fld"><label>Código</label><input id="matCodigo" placeholder="'+matProxCodigo()+'" value="'+(ed?matEsc(ed.codigo||''):'')+'"></div>'
     +'<div class="mat-fld"><label>Nome da embalagem</label><input id="matNome" placeholder="Ex: Sacola pequena" value="'+(ed?matEsc(ed.nome):'')+'"></div>'
@@ -16847,7 +16851,7 @@ function matRenderForm(){
     +'<div class="mat-fld"><label>Fornecedor</label><input id="matForn" placeholder="Ex: Distribuidora X" value="'+(ed?matEsc(ed.fornecedor||''):'')+'"></div>'
     +'<div class="mat-fld"><label>Onde usa (setor)</label><input id="matSetor" list="matSetLista" placeholder="Ex: Hortifruti" value="'+(ed?matEsc(ed.setor||''):'')+'"><datalist id="matSetLista">'+setSug+'</datalist></div>'
     +'<div class="mat-fld"><label>Unidade</label><select id="matUn">'+unOpts+'</select></div>'
-    +'<div class="mat-fld"><label>Custo (R$ cada)</label><input id="matPreco" type="number" min="0" step="0.001" placeholder="0,00" value="'+(ed&&ed.preco?ed.preco:'')+'"></div>'
+    +'<div class="mat-fld"><label>Custo (R$ cada)</label><input id="matPreco" type="text" inputmode="decimal" placeholder="0,00" value="'+(ed&&ed.preco?ed.preco:'')+'"></div>'
     +'</div><div class="mat-grid2">'
     +'<div class="mat-fld"><label>Observação / padrão de uso</label><input id="matObs" placeholder="Opcional (ex.: carne moída até 1 kg)" value="'+(ed?matEsc(ed.obs||''):'')+'"></div>'
     +'<label class="mat-check"><input type="checkbox" id="matAtivo"'+((!ed||ed.ativo!==false)?' checked':'')+'> Ativo</label>'
@@ -16862,7 +16866,7 @@ function matSalvarForm(){
   var tamanho=(document.getElementById("matTam").value||"").trim();
   var setor=(document.getElementById("matSetor").value||"").trim();
   var obs=(document.getElementById("matObs").value||"").trim();
-  var preco=parseFloat(document.getElementById("matPreco").value)||0;
+  var preco=despParseValor(document.getElementById("matPreco").value);
   var codigo=(document.getElementById("matCodigo").value||"").trim()||matProxCodigo();
   var fornecedor=(document.getElementById("matForn").value||"").trim();
   var un=document.getElementById("matUn").value||"un";
