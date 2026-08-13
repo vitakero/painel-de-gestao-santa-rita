@@ -2593,7 +2593,15 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         /* A foto foi pro lugar do rótulo "INGREDIENTES": aquela coluna da esquerda estava
            gasta com uma palavra que a lista ao lado já explica sozinha. Sem foto, o rótulo
            volta — não deixar buraco. (12/08/2026) */
-        .rec-fotomini{width:104px;height:104px;object-fit:cover;border-radius:10px;flex:0 0 auto;align-self:flex-start;background:#f2f5f8;}
+        .rec-fotomini{width:104px;height:104px;object-fit:cover;border-radius:10px;flex:0 0 auto;align-self:flex-start;background:#f2f5f8;cursor:zoom-in;}
+        /* Ampliar a foto: a miniatura de 104px serve pra reconhecer, não pra conferir se o
+           bolo saiu certo. Fecha em qualquer clique ou no Esc — ninguém fica preso. */
+        .rec-zoom{position:fixed;inset:0;background:rgba(12,18,24,.88);z-index:100000;
+          display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:26px;cursor:zoom-out;}
+        .rec-zoom.show{display:flex;}
+        .rec-zoom img{max-width:92vw;max-height:82vh;border-radius:12px;box-shadow:0 18px 60px rgba(0,0,0,.5);}
+        .rec-zoom-nome{color:#fff;font-size:14.5px;font-weight:700;text-align:center;}
+        .rec-zoom-dica{color:#a9b4c0;font-size:11.5px;}
         /* Sem foto, o MESMO quadrado — vazio, só pra dizer que ali é o lugar da foto. NÃO é
            clicável: chegou a abrir a edição e jogava a tela pro meio do formulário, o que
            assusta quem só passou o dedo por ali. Placa, não botão. (12/08/2026) */
@@ -17803,6 +17811,23 @@ function recIngRender(){
 }
 // A soma dos ingredientes é a fonte da verdade: recalcula o painel financeiro inteiro.
 function recIngSoma(){ recFinSync(); }
+// Abre a foto grande. Fecha clicando em qualquer lugar ou no Esc.
+function recFotoAmpliar(src,nome){
+  if(!src) return;
+  var bg=document.getElementById("recZoom");
+  if(!bg){
+    bg=document.createElement("div"); bg.id="recZoom"; bg.className="rec-zoom";
+    bg.innerHTML='<img id="recZoomImg" alt=""><div class="rec-zoom-nome" id="recZoomNome"></div>'
+      +'<div class="rec-zoom-dica">Clique em qualquer lugar para fechar</div>';
+    document.body.appendChild(bg);
+    bg.addEventListener("click",function(){ bg.classList.remove("show"); });
+  }
+  document.getElementById("recZoomImg").src=src;
+  document.getElementById("recZoomImg").alt="Foto de "+(nome||"");
+  document.getElementById("recZoomNome").textContent=nome||"";
+  bg.classList.add("show");
+  document.onkeydown=function(e){ if(e.key==="Escape"){ bg.classList.remove("show"); document.onkeydown=null; } };
+}
 function recIngListaHtml(x){
   var rows=(x&&Array.isArray(x.ingr))?x.ingr.map(recIngNorm):null;
   if(!rows||!rows.length) return x&&x.ingredientes?'<div class="rec-txt">'+recEsc(x.ingredientes)+'</div>':'';
@@ -18149,7 +18174,7 @@ function recRenderLista(){
         +_money
         +(x.embalagem?'<div class="rec-money"><b>Embalagem:</b> '+recEmbLabel(x.embalagem)+'</div>':'')
         +(_temIng?('<div class="rec-sec">'
-            +(x.foto?('<img src="'+recEsc(x.foto)+'" class="rec-fotomini" alt="Foto de '+recEsc(x.nome)+'">')
+            +(x.foto?('<img src="'+recEsc(x.foto)+'" class="rec-fotomini" data-recfotonome="'+recEsc(x.nome)+'" title="Clique para ampliar" alt="Foto de '+recEsc(x.nome)+'">')
                     :('<div class="rec-fotovazia" title="Esta receita ainda não tem foto. Para colocar uma, use o botão Editar.">'
                        +'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'
                        +'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>'
@@ -18772,6 +18797,8 @@ function recAbaIr(id){
     if(ev.target.closest("[data-recprodcancel]")){ recProdForm=null; recProdFoto=""; recProdFotoId=""; renderReceitas(); return; }
     if(ev.target.closest("[data-recprodfotodel]")){ recProdFoto=""; var pvp=document.getElementById("recPqFotoPrev"); if(pvp) pvp.innerHTML='<span style="color:#8a97a8;font-size:12px;">Nenhuma foto ainda.</span>'; return; }
     var pd=ev.target.closest("[data-recproddel]"); if(pd){ var par=pd.getAttribute("data-recproddel").split("|"); uiConfirm({titulo:"Remover produção",msg:"Remover este registro de produção?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(sim){ var rec=recData.find(function(x){return x.id===par[0];}); if(rec&&rec.producoes){ rec.producoes=rec.producoes.filter(function(p){return p.id!==par[1];}); recSave(recAvisoFalha("remover")); renderReceitas(); } } }); return; }
+    var fz=ev.target.closest(".rec-fotomini");
+    if(fz){ recFotoAmpliar(fz.getAttribute("src"), fz.getAttribute("data-recfotonome")||""); return; }
     var e=ev.target.closest("[data-recedit]"); if(e){ var rid=e.getAttribute("data-recedit"); var reg=recData.find(function(x){return x.id===rid;}); recEdit=rid; recForm="edit"; recFotoUrl=(reg&&reg.foto)||""; recFormId=rid; recRenderForm(); var w=document.getElementById("recFormWrap"); if(w) w.scrollIntoView({behavior:"smooth",block:"center"}); return; }
     var d=ev.target.closest("[data-recdel]"); if(d){ var id=d.getAttribute("data-recdel"); var it=recData.find(function(x){return x.id===id;}); uiConfirm({titulo:"Remover receita",msg:'Remover "'+recEsc(it?it.nome:"")+'" das receitas?',ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(sim){ recData=recData.filter(function(x){return x.id!==id;}); recSave(recAvisoFalha("remover")); renderReceitas(); } }); return; }
     });
