@@ -2594,6 +2594,15 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
            gasta com uma palavra que a lista ao lado já explica sozinha. Sem foto, o rótulo
            volta — não deixar buraco. (12/08/2026) */
         .rec-fotomini{width:104px;height:104px;object-fit:cover;border-radius:10px;flex:0 0 auto;align-self:flex-start;background:#f2f5f8;}
+        /* Sem foto, o MESMO quadrado — vazio e convidando. Antes ficava a palavra
+           "INGREDIENTES", que a lista ao lado já diz sozinha, e nada indicava que ali cabe
+           uma foto. Clicar abre a edição da receita, direto no lugar de pôr a imagem. */
+        .rec-fotovazia{width:104px;height:104px;border-radius:10px;flex:0 0 auto;align-self:flex-start;
+          border:1.5px dashed #cfd8e3;background:#fafcfd;color:#a9b4c0;cursor:pointer;
+          display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+          font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;padding:0;
+          transition:border-color .12s,color .12s,background .12s;}
+        .rec-fotovazia:hover{border-color:#157a35;color:#157a35;background:#f4f9f5;}
         .rec-rend{font-size:13px;color:#0c5a26;margin-top:4px;font-weight:600;}
         .rec-money{font-size:13px;color:#33404f;margin-top:4px;}
         .rec-sec{margin-top:10px;}
@@ -18142,7 +18151,10 @@ function recRenderLista(){
         +(x.embalagem?'<div class="rec-money"><b>Embalagem:</b> '+recEmbLabel(x.embalagem)+'</div>':'')
         +(_temIng?('<div class="rec-sec">'
             +(x.foto?('<img src="'+recEsc(x.foto)+'" class="rec-fotomini" alt="Foto de '+recEsc(x.nome)+'">')
-                    :'<div class="lbl">Ingredientes</div>')
+                    :('<button type="button" class="rec-fotovazia" data-recedit="'+x.id+'" title="Esta receita ainda não tem foto — clique para adicionar">'
+                       +'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'
+                       +'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>'
+                       +'<span>Sem foto</span></button>'))
             +recIngListaHtml(x)+'</div>'):'')
         +(x.preparo?'<div class="rec-sec"><div class="lbl">Modo de preparo</div><div class="rec-txt">'+recEsc(x.preparo)+'</div></div>':'')
         +'<div class="rec-acoes"><button class="rec-mini prim2" data-recprodadd="'+x.id+'" type="button">＋ Registrar produção</button><button class="rec-mini" data-recprodhist="'+x.id+'" type="button">Produções ('+(x.producoes||[]).length+')'+(((x.producoes||[]).filter(function(p){return p.resultado==="fora";}).length)?' · '+(x.producoes||[]).filter(function(p){return p.resultado==="fora";}).length+' fora':'')+'</button><button class="rec-mini" data-recedit="'+x.id+'" type="button">Editar</button><button class="rec-mini del" data-recdel="'+x.id+'" type="button">Remover</button></div>'
