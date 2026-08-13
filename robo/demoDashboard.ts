@@ -2425,6 +2425,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         /* Ingredientes em linhas: quantidade · nome · custo (a soma vira o custo da receita) */
         .rec-ings{border:1px solid #e2e8ee;border-radius:10px;padding:10px 10px 4px;background:#fafbfc;}
         .rec-ing-head,.rec-ing-row{display:grid;grid-template-columns:70px 88px 1fr 132px 110px 34px;gap:8px;align-items:center;}
+        /* Embalagem e custo operacional têm a 2ª coluna com texto LONGO ("Por unidade
+           produzida", "Por kg produzido"), não com "kg"/"un" como os ingredientes. Com 88px
+           o seletor cortava a palavra no meio e não dava pra saber o que estava escolhido. */
+        .rec-ing-head.base2,.rec-ing-row.base2{grid-template-columns:70px 200px 1fr 132px 110px 34px;}
         .rec-ing-head{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:#8a97a8;font-weight:700;padding:0 2px 6px;}
         .rec-ing-row{margin-bottom:7px;}
         .rec-ing-row input,.rec-ing-row select{width:100%;box-sizing:border-box;border:1px solid #d4dde6;border-radius:8px;padding:8px 10px;font:inherit;color:#1d2733;background:#fff;}
@@ -17456,7 +17460,7 @@ function recEmbRowHtml(r0,i){
   var r=recEmbResolv(r0), doCat=!!r.mat, cl=recEmbLinha(r,recEmbCtx());
   var custoTxt=cl.erro?('<span class="err" title="'+recEsc(cl.erro)+'">—</span>'):brl(cl.custo);
   var bases=EMB_BASES.map(function(b){ return '<option'+(b===r.base?' selected':'')+'>'+recEsc(b)+'</option>'; }).join('');
-  return '<div class="rec-ing-row" data-emb="'+i+'">'
+  return '<div class="rec-ing-row base2" data-emb="'+i+'">'
     +'<input class="rec-ing-q" data-embf="q" inputmode="decimal" placeholder="1" value="'+recEsc(String(r.q||""))+'">'
     +'<select class="rec-ing-u" data-embf="base" style="width:100%;">'+bases+'</select>'
     +'<input class="rec-ing-n" data-embf="n" list="recEmbLista2" placeholder="Escolha a embalagem cadastrada" value="'+recEsc(r.n||"")+'"'+(doCat?' title="Vem do cadastro de Embalagens"':'')+'>'
@@ -17465,9 +17469,28 @@ function recEmbRowHtml(r0,i){
     +'<button type="button" class="rec-ing-x" data-embdel="'+i+'" title="Remover">×</button>'
     +'</div>';
 }
+// O sufixo (/kg, "cada") fica POR CIMA do campo de preço, encostado à direita. Se o campo não
+// reservar espaço do tamanho dele, ele cobre o número: "0,10 cada" virava "0,". Antes o espaço
+// era fixo — bastou eu deixar a unidade maior e em negrito, hoje, pra quebrar. Agora o espaço é
+// medido do próprio sufixo, então serve pra qualquer palavra. (12/08/2026)
+function recAjustaSufixos(box){
+  var alvos=(box||document).querySelectorAll(".rec-ing-pw");
+  for(var i=0;i<alvos.length;i++){
+    var w=alvos[i], suf=w.querySelector(".rec-ing-suf"), inp=w.querySelector("input");
+    if(!inp) continue;
+    var txt=suf?String(suf.textContent||""):"";
+    // O CSS deste campo usa !important (pra vencer o padding geral da linha), então aqui
+    // precisa ser important também — senão o ajuste é calculado e ignorado, silenciosamente.
+    if(!txt){ inp.style.setProperty("padding-right","12px","important"); continue; }
+    var larg=suf.getBoundingClientRect().width;
+    if(!(larg>0)) larg=txt.length*7.5+10;      // caixa escondida: estima pelo texto
+    inp.style.setProperty("padding-right",(Math.ceil(larg)+14)+"px","important");
+  }
+}
 function recEmbRender(){
   var box=document.getElementById("recEmbBox"); if(!box) return;
   box.innerHTML=recEmbL.length?recEmbL.map(recEmbRowHtml).join(""):'<div class="rec-ing-vazio">Nenhuma embalagem — clique em “＋ Adicionar embalagem”.</div>';
+  recAjustaSufixos(box);
   recFinSync();
 }
 function recEmbNova(fw){
@@ -17524,7 +17547,7 @@ function recCopRowHtml(r0,i){
   var custoTxt=cl.erro?('<span class="err" title="'+recEsc(cl.erro)+'">—</span>'):brl(cl.custo);
   var uns=COP_UNS.map(function(u){ return '<option'+(u===r.u?' selected':'')+'>'+recEsc(u)+'</option>'; }).join('');
   var pct=(r.u==="Percentual");
-  return '<div class="rec-ing-row" data-cop="'+i+'">'
+  return '<div class="rec-ing-row base2" data-cop="'+i+'">'
     +'<input class="rec-ing-q" data-copf="q" inputmode="decimal" placeholder="1" value="'+recEsc(String(r.q||""))+'"'+(pct?' disabled title="Percentual não usa quantidade"':'')+'>'
     +'<select class="rec-ing-u" data-copf="u" style="width:100%;">'+uns+'</select>'
     +'<input class="rec-ing-n" data-copf="n" list="recCopLista" placeholder="Escolha ou digite (ex: Mão de obra)" value="'+recEsc(r.n||"")+'">'
@@ -17536,6 +17559,7 @@ function recCopRowHtml(r0,i){
 function recCopRender(){
   var box=document.getElementById("recCopBox"); if(!box) return;
   box.innerHTML=recCop.length?recCop.map(recCopRowHtml).join(""):'<div class="rec-ing-vazio">Nenhum custo operacional — clique em “＋ Adicionar custo operacional”.</div>';
+  recAjustaSufixos(box);
   recFinSync();
 }
 function recCopNova(fw){
@@ -17823,6 +17847,7 @@ function recIngLinhaAtualiza(lin,i){
 function recIngRender(){
   var box=document.getElementById("recIngBox"); if(!box) return;
   box.innerHTML=recIngr.length?recIngr.map(recIngRowHtml).join(""):'<div class="rec-ing-vazio">Nenhum ingrediente ainda — clique em “＋ Adicionar ingrediente”.</div>';
+  recAjustaSufixos(box);
   recIngSoma();
 }
 // A soma dos ingredientes é a fonte da verdade: recalcula o painel financeiro inteiro.
@@ -18040,7 +18065,7 @@ function recRenderForm(){
     // ---- 3 custos ----
     +recSecao(3,"Embalagens")
     +'<div class="rec-ings">'
-      +'<div class="rec-ing-head"><div style="text-align:center;">Qtd</div><div style="text-align:center;">Base</div><div>Embalagem</div><div style="text-align:right;">Custo de 1</div><div style="text-align:right;">Custo na receita</div><div></div></div>'
+      +'<div class="rec-ing-head base2"><div style="text-align:center;">Qtd</div><div style="text-align:center;">Base</div><div>Embalagem</div><div style="text-align:right;">Custo de 1</div><div style="text-align:right;">Custo na receita</div><div></div></div>'
       +'<div id="recEmbBox"></div>'
       +'<datalist id="recEmbLista2">'+((typeof matData!=="undefined"?matData:[]).filter(function(m){return m.ativo!==false;}).map(function(m){ var v=(m.nome||"")+(m.tamanho?(" — "+m.tamanho):""); return '<option value="'+recEsc(v)+'">'+recEsc(brl(+m.preco||0)+(m.fornecedor?(" · "+m.fornecedor):""))+'</option>'; }).join(''))+'</datalist>'
       +'<div class="rec-ing-pe"><button type="button" class="rec-ing-add" id="recEmbAdd">＋ Adicionar embalagem</button>'
@@ -18048,7 +18073,7 @@ function recRenderForm(){
     +'</div>'
     +recSecao(4,"Custos operacionais")
     +'<div class="rec-ings">'
-      +'<div class="rec-ing-head"><div style="text-align:center;">Qtd</div><div style="text-align:center;">Unidade</div><div>Custo operacional</div><div style="text-align:right;" title="Valor de referência do cadastro">Valor de ref.</div><div style="text-align:right;">Custo na receita</div><div></div></div>'
+      +'<div class="rec-ing-head base2"><div style="text-align:center;">Qtd</div><div style="text-align:center;">Unidade</div><div>Custo operacional</div><div style="text-align:right;" title="Valor de referência do cadastro">Valor de ref.</div><div style="text-align:right;">Custo na receita</div><div></div></div>'
       +'<div id="recCopBox"></div>'
       +'<datalist id="recCopLista">'+copAtivos().map(function(c){ return '<option value="'+recEsc(c.nome)+'">'+recEsc((c.categoria||"")+" · "+(c.unidade||"")+" · "+brl(+c.valor||0))+'</option>'; }).join('')+'</datalist>'
       +'<div class="rec-ing-pe"><button type="button" class="rec-ing-add" id="recCopAdd">＋ Adicionar custo operacional</button>'
