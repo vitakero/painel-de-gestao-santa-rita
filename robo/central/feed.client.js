@@ -4956,7 +4956,7 @@
         '<label>Tipo *</label><select data-sof="tipo"><option value="">Escolha…</option>' + opts + "</select>" +
         '<label>Título *</label><input type="text" data-sof="titulo" maxlength="200" placeholder="Ex.: Comprar material de limpeza">' +
         '<label>Descrição</label><textarea data-sof="descricao" rows="3" maxlength="2000" placeholder="Detalhe o pedido (opcional)"></textarea>' +
-        '<label>Valor (opcional)</label><input type="number" data-sof="valor" min="0" step="0.01" placeholder="0,00">' +
+        '<label>Valor (opcional)</label><input type="text" inputmode="decimal" data-sof="valor" placeholder="0,00">' +
         '<div class="so-erro-modal" data-soformerro style="display:none;"></div>' +
         '<div class="so-acoes" style="margin-top:12px;"><button type="button" class="wi-btn primary" data-soenviar>Enviar solicitação</button>' +
         '<button type="button" class="wi-btn" data-sofcancelar>Cancelar</button></div>';
