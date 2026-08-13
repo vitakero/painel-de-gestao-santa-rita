@@ -17462,13 +17462,20 @@ function recEmbLimpas(){
 function recEmbCtx(){ return {rend:despParseValor(recVal("recRendQtd"))}; }
 function recEmbRowHtml(r0,i){
   var r=recEmbResolv(r0), doCat=!!r.mat, cl=recEmbLinha(r,recEmbCtx());
+  // A UNIDADE DO CADASTRO TEM QUE APARECER AQUI. Filme e barbante se compram em METRO: o preço
+  // é por metro e a quantidade da receita é em metro. A linha dizia "cada" pra tudo, como se
+  // fosse peça — quem lia não tinha como saber em que unidade digitar. (13/08/2026)
+  var _eun=(r.mat&&r.mat.un)?String(r.mat.un):"";
+  var _porPeca=(!_eun||_eun==="un");
+  var _sufEmb=_porPeca?"cada":("/"+_eun);
+  var _dicaQtd=_porPeca?"Quantas unidades desta embalagem":("Quanto usa, em "+_eun);
   var custoTxt=cl.erro?('<span class="err" title="'+recEsc(cl.erro)+'">—</span>'):brl(cl.custo);
   var bases=EMB_BASES.map(function(b){ return '<option'+(b===r.base?' selected':'')+'>'+recEsc(b)+'</option>'; }).join('');
   return '<div class="rec-ing-row base2" data-emb="'+i+'">'
-    +'<input class="rec-ing-q" data-embf="q" inputmode="decimal" placeholder="1" value="'+recEsc(String(r.q||""))+'">'
+    +'<input class="rec-ing-q" data-embf="q" inputmode="decimal" placeholder="1" title="'+recEsc(_dicaQtd)+'" value="'+recEsc(String(r.q||""))+'">'
     +'<select class="rec-ing-u" data-embf="base" style="width:100%;">'+bases+'</select>'
     +'<input class="rec-ing-n" data-embf="n" list="recEmbLista2" placeholder="Escolha a embalagem cadastrada" value="'+recEsc(r.n||"")+'"'+(doCat?' title="Vem do cadastro de Embalagens"':'')+'>'
-    +'<div class="rec-ing-pw"><input class="rec-ing-p'+(doCat?' rec-auto':'')+'" data-embf="p" inputmode="decimal" placeholder="0,00"'+(doCat?' readOnly title="Custo vem do cadastro de Embalagens"':' title="Sem embalagem do cadastro: digite o custo de 1"')+' value="'+recEsc(recPrecoCampo(r.p))+'"><span class="rec-ing-suf">cada</span></div>'
+    +'<div class="rec-ing-pw"><input class="rec-ing-p'+(doCat?' rec-auto':'')+'" data-embf="p" inputmode="decimal" placeholder="0,00"'+(doCat?' readOnly title="Custo vem do cadastro de Embalagens"':' title="Sem embalagem do cadastro: digite o custo de 1"')+' value="'+recEsc(recPrecoCampo(r.p))+'"><span class="rec-ing-suf">'+recEsc(_sufEmb)+'</span></div>'
     +'<div class="rec-ing-calc"><span class="rec-ing-calclbl">Custo: </span>'+custoTxt+'</div>'
     +'<button type="button" class="rec-ing-x" data-embdel="'+i+'" title="Remover">×</button>'
     +'</div>';
