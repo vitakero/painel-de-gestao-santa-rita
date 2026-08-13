@@ -17384,7 +17384,7 @@ function recIngRowHtml(r,i){
     +'<input class="rec-ing-q" data-ingf="q" inputmode="decimal" min="0" placeholder="1" value="'+recEsc(String(r.q||""))+'">'
     +'<select class="rec-ing-u" data-ingf="u">'+recUnOpts(r.u)+'</select>'
     +'<input class="rec-ing-n" data-ingf="n" list="recInsLista" placeholder="Escolha um insumo cadastrado" value="'+recEsc(R.n||"")+'"'+(doCat?' title="Vem do cadastro de insumos"':'')+'>'
-    +'<div class="rec-ing-pw"><input class="rec-ing-p'+(doCat?' rec-auto':'')+'" data-ingf="p" inputmode="decimal" placeholder="0,00"'+(doCat?' readOnly title="Preço vem do cadastro de insumos — mude lá e vale pra todas as receitas"':' title="Sem insumo ligado: digite o preço de 1 '+(pu||"kg / L / un")+'"')+' value="'+(+R.p>0?recEsc(String(R.p).replace(".",",")):"")+'"><span class="rec-ing-suf">'+(pu?("/"+recEsc(pu)):"")+'</span></div>'
+    +'<div class="rec-ing-pw"><input class="rec-ing-p'+(doCat?' rec-auto':'')+'" data-ingf="p" inputmode="decimal" placeholder="0,00"'+(doCat?' readOnly title="Preço vem do cadastro de insumos — mude lá e vale pra todas as receitas"':' title="Sem insumo ligado: digite o preço de 1 '+(pu||"kg / L / un")+'"')+' value="'+recEsc(recPrecoCampo(R.p))+'"><span class="rec-ing-suf">'+(pu?("/"+recEsc(pu)):"")+'</span></div>'
     +'<div class="rec-ing-calc" title="Calculado pelo painel conforme a quantidade usada"><span class="rec-ing-calclbl">Custo: </span>'+custoTxt+'</div>'
     +'<button type="button" class="rec-ing-x" data-ingdel="'+i+'" title="Remover este ingrediente">×</button>'
     +'</div>';
@@ -17464,7 +17464,7 @@ function recEmbRowHtml(r0,i){
     +'<input class="rec-ing-q" data-embf="q" inputmode="decimal" placeholder="1" value="'+recEsc(String(r.q||""))+'">'
     +'<select class="rec-ing-u" data-embf="base" style="width:100%;">'+bases+'</select>'
     +'<input class="rec-ing-n" data-embf="n" list="recEmbLista2" placeholder="Escolha a embalagem cadastrada" value="'+recEsc(r.n||"")+'"'+(doCat?' title="Vem do cadastro de Embalagens"':'')+'>'
-    +'<div class="rec-ing-pw"><input class="rec-ing-p'+(doCat?' rec-auto':'')+'" data-embf="p" inputmode="decimal" placeholder="0,00"'+(doCat?' readOnly title="Custo vem do cadastro de Embalagens"':' title="Sem embalagem do cadastro: digite o custo de 1"')+' value="'+(+r.p>0?recEsc(String(r.p).replace(".",",")):"")+'"><span class="rec-ing-suf">cada</span></div>'
+    +'<div class="rec-ing-pw"><input class="rec-ing-p'+(doCat?' rec-auto':'')+'" data-embf="p" inputmode="decimal" placeholder="0,00"'+(doCat?' readOnly title="Custo vem do cadastro de Embalagens"':' title="Sem embalagem do cadastro: digite o custo de 1"')+' value="'+recEsc(recPrecoCampo(r.p))+'"><span class="rec-ing-suf">cada</span></div>'
     +'<div class="rec-ing-calc"><span class="rec-ing-calclbl">Custo: </span>'+custoTxt+'</div>'
     +'<button type="button" class="rec-ing-x" data-embdel="'+i+'" title="Remover">×</button>'
     +'</div>';
@@ -17473,6 +17473,12 @@ function recEmbRowHtml(r0,i){
 // reservar espaço do tamanho dele, ele cobre o número: "0,10 cada" virava "0,". Antes o espaço
 // era fixo — bastou eu deixar a unidade maior e em negrito, hoje, pra quebrar. Agora o espaço é
 // medido do próprio sufixo, então serve pra qualquer palavra. (12/08/2026)
+// Dinheiro em campo mostra as DUAS casas: 0,1 não é dez centavos, 0,10 é. O painel guarda o
+// número (0.1) e a tela é que tem que falar a língua de quem lê preço. (13/08/2026)
+function recPrecoCampo(v){
+  var n=Number(v); if(!isFinite(n)||!(n>0)) return "";
+  return n.toFixed(2).replace(".",",");
+}
 function recAjustaSufixos(box){
   var alvos=(box||document).querySelectorAll(".rec-ing-pw");
   for(var i=0;i<alvos.length;i++){
@@ -17551,7 +17557,7 @@ function recCopRowHtml(r0,i){
     +'<input class="rec-ing-q" data-copf="q" inputmode="decimal" placeholder="1" value="'+recEsc(String(r.q||""))+'"'+(pct?' disabled title="Percentual não usa quantidade"':'')+'>'
     +'<select class="rec-ing-u" data-copf="u" style="width:100%;">'+uns+'</select>'
     +'<input class="rec-ing-n" data-copf="n" list="recCopLista" placeholder="Escolha ou digite (ex: Mão de obra)" value="'+recEsc(r.n||"")+'">'
-    +'<div class="rec-ing-pw"><input class="rec-ing-p" data-copf="p" inputmode="decimal" placeholder="0,00" title="Valor de referência do cadastro — pode ajustar" value="'+(+r.p>0?recEsc(String(r.p).replace(".",",")):"")+'"><span class="rec-ing-suf">'+(pct?"%":"")+'</span></div>'
+    +'<div class="rec-ing-pw"><input class="rec-ing-p" data-copf="p" inputmode="decimal" placeholder="0,00" title="Valor de referência do cadastro — pode ajustar" value="'+recEsc(recPrecoCampo(r.p))+'"><span class="rec-ing-suf">'+(pct?"%":"")+'</span></div>'
     +'<div class="rec-ing-calc"><span class="rec-ing-calclbl">Custo: </span>'+custoTxt+'</div>'
     +'<button type="button" class="rec-ing-x" data-copdel2="'+i+'" title="Remover este custo">×</button>'
     +'</div>';
