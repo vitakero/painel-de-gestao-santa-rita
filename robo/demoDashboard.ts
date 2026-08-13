@@ -2566,10 +2566,16 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .rec-res-det{font-size:11px;color:#8a97a8;margin-top:1px;}
         .rec-rendw{display:flex;gap:6px;margin-top:2px;}
         @media(max-width:760px){ .rec-res-top{grid-template-columns:1fr 1fr;} }
-        .rec-inglist{display:flex;flex-direction:column;gap:2px;}
+        /* Grade de 3 colunas para o título ficar EM CIMA da coluna certa. Antes era uma lista
+           solta com o preço colado no nome, e aí não havia onde pendurar rótulo nenhum. */
+        .rec-inglist{display:grid;grid-template-columns:1fr auto auto;gap:2px 14px;align-items:baseline;}
+        .rec-ingcab{font-size:9.5px;text-transform:uppercase;letter-spacing:.4px;color:#a9b4c0;font-weight:800;padding-bottom:4px;border-bottom:1px solid #eef1f4;margin-bottom:3px;}
+        .rec-ingcab.num{text-align:right;}
+        .rec-ingnome{font-size:12.5px;color:#33404f;}
+        .rec-ingcusto{font-size:12.5px;color:#1d2733;font-weight:700;text-align:right;white-space:nowrap;}
         .rec-ingli{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:#33404f;padding:1px 0;}
         .rec-ingli b{color:#1d2733;white-space:nowrap;}
-        .rec-ingref{color:#8a97a8;font-style:normal;font-size:11.5px;margin-left:7px;white-space:nowrap;}
+        .rec-ingref{color:#8a97a8;font-style:normal;font-size:11.5px;white-space:nowrap;text-align:right;}
         @media(max-width:760px){
           .rec-ing-head{display:none;}
           .rec-ing-row{grid-template-columns:68px 76px 1fr 34px;row-gap:6px;padding-bottom:8px;border-bottom:1px dashed #e8ecf1;}
@@ -17788,13 +17794,20 @@ function recIngSoma(){ recFinSync(); }
 function recIngListaHtml(x){
   var rows=(x&&Array.isArray(x.ingr))?x.ingr.map(recIngNorm):null;
   if(!rows||!rows.length) return x&&x.ingredientes?'<div class="rec-txt">'+recEsc(x.ingredientes)+'</div>':'';
-  return '<div class="rec-inglist">'+rows.map(function(r0){
+  return '<div class="rec-inglist">'
+    +'<div class="rec-ingcab">Ingrediente</div>'
+    +'<div class="rec-ingcab num" title="Quanto custa 1 kg, 1 L ou 1 unidade — como você compra">Preço de referência</div>'
+    +'<div class="rec-ingcab num" title="Quanto esta quantidade custa nesta receita">Custo na receita</div>'
+    +rows.map(function(r0){
     // mesma história: nome, preço e unidade de referência vêm do cadastro quando a linha
     // aponta para um insumo. Ler a linha crua aqui mostrava só a quantidade.
     var r=(typeof recIngResolv==="function")?recIngResolv(r0):r0;
     var nm=[recQTexto(r0),(r.n||"").trim()].filter(Boolean).join(" ");
-    var cl=recCustoLinha(r), ref=(+r.p>0)?('<i class="rec-ingref">'+recEsc(recFmtRef(r.p,r.pu||recUnRef(r.u)))+'</i>'):'';
-    return '<div class="rec-ingli"><span>'+recEsc(nm)+ref+'</span>'+((cl.ok&&cl.custo>0)?'<b>'+brl(cl.custo)+'</b>':'')+'</div>';
+    var cl=recCustoLinha(r);
+    var ref=(+r.p>0)?recEsc(recFmtRef(r.p,r.pu||recUnRef(r.u))):"";
+    return '<div class="rec-ingnome">'+recEsc(nm)+'</div>'
+          +'<div class="rec-ingref">'+ref+'</div>'
+          +'<div class="rec-ingcusto">'+((cl.ok&&cl.custo>0)?brl(cl.custo):"")+'</div>';
   }).join("")+'</div>';
 }
 function recAutoEmbCusto(){
