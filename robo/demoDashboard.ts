@@ -2429,6 +2429,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
            produzida", "Por kg produzido"), não com "kg"/"un" como os ingredientes. Com 88px
            o seletor cortava a palavra no meio e não dava pra saber o que estava escolhido. */
         .rec-ing-head.base2,.rec-ing-row.base2{grid-template-columns:70px 200px 1fr 132px 110px 34px;}
+        /* A embalagem tem uma coluna A MAIS: a UNIDADE. Sem ela, olhando a linha não dava pra
+           saber se aquele "1" é uma bandeja ou um metro de filme — e a conta muda tudo. */
+        .rec-ing-head.emb3,.rec-ing-row.emb3{grid-template-columns:70px 84px 190px 1fr 132px 110px 34px;}
         .rec-ing-head{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:#8a97a8;font-weight:700;padding:0 2px 6px;}
         .rec-ing-row{margin-bottom:7px;}
         .rec-ing-row input,.rec-ing-row select{width:100%;box-sizing:border-box;border:1px solid #d4dde6;border-radius:8px;padding:8px 10px;font:inherit;color:#1d2733;background:#fff;}
@@ -17432,12 +17435,14 @@ function recAlertaInsumo(rows){
 }
 /* ---------- linhas de EMBALAGEM dentro da receita ---------- */
 var recEmbL=[];
-function recEmbNorm(r){ r=r||{}; return {refId:String(r.refId||""), q:String(r.q==null?"1":r.q), base:String(r.base||"Por receita"), n:String(r.n||""), p:+r.p||0}; }
+function recEmbNorm(r){ r=r||{}; return {refId:String(r.refId||""), q:String(r.q==null?"1":r.q), u:String(r.u||""), base:String(r.base||"Por receita"), n:String(r.n||""), p:+r.p||0}; }
 function recEmbResolv(r){
   r=recEmbNorm(r);
   var m=r.refId?((typeof matData!=="undefined"?matData:[]).filter(function(x){return x.id===r.refId;})[0]||null):null;
-  if(m) return {refId:r.refId,q:r.q,base:r.base,n:m.nome+(m.tamanho?(" — "+m.tamanho):""),p:+m.preco||0,mat:m};
-  return {refId:"",q:r.q,base:r.base,n:r.n,p:r.p,mat:null};
+  // A unidade da linha do CADASTRO vem do cadastro — é lá que mora o preço "por metro" ou
+  // "por unidade". Linha manual usa a que a pessoa escolher.
+  if(m) return {refId:r.refId,q:r.q,u:String(m.un||"un"),base:r.base,n:m.nome+(m.tamanho?(" — "+m.tamanho):""),p:+m.preco||0,mat:m};
+  return {refId:"",q:r.q,u:r.u||"un",base:r.base,n:r.n,p:r.p,mat:null};
 }
 function recEmbResolvLista(rows){ return (rows||[]).map(recEmbResolv); }
 // migração: campo de texto antigo (+ custoEmb) vira linhas
@@ -17457,7 +17462,7 @@ function recEmbDe(x){
 function recEmbLimpas(){
   return recEmbL.filter(function(r){ return r.refId||(r.n||"").trim()||(+r.p>0); })
                 .map(function(r){ if(r.refId) return {refId:r.refId,q:String(r.q||"1").trim(),base:r.base||"Por receita"};
-                                  return {n:(r.n||"").trim(),q:String(r.q||"1").trim(),base:r.base||"Por receita",p:Math.max(0,+r.p||0)}; });
+                                  return {n:(r.n||"").trim(),q:String(r.q||"1").trim(),u:String(r.u||"un"),base:r.base||"Por receita",p:Math.max(0,+r.p||0)}; });
 }
 function recEmbCtx(){ return {rend:despParseValor(recVal("recRendQtd"))}; }
 function recEmbRowHtml(r0,i){
@@ -17465,14 +17470,19 @@ function recEmbRowHtml(r0,i){
   // A UNIDADE DO CADASTRO TEM QUE APARECER AQUI. Filme e barbante se compram em METRO: o preço
   // é por metro e a quantidade da receita é em metro. A linha dizia "cada" pra tudo, como se
   // fosse peça — quem lia não tinha como saber em que unidade digitar. (13/08/2026)
-  var _eun=(r.mat&&r.mat.un)?String(r.mat.un):"";
+  var _eun=String(r.u||"");   // vale para a linha do cadastro E para a manual
   var _porPeca=(!_eun||_eun==="un");
   var _sufEmb=_porPeca?"cada":("/"+_eun);
   var _dicaQtd=_porPeca?"Quantas unidades desta embalagem":("Quanto usa, em "+_eun);
   var custoTxt=cl.erro?('<span class="err" title="'+recEsc(cl.erro)+'">—</span>'):brl(cl.custo);
   var bases=EMB_BASES.map(function(b){ return '<option'+(b===r.base?' selected':'')+'>'+recEsc(b)+'</option>'; }).join('');
-  return '<div class="rec-ing-row base2" data-emb="'+i+'">'
+  return '<div class="rec-ing-row emb3" data-emb="'+i+'">'
     +'<input class="rec-ing-q" data-embf="q" inputmode="decimal" placeholder="1" title="'+recEsc(_dicaQtd)+'" value="'+recEsc(String(r.q||""))+'">'
+    // Unidade: TRAVADA quando a embalagem vem do cadastro — o preço de lá é "por" essa
+    // unidade, e deixar mudar aqui criaria duas verdades e uma conta mentirosa.
+    +'<select class="rec-ing-u'+(doCat?' rec-auto':'')+'" data-embf="u" style="width:100%;"'
+      +(doCat?' disabled title="Vem do cadastro de Embalagens"':' title="Em que unidade você compra esta embalagem"')
+      +'>'+recUnOpts(r.u||"un")+'</select>'
     +'<select class="rec-ing-u" data-embf="base" style="width:100%;">'+bases+'</select>'
     +'<input class="rec-ing-n" data-embf="n" list="recEmbLista2" placeholder="Escolha a embalagem cadastrada" value="'+recEsc(r.n||"")+'"'+(doCat?' title="Vem do cadastro de Embalagens"':'')+'>'
     +'<div class="rec-ing-pw"><input class="rec-ing-p'+(doCat?' rec-auto':'')+'" data-embf="p" inputmode="decimal" placeholder="0,00"'+(doCat?' readOnly title="Custo vem do cadastro de Embalagens"':' title="Sem embalagem do cadastro: digite o custo de 1"')+' value="'+recEsc(recPrecoCampo(r.p))+'"><span class="rec-ing-suf">'+recEsc(_sufEmb)+'</span></div>'
@@ -18082,7 +18092,7 @@ function recRenderForm(){
     // ---- 3 custos ----
     +recSecao(3,"Embalagens")
     +'<div class="rec-ings">'
-      +'<div class="rec-ing-head base2"><div style="text-align:center;">Qtd</div><div style="text-align:center;">Base</div><div>Embalagem</div><div style="text-align:right;">Custo de 1</div><div style="text-align:right;">Custo na receita</div><div></div></div>'
+      +'<div class="rec-ing-head emb3"><div style="text-align:center;">Qtd</div><div style="text-align:center;">Unidade</div><div style="text-align:center;">Base</div><div>Embalagem</div><div style="text-align:right;">Custo de 1</div><div style="text-align:right;">Custo na receita</div><div></div></div>'
       +'<div id="recEmbBox"></div>'
       +'<datalist id="recEmbLista2">'+((typeof matData!=="undefined"?matData:[]).filter(function(m){return m.ativo!==false;}).map(function(m){ var v=(m.nome||"")+(m.tamanho?(" — "+m.tamanho):""); return '<option value="'+recEsc(v)+'">'+recEsc(brl(+m.preco||0)+(m.fornecedor?(" · "+m.fornecedor):""))+'</option>'; }).join(''))+'</datalist>'
       +'<div class="rec-ing-pe"><button type="button" class="rec-ing-add" id="recEmbAdd">＋ Adicionar embalagem</button>'
