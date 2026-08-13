@@ -17311,9 +17311,15 @@ function recIngDeTexto(txt){
   return out;
 }
 // Texto (busca/ficha impressa) SEM o preço colado — o custo vive só nas linhas (x.ingr).
+// RESOLVER ANTES DE ESCREVER. A linha vinda do catálogo guarda só a referência ao insumo —
+// nome e preço moram no cadastro, de propósito (mudou lá, muda em todas as receitas). Quem
+// lê o nome cru nessa linha encontra vazio, e o texto sai "1 kg" sem o nome do produto.
+// Foi assim que o cartão da receita ficou com a lista muda. (12/08/2026)
 function recIngTexto(rows){
-  return (rows||[]).map(function(r){ return [recQTexto(r),(r.n||"").trim()].filter(Boolean).join(" "); })
-                   .filter(Boolean).join("\\n");
+  return (rows||[]).map(function(r0){
+    var r=(typeof recIngResolv==="function")?recIngResolv(r0):r0;
+    return [recQTexto(r0),(r.n||r0.n||"").trim()].filter(Boolean).join(" ");
+  }).filter(Boolean).join("\\n");
 }
 function recIngLimpas(){
   return recIngr.filter(function(r){ return (r.n||"").trim()||String(r.q||"").trim(); })   // linha só com preço não conta
@@ -17782,8 +17788,11 @@ function recIngSoma(){ recFinSync(); }
 function recIngListaHtml(x){
   var rows=(x&&Array.isArray(x.ingr))?x.ingr.map(recIngNorm):null;
   if(!rows||!rows.length) return x&&x.ingredientes?'<div class="rec-txt">'+recEsc(x.ingredientes)+'</div>':'';
-  return '<div class="rec-inglist">'+rows.map(function(r){
-    var nm=[recQTexto(r),(r.n||"").trim()].filter(Boolean).join(" ");
+  return '<div class="rec-inglist">'+rows.map(function(r0){
+    // mesma história: nome, preço e unidade de referência vêm do cadastro quando a linha
+    // aponta para um insumo. Ler a linha crua aqui mostrava só a quantidade.
+    var r=(typeof recIngResolv==="function")?recIngResolv(r0):r0;
+    var nm=[recQTexto(r0),(r.n||"").trim()].filter(Boolean).join(" ");
     var cl=recCustoLinha(r), ref=(+r.p>0)?('<i class="rec-ingref">'+recEsc(recFmtRef(r.p,r.pu||recUnRef(r.u)))+'</i>'):'';
     return '<div class="rec-ingli"><span>'+recEsc(nm)+ref+'</span>'+((cl.ok&&cl.custo>0)?'<b>'+brl(cl.custo)+'</b>':'')+'</div>';
   }).join("")+'</div>';
