@@ -2590,6 +2590,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .recm-lbl{font-size:11px;color:#6b7787;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;}
         .recm-inp{width:110px;border:1px solid #d4dde6;border-radius:8px;padding:7px 9px;font:inherit;color:#1d2733;box-sizing:border-box;}
         .rec-foto{width:100%;max-height:190px;object-fit:cover;border-radius:10px;margin-bottom:10px;}
+        /* A foto foi pro lugar do rótulo "INGREDIENTES": aquela coluna da esquerda estava
+           gasta com uma palavra que a lista ao lado já explica sozinha. Sem foto, o rótulo
+           volta — não deixar buraco. (12/08/2026) */
+        .rec-fotomini{width:104px;height:104px;object-fit:cover;border-radius:10px;flex:0 0 auto;align-self:flex-start;background:#f2f5f8;}
         .rec-rend{font-size:13px;color:#0c5a26;margin-top:4px;font-weight:600;}
         .rec-money{font-size:13px;color:#33404f;margin-top:4px;}
         .rec-sec{margin-top:10px;}
@@ -18131,11 +18135,15 @@ function recRenderLista(){
         var _p4=(_f.custoUn!=null)?(' · Custo por '+recEsc(_f.un)+': <b>'+brl(_f.custoUn)+'</b>'+((_f.vendaUn!=null)?(' · Venda por '+recEsc(_f.un)+': <b>'+brl(_f.vendaUn)+'</b>'):'')):'';
         _money='<div class="rec-money">'+_p1+_p2+_p3+_p4+'</div>';
       }
-      h+='<div class="rec-card">'+(x.foto?'<img src="'+recEsc(x.foto)+'" class="rec-foto" alt="Foto da receita">':'')+'<div class="rec-card-top"><div class="rec-nome">'+recEsc(x.nome)+'</div>'+(x.setor?'<span class="rec-tag">'+recEsc(x.setor)+'</span>':'')+'</div>'
+      var _temIng=!!(x.ingredientes||(x.ingr&&x.ingr.length));
+      h+='<div class="rec-card">'+((x.foto&&!_temIng)?'<img src="'+recEsc(x.foto)+'" class="rec-foto" alt="Foto da receita">':'')+'<div class="rec-card-top"><div class="rec-nome">'+recEsc(x.nome)+'</div>'+(x.setor?'<span class="rec-tag">'+recEsc(x.setor)+'</span>':'')+'</div>'
         +(_meta.length?'<div class="rec-rend">'+_meta.join(' · ')+'</div>':'')
         +_money
         +(x.embalagem?'<div class="rec-money"><b>Embalagem:</b> '+recEmbLabel(x.embalagem)+'</div>':'')
-        +((x.ingredientes||(x.ingr&&x.ingr.length))?'<div class="rec-sec"><div class="lbl">Ingredientes</div>'+recIngListaHtml(x)+'</div>':'')
+        +(_temIng?('<div class="rec-sec">'
+            +(x.foto?('<img src="'+recEsc(x.foto)+'" class="rec-fotomini" alt="Foto de '+recEsc(x.nome)+'">')
+                    :'<div class="lbl">Ingredientes</div>')
+            +recIngListaHtml(x)+'</div>'):'')
         +(x.preparo?'<div class="rec-sec"><div class="lbl">Modo de preparo</div><div class="rec-txt">'+recEsc(x.preparo)+'</div></div>':'')
         +'<div class="rec-acoes"><button class="rec-mini prim2" data-recprodadd="'+x.id+'" type="button">＋ Registrar produção</button><button class="rec-mini" data-recprodhist="'+x.id+'" type="button">Produções ('+(x.producoes||[]).length+')'+(((x.producoes||[]).filter(function(p){return p.resultado==="fora";}).length)?' · '+(x.producoes||[]).filter(function(p){return p.resultado==="fora";}).length+' fora':'')+'</button><button class="rec-mini" data-recedit="'+x.id+'" type="button">Editar</button><button class="rec-mini del" data-recdel="'+x.id+'" type="button">Remover</button></div>'
         +(recProdForm===x.id?recProdFormHtml(x):'')
