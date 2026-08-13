@@ -16984,7 +16984,7 @@ var recIngTocado=false, recCustoManual="";
    REGRA: o que o dono digita na linha é o PREÇO DE REFERÊNCIA (preço de 1 kg / 1 L / 1 un).
    O CUSTO NA RECEITA é sempre calculado: quantidade convertida para a unidade de referência × preço.
    Nunca somar preços de referência. */
-var REC_UNS=["kg","g","L","ml","un","m"];
+var REC_UNS=["kg","g","L","ml","un","m","cm"];
 var REC_UN={ kg:{tipo:"peso",   base:"kg", fator:1},
              g :{tipo:"peso",   base:"kg", fator:0.001},
              L :{tipo:"volume", base:"L",  fator:1},
@@ -16993,7 +16993,10 @@ var REC_UN={ kg:{tipo:"peso",   base:"kg", fator:1},
              // METRO (12/08/2026): filme, papel manteiga, barbante — o que se compra em rolo
              // e o preço vem por metro. Tipo PRÓPRIO: metro não converte com kg nem com litro,
              // então continua impossível somar 1 m com 1 kg por engano.
-             m :{tipo:"comprimento", base:"m", fator:1} };
+             m :{tipo:"comprimento", base:"m", fator:1},
+             // CENTÍMETRO (13/08/2026): ninguém diz "0,3 metros de filme", diz "30 centímetros".
+             // Converte pra metro igual g converte pra kg — 30 cm com preço por metro dá certo.
+             cm:{tipo:"comprimento", base:"m", fator:0.01} };
 function recUnValida(u){ return Object.prototype.hasOwnProperty.call(REC_UN,String(u||"")); }
 function recUnTipo(u){ return recUnValida(u)?REC_UN[u].tipo:""; }
 function recUnRef(u){ return recUnValida(u)?REC_UN[u].base:""; }          // unidade do preço de referência
@@ -17071,15 +17074,21 @@ function recFinCalc(e){
 var EMB_BASES=["Por receita","Por unidade produzida"];
 function recEmbLinha(r,ctx){
   r=r||{}; ctx=ctx||{};
-  var q=Number(String(r.q==null?"":r.q).replace(",",".")); if(!isFinite(q)) q=0;
-  var p=Number(r.p); if(!isFinite(p)) p=0;
-  if(q<0||p<0) return {ok:false,custo:0,erro:"valor negativo"};
+  // MESMA CONTA DO INGREDIENTE (13/08/2026, a pedido do dono). Antes era só quantidade × preço,
+  // sem conversão — por isso a unidade ficava travada: preço por metro com quantidade em cm
+  // daria um número 100 vezes errado, calado. Agora recCustoLinha faz a conversão e RECUSA o
+  // que não dá pra converter (metro com preço por kg), com a mesma mensagem dos ingredientes.
+  //   u  = unidade que a pessoa digita na receita (cm, m, un...)
+  //   pu = unidade do PREÇO, que vem do cadastro da embalagem
+  var pu=String(r.pu||r.u||"un");
+  var cl=recCustoLinha({q:r.q, u:String(r.u||pu), p:r.p, pu:pu});
+  if(!cl.ok) return {ok:false, custo:0, erro:cl.erro};
   if(r.base==="Por unidade produzida"){
     var rend=Number(ctx.rend)||0;
     if(!(rend>0)) return {ok:false,custo:0,erro:"informe o rendimento para calcular por unidade"};
-    return {ok:true,custo:q*p*rend,erro:""};
+    return {ok:true, custo:cl.custo*rend, erro:""};
   }
-  return {ok:true,custo:q*p,erro:""};
+  return {ok:true, custo:cl.custo, erro:""};
 }
 function recTotalEmb(rows,ctx){
   var mic=0;
@@ -17441,8 +17450,8 @@ function recEmbResolv(r){
   var m=r.refId?((typeof matData!=="undefined"?matData:[]).filter(function(x){return x.id===r.refId;})[0]||null):null;
   // A unidade da linha do CADASTRO vem do cadastro — é lá que mora o preço "por metro" ou
   // "por unidade". Linha manual usa a que a pessoa escolher.
-  if(m) return {refId:r.refId,q:r.q,u:String(m.un||"un"),base:r.base,n:m.nome+(m.tamanho?(" — "+m.tamanho):""),p:+m.preco||0,mat:m};
-  return {refId:"",q:r.q,u:r.u||"un",base:r.base,n:r.n,p:r.p,mat:null};
+  if(m) return {refId:r.refId,q:r.q,u:String(r.u||m.un||"un"),pu:String(m.un||"un"),base:r.base,n:m.nome+(m.tamanho?(" — "+m.tamanho):""),p:+m.preco||0,mat:m};
+  return {refId:"",q:r.q,u:r.u||"un",pu:r.u||"un",base:r.base,n:r.n,p:r.p,mat:null};
 }
 function recEmbResolvLista(rows){ return (rows||[]).map(recEmbResolv); }
 // migração: campo de texto antigo (+ custoEmb) vira linhas
@@ -17470,7 +17479,7 @@ function recEmbRowHtml(r0,i){
   // A UNIDADE DO CADASTRO TEM QUE APARECER AQUI. Filme e barbante se compram em METRO: o preço
   // é por metro e a quantidade da receita é em metro. A linha dizia "cada" pra tudo, como se
   // fosse peça — quem lia não tinha como saber em que unidade digitar. (13/08/2026)
-  var _eun=String(r.u||"");   // vale para a linha do cadastro E para a manual
+  var _eun=String(r.pu||r.u||"");   // o sufixo é da unidade do PREÇO (a do cadastro)
   var _porPeca=(!_eun||_eun==="un");
   var _sufEmb=_porPeca?"cada":("/"+_eun);
   var _dicaQtd=_porPeca?"Quantas unidades desta embalagem":("Quanto usa, em "+_eun);
@@ -17480,8 +17489,8 @@ function recEmbRowHtml(r0,i){
     +'<input class="rec-ing-q" data-embf="q" inputmode="decimal" placeholder="1" title="'+recEsc(_dicaQtd)+'" value="'+recEsc(String(r.q||""))+'">'
     // Unidade: TRAVADA quando a embalagem vem do cadastro — o preço de lá é "por" essa
     // unidade, e deixar mudar aqui criaria duas verdades e uma conta mentirosa.
-    +'<select class="rec-ing-u'+(doCat?' rec-auto':'')+'" data-embf="u" style="width:100%;"'
-      +(doCat?' disabled title="Vem do cadastro de Embalagens"':' title="Em que unidade você compra esta embalagem"')
+    +'<select class="rec-ing-u" data-embf="u" style="width:100%;"'
+      +' title="Em que unidade você usa nesta receita. O painel converte para a unidade do preço (cm para m, g para kg)."'
       +'>'+recUnOpts(r.u||"un")+'</select>'
     +'<select class="rec-ing-u" data-embf="base" style="width:100%;">'+bases+'</select>'
     +'<input class="rec-ing-n" data-embf="n" list="recEmbLista2" placeholder="Escolha a embalagem cadastrada" value="'+recEsc(r.n||"")+'"'+(doCat?' title="Vem do cadastro de Embalagens"':'')+'>'
