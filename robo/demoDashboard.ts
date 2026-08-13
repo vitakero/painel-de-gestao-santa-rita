@@ -2612,6 +2612,22 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           box-sizing:border-box;user-select:none;}
         .rec-rend{font-size:13px;color:#0c5a26;margin-top:4px;font-weight:600;}
         .rec-money{font-size:13px;color:#33404f;margin-top:4px;}
+        /* RESUMO DO CARTÃO (12/08/2026). Antes eram 7 números em fila, separados por ponto,
+           todos com o mesmo peso — e nenhum dizia se estava bom ou ruim. Agora: o que ele usa
+           no dia a dia (por unidade) em bloco grande, o total da receita em letra miúda, e a
+           margem colorida pela mesma régua que a ficha já usa.
+           Pra voltar ao formato antigo é só restaurar o bloco _money em recRenderLista. */
+        .rec-kpis{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;}
+        .rec-kpi{flex:1 1 116px;min-width:104px;background:#f7faf9;border:1px solid #e8eef0;border-radius:9px;padding:7px 10px;}
+        .rec-kpi .k{font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:#8a97a8;font-weight:800;line-height:1.3;}
+        .rec-kpi .v{font-size:16.5px;font-weight:800;color:#1d2733;margin-top:2px;line-height:1.2;}
+        .rec-kpi .s{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;margin-top:1px;}
+        .rec-kpi.bom{background:#eef7f0;border-color:#cfe6d6;} .rec-kpi.bom .v,.rec-kpi.bom .s{color:#157a35;}
+        .rec-kpi.atencao{background:#fff8e9;border-color:#f0dfb4;} .rec-kpi.atencao .v,.rec-kpi.atencao .s{color:#9a6b00;}
+        .rec-kpi.ruim{background:#fdf0ee;border-color:#f2cfc9;} .rec-kpi.ruim .v,.rec-kpi.ruim .s{color:#c0392b;}
+        .rec-tot{font-size:11.5px;color:#6b7787;margin-top:6px;}
+        .rec-tot b{color:#33404f;}
+        .rec-nota{font-size:11px;color:#a9b4c0;margin-top:3px;}
         .rec-sec{margin-top:10px;}
         .rec-sec .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#8a97a8;font-weight:700;margin-bottom:3px;}
         .rec-txt{white-space:pre-wrap;font-size:13.5px;color:#33404f;line-height:1.6;}
@@ -18158,15 +18174,46 @@ function recRenderLista(){
       var _meta=[]; if(x.rendimento) _meta.push('Rende: '+recEsc(x.rendimento)); if(x.tempo) _meta.push('Tempo: '+recEsc(x.tempo));
       // MESMA regra do formulário (recFinCalc) — nada de conta duplicada no cartão
       var _f=recFichaCalc(x);
+      // ---- resumo do cartão: blocos, não fila de números ----
+      // Regra: o que se usa no dia a dia (por unidade) fica GRANDE; o total da receita vira
+      // letra miúda embaixo. A margem ganha cor pela mesma régua da ficha (recSaude), porque
+      // um número sem referência não diz se está bom. Markup fica no rodapé de propósito:
+      // ele é régua de PREÇO, não de comparação entre receitas — e confundir os dois com a
+      // margem é o erro clássico de precificação.
       var _money='';
       if(_f.total>0||_f.preco>0){
-        var _cor=((_f.lucro==null||_f.lucro>=0)?'#157a35':'#c0392b');
-        var _det=(_f.emb>0||_f.outros>0)?(' <span style="color:#8a97a8">(ingred. '+brl(_f.ing)+(_f.emb>0?(' + emb. '+brl(_f.emb)):'')+(_f.outros>0?(' + operac. '+brl(_f.outros)):'')+')</span>'):'';
-        var _p1=(_f.total>0)?('Custo: '+brl(_f.total)+_det):'';
-        var _p2=(_f.preco>0)?((_p1?' · ':'')+'Venda: '+brl(_f.preco)):'';
-        var _p3=(_f.lucro!=null)?(' · <b style="color:'+_cor+'">Lucro: '+brl(_f.lucro)+'</b> · Markup: <b>'+recPct(_f.markup)+'</b> · Marg. venda: <b>'+recPct(_f.margVenda)+'</b>'):'';
-        var _p4=(_f.custoUn!=null)?(' · Custo por '+recEsc(_f.un)+': <b>'+brl(_f.custoUn)+'</b>'+((_f.vendaUn!=null)?(' · Venda por '+recEsc(_f.un)+': <b>'+brl(_f.vendaUn)+'</b>'):'')):'';
-        _money='<div class="rec-money">'+_p1+_p2+_p3+_p4+'</div>';
+        var _sa=_f.saude||{nivel:"vazio",titulo:""};
+        var _un=recEsc(_f.un||"unidade");
+        var _kpi=function(cls,rot,val,sub){
+          return '<div class="rec-kpi'+(cls?(" "+cls):"")+'"><div class="k">'+rot+'</div>'
+            +'<div class="v">'+val+'</div>'+(sub?('<div class="s">'+sub+'</div>'):'')+'</div>';
+        };
+        var _bl='';
+        if(_f.custoUn!=null){
+          _bl+=_kpi("","Custo por "+_un,brl(_f.custoUn));
+          if(_f.vendaUn!=null) _bl+=_kpi("","Venda por "+_un,brl(_f.vendaUn));
+          if(_f.lucroUn!=null) _bl+=_kpi((_f.lucroUn<0?"ruim":""),"Lucro por "+_un,brl(_f.lucroUn));
+        } else {
+          // receita sem rendimento informado: mostra o total, que é o que existe
+          _bl+=_kpi("","Custo da receita",brl(_f.total));
+          if(_f.preco>0) _bl+=_kpi("","Preço de venda",brl(_f.preco));
+          if(_f.lucro!=null) _bl+=_kpi((_f.lucro<0?"ruim":""),"Lucro",brl(_f.lucro));
+        }
+        if(_f.margVenda!=null) _bl+=_kpi(_sa.nivel,"Margem sobre a venda",recPct(_f.margVenda),recEsc(_sa.titulo||""));
+        var _det=(_f.emb>0||_f.outros>0)
+          ? (' (ingredientes '+brl(_f.ing)+(_f.emb>0?(' + embalagem '+brl(_f.emb)):'')+(_f.outros>0?(' + operacionais '+brl(_f.outros)):'')+')')
+          : '';
+        // sem repetir o rendimento: ele já aparece em "Rende: 8 unidades" logo acima
+        var _tot='<div class="rec-tot">A receita inteira: '
+          +'custo <b>'+brl(_f.total)+'</b>'+recEsc(_det)
+          +(_f.preco>0?(' · venda <b>'+brl(_f.preco)+'</b>'):'')
+          +(_f.lucro!=null?(' · lucro <b>'+brl(_f.lucro)+'</b>'):'')
+          +(_f.markup!=null?(' · markup <b>'+recPct(_f.markup)+'</b>'):'')+'</div>';
+        // Sem mão de obra e energia, a margem parece melhor do que é. Dizer isso baixinho é
+        // mais honesto do que deixar o número passar por completo.
+        var _nota=(!(_f.outros>0))
+          ? '<div class="rec-nota">Esta conta não inclui mão de obra nem energia — a margem real é menor.</div>' : '';
+        _money='<div class="rec-kpis">'+_bl+'</div>'+_tot+_nota;
       }
       var _temIng=!!(x.ingredientes||(x.ingr&&x.ingr.length));
       h+='<div class="rec-card">'+((x.foto&&!_temIng)?'<img src="'+recEsc(x.foto)+'" class="rec-foto" alt="Foto da receita">':'')+'<div class="rec-card-top"><div class="rec-nome">'+recEsc(x.nome)+'</div>'+(x.setor?'<span class="rec-tag">'+recEsc(x.setor)+'</span>':'')+'</div>'
@@ -19893,6 +19940,44 @@ const comTema = injetarTemaEscuro(comCentral);
     process.exit(1);
   }
   console.log("   trava do build: nenhuma leitura de elemento inexistente (" + CONHECIDAS.size + " conhecidas ignoradas).");
+}
+
+/* TRAVA DO BUILD 3 — chamar função que NÃO EXISTE.
+   O painel é um arquivo só, sem conferência de nomes: escrever `recNum(x)` quando a função
+   se chama outra coisa passa direto pelo compilador (é JavaScript, só quebra na hora do
+   clique) e some no meio de uma tela. Aconteceu em 12/08/2026 e derrubou a lista de receitas.
+   Aqui olhamos só as funções DA CASA — as que seguem os prefixos dos módulos do painel —
+   porque para essas a regra é simples: se é chamada, tem que estar definida em algum lugar.
+   Nome de biblioteca, método de objeto e função do navegador ficam de fora de propósito. */
+{
+  const definidas = new Set<string>();
+  let m: RegExpExecArray | null;
+  const reDef = /\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g;
+  while ((m = reDef.exec(comTema))) definidas.add(m[1]);
+  // var nome = function(){} / const nome = (…)=>… também definem
+  const reVar = /\b(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:function\b|\()/g;
+  while ((m = reVar.exec(comTema))) definidas.add(m[1]);
+  // window.nome = function(){}
+  const reWin = /\bwindow\.([A-Za-z_$][\w$]*)\s*=/g;
+  while ((m = reWin.exec(comTema))) definidas.add(m[1]);
+
+  const PREFIXOS = /^(rec|ent|cl|ins|mat|cop|rat|px|gl|man|desp|ag|jor|esc|fer|epi|fard|neg|cz|ui|acs|rcb|prd|conf)[A-Z]/;
+  const chamadas = new Set<string>();
+  const reCall = /(^|[^.\w$])([A-Za-z_$][\w$]*)\s*\(/g;
+  while ((m = reCall.exec(comTema))) {
+    const nome = m[2];
+    if (!PREFIXOS.test(nome)) continue;      // só as funções da casa
+    if (definidas.has(nome)) continue;
+    chamadas.add(nome);
+  }
+  if (chamadas.size) {
+    console.error("\n>>> BUILD RECUSADO: o painel chama função que não existe:\n    " +
+      [...chamadas].join(", ") +
+      "\n    Isso só quebra na hora do clique, e derruba a tela inteira sem avisar.\n" +
+      "    Confira se o nome está certo, ou defina a função.\n");
+    process.exit(1);
+  }
+  console.log("   trava do build: nenhuma função inexistente sendo chamada.");
 }
 
 await writeFile("output/index.html", comTema);
