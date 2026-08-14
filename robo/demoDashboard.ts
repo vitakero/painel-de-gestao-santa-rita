@@ -5427,7 +5427,11 @@ function clConfLoad(){
   }catch(e){}
 }
 var PX_CONFERIR_URL="https://painel-de-gestao-santa-rita.vercel.app/conferir.html";  // página pública de conferência da assinatura
-var CL_AGENDAR_URL="https://painel-de-gestao-santa-rita.vercel.app/agendar.html"; // vira agendamento.supermercadosantarita.com.br quando o domínio ligar
+// 14/08/2026: este endereço agora abre o PORTAL DO FORNECEDOR (com cadastro, login e senha),
+// e não mais o formulário anônimo. O link nunca chegou a ser distribuído, então o portal ocupou
+// o mesmo endereço em vez de nascer num segundo — um endereço só, sem página de passagem.
+// Vira agendamento.supermercadosantarita.com.br quando o domínio ligar.
+var CL_AGENDAR_URL="https://painel-de-gestao-santa-rita.vercel.app/agendar.html";
 function clLinkFornecedor(){
   var url=CL_AGENDAR_URL;
   try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(url); }catch(e){}
