@@ -791,6 +791,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="estld"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg></span> Loja / Depósito<span class="soon">novo</span></button>
     <button class="nav-item" data-page="pedidos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span> Pedidos<span class="soon">novo</span><span class="nav-badge" id="pedNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="central"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Central Logística<span class="soon">novo</span></button>
+    <button class="nav-item" data-page="fornecedores"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 11h.01M15 11h.01"/></svg></span> Fornecedores<span class="soon">novo</span></button>
     <button class="nav-item" data-page="cargos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4V10H4zM10 20h4V4h-4zM16 20h4v-7h-4z"/></svg></span> Cargos e Salários</button>
     <button class="nav-item" data-page="jornada"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span> Banco de Horas<span class="soon">novo</span></button>
     <button class="nav-item" data-page="manutencoes"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.3-.6-.6-2.3 2.6-2.6z"/></svg></span> Manutenções<span class="nav-badge" id="manNavBadge" style="display:none;"></span></button>
@@ -2249,6 +2250,33 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 
     <section id="page-cartaz" class="page">
       <style>
+        /* ---- Fornecedores ---- */
+        #page-fornecedores .frn-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 18px;}
+        #page-fornecedores .frn-kpi{background:#f7f9fb;border:1px solid #e6ebf1;border-radius:12px;padding:14px 16px;}
+        #page-fornecedores .frn-kpi b{display:block;font-size:26px;line-height:1.1;color:#1d2733;}
+        #page-fornecedores .frn-kpi span{font-size:12px;color:#7a8797;}
+        #page-fornecedores .frn-kpi.alerta{background:#fff4e5;border-color:#ffd9a8;}
+        #page-fornecedores .frn-kpi.alerta b{color:#9a5b12;}
+        #page-fornecedores .frn-busca{margin:0 0 16px;}
+        #page-fornecedores .frn-busca input{width:100%;box-sizing:border-box;border:1.5px solid #e1e7ee;border-radius:10px;padding:10px 14px;font-size:14px;color:#1d2733;}
+        #page-fornecedores .frn-busca input:focus{outline:none;border-color:#157a35;}
+        #page-fornecedores .frn-sec{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8a97a8;margin:22px 0 10px;font-weight:700;}
+        #page-fornecedores .frn-card{border:1px solid #e6ebf1;border-radius:12px;padding:14px 16px;margin:0 0 10px;background:#fff;}
+        #page-fornecedores .frn-card.esperando{border-color:#ffd9a8;background:#fffdf9;}
+        #page-fornecedores .frn-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;}
+        #page-fornecedores .frn-top b{font-size:15.5px;color:#1d2733;}
+        #page-fornecedores .frn-cnpj{display:block;font-size:12.5px;color:#8a97a8;font-variant-numeric:tabular-nums;margin-top:2px;}
+        #page-fornecedores .frn-espera{font-size:11.5px;font-weight:700;color:#9a5b12;background:#fff4e5;border:1px solid #ffd9a8;border-radius:999px;padding:3px 10px;white-space:nowrap;}
+        #page-fornecedores .frn-dados{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:8px;font-size:13px;color:#5b6a7d;}
+        #page-fornecedores .frn-motivo{margin-top:8px;font-size:13px;color:#a8322a;}
+        #page-fornecedores .frn-acoes{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+        #page-fornecedores .frn-aviso{margin-top:10px;font-size:12.5px;color:#8a97a8;font-style:italic;}
+        #page-fornecedores .frn-bt{border:1px solid #d7dee6;background:#fff;border-radius:9px;padding:7px 16px;font-size:13.5px;font-weight:600;cursor:pointer;color:#33404f;}
+        #page-fornecedores .frn-bt.sim{background:#157a35;border-color:#157a35;color:#fff;}
+        #page-fornecedores .frn-bt.sim:hover{background:#12692e;}
+        #page-fornecedores .frn-bt.nao:hover,#page-fornecedores .frn-bt.bloq:hover{border-color:#a8322a;color:#a8322a;}
+        #page-fornecedores .frn-vazio{color:#8a97a8;font-size:14px;margin:10px 0 0;}
+        #page-fornecedores .frn-erro{color:#a8322a;font-size:14px;margin:10px 0 0;}
         #page-cartaz .cz-sub{text-align:center;color:#6b7787;font-size:13px;margin:0 0 14px;}
         #page-cartaz .cz-steps{display:flex;gap:8px;justify-content:center;margin:0 0 18px;flex-wrap:wrap;}
         #page-cartaz .cz-step{padding:7px 14px;border-radius:20px;font-size:12.5px;font-weight:700;background:#eef1f5;color:#97a2ae;}
@@ -3635,6 +3663,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     </section>
     <section id="page-despesas" class="page"><div id="despRoot"></div></section>
     <section id="page-recibos" class="page"><div id="rcbRoot"></div></section>
+    <section id="page-fornecedores" class="page"><div id="frnRoot"></div></section>
   </main>
   </div>
   <footer>Dados reais lidos do sistema VR da loja · resumos gerados em ${geradoEm} · o filtro recalcula no seu navegador.</footer>
@@ -16061,6 +16090,245 @@ function manAgSaveFromForm(){
   });
 })();
 
+/* ===== Fornecedores — quem pode agendar entrega na loja ===== */
+/* ==FRN-INICIO== CADASTRO DE FORNECEDOR (testado em scripts/testes/fornecedores.test.cjs)
+   Tela do lado da LOJA. O fornecedor se cadastra no site dele
+   (agendamento.supermercadosantarita.com.br) e cai aqui como "aguardando".
+   Ninguém enxerga nada até alguém desta tela liberar — é a aprovação, e não a senha,
+   que impede estranho de entrar. Decisão do dono em 14/08/2026.
+
+   O CNPJ é a identidade: é ele que junta "Marilan", "MARILAN IND LTDA" e "marilan"
+   num fornecedor só. Por isso a conferência de CNPJ aqui é a de verdade, com dígito
+   verificador — CNPJ digitado errado cria um fornecedor fantasma que nunca mais casa
+   com nada. */
+
+// Só os números. O banco guarda assim; a tela é que enfeita.
+function frnCnpjLimpo(s){ return String(s==null?'':s).replace(/[^0-9]/g,''); }
+
+// 00.000.000/0000-00 — só pra ler. Se não tiver 14, devolve o que veio.
+function frnCnpjFmt(s){
+  var d=frnCnpjLimpo(s);
+  if(d.length!==14) return String(s==null?'':s);
+  return d.slice(0,2)+'.'+d.slice(2,5)+'.'+d.slice(5,8)+'/'+d.slice(8,12)+'-'+d.slice(12);
+}
+
+// Confere os dois dígitos verificadores. É a mesma conta que a Receita usa.
+function frnCnpjValido(s){
+  var d=frnCnpjLimpo(s);
+  if(d.length!==14) return false;
+  // 00000000000000, 11111111111111... passam na conta mas não existem
+  var repetido=true;
+  for(var r=1;r<14;r++){ if(d.charAt(r)!==d.charAt(0)){ repetido=false; break; } }
+  if(repetido) return false;
+  function digito(base){
+    var peso=base.length===12?[5,4,3,2,9,8,7,6,5,4,3,2]:[6,5,4,3,2,9,8,7,6,5,4,3,2];
+    var soma=0;
+    for(var i=0;i<base.length;i++){ soma+=parseInt(base.charAt(i),10)*peso[i]; }
+    var resto=soma%11;
+    return resto<2?0:11-resto;
+  }
+  var d1=digito(d.slice(0,12));
+  if(d1!==parseInt(d.charAt(12),10)) return false;
+  var d2=digito(d.slice(0,13));
+  return d2===parseInt(d.charAt(13),10);
+}
+
+// Busca sem acento e sem pontuação: quem procura digita "marilan" ou "12345678",
+// e no cadastro está "MARILAN IND. E COM. LTDA" e "12.345.678/0001-90".
+function frnSemAcento(s){
+  s=String(s==null?'':s).toLowerCase();
+  try{ s=s.normalize('NFD').replace(/[\\u0300-\\u036f]/g,''); }catch(e){}
+  return s;
+}
+
+function frnCasa(f, busca){
+  var q=frnSemAcento(busca).trim();
+  if(!q) return true;
+  var soNum=q.replace(/[^0-9]/g,'');
+  if(soNum.length>=3 && frnCnpjLimpo(f.cnpj).indexOf(soNum)>=0) return true;
+  var alvo=frnSemAcento([f.razao_social,f.nome_curto,f.email,f.responsavel].join(' '));
+  return alvo.indexOf(q)>=0;
+}
+
+function frnFiltrar(lista, busca, situacao){
+  var out=[];
+  for(var i=0;i<(lista||[]).length;i++){
+    var f=lista[i];
+    if(situacao && f.situacao!==situacao) continue;
+    if(!frnCasa(f,busca)) continue;
+    out.push(f);
+  }
+  // aguardando primeiro (é o que precisa de ação), depois por nome
+  out.sort(function(a,b){
+    if(a.situacao!==b.situacao){
+      if(a.situacao==='aguardando') return -1;
+      if(b.situacao==='aguardando') return 1;
+    }
+    return String(a.razao_social||'').localeCompare(String(b.razao_social||''),'pt',{numeric:true});
+  });
+  return out;
+}
+
+function frnResumo(lista){
+  var r={aguardando:0, liberado:0, recusado:0, bloqueado:0, total:0};
+  for(var i=0;i<(lista||[]).length;i++){
+    var s=lista[i].situacao;
+    if(r[s]===undefined) continue;
+    r[s]++; r.total++;
+  }
+  return r;
+}
+
+// Quanto tempo faz que pediu. Fornecedor esperando há 3 dias é problema.
+function frnEspera(criadoEm, agora){
+  // new Date(null) NÃO dá erro: devolve 1970, e a tela mostraria "há 20679 dias".
+  // Por isso a recusa explícita antes de converter.
+  if(criadoEm==null || criadoEm==='') return '';
+  var t0=new Date(criadoEm).getTime();
+  if(!isFinite(t0)) return '';
+  var dias=Math.floor(((agora||Date.now())-t0)/86400000);
+  if(dias<=0) return 'hoje';
+  if(dias===1) return 'ontem';
+  return 'há '+dias+' dias';
+}
+/* ==FRN-FIM== */
+
+// Escapa o que vem do fornecedor antes de virar HTML. Cada modulo tem o seu;
+// nao existe um global no painel.
+function frnEsc(s){ s=(s==null?'':''+s); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+var frnLista=[], frnBusca='', frnCarregando=false, frnErro='';
+
+function frnPodeDecidir(){
+  try{ return !!(window.__PERFIL && (window.__PERFIL.is_master || podePagina('fornecedores'))); }catch(e){ return false; }
+}
+
+function frnCloudLoad(){
+  if(typeof sb==='undefined' || !sb){ frnErro='Sem conexão com a nuvem.'; renderFornecedores(); return; }
+  frnCarregando=true; frnErro=''; renderFornecedores();
+  sb.from('receb_fornecedores')
+    .select('id,cnpj,razao_social,nome_curto,email,telefone,responsavel,situacao,motivo,criado_em,liberado_em')
+    .order('criado_em',{ascending:false})
+    .then(function(r){
+      frnCarregando=false;
+      if(r.error){ frnErro=r.error.message||'Não consegui carregar.'; frnLista=[]; }
+      else { frnLista=r.data||[]; }
+      renderFornecedores();
+    });
+}
+
+function frnDecidir(id, situacao){
+  var f=null;
+  for(var i=0;i<frnLista.length;i++){ if(frnLista[i].id===id){ f=frnLista[i]; break; } }
+  if(!f) return;
+  var txt={
+    liberado:{titulo:'Liberar '+(f.razao_social||'este fornecedor')+'?',
+              msg:'Ele vai poder entrar no portal e agendar entregas.\\n\\nCNPJ '+frnCnpjFmt(f.cnpj),
+              ok:'Liberar'},
+    recusado:{titulo:'Recusar '+(f.razao_social||'este fornecedor')+'?',
+              msg:'Ele vai continuar sem acesso. Você pode liberar depois, se for engano.',
+              ok:'Recusar'},
+    bloqueado:{titulo:'Bloquear '+(f.razao_social||'este fornecedor')+'?',
+               msg:'Ele perde o acesso ao portal. Os agendamentos que já existem não somem.',
+               ok:'Bloquear'}
+  }[situacao];
+  if(!txt) return;
+  uiConfirm({titulo:txt.titulo,msg:txt.msg,ok:txt.ok,cancel:'Deixa pra lá'}).then(function(sim){
+    if(!sim) return;
+    sb.rpc('forn_decidir',{p_fornecedor_id:id,p_situacao:situacao}).then(function(r){
+      if(r.error || (r.data && r.data.ok===false)){
+        uiConfirm({titulo:'Não deu certo',
+                   msg:(r.error?r.error.message:(r.data&&r.data.erro))||'Tente de novo.',
+                   ok:'Entendi',cancel:''});
+        return;
+      }
+      frnCloudLoad();
+    });
+  });
+}
+
+function renderFornecedores(){
+  var root=document.getElementById('frnRoot'); if(!root) return;
+  var pode=frnPodeDecidir();
+  var res=frnResumo(frnLista);
+  var esperando=frnFiltrar(frnLista, frnBusca, 'aguardando');
+  var ativos=frnFiltrar(frnLista, frnBusca, 'liberado');
+  var fora=frnFiltrar(frnLista, frnBusca, 'recusado').concat(frnFiltrar(frnLista, frnBusca, 'bloqueado'));
+
+  function cartao(f, acoes){
+    var b='<div class="frn-card'+(f.situacao==='aguardando'?' esperando':'')+'">';
+    b+='<div class="frn-top"><div><b>'+frnEsc(f.razao_social||'(sem nome)')+'</b>';
+    b+='<span class="frn-cnpj">'+frnEsc(frnCnpjFmt(f.cnpj))+'</span></div>';
+    if(f.situacao==='aguardando') b+='<span class="frn-espera">pediu '+frnEsc(frnEspera(f.criado_em))+'</span>';
+    b+='</div>';
+    b+='<div class="frn-dados">';
+    if(f.email)       b+='<span>✉ '+frnEsc(f.email)+'</span>';
+    if(f.telefone)    b+='<span>☎ '+frnEsc(f.telefone)+'</span>';
+    if(f.responsavel) b+='<span>👤 '+frnEsc(f.responsavel)+'</span>';
+    b+='</div>';
+    if(f.motivo) b+='<div class="frn-motivo">Motivo: '+frnEsc(f.motivo)+'</div>';
+    if(acoes && pode) b+='<div class="frn-acoes">'+acoes+'</div>';
+    else if(acoes && !pode) b+='<div class="frn-aviso">Aguardando o responsável decidir.</div>';
+    b+='</div>';
+    return b;
+  }
+
+  var h='<div class="card"><div class="card-h"><h3>Fornecedores</h3>'
+      + '<span class="sub">Quem pode entrar no portal e agendar entrega na loja</span></div>';
+
+  h+='<div class="frn-kpis">'
+   + '<div class="frn-kpi'+(res.aguardando>0?' alerta':'')+'"><b>'+res.aguardando+'</b><span>aguardando você</span></div>'
+   + '<div class="frn-kpi"><b>'+res.liberado+'</b><span>liberados</span></div>'
+   + '<div class="frn-kpi"><b>'+(res.recusado+res.bloqueado)+'</b><span>sem acesso</span></div>'
+   + '</div>';
+
+  h+='<div class="frn-busca"><input id="frnBusca" type="text" placeholder="Procurar por nome ou CNPJ" value="'+frnEsc(frnBusca)+'"></div>';
+
+  if(frnCarregando){ h+='<p class="frn-vazio">Carregando...</p>'; }
+  else if(frnErro){ h+='<p class="frn-erro">'+frnEsc(frnErro)+'</p>'; }
+  else {
+    if(esperando.length){
+      h+='<h4 class="frn-sec">Aguardando liberação</h4>';
+      for(var i=0;i<esperando.length;i++){
+        h+=cartao(esperando[i],
+          '<button class="frn-bt sim" data-frnsim="'+esperando[i].id+'">Liberar</button>'
+        + '<button class="frn-bt nao" data-frnnao="'+esperando[i].id+'">Recusar</button>');
+      }
+    }
+    h+='<h4 class="frn-sec">Liberados'+(ativos.length?' ('+ativos.length+')':'')+'</h4>';
+    if(!ativos.length){ h+='<p class="frn-vazio">'+(frnBusca?'Nenhum fornecedor com esse nome ou CNPJ.':'Nenhum fornecedor liberado ainda.')+'</p>'; }
+    else { for(var j=0;j<ativos.length;j++){
+      h+=cartao(ativos[j], '<button class="frn-bt bloq" data-frnblo="'+ativos[j].id+'">Bloquear</button>');
+    } }
+    if(fora.length){
+      h+='<h4 class="frn-sec">Sem acesso ('+fora.length+')</h4>';
+      for(var k=0;k<fora.length;k++){
+        h+=cartao(fora[k], '<button class="frn-bt sim" data-frnsim="'+fora[k].id+'">Liberar</button>');
+      }
+    }
+  }
+  h+='</div>';
+  root.innerHTML=h;
+
+  if(!root.__frnb){
+    root.__frnb=1;
+    root.addEventListener('click',function(e){
+      var t;
+      if(t=e.target.closest('[data-frnsim]')){ frnDecidir(t.getAttribute('data-frnsim'),'liberado'); return; }
+      if(t=e.target.closest('[data-frnnao]')){ frnDecidir(t.getAttribute('data-frnnao'),'recusado'); return; }
+      if(t=e.target.closest('[data-frnblo]')){ frnDecidir(t.getAttribute('data-frnblo'),'bloqueado'); return; }
+    });
+    root.addEventListener('input',function(e){
+      if(e.target && e.target.id==='frnBusca'){
+        frnBusca=e.target.value;
+        var pos=e.target.selectionStart;
+        renderFornecedores();
+        var n=document.getElementById('frnBusca');
+        if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(_){} }
+      }
+    });
+  }
+}
+
 /* ===== Gerador de Cartaz de Oferta ===== */
 var czStep=1, czModelo='padrao', czProdutos=[], czTamanho='A4', czImpressao='multi', czValIni='', czValidade='', czLimite='0', czTema=null;
 function czEhMaster(){ return !!(window.__PERFIL && window.__PERFIL.is_master); }
@@ -16569,6 +16837,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="recibos"){ try{ rcbRender(); }catch(e){} }
     if(btn.dataset.page==="planta"){ try{ glCloudLoad(); glRealtime(); renderPlanta(); }catch(e){} }
     if(btn.dataset.page==="central"){ try{ clCloudLoad(); }catch(e){} }
+    if(btn.dataset.page==="fornecedores"){ try{ frnCloudLoad(); }catch(e){} }
     if(btn.dataset.page==="jornada"){ try{ jorCloudLoad(); jorRealtime(); renderJornada(); }catch(e){} }
     if(btn.dataset.page==="epi") renderEPI();
     if(btn.dataset.page==="fardamento") renderFardamento();
