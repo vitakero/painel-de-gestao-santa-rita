@@ -2264,6 +2264,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-temaTx{width:100%;aspect-ratio:16/5;display:flex;align-items:center;justify-content:center;font-family:'Bangers',cursive;color:#ef1b1b;font-size:30px;background:#ffe600;border-radius:9px;}
         #page-cartaz .cz-tema span{font-size:12px;color:#5c6a7a;font-weight:700;}
         #page-cartaz .cz-temaDel{position:absolute;top:7px;right:7px;border:0;background:rgba(20,25,32,.6);color:#fff;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:11px;line-height:1;}
+        #page-cartaz .cz-selo{display:inline-block;margin-top:6px;background:#fff4e5;border:1px solid #ffd9a8;color:#9a5b12;font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;}
         #page-cartaz .cz-temaUp{border-style:dashed;justify-content:center;color:#157a35;min-height:100px;}
         #page-cartaz .cz-temaPlus{font-size:32px;line-height:1;}
         /* IMAGEM DO TOPO SANGRA ATÉ A BORDA — 13/08/2026, pela arte que o dono montou no Canva:
@@ -16051,6 +16052,7 @@ function manAgSaveFromForm(){
 
 /* ===== Gerador de Cartaz de Oferta ===== */
 var czStep=1, czModelo='padrao', czProdutos=[], czTamanho='A4', czImpressao='multi', czValIni='', czValidade='', czLimite='0', czTema=null;
+function czEhMaster(){ return !!(window.__PERFIL && window.__PERFIL.is_master); }
 function czTemasGet(){ try{ return JSON.parse(localStorage.getItem('cz_temas')||'[]'); }catch(e){ return []; } }
 function czTemasSave(l){ try{ localStorage.setItem('cz_temas',JSON.stringify(l)); return true; }catch(e){ return false; } }
 // CABEÇALHO DE FÁBRICA (14/08/2026, pedido do dono): a arte oficial vem DENTRO do painel, não
@@ -16231,12 +16233,22 @@ function renderCartaz(){
   var st='<div class="cz-steps"><div class="cz-step '+(czStep>1?'done':(czStep===1?'on':''))+'">1. Modelo</div><div class="cz-step '+(czStep>2?'done':(czStep===2?'on':''))+'">2. Produtos</div><div class="cz-step '+(czStep>3?'done':(czStep===3?'on':''))+'">3. Conferir</div></div>';
   var b='';
   if(czStep===1){
-    var mods=[{k:'padrao',t:'Oferta padrão'},{k:'depor',t:'De / Por'},{k:'deitado',t:'Deitado — 2 por folha'}];
+    // MODELO EM AJUSTE (14/08/2026, pedido do dono): o "Deitado — 2 por folha" ainda não está
+    // pronto pro dia a dia (a arte não cabe colada nas bordas nesse formato). Enquanto ele
+    // acerta, só o master vê e usa; quem opera o cartaz nem enxerga a opção.
+    // Pra liberar depois é só apagar o soMaster:true daqui.
+    var mods=[{k:'padrao',t:'Oferta padrão'},{k:'depor',t:'De / Por'},{k:'deitado',t:'Deitado — 2 por folha',soMaster:true}];
+    mods=mods.filter(function(m){ return !m.soMaster || czEhMaster(); });
+    // Se alguém ficou com o modelo escondido selecionado (perdeu o master, ou veio de outro
+    // aparelho), volta pro padrão em vez de gerar um cartaz que ela não pode usar.
+    if(!mods.some(function(m){ return m.k===czModelo; })) czModelo='padrao';
     b='<p class="cz-sub">Escolha o modelo do cartaz</p><div class="cz-models">';
     for(var i=0;i<mods.length;i++){ var m=mods[i]; var amostra={oferta:'OFERTA',nome:'PRODUTO',marca:'MARCA',gram:'DESCRIÇÃO DO PRODUTO',preco:'99,99',precoDe:(m.k==='depor'?'129,99':'')};
       var umL='<div class="ctzL">'+czInnerL(amostra)+'</div>';
       var thumb=(m.k==='deitado')?('<div class="czLd2">'+umL+umL+'</div>'):('<div class="ctz">'+czInner(amostra)+'</div>');
-      b+='<div class="cz-model '+(czModelo===m.k?'on':'')+'" data-czmodel="'+m.k+'">'+thumb+'<h4>'+m.t+'</h4></div>'; }
+      // O selo só aparece pro master — é ele que precisa saber que aquele card está escondido.
+      var selo=m.soMaster?'<div class="cz-selo">só você vê — em ajuste</div>':'';
+      b+='<div class="cz-model '+(czModelo===m.k?'on':'')+'" data-czmodel="'+m.k+'">'+thumb+'<h4>'+m.t+'</h4>'+selo+'</div>'; }
     b+='</div>';
     var temas=czTemasTodos();
     // A medida aparece ANTES de a pessoa tentar enviar. A trava avisa quem erra, mas o certo é
@@ -16364,6 +16376,13 @@ function czInput(e){
   if(t.hasAttribute && t.hasAttribute('data-czfield')){ var idx=parseInt(t.getAttribute('data-czidx'),10); var f=t.getAttribute('data-czfield'); if(czProdutos[idx]) czProdutos[idx][f]=t.value; return; }
 }
 function czImprimir(){
+  // Segunda tranca do modelo em ajuste: a lista já esconde, mas quem gera é AQUI. Se o modelo
+  // escondido chegar até a impressão sem ser master, para antes de sair papel.
+  if(czModelo==='deitado' && !czEhMaster()){
+    czModelo='padrao'; renderCartaz();
+    uiConfirm({titulo:'Esse modelo ainda não está liberado',msg:'O modelo "Deitado — 2 por folha" está em ajuste.\\n\\nUse "Oferta padrão" ou "De / Por" — voltei pro padrão pra você.',ok:'Entendi',cancel:''});
+    return;
+  }
   var itens=[]; for(var i=0;i<czProdutos.length;i++){ var q=Math.max(1,parseInt(czProdutos[i].qtd,10)||1); for(var k=0;k<q;k++) itens.push(czProdutos[i]); }
   if(!itens.length) return;
   // ===== MODELO DEITADO: 2 por folha A4 =====
