@@ -2258,22 +2258,13 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-model{position:relative;border:2px solid #e1e7ee;border-radius:14px;padding:14px;cursor:pointer;text-align:center;background:#fff;transition:.12s;}
         #page-cartaz .cz-model.on{border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.12);}
         #page-cartaz .cz-model h4{margin:10px 0 0;font-size:14px;color:#1d2733;}
-        /* A ESCOLHA DO MODELO CABE NA TELA, SEM ROLAR (14/08/2026, pedido do dono).
-           Medido na tela: fora a miniatura, o passo 1 ocupa 610px (com o rodapé e o recuo do
-           main já contados). Daí o 610. A miniatura recebe o que
-           SOBRA da janela, em vez de ter tamanho fixo: em tela grande fica nos 212px de sempre,
-           em tela baixa encolhe até 88px e a página continua inteira.
-           Dá pra mandar na ALTURA porque o .ctz tem aspect-ratio 210/297: a largura vem sozinha,
-           e o cartaz nunca entorta. */
-        #page-cartaz{--mini:clamp(88px, calc(100dvh - 610px), 212px);}
-        #page-cartaz .cz-model .ctz{height:var(--mini);width:auto;max-width:100%;margin:0 auto;pointer-events:none;}
-        /* O deitado são DOIS cartazes empilhados (198x130 cada), então a altura dele é a
-           largura x 1,313. Divido por isso pra ele terminar com a MESMA altura da miniatura
-           vertical — senão era ele, o mais alto dos três, quem mandava na altura da fileira e
-           a página voltava a rolar na tela do master. */
-        /* margem 0 igual à miniatura vertical: com 10px em cima e embaixo esse card ficava mais
-           alto que os outros dois e, como a fileira se iguala pelo maior, sobrava rolagem. */
-        #page-cartaz .cz-model .czLd2{width:calc(var(--mini) / 1.313);max-width:none;margin:0 auto;pointer-events:none;display:flex;flex-direction:column;border:1px solid #e8ecf1;border-radius:8px;overflow:hidden;}
+        /* Miniatura de tamanho FIXO. Em 14/08/2026 eu tinha feito ela encolher conforme a altura
+           da janela, pra tela caber sem rolar — o dono não gostou de ver a miniatura pequena e
+           pediu o tamanho de sempre de volta. Rolar um pouco é preferível pra ele.
+           O conserto do rodapé na .sidebar (que era a causa real da rolagem em TODA página)
+           continua valendo — aquilo era defeito, isto aqui é gosto. */
+        #page-cartaz .cz-model .ctz{max-width:150px;margin:0 auto;pointer-events:none;}
+        #page-cartaz .cz-model .czLd2{max-width:170px;margin:10px auto;pointer-events:none;display:flex;flex-direction:column;border:1px solid #e8ecf1;border-radius:8px;overflow:hidden;}
         #page-cartaz .cz-model .czLd2 .ctzL+.ctzL{border-top:2px dashed #c9d2dc;}
         #page-cartaz .cz-temas{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;}
         #page-cartaz .cz-tema{position:relative;border:2px solid #e1e7ee;border-radius:14px;background:#fff;padding:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;transition:.12s;}
