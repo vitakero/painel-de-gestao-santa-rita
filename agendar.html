@@ -3,20 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Agendar entrega · Supermercado Santa Rita</title>
+<title>Portal do Fornecedor · Supermercado Santa Rita</title>
 <meta name="theme-color" content="#157a35">
-<!--
-  Esta página era o agendamento ANÔNIMO: qualquer um abria, digitava o nome da empresa na mão
-  e pedia um horário. Foi substituída em 14/08/2026 pelo Portal do Fornecedor, com cadastro,
-  login e liberação pela loja.
-
-  O link antigo nunca chegou a ser distribuído a fornecedor nenhum, então não houve migração
-  a fazer. Mantida como recado em vez de apagada, pra não deixar link morto se alguém tiver
-  copiado o endereço em algum lugar.
--->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  :root{ --green:#157a35; --green-deep:#0c5a26; --green-soft:#e6f4ea;
-         --ink:#233; --muted:#5c6773; --faint:#8a97a4; --bg:#eef1f4; --card:#fff; }
+  :root{
+    --green:#157a35; --green-deep:#0c5a26; --green-soft:#e6f4ea;
+    --ink:#233; --muted:#5c6773; --faint:#8a97a4;
+    --line:#e2e8ee; --bg:#eef1f4; --card:#fff;
+    --err:#c0392b; --err-soft:#fbeae7;
+    --warn:#9a5b12; --warn-soft:#fff4e5; --warn-line:#ffd9a8;
+  }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
   .wrap{max-width:460px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
@@ -25,30 +22,503 @@
   .cart svg{width:32px;height:32px;display:block;stroke:#fff}
   header h1{margin:8px 0 2px;font-size:21px;letter-spacing:-.2px}
   header p{margin:0;font-size:13px;opacity:.92}
-  main{background:var(--card);flex:1;padding:30px 20px;border-radius:18px 18px 0 0;margin-top:-14px;text-align:center}
-  .big{font-size:44px;line-height:1}
-  h2{margin:14px 0 8px;font-size:20px;color:var(--green-deep)}
-  p.txt{margin:0 auto 22px;max-width:330px;color:var(--muted);font-size:15px}
-  .btn{display:block;width:100%;border:0;background:var(--green);color:#fff;border-radius:12px;padding:15px;font-size:16.5px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:none}
-  .nota{margin:22px auto 0;max-width:330px;font-size:13px;color:var(--faint)}
+  header .quem{margin-top:10px;font-size:12.5px;opacity:.9}
+  header .quem b{font-weight:700}
+  main{background:var(--card);flex:1;padding:20px 18px 30px;border-radius:18px 18px 0 0;margin-top:-14px}
+  h2.tela{margin:0 0 4px;font-size:19px;letter-spacing:-.2px}
+  p.tela-sub{margin:0 0 18px;font-size:14px;color:var(--muted)}
+  .field{margin-bottom:15px}
+  label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px}
+  label .opt{font-weight:600;text-transform:none;letter-spacing:0;color:var(--faint)}
+  input,textarea,select{width:100%;border:1px solid var(--line);background:#f8fafb;border-radius:11px;padding:12px 13px;font-size:16px;color:var(--ink);font-family:inherit}
+  textarea{resize:vertical;min-height:60px}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--green);background:#fff;box-shadow:0 0 0 3px var(--green-soft)}
+  input.ruim{border-color:var(--err);background:var(--err-soft)}
+  .dica{font-size:12px;color:var(--faint);margin-top:5px}
+  .btn{width:100%;border:0;background:var(--green);color:#fff;border-radius:12px;padding:15px;font-size:16.5px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:6px}
+  .btn:disabled{opacity:.5;cursor:default}
+  .btn.sec{background:transparent;color:var(--green);font-weight:600;font-size:14.5px;padding:12px;margin-top:2px}
+  .btn.fraco{background:#f2f5f7;color:var(--muted);font-weight:600;font-size:14px;padding:11px}
+  .msg{font-size:14px;border-radius:11px;padding:11px 13px;margin-bottom:14px;display:none}
+  .msg.on{display:block}
+  .msg.err{background:var(--err-soft);color:var(--err);border:1px solid #f0ccc5}
+  .msg.ok{background:var(--green-soft);color:var(--green-deep);border:1px solid #c5e3ce}
+  .slots{display:flex;flex-wrap:wrap;gap:8px}
+  .slot{border:1px solid var(--line);background:#f8fafb;border-radius:11px;padding:11px 8px;font-size:15px;font-variant-numeric:tabular-nums;cursor:pointer;flex:1 0 26%;text-align:center;font-weight:600;color:var(--ink)}
+  .slot.sel{background:var(--green);border-color:var(--green);color:#fff}
+  .slot.full{color:var(--faint);background:transparent;cursor:not-allowed;text-decoration:line-through;font-weight:500}
+  .slots-msg{font-size:13.5px;color:var(--muted);padding:4px 2px}
+  .aviso{background:var(--warn-soft);border:1px solid var(--warn-line);border-radius:14px;padding:20px;text-align:center}
+  .aviso .big{font-size:40px;line-height:1}
+  .aviso h3{margin:10px 0 6px;font-size:18px;color:var(--warn)}
+  .aviso p{margin:0 auto;max-width:320px;font-size:14.5px;color:var(--muted)}
+  .lista{list-style:none;margin:0;padding:0}
+  .item{border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:10px}
+  .item .quando{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
+  .item .det{font-size:13.5px;color:var(--muted);margin-top:3px}
+  .selo{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-radius:999px;padding:3px 10px;border:1px solid}
+  .selo.pendente{background:var(--warn-soft);color:var(--warn);border-color:var(--warn-line)}
+  .selo.aprovado{background:var(--green-soft);color:var(--green-deep);border-color:#c5e3ce}
+  .selo.conferido{background:#eef1f4;color:var(--muted);border-color:var(--line)}
+  .selo.recusado,.selo.cancelado{background:var(--err-soft);color:var(--err);border-color:#f0ccc5}
+  .item-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .vazio{text-align:center;color:var(--muted);font-size:14.5px;padding:26px 10px}
+  .done{text-align:center;padding:24px 10px}
+  .done .big{font-size:46px}
+  .done h2{margin:12px 0 6px;font-size:22px;color:var(--green-deep)}
+  .done p{margin:0 auto;max-width:300px;color:var(--muted);font-size:14.5px}
+  .resumo{background:var(--green-soft);border-radius:12px;padding:13px 15px;margin-top:18px;text-align:left;font-size:14px}
+  .resumo b{color:var(--green-deep)}
   footer{text-align:center;font-size:11.5px;color:var(--faint);padding:16px}
+  .esconde{display:none}
+  .carregando{text-align:center;color:var(--muted);padding:40px 10px;font-size:14.5px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <div class="cart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
-    <h1>Agendar entrega</h1>
+    <h1>Portal do Fornecedor</h1>
     <p>Supermercado Santa Rita · Caicó/RN</p>
+    <div class="quem esconde" id="quem"></div>
   </header>
+
   <main>
-    <div class="big">🔑</div>
-    <h2>O agendamento mudou de lugar</h2>
-    <p class="txt">Agora cada fornecedor tem sua própria conta. Você cadastra sua empresa uma vez, e depois agenda, acompanha e cancela suas entregas por lá.</p>
-    <a class="btn" href="/fornecedor.html">Ir para o Portal do Fornecedor</a>
-    <p class="nota">Primeira vez? No portal, clique em <b>“Ainda não tenho cadastro”</b>. A loja confere seus dados e libera o acesso.</p>
+    <div class="carregando" id="carregando">Carregando...</div>
+
+    <!-- ============ ENTRAR ============ -->
+    <div class="esconde" id="telaEntrar">
+      <h2 class="tela">Entrar</h2>
+      <p class="tela-sub">Use o e-mail e a senha que você cadastrou.</p>
+      <div class="msg err" id="erroEntrar"></div>
+      <div class="msg ok" id="okEntrar"></div>
+      <div class="field">
+        <label for="eEmail">E-mail</label>
+        <input id="eEmail" type="email" autocomplete="username" inputmode="email" placeholder="voce@suaempresa.com.br">
+      </div>
+      <div class="field">
+        <label for="eSenha">Senha</label>
+        <input id="eSenha" type="password" autocomplete="current-password" placeholder="Sua senha">
+      </div>
+      <button class="btn" id="btEntrar">Entrar</button>
+      <button class="btn sec" id="btIrCriar">Ainda não tenho cadastro</button>
+      <button class="btn sec" id="btIrSenha">Esqueci minha senha</button>
+    </div>
+
+    <!-- ============ CRIAR CONTA ============ -->
+    <div class="esconde" id="telaCriar">
+      <h2 class="tela">Cadastrar minha empresa</h2>
+      <p class="tela-sub">Depois de cadastrar, a loja confere os dados e libera seu acesso.</p>
+      <div class="msg err" id="erroCriar"></div>
+      <div class="field">
+        <label for="cCnpj">CNPJ da empresa</label>
+        <input id="cCnpj" type="text" inputmode="numeric" placeholder="00.000.000/0000-00" maxlength="18">
+        <div class="dica" id="cCnpjDica"></div>
+      </div>
+      <div class="field">
+        <label for="cRazao">Razão social</label>
+        <input id="cRazao" type="text" placeholder="Nome da empresa como está no CNPJ" maxlength="140">
+      </div>
+      <div class="field">
+        <label for="cResp">Responsável pelo agendamento</label>
+        <input id="cResp" type="text" placeholder="Seu nome" maxlength="80">
+      </div>
+      <div class="field">
+        <label for="cTel">Telefone / WhatsApp <span class="opt">(opcional)</span></label>
+        <input id="cTel" type="tel" inputmode="tel" placeholder="(84) 90000-0000" maxlength="30">
+      </div>
+      <div class="field">
+        <label for="cEmail">E-mail</label>
+        <input id="cEmail" type="email" autocomplete="username" inputmode="email" placeholder="voce@suaempresa.com.br">
+        <div class="dica">É para este endereço que vão os avisos de agendamento.</div>
+      </div>
+      <div class="field">
+        <label for="cSenha">Crie uma senha</label>
+        <input id="cSenha" type="password" autocomplete="new-password" placeholder="Pelo menos 6 caracteres">
+      </div>
+      <button class="btn" id="btCriar">Cadastrar</button>
+      <button class="btn sec" id="btVoltaEntrar">Já tenho cadastro</button>
+    </div>
+
+    <!-- ============ ESQUECI A SENHA ============ -->
+    <div class="esconde" id="telaSenha">
+      <h2 class="tela">Esqueci minha senha</h2>
+      <p class="tela-sub">Vamos mandar um link no seu e-mail para você criar uma nova.</p>
+      <div class="msg err" id="erroSenha"></div>
+      <div class="msg ok" id="okSenha"></div>
+      <div class="field">
+        <label for="sEmail">E-mail do cadastro</label>
+        <input id="sEmail" type="email" inputmode="email" placeholder="voce@suaempresa.com.br">
+      </div>
+      <button class="btn" id="btMandarSenha">Mandar o link</button>
+      <button class="btn sec" id="btVoltaEntrar2">Voltar</button>
+    </div>
+
+    <!-- ============ CONFIRME O E-MAIL ============ -->
+    <div class="esconde" id="telaConfirme">
+      <div class="aviso">
+        <div class="big">✉️</div>
+        <h3>Confirme seu e-mail</h3>
+        <p>Mandamos um link para <b id="confEmail"></b>. Abra sua caixa de entrada e clique nele para ativar seu acesso.</p>
+      </div>
+      <button class="btn sec" id="btVoltaEntrar3">Voltar para o início</button>
+    </div>
+
+    <!-- ============ AGUARDANDO LIBERAÇÃO ============ -->
+    <div class="esconde" id="telaEspera">
+      <div class="aviso">
+        <div class="big">⏳</div>
+        <h3>Cadastro em análise</h3>
+        <p id="esperaTxt">A loja está conferindo seus dados. Assim que liberarem, você vai poder agendar suas entregas por aqui.</p>
+      </div>
+      <button class="btn fraco" id="btAtualizar">Já liberaram? Conferir de novo</button>
+      <button class="btn sec" id="btSair2">Sair</button>
+    </div>
+
+    <!-- ============ MINHAS ENTREGAS ============ -->
+    <div class="esconde" id="telaEntregas">
+      <h2 class="tela">Minhas entregas</h2>
+      <p class="tela-sub" id="entregasSub">O que você agendou no Santa Rita.</p>
+      <div class="msg err" id="erroEntregas"></div>
+      <button class="btn" id="btNova">Agendar uma entrega</button>
+      <div id="listaEntregas" style="margin-top:20px"></div>
+      <button class="btn sec" id="btSair">Sair</button>
+    </div>
+
+    <!-- ============ AGENDAR ============ -->
+    <div class="esconde" id="telaAgendar">
+      <h2 class="tela">Agendar entrega</h2>
+      <p class="tela-sub">Segunda a sexta, das 7h às 17h. Um caminhão por horário.</p>
+      <div class="msg err" id="erroAgendar"></div>
+      <div class="field">
+        <label for="aDia">Dia da entrega</label>
+        <input id="aDia" type="date">
+      </div>
+      <div class="field">
+        <label>Horário</label>
+        <div class="slots" id="aSlots"></div>
+        <div class="slots-msg" id="aSlotsMsg">Escolha o dia primeiro.</div>
+      </div>
+      <div class="field">
+        <label for="aPedido">Número do pedido <span class="opt">(opcional)</span></label>
+        <input id="aPedido" type="text" maxlength="40" placeholder="Ex: 45231">
+      </div>
+      <div class="field">
+        <label for="aDesc">O que vem no caminhão <span class="opt">(opcional)</span></label>
+        <textarea id="aDesc" maxlength="300" placeholder="Ex: 120 caixas de bebida, 2 pallets"></textarea>
+      </div>
+      <button class="btn" id="btAgendar">Pedir este horário</button>
+      <button class="btn sec" id="btVoltaEntregas">Voltar</button>
+    </div>
+
+    <!-- ============ PEDIDO ENVIADO ============ -->
+    <div class="esconde" id="telaPronto">
+      <div class="done">
+        <div class="big">✅</div>
+        <h2>Pedido enviado</h2>
+        <p>A loja vai conferir e confirmar. Você recebe um aviso no seu e-mail.</p>
+        <div class="resumo" id="prontoResumo"></div>
+      </div>
+      <button class="btn" id="btVerEntregas">Ver minhas entregas</button>
+    </div>
   </main>
+
   <footer>Supermercado Santa Rita · Caicó/RN</footer>
 </div>
+
+<script>
+(function(){
+  var SB = supabase.createClient("https://uabhsmculsfwzcrhyhch.supabase.co","sb_publishable_IPLbRjk89c666QkfcoVTiw_GXujUTZU");
+  var el = function(id){ return document.getElementById(id); };
+  var MESES=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+  var DOWS=["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
+  var horaSel=null, meuCadastro=null;
+
+  var TELAS=["telaEntrar","telaCriar","telaSenha","telaConfirme","telaEspera","telaEntregas","telaAgendar","telaPronto"];
+  function mostrar(qual){
+    el("carregando").classList.add("esconde");
+    for(var i=0;i<TELAS.length;i++){ el(TELAS[i]).classList.toggle("esconde", TELAS[i]!==qual); }
+    window.scrollTo(0,0);
+  }
+  function aviso(id, texto, tipo){
+    var m=el(id); if(!m) return;
+    m.textContent=texto||"";
+    m.className="msg "+(tipo||"err")+(texto?" on":"");
+  }
+  function limpaAvisos(){ ["erroEntrar","okEntrar","erroCriar","erroSenha","okSenha","erroEntregas","erroAgendar"].forEach(function(i){ aviso(i,""); }); }
+
+  // ---------------- CNPJ: a mesma conta que a Receita usa ----------------
+  // Um dígito errado cria um fornecedor fantasma que nunca mais casa com nada.
+  // Por isso a conferência é aqui, na entrada, e não depois.
+  function cnpjLimpo(s){ return String(s==null?"":s).replace(/[^0-9]/g,""); }
+  function cnpjFmt(s){
+    var d=cnpjLimpo(s).slice(0,14), r=d;
+    if(d.length>12) r=d.slice(0,2)+"."+d.slice(2,5)+"."+d.slice(5,8)+"/"+d.slice(8,12)+"-"+d.slice(12);
+    else if(d.length>8) r=d.slice(0,2)+"."+d.slice(2,5)+"."+d.slice(5,8)+"/"+d.slice(8);
+    else if(d.length>5) r=d.slice(0,2)+"."+d.slice(2,5)+"."+d.slice(5);
+    else if(d.length>2) r=d.slice(0,2)+"."+d.slice(2);
+    return r;
+  }
+  function cnpjValido(s){
+    var d=cnpjLimpo(s);
+    if(d.length!==14) return false;
+    var rep=true;
+    for(var i=1;i<14;i++){ if(d.charAt(i)!==d.charAt(0)){ rep=false; break; } }
+    if(rep) return false;
+    function dig(base){
+      var p=base.length===12?[5,4,3,2,9,8,7,6,5,4,3,2]:[6,5,4,3,2,9,8,7,6,5,4,3,2], s=0;
+      for(var i=0;i<base.length;i++){ s+=parseInt(base.charAt(i),10)*p[i]; }
+      var r=s%11; return r<2?0:11-r;
+    }
+    if(dig(d.slice(0,12))!==parseInt(d.charAt(12),10)) return false;
+    return dig(d.slice(0,13))===parseInt(d.charAt(13),10);
+  }
+
+  function dataBonita(iso){
+    var p=String(iso||"").split("-");
+    if(p.length!==3) return iso||"";
+    var d=new Date(+p[0], +p[1]-1, +p[2]);
+    return DOWS[d.getDay()]+", "+p[2]+" de "+MESES[+p[1]-1];
+  }
+
+  // ---------------- entrar / sair ----------------
+  el("btEntrar").onclick=function(){
+    limpaAvisos();
+    var email=(el("eEmail").value||"").trim().toLowerCase(), senha=el("eSenha").value||"";
+    if(!email || !senha){ aviso("erroEntrar","Preencha o e-mail e a senha."); return; }
+    el("btEntrar").disabled=true; el("btEntrar").textContent="Entrando...";
+    SB.auth.signInWithPassword({email:email, password:senha}).then(function(r){
+      el("btEntrar").disabled=false; el("btEntrar").textContent="Entrar";
+      if(r.error){
+        var m=r.error.message||"";
+        if(/Invalid login/i.test(m)) aviso("erroEntrar","E-mail ou senha não conferem.");
+        else if(/Email not confirmed/i.test(m)) aviso("erroEntrar","Confirme seu e-mail antes de entrar. Procure a mensagem que mandamos.");
+        else aviso("erroEntrar", m||"Não consegui entrar.");
+        return;
+      }
+      decidirTela();
+    });
+  };
+  function sair(){ SB.auth.signOut().then(function(){ meuCadastro=null; el("quem").classList.add("esconde"); mostrar("telaEntrar"); }); }
+  el("btSair").onclick=sair; el("btSair2").onclick=sair;
+
+  el("btIrCriar").onclick=function(){ limpaAvisos(); mostrar("telaCriar"); };
+  el("btVoltaEntrar").onclick=function(){ limpaAvisos(); mostrar("telaEntrar"); };
+  el("btVoltaEntrar2").onclick=function(){ limpaAvisos(); mostrar("telaEntrar"); };
+  el("btVoltaEntrar3").onclick=function(){ limpaAvisos(); mostrar("telaEntrar"); };
+  el("btIrSenha").onclick=function(){ limpaAvisos(); el("sEmail").value=el("eEmail").value||""; mostrar("telaSenha"); };
+
+  // ---------------- criar conta ----------------
+  el("cCnpj").addEventListener("input", function(){
+    var pos=this.selectionStart===this.value.length;
+    this.value=cnpjFmt(this.value);
+    if(pos){ try{ this.setSelectionRange(this.value.length,this.value.length); }catch(e){} }
+    var d=cnpjLimpo(this.value);
+    if(d.length===14){
+      var ok=cnpjValido(d);
+      this.classList.toggle("ruim", !ok);
+      el("cCnpjDica").textContent = ok ? "CNPJ conferido." : "Esse CNPJ não confere. Veja se digitou certo.";
+      el("cCnpjDica").style.color = ok ? "#157a35" : "#c0392b";
+    } else {
+      this.classList.remove("ruim");
+      el("cCnpjDica").textContent="";
+    }
+  });
+
+  el("btCriar").onclick=function(){
+    limpaAvisos();
+    var cnpj=cnpjLimpo(el("cCnpj").value),
+        razao=(el("cRazao").value||"").trim(),
+        resp=(el("cResp").value||"").trim(),
+        tel=(el("cTel").value||"").trim(),
+        email=(el("cEmail").value||"").trim().toLowerCase(),
+        senha=el("cSenha").value||"";
+
+    if(!cnpjValido(cnpj)){ aviso("erroCriar","O CNPJ não confere. Confira os números."); return; }
+    if(razao.length<3){ aviso("erroCriar","Informe a razão social da empresa."); return; }
+    if(!resp){ aviso("erroCriar","Informe quem é o responsável pelo agendamento."); return; }
+    if(!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email)){ aviso("erroCriar","Informe um e-mail válido."); return; }
+    if(senha.length<6){ aviso("erroCriar","A senha precisa de pelo menos 6 caracteres."); return; }
+
+    el("btCriar").disabled=true; el("btCriar").textContent="Cadastrando...";
+    SB.auth.signUp({
+      email:email, password:senha,
+      options:{ data:{ tipo:"fornecedor", nome:resp, cnpj:cnpj, razao_social:razao, telefone:tel, responsavel:resp } }
+    }).then(function(r){
+      el("btCriar").disabled=false; el("btCriar").textContent="Cadastrar";
+      if(r.error){
+        var m=r.error.message||"";
+        if(/already registered|already been registered/i.test(m)) aviso("erroCriar","Já existe cadastro com esse e-mail. Tente entrar, ou use 'Esqueci minha senha'.");
+        else aviso("erroCriar", m||"Não consegui cadastrar.");
+        return;
+      }
+      // Se o Supabase exigir confirmação de e-mail, não vem sessão agora.
+      // Nesse caso o cadastro da empresa é criado no primeiro login (garantirCadastro).
+      if(r.data && r.data.session){ garantirCadastro().then(decidirTela); }
+      else { el("confEmail").textContent=email; mostrar("telaConfirme"); }
+    });
+  };
+
+  // ---------------- esqueci a senha ----------------
+  el("btMandarSenha").onclick=function(){
+    limpaAvisos();
+    var email=(el("sEmail").value||"").trim().toLowerCase();
+    if(!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email)){ aviso("erroSenha","Informe o e-mail do cadastro."); return; }
+    el("btMandarSenha").disabled=true;
+    SB.auth.resetPasswordForEmail(email, {redirectTo: location.href}).then(function(){
+      el("btMandarSenha").disabled=false;
+      // resposta sempre igual, exista ou não o e-mail: senão vira jeito de descobrir quem é cadastrado
+      aviso("okSenha","Se existir cadastro com esse e-mail, o link já está a caminho.","ok");
+    });
+  };
+
+  // ---------------- o cadastro da empresa ----------------
+  // Roda depois de entrar. Se a conta ainda não tem empresa ligada (caso de quem
+  // confirmou o e-mail depois), cria agora com o que foi digitado no cadastro.
+  function garantirCadastro(){
+    return SB.rpc("forn_minha_situacao").then(function(r){
+      var d=r.data;
+      if(d && d.ok){ meuCadastro=d; return d; }
+      return SB.auth.getUser().then(function(u){
+        var m=(u && u.data && u.data.user && u.data.user.user_metadata) || {};
+        if(!m.cnpj || !m.razao_social) return null;
+        return SB.rpc("forn_cadastrar",{
+          p_cnpj:m.cnpj, p_razao_social:m.razao_social,
+          p_email:(u.data.user.email||""), p_telefone:m.telefone||null,
+          p_responsavel:m.responsavel||null, p_nome:m.nome||null
+        }).then(function(){
+          return SB.rpc("forn_minha_situacao").then(function(r2){ meuCadastro=r2.data; return r2.data; });
+        });
+      });
+    });
+  }
+
+  function decidirTela(){
+    return garantirCadastro().then(function(d){
+      if(!d || !d.ok){ mostrar("telaEspera"); el("esperaTxt").textContent="Não achei seu cadastro. Fale com a loja."; return; }
+      el("quem").innerHTML="<b>"+String(d.empresa||"").replace(/[<>&]/g,"")+"</b>";
+      el("quem").classList.remove("esconde");
+      if(d.liberado){ carregarEntregas(); mostrar("telaEntregas"); }
+      else {
+        var t="A loja está conferindo seus dados. Assim que liberarem, você vai poder agendar suas entregas por aqui.";
+        if(d.situacao_empresa==="recusado" || d.situacao_conta==="recusada") t="Seu acesso não foi liberado."+(d.motivo?" Motivo: "+d.motivo:"")+" Fale com a loja.";
+        if(d.situacao_empresa==="bloqueado") t="Seu acesso está bloqueado."+(d.motivo?" Motivo: "+d.motivo:"")+" Fale com a loja.";
+        el("esperaTxt").textContent=t;
+        mostrar("telaEspera");
+      }
+    });
+  }
+  el("btAtualizar").onclick=function(){ meuCadastro=null; decidirTela(); };
+
+  // ---------------- minhas entregas ----------------
+  function selo(s){
+    var txt={pendente:"aguardando a loja",aprovado:"confirmado",conferido:"recebido",recusado:"recusado",cancelado:"cancelado"}[s]||s;
+    return '<span class="selo '+s+'">'+txt+'</span>';
+  }
+  function carregarEntregas(){
+    el("listaEntregas").innerHTML='<div class="vazio">Carregando...</div>';
+    SB.rpc("forn_minhas_entregas").then(function(r){
+      if(r.error){ el("listaEntregas").innerHTML=""; aviso("erroEntregas", r.error.message||"Não consegui carregar."); return; }
+      var l=r.data||[];
+      if(!l.length){ el("listaEntregas").innerHTML='<div class="vazio">Você ainda não agendou nenhuma entrega.</div>'; return; }
+      var h='<ul class="lista">';
+      for(var i=0;i<l.length;i++){
+        var e=l[i];
+        h+='<li class="item"><div class="item-top"><div>';
+        h+='<div class="quando">'+dataBonita(e.data)+' · '+String(e.hora||"")+'</div>';
+        var det=[];
+        if(e.pedido) det.push("Pedido "+String(e.pedido).replace(/[<>&]/g,""));
+        if(e.descricao) det.push(String(e.descricao).replace(/[<>&]/g,""));
+        if(det.length) h+='<div class="det">'+det.join(" · ")+'</div>';
+        h+='</div>'+selo(e.status)+'</div>';
+        if(e.status==="pendente"||e.status==="aprovado"){
+          h+='<button class="btn fraco" data-cancelar="'+e.id+'" style="margin-top:10px">Cancelar esta entrega</button>';
+        }
+        h+='</li>';
+      }
+      h+='</ul>';
+      el("listaEntregas").innerHTML=h;
+    });
+  }
+  el("listaEntregas").addEventListener("click", function(ev){
+    var b=ev.target.closest && ev.target.closest("[data-cancelar]");
+    if(!b) return;
+    if(!confirm("Cancelar esta entrega?")) return;
+    b.disabled=true;
+    SB.rpc("forn_cancelar",{p_id:b.getAttribute("data-cancelar")}).then(function(r){
+      if(r.error || (r.data && r.data.ok===false)){
+        aviso("erroEntregas",(r.error?r.error.message:(r.data&&r.data.erro))||"Não consegui cancelar.");
+        b.disabled=false; return;
+      }
+      carregarEntregas();
+    });
+  });
+
+  // ---------------- agendar ----------------
+  el("btNova").onclick=function(){
+    limpaAvisos(); horaSel=null;
+    el("aDia").value=""; el("aPedido").value=""; el("aDesc").value="";
+    el("aSlots").innerHTML=""; el("aSlotsMsg").textContent="Escolha o dia primeiro.";
+    var h=new Date(); h.setDate(h.getDate());
+    el("aDia").min=h.toISOString().slice(0,10);
+    var f=new Date(); f.setDate(f.getDate()+60);
+    el("aDia").max=f.toISOString().slice(0,10);
+    mostrar("telaAgendar");
+  };
+  el("btVoltaEntregas").onclick=function(){ limpaAvisos(); mostrar("telaEntregas"); };
+  el("btVerEntregas").onclick=function(){ limpaAvisos(); carregarEntregas(); mostrar("telaEntregas"); };
+
+  el("aDia").addEventListener("change", function(){
+    horaSel=null; aviso("erroAgendar","");
+    var d=this.value;
+    if(!d){ el("aSlots").innerHTML=""; el("aSlotsMsg").textContent="Escolha o dia primeiro."; return; }
+    var p=d.split("-"), dow=new Date(+p[0],+p[1]-1,+p[2]).getDay();
+    if(dow===0||dow===6){ el("aSlots").innerHTML=""; el("aSlotsMsg").textContent="A loja recebe de segunda a sexta."; return; }
+    el("aSlots").innerHTML=""; el("aSlotsMsg").textContent="Vendo os horários livres...";
+    SB.rpc("forn_horarios_livres",{p_data:d}).then(function(r){
+      var l=(r.data)||[];
+      if(!l.length){ el("aSlotsMsg").textContent="Nenhum horário nesse dia."; return; }
+      var h="";
+      for(var i=0;i<l.length;i++){
+        h+='<div class="slot'+(l[i].livre?"":" full")+'" data-h="'+l[i].h+'">'+l[i].hora+'</div>';
+      }
+      el("aSlots").innerHTML=h;
+      var livres=l.filter(function(x){return x.livre;}).length;
+      el("aSlotsMsg").textContent = livres? (livres+" horário"+(livres>1?"s":"")+" livre"+(livres>1?"s":"")) : "Esse dia já está todo ocupado.";
+    });
+  });
+
+  el("aSlots").addEventListener("click", function(ev){
+    var s=ev.target.closest && ev.target.closest(".slot");
+    if(!s || s.classList.contains("full")) return;
+    [].slice.call(el("aSlots").children).forEach(function(c){ c.classList.remove("sel"); });
+    s.classList.add("sel"); horaSel=parseInt(s.getAttribute("data-h"),10);
+  });
+
+  el("btAgendar").onclick=function(){
+    aviso("erroAgendar","");
+    var d=el("aDia").value;
+    if(!d){ aviso("erroAgendar","Escolha o dia."); return; }
+    if(horaSel===null){ aviso("erroAgendar","Escolha o horário."); return; }
+    el("btAgendar").disabled=true; el("btAgendar").textContent="Enviando...";
+    SB.rpc("forn_agendar",{p_data:d, p_hora:horaSel, p_pedido:el("aPedido").value||null, p_descricao:el("aDesc").value||null}).then(function(r){
+      el("btAgendar").disabled=false; el("btAgendar").textContent="Pedir este horário";
+      if(r.error || (r.data && r.data.ok===false)){
+        aviso("erroAgendar",(r.error?r.error.message:(r.data&&r.data.erro))||"Não consegui agendar.");
+        if(el("aDia").value) el("aDia").dispatchEvent(new Event("change"));
+        return;
+      }
+      el("prontoResumo").innerHTML="<b>"+dataBonita(d)+"</b><br>às <b>"+(r.data.hora||"")+"</b>";
+      mostrar("telaPronto");
+    });
+  };
+
+  // ---------------- começo ----------------
+  SB.auth.getSession().then(function(r){
+    if(r.data && r.data.session) decidirTela();
+    else mostrar("telaEntrar");
+  });
+})();
+</script>
 </body>
 </html>
