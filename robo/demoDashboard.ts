@@ -16428,7 +16428,7 @@ function czImprimir(){
      +CZLCSS
      +'@media screen{html{background:#3c4043;}body{zoom:.45;background:#3c4043;padding:30px 0;}.pg{background:#fff;width:794px;box-sizing:content-box;padding:30px 24px 44px;margin:0 auto 30px;box-shadow:0 8px 30px rgba(0,0,0,.45);}}</style>';
     var wL=window.open('','_blank'); if(!wL){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return; }
-    wL.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">'+cssL+'</head><body>'+pagesL+'<scr'+'ipt>(function(){function go(){setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
+    wL.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">'+cssL+'</head><body>'+pagesL+'<scr'+'ipt>(function(){function fit(){var cs=document.querySelectorAll(\".cell,.ctzLin\");for(var i=0;i<cs.length;i++){var c=cs[i],z=1;c.style.zoom=\"\";for(var t=0;t<6;t++){var caixa=c.clientHeight,dentro=c.scrollHeight;if(dentro<=caixa+1)break;z=z*((caixa-1)/dentro);if(z<0.55){z=0.55;c.style.zoom=z;break;}c.style.zoom=z;}}}function go(){try{fit();}catch(e){}setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
     wL.document.close();
     return;
   }
@@ -16468,7 +16468,7 @@ function czImprimir(){
       }
     }
     var wp=window.open('','_blank'); if(!wp){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return; }
-    wp.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet"><style>'+pcss+'@media screen{html{background:#3c4043;}body{zoom:.3;background:#3c4043;padding:30px 0;}.tp,.pg{background:#fff;margin:0 auto 30px;box-shadow:0 8px 30px rgba(0,0,0,.45);}}</style></head><body>'+pgs+'<scr'+'ipt>(function(){function go(){setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
+    wp.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet"><style>'+pcss+'@media screen{html{background:#3c4043;}body{zoom:.3;background:#3c4043;padding:30px 0;}.tp,.pg{background:#fff;margin:0 auto 30px;box-shadow:0 8px 30px rgba(0,0,0,.45);}}</style></head><body>'+pgs+'<scr'+'ipt>(function(){function fit(){var cs=document.querySelectorAll(\".cell,.ctzLin\");for(var i=0;i<cs.length;i++){var c=cs[i],z=1;c.style.zoom=\"\";for(var t=0;t<6;t++){var caixa=c.clientHeight,dentro=c.scrollHeight;if(dentro<=caixa+1)break;z=z*((caixa-1)/dentro);if(z<0.55){z=0.55;c.style.zoom=z;break;}c.style.zoom=z;}}}function go(){try{fit();}catch(e){}setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
     wp.document.close();
     return;
   }
@@ -16496,7 +16496,7 @@ function czImprimir(){
       cpg+='<div class="pg">'+ccells+'</div>';
     }
     var wc=window.open('','_blank'); if(!wc){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return; }
-    wc.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet"><style>'+ccss+'</style></head><body>'+cpg+'<scr'+'ipt>(function(){function go(){setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
+    wc.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet"><style>'+ccss+'</style></head><body>'+cpg+'<scr'+'ipt>(function(){function fit(){var cs=document.querySelectorAll(\".cell,.ctzLin\");for(var i=0;i<cs.length;i++){var c=cs[i],z=1;c.style.zoom=\"\";for(var t=0;t<6;t++){var caixa=c.clientHeight,dentro=c.scrollHeight;if(dentro<=caixa+1)break;z=z*((caixa-1)/dentro);if(z<0.55){z=0.55;c.style.zoom=z;break;}c.style.zoom=z;}}}function go(){try{fit();}catch(e){}setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
     wc.document.close();
     return;
   }
@@ -16504,8 +16504,13 @@ function czImprimir(){
   var c=cfg[czTamanho]||cfg.A4;
   var pages='';
   for(var i2=0;i2<itens.length;i2+=c.per){ var cells=''; for(var j=i2;j<i2+c.per && j<itens.length;j++){ cells+='<div class="cell">'+czInner(itens[j])+'</div>'; } pages+='<div class="pg">'+cells+'</div>'; }
+  // TUDO NUMA FOLHA SÓ (14/08/2026). O cartaz media 282mm numa área útil de 285mm: o rodapé
+  // terminava a 0,4mm da borda. Toda impressora reserva uma margem física própria, e quando ela
+  // passa de 6mm a última linha caía na folha de baixo — foi o que aconteceu com ele.
+  // Agora a folha do cartaz tem 268mm: sobram 17mm de folga pra margem da impressora.
+  // Quem garante que nada estoura é a trava czFitScript, mais abaixo.
   var _pageDef=(czTamanho==='A7')?'@page{size:A4 landscape;margin:6mm;}':'@page{size:A4;margin:6mm;}';
-  var _pgH=(czTamanho==='A7')?'195mm':'282mm';
+  var _pgH=(czTamanho==='A7')?'185mm':'268mm';
   var css='<style>:root{color-scheme:light only;}'+_pageDef+'*{margin:0;padding:0;box-sizing:border-box;font-family:"Bangers",cursive;}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
    +'.pg{width:100%;height:'+_pgH+';overflow:hidden;break-inside:avoid;display:grid;grid-template-columns:repeat('+c.cols+',minmax(0,1fr));grid-template-rows:repeat('+c.rows+',minmax(0,1fr));gap:5mm;}.pg+.pg{page-break-before:always;}'
    // O recuo saiu da FOLHA e foi pras faixas de dentro. É o que deixa a imagem do topo sangrar
@@ -16528,7 +16533,7 @@ function czImprimir(){
    +'.ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:calc(var(--k,1)*'+c.ft+'px);margin-top:0.4%;line-height:1;white-space:nowrap;}'
    +'@media screen{html{background:#3c4043;}body{zoom:.45;background:#3c4043;padding:30px 0;}.pg{background:#fff;width:794px;box-sizing:content-box;padding:30px 24px 44px;margin:0 auto 30px;box-shadow:0 8px 30px rgba(0,0,0,.45);}}</style>';
   var w=window.open('','_blank'); if(!w){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return; }
-  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">'+css+'</head><body>'+pages+'<scr'+'ipt>(function(){function go(){setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">'+css+'</head><body>'+pages+'<scr'+'ipt>(function(){function fit(){var cs=document.querySelectorAll(\".cell,.ctzLin\");for(var i=0;i<cs.length;i++){var c=cs[i],z=1;c.style.zoom=\"\";for(var t=0;t<6;t++){var caixa=c.clientHeight,dentro=c.scrollHeight;if(dentro<=caixa+1)break;z=z*((caixa-1)/dentro);if(z<0.55){z=0.55;c.style.zoom=z;break;}c.style.zoom=z;}}}function go(){try{fit();}catch(e){}setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
   w.document.close();
 }
 
