@@ -149,7 +149,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .gl-tb td{padding:11px 12px;border-bottom:1px solid #eef2f6;color:#33404f;vertical-align:middle;}
   .gl-tb tbody tr:hover,.gl-tb tbody tr:hover{background:#f7f9fb;}
   .layout { display:flex; align-items:flex-start; max-width:none; margin:0; }
-  .sidebar { width:210px; flex:none; padding:0; position:sticky; top:57px; height:calc(100dvh - 57px); display:flex; flex-direction:column; overflow:hidden; }
+  /* A altura da barra lateral descontava só o cabeçalho, e esquecia o RODAPÉ (34px). Resultado:
+     57 + 773 + 34 = 864 numa janela de 830 — TODA página nascia com 34px de rolagem, mesmo quando
+     o conteúdo cabia inteiro. Achado em 14/08/2026 medindo a tela do cartaz. Agora desconta os
+     dois; o rodapé tem 34px fixos (conferido de 760 a 1512 de largura, o texto não quebra). */
+  .sidebar { width:210px; flex:none; padding:0; position:sticky; top:57px; height:calc(100dvh - 57px - 34px); display:flex; flex-direction:column; overflow:hidden; }
   .nav-scroll { flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:0 14px 22px; scrollbar-width:thin; scrollbar-color:#cdd5df transparent; }
   .nav-scroll::-webkit-scrollbar { width:11px; }
   .nav-scroll::-webkit-scrollbar-track { background:transparent; }
@@ -2251,11 +2255,25 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-step.on{background:#157a35;color:#fff;}
         #page-cartaz .cz-step.done{background:#e4f5ea;color:#157a35;}
         #page-cartaz .cz-models{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
-        #page-cartaz .cz-model{border:2px solid #e1e7ee;border-radius:14px;padding:14px;cursor:pointer;text-align:center;background:#fff;transition:.12s;}
+        #page-cartaz .cz-model{position:relative;border:2px solid #e1e7ee;border-radius:14px;padding:14px;cursor:pointer;text-align:center;background:#fff;transition:.12s;}
         #page-cartaz .cz-model.on{border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.12);}
         #page-cartaz .cz-model h4{margin:10px 0 0;font-size:14px;color:#1d2733;}
-        #page-cartaz .cz-model .ctz{max-width:150px;margin:0 auto;pointer-events:none;}
-        #page-cartaz .cz-model .czLd2{max-width:170px;margin:10px auto;pointer-events:none;display:flex;flex-direction:column;border:1px solid #e8ecf1;border-radius:8px;overflow:hidden;}
+        /* A ESCOLHA DO MODELO CABE NA TELA, SEM ROLAR (14/08/2026, pedido do dono).
+           Medido na tela: fora a miniatura, o passo 1 ocupa 610px (com o rodapé e o recuo do
+           main já contados). Daí o 610. A miniatura recebe o que
+           SOBRA da janela, em vez de ter tamanho fixo: em tela grande fica nos 212px de sempre,
+           em tela baixa encolhe até 88px e a página continua inteira.
+           Dá pra mandar na ALTURA porque o .ctz tem aspect-ratio 210/297: a largura vem sozinha,
+           e o cartaz nunca entorta. */
+        #page-cartaz{--mini:clamp(88px, calc(100dvh - 610px), 212px);}
+        #page-cartaz .cz-model .ctz{height:var(--mini);width:auto;max-width:100%;margin:0 auto;pointer-events:none;}
+        /* O deitado são DOIS cartazes empilhados (198x130 cada), então a altura dele é a
+           largura x 1,313. Divido por isso pra ele terminar com a MESMA altura da miniatura
+           vertical — senão era ele, o mais alto dos três, quem mandava na altura da fileira e
+           a página voltava a rolar na tela do master. */
+        /* margem 0 igual à miniatura vertical: com 10px em cima e embaixo esse card ficava mais
+           alto que os outros dois e, como a fileira se iguala pelo maior, sobrava rolagem. */
+        #page-cartaz .cz-model .czLd2{width:calc(var(--mini) / 1.313);max-width:none;margin:0 auto;pointer-events:none;display:flex;flex-direction:column;border:1px solid #e8ecf1;border-radius:8px;overflow:hidden;}
         #page-cartaz .cz-model .czLd2 .ctzL+.ctzL{border-top:2px dashed #c9d2dc;}
         #page-cartaz .cz-temas{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;}
         #page-cartaz .cz-tema{position:relative;border:2px solid #e1e7ee;border-radius:14px;background:#fff;padding:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;transition:.12s;}
@@ -2264,7 +2282,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-temaTx{width:100%;aspect-ratio:16/5;display:flex;align-items:center;justify-content:center;font-family:'Bangers',cursive;color:#ef1b1b;font-size:30px;background:#ffe600;border-radius:9px;}
         #page-cartaz .cz-tema span{font-size:12px;color:#5c6a7a;font-weight:700;}
         #page-cartaz .cz-temaDel{position:absolute;top:7px;right:7px;border:0;background:rgba(20,25,32,.6);color:#fff;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:11px;line-height:1;}
-        #page-cartaz .cz-selo{display:inline-block;margin-top:6px;background:#fff4e5;border:1px solid #ffd9a8;color:#9a5b12;font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;}
+        /* O selo flutua no canto de propósito: em fluxo normal ele aumentava a altura do card,
+           e como os cards da fileira se igualam, a tela do master voltava a rolar. */
+        #page-cartaz .cz-selo{position:absolute;top:8px;left:8px;background:#fff4e5;border:1px solid #ffd9a8;color:#9a5b12;font-size:10.5px;font-weight:700;border-radius:999px;padding:2px 8px;line-height:1.35;}
         #page-cartaz .cz-temaUp{border-style:dashed;justify-content:center;color:#157a35;min-height:100px;}
         #page-cartaz .cz-temaPlus{font-size:32px;line-height:1;}
         /* IMAGEM DO TOPO SANGRA ATÉ A BORDA — 13/08/2026, pela arte que o dono montou no Canva:
@@ -16140,10 +16160,20 @@ function czTemaUpload(inp){
   rd.readAsDataURL(f);
 }
 function czEsc(s){ s=(s==null?'':''+s); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+/* ==CZPARSE-INICIO== LEITURA DA LISTA (testado em scripts/testes/cartaz-lista.test.cjs) */
 function czTemDigito(w){ for(var i=0;i<w.length;i++){ if(w.charAt(i)>='0'&&w.charAt(i)<='9') return true; } return false; }
 function czEhPreco(w){ return czTemDigito(w) && (w.indexOf(',')>=0 || w.indexOf('.')>=0); }
-var CZ_UNID=['KG','GR','MG','ML','UN','PCT','PC','CX','DZ','LT','L','G'];
+// CM e M entraram em 14/08/2026: "Papel Neve Folha Dupla 30M 12,90" não reconhecia o 30M como
+// gramatura, e o metro ia parar no meio do TIPO. Ficam no FIM da lista de propósito — ML e MG
+// são testados antes, senão "500ML" cairia no M. E só vale com número junto (czEhGram exige
+// dígito), então palavra terminada em M, tipo "COM", não vira unidade.
+var CZ_UNID=['KG','GR','MG','ML','UN','PCT','PC','CX','DZ','LT','L','G','CM','M'];
 function czEhGram(w){ var up=w.toUpperCase(); if(!czTemDigito(up)) return false; for(var i=0;i<CZ_UNID.length;i++){ var u=CZ_UNID[i]; if(up.length>=u.length && up.slice(-u.length)===u) return true; } return false; }
+/* O formato é POSICIONAL: PRODUTO MARCA TIPO GRAMATURA PREÇO.
+   Preço e gramatura são reconhecidos pelo formato (tem vírgula / termina em KG, ML...), então
+   saem do fim da linha primeiro. O que sobra é dividido por posição.
+   14/08/2026: antes o TIPO nunca era preenchido (nascia vazio e a pessoa digitava um por um) e
+   tudo depois da primeira palavra virava MARCA. O dono pediu o tipo depois da marca. */
 function czParseLinha(raw){
   raw=(raw||'').trim(); if(!raw) return null;
   var oferta='OFERTA';
@@ -16152,10 +16182,15 @@ function czParseLinha(raw){
   var preco='', gram='';
   if(w.length && czEhPreco(w[w.length-1])) preco=w.pop();
   if(w.length && czEhGram(w[w.length-1])) gram=w.pop();
+  // 1 palavra = só produto; 2 = produto e marca; daí pra frente o resto é o TIPO.
+  // O tipo fica com o resto (e não a marca) porque tipo costuma ter mais de uma palavra
+  // ("TIPO 1", "FOLHA DUPLA") e marca quase sempre tem uma só.
   var nome=w.length?w[0]:'';
-  var marca=w.length>1?w.slice(1).join(' '):'';
-  return {oferta:oferta,nome:nome,marca:marca,tipo:'',gram:gram,precoDe:'',preco:preco,qtd:1};
+  var marca=w.length>1?w[1]:'';
+  var tipo=w.length>2?w.slice(2).join(' '):'';
+  return {oferta:oferta,nome:nome,marca:marca,tipo:tipo,gram:gram,precoDe:'',preco:preco,qtd:1};
 }
+/* ==CZPARSE-FIM== */
 function czParseTexto(txt){ var out=[]; var linhas=(txt||'').split('\\n'); for(var i=0;i<linhas.length;i++){ var p=czParseLinha(linhas[i]); if(p) out.push(p); } return out; }
 function czPreco(p){ p=(''+(p||'')).replace('.',','); var a=p.split(','); var r=(a[0]||'0').replace(/[^0-9]/g,'')||'0'; var c=(a[1]||'00'); c=(c+'00').slice(0,2); return {reais:r,cent:c}; }
 function czFooter(){
@@ -16267,8 +16302,10 @@ function renderCartaz(){
     b+='</div><div class="cz-actions"><button class="cz-btn prim" data-czact="step2">Continuar para produtos →</button></div>';
   } else if(czStep===2){
     b='<p class="cz-sub">Coloque sua lista — cada linha vira um cartaz</p>'
-     +'<div class="cz-hint">Formato: <b>PRODUTO MARCA GRAMATURA PREÇO</b><br>Ex: Arroz Camil 5KG 29,99</div>'
-     +'<textarea id="czTexto" class="cz-ta" placeholder="Digite ou cole sua lista, um produto por linha. Ex: Arroz Camil 5KG 29,99">'+czEsc(czProdutos.map(function(p){return [p.nome,p.marca,p.gram,p.preco].filter(Boolean).join(' ');}).join('\\n'))+'</textarea>'
+     +'<div class="cz-hint">Formato: <b>PRODUTO MARCA TIPO GRAMATURA PREÇO</b><br>Ex: Arroz Camil Tipo 1 5KG 29,99<br><span style="opacity:.85;">O tipo pode ter mais de uma palavra, ou ficar de fora: <i>Arroz Camil 5KG 29,99</i></span></div>'
+     // A ORDEM aqui tem que ser a mesma que o czParseLinha lê, com o TIPO entre marca e gramatura.
+     // Antes o tipo ficava de fora: quem voltasse do passo 3 pro 2 perdia o que tinha digitado.
+     +'<textarea id="czTexto" class="cz-ta" placeholder="Digite ou cole sua lista, um produto por linha. Ex: Arroz Camil Tipo 1 5KG 29,99">'+czEsc(czProdutos.map(function(p){return [p.nome,p.marca,p.tipo,p.gram,p.preco].filter(Boolean).join(' ');}).join('\\n'))+'</textarea>'
      +'<div id="czCount" class="cz-count">'+czProdutos.length+' linha(s) detectada(s)</div>'
      +'<div class="cz-actions"><button class="cz-btn sec" data-czact="step1">← Voltar</button><button class="cz-btn prim" data-czact="parse">Continuar →</button></div>';
   } else if(czStep===3){
