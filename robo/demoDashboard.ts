@@ -16074,9 +16074,11 @@ var CZ_PROP_FOLGA = 0.02;        // 2% de tolerância: apara no máximo ~2%, que
 var CZ_LARG_MIN = 1200;          // abaixo disso sai borrado no papel (menos de 154 pontos/pol)
 function czFmtProp(r){ return (Math.round(r*100)/100).toString().replace('.',','); }
 // O aviso é lido por quem monta cartaz, não por quem programa. Então: frase curta, o problema
-// em palavra de gente ("quase um quadrado"), quanto se perde, e por último o que fazer — o
-// número e onde digitar. O modal quebra linha (white-space:pre-line), daí os blocos separados.
-var CZ_COMO = 'O tamanho certo é 2100 x 735.\\nNo Canva, ao criar a arte, escolha "Tamanho personalizado" e digite 2100 por 735.';
+// em palavra de gente ("quase um quadrado"), quanto se perde, e por último o que fazer — só o
+// número. O modal quebra linha (white-space:pre-line), daí os blocos separados.
+// SEM citar programa de arte (14/08/2026, ele pediu): quem monta o cartaz pode usar qualquer um,
+// e amanhã o nome do programa muda. O que não muda é a medida.
+var CZ_COMO = 'O tamanho certo é 2100 x 735.\\nMonte a arte já nessa medida, escolhendo tamanho personalizado no programa que você usa.';
 // Diz se a imagem enviada serve. Devolve {ok:true} ou {ok:false,titulo,msg}.
 function czUpCheca(W,H){
   W=Math.round(+W||0); H=Math.round(+H||0);
@@ -16237,7 +16239,11 @@ function renderCartaz(){
       b+='<div class="cz-model '+(czModelo===m.k?'on':'')+'" data-czmodel="'+m.k+'">'+thumb+'<h4>'+m.t+'</h4></div>'; }
     b+='</div>';
     var temas=czTemasTodos();
-    b+='<p class="cz-sub" style="margin:22px 0 4px;font-weight:700;color:#1d2733;">Cabeçalho do cartaz</p><p class="cz-sub" style="margin:0 0 10px;">Use o texto padrão ou envie um banner do seu computador</p><div class="cz-temas">';
+    // A medida aparece ANTES de a pessoa tentar enviar. A trava avisa quem erra, mas o certo é
+    // ela nem chegar a errar — daí o número ficar aqui, em destaque, junto com a instrução.
+    b+='<p class="cz-sub" style="margin:22px 0 4px;font-weight:700;color:#1d2733;">Cabeçalho do cartaz</p>'
+     +'<p class="cz-sub" style="margin:0 0 10px;">Use o texto padrão ou envie um banner do seu computador — a imagem precisa ter <b style="color:#157a35;">2100 x 735</b> (faixa larga e baixa).</p>'
+     +'<div class="cz-temas">';
     b+='<div class="cz-tema '+(!czTema?'on':'')+'" data-cztema="-1"><div class="cz-temaTx">OFERTA</div><span>Texto padrão</span></div>';
     // Os de fábrica vêm primeiro e sem o ✕. O data-cztemadel guarda a posição na lista de
     // ENVIADOS (t1 menos os fixos), senão o ✕ apagaria o vizinho errado.
