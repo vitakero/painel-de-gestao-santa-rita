@@ -16073,26 +16073,31 @@ var CZ_PROP = 20/7;              // 2,857142... a proporção da faixa
 var CZ_PROP_FOLGA = 0.02;        // 2% de tolerância: apara no máximo ~2%, que ninguém vê
 var CZ_LARG_MIN = 1200;          // abaixo disso sai borrado no papel (menos de 154 pontos/pol)
 function czFmtProp(r){ return (Math.round(r*100)/100).toString().replace('.',','); }
+// O aviso é lido por quem monta cartaz, não por quem programa. Então: frase curta, o problema
+// em palavra de gente ("quase um quadrado"), quanto se perde, e por último o que fazer — o
+// número e onde digitar. O modal quebra linha (white-space:pre-line), daí os blocos separados.
+var CZ_COMO = 'O tamanho certo é 2100 x 735.\\nNo Canva, ao criar a arte, escolha "Tamanho personalizado" e digite 2100 por 735.';
 // Diz se a imagem enviada serve. Devolve {ok:true} ou {ok:false,titulo,msg}.
 function czUpCheca(W,H){
   W=Math.round(+W||0); H=Math.round(+H||0);
-  var certo='O jeito certo: 2100 x 735 pixels (ou qualquer imagem nessa mesma proporção, 20 por 7). No Canva, escolha Tamanho personalizado e digite 2100 por 735.';
-  if(W<=0||H<=0) return {ok:false,titulo:'Não consegui ler a imagem',msg:'Tente exportar de novo, em JPG ou PNG. '+certo};
+  if(W<=0||H<=0) return {ok:false,titulo:'Não consegui ler essa imagem',
+    msg:'Pode ser um arquivo danificado, ou num formato que o navegador não abre.\\n\\nSalve de novo como JPG ou PNG e tente outra vez.\\n\\n'+CZ_COMO};
   var r=W/H;
   var minP=CZ_PROP*(1-CZ_PROP_FOLGA), maxP=CZ_PROP*(1+CZ_PROP_FOLGA);
   if(r<minP){
     var apara=Math.round((1-r/CZ_PROP)*100);
-    return {ok:false,titulo:'Essa imagem é alta demais pro cabeçalho',
-      msg:'A sua tem '+W+' x '+H+' (proporção '+czFmtProp(r)+' por 1) e a faixa do cartaz é 2,86 por 1. Pra caber colada nas bordas, o cartaz teria que aparar cerca de '+apara+'% da arte, em cima e embaixo. '+certo};
+    var forma=(r<1.35)?'quase um quadrado':((r<2)?'alta demais pra faixa':'quase lá, mas ainda um pouco alta');
+    return {ok:false,titulo:'Essa imagem precisa ser mais deitada',
+      msg:'O cabeçalho é uma faixa larga e baixa, no alto da folha.\\n\\nA sua é '+W+' x '+H+' — '+forma+'. Encaixando ela, '+apara+'% da arte ficaria de fora, cortada em cima e embaixo.\\n\\n'+CZ_COMO};
   }
   if(r>maxP){
     var aparaL=Math.round((1-CZ_PROP/r)*100);
-    return {ok:false,titulo:'Essa imagem é comprida demais pro cabeçalho',
-      msg:'A sua tem '+W+' x '+H+' (proporção '+czFmtProp(r)+' por 1) e a faixa do cartaz é 2,86 por 1. Pra caber, o cartaz teria que aparar cerca de '+aparaL+'% da arte, nas laterais. '+certo};
+    return {ok:false,titulo:'Essa imagem é comprida demais',
+      msg:'O cabeçalho é uma faixa larga, mas não tão esticada assim.\\n\\nA sua é '+W+' x '+H+'. Encaixando ela, '+aparaL+'% da arte ficaria de fora, cortada nas laterais.\\n\\n'+CZ_COMO};
   }
   if(W<CZ_LARG_MIN){
     return {ok:false,titulo:'Essa imagem é pequena demais',
-      msg:'A sua tem só '+W+' pixels de largura. Esticada pros 19,8 cm do cartaz ela sai borrada no papel. O mínimo é '+CZ_LARG_MIN+' de largura. '+certo};
+      msg:'A proporção está certa, só falta tamanho: ela tem '+W+' pixels de largura.\\n\\nO cartaz tem quase 20 cm. Esticada até lá, ela sai borrada no papel.\\n\\n'+CZ_COMO+'\\nO mínimo aceito é '+CZ_LARG_MIN+' de largura.'};
   }
   return {ok:true};
 }
