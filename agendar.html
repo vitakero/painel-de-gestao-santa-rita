@@ -5,14 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Agendar entrega · Supermercado Santa Rita</title>
 <meta name="theme-color" content="#157a35">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!--
+  Esta página era o agendamento ANÔNIMO: qualquer um abria, digitava o nome da empresa na mão
+  e pedia um horário. Foi substituída em 14/08/2026 pelo Portal do Fornecedor, com cadastro,
+  login e liberação pela loja.
+
+  O link antigo nunca chegou a ser distribuído a fornecedor nenhum, então não houve migração
+  a fazer. Mantida como recado em vez de apagada, pra não deixar link morto se alguém tiver
+  copiado o endereço em algum lugar.
+-->
 <style>
-  :root{
-    --green:#157a35; --green-deep:#0c5a26; --green-soft:#e6f4ea;
-    --ink:#233; --muted:#5c6773; --faint:#8a97a4;
-    --line:#e2e8ee; --bg:#eef1f4; --card:#fff;
-    --err:#c0392b; --err-soft:#fbeae7;
-  }
+  :root{ --green:#157a35; --green-deep:#0c5a26; --green-soft:#e6f4ea;
+         --ink:#233; --muted:#5c6773; --faint:#8a97a4; --bg:#eef1f4; --card:#fff; }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
   .wrap{max-width:460px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
@@ -21,28 +25,12 @@
   .cart svg{width:32px;height:32px;display:block;stroke:#fff}
   header h1{margin:8px 0 2px;font-size:21px;letter-spacing:-.2px}
   header p{margin:0;font-size:13px;opacity:.92}
-  main{background:var(--card);flex:1;padding:20px 18px 30px;border-radius:18px 18px 0 0;margin-top:-14px}
-  .field{margin-bottom:16px}
-  label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px}
-  label .opt{font-weight:600;text-transform:none;letter-spacing:0;color:var(--faint)}
-  input,textarea{width:100%;border:1px solid var(--line);background:#f8fafb;border-radius:11px;padding:12px 13px;font-size:16px;color:var(--ink);font-family:inherit}
-  textarea{resize:vertical;min-height:64px}
-  input:focus,textarea:focus{outline:none;border-color:var(--green);background:#fff;box-shadow:0 0 0 3px var(--green-soft)}
-  .slots{display:flex;flex-wrap:wrap;gap:8px}
-  .slot{border:1px solid var(--line);background:#f8fafb;border-radius:11px;padding:11px 8px;font-size:15px;font-variant-numeric:tabular-nums;cursor:pointer;flex:1 0 26%;text-align:center;font-weight:600;color:var(--ink)}
-  .slot.sel{background:var(--green);border-color:var(--green);color:#fff}
-  .slot.full{color:var(--faint);background:transparent;cursor:not-allowed;text-decoration:line-through;font-weight:500}
-  .slots-msg{font-size:13.5px;color:var(--muted);padding:4px 2px}
-  .btn{width:100%;border:0;background:var(--green);color:#fff;border-radius:12px;padding:15px;font-size:16.5px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:6px}
-  .btn:disabled{opacity:.5;cursor:default}
-  .msg{font-size:14px;border-radius:11px;padding:11px 13px;margin-bottom:14px;display:none}
-  .msg.err{display:block;background:var(--err-soft);color:var(--err);border:1px solid #f0ccc5}
-  .done{text-align:center;padding:30px 10px}
-  .done .big{font-size:46px}
-  .done h2{margin:12px 0 6px;font-size:22px;color:var(--green-deep)}
-  .done p{margin:0 auto;max-width:300px;color:var(--muted);font-size:14.5px}
-  .resumo{background:var(--green-soft);border-radius:12px;padding:13px 15px;margin-top:18px;text-align:left;font-size:14px}
-  .resumo b{color:var(--green-deep)}
+  main{background:var(--card);flex:1;padding:30px 20px;border-radius:18px 18px 0 0;margin-top:-14px;text-align:center}
+  .big{font-size:44px;line-height:1}
+  h2{margin:14px 0 8px;font-size:20px;color:var(--green-deep)}
+  p.txt{margin:0 auto 22px;max-width:330px;color:var(--muted);font-size:15px}
+  .btn{display:block;width:100%;border:0;background:var(--green);color:#fff;border-radius:12px;padding:15px;font-size:16.5px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:none}
+  .nota{margin:22px auto 0;max-width:330px;font-size:13px;color:var(--faint)}
   footer{text-align:center;font-size:11.5px;color:var(--faint);padding:16px}
 </style>
 </head>
@@ -54,125 +42,13 @@
     <p>Supermercado Santa Rita · Caicó/RN</p>
   </header>
   <main>
-    <div id="form">
-      <div class="msg err" id="erro"></div>
-
-      <div class="field">
-        <label>Sua empresa</label>
-        <input id="empresa" type="text" maxlength="120" placeholder="Nome do fornecedor" autocomplete="organization">
-      </div>
-      <div class="field">
-        <label>CNPJ / CPF <span class="opt">(opcional)</span></label>
-        <input id="doc" type="text" maxlength="30" inputmode="numeric" placeholder="00.000.000/0000-00">
-      </div>
-      <div class="field">
-        <label>WhatsApp / contato</label>
-        <input id="contato" type="text" maxlength="40" inputmode="tel" placeholder="(84) 9 9999-9999">
-      </div>
-      <div class="field">
-        <label>Email</label>
-        <input id="email" type="email" maxlength="160" inputmode="email"
-               autocomplete="email" placeholder="compras@suaempresa.com.br">
-        <span class="opt" style="display:block;margin-top:4px;">É por aqui que avisamos se o horário foi confirmado.</span>
-      </div>
-      <div class="field">
-        <label>Dia da entrega</label>
-        <input id="dia" type="date">
-      </div>
-      <div class="field">
-        <label>Horário</label>
-        <div class="slots" id="slots"></div>
-        <div class="slots-msg" id="slotsMsg">Escolha o dia primeiro.</div>
-      </div>
-      <div class="field">
-        <label>Nº do pedido <span class="opt">(opcional)</span></label>
-        <input id="pedido" type="text" maxlength="40" placeholder="Ex.: 22665">
-      </div>
-      <div class="field">
-        <label>O que vem <span class="opt">(opcional)</span></label>
-        <textarea id="descricao" maxlength="300" placeholder="Ex.: biscoitos e salgadinhos, 300 volumes"></textarea>
-      </div>
-
-      <button class="btn" id="enviar">Solicitar agendamento</button>
-    </div>
-
-    <div class="done" id="done" style="display:none">
-      <div class="big">✅</div>
-      <h2>Pedido enviado!</h2>
-      <p>O Supermercado Santa Rita vai confirmar o seu horário. Você pode fechar esta página.</p>
-      <div class="resumo" id="resumo"></div>
-    </div>
+    <div class="big">🔑</div>
+    <h2>O agendamento mudou de lugar</h2>
+    <p class="txt">Agora cada fornecedor tem sua própria conta. Você cadastra sua empresa uma vez, e depois agenda, acompanha e cancela suas entregas por lá.</p>
+    <a class="btn" href="/fornecedor.html">Ir para o Portal do Fornecedor</a>
+    <p class="nota">Primeira vez? No portal, clique em <b>“Ainda não tenho cadastro”</b>. A loja confere seus dados e libera o acesso.</p>
   </main>
-  <footer>Supermercado Santa Rita · agendamento de recebimento</footer>
+  <footer>Supermercado Santa Rita · Caicó/RN</footer>
 </div>
-
-<script>
-(function(){
-  var SB = supabase.createClient("https://uabhsmculsfwzcrhyhch.supabase.co","sb_publishable_IPLbRjk89c666QkfcoVTiw_GXujUTZU");
-  var horaSel = null;
-  var el = function(id){ return document.getElementById(id); };
-  var MESES=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
-  var DOWS=["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
-
-  function erro(m){ var e=el("erro"); if(m){ e.textContent=m; e.style.display="block"; e.scrollIntoView({behavior:"smooth",block:"center"}); } else { e.style.display="none"; } }
-
-  // data mínima = hoje
-  var hoje=new Date(); var iso=hoje.getFullYear()+"-"+("0"+(hoje.getMonth()+1)).slice(-2)+"-"+("0"+hoje.getDate()).slice(-2);
-  el("dia").min = iso;
-
-  el("dia").addEventListener("change", carregarHorarios);
-
-  function carregarHorarios(){
-    horaSel=null; erro("");
-    var d = el("dia").value;
-    var slots=el("slots"), msg=el("slotsMsg");
-    slots.innerHTML="";
-    if(!d){ msg.textContent="Escolha o dia primeiro."; msg.style.display="block"; return; }
-    var p=d.split("-"); var dow=new Date(+p[0],+p[1]-1,+p[2]).getDay();
-    if(dow===0||dow===6){ msg.textContent="Recebemos de segunda a sexta. Escolha um dia útil."; msg.style.display="block"; return; }
-    msg.textContent="Carregando horários…"; msg.style.display="block";
-    SB.rpc("ent_horarios_livres",{p_data:d}).then(function(r){
-      if(r.error){ msg.textContent="Não deu pra carregar os horários. Tente de novo."; return; }
-      var lista=r.data||[];
-      if(!lista.length){ msg.textContent="Sem horários pra esse dia."; msg.style.display="block"; return; }
-      msg.style.display="none";
-      lista.forEach(function(s){
-        var b=document.createElement("div");
-        b.className="slot"+(s.livre?"":" full");
-        b.textContent=s.hora;
-        if(s.livre){ b.addEventListener("click",function(){ horaSel=s.h; Array.prototype.forEach.call(slots.children,function(c){c.classList.remove("sel");}); b.classList.add("sel"); erro(""); }); }
-        slots.appendChild(b);
-      });
-    });
-  }
-
-  el("enviar").addEventListener("click", function(){
-    erro("");
-    var empresa=el("empresa").value.trim();
-    var d=el("dia").value;
-    var mail=el("email").value.trim();
-    if(!empresa) return erro("Escreva o nome da sua empresa.");
-    if(!mail) return erro("Escreva seu email — é por onde avisamos se o horário foi confirmado.");
-    // Conferência leve aqui só pra avisar cedo; quem decide de verdade é o servidor.
-    if(!/^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$/.test(mail)) return erro("Esse email não parece válido. Confira.");
-    if(!d) return erro("Escolha o dia da entrega.");
-    if(horaSel===null) return erro("Escolha um horário disponível.");
-    var btn=el("enviar"); btn.disabled=true; btn.textContent="Enviando…";
-    SB.rpc("ent_solicitar",{
-      p_fornecedor:empresa, p_documento:el("doc").value.trim()||null, p_contato:el("contato").value.trim()||null,
-      p_data:d, p_hora:horaSel, p_pedido:el("pedido").value.trim()||null, p_descricao:el("descricao").value.trim()||null,
-      p_email:mail
-    }).then(function(r){
-      btn.disabled=false; btn.textContent="Solicitar agendamento";
-      if(r.error){ return erro("Não deu pra enviar. Verifique a conexão e tente de novo."); }
-      if(!r.data || !r.data.ok){ return erro((r.data&&r.data.erro)||"Não foi possível agendar. Tente outro horário."); }
-      var p=d.split("-"); var dt=new Date(+p[0],+p[1]-1,+p[2]);
-      el("resumo").innerHTML="<b>"+empresa+"</b><br>"+DOWS[dt.getDay()]+", "+p[2]+"/"+p[1]+"/"+p[0]+" · "+("0"+horaSel).slice(-2)+":00";
-      el("form").style.display="none"; el("done").style.display="block";
-      window.scrollTo(0,0);
-    }, function(){ btn.disabled=false; btn.textContent="Solicitar agendamento"; erro("Falha de conexão. Tente de novo."); });
-  });
-})();
-</script>
 </body>
 </html>
