@@ -2199,14 +2199,10 @@ button{font-family:inherit}
         if(!wz.chaves.length){
           uiToast("Mande o arquivo XML da nota, ou escolha 'Sem nota fiscal'.","err"); return;
         }
-        // Com ARQUIVO, a nota está provada e o agendamento segue.
-        // Só a CHAVE, sem arquivo, continua barrado: a loja ainda não decidiu
-        // se chave sozinha basta. Inventar essa regra seria pior que esperar.
-        var semArq=wz.chaves.filter(function(n){ return !n.xml; }).length;
-        if(semArq){
-          uiToast("Ainda não dá para agendar só com a chave — mande o arquivo XML dessa nota.","err");
-          return;
-        }
+        // A loja decidiu em 15/08: a CHAVE já basta para agendar. Ela dá ao
+        // recebimento o número da nota antes do caminhão chegar, e o papel
+        // continua sendo conferido na chegada, como sempre foi. O arquivo XML
+        // é melhor — traz valor, emitente e destinatário — mas não é exigido.
       }
       wz.etapa="agendamento"; pintarWizard();
     };
@@ -2244,9 +2240,10 @@ button{font-family:inherit}
     if(carga) carga.innerHTML="";
     cx.innerHTML=
       '<div class="info" style="margin-top:12px"><span class="ic">'+INFO+'</span>'+
-      '<div><b>Envio do arquivo XML ainda não liberado</b>'+
-      '<p>A leitura do arquivo da NF-e está sendo construída. Por enquanto você já pode '+
-      '<b>informar a chave de 44 dígitos</b> — o sistema confere na hora se ela existe.</p></div></div>'+
+      '<div><b>Duas formas de informar a nota</b>'+
+      '<p>Mande o <b>arquivo XML</b> — é o melhor jeito, porque o sistema lê valor, '+
+      'emitente e destinatário sozinho. Se não tiver o arquivo em mãos, <b>digite a chave '+
+      'de 44 dígitos</b>, que ela também serve.</p></div></div>'+
 
       '<div class="solta" id="wzSolta" style="margin-top:14px">'+
         '<b>Clique ou arraste os arquivos XML das notas fiscais</b>'+
@@ -2378,7 +2375,7 @@ button{font-family:inherit}
          '<div class="ch"><b>Nota '+esc(n.numero)+'</b> · série '+esc(n.serie)+' · '+esc(n.emissao)+
          (n.valor?' · '+esc(moeda(n.valor)):'')+
          (n.emitenteNome?'<br><span style="color:var(--txt2)">'+esc(n.emitenteNome)+'</span>':'')+
-         (n.xml?' <span class="selo confirmada" style="margin-left:6px">arquivo lido</span>':' <span class="selo solicitada" style="margin-left:6px">só a chave</span>')+
+         (n.xml?' <span class="selo confirmada" style="margin-left:6px">arquivo lido</span>':' <span class="selo concluida" style="margin-left:6px">pela chave</span>')+
          '<br><span style="color:var(--txt3);font-size:11.5px">'+esc(nfeChaveFmt(n.chave))+'</span></div>'+
          '<button class="icone" data-tira="'+i+'" title="Tirar da lista">'+IC.lixo+'</button></div>';
     }
