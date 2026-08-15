@@ -16210,6 +16210,9 @@ var frnLista=[], frnBusca='', frnCarregando=false, frnErro='';
 // A conexão com a nuvem não é global: cada tela pega por um acessor. Foi o que me pegou —
 // eu usava um 'sb' solto, que não existe nesse ponto, e a tela dizia 'sem conexão'.
 function frnSB(){ try{ return window.__SB||null; }catch(e){ return null; } }
+// Quantas vezes já esperei o perfil chegar. Sem teto, um perfil que nunca vem viraria
+// um laço eterno redesenhando a tela.
+var frnEsperouPerfil=0;
 function frnPodeDecidir(){
   try{ return !!(window.__PERFIL && (window.__PERFIL.is_master || podePagina('fornecedores'))); }catch(e){ return false; }
 }
@@ -16284,6 +16287,10 @@ function frnToast(txt){
 
 function renderFornecedores(){
   var root=document.getElementById('frnRoot'); if(!root) return;
+  // O painel descobre QUEM é você depois de conversar com a nuvem, e esta tela pode desenhar
+  // antes disso. Sem esperar, o master via 'aguardando o responsável decidir' — mentira, e sem
+  // botão nenhum pra decidir. Redesenha assim que o perfil chegar.
+  if(!window.__PERFIL && frnEsperouPerfil<10){ frnEsperouPerfil++; setTimeout(renderFornecedores,400); }
   var pode=frnPodeDecidir();
   var res=frnResumo(frnLista);
   var esperando=frnFiltrar(frnLista, frnBusca, 'aguardando');
