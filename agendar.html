@@ -856,6 +856,66 @@ button{font-family:inherit}
     };
   }
 
+  // ---------------------------------------------------------------
+  // LER O ARQUIVO XML DA NOTA
+  //
+  // O XML da NF-e vem de jeitos diferentes conforme quem emitiu: às vezes
+  // embrulhado em <nfeProc>, às vezes só <NFe>; com prefixo de espaço de nomes
+  // (<ns:emit>) ou sem. Por isso a leitura procura pelo NOME da etiqueta e
+  // ignora o prefixo — é o que faz o mesmo leitor servir para todos.
+  //
+  // Feito com busca de texto, não com leitor de XML do navegador, por dois
+  // motivos: roda igual no teste automático (que não tem navegador), e arquivo
+  // torto não derruba nada — só não acha o campo.
+  // ---------------------------------------------------------------
+  function nfeEtiqueta(txt, nome){
+    var re=new RegExp("<(?:[A-Za-z0-9_.-]+:)?"+nome+"(?:\\s[^>]*)?>([\\s\\S]*?)<\\/(?:[A-Za-z0-9_.-]+:)?"+nome+">");
+    var m=re.exec(txt);
+    return m ? m[1] : "";
+  }
+  function nfeTexto(txt, nome){
+    var v=nfeEtiqueta(txt, nome);
+    return v.indexOf("<")>=0 ? "" : v.trim();
+  }
+
+  function nfeLerXml(texto){
+    var t=String(texto==null?"":texto);
+    if(t.length>3000000) return {ok:false, erro:"Esse arquivo é grande demais para ser uma nota fiscal."};
+    if(t.indexOf("<")<0)  return {ok:false, erro:"Esse arquivo não é um XML."};
+    if(!/infNFe/i.test(t)) return {ok:false, erro:"Esse XML não é de nota fiscal eletrônica (NF-e)."};
+
+    // a chave aparece no atributo Id da infNFe ("NFe" + 44 números) ou em <chNFe>
+    var chave="";
+    var mId=/<(?:[A-Za-z0-9_.-]+:)?infNFe[^>]*\sId\s*=\s*["']\s*NFe(\d{44})\s*["']/i.exec(t);
+    if(mId) chave=mId[1];
+    if(!chave){ var c=nfeTexto(t,"chNFe"); if(/^\d{44}$/.test(c)) chave=c; }
+    if(!chave) return {ok:false, erro:"Não achei a chave de 44 números dentro do arquivo."};
+
+    var lida=nfeChaveLer(chave);
+    if(!lida.ok) return {ok:false, erro:"A chave que está dentro do arquivo não confere: "+lida.erro};
+
+    // emitente e destinatário têm os dois uma etiqueta CNPJ; por isso recorto
+    // cada bloco antes de procurar dentro dele.
+    var bEmit=nfeEtiqueta(t,"emit"), bDest=nfeEtiqueta(t,"dest");
+    var bIde =nfeEtiqueta(t,"ide"),  bTot=nfeEtiqueta(t,"ICMSTot");
+
+    var emissao=nfeTexto(bIde,"dhEmi")||nfeTexto(bIde,"dEmi");
+
+    return { ok:true,
+      chave: chave,
+      numero: nfeTexto(bIde,"nNF") || lida.numero,
+      serie:  nfeTexto(bIde,"serie") || lida.serie,
+      emissao: emissao ? emissao.slice(0,10).split("-").reverse().join("/") : lida.emissao,
+      emitenteCnpj: nfeTexto(bEmit,"CNPJ") || lida.cnpj,
+      emitenteNome: nfeTexto(bEmit,"xNome"),
+      destinoCnpj:  nfeTexto(bDest,"CNPJ"),
+      destinoNome:  nfeTexto(bDest,"xNome"),
+      valor: nfeTexto(bTot,"vNF"),
+      uf: lida.uf,
+      aviso: lida.aviso
+    };
+  }
+
   var TXT_SIT={ solicitada:"aguardando", confirmada:"confirmada", em_recebimento:"em descarga",
                 concluida:"concluída", recusada:"recusada", cancelada:"cancelada",
                 nao_compareceu:"não compareceu", rascunho:"rascunho" };
@@ -2136,10 +2196,17 @@ button{font-family:inherit}
         uiToast("Informe o CNPJ da transportadora.","err"); el("wzCnpj").focus(); return;
       }
       if(wz.comNota){
-        // A leitura do XML da NF-e ainda não existe: sem um XML de verdade para
-        // conferir, qualquer passo daqui pra frente seria invenção. A tela diz isso.
-        uiToast("O agendamento com nota fiscal ainda não foi liberado. Use 'Sem nota fiscal'.","err");
-        return;
+        if(!wz.chaves.length){
+          uiToast("Mande o arquivo XML da nota, ou escolha 'Sem nota fiscal'.","err"); return;
+        }
+        // Com ARQUIVO, a nota está provada e o agendamento segue.
+        // Só a CHAVE, sem arquivo, continua barrado: a loja ainda não decidiu
+        // se chave sozinha basta. Inventar essa regra seria pior que esperar.
+        var semArq=wz.chaves.filter(function(n){ return !n.xml; }).length;
+        if(semArq){
+          uiToast("Ainda não dá para agendar só com a chave — mande o arquivo XML dessa nota.","err");
+          return;
+        }
       }
       wz.etapa="agendamento"; pintarWizard();
     };
@@ -2181,9 +2248,11 @@ button{font-family:inherit}
       '<p>A leitura do arquivo da NF-e está sendo construída. Por enquanto você já pode '+
       '<b>informar a chave de 44 dígitos</b> — o sistema confere na hora se ela existe.</p></div></div>'+
 
-      '<div style="opacity:.5;pointer-events:none;margin-top:14px">'+
-        '<div class="solta"><b>Arquivo XML da NF-e</b>Em breve você vai poder arrastar o arquivo aqui</div>'+
-      '</div>'+
+      '<div class="solta" id="wzSolta" style="margin-top:14px">'+
+        '<b>Clique ou arraste os arquivos XML das notas fiscais</b>'+
+        'O arquivo tem que ser o original da NF-e — não vale .zip'+
+        '<input type="file" id="wzArq" accept=".xml,text/xml,application/xml" multiple '+
+        'style="display:none"></div>'+
 
       '<div class="fld" style="margin-top:16px"><label for="wzChave">Chave da nota fiscal eletrônica</label>'+
       '<div style="display:flex;gap:9px;align-items:flex-start">'+
@@ -2195,6 +2264,7 @@ button{font-family:inherit}
       '<div class="nf-lista" id="wzNfLista"></div>';
 
     var inp=el("wzChave"), bt=el("wzAddNota"), dica=el("wzChaveDica");
+    ligarArquivo();
 
     function conferir(){
       var r=nfeChaveLer(inp.value);
@@ -2234,6 +2304,70 @@ button{font-family:inherit}
     listarNotas();
   }
 
+  // Receber o arquivo: clique, arrastar e soltar, vários de uma vez.
+  // A leitura acontece aqui só para o fornecedor ver na hora o que mandou —
+  // quem CONFERE de verdade é o banco, porque a tela qualquer um contorna.
+  function ligarArquivo(){
+    var area=el("wzSolta"), arq=el("wzArq");
+    if(!area||!arq) return;
+
+    area.onclick=function(){ arq.click(); };
+    ["dragenter","dragover"].forEach(function(e){
+      area.addEventListener(e, function(ev){ ev.preventDefault(); area.classList.add("sobre"); });
+    });
+    ["dragleave","drop"].forEach(function(e){
+      area.addEventListener(e, function(ev){ ev.preventDefault(); area.classList.remove("sobre"); });
+    });
+    area.addEventListener("drop", function(ev){
+      if(ev.dataTransfer && ev.dataTransfer.files) engolirArquivos(ev.dataTransfer.files);
+    });
+    arq.onchange=function(){ engolirArquivos(arq.files); arq.value=""; };
+  }
+
+  var MAX_XML=3000000;   // 3 MB: uma NF-e tem uns 20 KB
+
+  function engolirArquivos(lista){
+    if(!lista||!lista.length) return;
+    var pendentes=lista.length, achou=0, erros=[];
+    for(var i=0;i<lista.length;i++){
+      (function(f){
+        if(/\.zip$/i.test(f.name)){
+          erros.push(f.name+": arquivo .zip não serve, mande o XML original.");
+          if(--pendentes===0) fecharLeitura(achou,erros);
+          return;
+        }
+        if(f.size>MAX_XML){
+          erros.push(f.name+": grande demais para ser uma nota fiscal.");
+          if(--pendentes===0) fecharLeitura(achou,erros);
+          return;
+        }
+        var fr=new FileReader();
+        fr.onload=function(){
+          var r=nfeLerXml(String(fr.result||""));
+          if(!r.ok){ erros.push(f.name+": "+r.erro); }
+          else {
+            var rep=false;
+            for(var k=0;k<wz.chaves.length;k++){ if(wz.chaves[k].chave===r.chave) rep=true; }
+            if(rep) erros.push(f.name+": essa nota já está na lista.");
+            else { r.xml=String(fr.result||""); r.arquivo=f.name; wz.chaves.push(r); achou++; }
+          }
+          if(--pendentes===0) fecharLeitura(achou,erros);
+        };
+        fr.onerror=function(){
+          erros.push(f.name+": não consegui ler o arquivo.");
+          if(--pendentes===0) fecharLeitura(achou,erros);
+        };
+        fr.readAsText(f);
+      })(lista[i]);
+    }
+  }
+
+  function fecharLeitura(achou, erros){
+    listarNotas(); pintarResumoLado();
+    if(achou) uiToast(achou===1?"1 nota fiscal lida.":(achou+" notas fiscais lidas."));
+    for(var i=0;i<Math.min(3,erros.length);i++) uiToast(erros[i],"err");
+  }
+
   function listarNotas(){
     var cx=el("wzNfLista"); if(!cx) return;
     if(!wz.chaves.length){ cx.innerHTML=""; return; }
@@ -2242,6 +2376,9 @@ button{font-family:inherit}
       var n=wz.chaves[i];
       h+='<div class="nf-item"><span class="ic" style="color:var(--txt3)">'+IC.papel+'</span>'+
          '<div class="ch"><b>Nota '+esc(n.numero)+'</b> · série '+esc(n.serie)+' · '+esc(n.emissao)+
+         (n.valor?' · '+esc(moeda(n.valor)):'')+
+         (n.emitenteNome?'<br><span style="color:var(--txt2)">'+esc(n.emitenteNome)+'</span>':'')+
+         (n.xml?' <span class="selo confirmada" style="margin-left:6px">arquivo lido</span>':' <span class="selo solicitada" style="margin-left:6px">só a chave</span>')+
          '<br><span style="color:var(--txt3);font-size:11.5px">'+esc(nfeChaveFmt(n.chave))+'</span></div>'+
          '<button class="icone" data-tira="'+i+'" title="Tirar da lista">'+IC.lixo+'</button></div>';
     }
@@ -2343,7 +2480,13 @@ button{font-family:inherit}
       p_pedido:wz.pedido||null, p_descricao:wz.descricao||null,
       // sem isto, o CNPJ que ele digitou e o sistema conferiu era jogado fora:
       // a loja esperava o caminhão do fornecedor e chegava outro.
-      p_transportadora_cnpj: wz.remetente==="transportadora" ? wz.transpCnpj : null
+      p_transportadora_cnpj: wz.remetente==="transportadora" ? wz.transpCnpj : null,
+      p_notas: wz.comNota ? wz.chaves.map(function(n){
+        return { chave:n.chave, xml:n.xml||null, numero:n.numero, serie:n.serie,
+                 emissao:(n.emissao||"").split("/").reverse().join("-")||null,
+                 valor:n.valor||null, emitente_cnpj:n.emitenteCnpj||null,
+                 emitente_nome:n.emitenteNome||null, destino_cnpj:n.destinoCnpj||null };
+      }) : null
     }).then(function(r){
       bt.disabled=false; bt.textContent="Pedir este horário";
       if(r.error||(r.data&&r.data.ok===false)){
