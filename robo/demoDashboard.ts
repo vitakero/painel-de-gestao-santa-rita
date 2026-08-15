@@ -2275,6 +2275,14 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-fornecedores .frn-dados{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:8px;font-size:13px;color:#5b6a7d;}
         #page-fornecedores .frn-motivo{margin-top:8px;font-size:13px;color:#a8322a;}
         #page-fornecedores .frn-acoes{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+        /* As PESSOAS esperando dentro de uma empresa já liberada. Classe, e não
+           estilo solto na marcação, porque o tema escuro é gerado a partir do CSS. */
+        #page-fornecedores .frn-contas{margin-top:11px;border-top:1px solid #eef2f6;padding-top:10px;}
+        #page-fornecedores .frn-contas>b{display:block;font-size:12px;font-weight:800;color:#9a5b12;margin-bottom:7px;}
+        #page-fornecedores .frn-conta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0;}
+        #page-fornecedores .frn-conta>span{flex:1;min-width:150px;font-size:13px;color:#1d2733;font-weight:600;}
+        #page-fornecedores .frn-conta>span i{display:block;font-style:normal;font-size:11.5px;color:#8a97a8;font-weight:400;}
+        #page-fornecedores .frn-conta-bt{display:flex;gap:6px;flex:0 0 auto;}
         #page-fornecedores .frn-aviso{margin-top:10px;font-size:12.5px;color:#8a97a8;font-style:italic;}
         #page-fornecedores .frn-bt{border:1px solid #d7dee6;background:#fff;border-radius:9px;padding:7px 16px;font-size:13.5px;font-weight:600;cursor:pointer;color:#33404f;}
         #page-fornecedores .frn-bt.sim{background:#157a35;border-color:#157a35;color:#fff;}
@@ -16221,6 +16229,9 @@ function frnEspera(criadoEm, agora){
 // nao existe um global no painel.
 function frnEsc(s){ s=(s==null?'':''+s); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 var frnLista=[], frnBusca='', frnCarregando=false, frnErro='';
+// As PESSOAS que pediram acesso. Empresa liberada não libera mais todo mundo
+// junto: cada uma passa por aqui.
+var frnContas=[];
 
 // A conexão com a nuvem não é global: cada tela pega por um acessor. Foi o que me pegou —
 // eu usava um 'sb' solto, que não existe nesse ponto, e a tela dizia 'sem conexão'.
@@ -16245,6 +16256,49 @@ function frnCloudLoad(){
       else { frnLista=r.data||[]; }
       renderFornecedores();
     });
+
+  sb.from('receb_fornecedor_contas')
+    .select('user_id,fornecedor_id,nome,email,situacao,criado_em')
+    .eq('situacao','aguardando')
+    .then(function(r){
+      frnContas=(r&&!r.error&&r.data)||[];   // sem permissão: some, não inventa
+      renderFornecedores();
+    });
+}
+
+function frnContasDe(fornecedorId){
+  var out=[];
+  for(var i=0;i<frnContas.length;i++){
+    if(frnContas[i].fornecedor_id===fornecedorId) out.push(frnContas[i]);
+  }
+  return out;
+}
+
+function frnDecidirConta(userId, situacao){
+  var c=null;
+  for(var i=0;i<frnContas.length;i++){ if(frnContas[i].user_id===userId){ c=frnContas[i]; break; } }
+  if(!c) return;
+  var quem=c.nome||c.email||'esta pessoa';
+  var txt = situacao==='liberada'
+    ? {titulo:'Liberar '+quem+'?',
+       msg:'Ela vai poder entrar no portal com o login dela e agendar em nome da empresa.\\n\\n'+(c.email||''),
+       ok:'Liberar'}
+    : {titulo:'Recusar '+quem+'?',
+       msg:'Ela continua sem acesso. Você pode liberar depois, se for engano.',
+       ok:'Recusar'};
+  uiConfirm({titulo:txt.titulo,msg:txt.msg,ok:txt.ok,cancel:'Deixa pra lá'}).then(function(sim){
+    if(!sim) return;
+    var sb=frnSB(); if(!sb) return;
+    sb.rpc('forn_decidir_conta',{p_conta_id:userId,p_situacao:situacao}).then(function(r){
+      if(r.error || (r.data && r.data.ok===false)){
+        uiConfirm({titulo:'Não deu certo',
+                   msg:(r.error?r.error.message:(r.data&&r.data.erro))||'Tente de novo.',
+                   ok:'Entendi',cancel:''});
+        return;
+      }
+      frnCloudLoad();
+    });
+  });
 }
 
 function frnDecidir(id, situacao){
@@ -16324,6 +16378,21 @@ function renderFornecedores(){
     if(f.responsavel) b+='<span>👤 '+frnEsc(f.responsavel)+'</span>';
     b+='</div>';
     if(f.motivo) b+='<div class="frn-motivo">Motivo: '+frnEsc(f.motivo)+'</div>';
+    var esp=frnContasDe(f.id);
+    if(esp.length){
+      b+='<div class="frn-contas"><b>'+esp.length+(esp.length>1?' pessoas esperando':' pessoa esperando')+' liberação</b>';
+      for(var q=0;q<esp.length;q++){
+        b+='<div class="frn-conta"><span>'+frnEsc(esp[q].nome||'(sem nome)')+
+           '<i>'+frnEsc(esp[q].email||'')+'</i></span>'+
+           (pode
+             ? '<span class="frn-conta-bt">'+
+               '<button class="frn-bt nao" data-cntnao="'+frnEsc(esp[q].user_id)+'">Recusar</button>'+
+               '<button class="frn-bt sim" data-cntsim="'+frnEsc(esp[q].user_id)+'">Liberar</button></span>'
+             : '<span class="frn-conta-bt" style="font-size:12px;color:#8a97a8">aguardando o responsável</span>')+
+           '</div>';
+      }
+      b+='</div>';
+    }
     if(acoes && pode) b+='<div class="frn-acoes">'+acoes+'</div>';
     else if(acoes && !pode) b+='<div class="frn-aviso">Aguardando o responsável decidir.</div>';
     b+='</div>';
@@ -16334,7 +16403,7 @@ function renderFornecedores(){
       + '<span class="sub">Quem pode entrar no portal e agendar entrega na loja</span></div>';
 
   h+='<div class="frn-kpis">'
-   + '<div class="frn-kpi'+(res.aguardando>0?' alerta':'')+'"><b>'+res.aguardando+'</b><span>aguardando você</span></div>'
+   + '<div class="frn-kpi'+((res.aguardando+frnContas.length)>0?' alerta':'')+'"><b>'+(res.aguardando+frnContas.length)+'</b><span>aguardando você</span></div>'
    + '<div class="frn-kpi"><b>'+res.liberado+'</b><span>liberados</span></div>'
    + '<div class="frn-kpi"><b>'+(res.recusado+res.bloqueado)+'</b><span>sem acesso</span></div>'
    + '</div>';
@@ -16374,6 +16443,8 @@ function renderFornecedores(){
       if(t=e.target.closest('[data-frnsim]')){ frnDecidir(t.getAttribute('data-frnsim'),'liberado'); return; }
       if(t=e.target.closest('[data-frnnao]')){ frnDecidir(t.getAttribute('data-frnnao'),'recusado'); return; }
       if(t=e.target.closest('[data-frnblo]')){ frnDecidir(t.getAttribute('data-frnblo'),'bloqueado'); return; }
+      if(t=e.target.closest('[data-cntsim]')){ frnDecidirConta(t.getAttribute('data-cntsim'),'liberada'); return; }
+      if(t=e.target.closest('[data-cntnao]')){ frnDecidirConta(t.getAttribute('data-cntnao'),'recusada'); return; }
     });
     root.addEventListener('input',function(e){
       if(e.target && e.target.id==='frnBusca'){
