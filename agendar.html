@@ -444,7 +444,9 @@ button{font-family:inherit}
 .wz h3{font-size:17px;font-weight:800;margin:0 0 3px}
 .wz .subt{color:var(--txt2);font-size:13px;margin:0 0 18px}
 
-.escolha{display:grid;gap:11px;max-width:520px}
+/* Sem limite de largura: a lista agora vive só dentro do popup, e o popup já
+   define o tamanho. Com o limite antigo sobrava um vão só do lado direito. */
+.escolha{display:grid;gap:11px}
 .escolha button{display:flex;align-items:center;gap:14px;background:#fff;border:1.5px solid var(--borda);
      border-radius:12px;padding:16px 18px;cursor:pointer;text-align:left;transition:.13s;font-family:inherit}
 .escolha button:hover:not(:disabled){border-color:var(--verde);background:var(--verde-bg)}
