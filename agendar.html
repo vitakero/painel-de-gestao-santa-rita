@@ -405,7 +405,7 @@
     return garantirCadastro().then(function(d){
       if(!d||!d.ok){ el("esperaTit").textContent="Cadastro não encontrado";
         el("esperaTxt").textContent="Não achei seu cadastro. Fale com a loja."; mostrar("telaEspera"); return; }
-      el("quem").innerHTML="<b>"+esc(d.empresa)+"</b>CNPJ "+esc(d.cnpj);
+      el("quem").innerHTML="<b>"+esc(d.empresa)+"</b>CNPJ "+esc(cnpjFmt(d.cnpj));
       if(d.liberado){ carregarEntregas(); mostrar("telaEntregas"); return; }
       var tit="Cadastro em análise",
           txt="A loja está conferindo seus dados. Assim que liberarem, você vai poder agendar suas entregas por aqui.";
