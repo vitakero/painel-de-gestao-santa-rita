@@ -252,9 +252,12 @@ button{font-family:inherit}
    MODAL
    ============================================================ */
 .mfundo{position:fixed;inset:0;background:rgba(9,32,19,.52);z-index:60;padding:26px 18px;
-        overflow-y:auto;animation:some .14s ease}
+        overflow-y:auto;animation:some .14s ease;
+        display:flex;align-items:center;justify-content:center}
 @keyframes some{from{opacity:0}to{opacity:1}}
-.mcaixa{background:#fff;border-radius:14px;width:100%;max-width:1060px;margin:0 auto;
+/* margin:auto (e não align-items sozinho) porque quando o conteúdo é mais alto
+   que a tela, só o margin:auto deixa o topo acessível ao rolar. */
+.mcaixa{background:#fff;border-radius:14px;width:100%;max-width:1060px;margin:auto;
         box-shadow:var(--sombra2);animation:entra .18s ease;overflow:hidden}
 .mcaixa.medio{max-width:620px}
 .mcaixa.pequeno{max-width:430px}
