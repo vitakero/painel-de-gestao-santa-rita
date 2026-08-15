@@ -16251,8 +16251,29 @@ function frnDecidir(id, situacao){
         return;
       }
       frnCloudLoad();
+      frnAvisar(id);
     });
   });
+}
+
+// O aviso sai DEPOIS da decisão, de propósito: se o email falhar, a liberação continua
+// valendo. Mesma escolha da Central Logística. A falha vira tarja, não desfaz nada.
+function frnAvisar(id){
+  sb.functions.invoke('aviso-conta-criada',{body:{evento:'decisao',id:id}}).then(function(r){
+    var erro=(r&&r.error)?(r.error.message||'não deu'):((r&&r.data&&r.data.ok===false)?r.data.erro:'');
+    if(erro) frnToast('Decisão salva, mas o email não saiu: '+erro);
+  }).catch(function(e){ frnToast('Decisão salva, mas o email não saiu: '+(e&&e.message||'')); });
+}
+
+function frnToast(txt){
+  var d=document.getElementById('frnToast');
+  if(!d){ d=document.createElement('div'); d.id='frnToast';
+    d.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:99998;'
+      +'background:#fff4e5;border:1px solid #ffd9a8;color:#9a5b12;padding:12px 18px;border-radius:12px;'
+      +'font-size:13.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.16);max-width:min(92vw,520px);';
+    document.body.appendChild(d); }
+  d.textContent=txt; d.style.display='block';
+  clearTimeout(d.__t); d.__t=setTimeout(function(){ d.style.display='none'; },7000);
 }
 
 function renderFornecedores(){
