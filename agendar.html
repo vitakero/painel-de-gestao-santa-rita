@@ -538,7 +538,10 @@ button{font-family:inherit}
 .nf-lista{margin-top:12px}
 .nf-item{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--borda);
          border-radius:9px;padding:10px 13px;margin-bottom:7px;font-size:12.5px}
-.nf-item .ch{flex:1;font-variant-numeric:tabular-nums;word-break:break-all;font-weight:600}
+.nf-item .ch{flex:1;min-width:0;word-break:break-all;font-weight:500;line-height:1.4}
+.nf-item .ch b{font-weight:800}
+.nf-item .ic svg{width:16px;height:16px;display:block}
+.nf-item .ic{flex:0 0 auto;line-height:0}
 
 .slots{display:flex;flex-wrap:wrap;gap:8px}
 .slot{border:1.5px solid var(--borda);background:#fff;border-radius:9px;padding:11px 8px;font-size:14px;
@@ -784,6 +787,74 @@ button{font-family:inherit}
   // O domingo que abre a semana daquela data. É esta conta que decide qual semana
   // o calendário mostra — errar aqui joga a entrega para a coluna errada.
   function inicioSemana(d){ var x=new Date(d); x.setDate(x.getDate()-x.getDay()); x.setHours(0,0,0,0); return x; }
+
+  // ---------------------------------------------------------------
+  // A CHAVE DA NOTA FISCAL ELETRÔNICA
+  //
+  // Os 44 números não são um código solto: são montados por regra e contam a
+  // própria história. Dá para conferir se a chave existe e dizer quem emitiu,
+  // quando e qual é a nota — sem nunca abrir o arquivo XML.
+  //
+  //   posição  0-2   estado de quem emitiu
+  //            2-6   ano e mês da emissão
+  //            6-20  CNPJ de quem emitiu
+  //           20-22  modelo (55 = nota de empresa, 65 = cupom de consumidor)
+  //           22-25  série
+  //           25-34  número da nota
+  //           34-35  tipo de emissão
+  //           35-43  código numérico
+  //              43  dígito verificador
+  //
+  // O último número fecha a conta dos outros 43. É ele que pega o dígito
+  // trocado — o erro que ninguém enxerga relendo.
+  // ---------------------------------------------------------------
+  var UFS={ "11":"RO","12":"AC","13":"AM","14":"RR","15":"PA","16":"AP","17":"TO",
+            "21":"MA","22":"PI","23":"CE","24":"RN","25":"PB","26":"PE","27":"AL",
+            "28":"SE","29":"BA","31":"MG","32":"ES","33":"RJ","35":"SP","41":"PR",
+            "42":"SC","43":"RS","50":"MS","51":"MT","52":"GO","53":"DF" };
+
+  function nfeDigito(base43){
+    var peso=2, soma=0;
+    for(var i=base43.length-1;i>=0;i--){
+      soma += parseInt(base43.charAt(i),10)*peso;
+      peso++; if(peso>9) peso=2;
+    }
+    var r=soma%11;
+    return (r===0||r===1)?0:(11-r);
+  }
+
+  function nfeChaveLimpa(s){ return String(s==null?"":s).replace(/[^0-9]/g,"").slice(0,44); }
+
+  function nfeChaveFmt(s){
+    var d=nfeChaveLimpa(s), out=[];
+    for(var i=0;i<d.length;i+=4) out.push(d.slice(i,i+4));
+    return out.join(" ");
+  }
+
+  function nfeChaveLer(s){
+    var d=nfeChaveLimpa(s);
+    if(d.length===0)  return {ok:false, vazia:true, erro:""};
+    if(d.length<44)   return {ok:false, erro:"Faltam "+(44-d.length)+" número"+(44-d.length>1?"s":"")+". A chave tem 44."};
+    if(!UFS[d.slice(0,2)])
+      return {ok:false, erro:"Os dois primeiros números não são de nenhum estado. Confira o começo da chave."};
+    var mes=parseInt(d.slice(4,6),10);
+    if(mes<1||mes>12) return {ok:false, erro:"O mês dentro da chave não existe. Confira os números."};
+    if(nfeDigito(d.slice(0,43))!==parseInt(d.charAt(43),10))
+      return {ok:false, erro:"Essa chave não confere. Algum número está trocado."};
+
+    var mod=d.slice(20,22);
+    return { ok:true, chave:d,
+      uf: UFS[d.slice(0,2)],
+      emissao: d.slice(4,6)+"/20"+d.slice(2,4),
+      cnpj: d.slice(6,20),
+      modelo: mod,
+      serie: String(parseInt(d.slice(22,25),10)),
+      numero: String(parseInt(d.slice(25,34),10)),
+      // 65 é cupom de consumidor final: não é nota de entrega de mercadoria.
+      aviso: mod==="65" ? "Essa chave é de cupom fiscal de consumidor (modelo 65), não de nota de entrega."
+           : (mod!=="55" ? "Modelo de documento fora do comum (" + mod + ")." : "")
+    };
+  }
 
   var TXT_SIT={ solicitada:"aguardando", confirmada:"confirmada", em_recebimento:"em descarga",
                 concluida:"concluída", recusada:"recusada", cancelada:"cancelada",
@@ -1978,7 +2049,7 @@ button{font-family:inherit}
               : meuNome)+
       bloco(IC.local,"Local de entrega","Loja Santa Rita — Caicó/RN")+
       bloco(IC.papel,"Nota fiscal", wz.comNota
-              ? (wz.chaves.length?(wz.chaves.length+" nota(s)"):null)
+              ? (wz.chaves.length?(wz.chaves.length+(wz.chaves.length>1?" notas":" nota")):null)
               : "Sem nota fiscal")+
       bloco(IC.caixa,"Pedido", wz.pedido||null)+
       bloco(IC.cal,"Data e hora", pDia
@@ -2104,19 +2175,83 @@ button{font-family:inherit}
     }
 
     if(carga) carga.innerHTML="";
-    var h='<div class="erro-cx" style="margin-top:12px">'+
-      'O agendamento <b>com nota fiscal</b> ainda não foi liberado. A leitura do arquivo XML está '+
-      'sendo construída — enquanto isso, marque a entrega como <b>sem nota fiscal</b> e leve os '+
-      'documentos impressos.</div>'+
-      '<div style="opacity:.55;pointer-events:none;margin-top:14px">'+
-      '<div class="dica" style="margin-bottom:8px">Não é permitido enviar XML compactado em .zip — o arquivo '+
-      'deve ser o original da NF-e.</div>'+
-      '<div class="solta"><b>Clique ou arraste e solte aqui os arquivos XML</b>'+
-      'das notas fiscais para realizar o agendamento</div>'+
-      '<div style="display:flex;gap:10px;margin-top:12px">'+
-      '<div class="fld" style="flex:1;margin:0"><input type="text" placeholder="Digite a chave da nota fiscal eletrônica (44 dígitos)" maxlength="44"></div>'+
-      '<button class="bt fraco" disabled>Adicionar nota</button></div></div>';
+    cx.innerHTML=
+      '<div class="info" style="margin-top:12px"><span class="ic">'+INFO+'</span>'+
+      '<div><b>Envio do arquivo XML ainda não liberado</b>'+
+      '<p>A leitura do arquivo da NF-e está sendo construída. Por enquanto você já pode '+
+      '<b>informar a chave de 44 dígitos</b> — o sistema confere na hora se ela existe.</p></div></div>'+
+
+      '<div style="opacity:.5;pointer-events:none;margin-top:14px">'+
+        '<div class="solta"><b>Arquivo XML da NF-e</b>Em breve você vai poder arrastar o arquivo aqui</div>'+
+      '</div>'+
+
+      '<div class="fld" style="margin-top:16px"><label for="wzChave">Chave da nota fiscal eletrônica</label>'+
+      '<div style="display:flex;gap:9px;align-items:flex-start">'+
+        '<div style="flex:1;min-width:0"><input id="wzChave" type="text" inputmode="numeric" '+
+          'maxlength="54" placeholder="Os 44 números que ficam abaixo do código de barras da NF-e">'+
+          '<div class="dica" id="wzChaveDica"></div></div>'+
+        '<button class="bt fraco" id="wzAddNota" disabled style="flex:0 0 auto">Adicionar nota</button>'+
+      '</div></div>'+
+      '<div class="nf-lista" id="wzNfLista"></div>';
+
+    var inp=el("wzChave"), bt=el("wzAddNota"), dica=el("wzChaveDica");
+
+    function conferir(){
+      var r=nfeChaveLer(inp.value);
+      inp.classList.toggle("ruim", !r.ok && !r.vazia && nfeChaveLimpa(inp.value).length===44);
+      bt.disabled=!r.ok;
+      if(r.vazia){ dica.textContent=""; dica.className="dica"; return; }
+      if(!r.ok){ dica.textContent=r.erro; dica.className="dica erro"; return; }
+      // a chave conta de quem é, de quando e qual nota — antes de qualquer arquivo
+      dica.innerHTML='Nota <b>'+esc(r.numero)+'</b> · série '+esc(r.serie)+
+        ' · emitida em '+esc(r.emissao)+' ('+esc(r.uf)+')<br>CNPJ de quem emitiu: '+esc(cnpjFmt(r.cnpj))+
+        (r.aviso?'<br><span style="color:var(--verm)">'+esc(r.aviso)+'</span>':'');
+      dica.className="dica";
+      dica.style.color="var(--verde-esc)";
+    }
+
+    inp.addEventListener("input", function(){
+      var fim=this.selectionStart===this.value.length;
+      this.value=nfeChaveFmt(this.value);
+      if(fim){ try{ this.setSelectionRange(this.value.length,this.value.length); }catch(e){} }
+      conferir();
+    });
+    inp.addEventListener("keydown", function(ev){
+      if(ev.key==="Enter" && !bt.disabled){ ev.preventDefault(); bt.click(); }
+    });
+
+    bt.onclick=function(){
+      var r=nfeChaveLer(inp.value);
+      if(!r.ok) return;
+      for(var i=0;i<wz.chaves.length;i++){
+        if(wz.chaves[i].chave===r.chave){ uiToast("Essa nota já está na lista.","err"); return; }
+      }
+      wz.chaves.push(r);
+      inp.value=""; conferir();
+      listarNotas(); pintarResumoLado();
+    };
+
+    listarNotas();
+  }
+
+  function listarNotas(){
+    var cx=el("wzNfLista"); if(!cx) return;
+    if(!wz.chaves.length){ cx.innerHTML=""; return; }
+    var h="";
+    for(var i=0;i<wz.chaves.length;i++){
+      var n=wz.chaves[i];
+      h+='<div class="nf-item"><span class="ic" style="color:var(--txt3)">'+IC.papel+'</span>'+
+         '<div class="ch"><b>Nota '+esc(n.numero)+'</b> · série '+esc(n.serie)+' · '+esc(n.emissao)+
+         '<br><span style="color:var(--txt3);font-size:11.5px">'+esc(nfeChaveFmt(n.chave))+'</span></div>'+
+         '<button class="icone" data-tira="'+i+'" title="Tirar da lista">'+IC.lixo+'</button></div>';
+    }
     cx.innerHTML=h;
+    [].slice.call(cx.querySelectorAll("[data-tira]")).forEach(function(b){
+      b.onclick=function(){
+        wz.chaves.splice(parseInt(b.getAttribute("data-tira"),10),1);
+        listarNotas(); pintarResumoLado();
+      };
+    });
   }
 
   function telaAgendamento(){
