@@ -5578,7 +5578,7 @@ function clDecidir(id,status){
 function clAvisarFornecedor(id, status, quem){
   var sb=window.__SB; if(!sb||!sb.functions) return;
   if(["aprovado","recusado","conferido"].indexOf(status)<0) return;
-  sb.functions.invoke("avisar-agendamento",{ body:{ id:id, status:status } })
+  sb.functions.invoke("aviso-agendamento",{ body:{ id:id, status:status } })
     .then(function(r){
       var d=(r&&r.data)||null, erro=(r&&r.error)||null;
       if(erro||!d||d.ok!==true){
