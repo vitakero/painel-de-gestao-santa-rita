@@ -975,6 +975,9 @@ button{font-family:inherit}
   /* ==PORTAL-FIM== */
 
   var meuNome="", meuCnpj="", meuResp="";
+  // Os dados da loja vêm do banco, não escritos aqui dentro: mudar o horário
+  // de recebimento não pode exigir publicar o site de novo.
+  var meuLocal=null;
   var pagAtual="inicio";
 
   // ============================================================
@@ -1299,6 +1302,10 @@ button{font-family:inherit}
     window.scrollTo(0,0);
     irPara("inicio");
     contarAvisos();
+    // se a função ainda não existir no banco, o portal segue sem ela
+    try{ SB.rpc("forn_local").then(function(r){
+      if(r && r.data && r.data.ok) meuLocal=r.data;
+    }, function(){}); }catch(e){}
   }
 
   el("btMenu").onclick=function(){ el("lateral").classList.toggle("abre"); };
@@ -2187,7 +2194,7 @@ button{font-family:inherit}
       bloco(IC.pessoa,"Remetente", wz.remetente==="transportadora"
               ? (wz.transpCnpj?("Transportadora · "+cnpjFmt(wz.transpCnpj)):"Transportadora")
               : meuNome)+
-      bloco(IC.local,"Local de entrega","Loja Santa Rita — Caicó/RN")+
+      bloco(IC.local,"Local de entrega", localDaLoja())+
       bloco(IC.papel,"Nota fiscal", wz.comNota
               ? (wz.chaves.length?(wz.chaves.length+(wz.chaves.length>1?" notas":" nota")):null)
               : "Sem nota fiscal")+
@@ -2406,6 +2413,23 @@ button{font-family:inherit}
 
   var MAX_XML=3000000;   // 3 MB: uma NF-e tem uns 20 KB
 
+  // Enquanto o banco não responde, mostra o que sempre valeu — melhor um
+  // texto certo de ontem que um espaço em branco.
+  function localDaLoja(){
+    if(meuLocal && meuLocal.nome){
+      return meuLocal.nome + (meuLocal.endereco ? " — " + meuLocal.endereco : "");
+    }
+    return "Loja Santa Rita — Caicó/RN";
+  }
+  function horarioDaLoja(){
+    if(!meuLocal || !meuLocal.abre) return "A loja recebe de segunda a sexta, das 7h às 17h.";
+    var d=meuLocal.dias||[1,2,3,4,5];
+    var N=["","segunda","terça","quarta","quinta","sexta","sábado","domingo"];
+    var faixa = (d.length && d[0] && d[d.length-1])
+      ? ("de "+N[d[0]]+" a "+N[d[d.length-1]]) : "nos dias úteis";
+    return "A loja recebe "+faixa+", das "+meuLocal.abre+" às "+meuLocal.fecha+".";
+  }
+
   function engolirArquivos(lista){
     if(!lista||!lista.length) return;
     var pendentes=lista.length, achou=0, erros=[];
@@ -2424,6 +2448,16 @@ button{font-family:inherit}
         var fr=new FileReader();
         fr.onload=function(){
           var r=nfeLerXml(String(fr.result||""));
+          // A nota é para ESTA loja? Perguntar isso agora, e não no último
+          // clique, poupa o fornecedor de preencher dia e hora à toa.
+          if(r.ok && meuLocal && meuLocal.cnpj && r.destinoCnpj){
+            var d1=String(r.destinoCnpj).replace(/[^0-9]/g,"");
+            var d2=String(meuLocal.cnpj).replace(/[^0-9]/g,"");
+            if(d1.length===14 && d1!==d2){
+              r={ok:false, erro:"essa nota foi emitida para outra empresa ("+
+                  (r.destinoNome||cnpjFmt(d1))+"), não para "+(meuLocal.nome||"a loja")+"."};
+            }
+          }
           if(!r.ok){ erros.push(f.name+": "+r.erro); }
           else {
             var rep=false;
@@ -2480,7 +2514,7 @@ button{font-family:inherit}
     el("wzMain").innerHTML=
       '<div class="wz-form">'+
       '<h3>Quando o caminhão chega?</h3>'+
-      '<p class="subt">A loja recebe de segunda a sexta, das 7h às 17h. Um caminhão por horário.</p>'+
+      '<p class="subt">'+esc(horarioDaLoja())+' Um caminhão por horário.</p>'+
       '<div style="max-width:760px">'+
       '<div class="fld" style="max-width:260px"><label for="wzDia">Dia da entrega</label>'+
       '<input id="wzDia" type="date" min="'+hojeIso()+'" max="'+isoData(f)+'" value="'+esc(wz.dia)+'"></div>'+
@@ -2540,7 +2574,7 @@ button{font-family:inherit}
       '<div class="bloco" style="max-width:760px;box-shadow:none"><div class="bloco-corpo">'+
       '<div class="campos" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+
         lin("Remetente", wz.remetente==="transportadora"?("Transportadora "+cnpjFmt(wz.transpCnpj)):meuNome)+
-        lin("Local de entrega","Loja Santa Rita — Caicó/RN")+
+        lin("Local de entrega", localDaLoja())+
         lin("Dia", p.longa)+
         lin("Horário", wz.hora!==null?String(wz.hora).padStart(2,"0")+":00":"")+
         lin("Nota fiscal","Sem nota fiscal")+
