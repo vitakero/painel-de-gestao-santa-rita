@@ -624,6 +624,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #authBtn:hover{filter:brightness(1.07);}
   #authBtn:active{transform:scale(.99);}
   #authMsg{font-size:13px;margin:12px 0 0;text-align:center;min-height:18px;line-height:1.4;}
+  /* Vazia, a caixa de recado não ocupa lugar. Antes ela reservava 18px de altura + 12px de
+     margem SEMPRE, e isso abria um vão de 40px entre o botão e o "Esqueci minha senha" —
+     contra 10px no Portal do Fornecedor. O dono comparou as duas telas e preferiu a do
+     portal (14/08/2026). Quando tem recado, o espaço de sempre volta. */
+  #authMsg:empty{min-height:0;margin:0;}
   #authForgot{display:block;text-align:center;margin-top:10px;font-size:12.5px;color:#157a35;cursor:pointer;text-decoration:underline;font-weight:600;}
   #authReset .auth-fld{text-align:left;}
   .pw-wrap{position:relative;}
