@@ -596,7 +596,7 @@ button{font-family:inherit}
     <div class="lat-pe">
       <button class="bt" id="btNova">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Nova agenda</button>
+        Novo agendamento</button>
     </div>
   </aside>
 
@@ -1083,7 +1083,7 @@ button{font-family:inherit}
       var h='<div class="colunas"><div>';
 
       h+='<div class="bloco"><div class="bloco-cab"><b>Próximas agendas</b>'+
-         '<button class="bt mini" data-acao="nova">Nova agenda</button></div>'+
+         '<button class="bt mini" data-acao="nova">Novo agendamento</button></div>'+
          '<div class="bloco-corpo zero">';
       if(!prox.length){
         h+=uiVazio({ic:IC.caminhao,titulo:"Nenhuma entrega marcada",
@@ -1257,7 +1257,7 @@ button{font-family:inherit}
          '<button data-visao="semana"'+(calVisao==="semana"?' class="on"':'')+'>Semana</button>'+
          '<button data-visao="mes"'+(calVisao==="mes"?' class="on"':'')+'>Mês</button>'+
        '</div>'+
-       '<button class="bt mini" data-acao="nova">Nova agenda</button>'+
+       '<button class="bt mini" data-acao="nova">Novo agendamento</button>'+
        '</div>';
 
     h+= calVisao==="mes" ? gradeMes() : gradeHoras(de, calVisao==="dia"?1:7);
@@ -1375,7 +1375,7 @@ button{font-family:inherit}
 
       var h='<div class="linha-topo"><h2 class="h-sec">Minhas agendas<small>'+
             total+(total===1?" agenda encontrada":" agendas encontradas")+'</small></h2>'+
-            '<button class="bt" data-acao="nova">Nova agenda</button></div>';
+            '<button class="bt" data-acao="nova">Novo agendamento</button></div>';
 
       h+='<div class="bloco"><div class="filtros'+(fAberto?" aberto":"")+'" id="cxFiltros">'+
          '<div class="filtros-cab" id="filtrosCab"><b>Filtros</b>'+
@@ -1818,7 +1818,7 @@ button{font-family:inherit}
   // Escolher o tipo é uma pergunta curta: cabe num quadrado. A tela cheia só
   // depois, quando começa o preenchimento de verdade.
   function abrirWizard(){
-    var c=uiModal({ titulo:"Nova agenda", tam:"medio", corpo:
+    var c=uiModal({ titulo:"Novo agendamento", tam:"medio", corpo:
       '<p style="margin:0 0 4px;font-size:15px;font-weight:800">Qual tipo de agenda você deseja marcar?</p>'+
       '<p style="margin:0 0 16px;font-size:13px;color:var(--txt2)">Hoje a loja recebe agendamento de '+
       'entrega. Os outros tipos ainda não foram liberados.</p>'+
