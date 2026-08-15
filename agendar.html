@@ -386,7 +386,12 @@
         return SB.rpc("forn_cadastrar",{ p_cnpj:m.cnpj, p_razao_social:m.razao_social,
           p_email:(u.data.user.email||""), p_telefone:m.telefone||null,
           p_responsavel:m.responsavel||null, p_nome:m.nome||null })
-          .then(function(){ return SB.rpc("forn_minha_situacao").then(function(r2){ return r2.data; }); });
+          .then(function(){
+            // avisa a loja que tem cadastro esperando. Se o email falhar, o cadastro continua
+            // valendo — por isso não trava nada aqui.
+            try{ SB.functions.invoke("aviso-conta-criada",{body:{evento:"cadastro"}}); }catch(e){}
+            return SB.rpc("forn_minha_situacao").then(function(r2){ return r2.data; });
+          });
       });
     });
   }
@@ -503,6 +508,8 @@
         if(el("aDia").value) el("aDia").dispatchEvent(new Event("change"));
         return;
       }
+      // avisa a loja que tem horário pedido esperando resposta
+      try{ if(r.data && r.data.id) SB.functions.invoke("aviso-agendamento",{body:{id:r.data.id,status:"solicitou"}}); }catch(e){}
       el("prontoResumo").innerHTML="<b>"+dataBonita(d)+"</b><br>às <b>"+esc(r.data.hora)+"</b>";
       mostrar("telaPronto");
     });
