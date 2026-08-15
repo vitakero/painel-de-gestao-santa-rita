@@ -1642,7 +1642,8 @@ button{font-family:inherit}
         ["Solicitante", d.solicitante],
         ["Fornecedor", d.fornecedor],
         ["CNPJ", d.cnpj?cnpjFmt(d.cnpj):""],
-        ["Transportadora", d.transportadora],
+        // guardamos o CNPJ; o nome da transportadora ainda não tem cadastro
+        ["Transportadora", d.transportadora || (d.transportadora_cnpj?cnpjFmt(d.transportadora_cnpj):"")],
         ["Local de entrega", d.local],
         ["Endereço", d.endereco],
         ["Doca", d.doca],
@@ -1833,7 +1834,8 @@ button{font-family:inherit}
       '<h2>A entrega</h2><table>'+
       lin("Fornecedor", d.fornecedor)+
       lin("CNPJ", d.cnpj?cnpjFmt(d.cnpj):"")+
-      (d.transportadora?lin("Transportadora", d.transportadora):"")+
+      ((d.transportadora||d.transportadora_cnpj)
+         ?lin("Transportadora", d.transportadora||cnpjFmt(d.transportadora_cnpj)):"")+
       lin("Local de entrega", d.local)+
       (d.endereco?lin("Endereço", d.endereco):"")+
       (d.doca?lin("Doca", d.doca):"")+
@@ -2203,7 +2205,11 @@ button{font-family:inherit}
     var bt=el("wzEnviar");
     bt.disabled=true; bt.textContent="Enviando...";
     SB.rpc("forn_agendar",{p_data:wz.dia, p_hora:wz.hora,
-      p_pedido:wz.pedido||null, p_descricao:wz.descricao||null}).then(function(r){
+      p_pedido:wz.pedido||null, p_descricao:wz.descricao||null,
+      // sem isto, o CNPJ que ele digitou e o sistema conferiu era jogado fora:
+      // a loja esperava o caminhão do fornecedor e chegava outro.
+      p_transportadora_cnpj: wz.remetente==="transportadora" ? wz.transpCnpj : null
+    }).then(function(r){
       bt.disabled=false; bt.textContent="Pedir este horário";
       if(r.error||(r.data&&r.data.ok===false)){
         uiToast((r.error?r.error.message:(r.data&&r.data.erro))||"Não consegui agendar.","err");
