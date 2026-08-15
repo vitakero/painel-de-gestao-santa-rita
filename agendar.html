@@ -877,6 +877,17 @@ button{font-family:inherit}
     var v=nfeEtiqueta(txt, nome);
     return v.indexOf("<")>=0 ? "" : v.trim();
   }
+  // Todas as ocorrências, não só a primeira: uma nota tem vários <det>.
+  function nfeTodas(txt, nome){
+    var re=new RegExp("<(?:[A-Za-z0-9_.-]+:)?"+nome+"(?:\\s[^>]*)?>([\\s\\S]*?)<\\/(?:[A-Za-z0-9_.-]+:)?"+nome+">","g");
+    var out=[], m;
+    while((m=re.exec(txt))!==null){ out.push(m[1]); if(out.length>2000) break; }
+    return out;
+  }
+  function nfeNum(s){
+    var x=parseFloat(String(s||"").replace(",","."));
+    return isNaN(x)?null:x;
+  }
 
   function nfeLerXml(texto){
     var t=String(texto==null?"":texto);
@@ -901,8 +912,48 @@ button{font-family:inherit}
 
     var emissao=nfeTexto(bIde,"dhEmi")||nfeTexto(bIde,"dEmi");
 
+    // ---- o que vem no caminhão, item por item ----
+    // Cada <det> é um produto da nota. É daqui que sai a lista que o
+    // recebimento vê antes do caminhão encostar.
+    var itens=[], dets=nfeTodas(t,"det"), cortou=false;
+    if(dets.length>500){ dets=dets.slice(0,500); cortou=true; }
+    for(var i=0;i<dets.length;i++){
+      var prod=nfeEtiqueta(dets[i],"prod");
+      if(!prod) continue;
+      var ean=nfeTexto(prod,"cEAN");
+      itens.push({
+        codigo: nfeTexto(prod,"cProd"),
+        ean: (ean && ean.toUpperCase()!=="SEM GTIN") ? ean : "",
+        descricao: nfeTexto(prod,"xProd"),
+        ncm: nfeTexto(prod,"NCM"),
+        cfop: nfeTexto(prod,"CFOP"),
+        unidade: nfeTexto(prod,"uCom"),
+        qtd: nfeNum(nfeTexto(prod,"qCom")),
+        valorUnit: nfeNum(nfeTexto(prod,"vUnCom")),
+        valor: nfeNum(nfeTexto(prod,"vProd"))
+      });
+    }
+
+    // ---- volume e peso: a nota já diz o tamanho da carga ----
+    var bTransp=nfeEtiqueta(t,"transp"), vols=nfeTodas(bTransp,"vol");
+    var qVol=0, pesoL=0, pesoB=0, especie="";
+    for(var v=0;v<vols.length;v++){
+      qVol  += nfeNum(nfeTexto(vols[v],"qVol"))||0;
+      pesoL += nfeNum(nfeTexto(vols[v],"pesoL"))||0;
+      pesoB += nfeNum(nfeTexto(vols[v],"pesoB"))||0;
+      if(!especie) especie=nfeTexto(vols[v],"esp");
+    }
+
     return { ok:true,
       chave: chave,
+      itens: itens,
+      itensCortados: cortou,
+      volumes: qVol||null,
+      especie: especie||"",
+      pesoLiquido: pesoL||null,
+      pesoBruto: pesoB||null,
+      transportadoraNome: nfeTexto(nfeEtiqueta(bTransp,"transporta"),"xNome"),
+      transportadoraCnpj: nfeTexto(nfeEtiqueta(bTransp,"transporta"),"CNPJ"),
       numero: nfeTexto(bIde,"nNF") || lida.numero,
       serie:  nfeTexto(bIde,"serie") || lida.serie,
       emissao: emissao ? emissao.slice(0,10).split("-").reverse().join("/") : lida.emissao,
@@ -1826,15 +1877,44 @@ button{font-family:inherit}
       var nfs=d.notas_fiscais||[];
       if(!nfs.length) return uiVazio({ic:IC.papel,titulo:"Nenhuma nota fiscal",
         texto:"Este agendamento foi marcado sem nota fiscal. O envio de XML da NF-e ainda não foi liberado pela loja."});
-      return uiTabela([
-        {ch:"Nota",cl:"nowrap",v:function(n){ return '<span class="forte">'+esc(n.numero||"—")+'</span>'+
-            (n.serie?'<span class="par">série '+esc(n.serie)+'</span>':''); }},
-        {ch:"Chave",v:function(n){ return '<span style="font-size:11.5px;word-break:break-all">'+esc(n.chave||"—")+'</span>'; }},
-        {ch:"Emissão",cl:"nowrap",v:function(n){ return esc(n.emissao||"—"); }},
-        {ch:"Valor",cl:"nowrap",v:function(n){ return esc(moeda(n.valor)); }},
-        {ch:"Situação",cl:"nowrap",v:function(n){ return esc(n.situacao||"")+
-            (n.erro?'<span class="par" style="color:var(--verm)">'+esc(n.erro)+'</span>':''); }}
-      ], nfs, {});
+      // Uma nota por bloco, com os produtos dela logo abaixo. Tabela seca não
+      // serve aqui: quem recebe quer ver O QUE vem, não só quanto custou.
+      for(i=0;i<nfs.length;i++){
+        var nf=nfs[i], its=nf.itens||[];
+        h+='<div class="bloco" style="margin-bottom:12px;box-shadow:none">'+
+           '<div class="bloco-cab"><div><b>Nota '+esc(nf.numero||"—")+'</b>'+
+           (nf.serie?'<span class="par"> · série '+esc(nf.serie)+'</span>':'')+
+           (nf.emissao?'<span class="par"> · '+esc(nf.emissao)+'</span>':'')+
+           '</div><b>'+esc(moeda(nf.valor))+'</b></div>'+
+           '<div class="bloco-corpo">'+
+           '<div class="campos" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:'+(its.length?'14px':'0')+'">'+
+           (nf.emitente?'<div class="campo"><label>Emitente</label><div>'+esc(nf.emitente)+'</div></div>':'')+
+           (nf.volumes?'<div class="campo"><label>Volumes</label><div>'+esc(numero(nf.volumes))+
+               (nf.especie?' '+esc(nf.especie):'')+'</div></div>':'')+
+           (nf.peso_bruto?'<div class="campo"><label>Peso bruto</label><div>'+esc(numero(nf.peso_bruto))+' kg</div></div>':'')+
+           (nf.transportadora?'<div class="campo"><label>Transportadora na nota</label><div>'+esc(nf.transportadora)+'</div></div>':'')+
+           '<div class="campo" style="grid-column:1/-1"><label>Chave</label>'+
+           '<div style="font-size:12px;word-break:break-all;font-weight:500">'+esc(nf.chave||'—')+'</div></div>'+
+           '</div>';
+        if(its.length){
+          h+='<label style="display:block;font-size:10.5px;color:var(--txt3);text-transform:uppercase;'+
+             'letter-spacing:.04em;font-weight:800;margin-bottom:7px">O que vem nesta nota — '+
+             its.length+(its.length>1?' produtos':' produto')+'</label>'+
+             uiTabela([
+               {ch:"Produto",v:function(x){ return '<span class="forte">'+esc(x.descricao||'—')+'</span>'+
+                   ((x.codigo||x.ean)?'<span class="par">'+esc(x.codigo||'')+
+                     (x.ean?' · '+esc(x.ean):'')+'</span>':''); }},
+               {ch:"Qtd",cl:"nowrap",v:function(x){ return esc(numero(x.qtd))+' '+esc(x.unidade||''); }},
+               {ch:"Unitário",cl:"nowrap",v:function(x){ return esc(moeda(x.valorUnit)); }},
+               {ch:"Total",cl:"nowrap",v:function(x){ return esc(moeda(x.valor)); }}
+             ], its, {});
+        } else {
+          h+='<div class="det">Esta nota foi informada só pela chave, então os produtos não vieram. '+
+             'Mandando o arquivo XML, a lista aparece aqui.</div>';
+        }
+        h+='</div></div>';
+      }
+      return h;
     }
 
     if(detAba==="pedidos"){
@@ -2378,6 +2458,10 @@ button{font-family:inherit}
          '<div class="ch"><b>Nota '+esc(n.numero)+'</b> · série '+esc(n.serie)+' · '+esc(n.emissao)+
          (n.valor?' · '+esc(moeda(n.valor)):'')+
          (n.emitenteNome?'<br><span style="color:var(--txt2)">'+esc(n.emitenteNome)+'</span>':'')+
+         ((n.itens&&n.itens.length)?'<br><span style="color:var(--txt2)">'+n.itens.length+
+            (n.itens.length>1?' produtos':' produto')+
+            (n.volumes?' · '+numero(n.volumes)+' volume'+(n.volumes>1?'s':''):'')+
+            (n.pesoBruto?' · '+numero(n.pesoBruto)+' kg':'')+'</span>':'')+
          (n.xml?' <span class="selo confirmada" style="margin-left:6px">arquivo lido</span>':' <span class="selo concluida" style="margin-left:6px">pela chave</span>')+
          '<br><span style="color:var(--txt3);font-size:11.5px">'+esc(nfeChaveFmt(n.chave))+'</span></div>'+
          '<button class="icone" data-tira="'+i+'" title="Tirar da lista">'+IC.lixo+'</button></div>';
@@ -2485,7 +2569,11 @@ button{font-family:inherit}
         return { chave:n.chave, xml:n.xml||null, numero:n.numero, serie:n.serie,
                  emissao:(n.emissao||"").split("/").reverse().join("-")||null,
                  valor:n.valor||null, emitente_cnpj:n.emitenteCnpj||null,
-                 emitente_nome:n.emitenteNome||null, destino_cnpj:n.destinoCnpj||null };
+                 emitente_nome:n.emitenteNome||null, destino_cnpj:n.destinoCnpj||null,
+                 itens:n.itens||null, volumes:n.volumes||null, especie:n.especie||null,
+                 peso_bruto:n.pesoBruto||null, peso_liquido:n.pesoLiquido||null,
+                 transportadora_nome:n.transportadoraNome||null,
+                 transportadora_cnpj:n.transportadoraCnpj||null };
       }) : null
     }).then(function(r){
       bt.disabled=false; bt.textContent="Pedir este horário";
