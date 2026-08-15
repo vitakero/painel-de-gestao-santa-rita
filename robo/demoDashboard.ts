@@ -2810,6 +2810,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       .cl-ped-quem{flex:1;min-width:160px;}
       .cl-ped-quem b{display:block;font-size:14px;color:#1d2733;}
       .cl-ped-quem span{font-size:12px;color:#8a97a8;}
+      /* Quem CHEGA nem sempre é quem vende. Sem esta marca, o recebimento espera
+         o caminhão do fornecedor e aparece outro, de outra empresa. */
+      .cl-transp{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;
+                 color:#1c5a9c;background:#e7f0fb;border:1px solid #c6dcf5;border-radius:999px;
+                 padding:2px 9px;margin-top:3px;}
       .cl-ped-acoes{display:flex;gap:8px;flex-shrink:0;}
       .cl-ped-acoes button{border:0;border-radius:8px;padding:8px 15px;font-size:13px;font-weight:700;
                            cursor:pointer;font-family:inherit;}
@@ -5463,7 +5468,7 @@ function clPedidosLoad(){
      esse já foi respondido e o passado dele é histórico. */
   var hoje=clDataISO(new Date());
   sb.from("entregas_agendamento")
-    .select("id,fornecedor,documento,contato,data,hora,pedido,descricao,status,criado_em")
+    .select("id,fornecedor,documento,contato,data,hora,pedido,descricao,status,criado_em,transportadora_cnpj")
     .or("status.eq.pendente,and(status.in.(aprovado,conferido),data.gte."+clDataISO(new Date(Date.now()-30*86400000))+")")
     .order("data").order("hora")
     .then(function(r){
@@ -5476,6 +5481,14 @@ function clPedidosLoad(){
     }, function(){ clPedidosCarregando=false; });
 }
 function clHoraCurta(h){ return String(h||"").slice(0,5); }
+/* O fornecedor pode contratar transportadora, e aí quem encosta na doca é outra
+   empresa. O portal já pergunta e guarda o CNPJ; sem mostrar aqui, a informação
+   ficava no banco e não chegava em quem recebe. */
+function clTranspSelo(p){
+  var c=String((p&&p.transportadora_cnpj)||"").replace(/[^0-9]/g,"");
+  if(c.length!==14) return "";
+  return '<span class="cl-transp">Chega por transportadora · '+pxEsc(frnCnpjFmt(c))+'</span>';
+}
 function clDataLonga(iso){
   var p=String(iso||"").split("-"); if(p.length<3) return iso||"";
   var d=new Date(+p[0],+p[1]-1,+p[2]);
@@ -5507,7 +5520,8 @@ function renderClPedidos(){
          '<span class="cl-ped-quando">'+clDataLonga(p.data)+' · '+clHoraCurta(p.hora)+
            (passou?'<span class="av">passou da data</span>':'')+'</span>'+
          '<span class="cl-ped-quem"><b>'+pxEsc(p.fornecedor)+'</b>'+
-         (extra.length?'<span>'+extra.join(" · ")+'</span>':'')+'</span>'+
+         (extra.length?'<span>'+extra.join(" · ")+'</span>':'')+
+         clTranspSelo(p)+'</span>'+
          (clPodeDecidir()
            ? '<span class="cl-ped-acoes">'+
              '<button type="button" class="cl-ped-nao" data-pnao="'+pxEsc(p.id)+'">Recusar</button>'+
@@ -5530,7 +5544,8 @@ function renderClPedidos(){
     apro.slice(0,12).forEach(function(p){
       var chegou=p.data<=hj;
       h+='<div class="cl-conf-lin"><span class="qd">'+clDataLonga(p.data)+' · '+clHoraCurta(p.hora)+'</span>'+
-         '<span class="nm">'+pxEsc(p.fornecedor)+(p.pedido?' <span style="color:#8a97a8;font-weight:400;">· pedido '+pxEsc(p.pedido)+'</span>':'')+'</span>'+
+         '<span class="nm">'+pxEsc(p.fornecedor)+(p.pedido?' <span style="color:#8a97a8;font-weight:400;">· pedido '+pxEsc(p.pedido)+'</span>':'')+
+           clTranspSelo(p)+'</span>'+
          (chegou && clPodeDecidir()
            ? '<button type="button" class="cl-ped-sim" data-pconf="'+pxEsc(p.id)+'">✓ Conferido</button>'
            : '<span class="selo">confirmada</span>')+
