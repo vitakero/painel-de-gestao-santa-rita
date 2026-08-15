@@ -2267,6 +2267,9 @@ button{font-family:inherit}
       var r=nfeChaveLer(inp.value);
       inp.classList.toggle("ruim", !r.ok && !r.vazia && nfeChaveLimpa(inp.value).length===44);
       bt.disabled=!r.ok;
+      // Chave conferida: o botão fica verde. Cinza e clicável ao mesmo tempo não
+      // avisa ninguém de que ainda falta um clique — a pessoa acha que já entrou.
+      bt.classList.toggle("fraco", !r.ok);
       if(r.vazia){ dica.textContent=""; dica.className="dica"; return; }
       if(!r.ok){ dica.textContent=r.erro; dica.className="dica erro"; return; }
       // a chave conta de quem é, de quando e qual nota — antes de qualquer arquivo
