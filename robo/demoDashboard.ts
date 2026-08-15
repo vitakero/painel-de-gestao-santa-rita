@@ -16207,12 +16207,16 @@ function frnEspera(criadoEm, agora){
 function frnEsc(s){ s=(s==null?'':''+s); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 var frnLista=[], frnBusca='', frnCarregando=false, frnErro='';
 
+// A conexão com a nuvem não é global: cada tela pega por um acessor. Foi o que me pegou —
+// eu usava um 'sb' solto, que não existe nesse ponto, e a tela dizia 'sem conexão'.
+function frnSB(){ try{ return window.__SB||null; }catch(e){ return null; } }
 function frnPodeDecidir(){
   try{ return !!(window.__PERFIL && (window.__PERFIL.is_master || podePagina('fornecedores'))); }catch(e){ return false; }
 }
 
 function frnCloudLoad(){
-  if(typeof sb==='undefined' || !sb){ frnErro='Sem conexão com a nuvem.'; renderFornecedores(); return; }
+  var sb=frnSB();
+  if(!sb){ frnErro='Sem conexão com a nuvem.'; renderFornecedores(); return; }
   frnCarregando=true; frnErro=''; renderFornecedores();
   sb.from('receb_fornecedores')
     .select('id,cnpj,razao_social,nome_curto,email,telefone,responsavel,situacao,motivo,criado_em,liberado_em')
@@ -16243,6 +16247,7 @@ function frnDecidir(id, situacao){
   if(!txt) return;
   uiConfirm({titulo:txt.titulo,msg:txt.msg,ok:txt.ok,cancel:'Deixa pra lá'}).then(function(sim){
     if(!sim) return;
+    var sb=frnSB(); if(!sb) return;
     sb.rpc('forn_decidir',{p_fornecedor_id:id,p_situacao:situacao}).then(function(r){
       if(r.error || (r.data && r.data.ok===false)){
         uiConfirm({titulo:'Não deu certo',
@@ -16259,6 +16264,7 @@ function frnDecidir(id, situacao){
 // O aviso sai DEPOIS da decisão, de propósito: se o email falhar, a liberação continua
 // valendo. Mesma escolha da Central Logística. A falha vira tarja, não desfaz nada.
 function frnAvisar(id){
+  var sb=frnSB(); if(!sb) return;
   sb.functions.invoke('aviso-conta-criada',{body:{evento:'decisao',id:id}}).then(function(r){
     var erro=(r&&r.error)?(r.error.message||'não deu'):((r&&r.data&&r.data.ok===false)?r.data.erro:'');
     if(erro) frnToast('Decisão salva, mas o email não saiu: '+erro);
