@@ -346,7 +346,12 @@
 
     el("btCriar").disabled=true; el("btCriar").textContent="Cadastrando...";
     SB.auth.signUp({ email:email, password:senha,
-      options:{ data:{ tipo:"fornecedor", nome:resp, cnpj:cnpj, razao_social:razao, telefone:tel, responsavel:resp } }
+      options:{
+        // Sem isto, o link de confirmação joga a pessoa no endereço padrão do projeto — que é
+        // o PAINEL. O fornecedor clicava em "confirmar" e caía na tela de login da loja.
+        emailRedirectTo: location.origin + location.pathname,
+        data:{ tipo:"fornecedor", nome:resp, cnpj:cnpj, razao_social:razao, telefone:tel, responsavel:resp }
+      }
     }).then(function(r){
       el("btCriar").disabled=false; el("btCriar").textContent="Cadastrar minha empresa";
       if(r.error){
