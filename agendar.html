@@ -565,7 +565,11 @@ button{font-family:inherit}
       font-variant-numeric:tabular-nums;cursor:pointer;flex:0 0 88px;text-align:center;font-weight:700}
 .slot:hover:not(.full){border-color:var(--verde)}
 .slot.sel{background:var(--verde);border-color:var(--verde);color:#fff}
-.slot.full{color:#b8c1cb;background:#f7f9fb;cursor:not-allowed;text-decoration:line-through;font-weight:500}
+.slot.full{color:#b8c1cb;background:#f7f9fb;cursor:not-allowed;font-weight:500}
+.slot.full b,.slot.full{text-decoration:line-through}
+.slot i{display:block;font-style:normal;font-size:10.5px;font-weight:600;color:var(--txt3);margin-top:1px}
+.slot.sel i{color:rgba(255,255,255,.85)}
+.slot{flex:0 0 96px}
 .slots-msg{font-size:12.5px;color:var(--txt2);padding:8px 2px 0}
 
 /* gaveta de avisos */
@@ -2157,6 +2161,26 @@ button{font-family:inherit}
 
   var wz=null;
 
+  // As opções que o fornecedor escolhe. Ficam aqui, num lugar só: mudar a
+  // lista é mexer numa linha, não caçar pela tela inteira.
+  var CARGAS=["Seca","Refrigerada","Congelada","Hortifrúti","Bebida",
+              "Produto de limpeza","Outra"];
+  var VOLUMES=["Paletizada","Caixaria (batida)","Fardo","Granel","Outra"];
+  var VEICULOS=["Van / Furgão","Toco","Truck","Carreta","Bitrem",
+                "Carro de passeio","Moto"];
+  var TEMPOS=[[30,"30 minutos"],[60,"1 hora"],[90,"1 hora e 30"],
+              [120,"2 horas"],[180,"3 horas"],[240,"4 horas"]];
+
+  function opcoes(lista, escolhido){
+    var h='<option value="">Escolha…</option>';
+    for(var i=0;i<lista.length;i++){
+      var v=lista[i], t=v, val=v;
+      if(v instanceof Array){ val=v[0]; t=v[1]; }
+      h+='<option value="'+esc(val)+'"'+(String(escolhido)===String(val)?' selected':'')+'>'+esc(t)+'</option>';
+    }
+    return h;
+  }
+
   // Escolher o tipo é uma pergunta curta: cabe num quadrado. A tela cheia só
   // depois, quando começa o preenchimento de verdade.
   function abrirWizard(){
@@ -2178,7 +2202,10 @@ button{font-family:inherit}
 
   function abrirEntrega(){
     wz={ etapa:"nf", tipo:"entrega", remetente:"fornecedor", transpCnpj:"",
-         comNota:false, chaves:[], dia:"", hora:null, pedido:"", descricao:"" };
+         comNota:false, chaves:[], dia:"", hora:null, pedido:"", descricao:"",
+         // o que chega e o que vem dentro
+         minutos:60, tipoCarga:"", tipoVolume:"", qtdVolumes:"",
+         tipoVeiculo:"", placa:"", motorista:"", motoristaFone:"" };
     var d=document.createElement("div"); d.className="wz"; d.id="wz";
     d.innerHTML='<div class="wz-topo" id="wzTopo"></div>'+
       '<div class="wz-trilha"><ol id="wzTrilha"></ol></div>'+
@@ -2251,8 +2278,15 @@ button{font-family:inherit}
               ? (wz.chaves.length?(wz.chaves.length+(wz.chaves.length>1?" notas":" nota")):null)
               : "Sem nota fiscal")+
       bloco(IC.caixa,"Pedido", wz.pedido||null)+
+      bloco(IC.caminhao,"Veículo", wz.tipoVeiculo
+              ? (wz.tipoVeiculo + (wz.placa?" · "+wz.placa:"")) : null)+
+      bloco(IC.caixa,"Carga", wz.tipoCarga
+              ? (wz.tipoCarga + (wz.qtdVolumes?" · "+wz.qtdVolumes+" "+(wz.tipoVolume||"volumes"):"")) : null)+
       bloco(IC.cal,"Data e hora", pDia
-              ?(pDia.curta+(wz.hora!==null?" às "+String(wz.hora).padStart(2,"0")+":00":""))
+              ?(pDia.curta+(wz.hora!==null
+                 ? " às "+String(wz.hora).padStart(2,"0")+":00 ("+
+                   (wz.minutos>=60?(wz.minutos/60)+"h":wz.minutos+" min")+")"
+                 : ""))
               :null);
   }
 
@@ -2576,25 +2610,118 @@ button{font-family:inherit}
     var f=new Date(); f.setDate(f.getDate()+60);
     el("wzMain").innerHTML=
       '<div class="wz-form">'+
-      '<h3>Quando o caminhão chega?</h3>'+
-      '<p class="subt">'+esc(horarioDaLoja())+' Um caminhão por horário.</p>'+
-      '<div style="max-width:760px">'+
-      '<div class="fld" style="max-width:260px"><label for="wzDia">Dia da entrega</label>'+
-      '<input id="wzDia" type="date" min="'+hojeIso()+'" max="'+isoData(f)+'" value="'+esc(wz.dia)+'"></div>'+
-      '<div class="fld"><label>Horário</label><div class="slots" id="wzSlots"></div>'+
-      '<div class="slots-msg" id="wzSlotsMsg">Escolha o dia primeiro.</div></div></div></div>';
+      '<h3>Veículo, carga e horário</h3>'+
+      '<p class="subt">Estes dados dizem à loja o que vai encostar na doca e quanto tempo vai levar.</p>'+
+
+      '<div class="secao">'+
+        '<label class="tit">O veículo</label>'+
+        '<p class="ajuda">Quem vai chegar na portaria.</p>'+
+        '<div class="campos" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+
+          '<div class="fld" style="margin:0"><label for="wzVeic">Tipo de veículo *</label>'+
+            '<select id="wzVeic">'+opcoes(VEICULOS, wz.tipoVeiculo)+'</select></div>'+
+          '<div class="fld" style="margin:0"><label for="wzPlaca">Placa *</label>'+
+            '<input id="wzPlaca" type="text" maxlength="8" placeholder="ABC-1D23" value="'+esc(wz.placa)+'"></div>'+
+          '<div class="fld" style="margin:0"><label for="wzMot">Nome do motorista *</label>'+
+            '<input id="wzMot" type="text" maxlength="80" placeholder="Quem vem dirigindo" value="'+esc(wz.motorista)+'"></div>'+
+          '<div class="fld" style="margin:0"><label for="wzMotFone">Telefone do motorista <span class="opt">(opcional)</span></label>'+
+            '<input id="wzMotFone" type="tel" inputmode="tel" maxlength="20" placeholder="(84) 90000-0000" value="'+esc(wz.motoristaFone)+'"></div>'+
+        '</div>'+
+      '</div>'+
+
+      '<div class="secao">'+
+        '<label class="tit">A carga</label>'+
+        '<p class="ajuda">Ajuda a loja a escalar quem recebe e a preparar o espaço.</p>'+
+        '<div class="campos" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+
+          '<div class="fld" style="margin:0"><label for="wzCarga">Tipo de carga *</label>'+
+            '<select id="wzCarga">'+opcoes(CARGAS, wz.tipoCarga)+'</select></div>'+
+          '<div class="fld" style="margin:0"><label for="wzVol">Tipo de volume *</label>'+
+            '<select id="wzVol">'+opcoes(VOLUMES, wz.tipoVolume)+'</select></div>'+
+          '<div class="fld" style="margin:0"><label for="wzQtd">Qtd. de volumes *</label>'+
+            '<input id="wzQtd" type="number" min="1" max="9999" placeholder="Ex.: 8" value="'+esc(wz.qtdVolumes)+'"></div>'+
+        '</div>'+
+        (wz.chaves.length?'<div class="dica">Preenchemos o que a nota fiscal já declarou. Corrija se estiver diferente.</div>':'')+
+      '</div>'+
+
+      '<div class="secao">'+
+        '<label class="tit">Tempo de descarga</label>'+
+        '<p class="ajuda">Quanto tempo o caminhão fica na doca. É este tempo que fica reservado — '+
+        'carga grande ocupa mais horários.</p>'+
+        '<div class="fld estreito" style="margin:0"><label for="wzMin">Tempo previsto *</label>'+
+          '<select id="wzMin">'+opcoes(TEMPOS, wz.minutos)+'</select></div>'+
+      '</div>'+
+
+      '<div class="secao">'+
+        '<label class="tit">Quando</label>'+
+        '<p class="ajuda">'+esc(horarioDaLoja())+'</p>'+
+        '<div class="fld estreito"><label for="wzDia">Dia da entrega</label>'+
+        '<input id="wzDia" type="date" min="'+hojeIso()+'" max="'+isoData(f)+'" value="'+esc(wz.dia)+'"></div>'+
+        '<div class="fld" style="margin:0"><label>Horário de início</label>'+
+        '<div class="slots" id="wzSlots"></div>'+
+        '<div class="slots-msg" id="wzSlotsMsg">Escolha o dia primeiro.</div></div>'+
+      '</div>'+
+      '</div>';
 
     el("wzPe").innerHTML='<button class="bt fraco" id="wzVolta">← Voltar</button>'+
       '<button class="bt" id="wzAvanca">Continuar →</button>';
 
+    // a nota fiscal já disse o tamanho da carga: aproveita, sem sobrescrever
+    // o que o fornecedor tiver digitado
+    if(!wz.qtdVolumes || !wz.tipoVolume){
+      var vol=0, esp="";
+      for(var k=0;k<wz.chaves.length;k++){
+        vol += wz.chaves[k].volumes||0;
+        if(!esp && wz.chaves[k].especie) esp=wz.chaves[k].especie;
+      }
+      if(!wz.qtdVolumes && vol>0){ wz.qtdVolumes=String(Math.round(vol)); el("wzQtd").value=wz.qtdVolumes; }
+      if(!wz.tipoVolume && esp){
+        // "PALLET" na nota é "Paletizada" na nossa lista
+        var achou = /PALLET|PALET/i.test(esp) ? "Paletizada"
+                  : (/CAIXA|CX/i.test(esp) ? "Caixaria (batida)"
+                  : (/FARDO|FD/i.test(esp) ? "Fardo" : ""));
+        if(achou){ wz.tipoVolume=achou; el("wzVol").value=achou; }
+      }
+    }
+
+    function liga(id, campo, transforma){
+      var e=el(id); if(!e) return;
+      e.oninput=e.onchange=function(){
+        wz[campo]=transforma?transforma(this.value):this.value;
+        if(transforma) this.value=wz[campo];
+        pintarResumoLado();
+      };
+    }
+    liga("wzVeic","tipoVeiculo"); liga("wzMot","motorista"); liga("wzMotFone","motoristaFone");
+    liga("wzCarga","tipoCarga");  liga("wzVol","tipoVolume"); liga("wzQtd","qtdVolumes");
+    liga("wzPlaca","placa", function(v){ return String(v||"").toUpperCase().replace(/[^A-Z0-9-]/g,""); });
+
+    el("wzMin").onchange=function(){
+      wz.minutos=parseInt(this.value,10)||60;
+      // mudou o tempo, mudou quem cabe onde: os horários precisam ser refeitos
+      wz.hora=null; carregarSlots(); pintarResumoLado();
+    };
+
     el("wzDia").onchange=function(){ wz.dia=this.value; wz.hora=null; carregarSlots(); pintarResumoLado(); };
     el("wzVolta").onclick=function(){ wz.etapa="nf"; pintarWizard(); };
-    el("wzAvanca").onclick=function(){
-      if(!wz.dia){ uiAviso("Falta o dia","Escolha o dia em que o caminhão vai chegar."); return; }
-      if(wz.hora===null){ uiAviso("Falta o horário","Escolha um dos horários livres do dia."); return; }
-      wz.etapa="resumo"; pintarWizard();
-    };
+    el("wzAvanca").onclick=validarEtapa4;
     if(wz.dia) carregarSlots();
+  }
+
+  function validarEtapa4(){
+    var falta=[];
+    if(!wz.tipoVeiculo) falta.push("tipo de veículo");
+    if(!wz.placa || wz.placa.replace(/[^A-Z0-9]/g,"").length<7) falta.push("placa");
+    if(!wz.motorista) falta.push("nome do motorista");
+    if(!wz.tipoCarga) falta.push("tipo de carga");
+    if(!wz.tipoVolume) falta.push("tipo de volume");
+    if(!(parseInt(wz.qtdVolumes,10)>0)) falta.push("quantidade de volumes");
+    if(!wz.dia) falta.push("dia da entrega");
+    if(wz.hora===null) falta.push("horário de início");
+    if(falta.length){
+      uiAviso(falta.length===1?"Falta preencher um campo":"Faltam "+falta.length+" campos",
+              "Para continuar, informe:", {lista:falta});
+      return;
+    }
+    wz.etapa="resumo"; pintarWizard();
   }
 
   function carregarSlots(){
@@ -2603,19 +2730,23 @@ button{font-family:inherit}
     var d=deIso(wz.dia);
     if(d.getDay()===0||d.getDay()===6){ cx.innerHTML=""; msg.textContent="A loja recebe de segunda a sexta."; return; }
     cx.innerHTML=""; msg.textContent="Vendo os horários livres...";
-    SB.rpc("forn_horarios_livres",{p_data:wz.dia}).then(function(r){
+    SB.rpc("forn_horarios_livres",{p_data:wz.dia, p_minutos:wz.minutos||60}).then(function(r){
       if(!el("wzSlots")) return;
       var l=(r&&r.data)||[];
-      if(!l.length){ msg.textContent="Nenhum horário nesse dia."; return; }
+      if(!l.length){ msg.textContent="A loja não recebe nesse dia."; return; }
       var h="";
       for(var i=0;i<l.length;i++){
-        h+='<div class="slot'+(l[i].livre?"":" full")+(wz.hora===l[i].h?" sel":"")+'" data-h="'+l[i].h+'">'+l[i].hora+'</div>';
+        // mostra o período inteiro: com duração variável, saber só a hora de
+        // início não diz até quando o caminhão fica na doca
+        h+='<div class="slot'+(l[i].livre?"":" full")+(wz.hora===l[i].h?" sel":"")+'" data-h="'+l[i].h+'">'+
+           l[i].hora+'<i>'+esc(l[i].ate||"")+'</i></div>';
       }
       el("wzSlots").innerHTML=h;
       var livres=l.filter(function(x){return x.livre;}).length;
       el("wzSlotsMsg").textContent=livres
-        ? (livres+" horário"+(livres>1?"s":"")+" livre"+(livres>1?"s":"")+" nesse dia")
-        : "Esse dia já está todo ocupado.";
+        ? (livres+" horário"+(livres>1?"s":"")+" cabe"+(livres>1?"m":"")+" nesse dia, com "+
+           (wz.minutos>=60?(wz.minutos/60)+"h":wz.minutos+" min")+" de descarga")
+        : "Nenhum horário desse dia comporta "+(wz.minutos>=60?(wz.minutos/60)+"h":wz.minutos+" min")+" de descarga.";
       [].slice.call(el("wzSlots").children).forEach(function(s){
         s.onclick=function(){
           if(s.classList.contains("full")) return;
@@ -2662,6 +2793,11 @@ button{font-family:inherit}
       // sem isto, o CNPJ que ele digitou e o sistema conferiu era jogado fora:
       // a loja esperava o caminhão do fornecedor e chegava outro.
       p_transportadora_cnpj: wz.remetente==="transportadora" ? wz.transpCnpj : null,
+      p_minutos: wz.minutos||60,
+      p_carga: { tipo_carga:wz.tipoCarga||null, tipo_volume:wz.tipoVolume||null,
+                 qtd_volumes:wz.qtdVolumes||null, tipo_veiculo:wz.tipoVeiculo||null,
+                 placa:wz.placa||null, motorista:wz.motorista||null,
+                 motorista_fone:wz.motoristaFone||null },
       p_notas: wz.comNota ? wz.chaves.map(function(n){
         return { chave:n.chave, xml:n.xml||null, numero:n.numero, serie:n.serie,
                  emissao:(n.emissao||"").split("/").reverse().join("-")||null,
