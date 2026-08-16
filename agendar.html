@@ -68,6 +68,10 @@ button{font-family:inherit}
 .fld input,.fld textarea,.fld select{width:100%;border:1.5px solid var(--borda);border-radius:9px;
       padding:9px 11px;font:inherit;font-size:14px;color:var(--txt);background:#fff;transition:.15s;}
 .fld textarea{resize:vertical;min-height:64px}
+/* Caixa de texto da altura de um campo comum. Caixa alta e vazia ocupa
+   espaço prometendo um texto que a maioria não vai escrever. Quem precisar
+   de mais espaço arrasta pela alça do canto. */
+.fld textarea.baixa{min-height:42px;height:42px;resize:vertical}
 .fld input:focus,.fld textarea:focus,.fld select:focus{outline:none;border-color:var(--verde);
       box-shadow:0 0 0 3px rgba(21,122,53,.13);}
 .fld input.ruim,.fld select.ruim{border-color:var(--verm);box-shadow:0 0 0 3px rgba(192,57,43,.11)}
@@ -2650,7 +2654,7 @@ button{font-family:inherit}
           '<div class="fld" style="margin:0"><label for="wzMin">Tempo previsto *</label>'+
             '<select id="wzMin">'+opcoes(TEMPOS, wz.minutos)+'</select></div>'+
           '<div class="fld" style="margin:0"><label for="wzObs">Observações <span class="opt">(opcional)</span></label>'+
-            '<textarea id="wzObs" maxlength="300" placeholder="Algo que a loja precise saber antes de o caminhão chegar">'+esc(wz.descricao)+'</textarea>'+
+            '<textarea id="wzObs" class="baixa" rows="2" maxlength="300" placeholder="Algo que a loja precise saber antes de o caminhão chegar">'+esc(wz.descricao)+'</textarea>'+
             '<div class="dica">Ex.: carga precisa de empilhadeira, motorista chega mais cedo, produto frágil.</div></div>'+
         '</div>'+
       '</div>'+
