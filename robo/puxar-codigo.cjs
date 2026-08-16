@@ -31,6 +31,7 @@ const FILES = [
   // Por isso a aba Conferencia so atualizava quando alguem rodava na mao, de dentro da loja.
   ["robo/vr-sync-conferencia.cjs", "vr-sync-conferencia.cjs", "SYNC: le as CONFERENCIAS"],
   ["robo/vr-sync-despesas.cjs", "vr-sync-despesas.cjs", "SYNC: le as DESPESAS"],
+  ["robo/vr-descobrir-pedidos.cjs", "vr-descobrir-pedidos.cjs", "DETETIVE do VR"],
   ["robo/puxar-codigo.cjs", "puxar-codigo.cjs", "Baixa o codigo mais recente do GitHub via API"],
 ];
 
