@@ -16,6 +16,13 @@ const OWNER = "vitakero";
 const REPO = "painel-de-gestao-santa-rita";
 
 // [arquivo no GitHub (pasta robo/), destino local em scripts/, marcador de validade]
+//
+// O marcador e um pedaco de texto que TEM que existir dentro do arquivo baixado.
+// Use NOME DE TABELA, nunca frase de comentario: tres destes ficaram meses
+// recusando a atualizacao porque o marcador foi escrito sem acento ("le") e o
+// arquivo tinha acento ("le" com circunflexo). O robo dizia "invalido - mantendo
+// o atual" e ninguem lia. Nome de tabela nao tem acento e so muda se o script
+// mudar de proposito.
 // IMPORTANTE: este arquivo baixa a SI MESMO por último — assim ele nunca fica desatualizado
 // sozinho (a rodada atual segue com o código antigo; a PRÓXIMA rodada já usa o novo).
 const FILES = [
@@ -26,12 +33,13 @@ const FILES = [
   ["robo/publicar.cjs", "publicar.cjs", "PUBLICADO"],
   ["robo/pixWorker.cjs", "pixWorker.cjs", "pix_cobrancas"],
   ["robo/vr-descobrir-agendamento.cjs", "vr-descobrir-agendamento.cjs", "DETETIVE do VR"],
-  ["robo/vr-sync-agendamento.cjs", "vr-sync-agendamento.cjs", "SYNC: le os agendamentos"],
+  ["robo/vr-sync-agendamento.cjs", "vr-sync-agendamento.cjs", "central_agendamentos"],
   // Faltava aqui: o deploy MANDAVA este arquivo pro GitHub e a loja nunca BAIXAVA.
   // Por isso a aba Conferencia so atualizava quando alguem rodava na mao, de dentro da loja.
-  ["robo/vr-sync-conferencia.cjs", "vr-sync-conferencia.cjs", "SYNC: le as CONFERENCIAS"],
-  ["robo/vr-sync-despesas.cjs", "vr-sync-despesas.cjs", "SYNC: le as DESPESAS"],
+  ["robo/vr-sync-conferencia.cjs", "vr-sync-conferencia.cjs", "notaentradacoletor"],
+  ["robo/vr-sync-despesas.cjs", "vr-sync-despesas.cjs", "despesas_resumo"],
   ["robo/vr-descobrir-pedidos.cjs", "vr-descobrir-pedidos.cjs", "DETETIVE do VR"],
+  ["robo/vr-descobrir-pedidos2.cjs", "vr-descobrir-pedidos2.cjs", "DETETIVE 2 do VR"],
   ["robo/puxar-codigo.cjs", "puxar-codigo.cjs", "Baixa o codigo mais recente do GitHub via API"],
 ];
 
