@@ -634,6 +634,47 @@ body.com-wz #toasts{bottom:86px}
 .hslot.sel em{color:rgba(255,255,255,.85)}
 .hmsg{font-size:11.5px;color:var(--txt2);padding:9px 1px 0;line-height:1.45}
 
+/* RESUMO EM BLOCOS — a última tela antes de enviar. */
+/* Duas colunas fixas, não "quantas couberem": com quatro campos o auto-fit
+   deixava três em cima e um sozinho embaixo, e o campo órfão parecia outro
+   assunto. Dois por dois lê como um quadro só. */
+.res-faixa{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px 20px;
+  background:#fff;border:1px solid var(--borda);border-radius:12px;padding:15px 18px;margin-bottom:14px}
+@media(max-width:560px){.res-faixa{grid-template-columns:minmax(0,1fr)}}
+.res-faixa label{display:block;font-size:9.5px;font-weight:800;color:var(--txt3);
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.res-faixa b{font-size:13.5px;font-weight:700;line-height:1.4;display:block}
+
+.res-bloco{background:#fff;border:1px solid var(--borda);border-radius:12px;
+  padding:14px 16px 15px;margin-bottom:14px}
+.res-tit{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;margin-bottom:11px}
+.res-tit .ic{width:26px;height:26px;flex:0 0 26px;border-radius:8px;background:var(--verde-bg);
+  color:var(--verde-esc);display:flex;align-items:center;justify-content:center}
+.res-tit .ic svg{width:14px;height:14px;display:block}
+
+/* Tabela das notas. Rola sozinha na horizontal: a chave tem 44 dígitos e em
+   tela de celular ela empurraria a página inteira pro lado. */
+.res-rola{overflow-x:auto;margin:0 -4px;padding:0 4px}
+.res-tab{width:100%;border-collapse:collapse;font-size:12.5px}
+.res-tab th{text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--txt3);font-weight:800;padding:0 10px 6px 0;border-bottom:1px solid var(--borda)}
+.res-tab td{padding:9px 10px 9px 0;border-bottom:1px solid #f2f5f8;vertical-align:top}
+.res-tab tr:last-child td{border-bottom:none}
+.res-tab .ch{font-size:11px;color:var(--txt2);font-variant-numeric:tabular-nums;
+  letter-spacing:.02em;white-space:nowrap}
+.res-tab .n{white-space:nowrap;font-variant-numeric:tabular-nums}
+.res-tab b{font-weight:800}
+
+.res-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.res-card{background:#fff;border:1px solid var(--borda);border-radius:12px;padding:14px 16px 15px}
+.res-card .li{font-size:13px;line-height:1.65}
+.res-card .li span{color:var(--txt2)}
+.res-card .li b{font-weight:700}
+.res-card .obs{margin-top:9px;padding-top:9px;border-top:1px solid #f2f5f8;
+  font-size:12.5px;color:var(--txt2);line-height:1.5}
+.res-card .obs b{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--txt3);font-weight:800;margin-bottom:3px}
+
 /* gaveta de avisos */
 .gaveta{position:fixed;top:0;right:0;bottom:0;width:min(376px,94vw);background:#fff;z-index:80;
         box-shadow:-14px 0 46px rgba(0,0,0,.26);display:flex;flex-direction:column;
@@ -1414,7 +1455,9 @@ body.com-wz #toasts{bottom:86px}
     imprimir:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>',
     remarcar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><path d="M8 14h8"/></svg>',
     cancelar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/></svg>',
-    caixa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>',
+    // Só o contorno externo, em 14px, vira um borrão redondo — parecia uma
+    // bolinha vazia. As duas linhas de dentro é que fazem ler como caixa.
+    caixa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
     caminhao:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
     pessoa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
     local:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
@@ -3009,36 +3052,88 @@ body.com-wz #toasts{bottom:86px}
       };
     });
   }
+  // A ÚLTIMA TELA ANTES DE ENVIAR.
+  //
+  // Blocos por assunto, e não uma lista corrida: quem confere procura uma
+  // coisa de cada vez ("a placa está certa?"), e achar é mais rápido quando
+  // cada assunto tem seu quadro. As notas aparecem UMA A UMA — dizer só
+  // "2 notas informadas" não deixa ninguém conferir se são as duas certas.
   function telaResumo(){
     var p=partes(wz.dia+"T00:00")||{longa:""};
-    function lin(r,v){ return '<div class="campo"><label>'+esc(r)+'</label><div>'+esc(v||"—")+'</div></div>'; }
-    el("wzMain").innerHTML=
-      '<div class="wz-form">'+
+
+    function faixa(rot,val){
+      return '<div><label>'+esc(rot)+'</label><b>'+esc(val||"—")+'</b></div>';
+    }
+    function li(rot,val){
+      if(!val) return '';
+      return '<div class="li"><span>'+esc(rot)+':</span> <b>'+esc(val)+'</b></div>';
+    }
+    function cartao(ic,tit,corpo){
+      if(!corpo) return '';
+      return '<div class="res-card"><div class="res-tit"><span class="ic">'+ic+'</span>'+
+             esc(tit)+'</div>'+corpo+'</div>';
+    }
+
+    var h='<div class="wz-form">'+
       '<h3>Confira antes de enviar</h3>'+
-      '<p class="subt">A loja vai receber este pedido e confirmar o horário. Você recebe um aviso por e-mail.</p>'+
-      '<div class="bloco" style="max-width:760px;box-shadow:none"><div class="bloco-corpo">'+
-      '<div class="campos" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+
-        lin("Remetente", wz.remetente==="transportadora"?("Transportadora "+cnpjFmt(wz.transpCnpj)):meuNome)+
-        lin("Local de entrega", localDaLoja())+
-        lin("Dia", p.longa)+
-        lin("Horário", wz.hora!==null?String(wz.hora).padStart(2,"0")+":00":"")+
-        lin("Nota fiscal", wz.comNota
-              ? (wz.chaves.length===1 ? "1 nota informada"
-                 : wz.chaves.length+" notas informadas")
-              : "Sem nota fiscal")+
-        lin("Pedido", wz.pedido)+
-      '</div>'+
-      (wz.descricao?'<div style="margin-top:14px"><label style="display:block;font-size:10.5px;color:var(--txt3);'+
-        'text-transform:uppercase;letter-spacing:.04em;font-weight:800">Observações</label>'+
-        '<div style="font-size:13.5px">'+esc(wz.descricao)+'</div></div>':'')+
-      '</div></div></div>';
+      '<p class="subt">A loja vai receber este pedido e confirmar o horário. '+
+      'Você recebe um aviso por e-mail.</p>'+
+      '<div class="res-faixa">'+
+        faixa("Remetente", wz.remetente==="transportadora"
+                ? ("Transportadora "+cnpjFmt(wz.transpCnpj)) : meuNome)+
+        faixa("Local de entrega", localDaLoja())+
+        faixa("Dia", maiuscula(p.longa))+
+        faixa("Horário", wz.hora!==null
+                ? String(wz.hora).padStart(2,"0")+":00 ("+txtDuracao(wz.minutos||60)+")" : "")+
+      '</div>';
+
+    // ---- as notas fiscais, uma a uma ----
+    if(wz.comNota && wz.chaves.length){
+      var temItens=false, temValor=false;
+      for(var k=0;k<wz.chaves.length;k++){
+        if((wz.chaves[k].itens||[]).length) temItens=true;
+        if(wz.chaves[k].valor) temValor=true;
+      }
+      h+='<div class="res-bloco"><div class="res-tit"><span class="ic">'+IC.papel+'</span>'+
+         (wz.chaves.length>1?'Notas fiscais informadas':'Nota fiscal informada')+'</div>'+
+         '<div class="res-rola"><table class="res-tab"><thead><tr>'+
+         '<th>Nº da nota</th><th>Chave</th>'+
+         (temValor?'<th>Valor</th>':'')+(temItens?'<th>Produtos</th>':'')+
+         '</tr></thead><tbody>';
+      for(var i=0;i<wz.chaves.length;i++){
+        var n=wz.chaves[i], its=(n.itens||[]).length;
+        h+='<tr><td><b>'+esc(n.numero||"—")+'</b>'+(n.serie?' <span style="color:var(--txt3)">série '+esc(n.serie)+'</span>':'')+'</td>'+
+           '<td class="ch">'+esc(nfeChaveFmt(n.chave))+'</td>'+
+           (temValor?'<td class="n">'+esc(n.valor?moeda(n.valor):"—")+'</td>':'')+
+           (temItens?'<td class="n">'+(its?esc(its+(its>1?" produtos":" produto")):"—")+'</td>':'')+
+           '</tr>';
+      }
+      h+='</tbody></table></div></div>';
+    }
+
+    // ---- os cartões por assunto ----
+    var carga = li("Tipo de carga", wz.tipoCarga)+
+                li("Tipo de volume", wz.tipoVolume)+
+                li("Volumes", wz.qtdVolumes)+
+                li("Pedido", wz.pedido)+
+                (wz.descricao?'<div class="obs"><b>Observações</b>'+esc(wz.descricao)+'</div>':'');
+    var veic  = li("Tipo de veículo", wz.tipoVeiculo)+
+                li("Placa", wz.placa)+
+                li("Motorista", wz.motorista)+
+                li("Telefone", wz.motoristaFone);
+
+    if(carga || veic){
+      h+='<div class="res-cards">'+cartao(IC.caixa,"Carga",carga)+
+         cartao(IC.caminhao,"Veículo",veic)+'</div>';
+    }
+
+    el("wzMain").innerHTML=h+'</div>';
 
     el("wzPe").innerHTML='<button class="bt fraco" id="wzVolta">← Voltar</button>'+
       '<button class="bt" id="wzEnviar">Pedir este horário</button>';
     el("wzVolta").onclick=function(){ wz.etapa="agendamento"; pintarWizard(); };
     el("wzEnviar").onclick=enviarAgendamento;
   }
-
   function enviarAgendamento(){
     var bt=el("wzEnviar");
     bt.disabled=true; bt.textContent="Enviando...";
