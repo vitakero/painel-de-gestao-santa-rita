@@ -63,6 +63,20 @@ function cnpj14(v) {
   return s ? s.padStart(14, "0") : "";
 }
 function num(v) { const x = parseFloat(v); return isNaN(x) ? 0 : x; }
+
+// O driver do Postgres devolve coluna "date" como OBJETO Date, não como texto.
+// Fatiar os 10 primeiros caracteres dele produzia "Sat Jul 04" e o Supabase
+// recusava a gravação inteira. Monta na mão pelos componentes locais: o driver
+// entrega meia-noite local, então dia/mês/ano saem certos sem risco de o fuso
+// empurrar a data um dia para trás.
+function dataISO(v) {
+  if (!v) return null;
+  if (typeof v === "string") return v.slice(0, 10);
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return null;
+  const z = (n) => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate());
+}
 function emLotes(l, n) { const s = []; for (let i = 0; i < l.length; i += n) s.push(l.slice(i, i + n)); return s; }
 
 const Q_PEDIDOS = `
@@ -123,8 +137,8 @@ const Q_ITENS = `
       fornecedor_id: dono,
       fornecedor_vr: p.forn_vr,
       local_id: local ? local.id : null,
-      emissao: p.datacompra ? String(p.datacompra).slice(0, 10) : null,
-      previsao: p.dataentrega ? String(p.dataentrega).slice(0, 10) : null,
+      emissao: dataISO(p.datacompra),
+      previsao: dataISO(p.dataentrega),
       situacao: "aberto",
       valor_total: num(p.valortotal),
       saldo_valor: num(p.saldo_valor),
