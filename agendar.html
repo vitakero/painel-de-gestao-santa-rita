@@ -906,7 +906,7 @@ button{font-family:inherit}
     return out;
   }
   function nfeNum(s){
-    var x=parseFloat(String(s||"").replace(",","."));
+    var x=parseFloat(String(s||"").replace(/,/g,"."));
     return isNaN(x)?null:x;
   }
 
@@ -969,6 +969,7 @@ button{font-family:inherit}
       chave: chave,
       itens: itens,
       itensCortados: cortou,
+      aviso2: cortou ? "Esta nota tem mais de 500 produtos; a lista foi cortada." : "",
       volumes: qVol||null,
       especie: especie||"",
       pesoLiquido: pesoL||null,
@@ -2771,7 +2772,10 @@ button{font-family:inherit}
         lin("Local de entrega", localDaLoja())+
         lin("Dia", p.longa)+
         lin("Horário", wz.hora!==null?String(wz.hora).padStart(2,"0")+":00":"")+
-        lin("Nota fiscal","Sem nota fiscal")+
+        lin("Nota fiscal", wz.comNota
+              ? (wz.chaves.length===1 ? "1 nota informada"
+                 : wz.chaves.length+" notas informadas")
+              : "Sem nota fiscal")+
         lin("Pedido", wz.pedido)+
       '</div>'+
       (wz.descricao?'<div style="margin-top:14px"><label style="display:block;font-size:10.5px;color:var(--txt3);'+
@@ -2800,7 +2804,11 @@ button{font-family:inherit}
                  motorista_fone:wz.motoristaFone||null },
       p_notas: wz.comNota ? wz.chaves.map(function(n){
         return { chave:n.chave, xml:n.xml||null, numero:n.numero, serie:n.serie,
-                 emissao:(n.emissao||"").split("/").reverse().join("-")||null,
+                 // A chave de 44 dígitos NÃO carrega o dia, só mês e ano ("08/2026").
+                 // Mandar isso como data derruba a gravação inteira no banco.
+                 // Só o XML traz dia completo (10 caracteres).
+                 emissao:(n.emissao && n.emissao.length===10)
+                           ? n.emissao.split("/").reverse().join("-") : null,
                  valor:n.valor||null, emitente_cnpj:n.emitenteCnpj||null,
                  emitente_nome:n.emitenteNome||null, destino_cnpj:n.destinoCnpj||null,
                  itens:n.itens||null, volumes:n.volumes||null, especie:n.especie||null,
