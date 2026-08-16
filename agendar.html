@@ -638,6 +638,26 @@ body.com-wz #toasts{bottom:86px}
 .hslot.sel em{color:rgba(255,255,255,.85)}
 .hmsg{font-size:11.5px;color:var(--txt2);padding:9px 1px 0;line-height:1.45}
 
+/* PEDIDOS DE COMPRA — a etapa 2 do assistente. */
+.ped-l{display:flex;flex-direction:column;gap:9px}
+.ped{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1.5px solid var(--borda);
+  border-radius:11px;padding:13px 15px;cursor:pointer;transition:.12s}
+.ped:hover{border-color:var(--verde)}
+.ped.on{border-color:var(--verde);background:var(--verde-bg)}
+.ped input{width:17px;height:17px;flex:0 0 17px;margin-top:2px;accent-color:var(--verde);cursor:pointer}
+.ped-c{flex:1;min-width:0}
+.ped-t{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.ped-t b{font-size:14px;font-weight:800}
+.ped-t .nf{font-size:10.5px;font-weight:800;color:var(--verde-esc);background:var(--verde-bg);
+  border:1px solid #c5e3ce;border-radius:999px;padding:2px 8px}
+.ped-s{font-size:12.5px;color:var(--txt2);margin-top:4px;line-height:1.5}
+.ped-s b{color:var(--txt);font-weight:700}
+.ped-v{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ped-v b{display:block;font-size:14px;font-weight:800}
+.ped-v span{font-size:11px;color:var(--txt2)}
+.ped-ver{background:none;border:none;color:var(--verde-esc);font:inherit;font-size:11.5px;
+  font-weight:700;cursor:pointer;padding:5px 0 0;text-decoration:underline}
+
 /* COBRANÇA DE DESCARGA — os serviços de um lado, o total do outro. */
 .cob{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:start}
 @media(max-width:900px){.cob{grid-template-columns:minmax(0,1fr)}}
@@ -1137,8 +1157,22 @@ body.com-wz #toasts{bottom:86px}
         unidade: nfeTexto(prod,"uCom"),
         qtd: nfeNum(nfeTexto(prod,"qCom")),
         valorUnit: nfeNum(nfeTexto(prod,"vUnCom")),
-        valor: nfeNum(nfeTexto(prod,"vProd"))
+        valor: nfeNum(nfeTexto(prod,"vProd")),
+        // O PEDIDO DE COMPRA, que o fornecedor escreve na nota ao emitir.
+        // Vinha chegando e sendo jogado fora. Guardar agora custa nada e é o
+        // que vai permitir amarrar a entrega ao pedido quando a lista de
+        // pedidos da loja existir.
+        pedido: nfeTexto(prod,"xPed"),
+        itemPedido: nfeTexto(prod,"nItemPed")
       });
+    }
+
+    // Os pedidos que aparecem nos itens, sem repetir. Uma nota pode atender
+    // mais de um pedido de compra — é comum quando o fornecedor junta cargas.
+    var pedidos=[];
+    for(var pi=0;pi<itens.length;pi++){
+      var pd=String(itens[pi].pedido||"").trim();
+      if(pd && pedidos.indexOf(pd)<0) pedidos.push(pd);
     }
 
     // ---- volume e peso: a nota já diz o tamanho da carga ----
@@ -1154,6 +1188,7 @@ body.com-wz #toasts{bottom:86px}
     return { ok:true,
       chave: chave,
       itens: itens,
+      pedidos: pedidos,
       itensCortados: cortou,
       aviso2: cortou ? "Esta nota tem mais de 500 produtos; a lista foi cortada." : "",
       volumes: qVol||null,
@@ -1970,14 +2005,19 @@ body.com-wz #toasts{bottom:86px}
             (d.ligado? l.length+(l.length===1?" pedido":" pedidos") : "Aguardando a ligação com o sistema da loja")+
             '</small></h2></div><div class="bloco">';
 
-      if(!d.ligado || !l.length){
-        // Verdade em vez de tela bonita vazia: o sistema interno da loja ainda não
-        // libera a leitura dos pedidos de compra. A tabela abaixo já está pronta —
-        // quando o dado chegar, ela aparece sem mexer em código.
-        h+=uiVazio({ic:IC.caixa,titulo:"Ainda não estamos mostrando pedidos aqui",
-          texto:"Os pedidos de compra ficam no sistema interno da loja. Estamos trabalhando para trazê-los "+
-                "para cá — quando isso acontecer, você vai ver o que foi pedido, o que já entregou e o que "+
-                "ainda falta. Por enquanto, informe o número do pedido na hora de agendar a entrega."});
+      if(!l.length){
+        // Duas ausências diferentes, duas frases diferentes. Enquanto era só
+        // "vazio", esta tela dizia "estamos trabalhando para trazer os pedidos"
+        // até para quem simplesmente não tem pedido em aberto — e virou mentira
+        // no dia em que os pedidos do VR chegaram.
+        h += (d.motivo==="sem_pedido_meu")
+          ? uiVazio({ic:IC.caixa,titulo:"Você não tem pedido em aberto",
+              texto:"Nenhum pedido de compra da loja para você está aguardando entrega no momento. "+
+                    "Quando a loja emitir um novo pedido, ele aparece aqui sozinho."})
+          : uiVazio({ic:IC.caixa,titulo:"Ainda não estamos mostrando pedidos aqui",
+              texto:"Os pedidos de compra ficam no sistema interno da loja. Estamos trabalhando para trazê-los "+
+                    "para cá — quando isso acontecer, você vai ver o que foi pedido, o que já entregou e o que "+
+                    "ainda falta. Por enquanto, informe o número do pedido na hora de agendar a entrega."});
       } else {
         h+=uiTabela([
           {ch:"Pedido",cl:"nowrap",v:function(p){ return '<span class="tick">'+esc(p.numero)+'</span>'; }},
@@ -1986,6 +2026,7 @@ body.com-wz #toasts{bottom:86px}
           {ch:"Emissão",cl:"nowrap",v:function(p){ return esc(p.emissao||"—"); }},
           {ch:"Previsão",cl:"nowrap",v:function(p){ return esc(p.previsao||"—"); }},
           {ch:"Itens",cl:"nowrap",v:function(p){ return esc(String(p.itens||0)); }},
+          {ch:"Para entrega",cl:"nowrap",v:function(p){ return '<b>'+esc(String(p.itens_saldo||0))+'</b>'; }},
           {ch:"Total",cl:"nowrap",v:function(p){ return esc(moeda(p.valor)); }},
           {ch:"Saldo",cl:"nowrap",v:function(p){ return esc(moeda(p.saldo)); }},
           {ch:"Situação",cl:"nowrap",v:function(p){ return '<span class="selo aberto">'+esc(p.situacao||"aberto")+'</span>'; }},
@@ -2342,6 +2383,7 @@ body.com-wz #toasts{bottom:86px}
   // NOVA AGENDA — wizard de tela cheia
   // ============================================================
   var PASSOS=[{n:1,k:"nf",t:"Dados da entrega",ativo:true},
+              // ativo vira true sozinho quando o fornecedor tem pedido em aberto
               {n:2,k:"pedidos",t:"Pedidos",ativo:false},
               {n:3,k:"docs",t:"Documentos",ativo:false},
               {n:4,k:"agendamento",t:"Agendamento",ativo:true},
@@ -2396,7 +2438,8 @@ body.com-wz #toasts{bottom:86px}
          // o que chega e o que vem dentro
          minutos:60, tipoCarga:"", tipoVolume:"", qtdVolumes:"",
          tipoVeiculo:"", placa:"", motorista:"", motoristaFone:"",
-         pesoTxt:"", peso:null, cobranca:null, ciente:false };
+         pesoTxt:"", peso:null, cobranca:null, ciente:false,
+         pedidosLista:null, pedidosEscolhidos:[] };
     // O calendário é do assistente: assistente novo, calendário do zero.
     // Estas variáveis moram fora do wz e sobreviviam ao fechar a janela —
     // o fornecedor reabria e via as vagas de antes de ele próprio agendar.
@@ -2410,6 +2453,13 @@ body.com-wz #toasts{bottom:86px}
     el("pilha").appendChild(d);
     document.body.style.overflow="hidden"; document.body.classList.add("com-wz");
     pintarWizard();
+    // Busca os pedidos assim que o assistente abre: a etapa 2 só acende se
+    // este fornecedor tiver pedido em aberto de verdade.
+    SB.rpc("forn_pedidos").then(function(r){
+      var d=(r&&r.data)||{};
+      wz.pedidosLista = d.ok ? (d.pedidos||[]) : [];
+      if(el("wz")) pintarWizard();
+    }, function(){ if(wz) wz.pedidosLista=[]; });
   }
   function fecharWizard(){
     var d=el("wz"); if(!d) return;
@@ -2420,8 +2470,12 @@ body.com-wz #toasts{bottom:86px}
   function pintarWizard(){
     if(!wz) return;
     // a etapa 5 só existe na trilha quando existe cobrança de verdade
-    for(var q=0;q<PASSOS.length;q++){ if(PASSOS[q].k==="cobranca") PASSOS[q].ativo = !!wz.cobranca; }
+    for(var q=0;q<PASSOS.length;q++){
+      if(PASSOS[q].k==="cobranca") PASSOS[q].ativo = !!wz.cobranca;
+      if(PASSOS[q].k==="pedidos")  PASSOS[q].ativo = !!(wz.pedidosLista && wz.pedidosLista.length);
+    }
     var passoAtual = wz.etapa==="agendamento" ? "agendamento"
+                   : wz.etapa==="pedidos"  ? "pedidos"
                    : wz.etapa==="cobranca" ? "cobranca"
                    : (wz.etapa==="resumo" ? "resumo" : "nf");
 
@@ -2452,6 +2506,7 @@ body.com-wz #toasts{bottom:86px}
 
     if(wz.etapa==="nf")               telaNF();
     else if(wz.etapa==="agendamento") telaAgendamento();
+    else if(wz.etapa==="pedidos")     telaPedidos();
     else if(wz.etapa==="cobranca")    telaCobranca();
     else if(wz.etapa==="resumo")      telaResumo();
 
@@ -2582,7 +2637,11 @@ body.com-wz #toasts{bottom:86px}
         // continua sendo conferido na chegada, como sempre foi. O arquivo XML
         // é melhor — traz valor, emitente e destinatário — mas não é exigido.
       }
-      wz.etapa="agendamento"; pintarWizard();
+      // Se o fornecedor tem pedido em aberto, passa pela etapa 2. Quem não tem
+      // vai direto para o agendamento e nem vê que a etapa existe.
+      casarPedidosDaNota();
+      wz.etapa = (wz.pedidosLista && wz.pedidosLista.length) ? "pedidos" : "agendamento";
+      pintarWizard();
     };
     pintarNotaCx();
   }
@@ -2766,7 +2825,27 @@ body.com-wz #toasts{bottom:86px}
     }
   }
 
+  // Os pedidos de compra que apareceram dentro das notas lidas, sem repetir.
+  function pedidosDasNotas(){
+    var l=[];
+    for(var i=0;i<wz.chaves.length;i++){
+      var p=wz.chaves[i].pedidos||[];
+      for(var j=0;j<p.length;j++){ if(l.indexOf(p[j])<0) l.push(p[j]); }
+    }
+    return l;
+  }
+
   function fecharLeitura(achou, erros){
+    // O fornecedor JÁ escreveu o pedido dentro da nota ao emitir. Pedir de novo
+    // na mão era trabalho à toa — e na prática ele deixava em branco, então a
+    // loja recebia o caminhão sem saber de que pedido era.
+    if(!wz.pedido){
+      var pds=pedidosDasNotas();
+      if(pds.length){
+        wz.pedido=pds.join(", ").slice(0,40);
+        if(el("wzPedido")) el("wzPedido").value=wz.pedido;
+      }
+    }
     listarNotas(); pintarResumoLado();
     // Sucesso é barra discreta; problema para a pessoa e pede um OK.
     // Vários arquivos com erro viram UM aviso com a lista, não três seguidos.
@@ -3216,6 +3295,123 @@ body.com-wz #toasts{bottom:86px}
     };
   }
 
+  // ============================================================
+  // ETAPA 2 — PEDIDOS DE COMPRA
+  //
+  // O fornecedor diz a que pedido esta entrega se refere. Quem manda a nota
+  // fiscal por XML nem precisa escolher: o número do pedido vem escrito
+  // dentro dela (tag xPed) e a linha já aparece marcada.
+  //
+  // A etapa é OPCIONAL de propósito. Nem toda entrega tem pedido de compra
+  // (bonificação, troca, acerto), e travar o agendamento por causa disso
+  // pararia caminhão na portaria.
+  // ============================================================
+  // O número do pedido que veio DENTRO da nota fiscal (tag xPed) marca a
+  // linha sozinho. É o mesmo que o sistema de referência faz: se o pedido
+  // estava declarado no XML, ele já aparece vinculado; se não, a pessoa marca.
+  function casarPedidosDaNota(){
+    var l=wz.pedidosLista||[]; if(!l.length) return;
+    var daNota=pedidosDasNotas();
+    for(var i=0;i<l.length;i++){
+      var bate = daNota.indexOf(String(l[i].numero))>=0;
+      l[i].daNota = bate;
+      if(bate && wz.pedidosEscolhidos.indexOf(l[i].numero)<0){
+        wz.pedidosEscolhidos.push(l[i].numero);
+      }
+    }
+    if(wz.pedidosEscolhidos.length) wz.pedido=wz.pedidosEscolhidos.join(", ").slice(0,40);
+  }
+
+  function telaPedidos(){
+    var l=wz.pedidosLista||[];
+
+    var h='<div class="wz-form larga">'+
+      '<h3>Pedidos de compra</h3>'+
+      '<p class="subt">Marque a que pedido esta entrega se refere. '+
+      'Se você enviou a nota fiscal, já marcamos o que ela declarou.</p>';
+
+    if(!l.length){
+      h+=uiVazio({ic:IC.caixa,titulo:"Você não tem pedido em aberto",
+        texto:"Nenhum pedido de compra da loja para você está aguardando entrega. "+
+              "Pode seguir normalmente — o pedido não é obrigatório para agendar."});
+    } else {
+      h+='<div class="ped-l">';
+      for(var i=0;i<l.length;i++){
+        var x=l[i], on=wz.pedidosEscolhidos.indexOf(x.numero)>=0;
+        var faltam=x.itens_saldo||0, total=x.itens||0;
+        h+='<label class="ped'+(on?" on":"")+'" data-ped="'+esc(x.numero)+'">'+
+           '<input type="checkbox"'+(on?' checked':'')+'>'+
+           '<div class="ped-c">'+
+             '<div class="ped-t"><b>Pedido '+esc(x.numero)+'</b>'+
+             (x.daNota?'<span class="nf">veio na nota fiscal</span>':'')+'</div>'+
+             '<div class="ped-s">'+
+               '<b>'+esc(String(faltam))+'</b> de '+esc(String(total))+
+               (total===1?' item para entrega':' itens para entrega')+
+               (x.previsao?' · previsão '+esc(x.previsao):'')+
+               (x.emissao?' · pedido em '+esc(x.emissao):'')+
+             '</div>'+
+             '<button type="button" class="ped-ver" data-verped="'+esc(x.id)+'">ver os itens</button>'+
+           '</div>'+
+           '<div class="ped-v"><b>'+esc(moeda(x.saldo))+'</b><span>a entregar</span></div>'+
+           '</label>';
+      }
+      h+='</div>';
+    }
+
+    el("wzMain").innerHTML=h+'</div>';
+    el("wzPe").innerHTML='<button class="bt fraco" id="wzVolta">← Voltar</button>'+
+      '<button class="bt" id="wzAvanca">Continuar →</button>';
+
+    [].slice.call(el("wzMain").querySelectorAll(".ped[data-ped]")).forEach(function(e){
+      e.onclick=function(ev){
+        // o clique no "ver os itens" não pode marcar a linha junto
+        if(ev.target.closest("[data-verped]")){ ev.preventDefault(); return; }
+        setTimeout(function(){
+          var n=e.getAttribute("data-ped"), c=e.querySelector("input").checked;
+          var k=wz.pedidosEscolhidos.indexOf(n);
+          if(c && k<0) wz.pedidosEscolhidos.push(n);
+          if(!c && k>=0) wz.pedidosEscolhidos.splice(k,1);
+          e.classList.toggle("on", c);
+          wz.pedido=wz.pedidosEscolhidos.join(", ").slice(0,40);
+          pintarResumoLado();
+        },0);
+      };
+    });
+    [].slice.call(el("wzMain").querySelectorAll("[data-verped]")).forEach(function(b){
+      b.onclick=function(ev){ ev.preventDefault(); ev.stopPropagation();
+        verItensDoPedido(b.getAttribute("data-verped")); };
+    });
+
+    el("wzVolta").onclick=function(){ wz.etapa="nf"; pintarWizard(); };
+    el("wzAvanca").onclick=function(){ wz.etapa="agendamento"; pintarWizard(); };
+  }
+
+  // O que falta dentro de um pedido. O banco confere o dono antes de
+  // devolver linha — id de pedido alheio não abre nada.
+  function verItensDoPedido(id){
+    SB.rpc("forn_pedido_itens",{p_id:id}).then(function(r){
+      var d=(r&&r.data)||{};
+      if(!d.ok){ uiAviso("Não consegui abrir", d.erro||"Pedido não encontrado."); return; }
+      var it=d.itens||[], h='';
+      if(!it.length) h='<p style="font-size:13px;color:var(--txt2)">Esse pedido não tem itens.</p>';
+      else {
+        h='<table class="res-tab"><thead><tr><th>Produto</th>'+
+          '<th class="n">Pedido</th><th class="n">Entregue</th><th class="n">Falta</th>'+
+          '</tr></thead><tbody>';
+        for(var i=0;i<it.length;i++){
+          var x=it[i], falta=parseFloat(x.saldo)||0;
+          h+='<tr'+(falta<=0?' style="opacity:.45"':'')+'>'+
+             '<td><b>'+esc(x.descricao||"—")+'</b></td>'+
+             '<td class="n">'+esc(numero(x.qtd_pedida))+'</td>'+
+             '<td class="n">'+esc(numero(x.qtd_entregue))+'</td>'+
+             '<td class="n"><b>'+esc(numero(x.saldo))+'</b></td></tr>';
+        }
+        h+='</tbody></table>';
+      }
+      uiModal({titulo:"O que falta neste pedido", corpo:'<div class="res-rola">'+h+'</div>', tam:"largo"});
+    });
+  }
+
   function telaResumo(){
     var p=partes(wz.dia+"T00:00")||{longa:""};
 
@@ -3247,21 +3443,24 @@ body.com-wz #toasts{bottom:86px}
 
     // ---- as notas fiscais, uma a uma ----
     if(wz.comNota && wz.chaves.length){
-      var temItens=false, temValor=false;
+      var temItens=false, temValor=false, temPedido=false;
       for(var k=0;k<wz.chaves.length;k++){
         if((wz.chaves[k].itens||[]).length) temItens=true;
         if(wz.chaves[k].valor) temValor=true;
+        if((wz.chaves[k].pedidos||[]).length) temPedido=true;
       }
       h+='<div class="res-bloco"><div class="res-tit"><span class="ic">'+IC.papel+'</span>'+
          (wz.chaves.length>1?'Notas fiscais informadas':'Nota fiscal informada')+'</div>'+
          '<div class="res-rola"><table class="res-tab"><thead><tr>'+
          '<th>Nº da nota</th><th>Chave</th>'+
+         (temPedido?'<th>Pedido</th>':'')+
          (temValor?'<th>Valor</th>':'')+(temItens?'<th>Produtos</th>':'')+
          '</tr></thead><tbody>';
       for(var i=0;i<wz.chaves.length;i++){
         var n=wz.chaves[i], its=(n.itens||[]).length;
         h+='<tr><td><b>'+esc(n.numero||"—")+'</b>'+(n.serie?' <span style="color:var(--txt3)">série '+esc(n.serie)+'</span>':'')+'</td>'+
            '<td class="ch">'+esc(nfeChaveFmt(n.chave))+'</td>'+
+           (temPedido?'<td>'+esc((n.pedidos||[]).join(", ")||"—")+'</td>':'')+
            (temValor?'<td class="n">'+esc(n.valor?moeda(n.valor):"—")+'</td>':'')+
            (temItens?'<td class="n">'+(its?esc(its+(its>1?" produtos":" produto")):"—")+'</td>':'')+
            '</tr>';
