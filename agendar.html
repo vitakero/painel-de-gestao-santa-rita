@@ -263,6 +263,10 @@ button{font-family:inherit}
 
 /* toast */
 #toasts{position:fixed;right:18px;bottom:18px;z-index:90;display:flex;flex-direction:column;gap:8px}
+/* Com o assistente aberto, o rodapé fixo tem o "Continuar" no canto direito —
+   exatamente onde a barrinha nascia. Ela cobria o botão que a pessoa ia clicar
+   logo depois de soltar a nota fiscal. Sobe para ficar acima do rodapé. */
+body.com-wz #toasts{bottom:86px}
 .toast{background:#fff;border:1px solid var(--borda);border-left:3px solid var(--verde);
        border-radius:9px;padding:11px 15px;box-shadow:var(--sombra2);font-size:13px;font-weight:600;
        max-width:330px;animation:sobe .18s ease}
@@ -2306,13 +2310,13 @@ button{font-family:inherit}
       '<div class="wz-lado" id="wzLado"></div></div>'+
       '<div class="wz-pe" id="wzPe"></div>';
     el("pilha").appendChild(d);
-    document.body.style.overflow="hidden";
+    document.body.style.overflow="hidden"; document.body.classList.add("com-wz");
     pintarWizard();
   }
   function fecharWizard(){
     var d=el("wz"); if(!d) return;
     try{ el("pilha").removeChild(d); }catch(e){}
-    document.body.style.overflow=""; wz=null;
+    document.body.style.overflow=""; document.body.classList.remove("com-wz"); wz=null;
   }
 
   function pintarWizard(){
