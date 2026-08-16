@@ -1,4 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "ignoreCommand": "if [ -z \"$VERCEL_GIT_COMMIT_MESSAGE\" ]; then exit 1; fi; case \"$VERCEL_GIT_COMMIT_MESSAGE\" in *\"[publicar]\"*) exit 1;; *) exit 0;; esac"
+  "ignoreCommand": "if [ -z \"$VERCEL_GIT_COMMIT_MESSAGE\" ]; then exit 1; fi; case \"$VERCEL_GIT_COMMIT_MESSAGE\" in *\"[publicar]\"*) exit 1;; *) exit 0;; esac",
+  "rewrites": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "portalfornecedor.supermercadosantarita.com.br"
+        }
+      ],
+      "destination": "/agendar.html"
+    }
+  ]
 }
