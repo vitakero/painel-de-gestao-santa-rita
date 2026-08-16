@@ -31,3 +31,20 @@ limite; errar ignorando deixa a loja com o site velho.
 
 ## Para desfazer
 Apague o `vercel.json`. O Vercel volta a publicar a cada commit.
+
+
+## O portal do fornecedor tem endereço próprio (16/08/2026)
+
+`portalfornecedor.supermercadosantarita.com.br` e `painel.supermercadosantarita.com.br`
+são o MESMO deploy, servindo dois públicos. O que separa é o bloco `rewrites`:
+quando o endereço pedido é o do portal, a raiz `/` entrega o `agendar.html` em vez
+do `index.html`.
+
+Por que existe: mandar para o fornecedor um link com "painel" no meio soa como se
+ele fosse entrar no sistema interno da loja. Alguns não clicam.
+
+**`rewrites` e `has` são campos documentados do Vercel** — não confundir com o caso
+de 09/08, em que o problema foi um campo INVENTADO (`_comentario`). O Vercel aceita
+o que ele conhece e recusa o resto.
+
+Se um dia o portal mudar de arquivo, é o `destination` que muda aqui.
