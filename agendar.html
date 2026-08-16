@@ -2403,16 +2403,15 @@ button{font-family:inherit}
         'A loja confere os documentos na chegada do caminhão.</p></div></div>';
 
       if(carga) carga.innerHTML=
-        '<label class="tit">Sobre a carga</label>'+
-        '<p class="ajuda">Ajuda a loja a se preparar para receber. Os dois campos são opcionais.</p>'+
+        '<label class="tit">Pedido de compra</label>'+
+        '<p class="ajuda">Se a loja mandou um número de pedido, informe aqui.</p>'+
         '<div class="fld estreito"><label for="wzPedido">Número do pedido <span class="opt">(opcional)</span></label>'+
         '<input id="wzPedido" type="text" maxlength="40" placeholder="Ex.: 45231" value="'+esc(wz.pedido)+'"></div>'+
-        '<div class="fld"><label for="wzDesc">Descrição da carga <span class="opt">(opcional)</span></label>'+
-        '<textarea id="wzDesc" maxlength="300" placeholder="Ex.: 120 caixas de bebidas em 2 pallets">'+esc(wz.descricao)+'</textarea>'+
-        '<div class="dica">Informe resumidamente o conteúdo e a forma de acondicionamento da carga.</div></div>';
+        '';
 
       if(el("wzPedido")) el("wzPedido").oninput=function(){ wz.pedido=this.value; pintarResumoLado(); };
-      if(el("wzDesc"))   el("wzDesc").oninput=function(){ wz.descricao=this.value; };
+      // a descrição saiu daqui: virou 'Observações' na etapa do veículo,
+      // para existir também quando a entrega tem nota fiscal
       return;
     }
 
@@ -2615,16 +2614,16 @@ button{font-family:inherit}
       '<p class="subt">Estes dados dizem à loja o que vai encostar na doca e quanto tempo vai levar.</p>'+
 
       '<div class="secao">'+
-        '<label class="tit">O veículo</label>'+
+        '<label class="tit">Dados do veículo</label>'+
         '<p class="ajuda">Quem vai chegar na portaria.</p>'+
         '<div class="campos" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+
-          '<div class="fld" style="margin:0"><label for="wzVeic">Tipo de veículo *</label>'+
-            '<select id="wzVeic">'+opcoes(VEICULOS, wz.tipoVeiculo)+'</select></div>'+
           '<div class="fld" style="margin:0"><label for="wzPlaca">Placa *</label>'+
             '<input id="wzPlaca" type="text" maxlength="8" placeholder="ABC-1D23" value="'+esc(wz.placa)+'"></div>'+
+          '<div class="fld" style="margin:0"><label for="wzVeic">Tipo de veículo *</label>'+
+            '<select id="wzVeic">'+opcoes(VEICULOS, wz.tipoVeiculo)+'</select></div>'+
           '<div class="fld" style="margin:0"><label for="wzMot">Nome do motorista *</label>'+
             '<input id="wzMot" type="text" maxlength="80" placeholder="Quem vem dirigindo" value="'+esc(wz.motorista)+'"></div>'+
-          '<div class="fld" style="margin:0"><label for="wzMotFone">Telefone do motorista <span class="opt">(opcional)</span></label>'+
+          '<div class="fld" style="margin:0"><label for="wzMotFone">Telefone para contato <span class="opt">(opcional)</span></label>'+
             '<input id="wzMotFone" type="tel" inputmode="tel" maxlength="20" placeholder="(84) 90000-0000" value="'+esc(wz.motoristaFone)+'"></div>'+
         '</div>'+
       '</div>'+
@@ -2647,8 +2646,13 @@ button{font-family:inherit}
         '<label class="tit">Tempo de descarga</label>'+
         '<p class="ajuda">Quanto tempo o caminhão fica na doca. É este tempo que fica reservado — '+
         'carga grande ocupa mais horários.</p>'+
-        '<div class="fld estreito" style="margin:0"><label for="wzMin">Tempo previsto *</label>'+
-          '<select id="wzMin">'+opcoes(TEMPOS, wz.minutos)+'</select></div>'+
+        '<div style="display:grid;grid-template-columns:220px minmax(0,1fr);gap:16px;align-items:start">'+
+          '<div class="fld" style="margin:0"><label for="wzMin">Tempo previsto *</label>'+
+            '<select id="wzMin">'+opcoes(TEMPOS, wz.minutos)+'</select></div>'+
+          '<div class="fld" style="margin:0"><label for="wzObs">Observações <span class="opt">(opcional)</span></label>'+
+            '<textarea id="wzObs" maxlength="300" placeholder="Algo que a loja precise saber antes de o caminhão chegar">'+esc(wz.descricao)+'</textarea>'+
+            '<div class="dica">Ex.: carga precisa de empilhadeira, motorista chega mais cedo, produto frágil.</div></div>'+
+        '</div>'+
       '</div>'+
 
       '<div class="secao">'+
@@ -2692,6 +2696,7 @@ button{font-family:inherit}
       };
     }
     liga("wzVeic","tipoVeiculo"); liga("wzMot","motorista"); liga("wzMotFone","motoristaFone");
+    liga("wzObs","descricao");
     liga("wzCarga","tipoCarga");  liga("wzVol","tipoVolume"); liga("wzQtd","qtdVolumes");
     liga("wzPlaca","placa", function(v){ return String(v||"").toUpperCase().replace(/[^A-Z0-9-]/g,""); });
 
@@ -2779,7 +2784,7 @@ button{font-family:inherit}
         lin("Pedido", wz.pedido)+
       '</div>'+
       (wz.descricao?'<div style="margin-top:14px"><label style="display:block;font-size:10.5px;color:var(--txt3);'+
-        'text-transform:uppercase;letter-spacing:.04em;font-weight:800">Descrição da carga</label>'+
+        'text-transform:uppercase;letter-spacing:.04em;font-weight:800">Observações</label>'+
         '<div style="font-size:13.5px">'+esc(wz.descricao)+'</div></div>':'')+
       '</div></div></div>';
 
