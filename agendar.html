@@ -470,6 +470,10 @@ body.com-wz #toasts{bottom:86px}
 /* Largura de leitura: campo do tamanho do DADO, não do tamanho do monitor.
    Centralizado, senão a sobra vira um buraco só do lado direito. */
 .wz-form{max-width:680px;margin:0 auto}
+/* 680px é a medida certa pra CAMPO de digitar — linha comprida demais cansa
+   de ler. Mas a cobrança é uma tabela com um total do lado: no limite do
+   formulário ela ficava espremida num canto, com a tela vazia em volta. */
+.wz-form.larga{max-width:1000px}
 .wz h3{font-size:19px;font-weight:800;margin:0 0 3px;letter-spacing:-.01em}
 .wz .subt{color:var(--txt2);font-size:13.5px;margin:0 0 22px}
 
@@ -635,30 +639,30 @@ body.com-wz #toasts{bottom:86px}
 .hmsg{font-size:11.5px;color:var(--txt2);padding:9px 1px 0;line-height:1.45}
 
 /* COBRANÇA DE DESCARGA — os serviços de um lado, o total do outro. */
-.cob{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:14px;align-items:start}
+.cob{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:start}
 @media(max-width:900px){.cob{grid-template-columns:minmax(0,1fr)}}
-.cob-bloco{background:#fff;border:1px solid var(--borda);border-radius:12px;padding:14px 16px 15px}
-.cob-bloco h4{margin:0 0 11px;font-size:9.5px;font-weight:800;color:var(--txt3);
+.cob-bloco{background:#fff;border:1px solid var(--borda);border-radius:14px;padding:20px 22px 22px}
+.cob-bloco h4{margin:0 0 15px;font-size:10px;font-weight:800;color:var(--txt3);
   text-transform:uppercase;letter-spacing:.05em}
-.cob-tab{width:100%;border-collapse:collapse;font-size:13px}
+.cob-tab{width:100%;border-collapse:collapse;font-size:14px}
 .cob-tab th{text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;
-  color:var(--txt3);font-weight:800;padding:0 8px 7px 0;border-bottom:1px solid var(--borda)}
+  color:var(--txt3);font-weight:800;padding:0 10px 9px 0;border-bottom:1px solid var(--borda)}
 .cob-tab th.n,.cob-tab td.n{text-align:right;padding-right:0}
-.cob-tab td{padding:10px 8px 10px 0;border-bottom:1px solid #f2f5f8}
+.cob-tab td{padding:15px 10px 15px 0;border-bottom:1px solid #f2f5f8}
 .cob-tab tr:last-child td{border-bottom:none}
 .cob-tab td.n{white-space:nowrap;font-variant-numeric:tabular-nums}
 .cob-tab td b{font-weight:700}
 
-.cob-total{font-size:11.5px;color:var(--txt2);margin:0 0 2px}
-.cob-total b{display:block;font-size:23px;font-weight:800;color:var(--txt);
+.cob-total{font-size:12px;color:var(--txt2);margin:0 0 4px}
+.cob-total b{display:block;font-size:30px;font-weight:800;color:var(--txt);
   font-variant-numeric:tabular-nums;line-height:1.25}
 /* O quadro do aviso é amarelo de propósito: a frase inteira depende de ser
    lida, não de estar escrita. É ela que diz que o valor é previsão. */
-.cob-aviso{display:flex;gap:9px;background:#fdf6e3;border:1px solid #f0e2bd;border-radius:9px;
-  padding:10px 12px;margin:13px 0 0;font-size:12px;color:#7a6320;line-height:1.5}
+.cob-aviso{display:flex;gap:10px;background:#fdf6e3;border:1px solid #f0e2bd;border-radius:10px;
+  padding:12px 14px;margin:16px 0 0;font-size:12.5px;color:#7a6320;line-height:1.5}
 .cob-aviso svg{width:15px;height:15px;flex:0 0 15px;margin-top:1px}
-.cob-ciente{display:flex;gap:10px;align-items:flex-start;margin-top:13px;padding-top:13px;
-  border-top:1px solid #f2f5f8;font-size:13px;font-weight:600;cursor:pointer;line-height:1.45}
+.cob-ciente{display:flex;gap:11px;align-items:flex-start;margin-top:16px;padding-top:16px;
+  border-top:1px solid #f2f5f8;font-size:13.5px;font-weight:600;cursor:pointer;line-height:1.45}
 .cob-ciente input{width:17px;height:17px;flex:0 0 17px;margin-top:1px;accent-color:var(--verde);cursor:pointer}
 
 /* RESUMO EM BLOCOS — a última tela antes de enviar. */
@@ -3176,7 +3180,7 @@ body.com-wz #toasts{bottom:86px}
     }
 
     el("wzMain").innerHTML=
-      '<div class="wz-form">'+
+      '<div class="wz-form larga">'+
       '<h3>Cobrança de descarga</h3>'+
       '<p class="subt">A loja cobra pela descarga do caminhão. Confira o valor previsto '+
       'antes de pedir o horário.</p>'+
