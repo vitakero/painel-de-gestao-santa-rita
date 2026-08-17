@@ -638,6 +638,23 @@ body.com-wz #toasts{bottom:86px}
 .hslot.sel em{color:rgba(255,255,255,.85)}
 .hmsg{font-size:11.5px;color:var(--txt2);padding:9px 1px 0;line-height:1.45}
 
+/* DOCUMENTOS — a etapa 3. */
+.doc-l{display:flex;flex-direction:column;gap:7px;margin-top:13px}
+.doc-i{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--borda);
+  border-radius:9px;padding:10px 13px}
+.doc-i .ic{flex:0 0 auto;line-height:0;color:var(--verde-esc)}
+.doc-i .ic svg{width:16px;height:16px;display:block}
+.doc-i .nm{flex:1;min-width:0;font-size:13px;font-weight:600;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.doc-i .tm{font-size:11.5px;color:var(--txt3);white-space:nowrap;font-variant-numeric:tabular-nums}
+.doc-i .x{background:none;border:0;color:var(--txt3);cursor:pointer;font:inherit;font-size:16px;
+  line-height:1;padding:2px 4px}
+.doc-i .x:hover{color:var(--verm)}
+.doc-tipos{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+.doc-tipos button{background:#fff;border:1.5px solid var(--borda);border-radius:999px;
+  padding:5px 13px;font:inherit;font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer}
+.doc-tipos button.on{border-color:var(--verde);background:var(--verde-bg);color:var(--verde-esc)}
+
 /* PEDIDOS DE COMPRA — a etapa 2 do assistente. */
 .ped-l{display:flex;flex-direction:column;gap:9px}
 .ped{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1.5px solid var(--borda);
@@ -2385,7 +2402,8 @@ body.com-wz #toasts{bottom:86px}
   var PASSOS=[{n:1,k:"nf",t:"Dados da entrega",ativo:true},
               // ativo vira true sozinho quando o fornecedor tem pedido em aberto
               {n:2,k:"pedidos",t:"Pedidos",ativo:false},
-              {n:3,k:"docs",t:"Documentos",ativo:false},
+              // sempre ativa: anexar papel nao depende de nada da loja
+              {n:3,k:"docs",t:"Documentos",ativo:true},
               {n:4,k:"agendamento",t:"Agendamento",ativo:true},
               // ativo vira true sozinho quando a loja cobra (ver pintarWizard)
               {n:5,k:"cobranca",t:"Cobrança",ativo:false},
@@ -2439,7 +2457,8 @@ body.com-wz #toasts{bottom:86px}
          minutos:60, tipoCarga:"", tipoVolume:"", qtdVolumes:"",
          tipoVeiculo:"", placa:"", motorista:"", motoristaFone:"",
          pesoTxt:"", peso:null, cobranca:null, ciente:false,
-         pedidosLista:null, pedidosEscolhidos:[] };
+         pedidosLista:null, pedidosEscolhidos:[],
+         docs:[], docTipo:"documento" };
     // O calendário é do assistente: assistente novo, calendário do zero.
     // Estas variáveis moram fora do wz e sobreviviam ao fechar a janela —
     // o fornecedor reabria e via as vagas de antes de ele próprio agendar.
@@ -2476,6 +2495,7 @@ body.com-wz #toasts{bottom:86px}
     }
     var passoAtual = wz.etapa==="agendamento" ? "agendamento"
                    : wz.etapa==="pedidos"  ? "pedidos"
+                   : wz.etapa==="docs"     ? "docs"
                    : wz.etapa==="cobranca" ? "cobranca"
                    : (wz.etapa==="resumo" ? "resumo" : "nf");
 
@@ -2507,6 +2527,7 @@ body.com-wz #toasts{bottom:86px}
     if(wz.etapa==="nf")               telaNF();
     else if(wz.etapa==="agendamento") telaAgendamento();
     else if(wz.etapa==="pedidos")     telaPedidos();
+    else if(wz.etapa==="docs")        telaDocs();
     else if(wz.etapa==="cobranca")    telaCobranca();
     else if(wz.etapa==="resumo")      telaResumo();
 
@@ -2640,7 +2661,7 @@ body.com-wz #toasts{bottom:86px}
       // Se o fornecedor tem pedido em aberto, passa pela etapa 2. Quem não tem
       // vai direto para o agendamento e nem vê que a etapa existe.
       casarPedidosDaNota();
-      wz.etapa = (wz.pedidosLista && wz.pedidosLista.length) ? "pedidos" : "agendamento";
+      wz.etapa = (wz.pedidosLista && wz.pedidosLista.length) ? "pedidos" : "docs";
       pintarWizard();
     };
     pintarNotaCx();
@@ -2999,7 +3020,7 @@ body.com-wz #toasts{bottom:86px}
       // bolinhas do mês inteiro também precisam ser refeitas.
       wz.hora=null; wzcVagas=null; wzcQuando(); pintarResumoLado();
     };
-    el("wzVolta").onclick=function(){ wz.etapa="nf"; pintarWizard(); };
+    el("wzVolta").onclick=function(){ wz.etapa="docs"; pintarWizard(); };
     el("wzAvanca").onclick=validarEtapa4;
     wzcQuando();
   }
@@ -3322,6 +3343,116 @@ body.com-wz #toasts{bottom:86px}
     if(wz.pedidosEscolhidos.length) wz.pedido=wz.pedidosEscolhidos.join(", ").slice(0,40);
   }
 
+  // ============================================================
+  // ETAPA 3 — DOCUMENTOS
+  //
+  // Os arquivos ficam AQUI no navegador até o agendamento existir. Guardar
+  // antes seria guardar em pasta que ainda não tem dono.
+  // ============================================================
+  var DOC_TIPOS=[["documento","Documento"],["laudo","Laudo"],
+                 ["certificado","Certificado"],["autorizacao","Autorização"],["outro","Outro"]];
+  var DOC_MAX=8*1024*1024, DOC_QTD=10;
+
+  function docTam(n){
+    if(n<1024) return n+" B";
+    if(n<1024*1024) return Math.round(n/1024)+" KB";
+    return (n/1024/1024).toFixed(1).replace(".",",")+" MB";
+  }
+
+  function telaDocs(){
+    var h='<div class="wz-form">'+
+      '<h3>Documentos</h3>'+
+      '<p class="subt">Se a loja pediu algum papel para esta entrega, anexe aqui. '+
+      'É opcional — sem documento o agendamento segue normalmente.</p>'+
+      '<div class="secao">'+
+        '<label class="tit">Que tipo de documento</label>'+
+        '<div class="doc-tipos" id="wzDocTipos">';
+    for(var t=0;t<DOC_TIPOS.length;t++){
+      h+='<button type="button" data-doctipo="'+DOC_TIPOS[t][0]+'"'+
+         (wz.docTipo===DOC_TIPOS[t][0]?' class="on"':'')+'>'+esc(DOC_TIPOS[t][1])+'</button>';
+    }
+    h+='</div>'+
+      '<div class="solta" id="wzDocSolta" style="margin-top:13px">'+
+        '<b>Clique ou arraste os arquivos aqui</b>'+
+        'PDF, JPG, PNG ou WEBP · até '+docTam(DOC_MAX)+' cada · no máximo '+DOC_QTD+' arquivos'+
+      '</div>'+
+      '<input type="file" id="wzDocFile" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none">';
+
+    if(wz.docs.length){
+      h+='<div class="doc-l">';
+      for(var i=0;i<wz.docs.length;i++){
+        var d=wz.docs[i];
+        h+='<div class="doc-i"><span class="ic">'+IC.clipe+'</span>'+
+           '<span class="nm">'+esc(d.nome)+'</span>'+
+           '<span class="tm">'+esc(d.rotulo)+' · '+esc(docTam(d.tamanho))+'</span>'+
+           '<button type="button" class="x" data-doctira="'+i+'" title="Tirar da lista">&times;</button>'+
+           '</div>';
+      }
+      h+='</div>';
+      h+='<div class="dica" style="margin-top:9px">Os arquivos sobem quando você pedir o horário.</div>';
+    }
+    h+='</div>';
+
+    el("wzMain").innerHTML=h+'</div>';
+    el("wzPe").innerHTML='<button class="bt fraco" id="wzVolta">← Voltar</button>'+
+      '<button class="bt" id="wzAvanca">Continuar →</button>';
+
+    [].slice.call(el("wzDocTipos").children).forEach(function(b){
+      b.onclick=function(){ wz.docTipo=b.getAttribute("data-doctipo"); telaDocs(); };
+    });
+    var cx=el("wzDocSolta"), inp=el("wzDocFile");
+    cx.onclick=function(){ inp.click(); };
+    inp.onchange=function(){ docEngolir(inp.files); inp.value=""; };
+    cx.ondragover=function(ev){ ev.preventDefault(); cx.classList.add("sobre"); };
+    cx.ondragleave=function(){ cx.classList.remove("sobre"); };
+    cx.ondrop=function(ev){ ev.preventDefault(); cx.classList.remove("sobre");
+      docEngolir(ev.dataTransfer.files); };
+    [].slice.call(el("wzMain").querySelectorAll("[data-doctira]")).forEach(function(b){
+      b.onclick=function(){
+        wz.docs.splice(parseInt(b.getAttribute("data-doctira"),10),1);
+        telaDocs(); pintarResumoLado();
+      };
+    });
+
+    el("wzVolta").onclick=function(){
+      wz.etapa = (wz.pedidosLista && wz.pedidosLista.length) ? "pedidos" : "nf";
+      pintarWizard();
+    };
+    el("wzAvanca").onclick=function(){ wz.etapa="agendamento"; pintarWizard(); };
+  }
+
+  // Confere ANTES de aceitar: tamanho, tipo e quantidade. Recusar aqui poupa
+  // o fornecedor de preencher tudo e levar não no fim.
+  function docEngolir(lista){
+    if(!lista || !lista.length) return;
+    var erros=[], entraram=0;
+    for(var i=0;i<lista.length;i++){
+      var f=lista[i];
+      if(wz.docs.length>=DOC_QTD){ erros.push("Só cabem "+DOC_QTD+" arquivos."); break; }
+      var ext=String(f.name||"").toLowerCase().split(".").pop();
+      if(["pdf","jpg","jpeg","png","webp"].indexOf(ext)<0){
+        erros.push(f.name+": só aceitamos PDF, JPG, PNG ou WEBP."); continue;
+      }
+      if(f.size>DOC_MAX){ erros.push(f.name+": passa de "+docTam(DOC_MAX)+"."); continue; }
+      if(!f.size){ erros.push(f.name+": o arquivo está vazio."); continue; }
+      var rep=false;
+      for(var k=0;k<wz.docs.length;k++){
+        if(wz.docs[k].nome===f.name && wz.docs[k].tamanho===f.size) rep=true;
+      }
+      if(rep){ erros.push(f.name+": já está na lista."); continue; }
+      var rot="Documento";
+      for(var t=0;t<DOC_TIPOS.length;t++){ if(DOC_TIPOS[t][0]===wz.docTipo) rot=DOC_TIPOS[t][1]; }
+      wz.docs.push({nome:f.name, tamanho:f.size, tipo:wz.docTipo, rotulo:rot, arquivo:f});
+      entraram++;
+    }
+    telaDocs(); pintarResumoLado();
+    if(entraram) uiToast(entraram===1?"1 arquivo pronto para enviar.":(entraram+" arquivos prontos para enviar."));
+    if(erros.length){
+      uiAviso(erros.length===1?"Não consegui usar este arquivo":("Não consegui usar "+erros.length+" arquivos"),
+              "", {lista:erros});
+    }
+  }
+
   function telaPedidos(){
     var l=wz.pedidosLista||[];
 
@@ -3383,7 +3514,7 @@ body.com-wz #toasts{bottom:86px}
     });
 
     el("wzVolta").onclick=function(){ wz.etapa="nf"; pintarWizard(); };
-    el("wzAvanca").onclick=function(){ wz.etapa="agendamento"; pintarWizard(); };
+    el("wzAvanca").onclick=function(){ wz.etapa="docs"; pintarWizard(); };
   }
 
   // O que falta dentro de um pedido. O banco confere o dono antes de
@@ -3481,12 +3612,16 @@ body.com-wz #toasts{bottom:86px}
                 li("Telefone", wz.motoristaFone);
 
     if(carga || veic){
+      var docs = wz.docs.length
+        ? wz.docs.map(function(d){ return li(d.rotulo, d.nome); }).join("")
+        : "";
       var cob = wz.cobranca
         ? ('<div class="li"><span>Valor total previsto:</span> <b>'+esc(moeda(wz.cobranca.total))+'</b></div>'+
            (wz.cobranca.aviso?'<div class="obs"><b>Atenção</b>'+esc(wz.cobranca.aviso)+'</div>':''))
         : '';
       h+='<div class="res-cards">'+cartao(IC.caixa,"Carga",carga)+
          cartao(IC.caminhao,"Veículo",veic)+
+         cartao(IC.clipe,"Documentos",docs)+
          cartao(IC.tag,"Cobrança de descarga",cob)+'</div>';
     }
 
@@ -3535,11 +3670,59 @@ body.com-wz #toasts{bottom:86px}
       }
       // avisa a loja que tem horário pedido esperando resposta
       try{ if(r.data && r.data.id) SB.functions.invoke("aviso-agendamento",{body:{id:r.data.id,status:"solicitou"}}); }catch(e){}
+      // Os documentos sobem AGORA, que é quando a pasta do agendamento passa a
+      // existir. Se algum falhar, o agendamento continua valendo — dizer que
+      // falhou tudo por causa de um anexo seria fazer o fornecedor marcar de
+      // novo um horário que já é dele.
+      var idNovo = r.data && r.data.id;
+      var pendentes = wz.docs.slice();
       fecharWizard();
-      uiToast("Pedido enviado. A loja vai confirmar.");
       contarAvisos();
       irPara("agendas");
+      if(!pendentes.length || !idNovo){
+        uiToast("Pedido enviado. A loja vai confirmar.");
+        return;
+      }
+      uiToast("Pedido enviado. Enviando "+pendentes.length+
+              (pendentes.length===1?" documento...":" documentos..."));
+      subirDocumentos(idNovo, pendentes);
     });
+  }
+
+  /* SOBE OS DOCUMENTOS depois de o agendamento existir.
+     Um por vez, de propósito: dez arquivos de 8 MB ao mesmo tempo derrubam a
+     internet de quem está no celular na portaria. E o caminho de cada um vem
+     do BANCO — o navegador nunca escolhe onde grava. */
+  function subirDocumentos(idAgenda, lista){
+    var ok=0, falhou=[];
+    function proximo(i){
+      if(i>=lista.length){
+        if(!falhou.length){
+          uiToast(ok===1?"1 documento anexado.":(ok+" documentos anexados."));
+        } else {
+          uiAviso(falhou.length===1?"Um documento não subiu":(falhou.length+" documentos não subiram"),
+            "O agendamento foi criado e está valendo. Abra o agendamento em "+
+            "“Meus agendamentos” para anexar de novo.", {lista:falhou});
+        }
+        return;
+      }
+      var d=lista[i];
+      SB.rpc("forn_anexo_caminho",{p_agenda:idAgenda, p_nome:d.nome}).then(function(rc){
+        var c=(rc&&rc.data)||{};
+        if(!c.ok){ falhou.push(d.nome+": "+(c.erro||"não consegui preparar o envio.")); return proximo(i+1); }
+        SB.storage.from("recebimento").upload(c.caminho, d.arquivo, {upsert:false})
+          .then(function(ru){
+            if(ru && ru.error){ falhou.push(d.nome+": "+ru.error.message); return proximo(i+1); }
+            SB.rpc("forn_anexo_add",{p_agenda:idAgenda, p_caminho:c.caminho,
+                                     p_nome:d.nome, p_tipo:d.tipo}).then(function(ra){
+              var a=(ra&&ra.data)||{};
+              if(a.ok) ok++; else falhou.push(d.nome+": "+(a.erro||"não consegui registrar."));
+              proximo(i+1);
+            }, function(){ falhou.push(d.nome+": falha ao registrar."); proximo(i+1); });
+          }, function(er){ falhou.push(d.nome+": "+((er&&er.message)||"falha no envio.")); proximo(i+1); });
+      }, function(){ falhou.push(d.nome+": falha ao preparar o envio."); proximo(i+1); });
+    }
+    proximo(0);
   }
 
   // ============================================================
