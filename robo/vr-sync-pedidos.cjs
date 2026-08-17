@@ -146,6 +146,29 @@ const Q_ITENS = `
     };
   });
 
+  // ---- A PONTE: código do VR -> CNPJ ----
+  // O pedido guarda o CÓDIGO do fornecedor no VR; o portal conhece a pessoa
+  // pelo CNPJ. Sem guardar esta lista, fornecedor que se cadastra DEPOIS desta
+  // carga fica sem os pedidos dele para sempre — não haveria como casar.
+  const vistos = {};
+  peds.forEach((p) => {
+    if (p.forn_vr == null || vistos[p.forn_vr]) return;
+    vistos[p.forn_vr] = {
+      vr_id: p.forn_vr,
+      cnpj: cnpj14(p.cnpj) || null,
+      razao_social: p.razaosocial || null,
+      nome_fantasia: p.nomefantasia || null,
+      atualizado_em: new Date().toISOString(),
+    };
+  });
+  const fornVr = Object.values(vistos);
+  for (const lote of emLotes(fornVr, 200)) {
+    await req("POST", "/rest/v1/receb_fornecedores_vr?on_conflict=tenant_id,vr_id", lote,
+              "resolution=merge-duplicates,return=minimal");
+  }
+  console.log("Fornecedores do VR na nuvem: " + fornVr.length +
+              "  (com CNPJ: " + fornVr.filter((x) => x.cnpj).length + ")");
+
   for (const lote of emLotes(linhas, 200)) {
     await req("POST", "/rest/v1/receb_pedidos?on_conflict=tenant_id,numero", lote,
               "resolution=merge-duplicates,return=minimal");
@@ -197,6 +220,16 @@ const Q_ITENS = `
   }
   console.log("Itens na nuvem: " + novos.length +
               "  (com saldo: " + novos.filter((x) => x.saldo > 0).length + ")");
+
+  // ---- liga quem ficou solto ----
+  // UMA regra decide de quem é o pedido, e ela mora no banco. Aqui eu só peço
+  // para ela rodar. Se eu recalculasse por aqui, um dia as duas contas
+  // discordariam e o fornecedor veria pedido de outro.
+  const lig = await req("POST", "/rest/v1/rpc/receb_ligar_fornecedores", {});
+  if (lig && lig.ok) {
+    console.log("Ligacao: " + lig.cadastros_ligados + " cadastro(s) ganharam o codigo do VR, " +
+                lig.pedidos_ligados + " pedido(s) acharam o dono.");
+  }
 
   if (orfaos) {
     console.log("\nAviso: " + orfaos + " pedido(s) sao de fornecedor que ainda nao tem");
