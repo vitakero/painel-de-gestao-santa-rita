@@ -18,6 +18,9 @@ echo.
 echo [1.6/4] Sincronizando conferencia dos carros (bipagem e divergencias)...
 node scripts\vr-sync-conferencia.cjs
 echo.
+echo [1.7/4] Sincronizando pedidos de compra (Portal do Fornecedor)...
+node scripts\vr-sync-pedidos.cjs
+echo.
 echo [2/4] Gerando o painel (index.html)...
 node node_modules\tsx\dist\cli.mjs scripts\demoDashboard.ts
 if errorlevel 1 goto erro
