@@ -2277,6 +2277,30 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-fornecedores .frn-acoes{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
         /* As PESSOAS esperando dentro de uma empresa já liberada. Classe, e não
            estilo solto na marcação, porque o tema escuro é gerado a partir do CSS. */
+        /* O detalhe da carga, embaixo do nome do fornecedor. */
+        .cl-carga{display:block;font-size:11.5px;color:#56606d;margin-top:3px;line-height:1.45;}
+        .cl-obs{display:block;font-size:11.5px;color:#8a97a8;font-style:italic;margin-top:2px;line-height:1.45;}
+        .cl-cob{display:inline-block;margin-top:5px;margin-left:9px;font-size:11.5px;font-weight:700;color:#7a6320;}
+        .cl-nf{display:inline-flex;align-items:center;margin-top:5px;background:#e9f5ed;border:1px solid #c5e3ce;
+               color:#0c5a26;border-radius:999px;padding:3px 11px;font-size:11.5px;font-weight:700;
+               cursor:pointer;font-family:inherit;}
+        .cl-nf:hover{background:#d9ede1;}
+        .cl-nfb{border:1px solid #e4e9ef;border-radius:10px;padding:12px 14px;margin-bottom:10px;text-align:left;}
+        .cl-nfb-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;}
+        .cl-nfb-top b{font-size:14px;color:#1d2733;}
+        .cl-nfb-top span{font-size:13.5px;font-weight:800;color:#0c5a26;white-space:nowrap;}
+        .cl-nfb-sub{margin:2px 0 0;font-size:12px;color:#8a97a8;}
+        .cl-nfb-tab{width:100%;border-collapse:collapse;margin-top:9px;font-size:12.5px;}
+        .cl-nfb-tab th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.04em;
+                       color:#8a97a8;border-bottom:1px solid #eef2f6;padding:4px 6px;font-weight:800;}
+        .cl-nfb-tab td{padding:6px;border-bottom:1px solid #f5f7f9;vertical-align:top;}
+        .cl-nfb-tab td.n{white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums;}
+        .cl-nfb-tab td b{display:block;font-weight:700;color:#1d2733;}
+        .cl-nfb-tab td span{display:block;font-size:11px;color:#8a97a8;}
+        /* Janela com tabela dentro (produtos do caminhao) precisa de largura
+           e de rolagem propria: a caixa padrao e estreita, feita para frase. */
+        .modal-cx:has(.modal-msg-html){max-width:680px;width:calc(100vw - 48px);}
+        .modal-msg-html{max-height:min(60vh,520px);overflow-y:auto;text-align:left;}
         #page-fornecedores .frn-contas{margin-top:11px;border-top:1px solid #eef2f6;padding-top:10px;}
         #page-fornecedores .frn-contas>b{display:block;font-size:12px;font-weight:800;color:#9a5b12;margin-bottom:7px;}
         #page-fornecedores .frn-conta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0;}
@@ -2812,10 +2836,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       .cl-ped-quando .av{display:block;font-size:11px;font-weight:700;color:#8c2f28;margin-top:1px;}
       .cl-ped-cab .qt{background:#7a5600;color:#fff;border-radius:20px;padding:1px 9px;font-size:12px;font-weight:800;}
       .cl-ped-lista{display:flex;flex-direction:column;gap:8px;}
-      .cl-ped-item{background:#fff;border:1px solid #eadfc2;border-radius:9px;padding:11px 13px;
-                   display:flex;gap:14px;align-items:center;flex-wrap:wrap;}
-      .cl-ped-quando{font-weight:800;color:#0c5a26;font-size:14px;white-space:nowrap;}
-      .cl-ped-quem{flex:1;min-width:160px;}
+            .cl-ped-item{background:#fff;border:1px solid #eadfc2;border-radius:9px;padding:11px 13px;
+                   display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:14px;align-items:start;}
+      @media(max-width:760px){.cl-ped-item{grid-template-columns:minmax(0,1fr);}}
+      .cl-ped-quando{font-weight:800;color:#0c5a26;font-size:14px;line-height:1.35;}
+      .cl-ped-quem{min-width:0;}
       .cl-ped-quem b{display:block;font-size:14px;color:#1d2733;}
       .cl-ped-quem span{font-size:12px;color:#8a97a8;}
       /* Quem CHEGA nem sempre é quem vende. Sem esta marca, o recebimento espera
@@ -2826,25 +2851,41 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       .cl-ped-acoes{display:flex;gap:8px;flex-shrink:0;}
       .cl-ped-acoes button{border:0;border-radius:8px;padding:8px 15px;font-size:13px;font-weight:700;
                            cursor:pointer;font-family:inherit;}
-      .cl-ped-sim{background:#157a35;color:#fff;}
-      .cl-ped-sim:hover{background:#0c5a26;}
+            /* Nasceu dentro de .cl-ped-acoes, que dava a forma. Nas Entregas
+         Confirmadas ele fica solto na grade, sem herdar nada — por isso
+         repete borda, raio e respiro aqui. */
+      .cl-ped-sim{background:#157a35;color:#fff;border:0;border-radius:999px;
+                  padding:7px 16px;font-size:12.5px;font-weight:700;cursor:pointer;
+                  font-family:inherit;white-space:nowrap;align-self:center;
+                  box-shadow:0 1px 2px rgba(12,90,38,.18);transition:.13s;}
+      .cl-ped-sim:hover{background:#0c5a26;box-shadow:0 2px 6px rgba(12,90,38,.26);}
+      .cl-ped-sim:active{transform:translateY(1px);box-shadow:none;}
       .cl-ped-nao{background:#fff;color:#8a5a12;border:1px solid #e0c477!important;}
       .cl-ped-nao:hover{background:#fdf6e3;}
       .cl-ped-acoes button[disabled]{opacity:.5;cursor:default;}
-      .cl-conf{margin-bottom:16px;}
-      .cl-conf-lin{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:13.5px;
+      /* "entc" = ENTregas Confirmadas. Nao usar "cl-conf": a aba Conferencia
+         dos carros ja usa esse prefixo e redefine .cl-conf-lin com QUATRO
+         colunas mais adiante no arquivo. A regra de baixo ganhava, a data
+         recebia todo o espaco e o detalhe da carga ficava em 128px. */
+      .cl-entc{margin-bottom:16px;}
+      /* GRID, nao flex. Com flex o navegador decidia a largura das colunas e o
+         detalhe da carga ficava espremido numa faixa estreita com um vazio enorme
+         do lado. Coluna fixa para a data, o resto TODO para a informacao. */
+      .cl-entc-lin{display:grid;grid-template-columns:172px minmax(0,1fr) auto;gap:14px;
+                   align-items:start;font-size:13.5px;
                    border:1px solid #dfe6e0;border-radius:9px;padding:10px 13px;background:#fff;margin-bottom:7px;}
-      .cl-conf-lin .qd{font-weight:800;color:#0c5a26;white-space:nowrap;}
-      .cl-conf-lin .nm{flex:1;min-width:150px;color:#1d2733;font-weight:600;}
-      .cl-conf-lin .selo{font-size:11px;font-weight:700;color:#0c5a26;background:#e9f5ed;
+      @media(max-width:760px){.cl-entc-lin{grid-template-columns:minmax(0,1fr);}}
+      .cl-entc-lin .qd{font-weight:800;color:#0c5a26;line-height:1.35;}
+      .cl-entc-lin .nm{min-width:0;color:#1d2733;font-weight:600;}
+      .cl-entc-lin .selo{align-self:center;white-space:nowrap;font-size:11px;font-weight:700;color:#0c5a26;background:#e9f5ed;
                          border:1px solid #cfe0d6;border-radius:5px;padding:2px 8px;}
       .cl-sec-tit{font-size:12px;font-weight:800;color:#8a97a8;text-transform:uppercase;
                   letter-spacing:.6px;margin:0 0 8px;}
       /* ---- Conferência dos carros ---- */
       /* Enquanto for exemplo, a tela fica listrada e cada linha ganha selo vermelho:
          ninguém pode confundir maquete com dado da loja e decidir em cima disso. */
-      .cl-conf-lin.clicavel{cursor:pointer;}
-      .cl-conf-lin.clicavel:hover{background:#f7fbf8;border-color:#cfe0d6;}
+      .cl-entc-lin.clicavel{cursor:pointer;}
+      .cl-entc-lin.clicavel:hover{background:#f7fbf8;border-color:#cfe0d6;}
       .cl-conf-ver{display:inline-block;margin-left:7px;font-size:11px;font-weight:700;color:#1f4d7a;
                    text-decoration:underline;}
       /* ---- detalhe da divergência ---- */
@@ -5461,6 +5502,8 @@ function clLinkFornecedor(){
    Quem pode decidir é o master OU quem tem a página Central — a mesma regra que o banco
    já cobra em ent_definir_status, então a tela não inventa permissão nenhuma. */
 var clPedidos=[], clPedidosCarregando=false;
+// O detalhe que o Portal do Fornecedor coletou, por id do agendamento antigo.
+var clDetalhe={}, clNotas={};
 
 function clPodeDecidir(){
   try{ return !!(window.__PERFIL && window.__PERFIL.is_master) || podePagina("central"); }catch(e){ return false; }
@@ -5483,11 +5526,117 @@ function clPedidosLoad(){
       clPedidosCarregando=false;
       if(r&&r.error) return;                    // sem permissão ou sem rede: não inventa lista
       clPedidos=(r&&r.data)||[];
+      clDetalheLoad();
       // A agenda também depende disto: sem redesenhar, o caminhão aprovado só apareceria
       // na próxima vez que alguém trocasse de aba.
       renderCentral(true);
     }, function(){ clPedidosCarregando=false; });
 }
+/* O QUE O FORNECEDOR MANDOU, PARA QUEM RECEBE.
+   Duas buscas separadas de propósito: se o banco recusar, clDetalhe e
+   clNotas ficam vazios e a Central desenha como sempre desenhou. */
+function clDetalheLoad(){
+  var sb=window.__SB; if(!sb) return;
+  var ids=(clPedidos||[]).map(function(p){ return p.id; }).filter(Boolean);
+  if(!ids.length){ clDetalhe={}; clNotas={}; return; }
+
+  sb.from('receb_agendas')
+    .select('id,origem_id,ticket,tipo_carga,tipo_volume,qtd_volumes,peso_kg,'+
+            'tipo_veiculo,placa,motorista,motorista_fone,minutos_estimados,'+
+            'descricao,cobranca_total')
+    .in('origem_id', ids)
+    .then(function(r){
+      if(r&&r.error) return;
+      var porAntigo={}, agendaIds=[];
+      (r.data||[]).forEach(function(a){ porAntigo[a.origem_id]=a; agendaIds.push(a.id); });
+      clDetalhe=porAntigo;
+      renderCentral(true);
+      if(!agendaIds.length) return;
+
+      sb.from('receb_agenda_notas')
+        .select('agenda_id,numero,serie,chave,valor_total,volumes,especie,'+
+                'peso_bruto,itens,emitente_nome')
+        .in('agenda_id', agendaIds)
+        .then(function(r2){
+          if(r2&&r2.error) return;
+          var porAgenda={};
+          (r2.data||[]).forEach(function(n){
+            (porAgenda[n.agenda_id]=porAgenda[n.agenda_id]||[]).push(n);
+          });
+          clNotas=porAgenda;
+          renderCentral(true);
+        }, function(){});
+    }, function(){});
+}
+
+function clNum(v){
+  var x=parseFloat(v); if(isNaN(x)) return '';
+  try{ return x.toLocaleString('pt-BR',{maximumFractionDigits:3}); }catch(e){ return String(v); }
+}
+
+/* A linha de detalhe que aparece embaixo do nome do fornecedor.
+   É o que quem recebe precisa saber ANTES de o caminhão encostar. */
+function clDetalheLinha(p){
+  var d=clDetalhe[p.id]; if(!d) return '';
+  var b=[];
+  if(d.tipo_veiculo) b.push(pxEsc(d.tipo_veiculo)+(d.placa?' · '+pxEsc(d.placa):''));
+  // sem parenteses aqui: o telefone ja chega formatado como (84) 99999-9999
+  if(d.motorista)    b.push(pxEsc(d.motorista)+(d.motorista_fone?' · '+pxEsc(d.motorista_fone):''));
+  if(d.tipo_carga)   b.push(pxEsc(d.tipo_carga));
+  if(d.qtd_volumes)  b.push(pxEsc(clNum(d.qtd_volumes))+' '+pxEsc(d.tipo_volume||'volumes'));
+  if(d.peso_kg)      b.push(pxEsc(clNum(d.peso_kg))+' kg');
+  if(d.minutos_estimados && d.minutos_estimados!==60)
+    b.push(pxEsc(d.minutos_estimados>=60?(d.minutos_estimados/60)+'h':d.minutos_estimados+' min')+' de descarga');
+
+  var nfs=clNotas[d.id]||[];
+  var itens=0; nfs.forEach(function(n){ itens += (n.itens&&n.itens.length)||0; });
+
+  var h='';
+  if(b.length) h+='<span class="cl-carga">'+b.join(' · ')+'</span>';
+  if(d.descricao) h+='<span class="cl-obs">“'+pxEsc(d.descricao)+'”</span>';
+  if(nfs.length){
+    h+='<button type="button" class="cl-nf" data-clnf="'+pxEsc(p.id)+'">'+
+       nfs.length+(nfs.length>1?' notas fiscais':' nota fiscal')+
+       (itens?' · '+itens+(itens>1?' produtos':' produto'):'')+' →</button>';
+  }
+  if(d.cobranca_total>0)
+    h+='<span class="cl-cob">Descarga: R$ '+pxEsc(clNum(d.cobranca_total))+' previsto</span>';
+  return h;
+}
+
+/* O que vem no caminhão, item por item. É a informação que fazia falta:
+   quem recebe descobria descarregando. */
+function clVerNotas(pid){
+  var d=clDetalhe[pid]; if(!d) return;
+  var nfs=clNotas[d.id]||[], h='';
+  nfs.forEach(function(n){
+    var its=n.itens||[];
+    h+='<div class="cl-nfb"><div class="cl-nfb-top"><b>Nota '+pxEsc(n.numero||'—')+
+       (n.serie?' · série '+pxEsc(n.serie):'')+'</b>'+
+       (n.valor_total?'<span>R$ '+pxEsc(clNum(n.valor_total))+'</span>':'')+'</div>';
+    if(n.emitente_nome) h+='<p class="cl-nfb-sub">'+pxEsc(n.emitente_nome)+'</p>';
+    if(n.volumes||n.peso_bruto){
+      h+='<p class="cl-nfb-sub">'+(n.volumes?pxEsc(clNum(n.volumes))+' '+pxEsc(n.especie||'volumes'):'')+
+         (n.peso_bruto?' · '+pxEsc(clNum(n.peso_bruto))+' kg':'')+'</p>';
+    }
+    if(its.length){
+      h+='<table class="cl-nfb-tab"><thead><tr><th>Produto</th><th>Qtd</th><th>Total</th></tr></thead><tbody>';
+      its.forEach(function(x){
+        h+='<tr><td><b>'+pxEsc(x.descricao||'—')+'</b>'+
+           ((x.codigo||x.ean)?'<span>'+pxEsc(x.codigo||'')+(x.ean?' · '+pxEsc(x.ean):'')+'</span>':'')+'</td>'+
+           '<td class="n">'+pxEsc(clNum(x.qtd))+' '+pxEsc(x.unidade||'')+'</td>'+
+           '<td class="n">'+(x.valor?'R$ '+pxEsc(clNum(x.valor)):'')+'</td></tr>';
+      });
+      h+='</tbody></table>';
+    } else {
+      h+='<p class="cl-nfb-sub">O fornecedor informou só a chave desta nota, '+
+         'então os produtos não vieram.</p>';
+    }
+    h+='</div>';
+  });
+  uiConfirm({titulo:'O que vem no caminhão', msg:'', ok:'Fechar', cancel:'', html:h});
+}
+
 function clHoraCurta(h){ return String(h||"").slice(0,5); }
 /* O fornecedor pode contratar transportadora, e aí quem encosta na doca é outra
    empresa. O portal já pergunta e guarda o CNPJ; sem mostrar aqui, a informação
@@ -5529,7 +5678,7 @@ function renderClPedidos(){
            (passou?'<span class="av">passou da data</span>':'')+'</span>'+
          '<span class="cl-ped-quem"><b>'+pxEsc(p.fornecedor)+'</b>'+
          (extra.length?'<span>'+extra.join(" · ")+'</span>':'')+
-         clTranspSelo(p)+'</span>'+
+         clTranspSelo(p)+clDetalheLinha(p)+'</span>'+
          (clPodeDecidir()
            ? '<span class="cl-ped-acoes">'+
              '<button type="button" class="cl-ped-nao" data-pnao="'+pxEsc(p.id)+'">Recusar</button>'+
@@ -5548,12 +5697,12 @@ function renderClPedidos(){
        O botão só nasce quando o dia chega: marcar como conferido um caminhão que ainda não
        veio seria criar a mesma mentira, só que na mão. */
     var hj=clDataISO(new Date());
-    h+='<div class="cl-conf"><p class="cl-sec-tit">Entregas confirmadas</p>';
+    h+='<div class="cl-entc"><p class="cl-sec-tit">Entregas confirmadas</p>';
     apro.slice(0,12).forEach(function(p){
       var chegou=p.data<=hj;
-      h+='<div class="cl-conf-lin"><span class="qd">'+clDataLonga(p.data)+' · '+clHoraCurta(p.hora)+'</span>'+
+      h+='<div class="cl-entc-lin"><span class="qd">'+clDataLonga(p.data)+' · '+clHoraCurta(p.hora)+'</span>'+
          '<span class="nm">'+pxEsc(p.fornecedor)+(p.pedido?' <span style="color:#8a97a8;font-weight:400;">· pedido '+pxEsc(p.pedido)+'</span>':'')+
-           clTranspSelo(p)+'</span>'+
+           clTranspSelo(p)+clDetalheLinha(p)+'</span>'+
          (chegou && clPodeDecidir()
            ? '<button type="button" class="cl-ped-sim" data-pconf="'+pxEsc(p.id)+'">✓ Conferido</button>'
            : '<span class="selo">confirmada</span>')+
@@ -6808,6 +6957,7 @@ function clImprimir(){
   if(cp) cp.addEventListener("click",function(e){
     var s=e.target.closest("[data-psim]"); if(s){ clDecidir(s.getAttribute("data-psim"),"aprovado"); return; }
     var n=e.target.closest("[data-pnao]"); if(n){ clDecidir(n.getAttribute("data-pnao"),"recusado"); return; }
+    var nf=e.target.closest("[data-clnf]"); if(nf){ clVerNotas(nf.getAttribute("data-clnf")); return; }
     var cf=e.target.closest("[data-pconf]"); if(cf){ clDecidir(cf.getAttribute("data-pconf"),"conferido"); return; }
   });
   var lb=document.getElementById("clLinkBtn"); if(lb) lb.addEventListener("click",clLinkFornecedor);
@@ -8556,6 +8706,14 @@ function pxNumExtenso(n){
   return partes.join(" e ");
 }
 function pxReaisExtenso(v){ var i=Math.floor(v); return pxNumExtenso(i)+(i===1?" real":" reais"); }
+/* NAO USE ISTO PARA CONTAR MENSALIDADE. Mede quanto TEMPO passa entre duas
+   datas, e nao QUANTAS COBRANCAS existem — as duas coisas diferem em 1, porque
+   a primeira cobranca cai no proprio dia da abertura.
+   Em 17/08/2026 isso custou dinheiro de verdade: o ponto 14 (30/08 a 31/12,
+   R$500/mes) tinha 5 cobrancas no calendario e o contrato dizia "4 meses,
+   R$2.000". Faltavam R$500 num documento ja ASSINADO pelo fornecedor.
+   Quem conta mensalidade e pxAgenda(), a MESMA funcao que desenha o
+   calendario na tela. Duas contas para o mesmo numero sempre discordam. */
 function pxMesesEntre(ini,fim){ if(!ini||!fim) return 0; var a=ini.split("-"), b=fim.split("-"); var m=(+b[0]*12+ +b[1])-(+a[0]*12+ +a[1]); if(+b[2] < +a[2]) m-=1; return m>0?m:0; }
 // Monta o "Acordo Comercial" (modelo da loja) a partir dos dados do ponto.
 function pxContratoDocHtml(p){
@@ -8569,7 +8727,8 @@ function pxContratoDocHtml(p){
   var ini=p.abertura, fim=p.vencimento;
   var iniFmt=pxEsc(ini?pxFmtData(ini):"____/____/______");
   var fimFmt=pxEsc(fim?pxFmtData(fim):"____/____/______");
-  var meses=pxMesesEntre(ini,fim);
+  // conta pelo CALENDARIO, a mesma lista que a tela mostra
+  var meses=pxAgenda(p).length;
   var mensal=+p.valor||0;
   var total=meses>0 ? mensal*meses : mensal;
   var valTotalFmt=total?pxEsc(brl(total)):"[VALOR]";
@@ -8578,8 +8737,12 @@ function pxContratoDocHtml(p){
   var pagBase = /pix/i.test(p.pagamento||"") ? "Pix" : (/boleto/i.test(p.pagamento||"") ? "boleto bancário" : (pxEsc(p.pagamento)||"boleto bancário"));
   var dd=ini?new Date(+ini.split("-")[0],+ini.split("-")[1]-1,+ini.split("-")[2]):new Date(HOJE.getTime());
   var dataExt=dd.getDate()+" de "+MES[dd.getMonth()]+" de "+dd.getFullYear();
-  var vigencia = meses>0 ? (", correspondendo a "+meses+(meses===1?" mês":" meses")+" de vigência") : "";
-  var pagTxt="O valor será pago através de "+pagBase+", no valor total de "+valTotalFmt+", referente ao período contratado"+vigencia+", com valor mensal de "+mensalFmt+".";
+  // Sem datas preenchidas nao ha mensalidade para contar, e a frase precisa
+  // fechar sozinha: "periodo contratado de R$500" nao e portugues.
+  var vigencia = meses>0
+    ? (", em "+meses+(meses===1?" mensalidade":" mensalidades")+" de "+mensalFmt)
+    : (mensal ? ", com valor mensal de "+mensalFmt : "");
+  var pagTxt="O valor será pago através de "+pagBase+", no valor total de "+valTotalFmt+", referente ao período contratado"+vigencia+".";
   var razao=pxEsc(L.razao), cnpjL=pxEsc(L.cnpj), fant=pxEsc(L.fantasia||L.razao), cidade=pxEsc(L.cidade||"Caicó/RN"), enderecoL=pxEsc(L.endereco||"");
   // código do documento (mesma convenção do nº de cobrança da ficha de boleto: CT-<ponto>-<anomês>)
   var dParts2=(ini||"").split("-");
@@ -9055,7 +9218,18 @@ function uiConfirm(opts){
       document.body.appendChild(bg);
     }
     document.getElementById("uiModalTit").textContent=opts.titulo||"Confirmar";
-    document.getElementById("uiModalMsg").textContent=opts.msg||"";
+    var msgEl=document.getElementById("uiModalMsg");
+    // opts.html existe para quem precisa mostrar TABELA e nao frase — como a
+    // lista de produtos que vem no caminhao. Sem isso a janela abria vazia,
+    // porque textContent joga fora qualquer marcacao. Todo conteudo passado
+    // aqui ja vem escapado por pxEsc na origem.
+    if(opts.html!=null){ msgEl.innerHTML=opts.html; msgEl.classList.add("modal-msg-html"); }
+    else { msgEl.textContent=opts.msg||""; msgEl.classList.remove("modal-msg-html"); }
+    // O triangulo laranja e icone de PERIGO — nasceu para "tem certeza que quer
+    // apagar?". Numa lista de produtos ele faz parecer que algo esta errado.
+    // Janela informativa (com html e sem Cancelar) mostra so o titulo.
+    var icEl=bg.querySelector(".modal-ic");
+    if(icEl) icEl.style.display = (opts.html!=null && opts.cancel==="") ? "none" : "";
     var ok=document.getElementById("uiModalOk"), cancel=document.getElementById("uiModalCancel");
     ok.textContent=opts.ok||"Confirmar";
     var temCancel = opts.cancel!=="";
