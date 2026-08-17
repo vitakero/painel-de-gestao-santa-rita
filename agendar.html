@@ -655,6 +655,27 @@ body.com-wz #toasts{bottom:86px}
   padding:5px 13px;font:inherit;font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer}
 .doc-tipos button.on{border-color:var(--verde);background:var(--verde-bg);color:var(--verde-esc)}
 
+/* ANEXOS de um agendamento já criado — a aba dentro do detalhe. */
+.ax-acs{display:flex;gap:6px;justify-content:flex-end;align-items:center}
+.ax-bt{background:#fff;border:1.5px solid var(--borda);border-radius:7px;padding:4px 11px;
+  font:inherit;font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer;transition:.12s}
+.ax-bt:hover{border-color:var(--verde);color:var(--verde-esc)}
+.ax-bt.so-ic{padding:4px 7px;line-height:0}
+.ax-bt.so-ic svg{width:14px;height:14px;display:block}
+.ax-bt.so-ic:hover{border-color:var(--verm);color:var(--verm)}
+.ax-pe{margin-top:15px;padding-top:14px;border-top:1px solid var(--borda)}
+.ax-pe .ax-tipos{margin-top:0;margin-bottom:11px}
+.ax-add{display:inline-flex;align-items:center;gap:8px;background:var(--verde);border:0;
+  border-radius:9px;padding:9px 17px;font:inherit;font-size:13px;font-weight:700;color:#fff;
+  cursor:pointer;transition:.12s}
+.ax-add:hover{filter:brightness(1.07)}
+.ax-add svg{width:15px;height:15px}
+.ax-pe .dica{display:block;margin-top:9px}
+.ax-link{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--amb-bg);
+  border:1px solid var(--amb-bd);border-radius:9px;padding:10px 13px;margin-bottom:13px;
+  font-size:12.5px;color:var(--amb)}
+.ax-link a{text-decoration:none}
+
 /* PEDIDOS DE COMPRA — a etapa 2 do assistente. */
 .ped-l{display:flex;flex-direction:column;gap:9px}
 .ped{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1.5px solid var(--borda);
@@ -2060,8 +2081,11 @@ body.com-wz #toasts{bottom:86px}
   // ============================================================
   var detCache=null, detAba="informacoes";
 
-  function abrirDetalhe(id){
-    detAba="informacoes";
+  // aba: em que aba abrir. Serve para VOLTAR para onde a pessoa estava depois de
+  // uma pergunta de confirmação — que fecha este modal, porque o portal tem um
+  // lugar de modal só (o uiModal fecha o que estiver aberto antes de abrir).
+  function abrirDetalhe(id, aba){
+    detAba=aba||"informacoes";
     var c=uiModal({titulo:"Detalhes do agendamento", cru:true, corpo:'<div id="detCorpo">'+uiCarregando()+'</div>'});
     SB.rpc("forn_agenda",{p_id:id}).then(function(r){
       var d=(r&&r.data)||{};
@@ -2124,6 +2148,21 @@ body.com-wz #toasts{bottom:86px}
         if(a==="remarcar")    remarcar(detCache);
       };
     });
+
+    // UM ouvinte só, na caixa da aba. Trocar de aba só troca o conteúdo de
+    // dentro (#detAba continua o mesmo elemento), então botão criado depois
+    // continua funcionando — se eu ligasse botão por botão, ao voltar para a
+    // aba Anexos os cliques morreriam sem erro nenhum na tela.
+    var cxAba=el("detAba");
+    if(cxAba) cxAba.onclick=function(ev){
+      var b=ev.target && ev.target.closest ? ev.target.closest("[data-ax]") : null;
+      if(!b) return;
+      var a=b.getAttribute("data-ax");
+      if(a==="ver")   verAnexo(b.getAttribute("data-id"));
+      if(a==="tirar") tirarAnexo(b.getAttribute("data-id"), b.getAttribute("data-nome"));
+      if(a==="add")   anexarNoDetalhe();
+      if(a==="tipo"){ axTipoEsc=b.getAttribute("data-t"); el("detAba").innerHTML=corpoAba(); }
+    };
   }
 
   function corpoAba(){
@@ -2249,14 +2288,47 @@ body.com-wz #toasts{bottom:86px}
     }
 
     if(detAba==="anexos"){
+      // Anexar na etapa 3 resolve o caso normal. Mas a loja pode pedir um papel
+      // DEPOIS de confirmar — e sem esta aba o fornecedor mandaria por WhatsApp,
+      // fora do registro, e ninguém saberia depois se ele mandou ou não.
       var ax=d.anexos||[];
-      if(!ax.length) return uiVazio({ic:IC.clipe,titulo:"Nenhum anexo",
-        texto:"O envio de arquivos ainda não foi liberado pela loja."});
-      return uiTabela([
-        {ch:"Arquivo",v:function(a){ return esc(a.nome||"arquivo"); }},
-        {ch:"Tipo",cl:"nowrap",v:function(a){ return esc(a.tipo||""); }},
-        {ch:"Enviado em",cl:"nowrap",v:function(a){ return esc(a.em||""); }}
-      ], ax, {});
+      var axMexe=(d.situacao==="solicitada"||d.situacao==="confirmada");
+      h="";
+      if(!ax.length){
+        h+=uiVazio({ic:IC.clipe,titulo:"Nenhum arquivo anexado",
+          texto: axMexe
+            ? "Se a loja pedir algum documento para esta entrega, anexe aqui."
+            : "Nada foi anexado a esta entrega."});
+      } else {
+        h+=uiTabela([
+          {ch:"Arquivo",v:function(a){ return esc(a.nome||"arquivo"); }},
+          {ch:"Tipo",cl:"nowrap",v:function(a){ return esc(docRotulo(a.tipo)); }},
+          {ch:"Tamanho",cl:"nowrap",v:function(a){ return a.tamanho?esc(docTam(a.tamanho)):"—"; }},
+          {ch:"Enviado em",cl:"nowrap",v:function(a){ return esc(a.em||""); }},
+          {ch:"",cl:"nowrap",v:function(a){
+            return '<div class="ax-acs">'+
+              '<button class="ax-bt" data-ax="ver" data-id="'+esc(a.id)+'">Abrir</button>'+
+              (axMexe
+                ? '<button class="ax-bt so-ic" data-ax="tirar" data-id="'+esc(a.id)+'" '+
+                  'data-nome="'+esc(a.nome||"")+'" title="Tirar da lista">'+IC.lixo+'</button>'
+                : '')+
+              '</div>';
+          }}
+        ], ax, {});
+      }
+      if(axMexe){
+        h+='<div class="ax-pe">'+
+           '<div class="doc-tipos ax-tipos">';
+        for(i=0;i<DOC_TIPOS.length;i++){
+          h+='<button'+(axTipoEsc===DOC_TIPOS[i][0]?' class="on"':'')+
+             ' data-ax="tipo" data-t="'+DOC_TIPOS[i][0]+'">'+esc(DOC_TIPOS[i][1])+'</button>';
+        }
+        h+='</div>'+
+           '<button class="ax-add" data-ax="add">'+IC.clipe+'Anexar arquivo</button>'+
+           '<span class="dica">PDF, JPG, PNG ou WEBP · até '+docTam(DOC_MAX)+
+           ' cada · no máximo '+DOC_QTD+' arquivos</span></div>';
+      }
+      return h;
     }
 
     if(detAba==="devolucoes"){
@@ -2267,6 +2339,112 @@ body.com-wz #toasts{bottom:86px}
               "Enquanto isso, trate a devolução direto com o setor de recebimento."});
     }
     return "";
+  }
+
+  // ============================================================
+  // ANEXOS DE UM AGENDAMENTO JÁ CRIADO
+  // ============================================================
+  var axTipoEsc="documento";
+
+  // Volta para o detalhe na aba Anexos, com a lista relida do servidor.
+  //
+  // Um caminho só, de propósito. Eu tinha escrito um "redesenha por cima" para
+  // quando o modal ainda está aberto e este para quando não está — e o primeiro
+  // estourava calado, porque a pergunta de confirmação já tinha jogado o modal
+  // fora. Reabrir sempre custa um piscar de olhos e não tem como dar errado.
+  function voltarProsAnexos(agenda){
+    if(agenda) abrirDetalhe(agenda, "anexos");
+  }
+
+  function verAnexo(id){
+    // A aba tem que ser aberta AGORA, dentro do clique. Se eu esperasse a
+    // resposta do servidor para chamar window.open, o navegador trataria como
+    // pop-up e bloquearia: o fornecedor clicaria em Abrir e nada aconteceria.
+    var aba=null;
+    try{ aba=window.open("","_blank"); }catch(e){}
+    function desistir(msg){
+      if(aba){ try{ aba.close(); }catch(e){} }
+      uiAviso("Não consegui abrir", msg);
+    }
+    SB.rpc("forn_anexo_ver",{p_id:id}).then(function(r){
+      var v=(r&&r.data)||{};
+      if(r.error||!v.ok){ return desistir((r.error?r.error.message:v.erro)||"Tente de novo."); }
+      // link que morre em 60 segundos: o arquivo não tem endereço permanente
+      SB.storage.from("recebimento").createSignedUrl(v.caminho,60).then(function(s){
+        var u=s&&s.data&&s.data.signedUrl;
+        if(!u){ return desistir("O arquivo não está mais no cofre. Fale com a loja."); }
+        if(aba){ aba.location.href=u; return; }
+        // Pop-up bloqueado. O link vai DENTRO da aba, não num modal: o portal
+        // tem um lugar de modal só, então abrir um aqui jogaria fora o detalhe
+        // do agendamento e ele voltaria para a lista sem entender por quê.
+        // Clique dele num link o navegador não bloqueia.
+        var cx=el("detAba"); if(!cx) return;
+        var av=cx.querySelector(".ax-link"); if(av) cx.removeChild(av);
+        var cai=document.createElement("div");
+        cai.className="ax-link";
+        cai.innerHTML='<span>O navegador bloqueou a abertura automática.</span>'+
+          '<a class="ax-bt" target="_blank" rel="noopener" href="'+esc(u)+'">Abrir '+
+          esc(v.nome||"arquivo")+'</a>'+
+          '<span class="dica">o link vale 1 minuto</span>';
+        cx.insertBefore(cai, cx.firstChild);
+      }, function(){ desistir("Falha ao pedir o link do arquivo."); });
+    }, function(){ desistir("Falha ao falar com o servidor."); });
+  }
+
+  function tirarAnexo(id, nome){
+    // guardo o número da agenda ANTES: a pergunta fecha este modal e leva o
+    // detalhe com ela
+    var agenda=detCache&&detCache.id;
+    uiConfirmar({titulo:"Tirar este arquivo da lista?",
+      texto:(nome?'“'+nome+'”':"O arquivo")+" deixa de aparecer nesta entrega. "+
+            "Se a loja pediu este documento, você precisa anexar outro no lugar.",
+      sim:"Sim, tirar", nao:"Voltar", perigo:true
+    }).then(function(res){
+      // clicou em Voltar: reabro também. Sem isto, desistir de tirar o arquivo
+      // jogaria o fornecedor fora do agendamento, e ele acharia que travou.
+      if(!res) return voltarProsAnexos(agenda);
+      SB.rpc("forn_anexo_tirar",{p_id:id}).then(function(r){
+        var v=(r&&r.data)||{};
+        if(r.error||!v.ok){
+          uiAviso("Não consegui tirar",(r.error?r.error.message:v.erro)||"Tente de novo.");
+        } else {
+          uiToast("Arquivo tirado da lista.");
+        }
+        voltarProsAnexos(agenda);
+      }, function(){
+        uiAviso("Não consegui tirar","Falha ao falar com o servidor.");
+        voltarProsAnexos(agenda);
+      });
+    });
+  }
+
+  function anexarNoDetalhe(){
+    var d=detCache; if(!d) return;
+    var jaTem=(d.anexos||[]).length;
+    if(jaTem>=DOC_QTD){
+      uiAviso("Já são "+DOC_QTD+" arquivos","Tire algum da lista antes de anexar outro.");
+      return;
+    }
+    var inp=document.createElement("input");
+    inp.type="file"; inp.multiple=true;
+    inp.accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp";
+    inp.style.display="none";
+    document.body.appendChild(inp);
+    inp.onchange=function(){
+      // mesma peneira da etapa 3 — uma conferência só para as duas telas
+      var r=docPeneira(inp.files, jaTem, d.anexos||[]);
+      try{ document.body.removeChild(inp); }catch(e){}
+      if(r.erros.length){
+        uiAviso(r.erros.length===1?"Não consegui usar este arquivo":("Não consegui usar "+r.erros.length+" arquivos"),
+                "", {lista:r.erros});
+      }
+      if(!r.ok.length) return;
+      for(var i=0;i<r.ok.length;i++) r.ok[i].tipo=axTipoEsc;
+      uiToast(r.ok.length===1?"Enviando 1 arquivo…":("Enviando "+r.ok.length+" arquivos…"));
+      var agenda=d.id;
+      subirDocumentos(agenda, r.ok, {depois:function(){ voltarProsAnexos(agenda); }});
+    };
+    inp.click();
   }
 
   function cancelarAgenda(d){
@@ -3423,33 +3601,59 @@ body.com-wz #toasts{bottom:86px}
 
   // Confere ANTES de aceitar: tamanho, tipo e quantidade. Recusar aqui poupa
   // o fornecedor de preencher tudo e levar não no fim.
-  function docEngolir(lista){
-    if(!lista || !lista.length) return;
-    var erros=[], entraram=0;
+  // A PENEIRA DOS ARQUIVOS, NUM LUGAR SÓ.
+  //
+  // Duas telas anexam arquivo: a etapa 3 do agendamento e a aba Anexos de um
+  // agendamento já criado. Se cada uma tivesse a sua conferência, um dia eu
+  // mudaria o limite numa e esqueceria a outra — e o mesmo PDF levaria "sim"
+  // numa tela e "não" na outra, sem ninguém entender por quê.
+  //
+  // Devolve o que passou e o que não passou, sem mexer em tela nenhuma. Quem
+  // chamou decide o que fazer com cada lista.
+  function docPeneira(lista, jaTem, existentes){
+    var ok=[], erros=[];
+    existentes=existentes||[];
     for(var i=0;i<lista.length;i++){
       var f=lista[i];
-      if(wz.docs.length>=DOC_QTD){ erros.push("Só cabem "+DOC_QTD+" arquivos."); break; }
+      if(jaTem+ok.length>=DOC_QTD){ erros.push("Só cabem "+DOC_QTD+" arquivos."); break; }
       var ext=String(f.name||"").toLowerCase().split(".").pop();
       if(["pdf","jpg","jpeg","png","webp"].indexOf(ext)<0){
         erros.push(f.name+": só aceitamos PDF, JPG, PNG ou WEBP."); continue;
       }
       if(f.size>DOC_MAX){ erros.push(f.name+": passa de "+docTam(DOC_MAX)+"."); continue; }
       if(!f.size){ erros.push(f.name+": o arquivo está vazio."); continue; }
-      var rep=false;
-      for(var k=0;k<wz.docs.length;k++){
-        if(wz.docs[k].nome===f.name && wz.docs[k].tamanho===f.size) rep=true;
+      // repetido: contra o que já estava e contra o que veio nesta mesma leva
+      var rep=false, k;
+      for(k=0;k<existentes.length;k++){
+        if(existentes[k].nome===f.name && existentes[k].tamanho===f.size) rep=true;
+      }
+      for(k=0;k<ok.length;k++){
+        if(ok[k].nome===f.name && ok[k].tamanho===f.size) rep=true;
       }
       if(rep){ erros.push(f.name+": já está na lista."); continue; }
-      var rot="Documento";
-      for(var t=0;t<DOC_TIPOS.length;t++){ if(DOC_TIPOS[t][0]===wz.docTipo) rot=DOC_TIPOS[t][1]; }
-      wz.docs.push({nome:f.name, tamanho:f.size, tipo:wz.docTipo, rotulo:rot, arquivo:f});
-      entraram++;
+      ok.push({nome:f.name, tamanho:f.size, arquivo:f});
+    }
+    return {ok:ok, erros:erros};
+  }
+
+  function docRotulo(t){
+    for(var i=0;i<DOC_TIPOS.length;i++) if(DOC_TIPOS[i][0]===t) return DOC_TIPOS[i][1];
+    return "Documento";
+  }
+
+  function docEngolir(lista){
+    if(!lista || !lista.length) return;
+    var r=docPeneira(lista, wz.docs.length, wz.docs), i;
+    for(i=0;i<r.ok.length;i++){
+      r.ok[i].tipo=wz.docTipo;
+      r.ok[i].rotulo=docRotulo(wz.docTipo);
+      wz.docs.push(r.ok[i]);
     }
     telaDocs(); pintarResumoLado();
-    if(entraram) uiToast(entraram===1?"1 arquivo pronto para enviar.":(entraram+" arquivos prontos para enviar."));
-    if(erros.length){
-      uiAviso(erros.length===1?"Não consegui usar este arquivo":("Não consegui usar "+erros.length+" arquivos"),
-              "", {lista:erros});
+    if(r.ok.length) uiToast(r.ok.length===1?"1 arquivo pronto para enviar.":(r.ok.length+" arquivos prontos para enviar."));
+    if(r.erros.length){
+      uiAviso(r.erros.length===1?"Não consegui usar este arquivo":("Não consegui usar "+r.erros.length+" arquivos"),
+              "", {lista:r.erros});
     }
   }
 
@@ -3685,7 +3889,7 @@ body.com-wz #toasts{bottom:86px}
       }
       uiToast("Pedido enviado. Enviando "+pendentes.length+
               (pendentes.length===1?" documento...":" documentos..."));
-      subirDocumentos(idNovo, pendentes);
+      subirDocumentos(idNovo, pendentes, {novo:true});
     });
   }
 
@@ -3693,7 +3897,10 @@ body.com-wz #toasts{bottom:86px}
      Um por vez, de propósito: dez arquivos de 8 MB ao mesmo tempo derrubam a
      internet de quem está no celular na portaria. E o caminho de cada um vem
      do BANCO — o navegador nunca escolhe onde grava. */
-  function subirDocumentos(idAgenda, lista){
+  // opc.novo   = veio da etapa 3, o agendamento acabou de nascer
+  // opc.depois = chamar quando terminar (a aba Anexos usa para redesenhar)
+  function subirDocumentos(idAgenda, lista, opc){
+    opc=opc||{};
     var ok=0, falhou=[];
     function proximo(i){
       if(i>=lista.length){
@@ -3701,9 +3908,12 @@ body.com-wz #toasts{bottom:86px}
           uiToast(ok===1?"1 documento anexado.":(ok+" documentos anexados."));
         } else {
           uiAviso(falhou.length===1?"Um documento não subiu":(falhou.length+" documentos não subiram"),
-            "O agendamento foi criado e está valendo. Abra o agendamento em "+
-            "“Meus agendamentos” para anexar de novo.", {lista:falhou});
+            opc.novo ? "O agendamento foi criado e está valendo. Abra o agendamento em "+
+            "“Meus agendamentos” para anexar de novo."
+                     : "Tente anexar de novo. O agendamento continua valendo.",
+            {lista:falhou});
         }
+        if(opc.depois) opc.depois(ok);
         return;
       }
       var d=lista[i];
