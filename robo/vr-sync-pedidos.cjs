@@ -62,6 +62,17 @@ function cnpj14(v) {
   const s = String(v == null ? "" : v).replace(/[^0-9]/g, "");
   return s ? s.padStart(14, "0") : "";
 }
+// O codigo de barras vem NUMERIC do VR, entao chega sem os zeros da frente e
+// as vezes como "7.89123e+12". Aqui vira texto de digitos, sem zero a esquerda.
+// NAO completo com zeros ate 13: existe EAN-8 legitimo, e completar quebraria
+// justamente os produtos pequenos. Quem compara os dois lados usa a mesma
+// peneira, entao "07891" e "7891" se reconhecem.
+function ean13(v) {
+  if (v === null || v === undefined) return null;
+  let s = typeof v === "number" ? v.toFixed(0) : String(v);
+  s = s.replace(/[^0-9]/g, "").replace(/^0+/, "");
+  return s.length >= 8 ? s : null;
+}
 function num(v) { const x = parseFloat(v); return isNaN(x) ? 0 : x; }
 
 // O driver do Postgres devolve coluna "date" como OBJETO Date, não como texto.
@@ -100,7 +111,11 @@ const Q_PEDIDOS = `
 const Q_ITENS = `
   select i.id_pedido, i.id, i.id_produto, i.quantidade, i.qtdembalagem,
          coalesce(i.quantidadeatendida,0) as atendida, i.custocompra, i.valortotal,
-         pr.descricaocompleta, pr.descricaoreduzida
+         pr.descricaocompleta, pr.descricaoreduzida,
+         -- O CODIGO DE BARRAS e a unica ponte entre a nota fiscal e o pedido:
+         -- na nota vem o codigo DO FORNECEDOR, no pedido o codigo DA LOJA, e os
+         -- dois nunca batem. O EAN e o mesmo dos dois lados.
+         pr.codigobarras
     from public.pedidoitem i
     left join public.produto pr on pr.id = i.id_produto
    where i.id_pedido = any($1::int[])
@@ -207,6 +222,7 @@ const Q_ITENS = `
       produto_vr: String(i.id_produto),
       descricao: i.descricaocompleta || i.descricaoreduzida || null,
       codigo: String(i.id_produto),
+      ean: ean13(i.codigobarras),
       unidade: null,
       qtd_pedida: qtd,
       qtd_entregue: at,
