@@ -111,11 +111,8 @@ const Q_PEDIDOS = `
 const Q_ITENS = `
   select i.id_pedido, i.id, i.id_produto, i.quantidade, i.qtdembalagem,
          coalesce(i.quantidadeatendida,0) as atendida, i.custocompra, i.valortotal,
-         pr.descricaocompleta, pr.descricaoreduzida,
-         -- O CODIGO DE BARRAS e a unica ponte entre a nota fiscal e o pedido:
-         -- na nota vem o codigo DO FORNECEDOR, no pedido o codigo DA LOJA, e os
-         -- dois nunca batem. O EAN e o mesmo dos dois lados.
-         pr.codigobarras
+         pr.descricaocompleta, pr.descricaoreduzida
+         __EAN__
     from public.pedidoitem i
     left join public.produto pr on pr.id = i.id_produto
    where i.id_pedido = any($1::int[])
@@ -200,7 +197,30 @@ const Q_ITENS = `
     (r || []).forEach((x) => { mapa[x.numero] = x.id; });
   }
 
-  const itens = (await c.query(Q_ITENS, [peds.map((p) => p.id)])).rows;
+  // O CODIGO DE BARRAS e a unica ponte entre a nota fiscal e o pedido: na nota
+  // vem o codigo DO FORNECEDOR, no pedido o codigo DA LOJA, e os dois nunca
+  // batem. O EAN e o mesmo dos dois lados.
+  //
+  // O NOME DA COLUNA NAO E CRAVADO. Eu cravei "codigobarras" e o robo abortou a
+  // rodada inteira sem ninguem ver: os pedidos gravam ANTES dos itens, entao a
+  // nuvem ficava com pedido novo e item velho, parecendo que tinha funcionado.
+  // Agora ele pergunta ao VR quais colunas existem e usa a que achar.
+  const CANDIDATAS = ["codigobarras", "codigobarra", "codbarras", "codigo_barras", "ean", "gtin"];
+  let colEan = null;
+  try {
+    const cols = (await c.query(
+      "select column_name from information_schema.columns " +
+      "where table_schema='public' and table_name='produto'")).rows.map((x) => x.column_name);
+    colEan = CANDIDATAS.find((n) => cols.indexOf(n) >= 0) || null;
+    console.log(colEan
+      ? "Codigo de barras: usando a coluna produto." + colEan
+      : "Codigo de barras: o produto do VR nao tem coluna de EAN (procurei: " + CANDIDATAS.join(", ") + ").");
+  } catch (e) {
+    console.log("Nao consegui ler as colunas de produto: " + e.message + " — sigo sem EAN.");
+  }
+
+  const Q_ITENS_REAL = Q_ITENS.replace("__EAN__", colEan ? ", pr." + colEan + " as codigobarras" : "");
+  const itens = (await c.query(Q_ITENS_REAL, [peds.map((p) => p.id)])).rows;
   await c.end();
 
   // Apaga e regrava: quantidade atendida muda o tempo todo, e casar linha a
