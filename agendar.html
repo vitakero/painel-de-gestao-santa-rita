@@ -680,6 +680,10 @@ body.com-wz #toasts{bottom:86px}
 .cnf{margin-top:18px;border-radius:12px;padding:16px 18px;border:1.5px solid var(--borda);background:#fff}
 .cnf.bom{border-color:var(--verde);background:var(--verde-bg)}
 .cnf.ruim{border-color:#e0b4b0;background:#fdf4f3}
+.cnf.atencao{border-color:#e6c98a;background:#fdf6e9}
+.cnf.atencao .cnf-t{color:#8a5a12}
+.cnf-av{margin:9px 0 0;padding-left:19px}
+.cnf-av li{font-size:13px;color:var(--txt2);line-height:1.55;margin-bottom:5px}
 .cnf-t{font-size:14.5px;font-weight:700;color:var(--txt)}
 .cnf.bom .cnf-t{color:var(--verde-esc)}
 .cnf.ruim .cnf-t{color:#8c2f28}
@@ -3740,14 +3744,52 @@ body.com-wz #toasts{bottom:86px}
       '</div>';
   }
 
-  function pintarConfronto(){
-    var c=el("wzConf"); if(!c) return;
-    var v=wz.conf;
+  // A NOTA DIZ UM PEDIDO E O FORNECEDOR MARCOU OUTRO.
+  //
+  // A conferencia compara com o que ele MARCOU, nao com o que a nota DECLARA.
+  // Sem este aviso, marcar o pedido errado passava calado: se o produto existe
+  // nos dois pedidos, o codigo de barras casa e a tela diz "tudo certo" —
+  // comparando com o pedido errado. O erro grosseiro se denuncia sozinho
+  // (todos os itens caem em "nao esta no pedido"); o perigoso e o meio-termo,
+  // dois pedidos do mesmo fornecedor com produtos parecidos.
+  function avisosDoPedido(){
+    var daNota=pedidosDasNotas();
+    if(!daNota.length) return "";
+    var lista=(wz.pedidosLista||[]).map(function(x){ return String(x.numero); });
+    var mar=(wz.pedidosEscolhidos||[]).map(String);
 
-    if(v===null || v===undefined){ c.innerHTML=""; return; }
-    if(v==="carregando"){ c.innerHTML='<div class="cnf"><div class="cnf-t">Conferindo a nota com o pedido…</div></div>'; return; }
-    if(v.erro){ c.innerHTML='<div class="cnf ruim"><div class="cnf-t">'+esc(v.erro)+'</div></div>'; return; }
-    if(!v.conferido){ c.innerHTML=""; return; }
+    function fora(a,b){ return a.filter(function(x){ return b.indexOf(x)<0; }); }
+    var naoMarcou   = fora(daNota.filter(function(x){ return lista.indexOf(x)>=0; }), mar);
+    var marcouAMais = fora(mar, daNota);
+    var foraDaLista = fora(daNota, lista);
+
+    var av=[];
+    if(naoMarcou.length){
+      av.push("A nota fiscal diz que é do "+(naoMarcou.length===1?"pedido ":"pedidos ")+
+              naoMarcou.join(", ")+", e ele não está marcado.");
+    }
+    if(marcouAMais.length){
+      av.push("Você marcou o "+(marcouAMais.length===1?"pedido ":"pedidos ")+
+              marcouAMais.join(", ")+", que a nota não declara.");
+    }
+    if(foraDaLista.length){
+      av.push("A nota diz o "+(foraDaLista.length===1?"pedido ":"pedidos ")+foraDaLista.join(", ")+
+              ", que não está na sua lista de pedidos em aberto. "+
+              "Pode ser que já tenha sido entregue por inteiro, ou que o número na nota esteja errado.");
+    }
+    if(!av.length) return "";
+
+    var h='<div class="cnf atencao"><div class="cnf-t">A nota e o pedido marcado não combinam</div><ul class="cnf-av">';
+    for(var i=0;i<av.length;i++) h+="<li>"+esc(av[i])+"</li>";
+    return h+"</ul></div>";
+  }
+
+  function blocoConfronto(){
+    var v=wz.conf;
+    if(v===null || v===undefined) return "";
+    if(v==="carregando") return '<div class="cnf"><div class="cnf-t">Conferindo a nota com o pedido…</div></div>';
+    if(v.erro) return '<div class="cnf ruim"><div class="cnf-t">'+esc(v.erro)+'</div></div>';
+    if(!v.conferido) return "";
 
     var r=v.resumo||{}, ln=v.linhas||[];
     var probs=r.problemas||0;
@@ -3784,7 +3826,14 @@ body.com-wz #toasts{bottom:86px}
          'mande o XML se quiser conferir item a item.</div>';
     }
 
-    c.innerHTML=h+'</div>';
+    return h+'</div>';
+  }
+
+  function pintarConfronto(){
+    var c=el("wzConf"); if(!c) return;
+    // o aviso de pedido trocado aparece MESMO sem conferencia: ele vale
+    // inclusive quando a nota veio so pela chave, sem itens para comparar
+    c.innerHTML = avisosDoPedido() + blocoConfronto();
   }
 
   function telaPedidos(){
