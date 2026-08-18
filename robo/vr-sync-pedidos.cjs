@@ -215,6 +215,22 @@ const Q_ITENS = `
     console.log(colEan
       ? "Codigo de barras: usando a coluna produto." + colEan
       : "Codigo de barras: o produto do VR nao tem coluna de EAN (procurei: " + CANDIDATAS.join(", ") + ").");
+
+    // DIAGNOSTICO NA NUVEM. O log do robo fica numa janela preta na maquina da
+    // loja que ninguem le — foi assim que a rodada abortou por dias sem
+    // ninguem notar. Quando eu nao acho a coluna, registro a lista REAL de
+    // colunas aqui, onde da para ler de fora e descobrir o nome certo.
+    if (!colEan) {
+      const parecidas = cols.filter((n) => /bar|ean|gtin|cod/i.test(n));
+      try {
+        await req("POST", "/rest/v1/receb_eventos", [{
+          entidade: "sync_pedidos", acao: "sem_coluna_ean",
+          motivo: "nenhuma das candidatas existe em public.produto",
+          detalhe: { procurei: CANDIDATAS, parecidas: parecidas, todas: cols },
+        }], "return=minimal");
+        console.log("Registrei na nuvem as " + cols.length + " colunas de produto para diagnostico.");
+      } catch (e) { console.log("(nao consegui registrar o diagnostico: " + e.message + ")"); }
+    }
   } catch (e) {
     console.log("Nao consegui ler as colunas de produto: " + e.message + " — sigo sem EAN.");
   }
