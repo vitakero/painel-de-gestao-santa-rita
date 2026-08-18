@@ -703,6 +703,13 @@ body.com-wz #toasts{bottom:86px}
 .vp-c{flex:1;min-width:0}
 .vp-c b{display:block;font-size:14px}
 .vp-c span{display:block;font-size:12.5px;color:var(--txt2);margin-top:2px}
+.vp-s{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;
+  padding:3px 9px;margin-top:4px}
+.vp-s.forte{background:var(--verde-bg);color:var(--verde-esc)}
+.vp-s.meio{background:#fdf3e3;color:#8a5a12}
+.vp-s.cinza{background:#f1f3f4;color:var(--txt3)}
+.vp-nota{font-size:12.5px;color:var(--txt2);background:#f7f9fa;border:1px solid var(--borda);
+  border-radius:9px;padding:11px 13px;margin-bottom:10px;line-height:1.5}
 .vp-v{text-align:right;white-space:nowrap}
 .vp-v b{display:block;font-size:14px}
 .vp-v span{display:block;font-size:11px;color:var(--txt3)}
@@ -2901,9 +2908,33 @@ body.com-wz #toasts{bottom:86px}
         // continua sendo conferido na chegada, como sempre foi. O arquivo XML
         // é melhor — traz valor, emitente e destinatário — mas não é exigido.
       }
+      casarPedidosDaNota();
+
+      // TODA NOTA PRECISA DE PEDIDO. Antes dava para seguir sem vincular, e a
+      // nota chegava na loja sem ninguém saber o que era esperado dela — que é
+      // justamente o problema que este portal existe para resolver.
+      // Só cobro quando o fornecedor TEM pedido em aberto: sem pedido nenhum na
+      // lista, não há como vincular e travar seria prender por nada.
+      if(wz.comNota && wz.pedidosLista && wz.pedidosLista.length){
+        var soltas=[];
+        for(var s=0;s<wz.chaves.length;s++){
+          if(!wz.chaves[s].vinc) soltas.push(String(wz.chaves[s].numero||("nota "+(s+1))));
+        }
+        if(soltas.length){
+          uiAviso(soltas.length===1?"Falta vincular a nota ao pedido"
+                                   :"Faltam vincular "+soltas.length+" notas ao pedido",
+            soltas.length===1
+              ? "Clique em “Vincular ao pedido” na linha da nota "+soltas[0]+" e escolha a que "+
+                "pedido de compra ela se refere. É isso que diz à loja o que esperar do caminhão."
+              : "Clique em “Vincular ao pedido” na linha de cada uma e escolha a que pedido de "+
+                "compra ela se refere. É isso que diz à loja o que esperar do caminhão.",
+            soltas.length>1 ? {lista:soltas.map(function(x){ return "Nota "+x; })} : undefined);
+          return;
+        }
+      }
+
       // Se o fornecedor tem pedido em aberto, passa pela etapa 2. Quem não tem
       // vai direto para o agendamento e nem vê que a etapa existe.
-      casarPedidosDaNota();
       wz.etapa = (wz.pedidosLista && wz.pedidosLista.length) ? "pedidos" : "docs";
       pintarWizard();
     };
@@ -3665,17 +3696,72 @@ body.com-wz #toasts{bottom:86px}
         '<input id="vpBusca" class="vp-b" type="text" placeholder="Procurar pelo número do pedido">'+
         '<div id="vpLista" class="vp-l"></div></div>'});
 
+    // O QUE LIGA ESTA NOTA A ESTE PEDIDO.
+    // A pergunta do Victor foi "como e que eu vou saber que essa nota e desse
+    // pedido?". Numero, data e valor nao respondem. Quem responde e o produto:
+    // quantos dos codigos de barras da nota estao dentro daquele pedido.
+    // Quem conta e o banco (forn_casar_nota_pedidos), nunca a tela.
+    var casou=null;           // {comparavel, itens_nota, porPedido{numero:{...}}}
+    var apontados=(n.pedidos||[]).map(String);   // o que a propria nota declara
+
+    function ordenar(v){
+      return v.slice().sort(function(a,b){
+        // 1) o pedido que a NOTA aponta vem primeiro: e o unico sinal exato
+        var pa=apontados.indexOf(String(a.numero))>=0?1:0;
+        var pb=apontados.indexOf(String(b.numero))>=0?1:0;
+        if(pa!==pb) return pb-pa;
+        // 2) depois, quantos produtos da nota estao no pedido
+        var ca=(casou&&casou.porPedido[String(a.numero)]||{}).casaram||0;
+        var cb=(casou&&casou.porPedido[String(b.numero)]||{}).casaram||0;
+        if(ca!==cb) return cb-ca;
+        return String(a.previsao||"").localeCompare(String(b.previsao||""));
+      });
+    }
+
+    function selo(x){
+      var num=String(x.numero);
+      if(apontados.indexOf(num)>=0){
+        return '<span class="vp-s forte">a nota aponta este pedido</span>';
+      }
+      if(!casou) return "";
+      if(!casou.comparavel || !casou.itens_nota){
+        return "";
+      }
+      var c=casou.porPedido[num]||{};
+      if(!c.tem_ean) return '<span class="vp-s cinza">sem código de barras para comparar</span>';
+      var q=c.casaram||0;
+      if(!q) return '<span class="vp-s cinza">nenhum produto desta nota está neste pedido</span>';
+      var cls=(q>=casou.itens_nota)?"forte":"meio";
+      // concordancia: "1 dos 4 produtos ESTA", "3 dos 4 produtos ESTAO"
+      return '<span class="vp-s '+cls+'">'+q+' dos '+casou.itens_nota+
+             ' produtos desta nota '+(q===1?"está":"estão")+' neste pedido</span>';
+    }
+
     function pinta(){
       var q=(el("vpBusca").value||"").trim().toLowerCase();
-      var vis=l.filter(function(x){ return !q || String(x.numero).toLowerCase().indexOf(q)>=0; });
+      var vis=ordenar(l.filter(function(x){ return !q || String(x.numero).toLowerCase().indexOf(q)>=0; }));
       var h="";
+
+      // A tela precisa dizer a diferenca entre "comparei e nao casou" e "nao
+      // tive com o que comparar". Sem isso, "0 de 16" nos dois casos faria ele
+      // descartar justamente o pedido certo.
+      if(casou && !casou.comparavel){
+        h+='<div class="vp-nota">Ainda não consigo comparar os produtos da nota com os do '+
+           'pedido — os códigos de barras dos pedidos estão sendo carregados. '+
+           'Por enquanto, confira pelo número e pela data.</div>';
+      } else if(casou && !casou.itens_nota){
+        h+='<div class="vp-nota">Esta nota não trouxe código de barras nos produtos, '+
+           'então não consigo comparar item a item.</div>';
+      }
+
       if(!vis.length){
-        h='<p class="dica" style="padding:14px 2px">Nenhum pedido com esse número.</p>';
+        h+='<p class="dica" style="padding:14px 2px">Nenhum pedido com esse número.</p>';
       }
       for(var i=0;i<vis.length;i++){
         var x=vis[i], on=String(n.vinc||"")===String(x.numero);
         h+='<div class="vp-i'+(on?" on":"")+'" data-num="'+esc(x.numero)+'">'+
            '<div class="vp-c"><b>Pedido '+esc(x.numero)+'</b>'+
+             selo(x)+
              '<span>'+esc(String(x.itens_saldo||0))+' de '+esc(String(x.itens||0))+
              ' itens para entrega'+
              (x.previsao?' &middot; previsão '+esc(x.previsao):'')+
@@ -3701,6 +3787,21 @@ body.com-wz #toasts{bottom:86px}
     el("vpBusca").oninput=pinta;
     pinta();
     try{ el("vpBusca").focus(); }catch(e){}
+
+    // A comparacao chega depois e a janela se redesenha. Abrir esperando pela
+    // resposta deixaria a janela em branco por um segundo, e o fornecedor
+    // clicaria no vazio.
+    var itensNota=(n.itens||[]).map(function(t){ return {ean:t.ean||""}; });
+    if(itensNota.length){
+      SB.rpc("forn_casar_nota_pedidos",{p_itens:itensNota}).then(function(r){
+        var d=(r&&r.data)||{};
+        if(!d.ok) return;
+        var por={};
+        (d.pedidos||[]).forEach(function(x){ por[String(x.numero)]=x; });
+        casou={comparavel:!!d.comparavel, itens_nota:d.itens_nota||0, porPedido:por};
+        if(el("vpLista")) pinta();
+      }, function(){});
+    }
   }
 
   function desvincularNota(idx){
