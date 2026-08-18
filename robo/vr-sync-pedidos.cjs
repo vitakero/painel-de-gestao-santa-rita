@@ -112,7 +112,6 @@ const Q_ITENS = `
   select i.id_pedido, i.id, i.id_produto, i.quantidade, i.qtdembalagem,
          coalesce(i.quantidadeatendida,0) as atendida, i.custocompra, i.valortotal,
          pr.descricaocompleta, pr.descricaoreduzida
-         __EAN__
     from public.pedidoitem i
     left join public.produto pr on pr.id = i.id_produto
    where i.id_pedido = any($1::int[])
@@ -197,51 +196,46 @@ const Q_ITENS = `
     (r || []).forEach((x) => { mapa[x.numero] = x.id; });
   }
 
-  // O CODIGO DE BARRAS e a unica ponte entre a nota fiscal e o pedido: na nota
-  // vem o codigo DO FORNECEDOR, no pedido o codigo DA LOJA, e os dois nunca
-  // batem. O EAN e o mesmo dos dois lados.
+  // ---- OS CODIGOS DE BARRAS ----
+  // No VR o EAN NAO fica no produto: fica em produtoautomacao, e um produto tem
+  // VARIOS — o da unidade, o da caixa, o do fardo. (Perdi tempo procurando uma
+  // coluna "codigobarras" em produto; ela nao existe, sao 100 colunas e nenhuma
+  // de EAN. Quem sabia disso era o vr-sync-estoque.cjs.)
   //
-  // O NOME DA COLUNA NAO E CRAVADO. Eu cravei "codigobarras" e o robo abortou a
-  // rodada inteira sem ninguem ver: os pedidos gravam ANTES dos itens, entao a
-  // nuvem ficava com pedido novo e item velho, parecendo que tinha funcionado.
-  // Agora ele pergunta ao VR quais colunas existem e usa a que achar.
-  const CANDIDATAS = ["codigobarras", "codigobarra", "codbarras", "codigo_barras", "ean", "gtin"];
-  let colEan = null;
-  try {
-    const cols = (await c.query(
-      "select column_name from information_schema.columns " +
-      "where table_schema='public' and table_name='produto'")).rows.map((x) => x.column_name);
-    colEan = CANDIDATAS.find((n) => cols.indexOf(n) >= 0) || null;
-    console.log(colEan
-      ? "Codigo de barras: usando a coluna produto." + colEan
-      : "Codigo de barras: o produto do VR nao tem coluna de EAN (procurei: " + CANDIDATAS.join(", ") + ").");
+  // Guardo TODOS. Se eu guardasse so o da unidade, a nota que declara o EAN da
+  // CAIXA nao casaria com o pedido — e a conferencia acharia zero produtos
+  // parecendo que funcionou.
+  const Q_EANS = `
+    select pa.id_produto, pa.codigobarras::text as ean, pa.qtdembalagem
+      from public.produtoautomacao pa
+     where pa.id_produto = any($1::int[])
+       and pa.codigobarras is not null
+       and trim(pa.codigobarras::text) <> ''
+     order by pa.id_produto, pa.qtdembalagem`;
 
-    // DIAGNOSTICO NA NUVEM. O log do robo fica numa janela preta na maquina da
-    // loja que ninguem le — foi assim que a rodada abortou por dias sem
-    // ninguem notar. Quando eu nao acho a coluna, registro a lista REAL de
-    // colunas aqui, onde da para ler de fora e descobrir o nome certo.
-    if (!colEan) {
-      const parecidas = cols.filter((n) => /bar|ean|gtin|cod/i.test(n));
-      try {
-        // entidade_id e NOT NULL na tabela: mandar vazio derrubava o registro com
-        // 23502 e o catch engolia. Uso o id do local (a loja) — e o diagnostico
-        // e mesmo sobre a sincronizacao daquela loja.
-        await req("POST", "/rest/v1/receb_eventos", [{
-          entidade: "sync_pedidos",
-          entidade_id: (local && local.id) || "00000000-0000-0000-0000-000000000000",
-          acao: "sem_coluna_ean",
-          motivo: "nenhuma das candidatas existe em public.produto",
-          detalhe: { procurei: CANDIDATAS, parecidas: parecidas, todas: cols },
-        }], "return=minimal");
-        console.log("Registrei na nuvem as " + cols.length + " colunas de produto para diagnostico.");
-      } catch (e) { console.log("!! nao consegui registrar o diagnostico: " + e.message); }
+  const itens = (await c.query(Q_ITENS, [peds.map((p) => p.id)])).rows;
+
+  const eansPorProduto = {};
+  try {
+    const ids = [];
+    itens.forEach((i) => { if (i.id_produto != null && ids.indexOf(i.id_produto) < 0) ids.push(i.id_produto); });
+    if (ids.length) {
+      const rows = (await c.query(Q_EANS, [ids])).rows;
+      rows.forEach((r) => {
+        const e = ean13(r.ean);
+        if (!e) return;
+        const k = String(r.id_produto);
+        if (!eansPorProduto[k]) eansPorProduto[k] = [];
+        if (eansPorProduto[k].indexOf(e) < 0) eansPorProduto[k].push(e);
+      });
+      const comEan = Object.keys(eansPorProduto).length;
+      const total = Object.values(eansPorProduto).reduce((a, l) => a + l.length, 0);
+      console.log("Codigos de barras: " + total + " de " + comEan + " produto(s), sobre " + ids.length + " produtos do lote.");
     }
   } catch (e) {
-    console.log("Nao consegui ler as colunas de produto: " + e.message + " — sigo sem EAN.");
+    console.log("!! nao consegui ler produtoautomacao: " + e.message + " — os itens vao sem EAN.");
   }
 
-  const Q_ITENS_REAL = Q_ITENS.replace("__EAN__", colEan ? ", pr." + colEan + " as codigobarras" : "");
-  const itens = (await c.query(Q_ITENS_REAL, [peds.map((p) => p.id)])).rows;
   await c.end();
 
   // Apaga e regrava: quantidade atendida muda o tempo todo, e casar linha a
@@ -263,7 +257,10 @@ const Q_ITENS = `
       produto_vr: String(i.id_produto),
       descricao: i.descricaocompleta || i.descricaoreduzida || null,
       codigo: String(i.id_produto),
-      ean: ean13(i.codigobarras),
+      // ean = o de menor embalagem (a unidade), que e o que a tela mostra;
+      // eans = todos, que e com o que a comparacao casa
+      ean: (eansPorProduto[String(i.id_produto)] || [])[0] || null,
+      eans: eansPorProduto[String(i.id_produto)] || null,
       unidade: null,
       qtd_pedida: qtd,
       qtd_entregue: at,
