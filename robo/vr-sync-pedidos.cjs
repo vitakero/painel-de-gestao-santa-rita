@@ -223,13 +223,18 @@ const Q_ITENS = `
     if (!colEan) {
       const parecidas = cols.filter((n) => /bar|ean|gtin|cod/i.test(n));
       try {
+        // entidade_id e NOT NULL na tabela: mandar vazio derrubava o registro com
+        // 23502 e o catch engolia. Uso o id do local (a loja) — e o diagnostico
+        // e mesmo sobre a sincronizacao daquela loja.
         await req("POST", "/rest/v1/receb_eventos", [{
-          entidade: "sync_pedidos", acao: "sem_coluna_ean",
+          entidade: "sync_pedidos",
+          entidade_id: (local && local.id) || "00000000-0000-0000-0000-000000000000",
+          acao: "sem_coluna_ean",
           motivo: "nenhuma das candidatas existe em public.produto",
           detalhe: { procurei: CANDIDATAS, parecidas: parecidas, todas: cols },
         }], "return=minimal");
         console.log("Registrei na nuvem as " + cols.length + " colunas de produto para diagnostico.");
-      } catch (e) { console.log("(nao consegui registrar o diagnostico: " + e.message + ")"); }
+      } catch (e) { console.log("!! nao consegui registrar o diagnostico: " + e.message); }
     }
   } catch (e) {
     console.log("Nao consegui ler as colunas de produto: " + e.message + " — sigo sem EAN.");
