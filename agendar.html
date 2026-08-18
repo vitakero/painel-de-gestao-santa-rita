@@ -676,6 +676,27 @@ body.com-wz #toasts{bottom:86px}
   font-size:12.5px;color:var(--amb)}
 .ax-link a{text-decoration:none}
 
+/* CONFRONTO da nota com o pedido — aparece na etapa 2, embaixo dos pedidos. */
+.cnf{margin-top:18px;border-radius:12px;padding:16px 18px;border:1.5px solid var(--borda);background:#fff}
+.cnf.bom{border-color:var(--verde);background:var(--verde-bg)}
+.cnf.ruim{border-color:#e0b4b0;background:#fdf4f3}
+.cnf-t{font-size:14.5px;font-weight:700;color:var(--txt)}
+.cnf.bom .cnf-t{color:var(--verde-esc)}
+.cnf.ruim .cnf-t{color:#8c2f28}
+.cnf-s{font-size:12.5px;color:var(--txt2);margin-top:3px}
+.cnf-l{display:flex;flex-direction:column;gap:7px;margin-top:13px}
+.cnf-i{background:#fff;border:1px solid var(--borda);border-radius:9px;padding:9px 12px}
+.cnf-i.ruim{border-left:3px solid var(--verm)}
+.cnf-i.atencao{border-left:3px solid #c98a1a}
+.cnf-d{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.cnf-d b{font-size:13px;font-weight:700}
+.cnf-e{font-size:11px;color:var(--txt3);font-variant-numeric:tabular-nums}
+.cnf-n{font-size:12.5px;color:var(--txt2);margin-top:2px}
+.cnf-m{font-size:12px;color:var(--verm);margin-top:3px}
+.cnf-i.atencao .cnf-m{color:#8a5a12}
+.cnf-mais{font-size:12px;color:var(--txt3);padding:2px 2px}
+.cnf-p{font-size:12.5px;color:var(--txt2);margin-top:12px;line-height:1.5}
+
 /* PEDIDOS DE COMPRA — a etapa 2 do assistente. */
 .ped-l{display:flex;flex-direction:column;gap:9px}
 .ped{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1.5px solid var(--borda);
@@ -2635,7 +2656,7 @@ body.com-wz #toasts{bottom:86px}
          minutos:60, tipoCarga:"", tipoVolume:"", qtdVolumes:"",
          tipoVeiculo:"", placa:"", motorista:"", motoristaFone:"",
          pesoTxt:"", peso:null, cobranca:null, ciente:false,
-         pedidosLista:null, pedidosEscolhidos:[],
+         pedidosLista:null, pedidosEscolhidos:[], conf:null,
          docs:[], docTipo:"documento" };
     // O calendário é do assistente: assistente novo, calendário do zero.
     // Estas variáveis moram fora do wz e sobreviviam ao fechar a janela —
@@ -3657,6 +3678,115 @@ body.com-wz #toasts{bottom:86px}
     }
   }
 
+  // ============================================================
+  // CONFRONTO: A NOTA CONTRA O PEDIDO
+  //
+  // Quem faz a conta é o BANCO. Aqui eu só mando o que a nota declarou e
+  // desenho a resposta. Se eu comparasse aqui, o fornecedor poderia mexer nos
+  // números antes de mandar — e a loja veria "tudo certo" numa carga torta.
+  // ============================================================
+
+  // Os itens de TODAS as notas lidas. Só as que vieram por XML têm itens:
+  // quem digitou só a chave de 44 números não mandou produto nenhum junto.
+  function itensDasNotas(){
+    var out=[];
+    for(var i=0;i<wz.chaves.length;i++){
+      var its=wz.chaves[i].itens||[];
+      for(var j=0;j<its.length;j++){
+        var t=its[j];
+        out.push({ ean:t.ean||"", codigo:t.codigo||"", descricao:t.descricao||"",
+                   unidade:t.unidade||"", qtd:t.qtd||0, valor_unit:t.valorUnit||0,
+                   pedido:t.pedido||"", item_pedido:t.itemPedido||"" });
+      }
+    }
+    return out;
+  }
+
+  // quantas notas entraram só pela chave, sem os produtos
+  function notasSemItens(){
+    var n=0;
+    for(var i=0;i<wz.chaves.length;i++){ if(!(wz.chaves[i].itens||[]).length) n++; }
+    return n;
+  }
+
+  function conferirNota(){
+    var its=itensDasNotas(), peds=wz.pedidosEscolhidos||[];
+    if(!its.length || !peds.length){ wz.conf=null; pintarConfronto(); return; }
+    wz.conf="carregando"; pintarConfronto();
+    SB.rpc("forn_conferir_nota",{p_pedidos:peds, p_itens:its}).then(function(r){
+      var v=(r&&r.data)||{};
+      wz.conf=(r.error||!v.ok) ? {erro:(r.error?r.error.message:v.erro)||"Não consegui conferir."} : v;
+      pintarConfronto();
+    }, function(){ wz.conf={erro:"Não consegui falar com o servidor."}; pintarConfronto(); });
+  }
+
+  function confLinha(x){
+    var cls={fora:"ruim", acima:"ruim", preco:"atencao", ok:"bom"}[x.situacao]||"";
+    var dir="";
+    if(x.situacao==="acima"){
+      dir='<b>'+esc(numero(x.qtd_nota))+'</b> na nota · o pedido espera <b>'+esc(numero(x.saldo))+'</b>';
+    } else if(x.situacao==="preco"){
+      dir='nota <b>'+esc(moeda(x.valor_nota))+'</b> · pedido <b>'+esc(moeda(x.valor_pedido))+'</b>';
+    } else if(x.situacao==="fora"){
+      dir='<b>'+esc(numero(x.qtd_nota))+'</b>'+(x.unidade?" "+esc(x.unidade):"")+' na nota';
+    } else {
+      dir='<b>'+esc(numero(x.qtd_nota))+'</b> de '+esc(numero(x.saldo))+' que o pedido espera';
+    }
+    return '<div class="cnf-i '+cls+'">'+
+      '<div class="cnf-d"><b>'+esc(x.descricao)+'</b>'+
+        (x.ean?'<span class="cnf-e">'+esc(x.ean)+'</span>':'')+'</div>'+
+      '<div class="cnf-n">'+dir+'</div>'+
+      (x.motivo?'<div class="cnf-m">'+esc(x.motivo)+'</div>':'')+
+      '</div>';
+  }
+
+  function pintarConfronto(){
+    var c=el("wzConf"); if(!c) return;
+    var v=wz.conf;
+
+    if(v===null || v===undefined){ c.innerHTML=""; return; }
+    if(v==="carregando"){ c.innerHTML='<div class="cnf"><div class="cnf-t">Conferindo a nota com o pedido…</div></div>'; return; }
+    if(v.erro){ c.innerHTML='<div class="cnf ruim"><div class="cnf-t">'+esc(v.erro)+'</div></div>'; return; }
+    if(!v.conferido){ c.innerHTML=""; return; }
+
+    var r=v.resumo||{}, ln=v.linhas||[];
+    var probs=r.problemas||0;
+    var h='<div class="cnf '+(probs?"ruim":"bom")+'">';
+
+    h+='<div class="cnf-t">'+(probs
+      ? (probs===1 ? "1 item precisa de atenção" : probs+" itens precisam de atenção")
+      : "Tudo bate com o pedido")+'</div>';
+
+    h+='<div class="cnf-s">'+esc(String(r.itens))+
+       (r.itens===1?" item na nota · ":" itens na nota · ")+
+       esc(String(r.ok))+" conferem"+
+       (r.faltando? " · "+esc(String(r.faltando))+" do pedido não vieram nesta nota":"")+
+       '</div>';
+
+    // só mostro o que precisa de olho. Listar 51 itens certos esconde os 2 errados.
+    var ruins=ln.filter(function(x){ return x.situacao!=="ok"; });
+    if(ruins.length){
+      h+='<div class="cnf-l">';
+      for(var i=0;i<ruins.length && i<25;i++) h+=confLinha(ruins[i]);
+      if(ruins.length>25) h+='<div class="cnf-mais">e mais '+(ruins.length-25)+' item(ns).</div>';
+      h+='</div>';
+    }
+
+    if(probs){
+      h+='<div class="cnf-p">Você pode agendar assim mesmo — a loja vai ver esta '+
+         'conferência. Mas vale conferir antes de o caminhão sair.</div>';
+    }
+
+    var semItens=notasSemItens();
+    if(semItens){
+      h+='<div class="cnf-p">'+(semItens===1?"Uma nota foi informada":semItens+" notas foram informadas")+
+         ' só pela chave, sem o arquivo. Essas não entram nesta conferência — '+
+         'mande o XML se quiser conferir item a item.</div>';
+    }
+
+    c.innerHTML=h+'</div>';
+  }
+
   function telaPedidos(){
     var l=wz.pedidosLista||[];
 
@@ -3693,9 +3823,14 @@ body.com-wz #toasts{bottom:86px}
       h+='</div>';
     }
 
+    h+='<div id="wzConf"></div>';
+
     el("wzMain").innerHTML=h+'</div>';
     el("wzPe").innerHTML='<button class="bt fraco" id="wzVolta">← Voltar</button>'+
       '<button class="bt" id="wzAvanca">Continuar →</button>';
+
+    // confere já ao entrar na etapa, com o que a nota declarou
+    conferirNota();
 
     [].slice.call(el("wzMain").querySelectorAll(".ped[data-ped]")).forEach(function(e){
       e.onclick=function(ev){
@@ -3709,6 +3844,8 @@ body.com-wz #toasts{bottom:86px}
           e.classList.toggle("on", c);
           wz.pedido=wz.pedidosEscolhidos.join(", ").slice(0,40);
           pintarResumoLado();
+          // marcou ou desmarcou pedido: a conferência muda de alvo
+          conferirNota();
         },0);
       };
     });
