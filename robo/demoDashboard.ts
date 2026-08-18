@@ -6014,8 +6014,20 @@ function rcbLogo(){
   return (typeof LOGO_URI!=="undefined" && LOGO_URI)
     ? '<img class="rcb-logo" src="'+LOGO_URI+'" alt="Supermercado Santa Rita">' : '';
 }
+/* UM SÓ DOCUMENTO PARA OS DOIS RECIBOS.
+   O de domingo e o de pagamento comum mudam em duas linhas: o título e a frase que diz a
+   que o dinheiro se refere. Todo o resto — cabeçalho, CNPJ, valor por extenso, linhas de
+   assinatura, rodapé com a cidade — é igual. Escrever um segundo montador criaria dois
+   papéis que um dia divergem: alguém arruma o rodapé de um e esquece o outro, e a loja
+   passa a ter dois documentos diferentes com a mesma cara.
+     cfg.titulo    — texto puro, escapado aqui
+     cfg.motivoHtml— já vem pronto de quem chamou (leva <b> dentro), então quem monta é
+                     responsável por escapar o que veio do teclado. */
 function rcbUmHtml(cfg, i){
   var v=+cfg.valor||0;
+  var titulo = cfg.titulo || "Recibo de pagamento referente ao trabalho do domingo";
+  var motivo = cfg.motivoHtml
+            || ('referente ao trabalho prestado no dia <b>'+rcbDataExtenso(cfg.data)+'</b>');
   return '<div class="rcb">'
     +'<div class="rcb-cab">'
       +rcbLogo()
@@ -6023,15 +6035,14 @@ function rcbUmHtml(cfg, i){
         +'<span>CNPJ '+pxEsc(PX_LOCADOR.cnpj)+' · '+pxEsc(PX_LOCADOR.endereco)+'</span></div>'
       +'<div class="rcb-n">Nº '+rcbNumero(cfg.data,i)+'</div>'
     +'</div>'
-    +'<div class="rcb-tit">Recibo de pagamento referente ao trabalho do domingo</div>'
+    +'<div class="rcb-tit">'+pxEsc(titulo)+'</div>'
     +'<div class="rcb-val">'+rcbMoeda(v)+'<span>('+rcbExtenso(v)+')</span></div>'
     /* O valor por extenso vai DENTRO da frase, não só na tarja de cima.
        "A quantia acima" obriga a olhar pra outro lugar do papel pra saber quanto é — e um
        recibo que se lê sozinho vale mais do que um que depende do desenho. */
     +'<p class="rcb-txt">Recebi de <b>'+pxEsc(PX_LOCADOR.razao)+'</b>, CNPJ '+pxEsc(PX_LOCADOR.cnpj)
       +', a quantia de <b>'+rcbMoeda(v)+' ('+rcbExtenso(v)+')</b>, em dinheiro, '
-      +'referente ao trabalho prestado no dia '
-      +'<b>'+rcbDataExtenso(cfg.data)+'</b>, dando plena quitação deste valor.</p>'
+      +motivo+', dando plena quitação deste valor.</p>'
     +'<div class="rcb-linhas">'
       +'<div class="rcb-ln"><span class="ln"></span><i>Nome completo</i></div>'
       +'<div class="rcb-ln curta"><span class="ln"></span><i>CPF</i></div>'
@@ -6040,6 +6051,62 @@ function rcbUmHtml(cfg, i){
     +'<div class="rcb-pe">'+pxEsc(PX_LOCADOR.cidade)+', '+rcbDataExtenso(cfg.data)+'</div>'
   +'</div>';
 }
+/* ---- RECIBO DE PAGAMENTO COMUM ----
+   O de domingo tem motivo fixo e data que precisa ser domingo. Este aqui é o do dia a dia:
+   vale, diária, ajuda de custo, acerto. Quem imprime escreve a que se refere.
+   O nome continua em branco, como no domingo — foi a escolha do dono. */
+var RCB_PG_MOTIVO_MAX=90;
+
+/* SEM REGEX AQUI. Este código vive dentro do texto que gera o painel, e ali o \s de uma
+   expressão regular perde a barra e vira a LETRA s: a peneira passava a trocar "s" por
+   espaço. Já aconteceu no portal com o \. do peso. Comparo por código do caractere, que
+   não tem barra nenhuma para se perder: 32 espaço, 9 tab, 10 e 13 quebra de linha. */
+function rcbPgMotivo(t){
+  var e=String(t==null?"":t), out="", branco=false, k, i;
+  for(i=0;i<e.length;i++){
+    k=e.charCodeAt(i);
+    if(k===32||k===9||k===10||k===13){ branco=true; continue; }
+    if(branco && out) out+=" ";
+    branco=false;
+    out+=e.charAt(i);
+  }
+  return out.slice(0, RCB_PG_MOTIVO_MAX);
+}
+function rcbPgValidar(cfg){
+  cfg=cfg||{};
+  var e=[];
+  if(!rcbData(cfg.data)) e.push("Escolha a data do pagamento.");
+  var m=rcbPgMotivo(cfg.motivo);
+  /* Motivo é o que diferencia este papel de um cheque em branco: sem ele, o recibo diz que
+     alguém recebeu dinheiro e não diz por quê. Três letras é o piso do que se lê depois. */
+  if(m.length<3) e.push("Escreva a que se refere o pagamento (ex.: vale, diária, ajuda de custo).");
+  if(!(+cfg.valor>0)) e.push("Informe o valor do pagamento.");
+  var q=Math.floor(+cfg.quantidade||0);
+  if(q<1) e.push("Informe quantos recibos você quer imprimir.");
+  else if(q>60) e.push("Máximo de 60 recibos por vez.");
+  return e;
+}
+function rcbPgUm(cfg, i){
+  return rcbUmHtml({
+    data:  cfg.data,
+    valor: cfg.valor,
+    titulo:"Recibo de pagamento",
+    // pxEsc aqui porque o motivo vem do teclado de quem imprime
+    motivoHtml:'referente a <b>'+pxEsc(rcbPgMotivo(cfg.motivo))+'</b>'
+  }, i);
+}
+function rcbPgFolhaHtml(cfg){
+  var q=Math.floor(+cfg.quantidade||0), partes=[];
+  for(var k=0;k<q;k++) partes.push(rcbPgUm(cfg,k));
+  var blocos="";
+  for(var j=0;j<partes.length;j+=3)
+    blocos+='<div class="rcb-folha">'+partes.slice(j,j+3).join("")+'</div>';
+  return blocos;
+}
+function rcbPgTotal(cfg){
+  return (+cfg.valor||0)*Math.floor(+cfg.quantidade||0);
+}
+
 /* A numeração corre pelo LOTE inteiro, não por tipo: 001..010 funcionário, 011..013 fiscal.
    Dois recibos com o mesmo número no mesmo domingo seria o pior defeito possível aqui. */
 function rcbFolhaHtml(cfg){
@@ -6068,11 +6135,18 @@ function rcbResumoGrupos(cfg){
   return rcbGrupos(cfg).map(function(g){
     return g.quantidade+" × "+g.nome+" ("+rcbMoeda(g.valor)+")"; }).join(" · ");
 }
-function rcbHistAdd(cfg){
+/* O histórico guarda uma LINHA PRONTA, não o formulário. Assim os dois recibos — o de
+   domingo e o de pagamento comum — entram na mesma lista sem que ela precise saber de qual
+   tela vieram, e o texto continua legível mesmo que os valores da loja mudem depois. */
+function rcbHistPush(e){
   var h=rcbHist();
-  h.unshift({ data:cfg.data, qtd:rcbQuantos(cfg), total:rcbTotal(cfg),
-              detalhe:rcbResumoGrupos(cfg), quando:new Date().toISOString() });
-  try{ localStorage.setItem("rcb_historico", JSON.stringify(h.slice(0,60))); }catch(e){}
+  h.unshift({ data:e.data, qtd:e.qtd, total:e.total, detalhe:e.detalhe,
+              quando:new Date().toISOString() });
+  try{ localStorage.setItem("rcb_historico", JSON.stringify(h.slice(0,60))); }catch(x){}
+}
+function rcbHistAdd(cfg){
+  rcbHistPush({ data:cfg.data, qtd:rcbQuantos(cfg), total:rcbTotal(cfg),
+                detalhe:rcbResumoGrupos(cfg) });
 }
 /* O VALOR É PADRÃO DA LOJA, NÃO ESCOLHA DE QUEM IMPRIME.
    Quem entrega o recibo no domingo é o encarregado, não o dono. Se o campo ficasse aberto,
@@ -6131,6 +6205,128 @@ if(!window.__rcbResize){
   });
 }
 
+/* DOIS MODELOS NA MESMA PÁGINA.
+   Domingo e pagamento comum são papéis diferentes com o mesmo desenho. Em vez de duas
+   páginas no menu — que multiplicaria permissão, histórico e lugar pra procurar — são duas
+   abas de uma página só. O histórico embaixo é o mesmo para os dois. */
+var RCB_MODELO="domingo";
+function rcbAbasHtml(){
+  function ab(k,t){
+    var on=(RCB_MODELO===k);
+    return '<button type="button" data-rcbmod="'+k+'" style="border:0;border-radius:8px;'
+      +'padding:8px 15px;font-size:13.5px;font-weight:600;cursor:pointer;'
+      +(on?'background:#157a35;color:#fff;':'background:#eef1f4;color:#49525d;')+'">'+t+'</button>';
+  }
+  return '<div style="display:flex;gap:8px;margin-bottom:16px;">'
+    +ab("domingo","Trabalho de domingo")+ab("pagamento","Pagamento comum")+'</div>';
+}
+function rcbLigarAbas(el){
+  el.querySelectorAll("[data-rcbmod]").forEach(function(b){
+    b.addEventListener("click",function(){
+      RCB_MODELO=b.getAttribute("data-rcbmod");
+      rcbRender();
+    });
+  });
+}
+
+/* O VALOR AQUI É LIVRE, ENTÃO A TELA É DO MASTER.
+   No domingo o valor é padrão da loja e quem imprime só escolhe a quantidade. Neste o valor
+   é digitado a cada recibo — deixar aberto seria deixar qualquer um imprimir comprovante de
+   qualquer quantia com o CNPJ da empresa em cima. */
+function rcbRenderPg(el){
+  var master=rcbEhMaster(), h=rcbHist();
+  var inputBase="width:100%;margin-top:5px;padding:9px 10px;border:1px solid #dbe1e8;border-radius:8px;font-size:14px;";
+
+  if(!master){
+    el.innerHTML=rcbAbasHtml()
+      +'<div class="card" style="max-width:620px;"><h2 style="margin:0 0 6px;font-size:19px;">Pagamento comum</h2>'
+      +'<p style="margin:0;color:#68727e;font-size:13.5px;line-height:1.5;">Só o administrador '
+      +'imprime este recibo, porque o valor é digitado a cada vez. Para o trabalho de domingo, '
+      +'use a outra aba.</p></div>';
+    rcbLigarAbas(el);
+    return;
+  }
+
+  el.innerHTML=rcbAbasHtml()
+   +'<div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;">'
+   +'<div class="card" style="flex:1 1 420px;min-width:340px;max-width:620px;">'
+   +'<h2 style="margin:0 0 4px;font-size:19px;">Pagamento comum</h2>'
+   +'<p style="margin:0 0 18px;color:#68727e;font-size:13.5px;line-height:1.5;">'
+     +'Recibo de qualquer pagamento em dinheiro a funcionário — vale, diária, ajuda de custo, '
+     +'acerto. O <b>valor</b>, a <b>data</b> e o <b>motivo</b> saem impressos; o <b>nome</b> e a '
+     +'<b>assinatura</b> a pessoa preenche na hora de receber.</p>'
+   +'<div style="display:flex;gap:12px;flex-wrap:wrap;">'
+     +'<label style="flex:0 0 180px;font-size:12.5px;font-weight:600;color:#49525d;">Data do pagamento'
+       +'<input type="date" id="rcbPgData" value="'+pxDateKey(HOJE)+'" style="'+inputBase+'"></label>'
+     +'<label style="flex:0 0 150px;font-size:12.5px;font-weight:600;color:#49525d;">Valor'
+       +'<input type="text" id="rcbPgValor" inputmode="decimal" placeholder="0,00" style="'+inputBase+'"></label>'
+     +'<label style="flex:0 0 120px;font-size:12.5px;font-weight:600;color:#49525d;">Quantos'
+       +'<input type="number" id="rcbPgQtd" min="1" max="60" step="1" value="1" style="'+inputBase+'"></label>'
+   +'</div>'
+   +'<label style="display:block;margin-top:14px;font-size:12.5px;font-weight:600;color:#49525d;">A que se refere'
+     +'<input type="text" id="rcbPgMotivo" maxlength="'+RCB_PG_MOTIVO_MAX+'" '
+     +'placeholder="Ex.: vale adiantamento, diária, ajuda de custo" style="'+inputBase+'"></label>'
+   +'<div style="font-size:11.5px;color:#8a939e;margin-top:5px;">Sai no papel depois de '
+     +'“referente a”. Escreva do jeito que você quer que fique escrito.</div>'
+   +'<div id="rcbPgResumo" style="margin-top:12px;font-size:13.5px;color:#49525d;"></div>'
+   +'<div id="rcbPgErro" style="margin-top:8px;font-size:13px;color:#8c2f28;"></div>'
+   +'<div style="margin-top:16px;">'
+     +'<button type="button" id="rcbPgGerar" style="'+RCB_BTN+'">Gerar recibos para imprimir</button>'
+   +'</div>'
+   +'</div>'
+   +'<div class="card" style="flex:1 1 380px;min-width:330px;max-width:520px;">'
+     +'<h3 style="margin:0 0 3px;font-size:15px;">Como o recibo vai sair</h3>'
+     +'<p style="margin:0 0 12px;font-size:12.5px;color:#8a939e;line-height:1.45;">'
+       +'Espelho do papel. O nome e a assinatura ficam em branco — quem recebe preenche na hora.</p>'
+     +'<div id="rcbPgPrevia" class="rcb-prev"></div>'
+   +'</div>'
+   +'</div>';
+
+  rcbLigarAbas(el);
+
+  function ler(){
+    return { data:(document.getElementById("rcbPgData")||{}).value||"",
+             motivo:(document.getElementById("rcbPgMotivo")||{}).value||"",
+             valor: despParseValor((document.getElementById("rcbPgValor")||{}).value||""),
+             quantidade: +((document.getElementById("rcbPgQtd")||{}).value||0) };
+  }
+  function atualiza(){
+    var c=ler(), erros=rcbPgValidar(c);
+    var r=document.getElementById("rcbPgResumo");
+    r.innerHTML = (c.valor>0 && c.quantidade>0)
+      ? '<b>'+Math.floor(c.quantidade)+' recibo(s) de '+rcbMoeda(c.valor)+' = '
+        +rcbMoeda(rcbPgTotal(c))+'</b>' : '';
+    document.getElementById("rcbPgErro").textContent = erros.length ? erros[0] : "";
+    rcbBotaoEstado(document.getElementById("rcbPgGerar"), erros.length===0);
+
+    var alvo=document.getElementById("rcbPgPrevia");
+    if(!alvo) return;
+    if(!rcbData(c.data) || !(c.valor>0)){
+      alvo.innerHTML='<div style="border:1px dashed #dbe1e8;border-radius:8px;padding:22px;'
+        +'text-align:center;color:#a9b2bc;font-size:12.5px;">Informe o valor e a data para ver o recibo.</div>';
+      return;
+    }
+    // a prévia mostra o motivo como está sendo digitado; vazio vira um exemplo
+    alvo.innerHTML=rcbPgUm({ data:c.data, valor:c.valor,
+      motivo: rcbPgMotivo(c.motivo) || "…" }, 0);
+    rcbPreviaCabe();
+  }
+  ["rcbPgData","rcbPgValor","rcbPgQtd","rcbPgMotivo"].forEach(function(id){
+    var i=document.getElementById(id); if(!i) return;
+    i.addEventListener("input",atualiza); i.addEventListener("change",atualiza);
+  });
+  atualiza();
+
+  document.getElementById("rcbPgGerar").addEventListener("click",function(){
+    var c=ler();
+    rcbAbrir(c, { titulo:"Recibos de pagamento",
+                  folha: rcbPgFolhaHtml(c),
+                  hist: { data:c.data, qtd:Math.floor(c.quantidade), total:rcbPgTotal(c),
+                          detalhe: Math.floor(c.quantidade)+" × "+rcbPgMotivo(c.motivo)
+                                   +" ("+rcbMoeda(c.valor)+")" } });
+  });
+}
+
 function rcbRender(){
   var el=document.getElementById("rcbRoot"); if(!el) return;
   /* ESPERA O PERFIL CHEGAR.
@@ -6143,6 +6339,7 @@ function rcbRender(){
       window.__rcbRetry=null; rcbRender(); },600);
     return;
   }
+  if(RCB_MODELO==="pagamento"){ rcbRenderPg(el); return; }
   var master=rcbEhMaster(), h=rcbHist(), todos=rcbTipos();
   // Tipo sem valor não aparece pra quem imprime: seria uma linha que não dá pra usar.
   var tipos = master ? todos : todos.filter(function(t){ return t.valor>0; });
@@ -6185,7 +6382,7 @@ function rcbRender(){
     document.head.appendChild(st);
   }
 
-  el.innerHTML=''
+  el.innerHTML=rcbAbasHtml()
    +'<div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;">'
    +'<div class="card" style="flex:1 1 420px;min-width:340px;max-width:620px;">'
    +'<h2 style="margin:0 0 4px;font-size:19px;">Recibos de domingo</h2>'
@@ -6295,6 +6492,7 @@ function rcbRender(){
     }).join("");
     rcbPreviaCabe();
   }
+  rcbLigarAbas(el);
   el.querySelectorAll("[data-rcbval],[data-rcbqtd]").forEach(function(i){
     i.addEventListener("input",atualiza); i.addEventListener("change",atualiza);
   });
@@ -6345,12 +6543,22 @@ function rcbRender(){
   });
 }
 
-function rcbAbrir(cfg){
+/* A MESMA JANELA DE IMPRESSÃO PARA OS DOIS RECIBOS.
+   Muda o título da barra, o resumo e o miolo; o resto — fonte, folha A4, quebra de página,
+   a barra que pergunta se saiu na impressora — é o mesmo. Uma segunda janela copiada seria
+   a mesma armadilha do documento: alguém arruma a margem de impressão de uma e esquece a
+   outra, e um dos recibos passa a sair torto sem ninguém notar. */
+function rcbAbrir(cfg, opc){
+  opc=opc||{};
+  var titulo = opc.titulo || "Recibos de domingo";
+  var folha  = opc.folha  || rcbFolhaHtml(cfg);
+  var hist   = opc.hist   || { data:cfg.data, qtd:rcbQuantos(cfg), total:rcbTotal(cfg),
+                               detalhe:rcbResumoGrupos(cfg) };
   var w=window.open("","_blank");
   if(!w){ uiConfirm({titulo:"Pop-up bloqueado",msg:"Libere os pop-ups deste site no navegador para gerar os recibos.",ok:"OK",cancel:""}); return; }
-  var barra=pxDocBarraHtml({ titulo:"Recibos de domingo",
+  var barra=pxDocBarraHtml({ titulo:titulo,
     codigo:rcbDataExtenso(cfg.data),
-    badge:rcbQuantos(cfg)+" recibo(s) = "+rcbMoeda(rcbTotal(cfg)),
+    badge:hist.qtd+" recibo(s) = "+rcbMoeda(hist.total),
     emissao:pxFmtData(pxDateKey(new Date())), printLabel:"Imprimir / Salvar PDF" });
   var css=barra.css+
     "*{box-sizing:border-box}html{background:#f4f5f6}body{margin:0;background:#f4f5f6;"+
@@ -6369,13 +6577,13 @@ function rcbAbrir(cfg){
     "<link rel='preconnect' href='https://fonts.googleapis.com'>"+
     "<link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap' rel='stylesheet'>"+
     "<style>"+css+"</style></head><body>"+barra.html+
-    "<div class='rcb-wrap'>"+rcbFolhaHtml(cfg)+"</div>"+rcbScriptConfirma(cfg)+"</body></html>";
+    "<div class='rcb-wrap'>"+folha+"</div>"+rcbScriptConfirma(hist)+"</body></html>";
   w.document.write(t); w.document.close();
 }
 /* A janela do recibo se registra sozinha — e só depois que a pessoa confirma.
    O navegador dispara "afterprint" tanto quando imprime quanto quando cancela, então não dá
    pra confiar nele sozinho: ele serve só pra saber a HORA de perguntar. */
-function rcbScriptConfirma(cfg){
+function rcbScriptConfirma(hist){
   var bt="border:0;border-radius:8px;padding:9px 15px;font-size:13.5px;font-weight:600;cursor:pointer;";
   /* O HTML da barra é montado AQUI e entra no script via JSON.stringify.
      Escrever aspas dentro de aspas dentro de um script gerado dentro de um template não
@@ -6385,23 +6593,23 @@ function rcbScriptConfirma(cfg){
     +'<button id="rcbSim" style="'+bt+'background:#2f9e5b;color:#fff">Sim, registrar</button>'
     +'<button id="rcbNao" style="'+bt+'background:#3a424c;color:#e7ebf0">Não imprimi</button>';
   return "<script>(function(){"
-    +"var C="+JSON.stringify(cfg)+",feito=false;"
+    +"var C="+JSON.stringify(hist)+",feito=false;"
     +"function fecha(){var b=document.getElementById('rcbConf'); if(b) b.style.display='none';}"
     +"function registra(){"
       +"feito=true;"
       +"try{"
-        +"if(window.opener&&!window.opener.closed&&window.opener.rcbHistAdd){"
-          +"window.opener.rcbHistAdd(C);"
+        +"if(window.opener&&!window.opener.closed&&window.opener.rcbHistPush){"
+          +"window.opener.rcbHistPush(C);"
           +"if(window.opener.rcbRender) window.opener.rcbRender();"
         +"} else { throw 0; }"
       +"}catch(e){"
         +"try{var h=JSON.parse(localStorage.getItem('rcb_historico')||'[]');"
-          +"h.unshift({data:C.data,qtd:"+rcbQuantos(cfg)+",total:"+rcbTotal(cfg)+","
-            +"detalhe:"+JSON.stringify(rcbResumoGrupos(cfg))+",quando:new Date().toISOString()});"
+          +"h.unshift({data:C.data,qtd:C.qtd,total:C.total,detalhe:C.detalhe,"
+            +"quando:new Date().toISOString()});"
           +"localStorage.setItem('rcb_historico',JSON.stringify(h.slice(0,60)));}catch(_){}"
       +"}"
       +"var b=document.getElementById('rcbConf');"
-      +"if(b){b.innerHTML="+JSON.stringify('<span>Registrado no histórico: '+rcbQuantos(cfg)+' recibo(s).</span>')
+      +"if(b){b.innerHTML="+JSON.stringify('<span>Registrado no histórico: '+hist.qtd+' recibo(s).</span>')
         +";setTimeout(fecha,2600);}"
     +"}"
     +"function pergunta(){"
