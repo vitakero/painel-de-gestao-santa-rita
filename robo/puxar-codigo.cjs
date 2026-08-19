@@ -43,8 +43,6 @@ const FILES = [
   ["robo/vr-medir-pedidos.cjs", "vr-medir-pedidos.cjs", "MEDIDOR"],
   ["robo/vr-sync-pedidos.cjs", "vr-sync-pedidos.cjs", "receb_pedido_itens"],
   ["robo/vr-descobrir-perdas.cjs", "vr-descobrir-perdas.cjs", "receb_eventos"],
-  ["robo/vr-medir-flv.cjs", "vr-medir-flv.cjs", "mercadologico1"],
-  ["robo/vr-sync-flv.cjs", "vr-sync-flv.cjs", "flv_vr_faturamento"],
   ["robo/puxar-codigo.cjs", "puxar-codigo.cjs", "Baixa o codigo mais recente do GitHub via API"],
 ];
 
