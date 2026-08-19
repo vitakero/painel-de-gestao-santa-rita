@@ -309,6 +309,17 @@ const Q_ITENS = `
     }
   } catch (e) { console.log("(medidor do FLV nao rodou: " + e.message + ")"); }
 
+  // ---- NUMEROS DO FLV PARA A NUVEM, toda rodada ----
+  // Leva o faturamento (tela de Estatisticas) e o balanco (Total Diferenca) para as tabelas
+  // flv_vr_*, que e de onde o botao "Buscar do VR" do fechamento se serve.
+  // Pendurado aqui pelo mesmo motivo dos detetives: mexer no robo.bat exige o Victor na
+  // maquina da loja. Se o SQL das tabelas ainda nao foi rodado, o script reclama e segue —
+  // nada aqui pode derrubar o sync de pedidos.
+  try {
+    require("child_process").execFileSync(process.execPath,
+      [path.join(__dirname, "vr-sync-flv.cjs")], { stdio: "inherit" });
+  } catch (e) { console.log("(sync do FLV nao rodou: " + e.message + ")"); }
+
   if (orfaos) {
     console.log("\nAviso: " + orfaos + " pedido(s) sao de fornecedor que ainda nao tem");
     console.log("cadastro no portal. Ficam guardados e passam a aparecer sozinhos");
