@@ -1,20 +1,24 @@
-// MEDIDOR DO FLV — calcula, do jeito do VR, os números que hoje o Victor tira na mão.
+// MEDIDOR DO FLV — fecha os dois números do jeito exato do VR.
 //
-// Ele explicou o processo: o setor é HORTIFRUTI e dentro dele o mercadológico FLV
-// (descoberto: 43.1, com 43.1.1 legumes, 43.1.2 frutas, 43.1.3 verduras). O desperdício vem
-// do balanço da primeira segunda-feira do mês; depois eles emitem uma nota de perda.
+// O Victor mostrou as duas telas de onde ele tira tudo:
+//   FATURAMENTO ... Estatisticas, Exibicao=VENDA, mercadologico 043›001 FLV.
+//   DESPERDICIO ... o "Total Diferenca" do balanco da primeira segunda-feira.
 //
-// EU NÃO ESCOLHO A FÓRMULA. Calculo as variações plausíveis e mando todas para a nuvem, para
-// ele comparar com a planilha dele e dizer qual bate. Chutar aqui seria produzir um número
-// bonito e errado — e ninguém desconfiaria, porque tem cara de resultado.
+// A minha conta de faturamento ja chega perto (R$ 14 a R$ 124 por mes em ~R$ 600.000), mas
+// perto nao serve: numero que quase bate e pior do que numero que erra feio, porque passa.
+// Aqui eu NAO chuto a formula. Somo cada parcela candidata separada — acrescimo, desconto,
+// promocao, cancelado — para ver qual delas vale exatamente a diferenca que sobra.
 //
-// Só LÊ o VR.  node scripts/vr-medir-flv.cjs
+// E procuro, no catalogo inteiro, onde o VR guarda a CONTAGEM do balanco: a
+// balancoestoqueanterior so tem o lado "Estoque"; o lado "Balanco" esta em outro lugar.
+//
+// So LE o VR.  node scripts/vr-medir-flv.cjs
 const fs=require("fs"), path=require("path"), https=require("https"), { Client }=require("pg");
 function env(){ for(const p of [path.join(__dirname,"..",".env"),".env","../.env"]){
   try{ return fs.readFileSync(p,"utf8"); }catch(e){} } return ""; }
 const E=env(), g=(k)=>{ const m=E.match(new RegExp("^"+k+"=(.*)$","m")); return m?m[1].trim():""; };
 const SB_HOST="uabhsmculsfwzcrhyhch.supabase.co", SB_KEY=g("SUPABASE_SERVICE_KEY");
-const LOJA=1, MESES=8;
+const LOJA=1;
 
 function req(method,pathq,body,prefer){
   return new Promise((res,rej)=>{
@@ -32,6 +36,11 @@ function req(method,pathq,body,prefer){
 }
 const n=(v)=>{ const x=parseFloat(v); return isNaN(x)?0:x; };
 
+// O que a tela dele mostrou, para eu comparar sozinho e nao ficar mandando tabela pra ele
+// conferir na mao. Agosto fica de fora: o mes ainda esta correndo.
+const SUA_TELA={ "2026-01":578545.51,"2026-02":513069.02,"2026-03":599417.99,"2026-04":577431.46,
+                 "2026-05":621008.45,"2026-06":603274.89,"2026-07":602906.26 };
+
 (async()=>{
   if(!SB_KEY){ console.log("!! Falta SUPABASE_SERVICE_KEY no .env"); return; }
   const c=new Client({ host:g("PG_HOST"), port:+g("PG_PORT"), database:g("PG_DATABASE"),
@@ -39,170 +48,159 @@ const n=(v)=>{ const x=parseFloat(v); return isNaN(x)?0:x; };
   try{ await c.connect(); }
   catch(e){ console.log("NAO CONSEGUI CONECTAR NO VR: "+e.message); process.exit(1); }
 
-  const out={ flv:"mercadologico1=43 e mercadologico2=1", meses:[], perdaDias:[], erro:null };
+  const out={ erro:null };
+  const FLV=`p.mercadologico1 = 43 and p.mercadologico2 = 1`;
+  const LIMPO=`v.cancelado = false and cp.cancelado = false and cp.id_loja = ${LOJA}`;
+
   try{
-    // ---- VENDA do FLV, mês a mês, BRUTA e com os descontos separados ----
-    // Mando as parcelas separadas de propósito: assim ele vê qual combinação bate com a
-    // "venda líquida" que ele usa, sem eu ter que adivinhar o que o VR chama de líquido.
-    // A LOJA NÃO ESTÁ NO ITEM, ESTÁ NO CUPOM.
-    // Eu somava as duas lojas e meu faturamento saía sempre ~0,8% acima do que o Victor lê
-    // no VR — bonitinho, consistente, e errado. A loja 02 existe e não é usada no controle
-    // dele. Trago as duas somas para provar que a diferença é essa, não outra coisa.
-    const vendas=(await c.query(`
+    // =====================================================================
+    // 1) DE ONDE VEM A DIFERENCA DE ~R$ 100 POR MES
+    // Cada parcela somada sozinha. Se alguma bater com a diferenca que sobra,
+    // achei — sem precisar adivinhar a formula inteira.
+    // =====================================================================
+    out.parcelas=(await c.query(`
       select to_char(date_trunc('month', v.data),'YYYY-MM') mes,
-             sum(v.valortotal) filter (where cp.id_loja = ${LOJA} and cp.cancelado = false) bruto,
-             sum(v.valortotal) filter (where cp.id_loja = ${LOJA})   bruto_com_cupom_cancelado,
-             sum(v.valortotal)                                       bruto_todas_lojas,
-             sum(coalesce(v.valordesconto,0))      filter (where cp.id_loja = ${LOJA}) desc_item,
-             sum(coalesce(v.valordescontocupom,0)) filter (where cp.id_loja = ${LOJA}) desc_cupom,
-             sum(coalesce(v.valordescontopromocao,0)) filter (where cp.id_loja = ${LOJA}) desc_promo,
-             sum(coalesce(v.valoracrescimo,0))     filter (where cp.id_loja = ${LOJA}) acrescimo,
-             sum(v.quantidade)                     filter (where cp.id_loja = ${LOJA}) qtd
+             sum(v.valortotal)                 base,
+             sum(v.valoracrescimo)             acrescimo,
+             sum(v.valoracrescimocupom)        acrescimo_cupom,
+             sum(v.valoracrescimofixo)         acrescimo_fixo,
+             sum(v.valordesconto)              desconto,
+             sum(v.valordescontocupom)         desconto_cupom,
+             sum(v.valordescontopromocao)      desconto_promocao,
+             sum(v.valordescontomanual)        desconto_manual,
+             sum(v.valoricmsdesonerado)        icms_desonerado,
+             sum(v.quantidade * v.precovenda)  qtd_x_preco,
+             sum(v.quantidade)                 qtd,
+             count(*)                          itens
         from pdv.vendaitem v
         join pdv.venda cp on cp.id = v.id_venda
         join public.produto p on p.id = v.id_produto
-       where v.cancelado = false
-         and p.mercadologico1 = 43 and p.mercadologico2 = 1
-         and v.data >= date_trunc('month', current_date) - interval '${MESES} months'
+       where ${LIMPO} and ${FLV} and v.data >= date '2026-01-01'
        group by 1 order by 1`)).rows;
 
-    // ---- PERDA do FLV, mês a mês ----
-    // custocomimposto pode ser unitário OU já o total da linha. Mando as duas leituras.
-    const perdas=(await c.query(`
-      select to_char(date_trunc('month', pe.data),'YYYY-MM') mes,
-             count(*)                                            linhas,
-             sum(pe.quantidade)                                  qtd,
-             sum(coalesce(pe.custocomimposto,0))                 soma_custo,
-             sum(pe.quantidade * coalesce(pe.custocomimposto,0)) qtd_x_custo,
-             sum(coalesce(pe.customediocomimposto,0))                 soma_medio,
-             sum(pe.quantidade * coalesce(pe.customediocomimposto,0)) qtd_x_medio,
-             count(*) filter (where pe.id_notasaida is not null) com_nota
-        from public.perda pe
-        join public.produto p on p.id = pe.id_produto
-       where pe.id_loja = ${LOJA}
-         and p.mercadologico1 = 43 and p.mercadologico2 = 1
-         and pe.data >= date_trunc('month', current_date) - interval '${MESES} months'
+    // O que eu estou DEIXANDO DE FORA com cada filtro. Se a tela dele nao filtrar
+    // uma dessas coisas, e aqui que a diferenca aparece.
+    out.excluidos=(await c.query(`
+      select to_char(date_trunc('month', v.data),'YYYY-MM') mes,
+             sum(v.valortotal) filter (where v.cancelado)                    item_cancelado,
+             sum(v.valortotal) filter (where cp.cancelado)                   cupom_cancelado,
+             sum(v.valorcancelado)                                           valor_cancelado,
+             sum(v.valortotal) filter (where cp.id_loja <> ${LOJA})          outra_loja,
+             sum(v.valortotal) filter (where cp.vendaecommerce)              ecommerce,
+             sum(v.valortotal) filter (where cp.baixaestoque = false)        sem_baixa_estoque,
+             sum(v.valortotal) filter (where v.data <> cp.data)              data_diferente_do_cupom
+        from pdv.vendaitem v
+        join pdv.venda cp on cp.id = v.id_venda
+        join public.produto p on p.id = v.id_produto
+       where ${FLV} and v.data >= date '2026-01-01'
        group by 1 order by 1`)).rows;
 
-    // ---- em QUE DIAS a perda é lançada ----
-    // Se cair tudo num dia por mês, confirma o que ele disse: o número nasce do balanço.
-    // CADA LANÇAMENTO É UM BALANÇO. A primeira leitura mostrou que a perda cai num dia só
-    // por mês (04/05, 01/06, 30/06, 03/08) — confirma o que ele contou. Então o valor POR DIA
-    // é o desperdício daquele balanço, e é isso que tem que ser comparado com a planilha.
-    // Trago o valor junto, não só a quantidade: sem ele não dá para conferir nada.
-    out.perdaDias=(await c.query(`
-      select pe.data::text dia, count(*) linhas, sum(pe.quantidade) qtd,
-             sum(pe.quantidade * coalesce(pe.custocomimposto,0))      qtd_x_custo,
-             sum(pe.quantidade * coalesce(pe.customediocomimposto,0)) qtd_x_medio,
-             sum(coalesce(pe.custocomimposto,0))                      soma_custo,
-             count(*) filter (where pe.id_notasaida is not null)      com_nota
-        from public.perda pe
-        join public.produto p on p.id = pe.id_produto
-       where pe.id_loja = ${LOJA}
-         and p.mercadologico1 = 43 and p.mercadologico2 = 1
-         and pe.data >= date_trunc('month', current_date) - interval '14 months'
-       group by 1 order by 1`)).rows
-      .map(r=>({ dia:r.dia, linhas:+r.linhas, qtd:n(r.qtd), qtd_x_custo:n(r.qtd_x_custo),
-                 qtd_x_medio:n(r.qtd_x_medio), soma_custo:n(r.soma_custo), com_nota:+r.com_nota }));
+    // Itens vendidos cujo produto sumiu do cadastro: o meu join derruba, a tela dele
+    // talvez nao (se o VR guardar o mercadologico no proprio item da venda).
+    out.semProduto=(await c.query(`
+      select to_char(date_trunc('month', v.data),'YYYY-MM') mes,
+             count(*) itens, sum(v.valortotal) valor
+        from pdv.vendaitem v
+        join pdv.venda cp on cp.id = v.id_venda
+        left join public.produto p on p.id = v.id_produto
+       where ${LIMPO} and p.id is null and v.data >= date '2026-01-01'
+       group by 1 order by 1`)).rows;
 
-    const mp={};
-    vendas.forEach(v=>{ mp[v.mes]=mp[v.mes]||{mes:v.mes}; Object.assign(mp[v.mes],{
-      venda_bruta:n(v.bruto), venda_com_cupom_cancelado:n(v.bruto_com_cupom_cancelado), venda_todas_lojas:n(v.bruto_todas_lojas), desc_item:n(v.desc_item), desc_cupom:n(v.desc_cupom),
-      desc_promo:n(v.desc_promo), acrescimo:n(v.acrescimo), qtd_vendida:n(v.qtd) }); });
-    perdas.forEach(p=>{ mp[p.mes]=mp[p.mes]||{mes:p.mes}; Object.assign(mp[p.mes],{
-      perda_linhas:+p.linhas, perda_qtd:n(p.qtd),
-      perda_soma_custo:n(p.soma_custo), perda_qtd_x_custo:n(p.qtd_x_custo),
-      perda_soma_medio:n(p.soma_medio), perda_qtd_x_medio:n(p.qtd_x_medio),
-      perda_com_nota:+p.com_nota }); });
-    out.meses=Object.keys(mp).sort().map(k=>mp[k]);
+    // Devolucao de cupom: sao 6 registros no banco inteiro, mas confiro assim mesmo.
+    out.devolucoes=(await c.query(`
+      select to_char(date_trunc('month', dc.data),'YYYY-MM') mes, count(*) qtd
+        from pdv.devolucaocupom dc group by 1 order by 1`)).rows;
 
-    console.log("mes      | venda bruta |  descontos |   perda R$ (qtd x custo) |  perda qtd");
-    out.meses.forEach(m=>{
-      const d=(m.desc_item||0)+(m.desc_cupom||0)+(m.desc_promo||0);
-      console.log(String(m.mes).padEnd(8)+" | "+String((m.venda_bruta||0).toFixed(2)).padStart(11)
-        +" | "+String(d.toFixed(2)).padStart(10)
-        +" | "+String((m.perda_qtd_x_custo||0).toFixed(2)).padStart(24)
-        +" | "+String((m.perda_qtd||0).toFixed(3)).padStart(10));
-    });
-  }catch(e){ out.erro=e.message; console.log("!! erro: "+e.message); }
+    // =====================================================================
+    // 2) ONDE MORA A CONTAGEM DO BALANCO
+    // A balancoestoqueanterior so tem o lado "Estoque". Procuro no catalogo INTEIRO
+    // (nao numa lista de nomes que eu chutei) quem guarda o lado "Balanco".
+    // =====================================================================
+    out.catalogoBalanco=(await c.query(`
+      select t.table_schema||'.'||t.table_name nome,
+             (select count(*) from information_schema.columns k
+               where k.table_schema=t.table_schema and k.table_name=t.table_name) colunas
+        from information_schema.tables t
+       where t.table_type='BASE TABLE'
+         and (t.table_name like '%balanc%' or t.table_name like '%colet%'
+           or t.table_name like '%contag%' or t.table_name like '%invent%'
+           or t.table_name like '%apurac%' or t.table_name like '%acerto%')
+       order by 1`)).rows;
 
-    // ---- O DESPERDÍCIO VEM DO BALANÇO, NÃO DA TABELA DE PERDAS ----
-    // O Victor foi direto ao ponto: o número que ele usa é o "Total Diferença" da tela do
-    // balanço (03/08 deu -7.508,859 un e -R$ 31.522,0906), e o faturamento é o da tela de
-    // Estatísticas — que a minha consulta já reproduz com R$ 100 de diferença em R$ 600 mil.
-    //
-    // Eu tinha ido atrás da tabela `perda` por conta própria e ela chega PERTO, o que é o
-    // pior resultado possível: número parecido passa por certo. Aqui procuro a tabela do
-    // balanço e tento fechar exatamente o -31.522,0906.
-    try{
-      out.balanco={};
-      const cand=["balancoestoqueanterior","listagembalancoitem","balancoprelancamento",
-                  "agendabalanco","listagembalanco","balanco","balancoitem"];
-      const existe=(await c.query(
-        "select table_name t from information_schema.tables "+
-        "where table_schema='public' and table_name = any($1::text[])",[cand])).rows.map(r=>r.t);
-      out.balanco.tabelas=[];
-      for(const t of existe){
-        const nome="public."+t;
-        let n=null, cols=[], amostra=null, colData=null;
-        try{ n=(await c.query("select count(*)::int c from "+nome)).rows[0].c; }catch(e){}
-        try{ cols=(await c.query("select column_name n, data_type d from information_schema.columns "+
-          "where table_schema='public' and table_name=$1 order by ordinal_position",[t]))
-          .rows.map(r=>r.n+":"+r.d); }catch(e){}
-        colData=(cols.map(x=>x.split(":")[0])).find(x=>/^(data|dt|datahora|databa)/i.test(x));
-        try{
-          if(n) amostra=(await c.query("select * from "+nome+
-            (colData?(" order by "+colData+" desc"):"")+" limit 2")).rows;
-        }catch(e){}
-        out.balanco.tabelas.push({ nome:nome, linhas:n, colunas:cols, colData:colData, amostra:amostra });
-        console.log("  "+nome+"  linhas="+n+"  dataCol="+colData);
-        console.log("     colunas: "+cols.join(", ").slice(0,400));
-      }
+    for(const t of out.catalogoBalanco){
+      try{ t.linhas=(await c.query("select count(*)::int c from "+t.nome)).rows[0].c; }catch(e){ t.linhas=null; }
+      try{ t.colunasNomes=(await c.query(
+        "select column_name n from information_schema.columns "+
+        "where table_schema=$1 and table_name=$2 order by ordinal_position",
+        t.nome.split(".")[0], t.nome.split(".")[1])).rows.map(r=>r.n).join(","); }catch(e){}
+    }
 
-      // Se a tabela principal tiver o que espero, já tento fechar o número do 03/08.
-      const alvo=out.balanco.tabelas.find(x=>x.nome==="public.balancoestoqueanterior" && x.linhas);
-      if(alvo){
-        const nomes=alvo.colunas.map(x=>x.split(":")[0]);
-        const cQtdBal=nomes.find(x=>/quantidadebalanco|qtdbalanco|quantidadecontada/i.test(x));
-        const cQtdEst=nomes.find(x=>/quantidadeestoque|qtdestoque|estoqueanterior/i.test(x));
-        const cCusto =nomes.find(x=>/custo/i.test(x));
-        const cProd  =nomes.find(x=>/id_produto/i.test(x));
-        const cData  =alvo.colData;
-        out.balanco.colunasUsadas={ cQtdBal:cQtdBal, cQtdEst:cQtdEst, cCusto:cCusto, cProd:cProd, cData:cData };
-        if(cQtdBal && cQtdEst && cCusto && cProd && cData){
-          out.balanco.calculo=(await c.query(`
-            select b.${cData}::text dia,
-                   sum(b.${cQtdBal}) qtd_balanco,
-                   sum(b.${cQtdEst}) qtd_estoque,
-                   sum(b.${cQtdBal} - b.${cQtdEst}) qtd_diferenca,
-                   sum(b.${cQtdBal} * coalesce(b.${cCusto},0)) total_balanco,
-                   sum(b.${cQtdEst} * coalesce(b.${cCusto},0)) total_estoque,
-                   sum((b.${cQtdBal} - b.${cQtdEst}) * coalesce(b.${cCusto},0)) total_diferenca,
-                   count(*) linhas
-              from public.${alvo.nome.split(".")[1]} b
-              join public.produto p on p.id = b.${cProd}
-             where p.mercadologico1 = 43 and p.mercadologico2 = 1
-               and b.${cData} >= '2025-12-01'
-             group by 1 order by 1`)).rows;
-          console.log("\n  BALANCO calculado (FLV) — o alvo e 03/08: qtd -7508,859 e R$ -31522,0906");
-          (out.balanco.calculo||[]).forEach(r=>console.log("   "+r.dia
-            +"  dif_qtd="+n(r.qtd_diferenca).toFixed(3).padStart(12)
-            +"  dif_R$="+n(r.total_diferenca).toFixed(4).padStart(14)
-            +"  ("+r.linhas+" linhas)"));
-        } else {
-          console.log("  (nao achei as colunas esperadas; mando a estrutura para eu olhar)");
-        }
-      }
-    }catch(e){ out.balanco={ erro:e.message }; console.log("!! busca do balanco falhou: "+e.message); }
+    // O balanco do hortifruti de 03/08 e o id 47. Confiro se o lado ESTOQUE fecha com a
+    // tela dele: Qtd Estoque 10.697,859 e Total Estoque 45.883,817. Testo as quatro
+    // leituras de custo — e uma delas que a tela usa, nao as quatro.
+    out.balancoAlvo=(await c.query(`
+      select b.id, b.data::text dia, b.descricao,
+             count(*) linhas,
+             sum(e.quantidade)                                   qtd_estoque,
+             sum(e.quantidade * coalesce(e.custocomimposto,0))    total_com_imposto,
+             sum(e.quantidade * coalesce(e.custosemimposto,0))    total_sem_imposto,
+             sum(e.quantidade * coalesce(e.customediocomimposto,0)) total_medio_com,
+             sum(e.quantidade * coalesce(e.customediosemimposto,0)) total_medio_sem
+        from public.balanco b
+        join public.balancoestoqueanterior e on e.id_balanco = b.id
+        join public.produto p on p.id = e.id_produto
+       where b.id_loja = ${LOJA} and ${FLV}
+       group by b.id, b.data, b.descricao
+       order by b.data desc limit 12`)).rows;
+
+    out.balancos=(await c.query(`
+      select id, data::text dia, descricao, id_loja, id_listagembalanco, zeraitemnaocoletado
+        from public.balanco order by data desc limit 20`)).rows;
+
+  }catch(e){ out.erro=e.message; console.log("!! "+e.message); }
 
   await c.end();
 
+  // ---- relatorio na tela do robo ----
+  console.log("\n=== 1) A DIFERENCA DE ~R$ 100 POR MES ===");
+  console.log("mes     |    sua tela |   minha base |   falta | qual parcela vale isso?");
+  (out.parcelas||[]).forEach(r=>{
+    const seu=SUA_TELA[r.mes]; if(!seu) return;
+    const base=n(r.base), falta=seu-base;
+    const cand=[["acrescimo",r.acrescimo],["acresc_cupom",r.acrescimo_cupom],
+                ["acresc_fixo",r.acrescimo_fixo],["desconto",r.desconto],
+                ["desc_cupom",r.desconto_cupom],["desc_promo",r.desconto_promocao],
+                ["desc_manual",r.desconto_manual],["icms_deson",r.icms_desonerado]]
+      .filter(x=>Math.abs(n(x[1])-falta)<0.02).map(x=>x[0]).join("+");
+    console.log(r.mes+" | "+seu.toFixed(2).padStart(11)+" | "+base.toFixed(2).padStart(12)
+      +" | "+falta.toFixed(2).padStart(7)+" | "+(cand||"-"));
+  });
+  console.log("\nparcelas somadas por mes:");
+  (out.parcelas||[]).forEach(r=>console.log("  "+r.mes
+    +"  acresc="+n(r.acrescimo).toFixed(2)+"  acrescCupom="+n(r.acrescimo_cupom).toFixed(2)
+    +"  acrescFixo="+n(r.acrescimo_fixo).toFixed(2)+"  desc="+n(r.desconto).toFixed(2)
+    +"  descCupom="+n(r.desconto_cupom).toFixed(2)+"  descPromo="+n(r.desconto_promocao).toFixed(2)
+    +"  descManual="+n(r.desconto_manual).toFixed(2)+"  qtdXpreco="+n(r.qtd_x_preco).toFixed(2)));
+  console.log("\nsem produto no cadastro:"); (out.semProduto||[]).forEach(r=>console.log("  "+r.mes+"  "+r.itens+" itens  R$ "+n(r.valor).toFixed(2)));
+
+  console.log("\n=== 2) ONDE ESTA A CONTAGEM DO BALANCO ===");
+  (out.catalogoBalanco||[]).forEach(t=>{
+    console.log("  "+t.nome.padEnd(40)+" linhas="+String(t.linhas).padStart(7));
+    if(t.linhas) console.log("      "+(t.colunasNomes||""));
+  });
+  console.log("\nlado ESTOQUE por balanco (alvo 03/08: qtd 10.697,859 e R$ 45.883,817):");
+  (out.balancoAlvo||[]).forEach(r=>console.log("  #"+String(r.id).padStart(3)+" "+r.dia
+    +"  qtd="+n(r.qtd_estoque).toFixed(3).padStart(12)
+    +"  comImp="+n(r.total_com_imposto).toFixed(3).padStart(12)
+    +"  semImp="+n(r.total_sem_imposto).toFixed(3).padStart(12)
+    +"  medioCom="+n(r.total_medio_com).toFixed(3).padStart(12)
+    +"  medioSem="+n(r.total_medio_sem).toFixed(3).padStart(12)));
+
   try{
-    const local=(await req("GET","/rest/v1/receb_locais?select=id&order=criado_em&limit=1"))[0];
-    await req("POST","/rest/v1/receb_eventos",[{
-      entidade:"vr_flv", entidade_id:(local&&local.id)||"00000000-0000-0000-0000-000000000000",
-      acao:"medicao", motivo:"numeros do FLV direto do VR, em varias leituras",
-      detalhe:out }],"return=minimal");
-    console.log("Medicao enviada para a nuvem.");
-  }catch(e){ console.log("!! nao consegui enviar: "+e.message); }
+    const ev=(await req("GET","/rest/v1/receb_eventos?select=id&limit=1"))||[];
+    await req("POST","/rest/v1/receb_eventos",[{ entidade:"vr_flv",
+      entidade_id:(ev[0]&&ev[0].id)||"00000000-0000-0000-0000-000000000000",
+      acao:"medicao", detalhe:out }],"return=minimal");
+    console.log("\n>>> medicao enviada para a nuvem.");
+  }catch(e){ console.log("!! nao consegui mandar: "+e.message); }
 })();
