@@ -126,6 +126,48 @@ const n=(v)=>{ const x=parseFloat(v); return isNaN(x)?0:x; };
   }catch(e){ out.erro=e.message; console.log("!! erro: "+e.message); }
   await c.end();
 
+    // ---- AUDITORIA DE UM BALANÇO ----
+    // O Victor mandou a tela do balanço de 03/08: diferença de -7.508,859 unidades e
+    // -R$ 31.522,09. Minha soma da tabela `perda` no mesmo dia deu 7.265 e R$ 29.547,46 —
+    // falta 3% na quantidade e 6% no valor. Diferença dessa forma não é arredondamento:
+    // ou meu filtro de mercadológico é estreito demais, ou o custo é outro.
+    // Em vez de escolher uma explicação, meço as duas.
+    try{
+      const DIA="2026-08-03";
+      out.auditoria={ dia:DIA, tela:{ qtd:-7508.859, valor:-31522.0906 } };
+
+      out.auditoria.totais=(await c.query(`
+        select count(*) linhas,
+               sum(pe.quantidade) qtd,
+               sum(pe.quantidade * coalesce(pe.custocomimposto,0))      qtd_x_custo,
+               sum(pe.quantidade * coalesce(pe.customediocomimposto,0)) qtd_x_medio,
+               sum(pe.quantidade * coalesce(pe.custosemimposto,0))      qtd_x_sem_imposto,
+               sum(pe.quantidade * coalesce(pe.customediosemimposto,0)) qtd_x_medio_sem
+          from public.perda pe
+         where pe.id_loja = ${LOJA} and pe.data = '${DIA}'`)).rows[0];
+
+      // e por grupo de mercadológico, para ver se o balanço pega além do 43.1
+      out.auditoria.porGrupo=(await c.query(`
+        select p.mercadologico1 m1, p.mercadologico2 m2,
+               count(*) linhas, sum(pe.quantidade) qtd,
+               sum(pe.quantidade * coalesce(pe.custocomimposto,0)) valor
+          from public.perda pe
+          join public.produto p on p.id = pe.id_produto
+         where pe.id_loja = ${LOJA} and pe.data = '${DIA}'
+         group by 1,2 order by 5 desc nulls last`)).rows
+        .map(r=>({ m1:r.m1, m2:r.m2, linhas:+r.linhas, qtd:n(r.qtd), valor:n(r.valor) }));
+
+      console.log("\nAUDITORIA DO BALANCO DE "+DIA);
+      console.log("  a tela dele:  qtd 7508.859   valor 31522.09");
+      const t=out.auditoria.totais;
+      console.log("  perda (todos os grupos): qtd "+n(t.qtd).toFixed(3)
+        +"  custo="+n(t.qtd_x_custo).toFixed(2)+"  medio="+n(t.qtd_x_medio).toFixed(2)
+        +"  s/imposto="+n(t.qtd_x_sem_imposto).toFixed(2));
+      out.auditoria.porGrupo.forEach(g=>console.log("   grupo "+g.m1+"."+g.m2+": "+g.linhas+" linhas, qtd "+g.qtd.toFixed(1)+", R$ "+g.valor.toFixed(2)));
+    }catch(e){ out.auditoria={ erro:e.message }; console.log("!! auditoria falhou: "+e.message); }
+
+  await c.end();
+
   try{
     const local=(await req("GET","/rest/v1/receb_locais?select=id&order=criado_em&limit=1"))[0];
     await req("POST","/rest/v1/receb_eventos",[{
