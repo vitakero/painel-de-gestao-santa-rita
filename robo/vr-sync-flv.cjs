@@ -61,15 +61,60 @@ const sbUpsert = (tabela, chave, linhas)=> linhas.length
   ? sbReq("POST","/rest/v1/"+tabela+"?on_conflict="+chave, linhas, "resolution=merge-duplicates,return=minimal")
   : Promise.resolve();
 
+/* DIARIO AO VIVO.
+   Este script ja morreu duas vezes na loja sem deixar recado: a janela do robo fecha e o
+   erro vai junto. try/catch nao resolve — o que mata e coisa que derruba o PROCESSO
+   inteiro (conexao do Postgres caindo, promessa sem dono). Entao ele passa a anotar na
+   nuvem O QUE ESTA FAZENDO, antes de fazer. Se morrer, a ultima anotacao diz onde. */
+let EVENTO = null;              // id da linha em receb_eventos desta rodada
+let DIARIO = null;              // o objeto que vai sendo atualizado
+
+async function abrirDiario(diag){
+  DIARIO = diag;
+  const r = await sbReq("POST","/rest/v1/receb_eventos",[{ entidade:"vr_flv",
+    entidade_id:"00000000-0000-0000-0000-000000000000",
+    acao:"sync", detalhe:diag }], "return=representation");
+  EVENTO = r && r[0] && r[0].id;
+  return EVENTO;
+}
+async function anotar(){
+  if(!EVENTO || !DIARIO) return;
+  try{ await sbReq("PATCH","/rest/v1/receb_eventos?id=eq."+EVENTO,
+    { detalhe:DIARIO }, "return=minimal"); }catch(e){}
+}
+
 (async ()=>{
-  const diag = { etapas:{}, quando:new Date().toISOString() };
+  const diag = { etapas:{}, etapa_atual:"comecando", quando:new Date().toISOString() };
   let c = null;
 
+  /* O QUE MATA O PROCESSO TAMBEM TEM QUE CONTAR O QUE FEZ.
+     Estas duas armadilhas sao o unico jeito de capturar a morte silenciosa: pego o erro,
+     anoto na nuvem, e so entao deixo cair. */
+  function morreu(tipo){
+    return function(e){
+      try{
+        if(DIARIO){
+          DIARIO.morte = { tipo:tipo, erro:(e && e.message) || String(e),
+                           onde:((e && e.stack) || "").split("\n").slice(0,4).join(" | "),
+                           na_etapa: DIARIO.etapa_atual };
+        }
+        console.log("!! MORTE ("+tipo+") na etapa '"+(DIARIO&&DIARIO.etapa_atual)+"': "
+          + ((e && e.message) || e));
+      }catch(_){}
+      anotar().then(function(){ process.exit(1); }, function(){ process.exit(1); });
+    };
+  }
+  process.on("uncaughtException",  morreu("excecao solta"));
+  process.on("unhandledRejection", morreu("promessa sem dono"));
+
   async function etapa(nome, f){
-    try { const r = await f(); diag.etapas[nome] = { ok:true, resumo:r }; return r; }
+    diag.etapa_atual = nome;
+    await anotar();                      // "estou entrando em X" — antes de entrar
+    try { const r = await f(); diag.etapas[nome] = { ok:true, resumo:r }; await anotar(); return r; }
     catch(e){ diag.etapas[nome] = { ok:false, erro:e.message,
                                     onde:(e.stack||"").split("\n")[1]||"" };
-              console.log("!! etapa '"+nome+"' falhou: "+e.message); return null; }
+              console.log("!! etapa '"+nome+"' falhou: "+e.message);
+              await anotar(); return null; }
   }
 
   try {
@@ -86,10 +131,21 @@ const sbUpsert = (tabela, chave, linhas)=> linhas.length
       ? `(date_trunc('month', current_date) - interval '${MESES_QUENTES - 1} months')`
       : `date '${DESDE_CHEIO}'`;
 
+    await abrirDiario(diag);             // a partir daqui toda etapa fica registrada
+
     c = new Client({ host:g("PG_HOST"), port:+g("PG_PORT"), database:g("PG_DATABASE"),
                      user:g("PG_USER"), password:g("PG_PASSWORD"), ssl:false,
                      connectionTimeoutMillis:20000 });
+    /* Sem este ouvinte, uma queda de conexao vira "error" sem dono e o Node derruba o
+       processo na hora — sem passar por nenhum catch. Suspeito numero um das duas mortes. */
+    c.on("error", function(e){
+      diag.erro_conexao = e.message;
+      console.log("!! conexao com o VR caiu: "+e.message);
+    });
     await c.connect();
+    /* Consulta que trava nao pode segurar o robo da loja para sempre. 4 minutos e muito
+       mais do que qualquer uma destas precisa; passou disso, e porque deu errado. */
+    try{ await c.query("set statement_timeout = 240000"); }catch(e){}
 
     const FLV   = `p.mercadologico1 = ${MERC1} and p.mercadologico2 = ${MERC2}`;
     const LIMPO = `v.cancelado = false and cp.cancelado = false and cp.id_loja = ${LOJA}`;
@@ -173,32 +229,31 @@ const sbUpsert = (tabela, chave, linhas)=> linhas.length
     // filtrando FLV. A que der 3.189,000 e a certa.
     // ================================================================
     const achado = await etapa("cacar_contagem", async ()=>{
+      /* UMA CONSULTA SO PARA O CATALOGO INTEIRO.
+         Antes eu percorria tabela por tabela fazendo "select count(*)" em cada uma, sem
+         limite de tempo e sem limite de schema — isso pega ate tabela de sistema, e uma
+         contagem exata numa tabela enorme pode segurar (ou derrubar) a conexao. E foi
+         justamente na altura desta parte que o script morreu duas vezes.
+         Agora: so os schemas do VR, estimativa do proprio Postgres (pg_class.reltuples,
+         que e instantanea) e as colunas vindo junto, agregadas. Zero laco de consulta. */
       const tabs = (await c.query(`
-        select t.table_schema esquema, t.table_name tabela
-          from information_schema.tables t
-         where t.table_type='BASE TABLE'
-           and (t.table_name like '%balanc%' or t.table_name like '%colet%'
-             or t.table_name like '%contag%' or t.table_name like '%invent%'
-             or t.table_name like '%apurac%' or t.table_name like '%acerto%')
+        select n.nspname esquema, cl.relname tabela,
+               greatest(cl.reltuples, 0)::bigint linhas_estimadas,
+               array_agg(a.attname order by a.attnum) colunas
+          from pg_class cl
+          join pg_namespace n on n.oid = cl.relnamespace
+          join pg_attribute a on a.attrelid = cl.oid and a.attnum > 0 and not a.attisdropped
+         where cl.relkind = 'r'
+           and n.nspname in ('public','pdv')
+           and (cl.relname like '%balanc%' or cl.relname like '%colet%'
+             or cl.relname like '%contag%' or cl.relname like '%invent%'
+             or cl.relname like '%apurac%' or cl.relname like '%acerto%'
+             or cl.relname like '%conferen%')
+         group by 1,2,3
          order by 1,2`)).rows;
 
-      diag.tabelas = [];
-      for(const t of tabs){
-        const nome = t.esquema+"."+t.tabela;
-        const linha = { nome, linhas:null, colunas:[] };
-        try { linha.linhas = (await c.query("select count(*)::int c from "+nome)).rows[0].c; }
-        catch(e){ linha.erro_contagem = e.message; }
-        try {
-          // ARRAY nos valores. Estava passando c.query(texto, a, b) — o pg exige
-          // c.query(texto, [a, b]), entao esta consulta falhava calada e a lista de
-          // colunas vinha vazia; sem colunas, a caca inteira nao acontecia.
-          linha.colunas = (await c.query(
-            "select column_name n from information_schema.columns "+
-            "where table_schema=$1 and table_name=$2 order by ordinal_position",
-            [t.esquema, t.tabela])).rows.map(r=>r.n);
-        } catch(e){ linha.erro_colunas = e.message; }
-        diag.tabelas.push(linha);
-      }
+      diag.tabelas = tabs.map(t=>({ nome:t.esquema+"."+t.tabela,
+        linhas:Number(t.linhas_estimadas), colunas:t.colunas||[] }));
 
       // Qual e o balanco do hortifruti de 03/08?
       const bal = (await c.query(`
@@ -402,11 +457,15 @@ const sbUpsert = (tabela, chave, linhas)=> linhas.length
 
   // O RELATORIO SAI SEMPRE. Foi a licao do medidor que rodou na loja e nao deixou
   // rastro: a janela fechou e o erro foi junto.
+  diag.etapa_atual = "terminou";
   try{
-    const ev = await sbReq("GET","/rest/v1/receb_eventos?select=id&limit=1");
-    await sbReq("POST","/rest/v1/receb_eventos",[{ entidade:"vr_flv",
-      entidade_id:(ev&&ev[0]&&ev[0].id)||"00000000-0000-0000-0000-000000000000",
-      acao:"sync", detalhe:diag }],"return=minimal");
-    console.log(">>> relatorio do FLV enviado para a nuvem.");
+    if(EVENTO){ await anotar(); }
+    else {
+      // o diario nem chegou a abrir (nuvem fora do ar no inicio): tenta uma vez agora
+      await sbReq("POST","/rest/v1/receb_eventos",[{ entidade:"vr_flv",
+        entidade_id:"00000000-0000-0000-0000-000000000000",
+        acao:"sync", detalhe:diag }],"return=minimal");
+    }
+    console.log(">>> relatorio do FLV na nuvem.");
   }catch(e){ console.log("!! nao consegui mandar o relatorio: "+e.message); }
 })();
