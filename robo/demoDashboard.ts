@@ -6020,12 +6020,26 @@ function flvNum(t){
 
 /* ---- os percentuais ---- */
 /* null quando não dá para calcular. NUNCA 0, NUNCA Infinity, NUNCA NaN. */
+/* "NÃO INFORMADO" NÃO É ZERO.
+   Armadilha do JavaScript que quase custou caro aqui: +null e +"" valem 0, e isFinite(0) é
+   verdadeiro. Resultado — com o campo do desperdício EM BRANCO a tela dizia "Meta atingida",
+   calculava R$ 600,00 de prêmio e liberava o botão de confirmar. O banco recusaria (a coluna
+   é not null), mas a pessoa só descobriria no erro final, depois de acreditar no número.
+   Zero continua valendo zero: mês sem nenhuma perda é improvável no FLV, mas é um fato
+   possível. Branco é branco. */
+function flvTem(v){
+  if(v==null) return false;
+  if(typeof v==="string" && v.replace(" ","")==="") return false;
+  return true;
+}
 function flvPctValor(desperdicio, faturamento){
+  if(!flvTem(desperdicio) || !flvTem(faturamento)) return null;
   var d=+desperdicio, f=+faturamento;
   if(!isFinite(d) || !isFinite(f) || f<=0 || d<0) return null;
   return Math.round((d/f)*100*10000)/10000;
 }
 function flvPctQtd(desperdicada, vendida){
+  if(!flvTem(desperdicada) || !flvTem(vendida)) return null;
   var d=+desperdicada, v=+vendida;
   if(!isFinite(d) || !isFinite(v) || v<=0 || d<0) return null;
   return Math.round((d/v)*100*10000)/10000;
@@ -6078,9 +6092,12 @@ function flvValidar(d){
      então descobrir que aquele mês já existia. */
   else if(d.jaExiste) e.push("Já existe um fechamento para essa competência. Escolha outro mês ou abra o que já existe pelo histórico.");
   var f=+d.faturamento;
-  if(!isFinite(f) || f<=0) e.push("Informe o faturamento do FLV. Sem ele não há percentual para calcular.");
+  if(!flvTem(d.faturamento) || !isFinite(f) || f<=0) e.push("Informe o faturamento do FLV. Sem ele não há percentual para calcular.");
+  /* Campo em branco tem que BARRAR. Antes ele passava: +null é 0, 0 é um número válido, e o
+     fechamento seguia com desperdício zero e prêmio cheio. */
   var v=+d.desperdicio_valor;
-  if(!isFinite(v) || v<0) e.push("Informe o desperdício em reais.");
+  if(!flvTem(d.desperdicio_valor)) e.push("Informe o desperdício em reais.");
+  else if(!isFinite(v) || v<0) e.push("Informe o desperdício em reais.");
   else if(isFinite(f) && f>0 && v>f) e.push("O desperdício ficou maior que o faturamento — confira os números.");
   if(d.qtd_vendida!=null && d.qtd_vendida!=="" && (!isFinite(+d.qtd_vendida) || +d.qtd_vendida<0))
     e.push("A quantidade vendida está inválida.");
@@ -6261,6 +6278,12 @@ function flvMilhar(v, casas){
     if(k%3===0 && i>0) out="."+out;
   }
   return (neg?"-":"")+out+(dec?(","+dec):"");
+}
+/* Data de hoje em dd/mm/aaaa, montada na mão. Nada de toLocaleDateString: ele muda de
+   formato conforme o idioma do navegador, e este texto fica guardado no fechamento. */
+function flvHojeCurto(){
+  var d=new Date(), p=function(x){ return (x<10?"0":"")+x; };
+  return p(d.getDate())+"/"+p(d.getMonth()+1)+"/"+d.getFullYear();
 }
 function flvDataCurta(d){
   var t=String(d==null?"":d).slice(0,10);
@@ -6793,6 +6816,16 @@ function flvAbrirFechamento(id){
       return;
     }
     var t=flvVrOrigem(r);
+
+    /* RASTRO. Daqui a três meses ninguém vai lembrar se aquele número foi digitado na mão ou
+       veio do VR, e é dinheiro que já foi pago. Escrevo a origem nas Observações — só quando
+       o campo está vazio, para nunca apagar o que a pessoa escreveu, e fica editável ali
+       mesmo, à vista, não escondido num registro que ninguém abre. */
+    var obs=document.getElementById("flvObs");
+    if(obs && !obs.value.replace(" ","")){
+      obs.value = "Números trazidos do VR em "+flvHojeCurto()+" — "+t+".";
+    }
+
     if(r.faltando.length){
       if(box) box.classList.add("erro");
       fala("Peguei o que tinha ("+t+"). "+r.faltando.join(" "), "#e08600");
