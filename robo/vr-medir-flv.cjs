@@ -153,6 +153,30 @@ const SUA_TELA={ "2026-01":578545.51,"2026-02":513069.02,"2026-03":599417.99,"20
        group by b.id, b.data, b.descricao
        order by b.data desc limit 12`)).rows;
 
+    // AUTOMATIZO A CACA: toda tabela achada que tenha id_balanco e alguma coluna de
+    // quantidade e uma candidata a guardar a CONTAGEM. Somo cada uma para o balanco do
+    // hortifruti de 03/08, filtrando FLV, e vejo qual da 3.189,000 — o "Qtd. Balanco" da
+    // tela dele. Assim descubro a tabela certa nesta mesma ida, sem chutar nome.
+    out.contagem=[];
+    for(const t of out.catalogoBalanco){
+      if(!t.linhas || !t.colunasNomes) continue;
+      const cols=t.colunasNomes.split(",");
+      if(cols.indexOf("id_balanco")<0 || cols.indexOf("id_produto")<0) continue;
+      const qcols=cols.filter(x=>x.indexOf("quantidade")===0 || x==="qtd");
+      if(!qcols.length) continue;
+      for(const q of qcols){
+        try{
+          const r=(await c.query(`
+            select sum(x.${q}) soma, count(*) linhas
+              from ${t.nome} x
+              join public.produto p on p.id = x.id_produto
+             where x.id_balanco = 47 and ${FLV}`)).rows[0];
+          out.contagem.push({ tabela:t.nome, coluna:q, soma:r.soma, linhas:r.linhas,
+                              bate_com_3189: Math.abs(n(r.soma)-3189)<0.001 });
+        }catch(e){ out.contagem.push({ tabela:t.nome, coluna:q, erro:e.message }); }
+      }
+    }
+
     out.balancos=(await c.query(`
       select id, data::text dia, descricao, id_loja, id_listagembalanco, zeraitemnaocoletado
         from public.balanco order by data desc limit 20`)).rows;
@@ -188,6 +212,10 @@ const SUA_TELA={ "2026-01":578545.51,"2026-02":513069.02,"2026-03":599417.99,"20
     console.log("  "+t.nome.padEnd(40)+" linhas="+String(t.linhas).padStart(7));
     if(t.linhas) console.log("      "+(t.colunasNomes||""));
   });
+  console.log("\ncandidatas a CONTAGEM (alvo: 3.189,000 no balanco #47):");
+  (out.contagem||[]).forEach(x=>console.log("  "+String(x.tabela+"."+x.coluna).padEnd(46)
+    +(x.erro?("ERRO "+x.erro):(" soma="+n(x.soma).toFixed(3).padStart(14)+"  linhas="+x.linhas
+      +(x.bate_com_3189?"   <<<<<< BATE":"")))));
   console.log("\nlado ESTOQUE por balanco (alvo 03/08: qtd 10.697,859 e R$ 45.883,817):");
   (out.balancoAlvo||[]).forEach(r=>console.log("  #"+String(r.id).padStart(3)+" "+r.dia
     +"  qtd="+n(r.qtd_estoque).toFixed(3).padStart(12)
