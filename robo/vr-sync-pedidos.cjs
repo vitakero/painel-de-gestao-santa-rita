@@ -285,6 +285,20 @@ const Q_ITENS = `
                 lig.pedidos_ligados + " pedido(s) acharam o dono.");
   }
 
+  // ---- DETETIVE DAS PERDAS, uma vez só ----
+  // O Victor quer que o painel leia a perda do FLV direto do VR em vez de alguém digitar.
+  // Eu não sei o nome da tabela e não alcanço o VR daqui, então o robô pergunta e manda a
+  // resposta pra nuvem. Pendurado aqui porque este script já roda de 10 em 10 minutos —
+  // mexer no robo.bat exigiria o Victor na máquina da loja.
+  try {
+    const ja = await req("GET", "/rest/v1/receb_eventos?select=id&entidade=eq.vr_perdas&limit=1");
+    if (!ja || !ja.length) {
+      console.log("\nInvestigando onde o VR guarda as perdas (uma vez so)...");
+      require("child_process").execFileSync(process.execPath,
+        [path.join(__dirname, "vr-descobrir-perdas.cjs")], { stdio: "inherit" });
+    }
+  } catch (e) { console.log("(detetive das perdas nao rodou: " + e.message + ")"); }
+
   if (orfaos) {
     console.log("\nAviso: " + orfaos + " pedido(s) sao de fornecedor que ainda nao tem");
     console.log("cadastro no portal. Ficam guardados e passam a aparecer sozinhos");
