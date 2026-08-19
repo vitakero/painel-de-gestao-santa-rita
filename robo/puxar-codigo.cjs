@@ -42,6 +42,7 @@ const FILES = [
   ["robo/vr-descobrir-pedidos2.cjs", "vr-descobrir-pedidos2.cjs", "DETETIVE 2 do VR"],
   ["robo/vr-medir-pedidos.cjs", "vr-medir-pedidos.cjs", "MEDIDOR"],
   ["robo/vr-sync-pedidos.cjs", "vr-sync-pedidos.cjs", "receb_pedido_itens"],
+  ["robo/vr-descobrir-perdas.cjs", "vr-descobrir-perdas.cjs", "receb_eventos"],
   ["robo/puxar-codigo.cjs", "puxar-codigo.cjs", "Baixa o codigo mais recente do GitHub via API"],
 ];
 
