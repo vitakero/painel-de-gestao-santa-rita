@@ -218,6 +218,28 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   /* ---- FLV: desperdício e premiação. Reaproveita .card/.kpi/.bars; o que existe aqui
      é só o que o painel ainda não tinha: a linha da meta sobre as barras, o selo de
      situação e a caixa da prévia do fechamento. ---- */
+  /* O FLV inteiro mora dentro de um único #flvRoot, então o gap:22px da .page.ativo
+     não chega entre os blocos de dentro — e .card não tem margem. Resultado: tudo colado.
+     Repito aqui a mesma grade da página, e o respiro passa a valer para os 7 blocos. */
+  #flvRoot { display:grid; grid-template-columns:minmax(0,1fr); gap:22px; }
+  #flvRoot > * { min-width:0; }
+  /* Cartão de KPI do FLV, na mesma régua de Perdas e Manutenções. O overflow existe
+     porque este é o único KPI do painel com duas linhas de apoio embaixo do rótulo. */
+  #flvKpis .kpi { padding:18px 16px; min-width:0; overflow:hidden; }
+  #flvKpis .kpi .v { font-size:23px; line-height:1.1; overflow-wrap:anywhere; }
+  #flvKpis .kpi .l { font-size:12px; margin-top:6px; overflow-wrap:anywhere; }
+  /* No cartão a situação é TEXTO colorido, como na página de Análise; a pílula fica
+     só nas tabelas. Era o único .v do painel com um selo de 11px dentro. */
+  #flvKpis .kpi .v .flv-vok { color:#1b9e4b; }
+  #flvKpis .kpi .v .flv-vnao { color:#c0392b; }
+  #flvKpis .kpi .v .flv-vneutro { color:#8a97a8; }
+  /* Tabela larga rola dentro da própria caixa, como as outras 11 do painel. */
+  .flv-twrap { overflow-x:auto; max-width:100%; border:1px solid #e6ebf1; border-radius:10px; }
+  /* 13 colunas com valores em dinheiro precisam de ~1.240px para não quebrar linha.
+     Abaixo disso a caixa rola na horizontal em vez de espremer os números. */
+  .flv-tbl.larga { min-width:1240px; }
+  .flv-tbl.larga th, .flv-tbl.larga td { white-space:nowrap; }
+  .flv-tbl th.num, .flv-tbl td.num { text-align:right; font-variant-numeric:tabular-nums; }
   .flv-topo { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
   .flv-topo .dir { margin-left:auto; display:flex; gap:10px; align-items:center; }
   .flv-sel { padding:8px 11px; border:1px solid #cdd6e0; border-radius:8px; font-size:13px; background:#fff; color:#33404f; }
@@ -225,7 +247,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .flv-sit.ok { background:#e6f4ea; color:#0c5a26; }
   .flv-sit.nao { background:#fdecea; color:#a5281b; }
   .flv-sit.vazio { background:#eef2f7; color:#6b7787; }
-  .flv-dist { font-size:12px; margin-top:5px; }
+  .flv-dist { font-size:12px; margin-top:6px; line-height:1.4; overflow-wrap:anywhere; }
   .flv-dist.ok { color:#0c5a26; }
   .flv-dist.nao { color:#c0392b; }
   /* a barra do gráfico ganha cor pelo resultado, usando os mesmos tons do painel */
@@ -235,16 +257,25 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .flv-graf { position:relative; }
   .flv-meta-ln { position:absolute; left:0; right:0; border-top:2px dashed #c0392b; pointer-events:none; z-index:1; }
   .flv-meta-tag { position:absolute; right:0; top:-13px; font-size:10px; color:#c0392b; background:#fff; padding:0 4px; }
-  .flv-vazio { color:#8a97a8; font-size:13px; font-style:italic; }
+  .flv-vazio { color:#8a97a8; font-size:13px; }
+  /* Vazio ocupando o card inteiro ganha respiro e centro, como nas outras páginas.
+     O seletor com ">" deixa intacto o uso dentro de célula de tabela. */
+  .card > .flv-vazio { display:block; padding:26px 0; text-align:center; font-size:13.5px; }
   /* "teria sido R$ X" — o que teriam ganhado se a meta tivesse sido batida.
      Discreto de propósito: o número que vale é o de cima (o pago). Este é referência. */
-  .flv-teria { font-size:11px; font-weight:400; color:#8a97a8; font-style:italic;
-               margin-top:2px; white-space:nowrap; }
+  /* "teria sido R$ X" — o que teriam ganhado se a meta tivesse sido batida. Discreto de
+     propósito: o número que vale é o de cima (o pago). Sem nowrap: o texto é longo e
+     estava vazando para fora do cartão. */
+  .flv-teria { font-size:11.5px; font-weight:400; color:#8a97a8; font-style:italic;
+               margin-top:6px; line-height:1.4; overflow-wrap:anywhere; }
   .flv-prev { background:#f7f9fc; border:1px solid #e4e9f0; border-radius:10px; padding:14px 16px; }
   .flv-prev .ln { display:flex; justify-content:space-between; gap:14px; padding:5px 0; font-size:13px; color:#46535f; }
   .flv-prev .ln b { color:#1a2233; }
   .flv-prev .ln.forte { border-top:1px solid #e4e9f0; margin-top:6px; padding-top:10px; font-size:14px; }
-  .flv-cmp { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; }
+  /* TRÊS COLUNAS, não auto-fit: são 5 ou 6 comparativos, e com auto-fit cabiam 5 numa
+     linha e o sexto ficava sozinho embaixo — o mesmo buraco da faixa de KPIs. Com 3
+     colunas fecha 3+3 ou 3+2, sempre equilibrado. */
+  .flv-cmp { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
   .flv-cmp .it { border:1px solid #eef2f7; border-radius:10px; padding:12px 14px; }
   .flv-cmp .it b { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:#6b7787; margin-bottom:5px; }
   .flv-cmp .it .v { font-size:16px; font-weight:700; color:#1a2233; }
@@ -6263,6 +6294,14 @@ function flvKpi(rotulo, valor, extra){
   return '<div class="kpi"><div class="v">'+valor+'</div><div class="l">'+flvEsc(rotulo)+'</div>'
     +(extra||"")+'</div>';
 }
+/* No CARTÃO de KPI o valor é texto, como no resto do painel — a pílula fica só nas
+   tabelas. Era o único .v do painel com um selo de 11px dentro de um espaço de 22px,
+   e por isso aquele quadrado parecia vazio ao lado dos outros. */
+function flvSitTxt(sit){
+  if(sit==="atingida")     return '<span class="flv-vok">Atingida</span>';
+  if(sit==="nao_atingida") return '<span class="flv-vnao">Não atingida</span>';
+  return '<span class="flv-vneutro">—</span>';
+}
 function flvSeloSit(sit){
   if(sit==="atingida")     return '<span class="flv-sit ok">Meta atingida</span>';
   if(sit==="nao_atingida") return '<span class="flv-sit nao">Meta não atingida</span>';
@@ -6378,13 +6417,21 @@ function flvRender(){
     var pct=flvPctValor(ultimo.desperdicio_valor, ultimo.faturamento);
     var dist=flvDistancia(pct, ultimo.meta_aplicada);
     var pdUlt=flvPremioPerdido(ultimo);
-    h+='<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));">'
-      +flvKpi("Faturamento · "+flvCompCurta(ultimo.competencia), flvMoeda(ultimo.faturamento))
-      +flvKpi("Desperdício", flvMoeda(ultimo.desperdicio_valor))
-      +flvKpi("Desperdício", flvPctTxt(pct),
+    /* SEIS COLUNAS DECLARADAS, não auto-fit.
+       Com minmax(190px,1fr) a faixa pedia 1210px de largura e a tela real dá 1151px numa
+       janela de 1440 — por isso o sexto quadrado caía sozinho na linha de baixo, deixando
+       o buraco. As duas outras páginas de 6 KPIs (Perdas e Manutenções) declaram
+       repeat(6,minmax(0,1fr)), que é o que garante uma linha só em qualquer largura. */
+    h+='<div class="kpis" id="flvKpis" style="grid-template-columns:repeat(6,minmax(0,1fr));">'
+      /* Dois cartões se chamavam "Desperdício" — em caixa alta a faixa mostrava a mesma
+         palavra duas vezes seguidas. E o mês saiu do rótulo: nenhuma outra faixa do
+         painel faz isso, e a barra de cima já diz de que mês é o fechamento. */
+      +flvKpi("Faturamento", flvMoeda(ultimo.faturamento))
+      +flvKpi("Desperdício R$", flvMoeda(ultimo.desperdicio_valor))
+      +flvKpi("Desperdício %", flvPctTxt(pct),
           dist?'<div class="flv-dist '+(dist.acima?"nao":"ok")+'">'+flvEsc(dist.texto)+'</div>':"")
       +flvKpi("Meta aplicada", "≤ "+flvPctTxt(ultimo.meta_aplicada))
-      +flvKpi("Situação", flvSeloSit(ultimo.situacao))
+      +flvKpi("Situação", flvSitTxt(ultimo.situacao))
       +flvKpi("Prêmio por colaborador", flvMoeda(ultimo.premio_individual),
           '<div class="flv-dist">'+(+ultimo.participantes||0)+' colaborador(es) · total '+flvMoeda(ultimo.premio_total)+'</div>'
           +(pdUlt?'<div class="flv-teria">teria sido '+flvMoeda(pdUlt.individual)
@@ -6443,17 +6490,17 @@ function flvRender(){
 
   /* ---- premiação mês a mês ---- */
   h+='<div class="card"><h2>Premiação mês a mês — '+ano+'</h2>'
-    +'<table><thead><tr><th>Mês</th><th style="text-align:right">Prêmio total</th>'
-    +'<th style="text-align:right">Por colaborador</th><th>Situação</th></tr></thead><tbody>';
+    +'<table class="flv-tbl"><thead><tr><th>Mês</th><th class="num">Prêmio total</th>'
+    +'<th class="num">Por colaborador</th><th>Situação</th></tr></thead><tbody>';
   serie.forEach(function(x){
     if(!x.fechamento){
       h+='<tr><td>'+x.rotulo+'</td><td colspan="3" class="flv-vazio">Aguardando fechamento</td></tr>';
     } else {
       var pd=flvPremioPerdido(x.fechamento);
       h+='<tr><td>'+x.rotulo+'</td>'
-        +'<td style="text-align:right">'+flvMoeda(x.premio_total)
+        +'<td class="num">'+flvMoeda(x.premio_total)
           +(pd?'<div class="flv-teria">teria sido '+flvMoeda(pd.total)+'</div>':'')+'</td>'
-        +'<td style="text-align:right"><b>'+flvMoeda(x.premio_individual)+'</b>'
+        +'<td class="num"><b>'+flvMoeda(x.premio_individual)+'</b>'
           +(pd&&pd.individual!=null?'<div class="flv-teria">teria sido '+flvMoeda(pd.individual)+'</div>':'')+'</td>'
         +'<td>'+flvSeloSit(x.fechamento.situacao)+'</td></tr>';
     }
@@ -6479,34 +6526,36 @@ function flvRender(){
   if(!hist.length){
     h+='<p class="flv-vazio">Nenhum fechamento com esses filtros.</p>';
   } else {
-    h+='<table><thead><tr><th>Competência</th><th style="text-align:right">Faturamento</th>'
-      +'<th style="text-align:right">Desperdício R$</th><th style="text-align:right">Desp. %</th>'
-      +'<th style="text-align:right">Qtd. desp.</th><th style="text-align:right">Qtd. %</th>'
-      +'<th style="text-align:right">Meta</th><th>Situação</th>'
-      +'<th style="text-align:right">Prêmio total</th><th style="text-align:right">Colab.</th>'
-      +'<th style="text-align:right">Individual</th><th>Status</th><th></th></tr></thead><tbody>';
+    /* Treze colunas não cabem na tela: a tabela rola dentro da própria caixa, como as
+       outras onze tabelas largas do painel. Sem isso ela empurrava a página inteira. */
+    h+='<div class="flv-twrap"><table class="flv-tbl larga"><thead><tr><th>Competência</th><th class="num">Faturamento</th>'
+      +'<th class="num">Desperdício R$</th><th class="num">Desp. %</th>'
+      +'<th class="num">Qtd. desp.</th><th class="num">Qtd. %</th>'
+      +'<th class="num">Meta</th><th>Situação</th>'
+      +'<th class="num">Prêmio total</th><th class="num">Colab.</th>'
+      +'<th class="num">Individual</th><th>Status</th><th></th></tr></thead><tbody>';
     hist.forEach(function(x){
       var pd=flvPremioPerdido(x);
       h+='<tr>'
         +'<td><b>'+flvEsc(flvCompLabel(x.competencia))+'</b></td>'
-        +'<td style="text-align:right">'+flvMoeda(x.faturamento)+'</td>'
-        +'<td style="text-align:right">'+flvMoeda(x.desperdicio_valor)+'</td>'
-        +'<td style="text-align:right">'+flvPctTxt(x.pct_valor)+'</td>'
-        +'<td style="text-align:right">'+flvQtdTxt(x.qtd_desperdicada)+'</td>'
-        +'<td style="text-align:right">'+flvPctTxt(x.pct_qtd)+'</td>'
-        +'<td style="text-align:right">≤ '+flvPctTxt(x.meta_aplicada)+'</td>'
+        +'<td class="num">'+flvMoeda(x.faturamento)+'</td>'
+        +'<td class="num">'+flvMoeda(x.desperdicio_valor)+'</td>'
+        +'<td class="num">'+flvPctTxt(x.pct_valor)+'</td>'
+        +'<td class="num">'+flvQtdTxt(x.qtd_desperdicada)+'</td>'
+        +'<td class="num">'+flvPctTxt(x.pct_qtd)+'</td>'
+        +'<td class="num">≤ '+flvPctTxt(x.meta_aplicada)+'</td>'
         +'<td>'+flvSeloSit(x.situacao)+'</td>'
-        +'<td style="text-align:right">'+flvMoeda(x.premio_total)
+        +'<td class="num">'+flvMoeda(x.premio_total)
           +(pd?'<div class="flv-teria">teria sido '+flvMoeda(pd.total)+'</div>':'')+'</td>'
-        +'<td style="text-align:right">'+(+x.participantes||0)+'</td>'
-        +'<td style="text-align:right"><b>'+flvMoeda(x.premio_individual)+'</b>'
+        +'<td class="num">'+(+x.participantes||0)+'</td>'
+        +'<td class="num"><b>'+flvMoeda(x.premio_individual)+'</b>'
           +(pd&&pd.individual!=null?'<div class="flv-teria">teria sido '+flvMoeda(pd.individual)+'</div>':'')+'</td>'
         +'<td><span class="flv-sit '+(x.status==="fechado"?"ok":"vazio")+'">'
           +(x.status==="fechado"?"Fechado":"Rascunho")+'</span></td>'
         +'<td><button class="btn-s" data-flvver="'+flvEsc(x.id)+'">Ver</button></td>'
         +'</tr>';
     });
-    h+='</tbody></table>';
+    h+='</tbody></table></div>';
   }
   h+='</div>';
 
