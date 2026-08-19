@@ -6188,6 +6188,10 @@ function flvVizinhos(lista, comp){
    somo as diferenças: cada balanço mede o que sumiu desde a contagem anterior, então as
    duas parcelas são de pedaços diferentes do mesmo período — somar é o certo, e média ou
    "pegar o último" perderia metade do desperdício. */
+/* A competência viaja como data ("2026-08-01") mas o Supabase às vezes devolve com hora
+   junto. Corto nos 10 primeiros caracteres para comparar sempre a mesma coisa — foi
+   exatamente aqui que a primeira versão falhou calada, achando que nenhum mês existia. */
+function flvDia1(v){ return String(v==null?"":v).slice(0,10); }
 function flvVrPara(comp, faturamentos, balancos){
   var r = { competencia: comp||null,
             faturamento:null, qtd_vendida:null,
@@ -6198,7 +6202,7 @@ function flvVrPara(comp, faturamentos, balancos){
   var i, x;
   for(i=0;i<(faturamentos||[]).length;i++){
     x=faturamentos[i];
-    if(x && x.competencia===comp){
+    if(x && flvDia1(x.competencia)===comp){
       if(x.faturamento!=null && isFinite(+x.faturamento)) r.faturamento=+x.faturamento;
       if(x.qtd_vendida!=null && isFinite(+x.qtd_vendida)) r.qtd_vendida=+x.qtd_vendida;
       break;
@@ -6208,7 +6212,7 @@ function flvVrPara(comp, faturamentos, balancos){
   var somaV=null, somaQ=null;
   for(i=0;i<(balancos||[]).length;i++){
     x=balancos[i];
-    if(!x || x.competencia_sugerida!==comp) continue;
+    if(!x || flvDia1(x.competencia_sugerida)!==comp) continue;
     r.balancos.push({ data:x.balanco_data,
                       valor:x.valor_diferenca==null?null:+x.valor_diferenca,
                       qtd:x.qtd_diferenca==null?null:+x.qtd_diferenca });
