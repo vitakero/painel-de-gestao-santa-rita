@@ -215,6 +215,42 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .kpi .v { font-size:22px; font-weight:700; color:#0c5a26; }
   .kpi .l { font-size:12px; color:#6b7787; margin-top:3px; text-transform:uppercase; letter-spacing:.4px; }
   .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+  /* ---- FLV: desperdício e premiação. Reaproveita .card/.kpi/.bars; o que existe aqui
+     é só o que o painel ainda não tinha: a linha da meta sobre as barras, o selo de
+     situação e a caixa da prévia do fechamento. ---- */
+  .flv-topo { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .flv-topo .dir { margin-left:auto; display:flex; gap:10px; align-items:center; }
+  .flv-sel { padding:8px 11px; border:1px solid #cdd6e0; border-radius:8px; font-size:13px; background:#fff; color:#33404f; }
+  .flv-sit { display:inline-flex; align-items:center; gap:6px; padding:3px 11px; border-radius:20px; font-size:11px; font-weight:700; letter-spacing:.2px; }
+  .flv-sit.ok { background:#e6f4ea; color:#0c5a26; }
+  .flv-sit.nao { background:#fdecea; color:#a5281b; }
+  .flv-sit.vazio { background:#eef2f7; color:#6b7787; }
+  .flv-dist { font-size:12px; margin-top:5px; }
+  .flv-dist.ok { color:#0c5a26; }
+  .flv-dist.nao { color:#c0392b; }
+  /* a barra do gráfico ganha cor pelo resultado, usando os mesmos tons do painel */
+  .flv-b-ok { background:#2f9e5b; }
+  .flv-b-nao { background:#c0392b; }
+  .flv-b-vazio { background:#e4e9f0; }
+  .flv-graf { position:relative; }
+  .flv-meta-ln { position:absolute; left:0; right:0; border-top:2px dashed #c0392b; pointer-events:none; z-index:1; }
+  .flv-meta-tag { position:absolute; right:0; top:-13px; font-size:10px; color:#c0392b; background:#fff; padding:0 4px; }
+  .flv-vazio { color:#8a97a8; font-size:13px; font-style:italic; }
+  .flv-prev { background:#f7f9fc; border:1px solid #e4e9f0; border-radius:10px; padding:14px 16px; }
+  .flv-prev .ln { display:flex; justify-content:space-between; gap:14px; padding:5px 0; font-size:13px; color:#46535f; }
+  .flv-prev .ln b { color:#1a2233; }
+  .flv-prev .ln.forte { border-top:1px solid #e4e9f0; margin-top:6px; padding-top:10px; font-size:14px; }
+  .flv-cmp { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; }
+  .flv-cmp .it { border:1px solid #eef2f7; border-radius:10px; padding:12px 14px; }
+  .flv-cmp .it b { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:#6b7787; margin-bottom:5px; }
+  .flv-cmp .it .v { font-size:16px; font-weight:700; color:#1a2233; }
+  .flv-cmp .it .d { font-size:12px; margin-top:2px; }
+  .flv-up { color:#0c5a26; } .flv-down { color:#c0392b; } .flv-neutro { color:#8a97a8; }
+  .flv-eq { display:flex; flex-wrap:wrap; gap:8px; }
+  .flv-eq label { display:inline-flex; align-items:center; gap:7px; border:1px solid #dbe2ea; border-radius:20px; padding:6px 13px; font-size:13px; cursor:pointer; background:#fff; }
+  .flv-eq label.on { border-color:#157a35; background:#eef7f0; color:#0c5a26; font-weight:600; }
+  .flv-eq input { accent-color:#157a35; }
+  @media (max-width:900px){ .flv-topo .dir { margin-left:0; width:100%; } }
   .card { background:#fff; border-radius:12px; padding:18px 20px; box-shadow:0 1px 4px rgba(0,0,0,.07); }
   .card h2 { font-size:14px; margin:0 0 16px; color:#0c5a26; }
   .bars { display:flex; align-items:flex-end; gap:10px; height:170px; padding-top:10px; }
@@ -784,6 +820,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item nav-mo" data-page="galpoes" style="display:none;"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-6 9 6v12"/><path d="M3 21h18"/><path d="M9 21v-6h6v6"/></svg></span> Galpões</button>
     <button class="nav-item nav-mo" data-page="planta" style="display:none;"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 9v12"/></svg></span> Planta dos galpões</button>
     <button class="nav-item nav-mo" data-page="despesas" style="display:none;"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Despesas<span class="soon">novo</span></button>
+    <button class="nav-item nav-mo" data-page="flv" style="display:none;"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-4.5-2-8-5.6-8-10a8 8 0 0 1 16 0c0 4.4-3.5 8-8 10z"/><path d="M12 21V9"/><path d="M12 12.5c2.2 0 4-1.6 4-3.5"/></svg></span> FLV<span class="soon">novo</span></button>
     <button class="nav-item" data-page="recibos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a1 1 0 0 1 1 1v14l-3-2-3 2-3-2-3 2-3-2-3 2V5a1 1 0 0 1 1-1z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="13" y2="13"/></svg></span> Recibos</button>
     <button class="nav-item" data-page="layout"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></span> Layout da loja</button>
     <button class="nav-item" data-page="organograma"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="5" rx="1"/><rect x="2" y="17" width="6" height="5" rx="1"/><rect x="16" y="17" width="6" height="5" rx="1"/><path d="M12 7v6"/><path d="M5 17v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/></svg></span> Organograma</button>
@@ -3721,6 +3758,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       </div>
     </section>
     <section id="page-despesas" class="page"><div id="despRoot"></div></section>
+    <section id="page-flv" class="page"><div id="flvRoot"></div></section>
     <section id="page-recibos" class="page"><div id="rcbRoot"></div></section>
     <section id="page-fornecedores" class="page"><div id="frnRoot"></div></section>
   </main>
@@ -5880,6 +5918,979 @@ var CL_DV_BLOCOS=[
     ajuda:"A quantidade bateu. Mudou o custo em relação à compra anterior — quase sempre centavo de arredondamento.",
     cols:[] }
 ];
+/* ==FLVCALC-INICIO== DESPERDÍCIO E PREMIAÇÃO DO FLV — módulo puro (testado em
+   scripts/testes/flv.test.cjs). Sem DOM aqui dentro.
+
+   POR QUE ISTO EXISTE
+     Todo mês, depois do balanço do setor, alguém pegava os números no sistema, jogava numa
+     planilha e calculava percentual, meta e premiação na mão. A planilha devolvia #DIV/0!,
+     -100% e R$ 0,00 nos meses ainda não fechados — e esses zeros pareciam resultado.
+
+   A REGRA QUE DECIDE O PRÊMIO É A FINANCEIRA.
+     desperdício % = desperdício R$ ÷ faturamento × 100.  <= meta → prêmio.
+     O desperdício em QUANTIDADE é acompanhado, aparece no painel, e NÃO decide prêmio.
+
+   MÊS SEM FECHAMENTO É null, NUNCA ZERO.
+     É a regra mais importante daqui. Zero é um resultado ("o mês fechou sem prêmio");
+     ausência é outra coisa ("o mês ainda não fechou"). Confundir os dois foi o defeito da
+     planilha e é o que faz um gráfico mentir.
+
+   O QUE FICA GRAVADO SAI DO BANCO, não daqui.
+     Estas funções desenham a PRÉVIA enquanto a pessoa digita. Quem grava é o gatilho
+     tg_flv_calcular. Os testes conferem que as duas contas dão o mesmo número. */
+
+var FLV_MESES=["janeiro","fevereiro","março","abril","maio","junho",
+               "julho","agosto","setembro","outubro","novembro","dezembro"];
+var FLV_MES3=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+
+/* Competência é sempre o dia 1: comparar e ordenar data é seguro, comparar "7/2026" não. */
+function flvComp(ano, mes){
+  var a=Math.floor(+ano||0), m=Math.floor(+mes||0);
+  if(a<2000 || a>2100 || m<1 || m>12) return null;
+  return a+"-"+("0"+m).slice(-2)+"-01";
+}
+function flvCompPartes(comp){
+  var t=String(comp||"");
+  if(t.length<7) return null;
+  var a=+t.slice(0,4), m=+t.slice(5,7);
+  if(!a || m<1 || m>12) return null;
+  return {ano:a, mes:m};
+}
+function flvCompLabel(comp){
+  var p=flvCompPartes(comp); if(!p) return "";
+  var n=FLV_MESES[p.mes-1];
+  return n.charAt(0).toUpperCase()+n.slice(1)+" / "+p.ano;
+}
+function flvCompCurta(comp){
+  var p=flvCompPartes(comp); if(!p) return "";
+  return FLV_MES3[p.mes-1]+"/"+String(p.ano).slice(2);
+}
+
+/* DINHEIRO EM CENTAVOS INTEIROS.
+   0,1+0,2 em float não dá 0,3; num prêmio dividido por 4 isso vira centavo errado. Arredondo
+   sempre pela mesma porta, com a folga do epsilon para o caso clássico do 1,005. */
+function flvCent(v){
+  var n=+v; if(!isFinite(n)) return 0;
+  return Math.round((n + (n>=0?1:-1)*1e-9) * 100)/100;
+}
+
+/* Número digitado: "1.240,50" e "1240.50" viram 1240.5.
+   SEM REGEX — este arquivo vira texto dentro do gerador do painel, e ali o \d de uma
+   expressão regular perde a barra e vira a letra d. Já quebrou duas vezes neste projeto. */
+function flvNum(t){
+  if(typeof t==="number") return isFinite(t)?t:null;
+  var e=String(t==null?"":t), lim="", i, c, k;
+  for(i=0;i<e.length;i++){
+    c=e.charAt(i); k=e.charCodeAt(i);
+    if((k>=48&&k<=57) || c==="." || c==="," || (c==="-" && !lim.length)) lim+=c;
+  }
+  if(!lim || lim==="-") return null;
+
+  var virg=lim.lastIndexOf(","), pont=lim.lastIndexOf(".");
+  var posDec=-1;
+  if(virg>=0){
+    // vírgula manda: no Brasil ela é sempre o decimal
+    posDec=virg;
+  } else if(pont>=0){
+    /* SÓ PONTO — o caso ambíguo. "600.000" é seiscentos mil ou seiscentos?
+       Mesma régua do módulo de Despesas, para o painel inteiro ler igual:
+       exatamente 3 casas depois do ponto = separador de MILHAR; 1 ou 2 = decimal.
+       Some com o resto: 1.234.567 é milhão, 1.23 é um e vinte e três centavos. */
+    var depois=lim.length-pont-1;
+    posDec = (depois===3) ? -1 : pont;
+  }
+
+  var out="";
+  for(i=0;i<lim.length;i++){
+    c=lim.charAt(i);
+    if(c==="-"){ out+=c; continue; }
+    if(c==="."||c===","){ if(i===posDec) out+="."; continue; }
+    out+=c;
+  }
+  var n=parseFloat(out);
+  return isFinite(n)?n:null;
+}
+
+/* ---- os percentuais ---- */
+/* null quando não dá para calcular. NUNCA 0, NUNCA Infinity, NUNCA NaN. */
+function flvPctValor(desperdicio, faturamento){
+  var d=+desperdicio, f=+faturamento;
+  if(!isFinite(d) || !isFinite(f) || f<=0 || d<0) return null;
+  return Math.round((d/f)*100*10000)/10000;
+}
+function flvPctQtd(desperdicada, vendida){
+  var d=+desperdicada, v=+vendida;
+  if(!isFinite(d) || !isFinite(v) || v<=0 || d<0) return null;
+  return Math.round((d/v)*100*10000)/10000;
+}
+function flvSituacao(pct, meta){
+  if(pct==null || !isFinite(+meta)) return null;
+  return (+pct <= +meta) ? "atingida" : "nao_atingida";
+}
+/* Quanto falta para o limite, em pontos percentuais. É o que a gerência lê de relance. */
+function flvDistancia(pct, meta){
+  if(pct==null || !isFinite(+meta)) return null;
+  var d=Math.round((+meta - +pct)*10000)/10000;
+  return { pp:Math.abs(d), acima:d<0, texto:Math.abs(d).toFixed(2).replace(".",",")+" p.p. "+(d<0?"acima":"abaixo")+" do limite" };
+}
+
+/* ---- a premiação ---- */
+function flvPremio(faturamento, fator, situacao, participantes){
+  var f=+faturamento, x=+fator, n=Math.floor(+participantes||0);
+  if(situacao!=="atingida" || !isFinite(f) || f<=0 || !isFinite(x) || x<0){
+    return { total:0, individual:0, participantes:n<0?0:n };
+  }
+  var total=flvCent(f*x);
+  return { total:total, individual: n>0 ? flvCent(total/n) : 0, participantes:n };
+}
+
+/* A prévia inteira, do jeito que a tela mostra enquanto a pessoa digita. */
+function flvPrevia(d){
+  d=d||{};
+  var pct=flvPctValor(d.desperdicio_valor, d.faturamento);
+  var sit=flvSituacao(pct, d.meta);
+  var pr=flvPremio(d.faturamento, d.fator, sit, d.participantes);
+  return {
+    pct_valor: pct,
+    pct_qtd:   flvPctQtd(d.qtd_desperdicada, d.qtd_vendida),
+    situacao:  sit,
+    distancia: flvDistancia(pct, d.meta),
+    premio_total: pr.total,
+    premio_individual: pr.individual,
+    participantes: pr.participantes
+  };
+}
+
+/* ---- o que impede um fechamento torto ---- */
+function flvValidar(d){
+  d=d||{};
+  var e=[];
+  if(!flvComp(d.ano, d.mes)) e.push("Escolha o mês e o ano da competência.");
+  /* A competência repetida vem ANTES das outras: é a única que a pessoa conserta trocando o
+     mês, e ficava escondida atrás de "informe o faturamento" — ela preenchia tudo para só
+     então descobrir que aquele mês já existia. */
+  else if(d.jaExiste) e.push("Já existe um fechamento para essa competência. Escolha outro mês ou abra o que já existe pelo histórico.");
+  var f=+d.faturamento;
+  if(!isFinite(f) || f<=0) e.push("Informe o faturamento do FLV. Sem ele não há percentual para calcular.");
+  var v=+d.desperdicio_valor;
+  if(!isFinite(v) || v<0) e.push("Informe o desperdício em reais.");
+  else if(isFinite(f) && f>0 && v>f) e.push("O desperdício ficou maior que o faturamento — confira os números.");
+  if(d.qtd_vendida!=null && d.qtd_vendida!=="" && (!isFinite(+d.qtd_vendida) || +d.qtd_vendida<0))
+    e.push("A quantidade vendida está inválida.");
+  if(d.qtd_desperdicada!=null && d.qtd_desperdicada!=="" && (!isFinite(+d.qtd_desperdicada) || +d.qtd_desperdicada<0))
+    e.push("A quantidade desperdiçada está inválida.");
+  if(d.qtd_vendida>0 && +d.qtd_desperdicada > +d.qtd_vendida)
+    e.push("A quantidade desperdiçada ficou maior que a vendida — confira os números.");
+  // Sem colaborador não dá para dividir prêmio; e prêmio que ninguém recebe não é fechamento.
+  if(!(Math.floor(+d.participantes||0) > 0))
+    e.push("Escolha pelo menos um colaborador para o fechamento.");
+  return e;
+}
+
+/* ---- comparações ---- */
+/* Retorna null quando não dá para comparar. Mês futuro não é queda de 100%. */
+function flvVariacao(atual, anterior){
+  if(atual==null || anterior==null) return null;
+  var a=+atual, b=+anterior;
+  if(!isFinite(a) || !isFinite(b) || b===0) return null;
+  return Math.round(((a-b)/b)*100*100)/100;
+}
+
+/* ---- acumulados ---- */
+/* O acumulado do ano NÃO é a média dos percentuais mensais: um mês de faturamento pequeno
+   pesaria igual a um mês grande e distorceria o ano. É soma dos desperdícios sobre soma dos
+   faturamentos — a mesma conta do mês, só que com o ano inteiro dentro. */
+function flvAcumulado(lista){
+  var l=(lista||[]).filter(function(x){ return x && +x.faturamento>0; });
+  if(!l.length) return null;
+  var fat=0, desp=0, qv=0, qd=0, premio=0, dentro=0, fora=0, i, temQtd=false;
+  for(i=0;i<l.length;i++){
+    fat+=+l[i].faturamento||0;
+    desp+=+l[i].desperdicio_valor||0;
+    premio+=+l[i].premio_total||0;
+    if(l[i].qtd_vendida!=null && +l[i].qtd_vendida>0){ qv+=+l[i].qtd_vendida; qd+=+l[i].qtd_desperdicada||0; temQtd=true; }
+    if(l[i].situacao==="atingida") dentro++; else fora++;
+  }
+  return {
+    meses: l.length,
+    faturamento: flvCent(fat),
+    desperdicio_valor: flvCent(desp),
+    pct_valor: flvPctValor(desp, fat),
+    qtd_vendida: temQtd?qv:null,
+    qtd_desperdicada: temQtd?qd:null,
+    pct_qtd: temQtd?flvPctQtd(qd, qv):null,
+    premio_total: flvCent(premio),
+    meses_dentro: dentro,
+    meses_fora: fora,
+    // taxa de cumprimento: só faz sentido sobre os meses QUE FECHARAM
+    taxa_meta: l.length ? Math.round((dentro/l.length)*100*100)/100 : null,
+    // média mensal do percentual, que é outra leitura — não substitui o acumulado
+    media_pct: (function(){
+      var soma=0, n=0;
+      for(var k=0;k<l.length;k++){ var p=flvPctValor(l[k].desperdicio_valor,l[k].faturamento);
+        if(p!=null){ soma+=p; n++; } }
+      return n ? Math.round((soma/n)*10000)/10000 : null;
+    })()
+  };
+}
+
+/* Os 12 meses do ano, na ordem, com null onde não houve fechamento.
+   É esta lista que o gráfico desenha — e é por isso que ele não inventa zero. */
+function flvSerieAno(lista, ano){
+  var out=[], i, m, achado;
+  for(m=1;m<=12;m++){
+    achado=null;
+    for(i=0;i<(lista||[]).length;i++){
+      var p=flvCompPartes(lista[i].competencia);
+      if(p && p.ano===+ano && p.mes===m){ achado=lista[i]; break; }
+    }
+    out.push({ mes:m, rotulo:FLV_MES3[m-1], fechamento:achado,
+               pct: achado ? flvPctValor(achado.desperdicio_valor, achado.faturamento) : null,
+               faturamento: achado ? +achado.faturamento : null,
+               premio_individual: achado ? +achado.premio_individual : null,
+               premio_total: achado ? +achado.premio_total : null });
+  }
+  return out;
+}
+
+/* O mês anterior e o mesmo mês do ano passado, quando existirem. */
+function flvVizinhos(lista, comp){
+  var p=flvCompPartes(comp);
+  if(!p) return { anterior:null, anoAnterior:null };
+  var am=p.mes===1?12:p.mes-1, aa=p.mes===1?p.ano-1:p.ano;
+  function acha(ano, mes){
+    for(var i=0;i<(lista||[]).length;i++){
+      var q=flvCompPartes(lista[i].competencia);
+      if(q && q.ano===ano && q.mes===mes) return lista[i];
+    }
+    return null;
+  }
+  return { anterior:acha(aa,am), anoAnterior:acha(p.ano-1, p.mes) };
+}
+/* ==FLVCALC-FIM== */
+
+/* ---- FLV: tela, nuvem e ações. As contas ficam no módulo FLVCALC acima; aqui só desenho. ---- */
+function flvSB(){ try{ return window.__SB||null; }catch(e){ return null; } }
+function flvPodeVer(){ try{ return podePagina("flv"); }catch(e){ return false; } }
+function flvEhMaster(){ return !!(window.__PERFIL && window.__PERFIL.is_master); }
+
+var flvFech=null, flvEquipe=[], flvCfg={meta:5, fator:0.0012};
+var flvCarregando=false, flvAno=null, flvFiltro={situacao:"", status:""};
+
+function flvEsc(t){ return String(t==null?"":t).replace(/[&<>"']/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function flvMoeda(v){
+  if(v==null || !isFinite(+v)) return "—";
+  return "R$ "+(+v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function flvPctTxt(v, casas){
+  if(v==null || !isFinite(+v)) return "—";
+  return (+v).toFixed(casas==null?2:casas).replace(".",",")+"%";
+}
+function flvQtdTxt(v){
+  if(v==null || !isFinite(+v)) return "—";
+  return (+v).toLocaleString("pt-BR",{maximumFractionDigits:3});
+}
+function flvAnoAtual(){
+  if(flvAno) return flvAno;
+  var l=flvFech||[];
+  if(l.length){ var p=flvCompPartes(l[0].competencia); if(p) return p.ano; }
+  return HOJE.getFullYear();
+}
+
+function flvCloudLoad(){
+  var sb=flvSB(); if(!sb || flvCarregando) return;
+  if(window.__PERFIL==null) return;
+  if(!flvPodeVer()){ flvFech=[]; flvRender(); return; }
+  flvCarregando=true;
+  sb.from("flv_fechamentos").select("*").order("competencia",{ascending:false}).then(function(r){
+    if(!r.error && r.data) flvFech=r.data;
+    else if(r.error) flvFech=flvFech||[];
+    sb.from("flv_equipe").select("*").order("nome").then(function(e){
+      if(!e.error && e.data) flvEquipe=e.data;
+      sb.from("flv_config").select("*").limit(1).then(function(c){
+        if(!c.error && c.data && c.data.length){
+          flvCfg={ meta:+c.data[0].meta_pct||5, fator:+c.data[0].fator_premio||0.0012 };
+        }
+        flvCarregando=false; flvRender();
+      },function(){ flvCarregando=false; flvRender(); });
+    },function(){ flvCarregando=false; flvRender(); });
+  },function(){ flvCarregando=false; flvFech=flvFech||[]; flvRender(); });
+}
+
+/* Um KPI no formato do painel. Aceita rodapé para a distância da meta. */
+function flvKpi(rotulo, valor, extra){
+  return '<div class="kpi"><div class="v">'+valor+'</div><div class="l">'+flvEsc(rotulo)+'</div>'
+    +(extra||"")+'</div>';
+}
+function flvSeloSit(sit){
+  if(sit==="atingida")     return '<span class="flv-sit ok">Meta atingida</span>';
+  if(sit==="nao_atingida") return '<span class="flv-sit nao">Meta não atingida</span>';
+  return '<span class="flv-sit vazio">Sem fechamento</span>';
+}
+
+/* GRÁFICO DE BARRAS COM A LINHA DA META.
+   Mês sem fechamento desenha uma barra cinza vazia e NÃO entra na escala — se entrasse como
+   zero, o gráfico diria que o mês foi ótimo. */
+function flvGrafDesperdicio(serie){
+  var vals=serie.filter(function(x){ return x.pct!=null; }).map(function(x){ return x.pct; });
+  if(!vals.length) return '<p class="flv-vazio">Nenhum mês fechado neste ano ainda.</p>';
+  /* ALTURA EM PIXELS, como os outros gráficos do painel.
+     Tentei porcentagem e as barras sumiram: .bar-col é um flex sem altura própria, então
+     height:40% não tem de que ser 40. O painel inteiro usa px aqui — segui a régua dele. */
+  var ALT=140, ROT=20;                       // 140px de barra + 20px do rótulo embaixo
+  var teto=Math.max(Math.max.apply(null, vals), +flvCfg.meta)*1.25;
+  if(!isFinite(teto) || teto<=0) teto=1;
+  var h='<div class="bars flv-graf">';
+  serie.forEach(function(x){
+    var alt = x.pct==null ? 3 : Math.max(3, (x.pct/teto)*ALT);
+    var cls = x.pct==null ? "flv-b-vazio" : (x.pct<=+flvCfg.meta ? "flv-b-ok" : "flv-b-nao");
+    var tit = x.pct==null ? "sem fechamento" : flvPctTxt(x.pct);
+    h+='<div class="bar-col" title="'+flvEsc(x.rotulo+": "+tit)+'">'
+      +'<div class="bar-v '+cls+'" style="height:'+alt.toFixed(1)+'px"></div>'
+      +'<div class="bar-lbl">'+x.rotulo+'</div></div>';
+  });
+  // a linha da meta sobe do chão do gráfico, na mesma escala das barras
+  var metaPx=(+flvCfg.meta/teto)*ALT + ROT;
+  h+='<div class="flv-meta-ln" style="bottom:'+metaPx.toFixed(1)+'px">'
+    +'<span class="flv-meta-tag">meta '+flvPctTxt(flvCfg.meta)+'</span></div>';
+  return h+'</div>';
+}
+function flvGrafFaturamento(serie){
+  var vals=serie.filter(function(x){ return x.faturamento!=null; }).map(function(x){ return x.faturamento; });
+  if(!vals.length) return '<p class="flv-vazio">Nenhum mês fechado neste ano ainda.</p>';
+  var ALT=140;
+  var teto=Math.max.apply(null, vals)*1.15; if(!isFinite(teto)||teto<=0) teto=1;
+  var h='<div class="bars">';
+  serie.forEach(function(x){
+    var alt = x.faturamento==null ? 3 : Math.max(3,(x.faturamento/teto)*ALT);
+    var vazio = x.faturamento==null;
+    h+='<div class="bar-col" title="'+flvEsc(x.rotulo+": "+(vazio?"sem fechamento":flvMoeda(x.faturamento)))+'">'
+      +'<div class="bar-v '+(vazio?"flv-b-vazio":"")+'" style="height:'+alt.toFixed(1)+'px'
+        +(vazio?"":";background:#157a35")+'"></div>'
+      +'<div class="bar-lbl">'+x.rotulo+'</div></div>';
+  });
+  return h+'</div>';
+}
+
+/* Comparação que sabe dizer "sem dados" em vez de inventar -100%. */
+function flvItemCmp(rotulo, atual, anterior, tipo){
+  var v = tipo==="pct" ? flvPctTxt(atual) : flvMoeda(atual);
+  var d = flvVariacao(atual, anterior);
+  var linha;
+  if(d==null){ linha='<div class="d flv-neutro">Sem dados para comparação</div>'; }
+  else {
+    /* No desperdício, CAIR é bom. No faturamento, subir é bom. A cor segue o que é bom
+       para a loja, não o sinal do número. */
+    var bom = (tipo==="pct"||tipo==="desp") ? d<0 : d>0;
+    linha='<div class="d '+(d===0?"flv-neutro":(bom?"flv-up":"flv-down"))+'">'
+      +(d>0?"+":"")+d.toFixed(2).replace(".",",")+"% vs anterior</div>";
+  }
+  return '<div class="it"><b>'+flvEsc(rotulo)+'</b><div class="v">'+v+'</div>'+linha+'</div>';
+}
+
+function flvRender(){
+  var el=document.getElementById("flvRoot"); if(!el) return;
+  if(window.__PERFIL==null){
+    el.innerHTML='<div class="card"><span class="flv-vazio">Carregando…</span></div>';
+    return;
+  }
+  if(!flvPodeVer()){
+    el.innerHTML='<div class="em-breve"><h2>FLV</h2><p>Você não tem acesso a este módulo. '
+      +'Peça ao administrador para liberar a página FLV nos Acessos.</p></div>';
+    return;
+  }
+  if(flvFech==null){
+    el.innerHTML='<div class="card"><span class="flv-vazio">Carregando os fechamentos…</span></div>';
+    return;
+  }
+
+  var ano=flvAnoAtual();
+  var anos={}; (flvFech||[]).forEach(function(x){ var p=flvCompPartes(x.competencia); if(p) anos[p.ano]=1; });
+  anos[HOJE.getFullYear()]=1; anos[ano]=1;
+  var listaAnos=Object.keys(anos).map(Number).sort(function(a,b){ return b-a; });
+
+  var serie=flvSerieAno(flvFech, ano);
+  var doAno=(flvFech||[]).filter(function(x){ var p=flvCompPartes(x.competencia); return p && p.ano===ano; });
+  var ultimo=doAno.length?doAno[0]:null;               // já vem ordenado desc
+  var acAno=flvAcumulado(doAno);
+  var acAnt=flvAcumulado((flvFech||[]).filter(function(x){ var p=flvCompPartes(x.competencia); return p && p.ano===ano-1; }));
+  var viz=ultimo?flvVizinhos(flvFech, ultimo.competencia):{anterior:null,anoAnterior:null};
+
+  var h='';
+
+  /* ---- barra de topo ---- */
+  h+='<div class="card flv-topo">'
+    +'<div><h2 style="margin:0 0 2px;">Desperdício e premiação — FLV</h2>'
+    +'<span style="font-size:12.5px;color:#6b7787;">'
+      +(ultimo?('Último fechamento: '+flvEsc(flvCompLabel(ultimo.competencia))):'Nenhum fechamento ainda')
+    +'</span></div>'
+    +'<div class="dir">'
+      +'<select class="flv-sel" id="flvAnoSel">'
+        +listaAnos.map(function(a){ return '<option value="'+a+'"'+(a===ano?' selected':'')+'>'+a+'</option>'; }).join("")
+      +'</select>'
+      +(flvEhMaster()?'<button class="btn-s" id="flvCfgBt">Configurações</button>':'')
+      +'<button class="btn-p" id="flvNovoBt">Novo fechamento</button>'
+    +'</div></div>';
+
+  /* ---- KPIs do último mês fechado ---- */
+  if(ultimo){
+    var pct=flvPctValor(ultimo.desperdicio_valor, ultimo.faturamento);
+    var dist=flvDistancia(pct, ultimo.meta_aplicada);
+    h+='<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));">'
+      +flvKpi("Faturamento · "+flvCompCurta(ultimo.competencia), flvMoeda(ultimo.faturamento))
+      +flvKpi("Desperdício", flvMoeda(ultimo.desperdicio_valor))
+      +flvKpi("Desperdício", flvPctTxt(pct),
+          dist?'<div class="flv-dist '+(dist.acima?"nao":"ok")+'">'+flvEsc(dist.texto)+'</div>':"")
+      +flvKpi("Meta aplicada", "≤ "+flvPctTxt(ultimo.meta_aplicada))
+      +flvKpi("Situação", flvSeloSit(ultimo.situacao))
+      +flvKpi("Prêmio por colaborador", flvMoeda(ultimo.premio_individual),
+          '<div class="flv-dist">'+(+ultimo.participantes||0)+' colaborador(es) · total '+flvMoeda(ultimo.premio_total)+'</div>')
+      +'</div>';
+  } else {
+    h+='<div class="card"><span class="flv-vazio">Nenhum fechamento registrado. '
+      +'Clique em “Novo fechamento” para lançar o primeiro mês.</span></div>';
+  }
+
+  /* ---- gráficos ---- */
+  h+='<div class="grid2">'
+    +'<div class="card"><h2>Desperdício mês a mês — '+ano+'</h2>'+flvGrafDesperdicio(serie)+'</div>'
+    +'<div class="card"><h2>Faturamento mês a mês — '+ano+'</h2>'+flvGrafFaturamento(serie)+'</div>'
+    +'</div>';
+
+  /* ---- comparativos ---- */
+  if(ultimo){
+    h+='<div class="card"><h2>Comparativos</h2><div class="flv-cmp">'
+      +flvItemCmp("Faturamento vs mês anterior", +ultimo.faturamento,
+                  viz.anterior?+viz.anterior.faturamento:null, "fat")
+      +flvItemCmp("Faturamento vs mesmo mês do ano anterior", +ultimo.faturamento,
+                  viz.anoAnterior?+viz.anoAnterior.faturamento:null, "fat")
+      +flvItemCmp("Desperdício % vs mês anterior", flvPctValor(ultimo.desperdicio_valor,ultimo.faturamento),
+                  viz.anterior?flvPctValor(viz.anterior.desperdicio_valor,viz.anterior.faturamento):null, "pct")
+      +flvItemCmp("Desperdício R$ vs mês anterior", +ultimo.desperdicio_valor,
+                  viz.anterior?+viz.anterior.desperdicio_valor:null, "desp")
+      +flvItemCmp("Premiação vs mês anterior", +ultimo.premio_total,
+                  viz.anterior?+viz.anterior.premio_total:null, "fat")
+      +(acAno&&acAnt
+        ? flvItemCmp("Acumulado do ano vs ano anterior", acAno.faturamento, acAnt.faturamento, "fat")
+        : '<div class="it"><b>Acumulado do ano vs ano anterior</b><div class="v">—</div>'
+          +'<div class="d flv-neutro">Sem dados para comparação</div></div>')
+      +'</div></div>';
+  }
+
+  /* ---- indicadores do ano ---- */
+  h+='<div class="card"><h2>Indicadores de '+ano+'</h2>';
+  if(!acAno){
+    h+='<p class="flv-vazio">Nenhum mês fechado em '+ano+'.</p>';
+  } else {
+    h+='<div class="flv-cmp">'
+      +'<div class="it"><b>Faturamento acumulado</b><div class="v">'+flvMoeda(acAno.faturamento)+'</div></div>'
+      +'<div class="it"><b>Desperdício acumulado</b><div class="v">'+flvMoeda(acAno.desperdicio_valor)+'</div></div>'
+      +'<div class="it"><b>Desperdício acumulado %</b><div class="v">'+flvPctTxt(acAno.pct_valor)+'</div>'
+        +'<div class="d flv-neutro">soma ÷ soma, não média dos meses</div></div>'
+      +'<div class="it"><b>Média mensal do desperdício</b><div class="v">'+flvPctTxt(acAno.media_pct)+'</div></div>'
+      +'<div class="it"><b>Quantidade desperdiçada</b><div class="v">'+flvQtdTxt(acAno.qtd_desperdicada)+'</div></div>'
+      +'<div class="it"><b>Meses dentro da meta</b><div class="v">'+acAno.meses_dentro+' de '+acAno.meses+'</div>'
+        +'<div class="d flv-neutro">'+flvPctTxt(acAno.taxa_meta)+' de cumprimento</div></div>'
+      +'<div class="it"><b>Meses acima da meta</b><div class="v">'+acAno.meses_fora+'</div></div>'
+      +'<div class="it"><b>Premiação paga no ano</b><div class="v">'+flvMoeda(acAno.premio_total)+'</div></div>'
+      +'</div>';
+  }
+  h+='</div>';
+
+  /* ---- premiação mês a mês ---- */
+  h+='<div class="card"><h2>Premiação mês a mês — '+ano+'</h2>'
+    +'<table><thead><tr><th>Mês</th><th style="text-align:right">Prêmio total</th>'
+    +'<th style="text-align:right">Por colaborador</th><th>Situação</th></tr></thead><tbody>';
+  serie.forEach(function(x){
+    if(!x.fechamento){
+      h+='<tr><td>'+x.rotulo+'</td><td colspan="3" class="flv-vazio">Aguardando fechamento</td></tr>';
+    } else {
+      h+='<tr><td>'+x.rotulo+'</td>'
+        +'<td style="text-align:right">'+flvMoeda(x.premio_total)+'</td>'
+        +'<td style="text-align:right"><b>'+flvMoeda(x.premio_individual)+'</b></td>'
+        +'<td>'+flvSeloSit(x.fechamento.situacao)+'</td></tr>';
+    }
+  });
+  h+='</tbody></table></div>';
+
+  /* ---- histórico ---- */
+  var hist=(flvFech||[]).filter(function(x){
+    if(flvFiltro.situacao && x.situacao!==flvFiltro.situacao) return false;
+    if(flvFiltro.status && x.status!==flvFiltro.status) return false;
+    return true;
+  });
+  h+='<div class="card"><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;">'
+    +'<h2 style="margin:0;">Histórico de fechamentos</h2>'
+    +'<div style="margin-left:auto;display:flex;gap:8px;">'
+      +'<select class="flv-sel" id="flvFsit"><option value="">Toda situação</option>'
+        +'<option value="atingida"'+(flvFiltro.situacao==="atingida"?" selected":"")+'>Meta atingida</option>'
+        +'<option value="nao_atingida"'+(flvFiltro.situacao==="nao_atingida"?" selected":"")+'>Meta não atingida</option></select>'
+      +'<select class="flv-sel" id="flvFst"><option value="">Todo status</option>'
+        +'<option value="rascunho"'+(flvFiltro.status==="rascunho"?" selected":"")+'>Rascunho</option>'
+        +'<option value="fechado"'+(flvFiltro.status==="fechado"?" selected":"")+'>Fechado</option></select>'
+    +'</div></div>';
+  if(!hist.length){
+    h+='<p class="flv-vazio">Nenhum fechamento com esses filtros.</p>';
+  } else {
+    h+='<table><thead><tr><th>Competência</th><th style="text-align:right">Faturamento</th>'
+      +'<th style="text-align:right">Desperdício R$</th><th style="text-align:right">Desp. %</th>'
+      +'<th style="text-align:right">Qtd. desp.</th><th style="text-align:right">Qtd. %</th>'
+      +'<th style="text-align:right">Meta</th><th>Situação</th>'
+      +'<th style="text-align:right">Prêmio total</th><th style="text-align:right">Colab.</th>'
+      +'<th style="text-align:right">Individual</th><th>Status</th><th></th></tr></thead><tbody>';
+    hist.forEach(function(x){
+      h+='<tr>'
+        +'<td><b>'+flvEsc(flvCompLabel(x.competencia))+'</b></td>'
+        +'<td style="text-align:right">'+flvMoeda(x.faturamento)+'</td>'
+        +'<td style="text-align:right">'+flvMoeda(x.desperdicio_valor)+'</td>'
+        +'<td style="text-align:right">'+flvPctTxt(x.pct_valor)+'</td>'
+        +'<td style="text-align:right">'+flvQtdTxt(x.qtd_desperdicada)+'</td>'
+        +'<td style="text-align:right">'+flvPctTxt(x.pct_qtd)+'</td>'
+        +'<td style="text-align:right">≤ '+flvPctTxt(x.meta_aplicada)+'</td>'
+        +'<td>'+flvSeloSit(x.situacao)+'</td>'
+        +'<td style="text-align:right">'+flvMoeda(x.premio_total)+'</td>'
+        +'<td style="text-align:right">'+(+x.participantes||0)+'</td>'
+        +'<td style="text-align:right"><b>'+flvMoeda(x.premio_individual)+'</b></td>'
+        +'<td><span class="flv-sit '+(x.status==="fechado"?"ok":"vazio")+'">'
+          +(x.status==="fechado"?"Fechado":"Rascunho")+'</span></td>'
+        +'<td><button class="btn-s" data-flvver="'+flvEsc(x.id)+'">Ver</button></td>'
+        +'</tr>';
+    });
+    h+='</tbody></table>';
+  }
+  h+='</div>';
+
+  el.innerHTML=h;
+
+  var sel=document.getElementById("flvAnoSel");
+  if(sel) sel.onchange=function(){ flvAno=+this.value; flvRender(); };
+  var fs=document.getElementById("flvFsit");
+  if(fs) fs.onchange=function(){ flvFiltro.situacao=this.value; flvRender(); };
+  var ft=document.getElementById("flvFst");
+  if(ft) ft.onchange=function(){ flvFiltro.status=this.value; flvRender(); };
+  var bn=document.getElementById("flvNovoBt");
+  if(bn) bn.onclick=function(){ flvAbrirFechamento(null); };
+  var bc=document.getElementById("flvCfgBt");
+  if(bc) bc.onclick=flvAbrirConfig;
+  el.querySelectorAll("[data-flvver]").forEach(function(b){
+    b.onclick=function(){ flvAbrirDetalhe(b.getAttribute("data-flvver")); };
+  });
+}
+
+/* ---- FLV: a janela do fechamento, com a prévia calculando enquanto se digita ---- */
+function flvModal(id, largura){
+  var m=document.getElementById(id);
+  if(!m){
+    m=document.createElement("div"); m.id=id; m.className="modal-bg";
+    m.innerHTML='<div class="modal-cx" style="max-width:'+(largura||660)+'px;max-height:92vh;overflow:auto;"></div>';
+    document.body.appendChild(m);
+    m.addEventListener("click",function(e){ if(e.target===m) m.classList.remove("show"); });
+  }
+  var cx=m.querySelector(".modal-cx");
+  if(cx) cx.style.maxWidth=(largura||660)+"px";
+  return m;
+}
+function flvFechaModal(id){ var m=document.getElementById(id); if(m) m.classList.remove("show"); }
+
+/* Se a competência já existe, ABRE o que existe em vez de deixar criar outra — dois
+   fechamentos do mesmo mês seriam duas verdades e nenhuma tela saberia qual mostrar. */
+function flvAchaComp(comp){
+  var l=flvFech||[];
+  for(var i=0;i<l.length;i++) if(String(l[i].competencia).slice(0,10)===comp) return l[i];
+  return null;
+}
+
+function flvAbrirFechamento(id){
+  var edit = id ? flvAchaComp0(id) : null;
+  var m=flvModal("flvModalFech", 720), cx=m.querySelector(".modal-cx");
+  /* ABRE NO PRÓXIMO MÊS A FECHAR.
+     Abrir no mês passado parecia natural, mas ele quase sempre JÁ ESTÁ fechado — a janela
+     nascia bloqueada dizendo "essa competência já existe". Aqui: o mês seguinte ao último
+     fechamento que existe; sem nenhum, o mês passado. */
+  var hoje=HOJE, mesIni, anoIni;
+  if(edit){
+    var pe=flvCompPartes(edit.competencia);
+    mesIni=pe.mes; anoIni=pe.ano;
+  } else {
+    var ult=(flvFech||[])[0];
+    if(ult){
+      var pu=flvCompPartes(ult.competencia);
+      mesIni = pu.mes===12 ? 1 : pu.mes+1;
+      anoIni = pu.mes===12 ? pu.ano+1 : pu.ano;
+    } else {
+      mesIni = hoje.getMonth()===0 ? 12 : hoje.getMonth();
+      anoIni = hoje.getMonth()===0 ? hoje.getFullYear()-1 : hoje.getFullYear();
+    }
+  }
+  var ativos=(flvEquipe||[]).filter(function(x){ return x.ativo; });
+  var jaMarcados = edit ? (edit.__equipe||[]).map(function(x){ return x.nome; }) : ativos.map(function(x){ return x.nome; });
+
+  var inp="width:100%;margin-top:5px;padding:9px 11px;border:1px solid #cdd6e0;border-radius:8px;font-size:14px;";
+  var lbl="display:block;font-size:12px;font-weight:600;color:#46535f;";
+
+  cx.innerHTML='<div class="modal-top"><div class="modal-ic neutro">'
+    +'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg></div>'
+    +'<div class="modal-tit">'+(edit?"Editar fechamento":"Novo fechamento do FLV")+'</div></div>'
+    +'<div style="padding:14px 24px 4px;">'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'
+        +'<label style="'+lbl+'">Mês<select id="flvMes" style="'+inp+'">'
+          +FLV_MESES.map(function(n,i){ return '<option value="'+(i+1)+'"'+((i+1)===mesIni?" selected":"")+'>'
+            +n.charAt(0).toUpperCase()+n.slice(1)+'</option>'; }).join("")
+        +'</select></label>'
+        +'<label style="'+lbl+'">Ano<input type="number" id="flvAnoIn" min="2000" max="2100" value="'+anoIni+'" style="'+inp+'"></label>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">'
+        +'<label style="'+lbl+'">Faturamento do FLV<input type="text" id="flvFat" inputmode="decimal" placeholder="R$ 0,00" value="'+(edit?edit.faturamento:"")+'" style="'+inp+'"></label>'
+        +'<label style="'+lbl+'">Desperdício em reais<input type="text" id="flvDesp" inputmode="decimal" placeholder="R$ 0,00" value="'+(edit?edit.desperdicio_valor:"")+'" style="'+inp+'"></label>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">'
+        +'<label style="'+lbl+'">Quantidade vendida <span style="font-weight:400;color:#8a97a8;">(opcional)</span>'
+          +'<input type="text" id="flvQv" inputmode="decimal" value="'+(edit&&edit.qtd_vendida!=null?edit.qtd_vendida:"")+'" style="'+inp+'"></label>'
+        +'<label style="'+lbl+'">Quantidade desperdiçada <span style="font-weight:400;color:#8a97a8;">(opcional)</span>'
+          +'<input type="text" id="flvQd" inputmode="decimal" value="'+(edit&&edit.qtd_desperdicada!=null?edit.qtd_desperdicada:"")+'" style="'+inp+'"></label>'
+      +'</div>'
+      +'<div style="margin-top:14px;">'
+        +'<span style="'+lbl+'">Colaboradores do fechamento</span>'
+        +(ativos.length
+          ? '<div class="flv-eq" id="flvEqBox" style="margin-top:7px;">'
+            +ativos.map(function(x){
+                var on=jaMarcados.indexOf(x.nome)>=0;
+                return '<label class="'+(on?"on":"")+'"><input type="checkbox" data-flveq="'+flvEsc(x.id)+'" '
+                  +'data-nome="'+flvEsc(x.nome)+'"'+(on?" checked":"")+'> '+flvEsc(x.nome)+'</label>'; }).join("")
+            +'</div>'
+          : '<p class="flv-vazio" style="margin:7px 0 0;">Nenhum colaborador cadastrado. '
+            +'Abra <b>Configurações</b> e cadastre a equipe do FLV antes de fechar o mês.</p>')
+      +'</div>'
+      +'<label style="'+lbl+'margin-top:12px;">Observações <span style="font-weight:400;color:#8a97a8;">(opcional)</span>'
+        +'<textarea id="flvObs" rows="2" style="'+inp+'resize:vertical;">'+flvEsc(edit?(edit.observacoes||""):"")+'</textarea></label>'
+      +'<div style="margin-top:16px;"><span style="'+lbl+'margin-bottom:7px;">Prévia do cálculo</span>'
+        +'<div class="flv-prev" id="flvPrev"></div></div>'
+      +'<div id="flvErro" style="margin-top:10px;font-size:13px;color:#c0392b;"></div>'
+    +'</div>'
+    +'<div class="modal-acts">'
+      +'<button class="btn-s" id="flvCancel">Cancelar</button>'
+      +'<button class="btn-s" id="flvSalvarRasc">Salvar rascunho</button>'
+      +'<button class="btn-p" id="flvConfirmar">Confirmar fechamento</button>'
+    +'</div>';
+  m.classList.add("show");
+
+  function lidos(){
+    function v(id){ var e=document.getElementById(id); return e?e.value:""; }
+    var eq=[];
+    (cx.querySelectorAll("[data-flveq]")||[]).forEach(function(c){
+      if(c.checked) eq.push({ id:c.getAttribute("data-flveq"), nome:c.getAttribute("data-nome") });
+    });
+    return {
+      ano:+v("flvAnoIn"), mes:+v("flvMes"),
+      faturamento: flvNum(v("flvFat")),
+      desperdicio_valor: flvNum(v("flvDesp")),
+      qtd_vendida: v("flvQv")===""?null:flvNum(v("flvQv")),
+      qtd_desperdicada: v("flvQd")===""?null:flvNum(v("flvQd")),
+      observacoes: v("flvObs"),
+      equipe: eq, participantes: eq.length
+    };
+  }
+  function pinta(){
+    var d=lidos();
+    var comp=flvComp(d.ano,d.mes);
+    var existe = comp ? flvAchaComp(comp) : null;
+    var jaExiste = !!(existe && (!edit || existe.id!==edit.id));
+    var pv=flvPrevia({ faturamento:d.faturamento, desperdicio_valor:d.desperdicio_valor,
+                       qtd_vendida:d.qtd_vendida, qtd_desperdicada:d.qtd_desperdicada,
+                       meta:flvCfg.meta, fator:flvCfg.fator, participantes:d.participantes });
+    var box=document.getElementById("flvPrev");
+    if(box){
+      box.innerHTML=
+         '<div class="ln"><span>Faturamento</span><b>'+flvMoeda(d.faturamento)+'</b></div>'
+        +'<div class="ln"><span>Desperdício</span><b>'+flvMoeda(d.desperdicio_valor)+'</b></div>'
+        +'<div class="ln"><span>Desperdício financeiro</span><b>'+flvPctTxt(pv.pct_valor)+'</b></div>'
+        +(pv.pct_qtd!=null?'<div class="ln"><span>Desperdício em quantidade</span><b>'+flvPctTxt(pv.pct_qtd)+'</b></div>':"")
+        +'<div class="ln"><span>Meta</span><b>≤ '+flvPctTxt(flvCfg.meta)+'</b></div>'
+        +(pv.distancia?'<div class="ln"><span>Margem até o limite</span><b class="'
+            +(pv.distancia.acima?"flv-down":"flv-up")+'">'+flvEsc(pv.distancia.texto)+'</b></div>':"")
+        +'<div class="ln forte"><span>Situação</span><b>'+flvSeloSit(pv.situacao)+'</b></div>'
+        +'<div class="ln"><span>Premiação total</span><b>'+flvMoeda(pv.premio_total)+'</b></div>'
+        +'<div class="ln"><span>Colaboradores</span><b>'+pv.participantes+'</b></div>'
+        +'<div class="ln forte"><span>Premiação por colaborador</span><b>'+flvMoeda(pv.premio_individual)+'</b></div>';
+    }
+    (cx.querySelectorAll(".flv-eq label")||[]).forEach(function(l){
+      var c=l.querySelector("input"); if(c) l.classList.toggle("on", c.checked);
+    });
+    var erros=flvValidar({ ano:d.ano, mes:d.mes, faturamento:d.faturamento,
+      desperdicio_valor:d.desperdicio_valor, qtd_vendida:d.qtd_vendida,
+      qtd_desperdicada:d.qtd_desperdicada, participantes:d.participantes, jaExiste:jaExiste });
+    var er=document.getElementById("flvErro");
+    if(er) er.textContent = erros.length ? erros[0] : "";
+    var bc=document.getElementById("flvConfirmar"), br=document.getElementById("flvSalvarRasc");
+    if(bc){ bc.disabled=erros.length>0; bc.style.opacity=erros.length?".45":"1"; }
+    if(br){ br.disabled=!!(jaExiste||!comp); br.style.opacity=(jaExiste||!comp)?".45":"1"; }
+    return { d:d, comp:comp, erros:erros };
+  }
+  cx.querySelectorAll("input,select,textarea").forEach(function(i){
+    i.addEventListener("input",pinta); i.addEventListener("change",pinta);
+  });
+  pinta();
+
+  var bx=document.getElementById("flvCancel");
+  if(bx) bx.onclick=function(){ flvFechaModal("flvModalFech"); };
+  var br=document.getElementById("flvSalvarRasc");
+  if(br) br.onclick=function(){ flvGravar(edit, pinta(), "rascunho"); };
+  var bc=document.getElementById("flvConfirmar");
+  if(bc) bc.onclick=function(){
+    var r=pinta(); if(r.erros.length) return;
+    uiConfirm({ titulo:"Confirmar o fechamento de "+flvCompLabel(r.comp)+"?",
+      msg:"Depois de fechado, mudar os números exige reabrir o mês — e isso fica registrado.",
+      ok:"Confirmar fechamento", cancel:"Voltar" }).then(function(ok){
+        if(ok) flvGravar(edit, r, "fechado");
+      });
+  };
+}
+/* achar pelo id (o de cima acha por competência) */
+function flvAchaComp0(id){
+  var l=flvFech||[];
+  for(var i=0;i<l.length;i++) if(String(l[i].id)===String(id)) return l[i];
+  return null;
+}
+
+/* GRAVAR.
+   Manda só o que foi DIGITADO mais o snapshot da regra. Percentuais, prêmio e situação são
+   preenchidos pelo gatilho no banco — se a tela mandasse esses números, um dia a conta da
+   tela e a do banco divergiriam e o histórico ficaria errado sem ninguém ver. */
+function flvGravar(edit, r, status){
+  var sb=flvSB(); if(!sb) return;
+  if(r.erros.length && status==="fechado") return;
+  var d=r.d, comp=r.comp;
+  if(!comp) return;
+  var eu=(window.__PERFIL&&window.__PERFIL.id)||null;
+  var linha={
+    competencia: comp, setor:"FLV",
+    faturamento: d.faturamento, desperdicio_valor: d.desperdicio_valor,
+    qtd_vendida: d.qtd_vendida, qtd_desperdicada: d.qtd_desperdicada,
+    observacoes: d.observacoes||null,
+    // SNAPSHOT: o que valia hoje fica congelado neste mês
+    meta_aplicada: flvCfg.meta, fator_aplicado: flvCfg.fator,
+    status: status, atualizado_por: eu, atualizado_em: new Date().toISOString()
+  };
+  if(status==="fechado"){ linha.fechado_em=new Date().toISOString(); linha.fechado_por=eu; }
+  if(edit) linha.id=edit.id; else linha.criado_por=eu;
+
+  sb.from("flv_fechamentos").upsert(linha,{onConflict:"tenant_id,setor,competencia"})
+    .select("id").then(function(res){
+      if(res.error){
+        uiConfirm({titulo:"Não consegui gravar", msg:String(res.error.message||"Tente de novo."), ok:"OK", cancel:""});
+        return;
+      }
+      var fid=(res.data&&res.data[0]&&res.data[0].id)||(edit&&edit.id);
+      if(!fid){ flvFechaModal("flvModalFech"); flvCloudLoad(); return; }
+      // a equipe é reescrita inteira: é a foto de quem participou deste mês
+      sb.from("flv_fechamento_equipe").delete().eq("fechamento_id",fid).then(function(){
+        var eq=(d.equipe||[]).map(function(x){ return {fechamento_id:fid, equipe_id:x.id, nome:x.nome}; });
+        if(!eq.length){ flvFechaModal("flvModalFech"); flvCloudLoad(); return; }
+        sb.from("flv_fechamento_equipe").insert(eq).then(function(){
+          flvFechaModal("flvModalFech"); flvCloudLoad();
+        },function(){ flvFechaModal("flvModalFech"); flvCloudLoad(); });
+      },function(){ flvFechaModal("flvModalFech"); flvCloudLoad(); });
+    },function(){
+      uiConfirm({titulo:"Não consegui gravar", msg:"Sem conexão com a nuvem.", ok:"OK", cancel:""});
+    });
+}
+
+/* ---- detalhe de um fechamento ---- */
+function flvAbrirDetalhe(id){
+  var f=flvAchaComp0(id); if(!f) return;
+  var sb=flvSB();
+  var m=flvModal("flvModalDet", 640), cx=m.querySelector(".modal-cx");
+  function desenha(equipe){
+    var dist=flvDistancia(f.pct_valor, f.meta_aplicada);
+    var linha=function(r,v){ return '<div class="ln"><span>'+flvEsc(r)+'</span><b>'+v+'</b></div>'; };
+    cx.innerHTML='<div class="modal-top"><div class="modal-ic neutro">'
+      +'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg></div>'
+      +'<div class="modal-tit">Fechamento FLV — '+flvEsc(flvCompLabel(f.competencia))+'</div></div>'
+      +'<div style="padding:14px 24px 4px;">'
+        +'<div style="margin-bottom:14px;">'+flvSeloSit(f.situacao)
+          +' <span class="flv-sit '+(f.status==="fechado"?"ok":"vazio")+'">'
+          +(f.status==="fechado"?"Fechado":"Rascunho")+'</span></div>'
+        +'<span style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#6b7787;font-weight:700;margin-bottom:6px;">Resultado financeiro</span>'
+        +'<div class="flv-prev">'
+          +linha("Faturamento", flvMoeda(f.faturamento))
+          +linha("Desperdício", flvMoeda(f.desperdicio_valor))
+          +linha("Percentual", flvPctTxt(f.pct_valor))
+          +linha("Meta aplicada", "≤ "+flvPctTxt(f.meta_aplicada))
+          +(dist?linha("Margem", '<span class="'+(dist.acima?"flv-down":"flv-up")+'">'+flvEsc(dist.texto)+'</span>'):"")
+        +'</div>'
+        +'<span style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#6b7787;font-weight:700;margin:16px 0 6px;">Quantidade</span>'
+        +'<div class="flv-prev">'
+          +linha("Quantidade vendida", flvQtdTxt(f.qtd_vendida))
+          +linha("Quantidade desperdiçada", flvQtdTxt(f.qtd_desperdicada))
+          +linha("Desperdício em quantidade", flvPctTxt(f.pct_qtd))
+        +'</div>'
+        +'<span style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#6b7787;font-weight:700;margin:16px 0 6px;">Premiação</span>'
+        +'<div class="flv-prev">'
+          +linha("Base utilizada", String(f.fator_aplicado))
+          +linha("Premiação total", flvMoeda(f.premio_total))
+          +linha("Colaboradores", String(+f.participantes||0))
+          +linha("Premiação individual", flvMoeda(f.premio_individual))
+        +'</div>'
+        +'<span style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#6b7787;font-weight:700;margin:16px 0 6px;">Quem participou</span>'
+        +(equipe===null
+          ? '<p class="flv-vazio">Carregando…</p>'
+          : (equipe.length
+             ? '<div class="flv-eq">'+equipe.map(function(x){ return '<label class="on">'+flvEsc(x.nome)+'</label>'; }).join("")+'</div>'
+             : '<p class="flv-vazio">Nenhum colaborador vinculado.</p>'))
+        +(f.observacoes?'<div style="margin-top:14px;font-size:13px;color:#46535f;"><b style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#6b7787;display:block;margin-bottom:4px;">Observações</b>'+flvEsc(f.observacoes)+'</div>':"")
+      +'</div>'
+      +'<div class="modal-acts">'
+        +'<button class="btn-s" id="flvDetFechar">Fechar</button>'
+        +(f.status==="rascunho"
+          ? '<button class="btn-p" id="flvDetEditar">Editar</button>'
+          : (flvEhMaster()?'<button class="btn-s" id="flvDetReabrir">Reabrir para editar</button>':''))
+      +'</div>';
+    var b1=document.getElementById("flvDetFechar");
+    if(b1) b1.onclick=function(){ flvFechaModal("flvModalDet"); };
+    var b2=document.getElementById("flvDetEditar");
+    if(b2) b2.onclick=function(){ f.__equipe=equipe||[]; flvFechaModal("flvModalDet"); flvAbrirFechamento(f.id); };
+    var b3=document.getElementById("flvDetReabrir");
+    if(b3) b3.onclick=function(){
+      uiConfirm({ titulo:"Reabrir "+flvCompLabel(f.competencia)+"?",
+        msg:"O mês volta para rascunho e pode ser alterado. A reabertura fica registrada no histórico de eventos.",
+        ok:"Reabrir", cancel:"Voltar" }).then(function(ok){
+          if(!ok) return;
+          var sb2=flvSB(); if(!sb2) return;
+          sb2.from("flv_fechamentos").update({status:"rascunho",
+            atualizado_por:(window.__PERFIL&&window.__PERFIL.id)||null,
+            atualizado_em:new Date().toISOString()}).eq("id",f.id).then(function(){
+              flvFechaModal("flvModalDet"); flvCloudLoad();
+            },function(){});
+        });
+    };
+  }
+  desenha(null);
+  m.classList.add("show");
+  if(sb) sb.from("flv_fechamento_equipe").select("nome").eq("fechamento_id",f.id).then(function(r){
+    desenha((!r.error && r.data) ? r.data : []);
+  },function(){ desenha([]); });
+}
+
+/* ---- configurações: a regra e a equipe ---- */
+function flvAbrirConfig(){
+  if(!flvEhMaster()) return;
+  var m=flvModal("flvModalCfg", 560), cx=m.querySelector(".modal-cx");
+  var inp="width:100%;margin-top:5px;padding:9px 11px;border:1px solid #cdd6e0;border-radius:8px;font-size:14px;";
+  var lbl="display:block;font-size:12px;font-weight:600;color:#46535f;";
+  function desenha(){
+    var ativos=(flvEquipe||[]).filter(function(x){ return x.ativo; });
+    var inativos=(flvEquipe||[]).filter(function(x){ return !x.ativo; });
+    cx.innerHTML='<div class="modal-top"><div class="modal-ic neutro">⚙</div>'
+      +'<div class="modal-tit">Configurações do FLV</div></div>'
+      +'<div style="padding:14px 24px 4px;">'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'
+          +'<label style="'+lbl+'">Meta máxima de desperdício (%)'
+            +'<input type="text" id="flvCfgMeta" inputmode="decimal" value="'+String(flvCfg.meta).replace(".",",")+'" style="'+inp+'"></label>'
+          +'<label style="'+lbl+'">Fator de premiação'
+            +'<input type="text" id="flvCfgFator" inputmode="decimal" value="'+String(flvCfg.fator)+'" style="'+inp+'"></label>'
+        +'</div>'
+        +'<p style="margin:8px 0 0;font-size:12px;color:#8a97a8;line-height:1.5;">'
+          +'Mudar aqui vale só para os PRÓXIMOS fechamentos. Cada mês já fechado guarda a regra '
+          +'que valia no dia — julho continua mostrando a meta de julho.</p>'
+        +'<div id="flvCfgPrev" style="margin-top:10px;font-size:12.5px;color:#46535f;"></div>'
+        +'<div style="border-top:1px solid #eef2f7;margin:18px 0 0;padding-top:16px;">'
+          +'<span style="'+lbl+'margin-bottom:8px;">Equipe do FLV</span>'
+          +(ativos.length?'<div class="flv-eq" style="margin-bottom:10px;">'
+             +ativos.map(function(x){ return '<label class="on">'+flvEsc(x.nome)
+               +' <button type="button" data-flvout="'+flvEsc(x.id)+'" title="Tirar da equipe" '
+               +'style="border:0;background:none;color:#8a97a8;cursor:pointer;font-size:15px;line-height:1;padding:0 0 0 4px;">×</button></label>'; }).join("")
+             +'</div>'
+            :'<p class="flv-vazio" style="margin:0 0 10px;">Ninguém cadastrado ainda.</p>')
+          +'<div style="display:flex;gap:8px;">'
+            +'<input type="text" id="flvNovoNome" placeholder="Nome do colaborador" style="'+inp+'margin:0;">'
+            +'<button class="btn-s" id="flvAddEq" style="white-space:nowrap;">Adicionar</button>'
+          +'</div>'
+          +(inativos.length?'<p style="margin:10px 0 0;font-size:12px;color:#8a97a8;">Fora da equipe: '
+             +inativos.map(function(x){ return flvEsc(x.nome)
+               +' <button type="button" data-flvin="'+flvEsc(x.id)+'" style="border:0;background:none;color:#157a35;cursor:pointer;font-size:12px;padding:0;text-decoration:underline;">voltar</button>'; }).join(" · ")
+             +'</p>':"")
+          +'<p style="margin:8px 0 0;font-size:12px;color:#8a97a8;line-height:1.5;">Tirar da equipe não apaga '
+          +'ninguém: os fechamentos antigos continuam mostrando quem participou naquele mês.</p>'
+        +'</div>'
+        +'<div id="flvCfgErro" style="margin-top:10px;font-size:13px;color:#c0392b;"></div>'
+      +'</div>'
+      +'<div class="modal-acts"><button class="btn-s" id="flvCfgCancel">Fechar</button>'
+      +'<button class="btn-p" id="flvCfgSalvar">Salvar regra</button></div>';
+
+    function previa(){
+      var mt=flvNum((document.getElementById("flvCfgMeta")||{}).value);
+      var ft=flvNum((document.getElementById("flvCfgFator")||{}).value);
+      var box=document.getElementById("flvCfgPrev");
+      if(!box) return;
+      if(mt==null||ft==null||mt<0||mt>100||ft<0||ft>1){ box.innerHTML=""; return; }
+      box.innerHTML='Com faturamento de R$ 600.000,00 e a meta cumprida, o prêmio total seria <b>'
+        +flvMoeda(flvCent(600000*ft))+'</b>.';
+    }
+    ["flvCfgMeta","flvCfgFator"].forEach(function(id){
+      var e=document.getElementById(id); if(!e) return;
+      e.addEventListener("input",previa); e.addEventListener("change",previa);
+    });
+    previa();
+
+    var bc=document.getElementById("flvCfgCancel");
+    if(bc) bc.onclick=function(){ flvFechaModal("flvModalCfg"); flvRender(); };
+    var bs=document.getElementById("flvCfgSalvar");
+    if(bs) bs.onclick=function(){
+      var mt=flvNum((document.getElementById("flvCfgMeta")||{}).value);
+      var ft=flvNum((document.getElementById("flvCfgFator")||{}).value);
+      var er=document.getElementById("flvCfgErro");
+      if(mt==null||mt<0||mt>100){ if(er) er.textContent="A meta precisa ser um percentual entre 0 e 100."; return; }
+      if(ft==null||ft<0||ft>1){ if(er) er.textContent="O fator precisa ficar entre 0 e 1 (hoje é 0,0012)."; return; }
+      var sb=flvSB(); if(!sb) return;
+      sb.from("flv_config").upsert({ meta_pct:mt, fator_premio:ft,
+        atualizado_por:(window.__PERFIL&&window.__PERFIL.id)||null,
+        atualizado_em:new Date().toISOString() },{onConflict:"tenant_id"}).then(function(r){
+          if(r.error){ if(er) er.textContent=String(r.error.message||"Não consegui salvar."); return; }
+          flvCfg={meta:mt, fator:ft};
+          flvFechaModal("flvModalCfg"); flvCloudLoad();
+        },function(){ if(er) er.textContent="Sem conexão com a nuvem."; });
+    };
+    var ba=document.getElementById("flvAddEq");
+    if(ba) ba.onclick=function(){
+      var e=document.getElementById("flvNovoNome"); if(!e) return;
+      var nome=String(e.value||"").trim();
+      var er=document.getElementById("flvCfgErro");
+      if(nome.length<2){ if(er) er.textContent="Escreva o nome do colaborador."; return; }
+      var sb=flvSB(); if(!sb) return;
+      sb.from("flv_equipe").insert({ nome:nome, ativo:true,
+        criado_por:(window.__PERFIL&&window.__PERFIL.id)||null }).then(function(r){
+          if(r.error){ if(er) er.textContent=String(r.error.message||"Não consegui adicionar."); return; }
+          e.value="";
+          sb.from("flv_equipe").select("*").order("nome").then(function(q){
+            if(!q.error&&q.data) flvEquipe=q.data;
+            desenha();
+          },function(){ desenha(); });
+        },function(){ if(er) er.textContent="Sem conexão com a nuvem."; });
+    };
+    function mexeAtivo(id, ativo){
+      var sb=flvSB(); if(!sb) return;
+      var upd={ ativo:ativo, atualizado_por:(window.__PERFIL&&window.__PERFIL.id)||null,
+                atualizado_em:new Date().toISOString() };
+      if(!ativo) upd.inativado_em=new Date().toISOString();
+      sb.from("flv_equipe").update(upd).eq("id",id).then(function(){
+        sb.from("flv_equipe").select("*").order("nome").then(function(q){
+          if(!q.error&&q.data) flvEquipe=q.data;
+          desenha();
+        },function(){ desenha(); });
+      },function(){});
+    }
+    cx.querySelectorAll("[data-flvout]").forEach(function(b){
+      b.onclick=function(){ mexeAtivo(b.getAttribute("data-flvout"), false); };
+    });
+    cx.querySelectorAll("[data-flvin]").forEach(function(b){
+      b.onclick=function(){ mexeAtivo(b.getAttribute("data-flvin"), true); };
+    });
+  }
+  desenha();
+  m.classList.add("show");
+}
+
 /* ==RCB-INICIO== RECIBO DE DOMINGO — módulo puro (testado em
    scripts/testes/recibo-domingo.test.cjs). Sem DOM aqui dentro.
 
@@ -17345,6 +18356,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="pontos"||btn.dataset.page==="mapa"){ pxCloudLoad(); try{ if(typeof pixCobLoad==="function") pixCobLoad(); }catch(e){} }
     if(btn.dataset.page==="galpoes"){ try{ glCloudLoad(); glRealtime(); renderGalpoes(); }catch(e){} }
     if(btn.dataset.page==="despesas"){ try{ despRender(); despCloudLoad(); }catch(e){} }
+    if(btn.dataset.page==="flv"){ try{ flvRender(); flvCloudLoad(); }catch(e){} }
     if(btn.dataset.page==="recibos"){ try{ rcbRender(); }catch(e){} }
     if(btn.dataset.page==="planta"){ try{ glCloudLoad(); glRealtime(); renderPlanta(); }catch(e){} }
     if(btn.dataset.page==="central"){ try{ clCloudLoad(); }catch(e){} }
