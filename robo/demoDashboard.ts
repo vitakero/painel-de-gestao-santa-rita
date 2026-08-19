@@ -236,13 +236,6 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .flv-meta-ln { position:absolute; left:0; right:0; border-top:2px dashed #c0392b; pointer-events:none; z-index:1; }
   .flv-meta-tag { position:absolute; right:0; top:-13px; font-size:10px; color:#c0392b; background:#fff; padding:0 4px; }
   .flv-vazio { color:#8a97a8; font-size:13px; font-style:italic; }
-  /* Faixa do botão "Buscar números do VR", dentro do modal de fechamento. */
-  .flv-vr { display:flex; align-items:center; gap:11px; flex-wrap:wrap; margin-top:12px;
-            padding:10px 12px; border:1px dashed #cdd6e0; border-radius:10px; background:#fafbfd; }
-  .flv-vr.ok   { border-style:solid; border-color:#b9dfc5; background:#f2fbf5; }
-  .flv-vr.erro { border-style:solid; border-color:#f0d6ae; background:#fffaf1; }
-  .flv-vr button { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
-  .flv-vr-msg { font-size:12px; color:#6b7787; line-height:1.45; flex:1 1 210px; }
   .flv-prev { background:#f7f9fc; border:1px solid #e4e9f0; border-radius:10px; padding:14px 16px; }
   .flv-prev .ln { display:flex; justify-content:space-between; gap:14px; padding:5px 0; font-size:13px; color:#46535f; }
   .flv-prev .ln b { color:#1a2233; }
@@ -6192,105 +6185,6 @@ function flvVizinhos(lista, comp){
   return { anterior:acha(aa,am), anoAnterior:acha(p.ano-1, p.mes) };
 }
 
-/* OS NÚMEROS QUE VÊM DO VR.
-   O Victor mostrou de onde ele tira cada um, e são duas telas diferentes: o faturamento sai
-   da tela de Estatísticas (Exibição=VENDA, mercadológico 043›001 FLV) e o desperdício sai do
-   "Total Diferença" do balanço da primeira segunda-feira. Aqui só junto os dois pela
-   competência — quem mede é o robô dentro da loja.
-
-   Devolve null, nunca zero, para o que não veio. Zero aqui viraria "desperdício R$ 0,00" na
-   tela, que é o número mais perigoso que existe neste módulo: parece meta batida.
-
-   Pode haver MAIS DE UM balanço na mesma competência (março de 2026 teve dois). Nesse caso
-   somo as diferenças: cada balanço mede o que sumiu desde a contagem anterior, então as
-   duas parcelas são de pedaços diferentes do mesmo período — somar é o certo, e média ou
-   "pegar o último" perderia metade do desperdício. */
-/* A competência viaja como data ("2026-08-01") mas o Supabase às vezes devolve com hora
-   junto. Corto nos 10 primeiros caracteres para comparar sempre a mesma coisa — foi
-   exatamente aqui que a primeira versão falhou calada, achando que nenhum mês existia. */
-function flvDia1(v){ return String(v==null?"":v).slice(0,10); }
-function flvVrPara(comp, faturamentos, balancos){
-  var r = { competencia: comp||null,
-            faturamento:null, qtd_vendida:null,
-            desperdicio_valor:null, qtd_desperdicada:null,
-            balancos:[], faltando:[] };
-  if(!flvCompPartes(comp)){ r.faltando.push("Competência inválida."); return r; }
-
-  var i, x;
-  for(i=0;i<(faturamentos||[]).length;i++){
-    x=faturamentos[i];
-    if(x && flvDia1(x.competencia)===comp){
-      if(x.faturamento!=null && isFinite(+x.faturamento)) r.faturamento=+x.faturamento;
-      if(x.qtd_vendida!=null && isFinite(+x.qtd_vendida)) r.qtd_vendida=+x.qtd_vendida;
-      break;
-    }
-  }
-
-  var somaV=null, somaQ=null;
-  for(i=0;i<(balancos||[]).length;i++){
-    x=balancos[i];
-    if(!x || flvDia1(x.competencia_sugerida)!==comp) continue;
-    r.balancos.push({ data:x.balanco_data,
-                      valor:x.valor_diferenca==null?null:+x.valor_diferenca,
-                      qtd:x.qtd_diferenca==null?null:+x.qtd_diferenca });
-    /* A tela do VR mostra a diferença NEGATIVA (faltou mercadoria). O fechamento guarda o
-       desperdício como número positivo, então viro o sinal aqui. Diferença positiva é sobra
-       de contagem e abate — por isso somo o valor com sinal e só troco no fim. */
-    if(x.valor_diferenca!=null && isFinite(+x.valor_diferenca)) somaV=(somaV||0)+(+x.valor_diferenca);
-    if(x.qtd_diferenca!=null   && isFinite(+x.qtd_diferenca))   somaQ=(somaQ||0)+(+x.qtd_diferenca);
-  }
-  if(somaV!=null) r.desperdicio_valor = flvCent(somaV<0?-somaV:somaV);
-  if(somaQ!=null) r.qtd_desperdicada  = Math.round((somaQ<0?-somaQ:somaQ)*1000)/1000;
-
-  if(r.faturamento==null)
-    r.faltando.push("O faturamento do FLV deste mês ainda não chegou do VR.");
-  if(r.desperdicio_valor==null)
-    r.faltando.push("Nenhum balanço do FLV foi encontrado para este mês.");
-  return r;
-}
-
-/* Frase curta dizendo de onde saiu cada número, para aparecer embaixo dos campos.
-   Sem isso o botão preenche quatro campos do nada e ninguém sabe conferir. */
-function flvVrOrigem(r){
-  if(!r) return "";
-  var p=[];
-  if(r.faturamento!=null) p.push("faturamento da tela de Estatísticas do VR");
-  if(r.balancos && r.balancos.length){
-    var ds=r.balancos.map(function(b){ return flvDataCurta(b.data); }).join(" e ");
-    p.push(r.balancos.length>1 ? ("desperdício dos balanços de "+ds)
-                               : ("desperdício do balanço de "+ds));
-  }
-  return p.join(" · ");
-}
-/* Escreve um número no jeito do Brasil: 605680.07 vira "605.680,07".
-   Feito na unha, sem toLocaleString e sem expressão regular. O toLocaleString muda de
-   comportamento conforme o idioma do navegador, e regex aqui dentro perde a barra invertida
-   (o arquivo inteiro mora dentro de um texto) — já queimei três vezes nessa. */
-function flvMilhar(v, casas){
-  var n=+v; if(!isFinite(n)) return "";
-  var c=(casas==null?2:casas|0);
-  var neg=n<0; if(neg) n=-n;
-  var t=n.toFixed(c), ponto=t.indexOf("."), int=ponto<0?t:t.slice(0,ponto);
-  var dec=ponto<0?"":t.slice(ponto+1);
-  var out="", k=0, i;
-  for(i=int.length-1;i>=0;i--){
-    out=int.charAt(i)+out; k++;
-    if(k%3===0 && i>0) out="."+out;
-  }
-  return (neg?"-":"")+out+(dec?(","+dec):"");
-}
-/* Data de hoje em dd/mm/aaaa, montada na mão. Nada de toLocaleDateString: ele muda de
-   formato conforme o idioma do navegador, e este texto fica guardado no fechamento. */
-function flvHojeCurto(){
-  var d=new Date(), p=function(x){ return (x<10?"0":"")+x; };
-  return p(d.getDate())+"/"+p(d.getMonth()+1)+"/"+d.getFullYear();
-}
-function flvDataCurta(d){
-  var t=String(d==null?"":d).slice(0,10);
-  if(t.length!==10 || t.charAt(4)!=="-" || t.charAt(7)!=="-") return t;
-  return t.slice(8,10)+"/"+t.slice(5,7);
-}
-
 /* ==FLVCALC-FIM== */
 
 /* ---- FLV: tela, nuvem e ações. As contas ficam no módulo FLVCALC acima; aqui só desenho. ---- */
@@ -6300,9 +6194,6 @@ function flvEhMaster(){ return !!(window.__PERFIL && window.__PERFIL.is_master);
 
 var flvFech=null, flvEquipe=[], flvCfg={meta:5, fator:0.0012};
 var flvCarregando=false, flvAno=null, flvFiltro={situacao:"", status:""};
-/* Os números medidos pelo robô dentro da loja. Ficam null enquanto não carregam — assim a
-   tela sabe a diferença entre "o VR não tem esse mês" e "ainda não perguntei ao VR". */
-var flvVrFat=null, flvVrBal=null;
 
 function flvEsc(t){ return String(t==null?"":t).replace(/[&<>"']/g,function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
@@ -6339,24 +6230,10 @@ function flvCloudLoad(){
         if(!c.error && c.data && c.data.length){
           flvCfg={ meta:+c.data[0].meta_pct||5, fator:+c.data[0].fator_premio||0.0012 };
         }
-        flvVrCloudLoad();
         flvCarregando=false; flvRender();
       },function(){ flvCarregando=false; flvRender(); });
     },function(){ flvCarregando=false; flvRender(); });
   },function(){ flvCarregando=false; flvFech=flvFech||[]; flvRender(); });
-}
-
-/* Puxa da nuvem o que o robô mediu no VR. É tolerante de propósito: enquanto o SQL das duas
-   tabelas não estiver rodado, a consulta dá erro e o botão "Buscar do VR" simplesmente diz
-   que os números ainda não chegaram — o fechamento na mão continua funcionando igual. */
-function flvVrCloudLoad(){
-  var sb=flvSB(); if(!sb) return;
-  sb.from("flv_vr_faturamento").select("*").then(function(r){
-    flvVrFat = (!r.error && r.data) ? r.data : [];
-  }, function(){ flvVrFat=[]; });
-  sb.from("flv_vr_balancos").select("*").order("balanco_data").then(function(r){
-    flvVrBal = (!r.error && r.data) ? r.data : [];
-  }, function(){ flvVrBal=[]; });
 }
 
 /* Um KPI no formato do painel. Aceita rodapé para a distância da meta. */
@@ -6681,12 +6558,6 @@ function flvAbrirFechamento(id){
         +'</select></label>'
         +'<label style="'+lbl+'">Ano<input type="number" id="flvAnoIn" min="2000" max="2100" value="'+anoIni+'" style="'+inp+'"></label>'
       +'</div>'
-      +'<div class="flv-vr" id="flvVrBox">'
-        +'<button type="button" class="btn-s" id="flvVrBtn">'
-          +'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>'
-          +' Buscar números do VR</button>'
-        +'<span class="flv-vr-msg" id="flvVrMsg">Preenche os quatro campos com o faturamento e o balanço do VR.</span>'
-      +'</div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">'
         +'<label style="'+lbl+'">Faturamento do FLV<input type="text" id="flvFat" inputmode="decimal" placeholder="R$ 0,00" value="'+(edit?edit.faturamento:"")+'" style="'+inp+'"></label>'
         +'<label style="'+lbl+'">Desperdício em reais<input type="text" id="flvDesp" inputmode="decimal" placeholder="R$ 0,00" value="'+(edit?edit.desperdicio_valor:"")+'" style="'+inp+'"></label>'
@@ -6779,67 +6650,9 @@ function flvAbrirFechamento(id){
   });
   pinta();
 
-  /* O BOTÃO "BUSCAR NÚMEROS DO VR".
-     Preenche só o que o VR tem. Campo que o VR não soube responder fica como estava — se eu
-     limpasse, um mês sem balanço apagaria o que a pessoa já tinha digitado na mão. E a frase
-     embaixo sempre diz de onde veio cada número e o que faltou; botão que preenche quatro
-     campos calados é botão que ninguém confere. */
-  function flvVrPreencher(){
-    var msg=document.getElementById("flvVrMsg"), box=document.getElementById("flvVrBox");
-    function fala(t, cor){ if(msg){ msg.textContent=t; msg.style.color=cor||"#6b7787"; } }
-    if(box) box.classList.remove("ok","erro");
-
-    if(flvVrFat===null || flvVrBal===null){
-      fala("Ainda estou buscando os números do VR. Tente de novo em alguns segundos.");
-      flvVrCloudLoad(); return;
-    }
-    var d=lidos(), comp=flvComp(d.ano, d.mes);
-    if(!comp){ fala("Escolha o mês e o ano primeiro.", "#c0392b"); return; }
-
-    var r=flvVrPara(comp, flvVrFat, flvVrBal);
-    function poe(id, valor, casas){
-      if(valor==null) return false;
-      var e=document.getElementById(id); if(!e) return false;
-      e.value=flvMilhar(valor, casas);
-      return true;
-    }
-    var n=0;
-    if(poe("flvFat",  r.faturamento,      2)) n++;
-    if(poe("flvDesp", r.desperdicio_valor, 2)) n++;
-    if(poe("flvQv",   r.qtd_vendida,      3)) n++;
-    if(poe("flvQd",   r.qtd_desperdicada, 3)) n++;
-    pinta();
-
-    if(!n){
-      if(box) box.classList.add("erro");
-      fala(r.faltando.join(" ")+" Digite os números na mão por enquanto.", "#c0392b");
-      return;
-    }
-    var t=flvVrOrigem(r);
-
-    /* RASTRO. Daqui a três meses ninguém vai lembrar se aquele número foi digitado na mão ou
-       veio do VR, e é dinheiro que já foi pago. Escrevo a origem nas Observações — só quando
-       o campo está vazio, para nunca apagar o que a pessoa escreveu, e fica editável ali
-       mesmo, à vista, não escondido num registro que ninguém abre. */
-    var obs=document.getElementById("flvObs");
-    if(obs && !obs.value.replace(" ","")){
-      obs.value = "Números trazidos do VR em "+flvHojeCurto()+" — "+t+".";
-    }
-
-    if(r.faltando.length){
-      if(box) box.classList.add("erro");
-      fala("Peguei o que tinha ("+t+"). "+r.faltando.join(" "), "#e08600");
-    } else {
-      if(box) box.classList.add("ok");
-      fala("Números do VR: "+t+". Confira antes de confirmar.", "#157a35");
-    }
-  }
-
   var bx=document.getElementById("flvCancel");
   if(bx) bx.onclick=function(){ flvFechaModal("flvModalFech"); };
   var br=document.getElementById("flvSalvarRasc");
-  var bvr=document.getElementById("flvVrBtn");
-  if(bvr) bvr.onclick=function(){ flvVrPreencher(); };
   if(br) br.onclick=function(){ flvGravar(edit, pinta(), "rascunho"); };
   var bc=document.getElementById("flvConfirmar");
   if(bc) bc.onclick=function(){
