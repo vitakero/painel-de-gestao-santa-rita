@@ -299,22 +299,13 @@ const Q_ITENS = `
     }
   } catch (e) { console.log("(detetive das perdas nao rodou: " + e.message + ")"); }
 
-  /* O vr-medir-flv.cjs saiu daqui. Ele rodou na loja em 19/08 e nao deixou rastro
-     nenhum: a janela do robo fechou e o erro foi junto. Tudo o que ele media agora
-     mora dentro do vr-sync-flv.cjs, que escreve na nuvem etapa por etapa e SEMPRE
-     manda um relatorio, inclusive quando falha. Diagnostico que some no erro nao
-     serve para nada. */
-
-  // ---- NUMEROS DO FLV PARA A NUVEM, toda rodada ----
-  // Leva o faturamento (tela de Estatisticas) e o balanco (Total Diferenca) para as tabelas
-  // flv_vr_*, que e de onde o botao "Buscar do VR" do fechamento se serve.
-  // Pendurado aqui pelo mesmo motivo dos detetives: mexer no robo.bat exige o Victor na
-  // maquina da loja. Se o SQL das tabelas ainda nao foi rodado, o script reclama e segue —
-  // nada aqui pode derrubar o sync de pedidos.
-  try {
-    require("child_process").execFileSync(process.execPath,
-      [path.join(__dirname, "vr-sync-flv.cjs")], { stdio: "inherit" });
-  } catch (e) { console.log("(sync do FLV nao rodou: " + e.message + ")"); }
+  /* O FLV NAO PASSA MAIS POR AQUI.
+     Cheguei a montar o vr-sync-flv.cjs para puxar do VR o faturamento e o desperdicio do
+     balanco. O faturamento fechou com a tela dele com R$ 100 de diferenca em R$ 600 mil,
+     mas o desperdicio nunca fechou: a contagem do balanco esta em algum lugar do VR que
+     eu nao achei (a balancoprelancamento, que seria a obvia, esta vazia). O Victor
+     decidiu em 19/08/2026 continuar digitando os dois numeros na mao, entao tirei a
+     chamada daqui. Os scripts continuam no repositorio, sem ninguem chamando. */
 
   if (orfaos) {
     console.log("\nAviso: " + orfaos + " pedido(s) sao de fornecedor que ainda nao tem");
