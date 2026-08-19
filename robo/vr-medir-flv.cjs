@@ -126,75 +126,74 @@ const n=(v)=>{ const x=parseFloat(v); return isNaN(x)?0:x; };
     });
   }catch(e){ out.erro=e.message; console.log("!! erro: "+e.message); }
 
-    // ---- ATRÁS DA FONTE DA TELA "ESTATÍSTICAS" ----
-    // O Victor mandou a lista de PERDA por mês (Administrativo > Relatorios Gerenciais >
-    // Estatisticas, filtrando o mercadologico 043>001 FLV). Meus números da tabela `perda`
-    // ficam ABAIXO dos dele, e em abril e julho ele tem valor onde eu tenho zero — então
-    // não é custo diferente, é origem diferente.
+    // ---- O DESPERDÍCIO VEM DO BALANÇO, NÃO DA TABELA DE PERDAS ----
+    // O Victor foi direto ao ponto: o número que ele usa é o "Total Diferença" da tela do
+    // balanço (03/08 deu -7.508,859 un e -R$ 31.522,0906), e o faturamento é o da tela de
+    // Estatísticas — que a minha consulta já reproduz com R$ 100 de diferença em R$ 600 mil.
     //
-    // Em vez de continuar chutando fórmula, procuro a tabela que ALIMENTA aquela tela. Se o
-    // VR já guarda a estatística pronta, eu leio dela e o número passa a ser idêntico ao
-    // dele por construção — em vez de "parecido", que é o pior resultado possível aqui.
+    // Eu tinha ido atrás da tabela `perda` por conta própria e ela chega PERTO, o que é o
+    // pior resultado possível: número parecido passa por certo. Aqui procuro a tabela do
+    // balanço e tento fechar exatamente o -31.522,0906.
     try{
-      out.fonte={};
-      const tb=(await c.query(
-        "select table_schema s, table_name t from information_schema.tables "+
-        "where table_schema in ('public','pdv') and table_type='BASE TABLE' "+
-        "and (table_name like '%estatistic%' or table_name like '%indicador%' "+
-        "  or table_name like '%resumomes%' or table_name like '%gerencial%' "+
-        "  or table_name like '%movimentomes%' or table_name like '%fechamentomes%')")).rows;
-      out.fonte.tabelas=[];
-      for(const x of tb.slice(0,12)){
-        const nome=x.s+"."+x.t;
-        let n=null, cols=[];
+      out.balanco={};
+      const cand=["balancoestoqueanterior","listagembalancoitem","balancoprelancamento",
+                  "agendabalanco","listagembalanco","balanco","balancoitem"];
+      const existe=(await c.query(
+        "select table_name t from information_schema.tables "+
+        "where table_schema='public' and table_name = any($1::text[])",[cand])).rows.map(r=>r.t);
+      out.balanco.tabelas=[];
+      for(const t of existe){
+        const nome="public."+t;
+        let n=null, cols=[], amostra=null, colData=null;
         try{ n=(await c.query("select count(*)::int c from "+nome)).rows[0].c; }catch(e){}
-        try{ cols=(await c.query("select column_name n from information_schema.columns "+
-          "where table_schema=$1 and table_name=$2 order by ordinal_position",[x.s,x.t]))
-          .rows.map(r=>r.n); }catch(e){}
-        out.fonte.tabelas.push({ nome:nome, linhas:n, colunas:cols });
-        console.log("  "+nome+"  linhas="+n);
+        try{ cols=(await c.query("select column_name n, data_type d from information_schema.columns "+
+          "where table_schema='public' and table_name=$1 order by ordinal_position",[t]))
+          .rows.map(r=>r.n+":"+r.d); }catch(e){}
+        colData=(cols.map(x=>x.split(":")[0])).find(x=>/^(data|dt|datahora|databa)/i.test(x));
+        try{
+          if(n) amostra=(await c.query("select * from "+nome+
+            (colData?(" order by "+colData+" desc"):"")+" limit 2")).rows;
+        }catch(e){}
+        out.balanco.tabelas.push({ nome:nome, linhas:n, colunas:cols, colData:colData, amostra:amostra });
+        console.log("  "+nome+"  linhas="+n+"  dataCol="+colData);
+        console.log("     colunas: "+cols.join(", ").slice(0,400));
       }
 
-      // ---- as leituras da PERDA, mês a mês, para comparar com a lista dele ----
-      out.fonte.perdaMes=(await c.query(`
-        select to_char(date_trunc('month', pe.data),'YYYY-MM') mes,
-               sum(pe.quantidade * coalesce(pe.custocomimposto,0))      compra,
-               sum(pe.quantidade * coalesce(pe.customediocomimposto,0)) medio,
-               sum(pe.quantidade * coalesce(pe.custosemimposto,0))      compra_sem,
-               sum(pe.quantidade * coalesce(pe.customediosemimposto,0)) medio_sem,
-               sum(pe.quantidade) qtd, count(*) linhas
-          from public.perda pe
-          join public.produto p on p.id = pe.id_produto
-         where pe.id_loja = ${LOJA}
-           and p.mercadologico1 = 43 and p.mercadologico2 = 1
-           and pe.data >= '2026-01-01'
-         group by 1 order by 1`)).rows;
-
-      // ---- a QUEBRA, se existir, no mesmo recorte ----
-      try{
-        const qc=(await c.query("select column_name n from information_schema.columns "+
-          "where table_schema='public' and table_name='quebra'")).rows.map(r=>r.n);
-        out.fonte.quebraColunas=qc;
-        const cVal=qc.find(x=>/custo|valor/i.test(x));
-        const cQtd=qc.find(x=>/quantidade|qtd/i.test(x));
-        if(cVal && cQtd){
-          out.fonte.quebraMes=(await c.query(`
-            select to_char(date_trunc('month', q.data),'YYYY-MM') mes,
-                   sum(q.${cQtd} * coalesce(q.${cVal},0)) valor, sum(q.${cQtd}) qtd, count(*) linhas
-              from public.quebra q
-              join public.produto p on p.id = q.id_produto
+      // Se a tabela principal tiver o que espero, já tento fechar o número do 03/08.
+      const alvo=out.balanco.tabelas.find(x=>x.nome==="public.balancoestoqueanterior" && x.linhas);
+      if(alvo){
+        const nomes=alvo.colunas.map(x=>x.split(":")[0]);
+        const cQtdBal=nomes.find(x=>/quantidadebalanco|qtdbalanco|quantidadecontada/i.test(x));
+        const cQtdEst=nomes.find(x=>/quantidadeestoque|qtdestoque|estoqueanterior/i.test(x));
+        const cCusto =nomes.find(x=>/custo/i.test(x));
+        const cProd  =nomes.find(x=>/id_produto/i.test(x));
+        const cData  =alvo.colData;
+        out.balanco.colunasUsadas={ cQtdBal:cQtdBal, cQtdEst:cQtdEst, cCusto:cCusto, cProd:cProd, cData:cData };
+        if(cQtdBal && cQtdEst && cCusto && cProd && cData){
+          out.balanco.calculo=(await c.query(`
+            select b.${cData}::text dia,
+                   sum(b.${cQtdBal}) qtd_balanco,
+                   sum(b.${cQtdEst}) qtd_estoque,
+                   sum(b.${cQtdBal} - b.${cQtdEst}) qtd_diferenca,
+                   sum(b.${cQtdBal} * coalesce(b.${cCusto},0)) total_balanco,
+                   sum(b.${cQtdEst} * coalesce(b.${cCusto},0)) total_estoque,
+                   sum((b.${cQtdBal} - b.${cQtdEst}) * coalesce(b.${cCusto},0)) total_diferenca,
+                   count(*) linhas
+              from public.${alvo.nome.split(".")[1]} b
+              join public.produto p on p.id = b.${cProd}
              where p.mercadologico1 = 43 and p.mercadologico2 = 1
-               and q.data >= '2026-01-01'
+               and b.${cData} >= '2025-12-01'
              group by 1 order by 1`)).rows;
+          console.log("\n  BALANCO calculado (FLV) — o alvo e 03/08: qtd -7508,859 e R$ -31522,0906");
+          (out.balanco.calculo||[]).forEach(r=>console.log("   "+r.dia
+            +"  dif_qtd="+n(r.qtd_diferenca).toFixed(3).padStart(12)
+            +"  dif_R$="+n(r.total_diferenca).toFixed(4).padStart(14)
+            +"  ("+r.linhas+" linhas)"));
+        } else {
+          console.log("  (nao achei as colunas esperadas; mando a estrutura para eu olhar)");
         }
-      }catch(e){ out.fonte.quebraErro=e.message; }
-
-      console.log("\nPERDA mes a mes (FLV), nas quatro leituras de custo:");
-      (out.fonte.perdaMes||[]).forEach(m=>console.log("  "+m.mes
-        +"  compra="+n(m.compra).toFixed(2).padStart(11)
-        +"  medio="+n(m.medio).toFixed(2).padStart(11)
-        +"  qtd="+n(m.qtd).toFixed(1).padStart(9)+"  ("+m.linhas+" linhas)"));
-    }catch(e){ out.fonte={ erro:e.message }; console.log("!! busca da fonte falhou: "+e.message); }
+      }
+    }catch(e){ out.balanco={ erro:e.message }; console.log("!! busca do balanco falhou: "+e.message); }
 
   await c.end();
 
