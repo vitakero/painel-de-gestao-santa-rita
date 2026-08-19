@@ -236,6 +236,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .flv-meta-ln { position:absolute; left:0; right:0; border-top:2px dashed #c0392b; pointer-events:none; z-index:1; }
   .flv-meta-tag { position:absolute; right:0; top:-13px; font-size:10px; color:#c0392b; background:#fff; padding:0 4px; }
   .flv-vazio { color:#8a97a8; font-size:13px; font-style:italic; }
+  /* "teria sido R$ X" — o que teriam ganhado se a meta tivesse sido batida.
+     Discreto de propósito: o número que vale é o de cima (o pago). Este é referência. */
+  .flv-teria { font-size:11px; font-weight:400; color:#8a97a8; font-style:italic;
+               margin-top:2px; white-space:nowrap; }
   .flv-prev { background:#f7f9fc; border:1px solid #e4e9f0; border-radius:10px; padding:14px 16px; }
   .flv-prev .ln { display:flex; justify-content:space-between; gap:14px; padding:5px 0; font-size:13px; color:#46535f; }
   .flv-prev .ln b { color:#1a2233; }
@@ -6170,6 +6174,24 @@ function flvSerieAno(lista, ano){
   return out;
 }
 
+/* QUANTO ELES TERIAM GANHADO.
+   Quando a meta não é atingida o prêmio é zero — e continua zero, isso não muda. Mas o
+   Victor quer enxergar o tamanho do que se perdeu, e ele tem razão: uma coluna inteira de
+   "R$ 0,00" não conta nada sobre quanto estava em jogo.
+
+   Uso o fator que valia NAQUELE mês (fator_aplicado, o retrato guardado no próprio
+   fechamento), nunca o fator de hoje: mudar a regra amanhã não pode reescrever o passado.
+   Devolve null — e não zero — quando o mês foi atingido (aí não existe "teria sido") ou
+   quando falta algum número para a conta. */
+function flvPremioPerdido(f){
+  if(!f || f.situacao === "atingida") return null;
+  if(!flvTem(f.faturamento) || !flvTem(f.fator_aplicado)) return null;
+  var fat = +f.faturamento, fator = +f.fator_aplicado, n = Math.floor(+f.participantes || 0);
+  if(!isFinite(fat) || fat <= 0 || !isFinite(fator) || fator < 0) return null;
+  var total = flvCent(fat * fator);
+  return { total: total, individual: n > 0 ? flvCent(total / n) : null, participantes: n };
+}
+
 /* O mês anterior e o mesmo mês do ano passado, quando existirem. */
 function flvVizinhos(lista, comp){
   var p=flvCompPartes(comp);
@@ -6355,6 +6377,7 @@ function flvRender(){
   if(ultimo){
     var pct=flvPctValor(ultimo.desperdicio_valor, ultimo.faturamento);
     var dist=flvDistancia(pct, ultimo.meta_aplicada);
+    var pdUlt=flvPremioPerdido(ultimo);
     h+='<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));">'
       +flvKpi("Faturamento · "+flvCompCurta(ultimo.competencia), flvMoeda(ultimo.faturamento))
       +flvKpi("Desperdício", flvMoeda(ultimo.desperdicio_valor))
@@ -6363,7 +6386,9 @@ function flvRender(){
       +flvKpi("Meta aplicada", "≤ "+flvPctTxt(ultimo.meta_aplicada))
       +flvKpi("Situação", flvSeloSit(ultimo.situacao))
       +flvKpi("Prêmio por colaborador", flvMoeda(ultimo.premio_individual),
-          '<div class="flv-dist">'+(+ultimo.participantes||0)+' colaborador(es) · total '+flvMoeda(ultimo.premio_total)+'</div>')
+          '<div class="flv-dist">'+(+ultimo.participantes||0)+' colaborador(es) · total '+flvMoeda(ultimo.premio_total)+'</div>'
+          +(pdUlt?'<div class="flv-teria">teria sido '+flvMoeda(pdUlt.individual)
+              +' por pessoa · total '+flvMoeda(pdUlt.total)+'</div>':""))
       +'</div>';
   } else {
     h+='<div class="card"><span class="flv-vazio">Nenhum fechamento registrado. '
@@ -6424,9 +6449,12 @@ function flvRender(){
     if(!x.fechamento){
       h+='<tr><td>'+x.rotulo+'</td><td colspan="3" class="flv-vazio">Aguardando fechamento</td></tr>';
     } else {
+      var pd=flvPremioPerdido(x.fechamento);
       h+='<tr><td>'+x.rotulo+'</td>'
-        +'<td style="text-align:right">'+flvMoeda(x.premio_total)+'</td>'
-        +'<td style="text-align:right"><b>'+flvMoeda(x.premio_individual)+'</b></td>'
+        +'<td style="text-align:right">'+flvMoeda(x.premio_total)
+          +(pd?'<div class="flv-teria">teria sido '+flvMoeda(pd.total)+'</div>':'')+'</td>'
+        +'<td style="text-align:right"><b>'+flvMoeda(x.premio_individual)+'</b>'
+          +(pd&&pd.individual!=null?'<div class="flv-teria">teria sido '+flvMoeda(pd.individual)+'</div>':'')+'</td>'
         +'<td>'+flvSeloSit(x.fechamento.situacao)+'</td></tr>';
     }
   });
@@ -6458,6 +6486,7 @@ function flvRender(){
       +'<th style="text-align:right">Prêmio total</th><th style="text-align:right">Colab.</th>'
       +'<th style="text-align:right">Individual</th><th>Status</th><th></th></tr></thead><tbody>';
     hist.forEach(function(x){
+      var pd=flvPremioPerdido(x);
       h+='<tr>'
         +'<td><b>'+flvEsc(flvCompLabel(x.competencia))+'</b></td>'
         +'<td style="text-align:right">'+flvMoeda(x.faturamento)+'</td>'
@@ -6467,9 +6496,11 @@ function flvRender(){
         +'<td style="text-align:right">'+flvPctTxt(x.pct_qtd)+'</td>'
         +'<td style="text-align:right">≤ '+flvPctTxt(x.meta_aplicada)+'</td>'
         +'<td>'+flvSeloSit(x.situacao)+'</td>'
-        +'<td style="text-align:right">'+flvMoeda(x.premio_total)+'</td>'
+        +'<td style="text-align:right">'+flvMoeda(x.premio_total)
+          +(pd?'<div class="flv-teria">teria sido '+flvMoeda(pd.total)+'</div>':'')+'</td>'
         +'<td style="text-align:right">'+(+x.participantes||0)+'</td>'
-        +'<td style="text-align:right"><b>'+flvMoeda(x.premio_individual)+'</b></td>'
+        +'<td style="text-align:right"><b>'+flvMoeda(x.premio_individual)+'</b>'
+          +(pd&&pd.individual!=null?'<div class="flv-teria">teria sido '+flvMoeda(pd.individual)+'</div>':'')+'</td>'
         +'<td><span class="flv-sit '+(x.status==="fechado"?"ok":"vazio")+'">'
           +(x.status==="fechado"?"Fechado":"Rascunho")+'</span></td>'
         +'<td><button class="btn-s" data-flvver="'+flvEsc(x.id)+'">Ver</button></td>'
@@ -6721,6 +6752,7 @@ function flvAbrirDetalhe(id){
   var m=flvModal("flvModalDet", 640), cx=m.querySelector(".modal-cx");
   function desenha(equipe){
     var dist=flvDistancia(f.pct_valor, f.meta_aplicada);
+    var pdDet=flvPremioPerdido(f);
     var linha=function(r,v){ return '<div class="ln"><span>'+flvEsc(r)+'</span><b>'+v+'</b></div>'; };
     cx.innerHTML='<div class="modal-top"><div class="modal-ic neutro">'
       +'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg></div>'
@@ -6746,9 +6778,11 @@ function flvAbrirDetalhe(id){
         +'<span style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#6b7787;font-weight:700;margin:16px 0 6px;">Premiação</span>'
         +'<div class="flv-prev">'
           +linha("Base utilizada", String(f.fator_aplicado))
-          +linha("Premiação total", flvMoeda(f.premio_total))
+          +linha("Premiação total", flvMoeda(f.premio_total)
+              +(pdDet?'<div class="flv-teria">teria sido '+flvMoeda(pdDet.total)+'</div>':''))
           +linha("Colaboradores", String(+f.participantes||0))
-          +linha("Premiação individual", flvMoeda(f.premio_individual))
+          +linha("Premiação individual", flvMoeda(f.premio_individual)
+              +(pdDet&&pdDet.individual!=null?'<div class="flv-teria">teria sido '+flvMoeda(pdDet.individual)+'</div>':''))
         +'</div>'
         +'<span style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#6b7787;font-weight:700;margin:16px 0 6px;">Quem participou</span>'
         +(equipe===null
