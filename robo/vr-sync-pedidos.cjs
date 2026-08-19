@@ -299,6 +299,16 @@ const Q_ITENS = `
     }
   } catch (e) { console.log("(detetive das perdas nao rodou: " + e.message + ")"); }
 
+  // ---- MEDIDOR DO FLV, uma vez só ----
+  try {
+    const jaF = await req("GET", "/rest/v1/receb_eventos?select=id&entidade=eq.vr_flv&limit=1");
+    if (!jaF || !jaF.length) {
+      console.log("\nMedindo os numeros do FLV no VR (uma vez so)...");
+      require("child_process").execFileSync(process.execPath,
+        [path.join(__dirname, "vr-medir-flv.cjs")], { stdio: "inherit" });
+    }
+  } catch (e) { console.log("(medidor do FLV nao rodou: " + e.message + ")"); }
+
   if (orfaos) {
     console.log("\nAviso: " + orfaos + " pedido(s) sao de fornecedor que ainda nao tem");
     console.log("cadastro no portal. Ficam guardados e passam a aparecer sozinhos");
