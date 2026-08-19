@@ -44,15 +44,21 @@ const n=(v)=>{ const x=parseFloat(v); return isNaN(x)?0:x; };
     // ---- VENDA do FLV, mês a mês, BRUTA e com os descontos separados ----
     // Mando as parcelas separadas de propósito: assim ele vê qual combinação bate com a
     // "venda líquida" que ele usa, sem eu ter que adivinhar o que o VR chama de líquido.
+    // A LOJA NÃO ESTÁ NO ITEM, ESTÁ NO CUPOM.
+    // Eu somava as duas lojas e meu faturamento saía sempre ~0,8% acima do que o Victor lê
+    // no VR — bonitinho, consistente, e errado. A loja 02 existe e não é usada no controle
+    // dele. Trago as duas somas para provar que a diferença é essa, não outra coisa.
     const vendas=(await c.query(`
       select to_char(date_trunc('month', v.data),'YYYY-MM') mes,
-             sum(v.valortotal)                          bruto,
-             sum(coalesce(v.valordesconto,0))           desc_item,
-             sum(coalesce(v.valordescontocupom,0))      desc_cupom,
-             sum(coalesce(v.valordescontopromocao,0))   desc_promo,
-             sum(coalesce(v.valoracrescimo,0))          acrescimo,
-             sum(v.quantidade)                          qtd
+             sum(v.valortotal) filter (where cp.id_loja = ${LOJA})  bruto,
+             sum(v.valortotal)                                      bruto_todas_lojas,
+             sum(coalesce(v.valordesconto,0))      filter (where cp.id_loja = ${LOJA}) desc_item,
+             sum(coalesce(v.valordescontocupom,0)) filter (where cp.id_loja = ${LOJA}) desc_cupom,
+             sum(coalesce(v.valordescontopromocao,0)) filter (where cp.id_loja = ${LOJA}) desc_promo,
+             sum(coalesce(v.valoracrescimo,0))     filter (where cp.id_loja = ${LOJA}) acrescimo,
+             sum(v.quantidade)                     filter (where cp.id_loja = ${LOJA}) qtd
         from pdv.vendaitem v
+        join pdv.venda cp on cp.id = v.id_venda
         join public.produto p on p.id = v.id_produto
        where v.cancelado = false
          and p.mercadologico1 = 43 and p.mercadologico2 = 1
@@ -100,7 +106,7 @@ const n=(v)=>{ const x=parseFloat(v); return isNaN(x)?0:x; };
 
     const mp={};
     vendas.forEach(v=>{ mp[v.mes]=mp[v.mes]||{mes:v.mes}; Object.assign(mp[v.mes],{
-      venda_bruta:n(v.bruto), desc_item:n(v.desc_item), desc_cupom:n(v.desc_cupom),
+      venda_bruta:n(v.bruto), venda_todas_lojas:n(v.bruto_todas_lojas), desc_item:n(v.desc_item), desc_cupom:n(v.desc_cupom),
       desc_promo:n(v.desc_promo), acrescimo:n(v.acrescimo), qtd_vendida:n(v.qtd) }); });
     perdas.forEach(p=>{ mp[p.mes]=mp[p.mes]||{mes:p.mes}; Object.assign(mp[p.mes],{
       perda_linhas:+p.linhas, perda_qtd:n(p.qtd),
