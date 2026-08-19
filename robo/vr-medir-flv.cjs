@@ -125,7 +125,6 @@ const n=(v)=>{ const x=parseFloat(v); return isNaN(x)?0:x; };
         +" | "+String((m.perda_qtd||0).toFixed(3)).padStart(10));
     });
   }catch(e){ out.erro=e.message; console.log("!! erro: "+e.message); }
-  await c.end();
 
     // ---- AUDITORIA DE UM BALANÇO ----
     // O Victor mandou a tela do balanço de 03/08: diferença de -7.508,859 unidades e
