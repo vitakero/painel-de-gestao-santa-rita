@@ -79,15 +79,24 @@ const n=(v)=>{ const x=parseFloat(v); return isNaN(x)?0:x; };
 
     // ---- em QUE DIAS a perda é lançada ----
     // Se cair tudo num dia por mês, confirma o que ele disse: o número nasce do balanço.
+    // CADA LANÇAMENTO É UM BALANÇO. A primeira leitura mostrou que a perda cai num dia só
+    // por mês (04/05, 01/06, 30/06, 03/08) — confirma o que ele contou. Então o valor POR DIA
+    // é o desperdício daquele balanço, e é isso que tem que ser comparado com a planilha.
+    // Trago o valor junto, não só a quantidade: sem ele não dá para conferir nada.
     out.perdaDias=(await c.query(`
-      select pe.data::text dia, count(*) linhas, sum(pe.quantidade) qtd
+      select pe.data::text dia, count(*) linhas, sum(pe.quantidade) qtd,
+             sum(pe.quantidade * coalesce(pe.custocomimposto,0))      qtd_x_custo,
+             sum(pe.quantidade * coalesce(pe.customediocomimposto,0)) qtd_x_medio,
+             sum(coalesce(pe.custocomimposto,0))                      soma_custo,
+             count(*) filter (where pe.id_notasaida is not null)      com_nota
         from public.perda pe
         join public.produto p on p.id = pe.id_produto
        where pe.id_loja = ${LOJA}
          and p.mercadologico1 = 43 and p.mercadologico2 = 1
-         and pe.data >= date_trunc('month', current_date) - interval '4 months'
+         and pe.data >= date_trunc('month', current_date) - interval '14 months'
        group by 1 order by 1`)).rows
-      .map(r=>({ dia:r.dia, linhas:+r.linhas, qtd:n(r.qtd) }));
+      .map(r=>({ dia:r.dia, linhas:+r.linhas, qtd:n(r.qtd), qtd_x_custo:n(r.qtd_x_custo),
+                 qtd_x_medio:n(r.qtd_x_medio), soma_custo:n(r.soma_custo), com_nota:+r.com_nota }));
 
     const mp={};
     vendas.forEach(v=>{ mp[v.mes]=mp[v.mes]||{mes:v.mes}; Object.assign(mp[v.mes],{
