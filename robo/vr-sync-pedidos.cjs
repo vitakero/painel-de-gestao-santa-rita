@@ -299,15 +299,11 @@ const Q_ITENS = `
     }
   } catch (e) { console.log("(detetive das perdas nao rodou: " + e.message + ")"); }
 
-  // ---- MEDIDOR DO FLV, uma vez só ----
-  try {
-    const jaF = await req("GET", "/rest/v1/receb_eventos?select=id&entidade=eq.vr_flv&limit=1");
-    if (!jaF || !jaF.length) {
-      console.log("\nMedindo os numeros do FLV no VR (uma vez so)...");
-      require("child_process").execFileSync(process.execPath,
-        [path.join(__dirname, "vr-medir-flv.cjs")], { stdio: "inherit" });
-    }
-  } catch (e) { console.log("(medidor do FLV nao rodou: " + e.message + ")"); }
+  /* O vr-medir-flv.cjs saiu daqui. Ele rodou na loja em 19/08 e nao deixou rastro
+     nenhum: a janela do robo fechou e o erro foi junto. Tudo o que ele media agora
+     mora dentro do vr-sync-flv.cjs, que escreve na nuvem etapa por etapa e SEMPRE
+     manda um relatorio, inclusive quando falha. Diagnostico que some no erro nao
+     serve para nada. */
 
   // ---- NUMEROS DO FLV PARA A NUVEM, toda rodada ----
   // Leva o faturamento (tela de Estatisticas) e o balanco (Total Diferenca) para as tabelas
