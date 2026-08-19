@@ -50,8 +50,9 @@ const n=(v)=>{ const x=parseFloat(v); return isNaN(x)?0:x; };
     // dele. Trago as duas somas para provar que a diferença é essa, não outra coisa.
     const vendas=(await c.query(`
       select to_char(date_trunc('month', v.data),'YYYY-MM') mes,
-             sum(v.valortotal) filter (where cp.id_loja = ${LOJA})  bruto,
-             sum(v.valortotal)                                      bruto_todas_lojas,
+             sum(v.valortotal) filter (where cp.id_loja = ${LOJA} and cp.cancelado = false) bruto,
+             sum(v.valortotal) filter (where cp.id_loja = ${LOJA})   bruto_com_cupom_cancelado,
+             sum(v.valortotal)                                       bruto_todas_lojas,
              sum(coalesce(v.valordesconto,0))      filter (where cp.id_loja = ${LOJA}) desc_item,
              sum(coalesce(v.valordescontocupom,0)) filter (where cp.id_loja = ${LOJA}) desc_cupom,
              sum(coalesce(v.valordescontopromocao,0)) filter (where cp.id_loja = ${LOJA}) desc_promo,
@@ -106,7 +107,7 @@ const n=(v)=>{ const x=parseFloat(v); return isNaN(x)?0:x; };
 
     const mp={};
     vendas.forEach(v=>{ mp[v.mes]=mp[v.mes]||{mes:v.mes}; Object.assign(mp[v.mes],{
-      venda_bruta:n(v.bruto), venda_todas_lojas:n(v.bruto_todas_lojas), desc_item:n(v.desc_item), desc_cupom:n(v.desc_cupom),
+      venda_bruta:n(v.bruto), venda_com_cupom_cancelado:n(v.bruto_com_cupom_cancelado), venda_todas_lojas:n(v.bruto_todas_lojas), desc_item:n(v.desc_item), desc_cupom:n(v.desc_cupom),
       desc_promo:n(v.desc_promo), acrescimo:n(v.acrescimo), qtd_vendida:n(v.qtd) }); });
     perdas.forEach(p=>{ mp[p.mes]=mp[p.mes]||{mes:p.mes}; Object.assign(mp[p.mes],{
       perda_linhas:+p.linhas, perda_qtd:n(p.qtd),
