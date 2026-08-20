@@ -56,6 +56,31 @@ const headers = {
 
 (async () => {
   if (!TOKEN) { console.log("  (sem GITHUB_TOKEN no .env - mantendo o codigo atual)"); return; }
+
+  /* EU ME ATUALIZO PRIMEIRO.
+     A lista de arquivos mora aqui dentro. Enquanto eu me atualizava por ULTIMO, um arquivo
+     novo só era conhecido na rodada seguinte — o Victor teve que rodar o robo duas vezes
+     para o mesmo arquivo, duas vezes em dois dias.
+     Agora: baixo a mim mesmo antes de tudo; se eu mudei, gravo e me chamo de novo, já com
+     a lista nova. O argumento evita laco infinito: na segunda vez eu pulo esta parte. */
+  if (process.argv.indexOf("--jaatualizei") < 0) {
+    try {
+      const eu = await fetch("https://api.github.com/repos/" + OWNER + "/" + REPO +
+                             "/contents/robo/puxar-codigo.cjs", { headers });
+      if (eu.ok) {
+        const novo = await eu.text();
+        const atual = fs.readFileSync(__filename, "utf8");
+        if (novo.indexOf("Baixa o codigo mais recente do GitHub") >= 0 && novo !== atual) {
+          fs.writeFileSync(__filename, novo);
+          console.log("  atualizado: puxar-codigo.cjs (recomecando com a lista nova)");
+          const r = require("child_process").spawnSync(process.execPath,
+            [__filename, "--jaatualizei"], { stdio: "inherit" });
+          process.exit(r.status || 0);
+        }
+      }
+    } catch (e) { console.log("  (nao consegui me atualizar: " + e.message + ")"); }
+  }
+
   for (const [remote, local, marker] of FILES) {
     try {
       const r = await fetch("https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/" + remote, { headers });
