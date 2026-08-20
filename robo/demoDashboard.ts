@@ -2458,11 +2458,26 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 
            A imagem preenche a largura toda e apara em cima/embaixo (object-fit:cover) — nunca
            deforma. Arte com 2,86:1 ou mais deitada cabe inteira, sem aparar nada. */
-        #page-cartaz .ctz .ctz-top.ctz-topimg{padding:0;}
-        #page-cartaz .ctz .ofimg{width:100%;max-width:none;height:auto;max-height:35cqw;object-fit:cover;object-position:center;display:block;margin:0;border-radius:0;}
+        /* Estas duas são as ÚNICAS regras do cartaz presas à página — todas as outras são
+           globais. Por isso a janela "Ver a placa" precisa das duas repetidas aqui: sem
+           elas o banner renderiza no tamanho natural (2100px) e estoura o cartaz inteiro. */
+        #page-cartaz .ctz .ctz-top.ctz-topimg, #uiModal .ctz .ctz-top.ctz-topimg{padding:0;}
+        #page-cartaz .ctz .ofimg, #uiModal .ctz .ofimg{width:100%;max-width:none;height:auto;max-height:35cqw;object-fit:cover;object-position:center;display:block;margin:0;border-radius:0;}
         #page-cartaz .cz-hint{background:#eef6ff;border:1px solid #d5e6fb;border-radius:10px;padding:10px 12px;font-size:12.5px;color:#3a5573;margin:0 0 10px;}
         #page-cartaz textarea.cz-ta{width:100%;box-sizing:border-box;min-height:170px;border:1.5px solid #e1e7ee;border-radius:12px;padding:12px;font-family:monospace;font-size:14px;resize:vertical;color:#1d2733;}
         #page-cartaz .cz-count{font-size:12px;color:#8a97a8;margin-top:6px;}
+        /* Janela "Ver a placa": o cartaz de um lado, os dados do outro. */
+        #uiModal .cz-ver{display:flex;gap:20px;align-items:flex-start;}
+        #uiModal .cz-verPlaca{flex:0 0 210px;max-width:210px;}
+        #uiModal .cz-verPlaca.deitado{flex:0 0 300px;max-width:300px;}
+        #uiModal .cz-verInfo{flex:1;min-width:0;font-size:13px;color:#33404f;line-height:1.6;}
+        #uiModal .cz-verInfo b{display:block;font-size:15px;color:#1d2733;margin-bottom:8px;line-height:1.35;}
+        #uiModal .cz-verInfo span{display:inline-block;min-width:78px;color:#8a97a8;font-size:11px;
+          text-transform:uppercase;letter-spacing:.4px;font-weight:700;}
+        #uiModal .cz-verAviso{margin-top:12px;padding:10px 12px;background:#fffaf1;border:1px solid #f0d6ae;
+          border-radius:9px;font-size:12px;color:#8a5a00;line-height:1.5;}
+        @media(max-width:640px){ #uiModal .cz-ver{flex-direction:column;align-items:center;}
+          #uiModal .cz-verPlaca,#uiModal .cz-verPlaca.deitado{flex:none;max-width:230px;width:100%;} }
         /* Histórico de cartazes impressos — fica no fim da página do gerador. */
         #page-cartaz .cz-hist{margin-top:26px;padding-top:20px;border-top:1px solid #e4e9f0;}
         #page-cartaz .cz-histT{font-size:13px;font-weight:800;color:#1d2733;text-align:center;}
@@ -18184,6 +18199,17 @@ function czHistRotulo(r){
   if(String(r.gramatura||"").trim()) p.push(String(r.gramatura).trim());
   return p.join(" ");
 }
+/* As datas da oferta em uma frase. Antes a linha só dizia até quando valia; ele pediu o
+   começo junto — quem olha a lista precisa saber de quando até quando aquela placa vale. */
+function czHistDatas(r){
+  r = r || {};
+  function br(d){ var t=String(d||'').split('-'); return (t.length===3)?(t[2]+'/'+t[1]+'/'+t[0]):''; }
+  var a = br(r.validade_ini), b = br(r.validade_fim);
+  if(a && b) return (a===b) ? ('vale em '+a) : ('vale de '+a+' a '+b);
+  if(b) return 'vale até '+b;
+  if(a) return 'a partir de '+a;
+  return 'sem validade';
+}
 /* ==CZHIST-FIM== */
 
 /* O BLOCO QUE APARECE NO FIM DA PÁGINA.
@@ -18209,8 +18235,9 @@ function czHistBloco(){
       +'<div class="cz-histC"><b>'+czEsc(czHistRotulo(r))+'</b>'
         +'<span>R$ '+czEsc(r.preco||"")+(r.preco_de?(' · de R$ '+czEsc(r.preco_de)):'')
         +' · '+czEsc(String(r.tamanho||""))
-        +' · vale até '+czEsc(czDataBr(r.validade_fim))+'</span></div>'
+        +' · '+czEsc(czHistDatas(r))+'</span></div>'
       +'<div class="cz-histA">'
+        +'<button class="cz-btn sec" data-czhistver="'+czEsc(r.id)+'">Ver a placa</button>'
         +'<button class="cz-btn sec" data-czhistimp="'+czEsc(r.id)+'">Imprimir de novo</button>'
         +'<button class="cz-histX" data-czhistdel="'+czEsc(r.id)+'" title="Tirar do histórico">✕</button>'
       +'</div></div>';
@@ -18301,17 +18328,70 @@ function czHistTirar(id){
    caminho que escreve em czModelo e redesenha a tela antes de retornar (o modelo deitado
    com usuário não-master). Sem devolver, a lista do cartaz antigo apareceria no passo 3 e
    as datas antigas nos campos. */
+/* MOSTRA A PLACA antes de gastar papel.
+   Desenha o cartaz com o MESMO desenhista da prévia do passo 3 (czInner / czInnerL), então
+   o que aparece aqui é o que sai na impressora. Para isso preciso emprestar as variáveis da
+   tela — czInner lê o cabeçalho e o rodapé delas — e devolver tudo em seguida. */
+function czHistVer(id){
+  var r = czHistAcha(id); if(!r) return;
+  var tema = czHistTema(r);
+  var bak = { tema:czTema, ini:czValIni, fim:czValidade, limite:czLimite, modelo:czModelo };
+  var placa = "", deitado = (r.modelo === "deitado");
+  try{
+    czTema = tema; czValIni = r.validade_ini || ""; czValidade = r.validade_fim || "";
+    czLimite = String(r.limite_cliente == null ? 0 : r.limite_cliente);
+    czModelo = r.modelo || "padrao";
+    var item = czHistParaItem(r);
+    placa = deitado ? ('<div class="ctzL" style="width:100%"><div class="ctzLin">'+czInnerL(item)+'</div></div>')
+                    : ('<div class="ctz" style="width:100%">'+czInner(item)+'</div>');
+  }catch(e){
+    placa = '<p style="color:#c0392b;">Não consegui desenhar esta placa.</p>';
+  }finally{
+    czTema=bak.tema; czValIni=bak.ini; czValidade=bak.fim; czLimite=bak.limite; czModelo=bak.modelo;
+  }
+
+  var falta = (r.tema_nome && !tema)
+    ? '<p class="cz-verAviso">A arte do cabeçalho ("'+czEsc(r.tema_nome)+'") não está mais na lista. '
+      +'Se imprimir agora, sai com o selo OFERTA em texto — diferente do que está na gôndola.</p>'
+    : '';
+
+  var html = '<div class="cz-ver">'
+    +'<div class="cz-verPlaca'+(deitado?' deitado':'')+'">'+placa+'</div>'
+    +'<div class="cz-verInfo">'
+      +'<b>'+czEsc(czHistRotulo(r))+'</b>'
+      +'<div><span>Preço</span> R$ '+czEsc(r.preco||"")+(r.preco_de?(' &nbsp;<span>de</span> R$ '+czEsc(r.preco_de)):'')+'</div>'
+      +'<div><span>Modelo</span> '+czEsc(r.modelo==="depor"?"De / Por":(r.modelo==="deitado"?"Deitado":"Oferta padrão"))+'</div>'
+      +'<div><span>Tamanho</span> '+czEsc(String(r.tamanho||""))+'</div>'
+      +'<div><span>Cabeçalho</span> '+czEsc(r.tema_nome || "Texto padrão (OFERTA)")+'</div>'
+      +'<div><span>Validade</span> '+czEsc(czHistDatas(r))+'</div>'
+      +((+r.limite_cliente>0)?('<div><span>Limite</span> '+(+r.limite_cliente)+' por cliente</div>'):'')
+      +falta
+    +'</div></div>';
+
+  uiConfirm({titulo:"A placa", html:html, ok:"Imprimir de novo", cancel:"Fechar"})
+    .then(function(sim){ if(sim) czHistImprimir(id); });
+}
+
+/* Achar o registro e achar a arte do cabeçalho: duas coisas que o Ver e o Imprimir fazem
+   igual. Ficam numa função só para não divergirem. */
+function czHistAcha(id){
+  for(var i=0;i<(czHist||[]).length;i++){ if(czHist[i].id===id) return czHist[i]; }
+  return null;
+}
+function czHistTema(r){
+  if(!r || !r.tema_nome) return null;
+  var todos = czTemasTodos();
+  for(var i=0;i<todos.length;i++){ if(todos[i].n === r.tema_nome) return todos[i]; }
+  return null;
+}
+
 function czHistImprimir(id){
-  var r = null, i;
-  for(i=0;i<(czHist||[]).length;i++){ if(czHist[i].id===id){ r=czHist[i]; break; } }
-  if(!r) return;
+  var r = czHistAcha(id); if(!r) return;
 
   // A arte do topo tem que ser a MESMA. Se ela não estiver mais disponível, pergunto —
   // imprimir com outro cabeçalho sairia um cartaz diferente do que está na gôndola.
-  var tema = null;
+  var tema = czHistTema(r);
   if(r.tema_nome){
-    var todos = czTemasTodos();
-    for(i=0;i<todos.length;i++){ if(todos[i].n === r.tema_nome){ tema = todos[i]; break; } }
     if(!tema){
       uiConfirm({titulo:"A arte do cabeçalho não está mais aqui",
         msg:'Este cartaz foi impresso com a arte "'+czEsc(r.tema_nome)+'", que não está mais na lista de cabeçalhos.\\n\\nSe imprimir assim, o cartaz sai com o selo OFERTA em texto — diferente do que está na gôndola.',
@@ -18610,6 +18690,7 @@ function czClick(e){
   if(t=e.target.closest('[data-cztemadel]')){ e.stopPropagation(); var di=parseInt(t.getAttribute('data-cztemadel'),10); var lt=czTemasGet(); var rem=lt.splice(di,1)[0]; czTemasSave(lt); if(czTema&&rem&&czTema.d===rem.d) czTema=null; renderCartaz(); return; }
   if(t=e.target.closest('[data-cztema]')){ var ti2=parseInt(t.getAttribute('data-cztema'),10); czTema=(ti2<0)?null:(czTemasTodos()[ti2]||null); renderCartaz(); return; }
   if(t=e.target.closest('[data-czmodel]')){ czModelo=t.getAttribute('data-czmodel'); renderCartaz(); return; }
+  if(t=e.target.closest('[data-czhistver]')){ czHistVer(t.getAttribute('data-czhistver')); return; }
   if(t=e.target.closest('[data-czhistdel]')){ czHistTirar(t.getAttribute('data-czhistdel')); return; }
   if(t=e.target.closest('[data-czhistimp]')){ czHistImprimir(t.getAttribute('data-czhistimp')); return; }
   if(t=e.target.closest('[data-czsize]')){ czTamanho=t.getAttribute('data-czsize'); renderCartaz(); return; }
