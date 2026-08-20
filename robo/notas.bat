@@ -7,36 +7,23 @@ REM investigacao avanca, quem muda e o notas-passo.cjs. Motivo: o Windows le o .
 REM linha por linha ENQUANTO ele roda, e o passo [1 de 2] atualiza o codigo - se o
 REM proprio .bat fosse reescrito no meio, o resto da execucao embaralharia.
 REM RODANDO_BAT avisa o puxar-codigo para nao encostar neste arquivo agora.
+REM
+REM SEM NENHUM ">>" NEM "2>&1" AQUI, DE PROPOSITO. A versao anterior desviava tudo
+REM para um arquivo de log e morria com "A sintaxe do comando esta incorreta" na
+REM maquina da loja. O log era so reserva: o notas-passo.cjs ja manda o relatorio
+REM para a nuvem por conta propria. Menos peca, menos coisa para quebrar.
 setlocal
 cd /d "%~dp0"
 set RODANDO_BAT=notas.bat
-set LOG=%~dp0notas-log.txt
-echo ================================================== > "%LOG%"
-echo  INVESTIGANDO O XML DAS NOTAS NO VR >> "%LOG%"
-echo  %DATE% %TIME% >> "%LOG%"
-echo ================================================== >> "%LOG%"
 echo.
 echo [1 de 2] Atualizando o codigo do robo...
-echo --- puxar-codigo --- >> "%LOG%"
-node scripts\puxar-codigo.cjs >> "%LOG%" 2>&1
-echo    (codigo atualizado)
+call node scripts\puxar-codigo.cjs
 echo.
 echo [2 de 2] Perguntando ao VR... isso pode levar 1 ou 2 minutos.
-echo --- notas-passo --- >> "%LOG%"
-node scripts\notas-passo.cjs >> "%LOG%" 2>&1
-echo --- fim --- >> "%LOG%"
-echo.
-echo Mandando o resultado para a nuvem...
-node scripts\mandar-log.cjs "%LOG%" notas
+call node scripts\notas-passo.cjs
 echo.
 echo ==================================================
-echo  TERMINOU. O que saiu esta logo abaixo e tambem
-echo  gravado no arquivo notas-log.txt
-echo ==================================================
-echo.
-type "%LOG%"
-echo.
-echo ==================================================
+echo  TERMINOU. O resultado ja foi para a nuvem sozinho.
 echo  Pode fechar a janela. Aperte qualquer tecla.
 echo ==================================================
 pause
