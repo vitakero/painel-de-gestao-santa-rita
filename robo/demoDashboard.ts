@@ -18442,18 +18442,32 @@ function czImprimir(){
     var vMar=(CC.page.indexOf('landscape')>=0)?14:16; // centraliza: (altura papel - pgH)/2
     var ccss=':root{color-scheme:light only;}@page{size:'+CC.page+';margin:'+vMar+'mm 6mm;}*{margin:0;padding:0;box-sizing:border-box;font-family:"Bangers",cursive;}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'+CZPCSS
       +'.pg{width:100%;height:'+CC.pgH+'mm;overflow:hidden;break-inside:avoid;display:grid;grid-template-columns:repeat('+CC.cols+',minmax(0,1fr));grid-template-rows:repeat('+CC.rows+',minmax(0,1fr));gap:'+gap+'mm;}.pg+.pg{page-break-before:always;}'
-      +'.cell{display:flex;align-items:center;justify-content:center;overflow:hidden;}'
+      +'.cell{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;}'
       +'@media screen{html{background:#3c4043;}body{zoom:.45;background:#3c4043;padding:30px 0;}.pg{background:#fff;width:'+(CC.page.indexOf('landscape')>=0?'1122px':'794px')+';margin:0 auto 30px;box-shadow:0 8px 30px rgba(0,0,0,.45);}}';
     var cpg='';
     for(var ci=0;ci<itens.length;ci+=CC.cols*CC.rows){
       var ccells='';
       for(var cj=ci;cj<ci+CC.cols*CC.rows;cj++){
-        ccells+= (cj<itens.length) ? ('<div class="cell"><div class="poster" style="position:relative;width:'+plW+'mm;height:'+plH+'mm;'+(CC.rot?'transform:rotate(90deg);':'')+'flex:none;">'+czInner(itens[cj])+'</div></div>') : '<div class="cell"></div>';
+        /* CARTAZ GIRADO SAI DO FLUXO.
+           Girar com transform é só efeito visual: o navegador continua contando a altura
+           de ANTES de girar. Na A5 o cartaz tem 183,9mm de altura dentro de uma célula de
+           130mm — girado ele caberia folgado, mas a trava anti-estouro lá de baixo via
+           "conteúdo maior que a caixa" e encolhia a folha inteira para 71%. Medido:
+           zoom 0,709. Tirando do fluxo (position:absolute) a célula deixa de enxergar a
+           altura de antes da rotação, e a trava para de disparar à toa. */
+        var estilo = CC.rot
+          ? ('position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(90deg);'
+             +'width:'+plW+'mm;height:'+plH+'mm;')
+          : ('position:relative;width:'+plW+'mm;height:'+plH+'mm;flex:none;');
+        ccells+= (cj<itens.length) ? ('<div class="cell"><div class="poster" style="'+estilo+'">'+czInner(itens[cj])+'</div></div>') : '<div class="cell"></div>';
       }
       cpg+='<div class="pg">'+ccells+'</div>';
     }
     var wc=window.open('','_blank'); if(!wc){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return; }
-    wc.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet"><style>'+ccss+'</style></head><body>'+cpg+'<scr'+'ipt>(function(){function fit(){var cs=document.querySelectorAll(\".cell,.ctzLin\");for(var i=0;i<cs.length;i++){var c=cs[i],z=1;c.style.zoom=\"\";for(var t=0;t<6;t++){var caixa=c.clientHeight,dentro=c.scrollHeight;if(dentro<=caixa+1)break;z=z*((caixa-1)/dentro);if(z<0.55){z=0.55;c.style.zoom=z;break;}c.style.zoom=z;}}}function go(){try{fit();}catch(e){}setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
+    // A trava anti-estouro agora mede o PRÓPRIO CARTAZ, não a célula: é dentro dele que
+    // um nome de produto comprido pode estourar. A célula, com o cartaz girado fora do
+    // fluxo, não tem mais o que medir.
+    wc.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet"><style>'+ccss+'</style></head><body>'+cpg+'<scr'+'ipt>(function(){function fit(){var cs=document.querySelectorAll(\".poster,.ctzLin\");for(var i=0;i<cs.length;i++){var c=cs[i],z=1;c.style.zoom=\"\";for(var t=0;t<6;t++){var caixa=c.clientHeight,dentro=c.scrollHeight;if(dentro<=caixa+1)break;z=z*((caixa-1)/dentro);if(z<0.55){z=0.55;c.style.zoom=z;break;}c.style.zoom=z;}}}function go(){try{fit();}catch(e){}setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
     wc.document.close();
     return;
   }
