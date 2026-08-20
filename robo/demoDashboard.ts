@@ -19686,7 +19686,9 @@ function insFiltrados(){
     if(insAtivoF==="0" && x.ativo!==false) return false;
     if(!q) return true;
     return ((x.nome||"")+" "+(x.codigo||"")+" "+(x.categoria||"")+" "+(x.subcategoria||"")+" "+(x.marca||"")+" "+(x.fornecedor||"")+" "+(x.ean||"")).toLowerCase().indexOf(q)>=0;
-  }).sort(function(a,b){ return (a.nome||"").localeCompare(b.nome||"","pt"); });
+    // numeric:true por causa de "Bandeja 10" x "Bandeja 2": sem ele o navegador compara
+    // letra por letra e o 1 vem antes do 2, entao a Bandeja 10 subia na frente da 2.
+  }).sort(function(a,b){ return (a.nome||"").localeCompare(b.nome||"","pt",{numeric:true,sensitivity:"base"}); });
 }
 function insRenderLista(){
   var el=document.getElementById("insLista"); if(!el) return;
