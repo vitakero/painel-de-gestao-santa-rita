@@ -18436,7 +18436,14 @@ function czImprimir(){
     var CC=CELLS[czTamanho]; var gap=5;
     var cellW=(CC.pgW-(CC.cols-1)*gap)/CC.cols, cellH=(CC.pgH-(CC.rows-1)*gap)/CC.rows;
     var plH, plW;
-    if(CC.rot){ plH=Math.min(cellW, cellH/0.707); plW=plH*0.707; }
+    /* O CARTAZ DEITADO PREENCHE A METADE INTEIRA DA FOLHA.
+       Antes ele era desenhado na proporção exata do papel A5 (1:0,707) e ficava com
+       184mm numa metade de 198mm — sobravam 14mm de branco bem na ponta onde fica o
+       banner, que foi a "linha" que o dono viu. A A4 já não faz isso: ela usa a área
+       toda (198 x 268mm), não a proporção do papel. A A5 passa a seguir a mesma régua.
+       A largura do cartaz continua 130mm, então o cqw não muda e nenhuma letra muda de
+       tamanho — o que cresce é só o comprimento, que vira folga interna. */
+    if(CC.rot){ plH=cellW; plW=cellH; }
     else { plH=Math.min(cellH, cellW/0.707); plW=plH*0.707; }
     plH=Math.round(plH*10)/10; plW=Math.round(plW*10)/10;
     var vMar=(CC.page.indexOf('landscape')>=0)?14:16; // centraliza: (altura papel - pgH)/2
