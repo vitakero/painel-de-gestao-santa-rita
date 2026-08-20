@@ -33,6 +33,9 @@ const FILES = [
   ["robo/publicar.cjs", "publicar.cjs", "PUBLICADO"],
   ["robo/pixWorker.cjs", "pixWorker.cjs", "pix_cobrancas"],
   ["robo/vr-descobrir-agendamento.cjs", "vr-descobrir-agendamento.cjs", "DETETIVE do VR"],
+  // Este subia pro GitHub e a loja nunca baixava (mesmo buraco do vr-sync-conferencia):
+  // quem rodasse na mao dentro da loja pegaria uma versao velha.
+  ["robo/vr-descobrir-agendamento2.cjs", "vr-descobrir-agendamento2.cjs", "agendamentorecebimento"],
   ["robo/vr-sync-agendamento.cjs", "vr-sync-agendamento.cjs", "central_agendamentos"],
   // Faltava aqui: o deploy MANDAVA este arquivo pro GitHub e a loja nunca BAIXAVA.
   // Por isso a aba Conferencia so atualizava quando alguem rodava na mao, de dentro da loja.
@@ -43,7 +46,7 @@ const FILES = [
   ["robo/vr-medir-pedidos.cjs", "vr-medir-pedidos.cjs", "MEDIDOR"],
   ["robo/vr-sync-pedidos.cjs", "vr-sync-pedidos.cjs", "receb_pedido_itens"],
   ["robo/vr-descobrir-perdas.cjs", "vr-descobrir-perdas.cjs", "receb_eventos"],
-  ["robo/vr-descobrir-notas.cjs", "vr-descobrir-notas.cjs", "O VR JA GUARDA O XML"],
+  ["robo/vr-descobrir-notas.cjs", "vr-descobrir-notas.cjs", "vr_notas"],
   ["robo/mandar-log.cjs", "mandar-log.cjs", "receb_eventos"],
   // .bat de clicar duas vezes: vai para a RAIZ (C:\\vr-robo), nao para scripts/
   ["robo/notas.bat", "../notas.bat", "NOTAS-BAT"],
