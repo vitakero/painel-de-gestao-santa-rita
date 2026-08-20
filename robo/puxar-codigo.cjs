@@ -44,6 +44,9 @@ const FILES = [
   ["robo/vr-sync-pedidos.cjs", "vr-sync-pedidos.cjs", "receb_pedido_itens"],
   ["robo/vr-descobrir-perdas.cjs", "vr-descobrir-perdas.cjs", "receb_eventos"],
   ["robo/vr-descobrir-notas.cjs", "vr-descobrir-notas.cjs", "O VR JA GUARDA O XML"],
+  ["robo/mandar-log.cjs", "mandar-log.cjs", "receb_eventos"],
+  // .bat de clicar duas vezes: vai para a RAIZ (C:\\vr-robo), nao para scripts/
+  ["robo/notas.bat", "../notas.bat", "NOTAS-BAT"],
   ["robo/puxar-codigo.cjs", "puxar-codigo.cjs", "Baixa o codigo mais recente do GitHub via API"],
 ];
 
@@ -88,6 +91,12 @@ const headers = {
       const txt = await r.text();
       if (txt.indexOf(marker) === -1) { console.log("  (" + local + " invalido - mantendo o atual)"); continue; }
       const dest = path.join(__dirname, local);
+      // So gravo se MUDOU. Antes eu regravava tudo toda rodada; com o notas.bat isso
+      // vira problema de verdade, porque o Windows le o .bat linha por linha ENQUANTO
+      // ele roda - reescrever o arquivo no meio da execucao embaralha o que falta rodar.
+      let igual = false;
+      try { igual = fs.readFileSync(dest, "utf8") === txt; } catch (e) {}
+      if (igual) continue;
       fs.mkdirSync(path.dirname(dest), { recursive: true });   // garante subpasta (ex.: central/) antes de gravar
       fs.writeFileSync(dest, txt);
       console.log("  atualizado: " + local);
