@@ -8,7 +8,7 @@ REM linha por linha ENQUANTO ele roda, e o passo [1 de 2] atualiza o codigo - se
 REM proprio .bat fosse reescrito no meio, o resto da execucao embaralharia.
 REM RODANDO_BAT avisa o puxar-codigo para nao encostar neste arquivo agora.
 REM
-REM SEM NENHUM ">>" NEM "2>&1" AQUI, DE PROPOSITO. A versao anterior desviava tudo
+REM SEM NENHUM DESVIO DE SAIDA AQUI, DE PROPOSITO. A versao anterior mandava tudo
 REM para um arquivo de log e morria com "A sintaxe do comando esta incorreta" na
 REM maquina da loja. O log era so reserva: o notas-passo.cjs ja manda o relatorio
 REM para a nuvem por conta propria. Menos peca, menos coisa para quebrar.
