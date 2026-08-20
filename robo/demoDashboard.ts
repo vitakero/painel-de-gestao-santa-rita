@@ -18238,7 +18238,6 @@ function czHistBloco(){
         +' · '+czEsc(czHistDatas(r))+'</span></div>'
       +'<div class="cz-histA">'
         +'<button class="cz-btn sec" data-czhistver="'+czEsc(r.id)+'">Ver a placa</button>'
-        +'<button class="cz-btn sec" data-czhistimp="'+czEsc(r.id)+'">Imprimir de novo</button>'
         +'<button class="cz-histX" data-czhistdel="'+czEsc(r.id)+'" title="Tirar do histórico">✕</button>'
       +'</div></div>';
   }
@@ -18692,7 +18691,6 @@ function czClick(e){
   if(t=e.target.closest('[data-czmodel]')){ czModelo=t.getAttribute('data-czmodel'); renderCartaz(); return; }
   if(t=e.target.closest('[data-czhistver]')){ czHistVer(t.getAttribute('data-czhistver')); return; }
   if(t=e.target.closest('[data-czhistdel]')){ czHistTirar(t.getAttribute('data-czhistdel')); return; }
-  if(t=e.target.closest('[data-czhistimp]')){ czHistImprimir(t.getAttribute('data-czhistimp')); return; }
   if(t=e.target.closest('[data-czsize]')){ czTamanho=t.getAttribute('data-czsize'); renderCartaz(); return; }
   if(t=e.target.closest('[data-czdel]')){ czProdutos.splice(parseInt(t.getAttribute('data-czdel'),10),1); renderCartaz(); return; }
   if(t=e.target.closest('[data-czact]')){ var a=t.getAttribute('data-czact');
