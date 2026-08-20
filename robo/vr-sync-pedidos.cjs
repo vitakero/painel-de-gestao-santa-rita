@@ -299,6 +299,19 @@ const Q_ITENS = `
     }
   } catch (e) { console.log("(detetive das perdas nao rodou: " + e.message + ")"); }
 
+  // ---- O VR JA GUARDA O XML DAS NOTAS DE ENTRADA? uma vez so ----
+  // Se guardar, a conferencia de itens passa a valer sempre, com XML ou sem, e vinda da
+  // Receita em vez do fornecedor. Pendurado aqui porque este script ja roda sozinho;
+  // mexer no robo.bat exige o Victor na maquina da loja.
+  try {
+    const jaN = await req("GET", "/rest/v1/receb_eventos?select=id&entidade=eq.vr_notas&limit=1");
+    if (!jaN || !jaN.length) {
+      console.log("\nProcurando o XML das notas de entrada no VR (uma vez so)...");
+      require("child_process").execFileSync(process.execPath,
+        [path.join(__dirname, "vr-descobrir-notas.cjs")], { stdio: "inherit" });
+    }
+  } catch (e) { console.log("(busca das notas nao rodou: " + e.message + ")"); }
+
   /* O FLV NAO PASSA MAIS POR AQUI.
      Cheguei a montar o vr-sync-flv.cjs para puxar do VR o faturamento e o desperdicio do
      balanco. O faturamento fechou com a tela dele com R$ 100 de diferenca em R$ 600 mil,
