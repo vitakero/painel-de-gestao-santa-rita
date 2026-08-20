@@ -7325,6 +7325,64 @@ function rcbFolhaHtml(cfg){
     blocos+='<div class="rcb-folha">'+partes.slice(j,j+3).join("")+'</div>';
   return blocos;
 }
+/* PEDIDO E AUTORIZAÇÃO DO RECIBO COMUM (20/08/2026).
+   O valor aqui é digitado a cada vez, então o funcionário PEDE e o dono AUTORIZA do login
+   dele. A primeira tentativa foi pedir a senha do master na hora de imprimir, e o próprio
+   dono achou o furo: ela não tem a senha dele.
+   Este bloco não toca em tela nem em nuvem — são só as contas e as regras. */
+
+/* Como cada situação aparece escrita para a pessoa. */
+function rcbAutStatusTxt(st){
+  if(st==="pendente")  return "Esperando autorização";
+  if(st==="autorizado")return "Autorizado — pode imprimir";
+  if(st==="recusado")  return "Recusado";
+  if(st==="impresso")  return "Já impresso";
+  if(st==="cancelado") return "Cancelado";
+  return "";
+}
+
+/* QUEM PODE IMPRIMIR: só quem pediu, só o que está autorizado, e só uma vez.
+   "Uma vez" foi decisão dele — cada papel que sai teve uma autorização. Depois de impresso
+   o registro muda de estado e o botão some. */
+function rcbAutPodeImprimir(r, meuId){
+  if(!r || r.status!=="autorizado") return false;
+  if(!meuId) return false;
+  return String(r.pedido_por||"") === String(meuId);
+}
+
+/* Quem pode DECIDIR é só o master, e nunca sobre o próprio pedido. Autoaprovação aqui não
+   faz sentido: se o dono quer um recibo, ele imprime direto, sem passar por aqui. */
+function rcbAutPodeDecidir(r, souMaster, meuId){
+  if(!r || r.status!=="pendente" || !souMaster) return false;
+  return String(r.pedido_por||"") !== String(meuId||"");
+}
+
+/* Desistir do próprio pedido, enquanto ninguém decidiu. */
+function rcbAutPodeCancelar(r, meuId){
+  if(!r || r.status!=="pendente") return false;
+  return String(r.pedido_por||"") === String(meuId||"");
+}
+
+/* A frase que resume o pedido para quem vai autorizar. É ela que o dono lê antes de
+   liberar dinheiro, então tem que dizer QUANTO, POR QUÊ e QUEM pediu — nessa ordem. */
+function rcbAutResumo(r){
+  if(!r) return "";
+  var q = Math.max(1, Math.floor(+r.quantidade||1));
+  var partes = [];
+  partes.push(q + " recibo" + (q===1?"":"s") + " de " + rcbMoeda(r.valor));
+  if(q>1) partes.push("total " + rcbMoeda((+r.valor||0) * q));
+  if(String(r.motivo||"").trim()) partes.push(String(r.motivo).trim());
+  return partes.join(" · ");
+}
+
+/* O total do pedido. Fica aqui e não na tela porque é a mesma conta que o dono vê ao
+   autorizar e que sai no papel — dois lugares calculando isso sempre divergem. */
+function rcbAutTotal(r){
+  if(!r) return 0;
+  var q = Math.max(1, Math.floor(+r.quantidade||1));
+  var v = +r.valor||0;
+  return Math.round(v*q*100)/100;
+}
 /* ==RCB-FIM== */
 
 /* ---- Recibos de domingo: tela e impressão (só master) ---- */
@@ -7443,6 +7501,186 @@ function rcbLigarAbas(el){
    No domingo o valor é padrão da loja e quem imprime só escolhe a quantidade. Neste o valor
    é digitado a cada recibo — deixar aberto seria deixar qualquer um imprimir comprovante de
    qualquer quantia com o CNPJ da empresa em cima. */
+/* ---- A NUVEM E AS AÇÕES DO PEDIDO DE AUTORIZAÇÃO ---- */
+var rcbAut = null, rcbAutCarregando = false;
+function rcbSB(){ try{ return window.__SB||null; }catch(e){ return null; } }
+function rcbMeuId(){ try{ return (window.__PERFIL||{}).id || ""; }catch(e){ return ""; } }
+function rcbMeuNome(){ try{ var p=window.__PERFIL||{}; return p.nome || p.email || ""; }catch(e){ return ""; } }
+
+function rcbAutCarregar(){
+  var sb=rcbSB(); if(!sb || rcbAutCarregando) return;
+  if(window.__PERFIL==null) return;          // rcbRender já agenda a nova tentativa
+  rcbAutCarregando=true;
+  sb.from("recibos_autorizacoes").select("*")
+    .in("status",["pendente","autorizado"])
+    .order("pedido_em",{ascending:false}).limit(40)
+    .then(function(r){
+      rcbAut = (r && !r.error && r.data) ? r.data : (rcbAut || []);
+      rcbAutCarregando=false; rcbRender();
+    }, function(){
+      /* Tabela ainda não criada ou sem internet: a página continua funcionando. O pedido
+         de autorização é um extra; não pode derrubar quem só quer o recibo de domingo. */
+      rcbAut = rcbAut || []; rcbAutCarregando=false; rcbRender();
+    });
+}
+
+function rcbAutPedir(c){
+  var sb=rcbSB(); if(!sb) return;
+  var erros=rcbPgValidar(c);
+  if(erros.length){ var er=document.getElementById("rcbPgErro"); if(er) er.textContent=erros[0]; return; }
+  sb.from("recibos_autorizacoes").insert([{
+    status:"pendente", data:c.data, valor:+c.valor,
+    quantidade:Math.floor(+c.quantidade||1), motivo:rcbPgMotivo(c.motivo),
+    pedido_por:rcbMeuId(), pedido_por_nome:rcbMeuNome()
+  }]).then(function(r){
+    if(r && r.error){
+      uiConfirm({titulo:"Não consegui enviar o pedido",
+        msg:"Tente de novo. Se continuar, avise o administrador.",ok:"OK",cancel:""});
+      return;
+    }
+    /* O painel não tem aviso passageiro (o toast foi desligado a pedido dele). Uso a
+       janela normal: aqui vale a pena mesmo, porque a pessoa precisa entender que o
+       recibo NÃO saiu ainda — está esperando o dono. */
+    uiConfirm({titulo:"Pedido enviado",
+      msg:"O administrador vai ver este pedido quando abrir o painel.\\n\\nAssim que ele autorizar, o recibo aparece aqui embaixo para você imprimir.",
+      ok:"Entendi", cancel:""});
+    rcbAutCarregar();
+  }, function(){
+    uiConfirm({titulo:"Não consegui enviar o pedido",msg:"Tente de novo.",ok:"OK",cancel:""});
+  });
+}
+
+function rcbAutDecidir(id, autorizar){
+  var sb=rcbSB(); if(!sb) return;
+  var r=null; for(var i=0;i<(rcbAut||[]).length;i++){ if(rcbAut[i].id===id) r=rcbAut[i]; }
+  if(!r) return;
+  if(autorizar){
+    /* A janela repete o que ele está liberando. Autorizar dinheiro no escuro, com um clique
+       perdido, é exatamente o que não pode acontecer aqui. */
+    uiConfirm({titulo:"Autorizar este recibo?",
+      msg:rcbAutResumo(r)+"\\n\\nPedido por "+(r.pedido_por_nome||"—")+".\\n\\nTotal: "+rcbMoeda(rcbAutTotal(r)),
+      ok:"Autorizar", cancel:"Cancelar"}).then(function(sim){
+        if(!sim) return;
+        sb.from("recibos_autorizacoes").update({ status:"autorizado",
+          decidido_por:rcbMeuId(), decidido_por_nome:rcbMeuNome(), decidido_em:new Date().toISOString()
+        }).eq("id",id).then(function(){ rcbAutCarregar(); }, function(){ rcbAutCarregar(); });
+      });
+    return;
+  }
+  uiConfirm({titulo:"Recusar este recibo?",
+    msg:rcbAutResumo(r)+"\\n\\nPedido por "+(r.pedido_por_nome||"—")+".\\n\\nEle sai da lista e a pessoa vê que foi recusado.",
+    ok:"Recusar", cancel:"Cancelar"}).then(function(sim){
+      if(!sim) return;
+      sb.from("recibos_autorizacoes").update({ status:"recusado",
+        decidido_por:rcbMeuId(), decidido_por_nome:rcbMeuNome(), decidido_em:new Date().toISOString()
+      }).eq("id",id).then(function(){ rcbAutCarregar(); }, function(){ rcbAutCarregar(); });
+    });
+}
+
+function rcbAutCancelar(id){
+  var sb=rcbSB(); if(!sb) return;
+  uiConfirm({titulo:"Desistir deste pedido?",msg:"Ele sai da lista e o administrador não precisa mais olhar.",
+    ok:"Desistir",cancel:"Voltar"}).then(function(sim){
+      if(!sim) return;
+      sb.from("recibos_autorizacoes").update({ status:"cancelado" }).eq("id",id)
+        .then(function(){ rcbAutCarregar(); }, function(){ rcbAutCarregar(); });
+    });
+}
+
+/* IMPRIME O RECIBO AUTORIZADO — a partir do REGISTRO, nunca do formulário na tela.
+   Se saísse da tela, dava para pedir R$ 50, esperar o "autorizar" e trocar para R$ 500
+   antes de imprimir. O banco também barra isso por gatilho; aqui é a primeira camada. */
+function rcbAutImprimir(id){
+  var sb=rcbSB(); if(!sb) return;
+  var r=null; for(var i=0;i<(rcbAut||[]).length;i++){ if(rcbAut[i].id===id) r=rcbAut[i]; }
+  if(!rcbAutPodeImprimir(r, rcbMeuId())) return;
+  var c={ data:r.data, valor:+r.valor, quantidade:Math.floor(+r.quantidade||1), motivo:r.motivo };
+  /* Marco como impresso ANTES de abrir a folha. "Uma vez" foi decisão dele, e se eu
+     marcasse depois, dois cliques rápidos gerariam dois papéis com uma autorização só. */
+  sb.from("recibos_autorizacoes").update({ status:"impresso", impresso_em:new Date().toISOString() })
+    .eq("id",id).then(function(){
+      rcbAbrir(c, { titulo:"Recibos de pagamento",
+                    folha: rcbPgFolhaHtml(c),
+                    hist: { data:c.data, qtd:c.quantidade, total:rcbPgTotal(c), quem:rcbMeuNome(),
+                            detalhe: c.quantidade+" × "+rcbPgMotivo(c.motivo)+" ("+rcbMoeda(c.valor)+")" } });
+      rcbAutCarregar();
+    }, function(){
+      uiConfirm({titulo:"Não consegui liberar a impressão",msg:"Tente de novo.",ok:"OK",cancel:""});
+    });
+}
+
+/* AS LISTAS DE PEDIDO — o que o dono vê e o que a funcionária vê.
+   É a mesma tabela, com recortes diferentes: ele vê o que precisa decidir; ela vê o que
+   pediu e o que já pode imprimir. */
+function rcbAutBloco(master){
+  if(rcbAut==null){
+    return '<div class="card" style="max-width:760px;margin-top:18px;">'
+      +'<p style="margin:0;color:#8a939e;font-size:13px;">Carregando os pedidos…</p></div>';
+  }
+  var meu = rcbMeuId(), i, r, linhas = "", n = 0;
+
+  for(i=0;i<rcbAut.length;i++){
+    r = rcbAut[i];
+    var meuPedido = String(r.pedido_por||"")===String(meu);
+    // o dono vê o que tem para decidir; ela vê o que é dela
+    if(master ? !rcbAutPodeDecidir(r, true, meu) && !meuPedido : !meuPedido) continue;
+    n++;
+
+    var acoes = "";
+    if(rcbAutPodeDecidir(r, master, meu)){
+      acoes = '<button class="btn-p" data-rcbaut-sim="'+pxEsc(r.id)+'">Autorizar</button>'
+            + '<button class="btn-s" data-rcbaut-nao="'+pxEsc(r.id)+'">Recusar</button>';
+    } else if(rcbAutPodeImprimir(r, meu)){
+      acoes = '<button class="btn-p" data-rcbaut-imp="'+pxEsc(r.id)+'">Imprimir</button>';
+    } else if(rcbAutPodeCancelar(r, meu)){
+      acoes = '<button class="btn-s" data-rcbaut-can="'+pxEsc(r.id)+'">Desistir</button>';
+    }
+
+    var cor = (r.status==="autorizado") ? "#1b9e4b" : "#9a6b00";
+    linhas += '<div style="display:flex;gap:12px;align-items:center;padding:11px 0;border-top:1px solid #eef2f7;">'
+      +'<div style="flex:1;min-width:0;">'
+        +'<b style="display:block;font-size:14px;color:#1d2733;">'+pxEsc(rcbAutResumo(r))+'</b>'
+        +'<span style="display:block;font-size:11.5px;color:#8a939e;margin-top:2px;">'
+          +'<span style="color:'+cor+';font-weight:700;">'+pxEsc(rcbAutStatusTxt(r.status))+'</span>'
+          +' · pedido por '+pxEsc(r.pedido_por_nome||"—")
+          +' · total '+pxEsc(rcbMoeda(rcbAutTotal(r)))
+        +'</span>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;flex:none;">'+acoes+'</div>'
+    +'</div>';
+  }
+
+  if(!n){
+    return master
+      ? ''   // nada esperando: não ocupo a tela do dono com uma caixa vazia
+      : '<div class="card" style="max-width:760px;margin-top:18px;">'
+        +'<h2 style="margin:0 0 4px;font-size:16px;">Meus pedidos</h2>'
+        +'<p style="margin:0;color:#8a939e;font-size:12.5px;line-height:1.5;">'
+        +'Quando você pedir autorização, o pedido fica aqui até o administrador liberar. '
+        +'Depois disso aparece o botão de imprimir.</p></div>';
+  }
+
+  return '<div class="card" style="max-width:760px;margin-top:18px;">'
+    +'<h2 style="margin:0 0 2px;font-size:16px;">'
+      +(master ? 'Esperando sua autorização' : 'Meus pedidos')+'</h2>'
+    +'<p style="margin:0 0 4px;color:#8a939e;font-size:12.5px;line-height:1.5;">'
+      +(master
+        ? 'Confira o valor e o motivo antes de liberar. Cada autorização vale para aquele recibo, uma vez.'
+        : 'Assim que o administrador autorizar, o botão de imprimir aparece aqui.')
+    +'</p>'+linhas+'</div>';
+}
+
+function rcbAutLigar(el){
+  [].slice.call(el.querySelectorAll("[data-rcbaut-sim]")).forEach(function(b){
+    b.onclick=function(){ rcbAutDecidir(b.getAttribute("data-rcbaut-sim"), true); }; });
+  [].slice.call(el.querySelectorAll("[data-rcbaut-nao]")).forEach(function(b){
+    b.onclick=function(){ rcbAutDecidir(b.getAttribute("data-rcbaut-nao"), false); }; });
+  [].slice.call(el.querySelectorAll("[data-rcbaut-imp]")).forEach(function(b){
+    b.onclick=function(){ rcbAutImprimir(b.getAttribute("data-rcbaut-imp")); }; });
+  [].slice.call(el.querySelectorAll("[data-rcbaut-can]")).forEach(function(b){
+    b.onclick=function(){ rcbAutCancelar(b.getAttribute("data-rcbaut-can")); }; });
+}
+
 function rcbRenderPg(el){
   var master=rcbEhMaster(), h=rcbHist();
   var inputBase="width:100%;margin-top:5px;padding:9px 10px;border:1px solid #dbe1e8;border-radius:8px;font-size:14px;";
@@ -7478,7 +7716,8 @@ function rcbRenderPg(el){
    +'<div id="rcbPgResumo" style="margin-top:12px;font-size:13.5px;color:#49525d;"></div>'
    +'<div id="rcbPgErro" style="margin-top:8px;font-size:13px;color:#8c2f28;"></div>'
    +'<div style="margin-top:16px;">'
-     +'<button type="button" id="rcbPgGerar" style="'+RCB_BTN+'">Gerar recibos para imprimir</button>'
+     +'<button type="button" id="rcbPgGerar" style="'+RCB_BTN+'">'
+       +(master ? 'Gerar recibos para imprimir' : 'Pedir autorização')+'</button>'
    +'</div>'
    +'</div>'
    +'<div class="card" style="flex:1 1 380px;min-width:330px;max-width:520px;">'
@@ -7487,9 +7726,11 @@ function rcbRenderPg(el){
        +'Espelho do papel. O nome e a assinatura ficam em branco — quem recebe preenche na hora.</p>'
      +'<div id="rcbPgPrevia" class="rcb-prev"></div>'
    +'</div>'
-   +'</div>';
+   +'</div>'
+   + rcbAutBloco(master);
 
   rcbLigarAbas(el);
+  rcbAutLigar(el);
 
   function ler(){
     return { data:(document.getElementById("rcbPgData")||{}).value||"",
@@ -7526,25 +7767,17 @@ function rcbRenderPg(el){
 
   document.getElementById("rcbPgGerar").addEventListener("click",function(){
     var c=ler();
-    /* A APROVAÇÃO ACONTECE AQUI, no último passo.
-       autorizarMaster confere a senha ao vivo, no banco, e não derruba o login de quem está
-       usando o painel. Se quem clicou já é master, passa direto — não faz sentido pedir a
-       ele a própria senha. Se for funcionário, o recibo só sai depois que alguém com a senha
-       do master digitar. O motivo aparece na janela para o dono saber o que está aprovando,
-       em vez de dar um "ok" no escuro. */
-    var quanto = rcbMoeda(rcbPgTotal(c));
+    /* O DONO GERA DIRETO; O FUNCIONÁRIO PEDE.
+       A primeira versão pedia a senha do master na hora de imprimir, e o próprio dono achou
+       o furo: ela não tem a senha dele. Ou ele ia até o computador dela digitar, ou ela
+       ficava parada. Agora ela manda o pedido e ele autoriza do login dele, de onde estiver. */
+    if(!rcbEhMaster()){ rcbAutPedir(c); return; }
     var quantos = Math.floor(c.quantidade);
-    var motivo = "Gerar "+quantos+" recibo"+(quantos===1?"":"s")+" de pagamento comum, "
-      +"no total de "+quanto+".\\n\\nMotivo escrito no recibo: "+(rcbPgMotivo(c.motivo)||"(em branco)")
-      +"\\n\\nDigite a senha do master para liberar a impressão.";
-    autorizarMaster(motivo).then(function(ok){
-      if(!ok) return;
-      rcbAbrir(c, { titulo:"Recibos de pagamento",
-                    folha: rcbPgFolhaHtml(c),
-                    hist: { data:c.data, qtd:quantos, total:rcbPgTotal(c),
-                            detalhe: quantos+" × "+rcbPgMotivo(c.motivo)
-                                     +" ("+rcbMoeda(c.valor)+")" } });
-    });
+    rcbAbrir(c, { titulo:"Recibos de pagamento",
+                  folha: rcbPgFolhaHtml(c),
+                  hist: { data:c.data, qtd:quantos, total:rcbPgTotal(c),
+                          detalhe: quantos+" × "+rcbPgMotivo(c.motivo)
+                                   +" ("+rcbMoeda(c.valor)+")" } });
   });
 }
 
@@ -7557,7 +7790,7 @@ function rcbRender(){
   if(window.__PERFIL==null){
     el.innerHTML='<div class="cfg-nao" style="font-style:italic;">Carregando…</div>';
     if(!window.__rcbRetry) window.__rcbRetry=setTimeout(function(){
-      window.__rcbRetry=null; rcbRender(); },600);
+      window.__rcbRetry=null; rcbRender(); rcbAutCarregar(); },600);
     return;
   }
   if(RCB_MODELO==="pagamento"){ rcbRenderPg(el); return; }
@@ -19000,7 +19233,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="galpoes"){ try{ glCloudLoad(); glRealtime(); renderGalpoes(); }catch(e){} }
     if(btn.dataset.page==="despesas"){ try{ despRender(); despCloudLoad(); }catch(e){} }
     if(btn.dataset.page==="flv"){ try{ flvRender(); flvCloudLoad(); }catch(e){} }
-    if(btn.dataset.page==="recibos"){ try{ rcbRender(); }catch(e){} }
+    if(btn.dataset.page==="recibos"){ try{ rcbRender(); rcbAutCarregar(); }catch(e){} }
     if(btn.dataset.page==="planta"){ try{ glCloudLoad(); glRealtime(); renderPlanta(); }catch(e){} }
     if(btn.dataset.page==="central"){ try{ clCloudLoad(); }catch(e){} }
     if(btn.dataset.page==="fornecedores"){ try{ frnCloudLoad(); }catch(e){} }
