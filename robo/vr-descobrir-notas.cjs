@@ -135,28 +135,44 @@ function req(metodo, caminho, corpo, prefer){
      abaixo passa por txt() e o bloco inteiro tem rede embaixo. */
   const txt=(v,n)=>String(v==null?"":v).padEnd(n||0);
   const num=(v,n)=>String(v==null?"?":v).padStart(n||0);
-  try{
-    console.log("\n=== COLUNAS COM XML NO NOME ===");
+  // Uma rede POR SECAO. Na primeira rodada eu pus uma rede so em volta das quatro: a
+  // segunda secao tropecou na primeira linha e levou as duas ultimas junto — e a ultima
+  // ("TEM XML DE VERDADE?") era justamente a resposta que eu queria.
+  const lista=(v)=>Array.isArray(v)?v.join(","):String(v==null?"":v);
+  const secao=(titulo,fn)=>{
+    console.log("\n=== "+titulo+" ===");
+    try{ fn(); }catch(e){ console.log("  (esta secao falhou: "+e.message+")"); }
+  };
+  secao("COLUNAS COM XML NO NOME",()=>{
     (out.colunas_xml||[]).forEach(x=>console.log("  "+txt(x.esquema+"."+x.tabela+"."+x.coluna,52)
       +txt(x.tipo,14)+num(x.linhas,10)+" linhas"));
-    console.log("\n=== TABELAS COM CARA DE NOTA DE ENTRADA ===");
+  });
+  secao("TABELAS COM CARA DE NOTA DE ENTRADA",()=>{
     (out.tabelas||[]).forEach(t=>{
-      console.log("  "+txt(t.esquema+"."+t.tabela,40)+num(t.linhas,10)+" linhas");
-      console.log("      "+String((t.colunas||[]).join(",")).slice(0,300));
+      // uma linha ruim nao pode calar as outras
+      try{
+        console.log("  "+txt(t.esquema+"."+t.tabela,40)+num(t.linhas,10)+" linhas");
+        console.log("      "+lista(t.colunas).slice(0,300));
+      }catch(e){ console.log("  (linha ilegivel: "+e.message+")"); }
     });
-    console.log("\n=== ONDE ESTA A CHAVE DE 44 DIGITOS ===");
+  });
+  secao("ONDE ESTA A CHAVE DE 44 DIGITOS",()=>{
     (out.colunas_chave||[]).forEach(x=>console.log("  "+txt(x.esquema+"."+x.tabela+"."+x.coluna,52)
       +num(x.linhas,10)+" linhas"));
-    console.log("\n=== TEM XML DE VERDADE? ===");
+  });
+  secao("TEM XML DE VERDADE?",()=>{
     (out.amostras||[]).forEach(a=>console.log("  "+txt(a.tabela+"."+a.coluna,52)
       +(a.erro?("ERRO "+a.erro):("total="+num(a.total)+"  com_xml="+num(a.com_xml)
         +"  com_itens="+num(a.com_itens)+"  parece_nfe="+a.parece_nfe))));
-  }catch(e){ console.log("(nao consegui imprimir o relatorio: "+e.message+" — mas ele vai para a nuvem)"); }
+  });
 
   try{
-    const ev=await req("GET","/rest/v1/receb_eventos?select=id&limit=1");
+    // entidade_id e uuid. receb_eventos.id e NUMERO (1, 111...) — peguei o balde errado
+    // na primeira rodada e o banco recusou com 22P02 depois de 4 minutos de trabalho.
+    // receb_locais.id e uuid de verdade, que e o mesmo que o detetive das perdas usa.
+    const loc=await req("GET","/rest/v1/receb_locais?select=id&order=criado_em&limit=1");
     await req("POST","/rest/v1/receb_eventos",[{ entidade:"vr_notas",
-      entidade_id:(ev&&ev[0]&&ev[0].id)||"00000000-0000-0000-0000-000000000000",
+      entidade_id:(loc&&loc[0]&&loc[0].id)||"00000000-0000-0000-0000-000000000000",
       acao:"descoberta", detalhe:out }],"return=minimal");
     console.log("\n>>> relatorio enviado para a nuvem.");
   }catch(e){ console.log("!! nao consegui mandar: "+e.message); }
