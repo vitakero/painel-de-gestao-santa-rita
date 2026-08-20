@@ -18446,11 +18446,28 @@ function czImprimir(){
     if(CC.rot){ plH=cellW; plW=cellH; }
     else { plH=Math.min(cellH, cellW/0.707); plW=plH*0.707; }
     plH=Math.round(plH*10)/10; plW=Math.round(plW*10)/10;
-    var vMar=(CC.page.indexOf('landscape')>=0)?14:16; // centraliza: (altura papel - pgH)/2
-    var ccss=':root{color-scheme:light only;}@page{size:'+CC.page+';margin:'+vMar+'mm 6mm;}*{margin:0;padding:0;box-sizing:border-box;font-family:"Bangers",cursive;}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'+CZPCSS
-      +'.pg{width:100%;height:'+CC.pgH+'mm;overflow:hidden;break-inside:avoid;display:grid;grid-template-columns:repeat('+CC.cols+',minmax(0,1fr));grid-template-rows:repeat('+CC.rows+',minmax(0,1fr));gap:'+gap+'mm;}.pg+.pg{page-break-before:always;}'
+    var vMar=(CC.page.indexOf('landscape')>=0)?14:16;
+    /* A FOLHA TEM TAMANHO FIXO E A MARGEM FICA POR DENTRO.
+       Antes eu declarava @page{margin:16mm 6mm} e cravava a folha em 265mm de altura. Só
+       que quem escolhe a margem é a pessoa, no diálogo do Chrome: com "Margens: Nenhuma"
+       a página passava a ter 297mm, os 265 cravados sobravam 32mm embaixo, e os dois
+       cartazes ficavam empurrados pra cima em vez de dividir a folha ao meio.
+       Agora a margem do @page é ZERO — assim "Padrão" e "Nenhuma" dão o mesmo resultado —
+       e o recuo vira padding de dentro da folha, que eu controlo. Cheguei a tentar 100vh
+       para a folha se medir sozinha: reprovou no teste (o cartaz saiu 121mm e vazou pra
+       fora), porque vh depende do navegador entender "altura da página". */
+    var _ehLand = CC.page.indexOf('landscape')>=0;
+    var _folhaW = _ehLand ? 297 : 210, _folhaH = _ehLand ? 210 : 297;
+    var ccss=':root{color-scheme:light only;}@page{size:'+CC.page+';margin:0;}*{margin:0;padding:0;box-sizing:border-box;font-family:"Bangers",cursive;}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'+CZPCSS
+      /* ALTURA REAL DA PÁGINA, não um número cravado.
+         Estava fixo em 265mm, que é o A4 menos as margens que EU escolhi. Só que quem
+         escolhe a margem é a pessoa, no diálogo de impressão do Chrome. Com "Margens:
+         Nenhuma" a folha passa a oferecer 297mm, os 265 cravados sobravam 32mm embaixo,
+         e os dois cartazes ficavam empurrados pra cima. Com 100vh a folha vale o que a
+         página realmente der, seja qual for a margem escolhida. */
+      +'.pg{width:'+_folhaW+'mm;height:'+_folhaH+'mm;padding:'+vMar+'mm 6mm;box-sizing:border-box;overflow:hidden;break-inside:avoid;display:grid;grid-template-columns:repeat('+CC.cols+',minmax(0,1fr));grid-template-rows:repeat('+CC.rows+',minmax(0,1fr));gap:'+gap+'mm;}.pg+.pg{page-break-before:always;}'
       +'.cell{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;}'
-      +'@media screen{html{background:#3c4043;}body{zoom:.45;background:#3c4043;padding:30px 0;}.pg{background:#fff;width:'+(CC.page.indexOf('landscape')>=0?'1122px':'794px')+';margin:0 auto 30px;box-shadow:0 8px 30px rgba(0,0,0,.45);}}';
+      +'@media screen{html{background:#3c4043;}body{zoom:.45;background:#3c4043;padding:30px 0;}.pg{background:#fff;margin:0 auto 30px;box-shadow:0 8px 30px rgba(0,0,0,.45);}}';
     var cpg='';
     for(var ci=0;ci<itens.length;ci+=CC.cols*CC.rows){
       var ccells='';
@@ -18471,10 +18488,14 @@ function czImprimir(){
       cpg+='<div class="pg">'+ccells+'</div>';
     }
     var wc=window.open('','_blank'); if(!wc){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return; }
-    // A trava anti-estouro agora mede o PRÓPRIO CARTAZ, não a célula: é dentro dele que
-    // um nome de produto comprido pode estourar. A célula, com o cartaz girado fora do
-    // fluxo, não tem mais o que medir.
-    wc.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet"><style>'+ccss+'</style></head><body>'+cpg+'<scr'+'ipt>(function(){function fit(){var cs=document.querySelectorAll(\".poster,.ctzLin\");for(var i=0;i<cs.length;i++){var c=cs[i],z=1;c.style.zoom=\"\";for(var t=0;t<6;t++){var caixa=c.clientHeight,dentro=c.scrollHeight;if(dentro<=caixa+1)break;z=z*((caixa-1)/dentro);if(z<0.55){z=0.55;c.style.zoom=z;break;}c.style.zoom=z;}}}function go(){try{fit();}catch(e){}setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
+    // DUAS COISAS ACONTECEM ANTES DE IMPRIMIR:
+    // 1) encaixar() mede a célula DE VERDADE (já com a margem que a pessoa escolheu) e dá
+    //    ao cartaz exatamente esse tamanho. É isso que faz os dois dividirem a folha ao
+    //    meio, um em cada metade, em vez de ficarem empurrados pra cima.
+    // 2) fit() é a trava anti-estouro, e agora mede o PRÓPRIO CARTAZ, não a célula: é
+    //    dentro dele que um nome de produto comprido pode estourar.
+    var _rot = CC.rot ? 1 : 0;
+    wc.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet"><style>'+ccss+'</style></head><body>'+cpg+'<scr'+'ipt>(function(){var ROT='+_rot+';function encaixar(){var cs=document.querySelectorAll(\".cell\");for(var i=0;i<cs.length;i++){var c=cs[i],p=c.querySelector(\".poster\");if(!p)continue;var W=c.clientWidth,H=c.clientHeight;if(!(W>20&&H>20))continue;if(ROT){p.style.width=H+\"px\";p.style.height=W+\"px\";}else{var hh=Math.min(H,W/0.707),ww=hh*0.707;p.style.width=ww+\"px\";p.style.height=hh+\"px\";}}}function fit(){var cs=document.querySelectorAll(\".poster,.ctzLin\");for(var i=0;i<cs.length;i++){var c=cs[i],z=1;c.style.zoom=\"\";for(var t=0;t<6;t++){var caixa=c.clientHeight,dentro=c.scrollHeight;if(dentro<=caixa+1)break;z=z*((caixa-1)/dentro);if(z<0.55){z=0.55;c.style.zoom=z;break;}c.style.zoom=z;}}}function go(){try{encaixar();}catch(e){}try{fit();}catch(e){}setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
     wc.document.close();
     return;
   }
