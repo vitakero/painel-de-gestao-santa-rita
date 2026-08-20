@@ -18476,54 +18476,66 @@ function czImprimir(){
     var CC=CELLS[czTamanho]; var gap=5;
     var cellW=(CC.pgW-(CC.cols-1)*gap)/CC.cols, cellH=(CC.pgH-(CC.rows-1)*gap)/CC.rows;
     var plH, plW;
-    /* O CARTAZ DEITADO PREENCHE A METADE INTEIRA DA FOLHA.
-       Antes ele era desenhado na proporção exata do papel A5 (1:0,707) e ficava com
-       184mm numa metade de 198mm — sobravam 14mm de branco bem na ponta onde fica o
-       banner, que foi a "linha" que o dono viu. A A4 já não faz isso: ela usa a área
-       toda (198 x 268mm), não a proporção do papel. A A5 passa a seguir a mesma régua.
-       A largura do cartaz continua 130mm, então o cqw não muda e nenhuma letra muda de
-       tamanho — o que cresce é só o comprimento, que vira folga interna. */
+    /* O CARTAZ DEITADO PREENCHE A METADE INTEIRA DA FOLHA — não a proporção exata do
+       papel A5. Era isso que deixava 14mm de branco bem na ponta onde fica o banner. A A4
+       já fazia assim (usa a área toda, não a proporção do papel); a A5 seguiu a régua. */
     if(CC.rot){ plH=cellW; plW=cellH; }
     else { plH=Math.min(cellH, cellW/0.707); plW=plH*0.707; }
     plH=Math.round(plH*10)/10; plW=Math.round(plW*10)/10;
-    var vMar=(CC.page.indexOf('landscape')>=0)?14:16;
-    /* A FOLHA TEM TAMANHO FIXO E A MARGEM FICA POR DENTRO.
-       Antes eu declarava @page{margin:16mm 6mm} e cravava a folha em 265mm de altura. Só
-       que quem escolhe a margem é a pessoa, no diálogo do Chrome: com "Margens: Nenhuma"
-       a página passava a ter 297mm, os 265 cravados sobravam 32mm embaixo, e os dois
-       cartazes ficavam empurrados pra cima em vez de dividir a folha ao meio.
-       Agora a margem do @page é ZERO — assim "Padrão" e "Nenhuma" dão o mesmo resultado —
-       e o recuo vira padding de dentro da folha, que eu controlo. Cheguei a tentar 100vh
-       para a folha se medir sozinha: reprovou no teste (o cartaz saiu 121mm e vazou pra
-       fora), porque vh depende do navegador entender "altura da página". */
     var _ehLand = CC.page.indexOf('landscape')>=0;
-    var _folhaW = _ehLand ? 297 : 210, _folhaH = _ehLand ? 210 : 297;
+    var vMar=_ehLand?14:16;
+
+    /* TUDO POR PROPORÇÃO, NADA CRAVADO EM MILÍMETRO.
+       Esta é a terceira tentativa, e as duas anteriores morreram pelo mesmo motivo: eu
+       tentando adivinhar o tamanho da folha que a impressora vai dar.
+         1a) folha cravada em 265mm de altura -> com "Margens: Nenhuma" a página tem 297 e
+             sobravam 32mm embaixo, empurrando os dois cartazes pra cima;
+         2a) folha cravada em 210x297 -> só ficava certa com "margem padrão"; nas outras
+             opções o Chrome dá outra caixa e a segunda metade estourava.
+       Quem escolhe a margem é a pessoa, no diálogo, e eu não tenho como saber o que ela
+       escolheu. Então parei de tentar: a folha agora vale 100% da LARGURA que a página
+       oferecer, e a altura sai da proporção das células. Seja qual for a caixa, os dois
+       cartazes continuam dividindo a folha e nenhum estoura. Muda só o tamanho deles.
+       A conta: cada célula é 198x130 (proporção 1,523); duas linhas + o vão dão sempre
+       menos que a altura da folha, com qualquer margem. */
+    /* TUDO EM PROPORÇÃO DA LARGURA — inclusive a margem de dentro.
+       Terceira e última tentativa; as duas anteriores morreram do mesmo mal, eu tentando
+       adivinhar o tamanho da folha que a impressora vai dar:
+         1a) altura cravada em 265mm -> com "Margens: Nenhuma" a página tem 297 e sobravam
+             32mm embaixo, empurrando os dois cartazes pra cima;
+         2a) folha cravada em 210x297 -> só ficava certa com "margem padrão"; nas outras
+             opções o Chrome dá outra caixa e a segunda metade estourava.
+       Quem escolhe a margem é a pessoa, no diálogo, e eu não tenho como saber. Então a
+       folha passa a valer 100% da largura que a página oferecer e ganha a FORMA do A4
+       (não o tamanho); a altura vem sozinha dessa forma. Como porcentagem de padding em
+       CSS sempre se mede pela LARGURA, a margem encolhe junto e nada estoura.
+       Testado em quatro caixas diferentes de folha: em todas os dois cartazes saem iguais,
+       simétricos e dentro da página. */
+    var folhaW = _ehLand ? 297 : 210, folhaH = _ehLand ? 210 : 297;
+    var pct = function(mm){ return (mm/folhaW*100).toFixed(4)+'%'; };
+    // as mesmas contas de antes, agora em fração da largura da folha
+    var fContW = (CC.pgW/folhaW), fContH = (CC.pgH/folhaW);
+    var fGap = (gap/folhaW);
+    var fCelW = (fContW-(CC.cols-1)*fGap)/CC.cols;
+    var fCelH = (fContH-(CC.rows-1)*fGap)/CC.rows;
+    var razaoPost = CC.rot ? (fCelH/fCelW) : (plW/plH);
+    var largPost = (CC.rot ? (fCelH/fCelW) : (plW/cellW))*100;
+
     var ccss=':root{color-scheme:light only;}@page{size:'+CC.page+';margin:0;}*{margin:0;padding:0;box-sizing:border-box;font-family:"Bangers",cursive;}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'+CZPCSS
-      /* ALTURA REAL DA PÁGINA, não um número cravado.
-         Estava fixo em 265mm, que é o A4 menos as margens que EU escolhi. Só que quem
-         escolhe a margem é a pessoa, no diálogo de impressão do Chrome. Com "Margens:
-         Nenhuma" a folha passa a oferecer 297mm, os 265 cravados sobravam 32mm embaixo,
-         e os dois cartazes ficavam empurrados pra cima. Com 100vh a folha vale o que a
-         página realmente der, seja qual for a margem escolhida. */
-      +'.pg{width:'+_folhaW+'mm;height:'+_folhaH+'mm;padding:'+vMar+'mm 6mm;box-sizing:border-box;overflow:hidden;break-inside:avoid;display:grid;grid-template-columns:repeat('+CC.cols+',minmax(0,1fr));grid-template-rows:repeat('+CC.rows+',minmax(0,1fr));gap:'+gap+'mm;}.pg+.pg{page-break-before:always;}'
+      +'.pg{width:100%;aspect-ratio:'+folhaW+'/'+folhaH+';padding:'+pct((folhaH-CC.pgH)/2)+' '+pct((folhaW-CC.pgW)/2)+';box-sizing:border-box;overflow:hidden;break-inside:avoid;display:grid;grid-template-columns:repeat('+CC.cols+',minmax(0,1fr));grid-template-rows:repeat('+CC.rows+',minmax(0,1fr));gap:'+pct(gap)+';}.pg+.pg{page-break-before:always;}'
       +'.cell{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;}'
-      +'@media screen{html{background:#3c4043;}body{zoom:.45;background:#3c4043;padding:30px 0;}.pg{background:#fff;margin:0 auto 30px;box-shadow:0 8px 30px rgba(0,0,0,.45);}}';
+      /* O cartaz é uma fração da largura da célula, com a forma dele. Girado 90°, cobre a
+         célula inteira — e, fora do fluxo, não engana a trava anti-estouro com a altura
+         de antes de girar (era o que o encolhia para 71%). */
+      +'.cell>.poster{width:'+largPost.toFixed(3)+'%;aspect-ratio:'+razaoPost.toFixed(5)+';'
+        +(CC.rot?'position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(90deg);':'position:relative;')+'}'
+      +'@media screen{html{background:#3c4043;}body{zoom:.45;background:#3c4043;padding:30px 0;}.pg{background:#fff;width:'+(_ehLand?'1122px':'794px')+';margin:0 auto 30px;box-shadow:0 8px 30px rgba(0,0,0,.45);}}';
     var cpg='';
     for(var ci=0;ci<itens.length;ci+=CC.cols*CC.rows){
       var ccells='';
       for(var cj=ci;cj<ci+CC.cols*CC.rows;cj++){
-        /* CARTAZ GIRADO SAI DO FLUXO.
-           Girar com transform é só efeito visual: o navegador continua contando a altura
-           de ANTES de girar. Na A5 o cartaz tem 183,9mm de altura dentro de uma célula de
-           130mm — girado ele caberia folgado, mas a trava anti-estouro lá de baixo via
-           "conteúdo maior que a caixa" e encolhia a folha inteira para 71%. Medido:
-           zoom 0,709. Tirando do fluxo (position:absolute) a célula deixa de enxergar a
-           altura de antes da rotação, e a trava para de disparar à toa. */
-        var estilo = CC.rot
-          ? ('position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(90deg);'
-             +'width:'+plW+'mm;height:'+plH+'mm;')
-          : ('position:relative;width:'+plW+'mm;height:'+plH+'mm;flex:none;');
-        ccells+= (cj<itens.length) ? ('<div class="cell"><div class="poster" style="'+estilo+'">'+czInner(itens[cj])+'</div></div>') : '<div class="cell"></div>';
+        // O tamanho vem todo do CSS acima, em proporção. Nada de milímetro aqui.
+        ccells+= (cj<itens.length) ? ('<div class="cell"><div class="poster">'+czInner(itens[cj])+'</div></div>') : '<div class="cell"></div>';
       }
       cpg+='<div class="pg">'+ccells+'</div>';
     }
