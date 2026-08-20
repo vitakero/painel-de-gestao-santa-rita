@@ -7677,6 +7677,69 @@ function rcbAutPedir(c){
    escrita direta seria recusada mesmo com a senha certa. A função confere a senha lá
    dentro, com trava de tentativas, e registra que foi a senha do master usada no login
    dela — o rastro não se perde. */
+/* VER O RECIBO ANTES DE AUTORIZAR.
+   Pedido dele: "eu queria ver como é que ia ficar o recibo, pra eu poder ler e entender
+   quem é que ia assinar". Autorizar dinheiro sem ver o papel é assinar no escuro.
+
+   O papel é desenhado pelo MESMO rcbPgUm que monta a folha de impressão, dentro de um
+   .rcb-prev — que é onde o CSS do recibo vive. O que aparece aqui é o que sai na
+   impressora, não uma imitação. */
+function rcbAutVer(id){
+  var r=null, i;
+  for(i=0;i<(rcbAut||[]).length;i++){ if(rcbAut[i].id===id) r=rcbAut[i]; }
+  if(!r) return;
+  var meu = rcbMeuId();
+  var papel = "";
+  try{
+    papel = rcbPgUm({ data:r.data, valor:+r.valor, motivo:r.motivo }, 0);
+  }catch(e){ papel = '<p style="color:#c0392b;">Não consegui desenhar este recibo.</p>'; }
+
+  var m = document.getElementById("rcbVerModal");
+  if(!m){
+    m = document.createElement("div");
+    m.id = "rcbVerModal"; m.className = "modal-bg";
+    document.body.appendChild(m);
+    m.addEventListener("click", function(e){ if(e.target===m) m.classList.remove("show"); });
+  }
+  var q = Math.max(1, Math.floor(+r.quantidade||1));
+  m.innerHTML = '<div class="modal-cx" style="max-width:600px;">'
+    +'<div class="modal-top"><div class="modal-ic neutro">'
+      +'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>'
+      +'<div class="modal-tit">O recibo</div></div>'
+    +'<div style="padding:14px 24px 4px;max-height:min(62vh,540px);overflow-y:auto;">'
+      +'<div class="rcb-prev" style="zoom:.86;">'+papel+'</div>'
+      +'<div style="margin-top:14px;font-size:13px;color:#46535f;line-height:1.7;">'
+        +'<div><b>'+q+' via'+(q===1?'':'s')+'</b> deste mesmo recibo</div>'
+        +'<div>Total: <b>'+rcbMoeda(rcbAutTotal(r))+'</b></div>'
+        +'<div>Pedido por <b>'+pxEsc(r.pedido_por_nome||"—")+'</b></div>'
+      +'</div>'
+      /* Quem assina é quem RECEBE, na hora — o papel sai com nome e assinatura em branco.
+         Vale dizer isso aqui, porque foi a dúvida dele. */
+      +'<p style="margin:12px 0 0;font-size:12.5px;color:#68727e;line-height:1.5;">'
+        +'O nome e a assinatura saem <b>em branco</b>: quem recebe o dinheiro preenche e '
+        +'assina na hora, no papel.</p>'
+    +'</div>'
+    +'<div class="modal-acts">'
+      +'<button class="btn-s" data-rcbver-fechar="1">Fechar</button>'
+      +(rcbAutPodeCancelar(r, meu)
+        ? '<button class="btn-s" data-rcbver-can="'+pxEsc(r.id)+'">Desistir</button>' : '')
+      +(rcbAutPodeDecidir(r)
+        ? '<button class="btn-s" data-rcbver-nao="'+pxEsc(r.id)+'">Recusar</button>'
+          +'<button class="btn-p" data-rcbver-sim="'+pxEsc(r.id)+'">Autorizar</button>'
+        : (rcbAutPodeImprimir(r, meu)
+            ? '<button class="btn-p" data-rcbver-imp="'+pxEsc(r.id)+'">Imprimir</button>' : ''))
+    +'</div></div>';
+  m.classList.add("show");
+
+  function fecha(){ m.classList.remove("show"); }
+  var b;
+  b=m.querySelector("[data-rcbver-fechar]"); if(b) b.onclick=fecha;
+  b=m.querySelector("[data-rcbver-sim]");    if(b) b.onclick=function(){ fecha(); rcbAutDecidir(id,true); };
+  b=m.querySelector("[data-rcbver-nao]");    if(b) b.onclick=function(){ fecha(); rcbAutDecidir(id,false); };
+  b=m.querySelector("[data-rcbver-can]");    if(b) b.onclick=function(){ fecha(); rcbAutCancelar(id); };
+  b=m.querySelector("[data-rcbver-imp]");    if(b) b.onclick=function(){ fecha(); rcbAutImprimir(id); };
+}
+
 function rcbAutDecidir(id, autorizar){
   var sb=rcbSB(); if(!sb) return;
   var r=null; for(var i=0;i<(rcbAut||[]).length;i++){ if(rcbAut[i].id===id) r=rcbAut[i]; }
@@ -7757,14 +7820,12 @@ function rcbAutBloco(master){
     n++;
 
     var acoes = "";
-    if(rcbAutPodeDecidir(r)){
-      acoes = '<button class="btn-p" data-rcbaut-sim="'+pxEsc(r.id)+'">Autorizar</button>'
-            + '<button class="btn-s" data-rcbaut-nao="'+pxEsc(r.id)+'">Recusar</button>'
-            + (rcbAutPodeCancelar(r, meu)
-                ? '<button class="btn-s" data-rcbaut-can="'+pxEsc(r.id)+'">Desistir</button>' : '');
-    } else if(rcbAutPodeImprimir(r, meu)){
-      acoes = '<button class="btn-p" data-rcbaut-imp="'+pxEsc(r.id)+'">Imprimir</button>';
-    }
+    /* Um botão só na linha: VER O RECIBO. As decisões ficam dentro da janela, depois de
+       ler o papel — foi o que ele pediu, e evita autorizar dinheiro por um clique perdido
+       numa lista. */
+    var acoes = '<button class="btn-s" data-rcbaut-ver="'+pxEsc(r.id)+'">Ver recibo</button>'
+      + (rcbAutPodeImprimir(r, meu)
+          ? '<button class="btn-p" data-rcbaut-imp="'+pxEsc(r.id)+'">Imprimir</button>' : '');
 
     var cor = (r.status==="autorizado") ? "#1b9e4b" : "#9a6b00";
     linhas += '<div style="display:flex;gap:12px;align-items:center;padding:11px 0;border-top:1px solid #eef2f7;">'
@@ -7800,6 +7861,8 @@ function rcbAutBloco(master){
 }
 
 function rcbAutLigar(el){
+  [].slice.call(el.querySelectorAll("[data-rcbaut-ver]")).forEach(function(b){
+    b.onclick=function(){ rcbAutVer(b.getAttribute("data-rcbaut-ver")); }; });
   [].slice.call(el.querySelectorAll("[data-rcbaut-sim]")).forEach(function(b){
     b.onclick=function(){ rcbAutDecidir(b.getAttribute("data-rcbaut-sim"), true); }; });
   [].slice.call(el.querySelectorAll("[data-rcbaut-nao]")).forEach(function(b){
