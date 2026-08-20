@@ -18073,6 +18073,16 @@ function czUpCheca(W,H){
   }
   return {ok:true};
 }
+/* A DATA DE FIM NÃO PODE SER ANTES DA DE INÍCIO.
+   Estava aceitando (o dono conseguiu pôr início 21/08 e fim 20/08) e o cartaz saía com uma
+   validade impossível impressa no rodapé. Como as datas vêm no formato AAAA-MM-DD, dá pra
+   comparar como texto mesmo — não preciso montar objeto de data, que é onde mora a
+   confusão de fuso horário. Data vazia não é erro: quem cobra as duas é a trava do botão
+   de imprimir, que já existia. */
+function czDatasOk(ini, fim){
+  if(!ini || !fim) return true;
+  return String(fim) >= String(ini);
+}
 /* ==CZUP-FIM== */
 function czTemaUpload(inp){
   var f=inp.files&&inp.files[0]; if(!f) return;
@@ -18141,12 +18151,13 @@ function czParseLinha(raw){
 /* ==CZPARSE-FIM== */
 function czParseTexto(txt){ var out=[]; var linhas=(txt||'').split('\\n'); for(var i=0;i<linhas.length;i++){ var p=czParseLinha(linhas[i]); if(p) out.push(p); } return out; }
 function czPreco(p){ p=(''+(p||'')).replace('.',','); var a=p.split(','); var r=(a[0]||'0').replace(/[^0-9]/g,'')||'0'; var c=(a[1]||'00'); c=(c+'00').slice(0,2); return {reais:r,cent:c}; }
+/* Uma conversão de data só, usada pelo rodapé do cartaz e pelas mensagens de erro. */
+function czDataBr(d){ var pt=String(d||'').split('-'); return (pt.length===3)?(pt[2]+'/'+pt[1]+'/'+pt[0]):String(d||''); }
 function czFooter(){
-  function czData(d){ var pt=(d||'').split('-'); return (pt.length===3)?(pt[2]+'/'+pt[1]+'/'+pt[0]):d; }
   var v;
-  if(czValIni && czValidade){ v='OFERTA VÁLIDA DE '+czData(czValIni)+' ATÉ '+czData(czValidade)+' OU ENQUANTO DURAR O ESTOQUE'; }
-  else if(czValidade){ v='OFERTA VÁLIDA ATÉ '+czData(czValidade)+' OU ENQUANTO DURAR O ESTOQUE'; }
-  else if(czValIni){ v='OFERTA VÁLIDA A PARTIR DE '+czData(czValIni)+' OU ENQUANTO DURAR O ESTOQUE'; }
+  if(czValIni && czValidade){ v='OFERTA VÁLIDA DE '+czDataBr(czValIni)+' ATÉ '+czDataBr(czValidade)+' OU ENQUANTO DURAR O ESTOQUE'; }
+  else if(czValidade){ v='OFERTA VÁLIDA ATÉ '+czDataBr(czValidade)+' OU ENQUANTO DURAR O ESTOQUE'; }
+  else if(czValIni){ v='OFERTA VÁLIDA A PARTIR DE '+czDataBr(czValIni)+' OU ENQUANTO DURAR O ESTOQUE'; }
   else { v='OFERTA VÁLIDA ENQUANTO DURAR O ESTOQUE'; }
   var n=parseInt(czLimite,10); var lim=(n>0)?('LIMITE '+n+' UNIDADE'+(n>1?'S':'')+' POR CLIENTE'):'';
   return lim?(v+'  ·  '+lim):v;
@@ -18299,7 +18310,10 @@ function renderCartaz(){
        +'<label class="cz-impo '+(czImpressao==='unica'?'on':'')+'"><input type="radio" name="czimp" value="unica"'+(czImpressao==='unica'?' checked':'')+'><span><b>Folha única '+czTamanho+'</b><span>Impressora de grande formato ou gráfica (salvar como PDF)</span></span></label>'
        +'</div>';
     }
-    b+='<div class="cz-opc"><label>Início da oferta <input type="date" id="czValIni" value="'+czEsc(czValIni)+'"></label><label>Fim da oferta <input type="date" id="czValidade" value="'+czEsc(czValidade)+'"></label><label>Limite por cliente <input type="number" min="0" id="czLimite" value="'+czEsc(czLimite)+'" style="width:66px;"></label></div><div class="cz-preview">';
+    /* O "min" faz o calendário do navegador apagar os dias anteriores ao início — a
+       pessoa nem chega a escolher errado. Mas quem digita a data na mão passa por cima
+       disso, então a trava de verdade está no czChange, logo abaixo. */
+    b+='<div class="cz-opc"><label>Início da oferta <input type="date" id="czValIni" value="'+czEsc(czValIni)+'"></label><label>Fim da oferta <input type="date" id="czValidade"'+(czValIni?(' min="'+czEsc(czValIni)+'"'):'')+' value="'+czEsc(czValidade)+'"></label><label>Limite por cliente <input type="number" min="0" id="czLimite" value="'+czEsc(czLimite)+'" style="width:66px;"></label></div><div class="cz-preview">';
     var LAY=(czModelo==='deitado')?{cols:1,rows:2,cardL:1}:{A4:{cols:1,rows:1},A5:{cols:1,rows:2,rotCell:1},A6:{cols:2,rows:2},A7:{cols:4,rows:2,land:1}}[czTamanho];
     var itensPrev=[]; for(var k=0;k<czProdutos.length;k++){ var qq=Math.max(1,parseInt(czProdutos[k].qtd,10)||1); for(var k2=0;k2<qq;k2++) itensPrev.push(czProdutos[k]); }
     if(LAY){
@@ -18350,11 +18364,37 @@ function czClick(e){
         var _dt=document.getElementById(!czValIni?'czValIni':'czValidade'); if(_dt) _dt.focus();
         return;
       }
+      // Última linha de defesa: se por algum caminho as datas ficaram trocadas, não
+      // imprime. Cartaz é papel na prateleira — sair errado custa mais que um aviso.
+      if(!czDatasOk(czValIni, czValidade)){
+        uiConfirm({titulo:'Datas trocadas',
+          msg:'O fim da oferta ('+czDataBr(czValidade)+') está antes do início ('+czDataBr(czValIni)+').\\n\\nCorrija as datas antes de imprimir.',
+          ok:'Entendi',cancel:''});
+        var _dv=document.getElementById('czValidade'); if(_dv) _dv.focus();
+        return;
+      }
       czImprimir(); return; }
     renderCartaz(); return;
   }
 }
-function czChange(e){ var t=e.target; if(t.id==='czValidade'){ czValidade=t.value; renderCartaz(); } else if(t.id==='czValIni'){ czValIni=t.value; renderCartaz(); } else if(t.id==='czLimite'){ czLimite=t.value; renderCartaz(); } else if(t.name==='czimp'){ czImpressao=t.value; renderCartaz(); } else if(t.id==='czTemaFile'){ czTemaUpload(t); } }
+function czChange(e){ var t=e.target;
+  if(t.id==='czValidade'){
+    // Fim antes do início: recusa e devolve o campo como estava.
+    if(!czDatasOk(czValIni, t.value)){
+      t.value = czValidade;
+      uiConfirm({titulo:'Data de fim inválida',
+        msg:'O fim da oferta não pode ser antes do início.\\n\\nA oferta começa em '+czDataBr(czValIni)+'. Escolha uma data igual ou posterior a essa.',
+        ok:'Entendi',cancel:''});
+      return;
+    }
+    czValidade=t.value; renderCartaz();
+  }
+  else if(t.id==='czValIni'){
+    czValIni=t.value;
+    // Empurrou o início pra depois do fim? Leva o fim junto, em vez de deixar torto.
+    if(!czDatasOk(czValIni, czValidade)) czValidade=czValIni;
+    renderCartaz();
+  } else if(t.id==='czLimite'){ czLimite=t.value; renderCartaz(); } else if(t.name==='czimp'){ czImpressao=t.value; renderCartaz(); } else if(t.id==='czTemaFile'){ czTemaUpload(t); } }
 function czInput(e){
   var t=e.target;
   if(t.id==='czTexto'){ var n=t.value.split('\\n').filter(function(x){return x.trim();}).length; var c=document.getElementById('czCount'); if(c) c.textContent=n+' linha(s) detectada(s)'; return; }
