@@ -18233,8 +18233,8 @@ function czHistBloco(){
     /* A frase diz TRÊS coisas, nesta ordem: o que é a lista, o que fazer quando uma placa
        estraga, e que ela se limpa sozinha. A versão anterior começava com uma pergunta e
        não dizia onde clicar. */
-    +'<p class="cz-histSub">Tudo que já foi impresso fica aqui. Se uma placa rasgar ou molhar '
-    +'na gôndola, clique em <b>Ver a placa</b> e imprima só aquela — sem montar a lista de novo. '
+    +'<p class="cz-histSub">Tudo que já foi impresso fica aqui. Clique em <b>Ver a placa</b> '
+    +'e imprima só aquela — sem montar a lista de novo. '
     +'Cada cartaz sai daqui sozinho quando a oferta vence.</p><div class="cz-histL">';
   for(var i=0;i<czHist.length;i++){
     var r = czHist[i];
