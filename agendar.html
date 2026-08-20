@@ -739,6 +739,7 @@ body.com-wz #toasts{bottom:86px}
 .cnf-m{font-size:12px;color:var(--verm);margin-top:3px}
 .cnf-i.atencao .cnf-m{color:#8a5a12}
 .cnf-mais{font-size:12px;color:var(--txt3);padding:2px 2px}
+.cnf-barra{background:#fdecea;border:1px solid #f3c9c3;color:#8c2f28;border-radius:9px;padding:10px 12px}
 .cnf-p{font-size:12.5px;color:var(--txt2);margin-top:12px;line-height:1.5}
 
 /* PEDIDOS DE COMPRA — a etapa 2 do assistente. */
@@ -4090,8 +4091,13 @@ body.com-wz #toasts{bottom:86px}
     }
 
     if(probs){
-      h+='<div class="cnf-p">Você pode agendar assim mesmo — a loja vai ver esta '+
-         'conferência. Mas vale conferir antes de o caminhão sair.</div>';
+      /* Esta frase dizia "você pode agendar assim mesmo". Virou mentira em 20/08/2026,
+         quando o servidor passou a recusar item fora do pedido e quantidade acima —
+         que é como o Tempo Certo faz. Deixar o texto antigo era mandar o fornecedor
+         montar o agendamento inteiro para bater na parede no último clique. */
+      h+='<div class="cnf-p cnf-barra">Com estes problemas a loja <b>não vai aceitar</b> o '+
+         'agendamento. Confira se o pedido escolhido é o certo; se a nota estiver mesmo '+
+         'diferente do pedido, fale com o comprador da loja antes.</div>';
     }
 
     var semItens=notasSemItens();
@@ -4308,7 +4314,7 @@ body.com-wz #toasts{bottom:86px}
   function enviarAgendamento(){
     var bt=el("wzEnviar");
     bt.disabled=true; bt.textContent="Enviando...";
-    SB.rpc("forn_agendar",{p_data:wz.dia, p_hora:wz.hora,
+    SB.rpc("forn_agendar_portal",{p_data:wz.dia, p_hora:wz.hora,
       p_pedido:wz.pedido||null, p_descricao:wz.descricao||null,
       // sem isto, o CNPJ que ele digitou e o sistema conferiu era jogado fora:
       // a loja esperava o caminhão do fornecedor e chegava outro.
@@ -4323,12 +4329,25 @@ body.com-wz #toasts{bottom:86px}
                  peso_kg:wz.peso, cobranca_ciente:!!wz.ciente },
       p_notas: wz.comNota ? wz.chaves.map(function(n){
         return { chave:n.chave, xml:n.xml||null, numero:n.numero, serie:n.serie,
+                 /* O PEDIDO DESTA NOTA. O fornecedor vincula nota por nota na tela e isso
+                    se perdia no caminho: só ia o texto de todos os pedidos colado com
+                    vírgula, que o banco cortava em 40 letras. Na doca, "45231, 45390,
+                    453…" não serve para conferir nada. */
+                 pedido:n.vinc||null,
                  // A chave de 44 dígitos NÃO carrega o dia, só mês e ano ("08/2026").
                  // Mandar isso como data derruba a gravação inteira no banco.
                  // Só o XML traz dia completo (10 caracteres).
                  emissao:(n.emissao && n.emissao.length===10)
                            ? n.emissao.split("/").reverse().join("-") : null,
-                 valor:n.valor||null, emitente_cnpj:n.emitenteCnpj||null,
+                 /* O CNPJ DE QUEM EMITIU, MESMO SEM O ARQUIVO.
+                    A chave de 44 dígitos carrega o CNPJ do emitente nas posições 7 a 20 —
+                    o leitor de chave já o extrai e guarda em n.cnpj. Antes eu mandava só
+                    n.emitenteCnpj, que só o XML preenche: nota digitada pela chave ia com
+                    o emitente VAZIO, e a trava "a nota tem que ser do próprio fornecedor"
+                    recusaria todas elas. Foi a auditoria de 20/08 que pegou isso. */
+                 valor:n.valor||null,
+                 emitente_cnpj:n.emitenteCnpj || n.cnpj ||
+                   (n.chave && n.chave.length===44 ? n.chave.slice(6,20) : null),
                  emitente_nome:n.emitenteNome||null, destino_cnpj:n.destinoCnpj||null,
                  itens:n.itens||null, volumes:n.volumes||null, especie:n.especie||null,
                  peso_bruto:n.pesoBruto||null, peso_liquido:n.pesoLiquido||null,
