@@ -18225,13 +18225,17 @@ function czHistBloco(){
   }
   if(!czHist.length){
     return '<div class="cz-hist"><div class="cz-histT">Cartazes impressos</div>'
-      +'<p class="cz-histVazio">Nada aqui ainda. Depois que você imprimir, os cartazes aparecem '
-      +'nesta lista — assim, se um rasgar ou molhar na gôndola, dá para reimprimir só ele, '
-      +'sem digitar tudo de novo. Cada cartaz sai da lista sozinho quando a oferta vence.</p></div>';
+      +'<p class="cz-histVazio">Nada aqui ainda. Depois que você imprimir, os cartazes ficam '
+      +'guardados nesta lista — assim, se uma placa rasgar ou molhar na gôndola, você imprime '
+      +'só aquela, sem montar tudo de novo. Cada cartaz sai daqui sozinho quando a oferta vence.</p></div>';
   }
   var h = '<div class="cz-hist"><div class="cz-histT">Cartazes impressos</div>'
-    +'<p class="cz-histSub">Rasgou ou molhou na gôndola? Reimprima só aquele. '
-    +'Cada cartaz sai da lista sozinho quando a oferta vence.</p><div class="cz-histL">';
+    /* A frase diz TRÊS coisas, nesta ordem: o que é a lista, o que fazer quando uma placa
+       estraga, e que ela se limpa sozinha. A versão anterior começava com uma pergunta e
+       não dizia onde clicar. */
+    +'<p class="cz-histSub">Tudo que já foi impresso fica aqui. Se uma placa rasgar ou molhar '
+    +'na gôndola, clique em <b>Ver a placa</b> e imprima só aquela — sem montar a lista de novo. '
+    +'Cada cartaz sai daqui sozinho quando a oferta vence.</p><div class="cz-histL">';
   for(var i=0;i<czHist.length;i++){
     var r = czHist[i];
     h += '<div class="cz-histI">'
