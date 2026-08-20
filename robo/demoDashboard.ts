@@ -7346,7 +7346,11 @@ function rcbResumoGrupos(cfg){
    tela vieram, e o texto continua legível mesmo que os valores da loja mudem depois. */
 function rcbHistPush(e){
   var h=rcbHist();
-  h.unshift({ data:e.data, qtd:e.qtd, total:e.total, detalhe:e.detalhe,
+  /* QUEM IMPRIMIU passou a importar a partir de 20/08/2026, quando o funcionário ganhou
+     acesso ao recibo de pagamento comum. Antes só o dono imprimia e não fazia falta. */
+  var quem = e.quem || "";
+  if(!quem){ try{ var pf=window.__PERFIL||{}; quem = pf.nome || pf.email || ""; }catch(x){} }
+  h.unshift({ data:e.data, qtd:e.qtd, total:e.total, detalhe:e.detalhe, quem:quem,
               quando:new Date().toISOString() });
   try{ localStorage.setItem("rcb_historico", JSON.stringify(h.slice(0,60))); }catch(x){}
 }
@@ -7443,15 +7447,12 @@ function rcbRenderPg(el){
   var master=rcbEhMaster(), h=rcbHist();
   var inputBase="width:100%;margin-top:5px;padding:9px 10px;border:1px solid #dbe1e8;border-radius:8px;font-size:14px;";
 
-  if(!master){
-    el.innerHTML=rcbAbasHtml()
-      +'<div class="card" style="max-width:620px;"><h2 style="margin:0 0 6px;font-size:19px;">Pagamento comum</h2>'
-      +'<p style="margin:0;color:#68727e;font-size:13.5px;line-height:1.5;">Só o administrador '
-      +'imprime este recibo, porque o valor é digitado a cada vez. Para o trabalho de domingo, '
-      +'use a outra aba.</p></div>';
-    rcbLigarAbas(el);
-    return;
-  }
+  /* O FUNCIONÁRIO PREENCHE; O DONO APROVA.
+     Antes esta aba era só do administrador, porque aqui o valor é digitado a cada vez — e um
+     papel que diz "a loja pagou R$ X" com valor livre pede cuidado. Só que a trava estava no
+     lugar errado: ela impedia até de PREENCHER, e o funcionário ficava travado esperando o
+     dono sentar no computador. Agora ele monta o recibo inteiro sozinho, e a senha do master
+     é pedida na hora de GERAR (ver rcbPgGerar, logo abaixo). */
 
   el.innerHTML=rcbAbasHtml()
    +'<div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;">'
@@ -7525,11 +7526,25 @@ function rcbRenderPg(el){
 
   document.getElementById("rcbPgGerar").addEventListener("click",function(){
     var c=ler();
-    rcbAbrir(c, { titulo:"Recibos de pagamento",
-                  folha: rcbPgFolhaHtml(c),
-                  hist: { data:c.data, qtd:Math.floor(c.quantidade), total:rcbPgTotal(c),
-                          detalhe: Math.floor(c.quantidade)+" × "+rcbPgMotivo(c.motivo)
-                                   +" ("+rcbMoeda(c.valor)+")" } });
+    /* A APROVAÇÃO ACONTECE AQUI, no último passo.
+       autorizarMaster confere a senha ao vivo, no banco, e não derruba o login de quem está
+       usando o painel. Se quem clicou já é master, passa direto — não faz sentido pedir a
+       ele a própria senha. Se for funcionário, o recibo só sai depois que alguém com a senha
+       do master digitar. O motivo aparece na janela para o dono saber o que está aprovando,
+       em vez de dar um "ok" no escuro. */
+    var quanto = rcbMoeda(rcbPgTotal(c));
+    var quantos = Math.floor(c.quantidade);
+    var motivo = "Gerar "+quantos+" recibo"+(quantos===1?"":"s")+" de pagamento comum, "
+      +"no total de "+quanto+".\\n\\nMotivo escrito no recibo: "+(rcbPgMotivo(c.motivo)||"(em branco)")
+      +"\\n\\nDigite a senha do master para liberar a impressão.";
+    autorizarMaster(motivo).then(function(ok){
+      if(!ok) return;
+      rcbAbrir(c, { titulo:"Recibos de pagamento",
+                    folha: rcbPgFolhaHtml(c),
+                    hist: { data:c.data, qtd:quantos, total:rcbPgTotal(c),
+                            detalhe: quantos+" × "+rcbPgMotivo(c.motivo)
+                                     +" ("+rcbMoeda(c.valor)+")" } });
+    });
   });
 }
 
@@ -7629,7 +7644,12 @@ function rcbRender(){
         +'<div style="font-size:13px;color:#49525d;">'
         + h.slice(0,10).map(function(x,i){
             return '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #f2f5f8;">'
-              +'<span>'+rcbDataExtenso(x.data)+(x.detalhe?'<span style="display:block;font-size:11.5px;color:#8a939e;">'+pxEsc(x.detalhe)+'</span>':'')+'</span>'
+              +'<span>'+rcbDataExtenso(x.data)
+                +(x.detalhe?'<span style="display:block;font-size:11.5px;color:#8a939e;">'+pxEsc(x.detalhe)+'</span>':'')
+                /* Quem imprimiu só aparece nos recibos gerados a partir de 20/08/2026 — os
+                   antigos não guardavam isso, e inventar um nome ali seria pior que o vazio. */
+                +(x.quem?'<span style="display:block;font-size:11.5px;color:#a2abb6;">impresso por '+pxEsc(x.quem)+'</span>':'')
+              +'</span>'
               +'<span style="display:flex;align-items:center;gap:10px;">'
               +'<span><b>'+x.qtd+'</b> recibo(s) = <b>'+rcbMoeda(x.total!=null?x.total:(x.qtd*(x.valor||0)))+'</b></span>'
               +(master?'<button type="button" data-rcbdel="'+i+'" title="Tirar do histórico" '
@@ -7760,6 +7780,12 @@ function rcbAbrir(cfg, opc){
   var folha  = opc.folha  || rcbFolhaHtml(cfg);
   var hist   = opc.hist   || { data:cfg.data, qtd:rcbQuantos(cfg), total:rcbTotal(cfg),
                                detalhe:rcbResumoGrupos(cfg) };
+  /* QUEM IMPRIMIU viaja junto com o registro, desde aqui.
+     Existem dois caminhos de gravação: o normal, que chama rcbHistPush na janela do painel
+     (onde o perfil existe), e um reserva, que a janela do recibo usa quando o painel já foi
+     fechado — e lá ela não tem como saber quem é a pessoa. Carimbando na geração, os dois
+     caminhos gravam o mesmo nome. */
+  try{ var _pf=window.__PERFIL||{}; if(!hist.quem) hist.quem = _pf.nome || _pf.email || ""; }catch(_e){}
   var w=window.open("","_blank");
   if(!w){ uiConfirm({titulo:"Pop-up bloqueado",msg:"Libere os pop-ups deste site no navegador para gerar os recibos.",ok:"OK",cancel:""}); return; }
   var barra=pxDocBarraHtml({ titulo:titulo,
@@ -7810,7 +7836,7 @@ function rcbScriptConfirma(hist){
         +"} else { throw 0; }"
       +"}catch(e){"
         +"try{var h=JSON.parse(localStorage.getItem('rcb_historico')||'[]');"
-          +"h.unshift({data:C.data,qtd:C.qtd,total:C.total,detalhe:C.detalhe,"
+          +"h.unshift({data:C.data,qtd:C.qtd,total:C.total,detalhe:C.detalhe,quem:C.quem||'',"
             +"quando:new Date().toISOString()});"
           +"localStorage.setItem('rcb_historico',JSON.stringify(h.slice(0,60)));}catch(_){}"
       +"}"
