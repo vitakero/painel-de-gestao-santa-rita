@@ -18488,14 +18488,17 @@ function czImprimir(){
       cpg+='<div class="pg">'+ccells+'</div>';
     }
     var wc=window.open('','_blank'); if(!wc){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return; }
-    // DUAS COISAS ACONTECEM ANTES DE IMPRIMIR:
-    // 1) encaixar() mede a célula DE VERDADE (já com a margem que a pessoa escolheu) e dá
-    //    ao cartaz exatamente esse tamanho. É isso que faz os dois dividirem a folha ao
-    //    meio, um em cada metade, em vez de ficarem empurrados pra cima.
-    // 2) fit() é a trava anti-estouro, e agora mede o PRÓPRIO CARTAZ, não a célula: é
-    //    dentro dele que um nome de produto comprido pode estourar.
-    var _rot = CC.rot ? 1 : 0;
-    wc.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet"><style>'+ccss+'</style></head><body>'+cpg+'<scr'+'ipt>(function(){var ROT='+_rot+';function encaixar(){var cs=document.querySelectorAll(\".cell\");for(var i=0;i<cs.length;i++){var c=cs[i],p=c.querySelector(\".poster\");if(!p)continue;var W=c.clientWidth,H=c.clientHeight;if(!(W>20&&H>20))continue;if(ROT){p.style.width=H+\"px\";p.style.height=W+\"px\";}else{var hh=Math.min(H,W/0.707),ww=hh*0.707;p.style.width=ww+\"px\";p.style.height=hh+\"px\";}}}function fit(){var cs=document.querySelectorAll(\".poster,.ctzLin\");for(var i=0;i<cs.length;i++){var c=cs[i],z=1;c.style.zoom=\"\";for(var t=0;t<6;t++){var caixa=c.clientHeight,dentro=c.scrollHeight;if(dentro<=caixa+1)break;z=z*((caixa-1)/dentro);if(z<0.55){z=0.55;c.style.zoom=z;break;}c.style.zoom=z;}}}function go(){try{encaixar();}catch(e){}try{fit();}catch(e){}setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
+    /* NADA DE MEDIR NA HORA — o tamanho já está certo em milímetros no CSS.
+       Cheguei a pôr um encaixar() que lia a célula e escrevia o tamanho em pixels. Deu
+       errado e o Victor pegou na segunda tentativa: essa leitura acontece enquanto a
+       janela ainda está em modo TELA, que mostra tudo reduzido a 45% pra caber no
+       monitor. O número em pixels ficava travado e não valia mais na hora de imprimir,
+       que é outra escala. Com um cartaz passava; com dois, o segundo estourava a folha.
+       Como a folha agora tem tamanho fixo (210x297 com a margem por dentro), a conta em
+       milímetros já fecha sozinha — milímetro é milímetro na tela e no papel.
+       Sobra só a trava anti-estouro, que mede o PRÓPRIO CARTAZ: é dentro dele que um nome
+       de produto comprido pode estourar. */
+    wc.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet"><style>'+ccss+'</style></head><body>'+cpg+'<scr'+'ipt>(function(){function fit(){var cs=document.querySelectorAll(\".poster,.ctzLin\");for(var i=0;i<cs.length;i++){var c=cs[i],z=1;c.style.zoom=\"\";for(var t=0;t<6;t++){var caixa=c.clientHeight,dentro=c.scrollHeight;if(dentro<=caixa+1)break;z=z*((caixa-1)/dentro);if(z<0.55){z=0.55;c.style.zoom=z;break;}c.style.zoom=z;}}}function go(){try{fit();}catch(e){}setTimeout(function(){window.print();},350);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}else{setTimeout(go,900);}})();</scr'+'ipt></body></html>');
     wc.document.close();
     return;
   }
