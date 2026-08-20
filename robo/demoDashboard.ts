@@ -3028,6 +3028,21 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
          Por isso vermelho, e não o amarelo do "Recusar" lá de cima. */
       .cl-entc-bts{display:inline-flex;gap:8px;align-items:center;justify-content:flex-end;
         flex-wrap:wrap;}
+      /* FORNECEDORES TRAVADOS — cor de atenção, não de erro: ninguém fez nada errado
+         aqui dentro da loja, é o fornecedor que está preso do lado de fora. */
+      .cl-barr{margin-top:18px;border:1px solid #e8d9ae;background:#fffdf6;
+        border-radius:12px;padding:14px 16px;}
+      .cl-barr-n{display:inline-block;min-width:20px;text-align:center;margin-left:6px;
+        background:#8a5a12;color:#fff;border-radius:999px;font-size:11px;font-weight:800;
+        padding:2px 7px;vertical-align:middle;}
+      .cl-barr-sub{font-size:12.5px;color:#8a7448;margin:2px 0 12px;line-height:1.5;}
+      .cl-barr-lin{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr) auto;
+        gap:14px;align-items:baseline;padding:9px 0;border-top:1px solid #f0e6cd;}
+      @media(max-width:760px){.cl-barr-lin{grid-template-columns:minmax(0,1fr);gap:4px;}}
+      .cl-barr-lin .nm{font-weight:700;color:#1d2733;min-width:0;}
+      .cl-barr-ped{font-weight:400;color:#8a97a8;font-size:12.5px;}
+      .cl-barr-mot{font-size:13px;color:#5c5340;line-height:1.45;min-width:0;}
+      .cl-barr-qd{font-size:12px;color:#8a7448;white-space:nowrap;font-weight:600;}
       /* usado pelo uiPrompt quando a ação destrói alguma coisa (ver opts.perigo) */
       .btn-p.btn-perigo{background:#b03024!important;border-color:#b03024!important;}
       .btn-p.btn-perigo:hover{background:#8c2f28!important;border-color:#8c2f28!important;}
@@ -5686,6 +5701,7 @@ function clPodeDecidir(){
 function clPedidosLoad(){
   var sb=window.__SB; if(!sb||clPedidosCarregando) return;
   clPedidosCarregando=true;
+  clBarradosLoad();
   /* PEDIDO PENDENTE NUNCA SOME DA TELA.
      Antes a busca cortava tudo antes de hoje, e um pedido que ninguém respondeu a tempo
      desaparecia sozinho — o fornecedor ficava esperando uma resposta que não vinha, e a loja
@@ -5896,7 +5912,62 @@ function renderClPedidos(){
     if(apro.length>12) h+='<p style="font-size:12.5px;color:#8a97a8;margin:4px 0 0;">e mais '+(apro.length-12)+'.</p>';
     h+='</div>';
   }
+  h+=clBarradosBloco();
   box.innerHTML=h;
+}
+
+/* FORNECEDORES TRAVADOS NO PORTAL.
+   Desde que as travas passaram a barrar de verdade, o fornecedor que erra nao
+   consegue agendar — e a loja nao ficava sabendo de nada. Na pratica isso vira o
+   telefone tocando no recebimento ("nao estou conseguindo agendar"), com quem
+   atende sem ter onde olhar. E o mesmo telefonema que este portal existe para
+   acabar, so que com outro motivo.
+   Uma entrega torta nunca vira agendamento: ela e barrada antes. Entao a unica
+   forma de a divergencia chegar na loja e esta — ver a TENTATIVA, com o motivo
+   escrito, antes de o fornecedor desistir. */
+var clBarrados=[];
+function clBarradosLoad(){
+  var sb=window.__SB; if(!sb) return;
+  sb.from("receb_barrados")
+    .select("id,fornecedor_nome,onde,motivo,pedido,vezes,primeira_em,ultima_em")
+    .order("ultima_em",{ascending:false})
+    .then(function(r){
+      // sem permissao ou sem a tabela ainda: some a secao, nao inventa lista
+      if(r&&r.error){ clBarrados=[]; return; }
+      clBarrados=(r&&r.data)||[];
+      renderClPedidos();
+    }, function(){});
+}
+function clQuandoCurto(iso){
+  try{
+    var d=new Date(iso), ag=new Date(), min=Math.round((ag-d)/60000);
+    if(min<1) return "agora";
+    if(min<60) return "ha "+min+" min";
+    var hs=Math.round(min/60);
+    if(hs<24) return "ha "+hs+"h";
+    var ds=Math.round(hs/24);
+    return ds===1 ? "ontem" : ("ha "+ds+" dias");
+  }catch(e){ return ""; }
+}
+function clBarradosBloco(){
+  if(!clBarrados.length) return "";
+  var h='<div class="cl-barr"><p class="cl-sec-tit">Fornecedores travados no portal '+
+        '<span class="cl-barr-n">'+clBarrados.length+'</span></p>'+
+        '<p class="cl-barr-sub">Tentaram agendar e o sistema barrou. Enquanto nao '+
+        'resolverem, nao conseguem marcar horario — e e para ca que eles vao ligar. '+
+        'Some da lista sozinho assim que o fornecedor consegue agendar.</p>';
+  clBarrados.slice(0,10).forEach(function(b){
+    h+='<div class="cl-barr-lin">'+
+       '<span class="nm">'+pxEsc(b.fornecedor_nome||"Fornecedor sem nome")+
+         (b.pedido?' <span class="cl-barr-ped">pedido '+pxEsc(b.pedido)+'</span>':'')+'</span>'+
+       '<span class="cl-barr-mot">'+pxEsc(b.motivo||"")+'</span>'+
+       '<span class="cl-barr-qd">'+((+b.vezes||1)>1?((+b.vezes)+' tentativas · '):'')+
+         pxEsc(clQuandoCurto(b.ultima_em))+'</span>'+
+       '</div>';
+  });
+  if(clBarrados.length>10)
+    h+='<p style="font-size:12.5px;color:#8a97a8;margin:6px 0 0;">e mais '+(clBarrados.length-10)+'.</p>';
+  return h+'</div>';
 }
 function clDecidir(id,status){
   var sb=window.__SB; if(!sb) return;
