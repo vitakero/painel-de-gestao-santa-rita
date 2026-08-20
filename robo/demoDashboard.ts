@@ -819,6 +819,33 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #hTema:hover{ background:#f0f3f7; }
   #hTema svg{ width:17px; height:17px; transition:transform .3s ease; }
   #hTema:active svg{ transform:rotate(40deg) scale(.9); }
+  /* SINO DE AVISOS — o mesmo lugar e o mesmo tamanho do botão do modo noturno, para
+     não parecer um enfeite colado no topo. Só aparece para quem tem algo esperando. */
+  #hSino{ position:relative; display:inline-flex; align-items:center; justify-content:center;
+          width:32px; height:32px; border:1px solid #d7dee7; background:#fff; border-radius:9px;
+          cursor:pointer; color:#56606d; padding:0; margin-left:8px; }
+  #hSino:hover{ background:#f0f3f7; }
+  #hSinoN{ position:absolute; top:-5px; right:-5px; min-width:17px; height:17px; padding:0 4px;
+           border-radius:9px; background:#c0392b; color:#fff; font-size:10.5px; font-weight:800;
+           line-height:17px; text-align:center; box-shadow:0 0 0 2px #fff; }
+  /* A GAVETA que abre pelo lado, igual à do portal — é onde ele já está acostumado. */
+  .av-bg2{ position:fixed; inset:0; background:rgba(16,22,30,.42); z-index:70; opacity:0;
+           pointer-events:none; transition:opacity .16s; }
+  .av-bg2.show{ opacity:1; pointer-events:auto; }
+  .av-gav{ position:fixed; top:0; right:0; bottom:0; width:min(420px,92vw); background:#fff;
+           box-shadow:-8px 0 34px rgba(0,0,0,.22); transform:translateX(100%);
+           transition:transform .18s ease; display:flex; flex-direction:column; }
+  .av-bg2.show .av-gav{ transform:none; }
+  .av-top{ display:flex; align-items:center; justify-content:space-between; padding:18px 20px 14px;
+           border-bottom:1px solid #eef2f7; }
+  .av-top h3{ margin:0; font-size:17px; color:#1d2733; }
+  .av-fechar{ background:none; border:0; font-size:19px; color:#8a939e; cursor:pointer; line-height:1; padding:4px 6px; }
+  .av-lista{ flex:1; overflow-y:auto; padding:6px 0 18px; }
+  .av-it{ padding:14px 20px; border-bottom:1px solid #f2f5f8; }
+  .av-it b{ display:block; font-size:14px; color:#1d2733; }
+  .av-it span{ display:block; font-size:12.5px; color:#68727e; margin-top:3px; line-height:1.5; }
+  .av-it .av-acoes{ display:flex; gap:8px; margin-top:10px; }
+  .av-vazio{ padding:30px 20px; text-align:center; color:#8a939e; font-size:13px; }
 </style><link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body>
 <div id="authOv" style="display:flex"><div id="authCard"><img id="authLogo" alt=""><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div id="authChecando" style="text-align:center;color:#8a97a8;font-size:13.5px;padding:14px 0 6px;">Verificando acesso...</div><div id="authLoginBox" style="display:none"><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar conta</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld" id="fldSetor" style="display:none"><label>Setor</label><select id="authSetor"><option value="">Selecione...</option><option>Frente de Loja</option><option>Açougue</option><option>Padaria</option><option>Hortifruti</option><option>Mercearia</option><option>Estoque</option><option>Entregas</option><option>Financeiro</option><option>RH</option><option>Compras</option><option>Administração</option><option>Diretoria</option><option>Outro</option></select></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><div class="pw-wrap"><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld" id="fldRepetir" style="display:none"><label>Repetir senha</label><div class="pw-wrap"><input id="authRepetir" type="password" placeholder="digite a senha de novo" autocomplete="new-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authForgot">Esqueci minha senha</span></div><div id="authReset" style="display:none"><div class="auth-fld"><label>Nova senha</label><div class="pw-wrap"><input id="authNovaSenha" type="password" placeholder="mínimo 6 caracteres"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld"><label>Repetir nova senha</label><div class="pw-wrap"><input id="authNovaRepetir" type="password" placeholder="digite a senha de novo"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authResetBtn" type="button">Salvar nova senha</button><div id="authResetMsg" style="font-size:13px;margin-top:10px;text-align:center;"></div></div><div id="authWait" style="display:none"><div style="font-size:44px;margin:4px 0 8px;">⏳</div><p style="font-size:14.5px;color:#33404f;line-height:1.65;margin:0 0 6px;"><b>Conta confirmada!</b><br>Falta o administrador liberar o seu acesso ao painel.</p><p style="font-size:12.5px;color:#8a97a8;margin:0 0 16px;">Avise o responsável. Assim que ele liberar, você entra automaticamente.</p><button id="authWaitSair" type="button" style="background:#eef1f5;color:#33404f;border:0;border-radius:10px;padding:10px 22px;font-weight:700;cursor:pointer;">Sair</button></div></div></div>
@@ -843,6 +870,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         </div>
         <span class="hchip hver" title="Versão do painel — gerada em ${geradoEm}">v${versaoPainel}</span>
         <button id="hTema" type="button" title="Modo noturno"></button>
+        <button id="hSino" type="button" title="Avisos" style="display:none;">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span id="hSinoN"></span>
+        </button>
         <div class="hsep hsep-r"></div>
         <button id="hUser" type="button"></button>
       </div>
@@ -7501,6 +7532,97 @@ function rcbLigarAbas(el){
    No domingo o valor é padrão da loja e quem imprime só escolhe a quantidade. Neste o valor
    é digitado a cada recibo — deixar aberto seria deixar qualquer um imprimir comprovante de
    qualquer quantia com o CNPJ da empresa em cima. */
+/* ---- SINO DE AVISOS ----
+   Um lugar só, no topo do painel, para o que está esperando uma decisão do dono. Hoje só
+   os recibos aguardando autorização entram aqui; a lista é montada por avisosDoPainel(),
+   e é lá que entra o que vier depois.
+
+   O sino SÓ APARECE quando há algo — botão que fica sempre aceso e nunca tem nada dentro
+   vira enfeite, e a pessoa para de olhar. */
+function avisosDoPainel(){
+  var out = [], i, r;
+  var souMaster = !!(window.__PERFIL && window.__PERFIL.is_master);
+  var meu = (window.__PERFIL||{}).id || "";
+  if(souMaster){
+    for(i=0;i<(rcbAut||[]).length;i++){
+      r = rcbAut[i];
+      if(!rcbAutPodeDecidir(r, true, meu)) continue;
+      out.push({ tipo:"recibo", id:r.id,
+                 titulo:"Recibo esperando sua autorização",
+                 texto: rcbAutResumo(r) + " — pedido por " + (r.pedido_por_nome||"—") });
+    }
+  } else {
+    /* Para quem pediu, o aviso que importa é o contrário: "já pode imprimir". */
+    for(i=0;i<(rcbAut||[]).length;i++){
+      r = rcbAut[i];
+      if(!rcbAutPodeImprimir(r, meu)) continue;
+      out.push({ tipo:"recibo_ok", id:r.id,
+                 titulo:"Recibo autorizado",
+                 texto: rcbAutResumo(r) + " — já pode imprimir" });
+    }
+  }
+  return out;
+}
+
+function avisosPintar(){
+  var bt = document.getElementById("hSino"); if(!bt) return;
+  /* O clique é ligado AQUI, e não só depois do login: assim o sino funciona por qualquer
+     caminho que chegue à tela (login normal, sessão já aberta, prévia de teste). */
+  if(!bt.__lig){ bt.__lig=1; bt.onclick=function(){ avisosAbrir(); }; }
+  var lista = avisosDoPainel();
+  var n = document.getElementById("hSinoN");
+  if(!lista.length){ bt.style.display="none"; return; }
+  bt.style.display="inline-flex";
+  if(n) n.textContent = lista.length > 9 ? "9+" : String(lista.length);
+  var g = document.getElementById("avGaveta");
+  if(g && g.classList.contains("show")) avisosDesenhar();
+}
+
+function avisosAbrir(){
+  var g = document.getElementById("avGaveta");
+  if(!g){
+    g = document.createElement("div");
+    g.id = "avGaveta"; g.className = "av-bg2";
+    g.innerHTML = '<div class="av-gav"><div class="av-top"><h3>Avisos</h3>'
+      +'<button class="av-fechar" id="avFechar" title="Fechar">✕</button></div>'
+      +'<div class="av-lista" id="avLista"></div></div>';
+    document.body.appendChild(g);
+    g.addEventListener("click", function(e){ if(e.target===g) avisosFechar(); });
+    document.getElementById("avFechar").onclick = avisosFechar;
+  }
+  avisosDesenhar();
+  g.classList.add("show");
+}
+function avisosFechar(){
+  var g = document.getElementById("avGaveta"); if(g) g.classList.remove("show");
+}
+
+function avisosDesenhar(){
+  var el = document.getElementById("avLista"); if(!el) return;
+  var lista = avisosDoPainel();
+  if(!lista.length){ el.innerHTML = '<p class="av-vazio">Nada esperando você agora.</p>'; return; }
+  var h = "";
+  for(var i=0;i<lista.length;i++){
+    var a = lista[i];
+    h += '<div class="av-it"><b>'+pxEsc(a.titulo)+'</b><span>'+pxEsc(a.texto)+'</span>'
+      + '<div class="av-acoes">'
+      + (a.tipo==="recibo"
+          ? '<button class="btn-p" data-av-sim="'+pxEsc(a.id)+'">Autorizar</button>'
+            +'<button class="btn-s" data-av-nao="'+pxEsc(a.id)+'">Recusar</button>'
+          : '<button class="btn-p" data-av-imp="'+pxEsc(a.id)+'">Imprimir</button>')
+      + '</div></div>';
+  }
+  el.innerHTML = h;
+  /* As ações são as MESMAS do bloco na página de Recibos — a janela de confirmação, a
+     gravação e a regra de quem pode. Duas cópias disso divergiriam na primeira mudança. */
+  [].slice.call(el.querySelectorAll("[data-av-sim]")).forEach(function(b){
+    b.onclick=function(){ avisosFechar(); rcbAutDecidir(b.getAttribute("data-av-sim"), true); }; });
+  [].slice.call(el.querySelectorAll("[data-av-nao]")).forEach(function(b){
+    b.onclick=function(){ avisosFechar(); rcbAutDecidir(b.getAttribute("data-av-nao"), false); }; });
+  [].slice.call(el.querySelectorAll("[data-av-imp]")).forEach(function(b){
+    b.onclick=function(){ avisosFechar(); rcbAutImprimir(b.getAttribute("data-av-imp")); }; });
+}
+
 /* ---- A NUVEM E AS AÇÕES DO PEDIDO DE AUTORIZAÇÃO ---- */
 var rcbAut = null, rcbAutCarregando = false;
 function rcbSB(){ try{ return window.__SB||null; }catch(e){ return null; } }
@@ -7516,11 +7638,11 @@ function rcbAutCarregar(){
     .order("pedido_em",{ascending:false}).limit(40)
     .then(function(r){
       rcbAut = (r && !r.error && r.data) ? r.data : (rcbAut || []);
-      rcbAutCarregando=false; rcbRender();
+      rcbAutCarregando=false; avisosPintar(); rcbRender();
     }, function(){
       /* Tabela ainda não criada ou sem internet: a página continua funcionando. O pedido
          de autorização é um extra; não pode derrubar quem só quer o recibo de domingo. */
-      rcbAut = rcbAut || []; rcbAutCarregando=false; rcbRender();
+      rcbAut = rcbAut || []; rcbAutCarregando=false; avisosPintar(); rcbRender();
     });
 }
 
@@ -22241,6 +22363,14 @@ function pedEnviar(){
       var liberado = perfil && (perfil.is_master || perfil.aprovado);
       if(!liberado){ mostrarEspera(uid); return; }
       fimChecagem(); applyPerms(perfil); showUser(perfil,email); ov.style.display="none";
+      /* O sino vale para o painel inteiro, então a carga acontece assim que o login
+         termina — não só quando alguém abre a página de Recibos. Se dependesse da
+         página, o dono só descobriria que tem recibo esperando ao passar por lá. */
+      try{
+        var _bs=document.getElementById("hSino");
+        if(_bs && !_bs.__lig){ _bs.__lig=1; _bs.onclick=function(){ avisosAbrir(); }; }
+        rcbAutCarregar();
+      }catch(_e){}
       try{ if(window.__temaAplica) window.__temaAplica(); }catch(e){}   // tema escolhido só entra em cena DEPOIS do login
       try{ localStorage.setItem("sr_lib", uid||''); }catch(e){}   // lembra que este login já está liberado -> reload não pisca a tela verde
       try{ localStorage.setItem("sr_master", (perfil&&perfil.is_master)?"1":"0"); }catch(e){}   // lembra se é master -> reload não pisca as abas só-master (Galpões/Planta)
