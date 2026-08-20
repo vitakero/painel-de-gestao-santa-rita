@@ -7383,9 +7383,14 @@ function rcbAutPodeImprimir(r, meuId){
 
 /* Quem pode DECIDIR é só o master, e nunca sobre o próprio pedido. Autoaprovação aqui não
    faz sentido: se o dono quer um recibo, ele imprime direto, sem passar por aqui. */
-function rcbAutPodeDecidir(r, souMaster, meuId){
-  if(!r || r.status!=="pendente" || !souMaster) return false;
-  return String(r.pedido_por||"") !== String(meuId||"");
+/* QUEM PODE DECIDIR.
+   Mudou em 20/08/2026, quando o dono desenhou o fluxo real: "ela vai falar comigo — Vitor,
+   autorize lá o recibo — aí eu vou digitar a senha e autorizo". Ou seja, o botão fica na
+   tela de quem pediu; a prova não é o login, é A SENHA do master, conferida no banco.
+   Antes eu exigia estar logado como master, e aí ele teria que deslogar a funcionária
+   para autorizar — no meio do expediente, com gente esperando o recibo. */
+function rcbAutPodeDecidir(r){
+  return !!(r && r.status==="pendente");
 }
 
 /* Desistir do próprio pedido, enquanto ninguém decidiu. */
@@ -7540,28 +7545,12 @@ function rcbLigarAbas(el){
    O sino SÓ APARECE quando há algo — botão que fica sempre aceso e nunca tem nada dentro
    vira enfeite, e a pessoa para de olhar. */
 function avisosDoPainel(){
-  var out = [], i, r;
-  var souMaster = !!(window.__PERFIL && window.__PERFIL.is_master);
-  var meu = (window.__PERFIL||{}).id || "";
-  if(souMaster){
-    for(i=0;i<(rcbAut||[]).length;i++){
-      r = rcbAut[i];
-      if(!rcbAutPodeDecidir(r, true, meu)) continue;
-      out.push({ tipo:"recibo", id:r.id,
-                 titulo:"Recibo esperando sua autorização",
-                 texto: rcbAutResumo(r) + " — pedido por " + (r.pedido_por_nome||"—") });
-    }
-  } else {
-    /* Para quem pediu, o aviso que importa é o contrário: "já pode imprimir". */
-    for(i=0;i<(rcbAut||[]).length;i++){
-      r = rcbAut[i];
-      if(!rcbAutPodeImprimir(r, meu)) continue;
-      out.push({ tipo:"recibo_ok", id:r.id,
-                 titulo:"Recibo autorizado",
-                 texto: rcbAutResumo(r) + " — já pode imprimir" });
-    }
-  }
-  return out;
+  /* Por decisão dele (20/08/2026), o sino NÃO é fila de aprovação — é o lugar dos avisos
+     e das novidades do painel, e existe em todos os logins como parte da casa.
+     O recibo saiu daqui: a autorização acontece na própria página de Recibos, com ele
+     digitando a senha no computador de quem pediu.
+     Quando houver aviso para publicar, é esta lista que passa a devolvê-los. */
+  return [];
 }
 
 function avisosPintar(){
@@ -7571,9 +7560,11 @@ function avisosPintar(){
   if(!bt.__lig){ bt.__lig=1; bt.onclick=function(){ avisosAbrir(); }; }
   var lista = avisosDoPainel();
   var n = document.getElementById("hSinoN");
-  if(!lista.length){ bt.style.display="none"; return; }
+  /* O sino é parte da casa: aparece em todos os logins, sempre. O numerinho vermelho é
+     que só surge quando existe aviso — botão com bolinha e nada dentro cansa a vista. */
   bt.style.display="inline-flex";
-  if(n) n.textContent = lista.length > 9 ? "9+" : String(lista.length);
+  if(n){ n.textContent = lista.length ? (lista.length > 9 ? "9+" : String(lista.length)) : "";
+         n.style.display = lista.length ? "" : "none"; }
   var g = document.getElementById("avGaveta");
   if(g && g.classList.contains("show")) avisosDesenhar();
 }
@@ -7600,7 +7591,12 @@ function avisosFechar(){
 function avisosDesenhar(){
   var el = document.getElementById("avLista"); if(!el) return;
   var lista = avisosDoPainel();
-  if(!lista.length){ el.innerHTML = '<p class="av-vazio">Nada esperando você agora.</p>'; return; }
+  if(!lista.length){
+    el.innerHTML = '<p class="av-vazio">Nenhum aviso por aqui.<br><br>'
+      +'É neste lugar que vão aparecer os avisos do painel e as novidades — quando algo novo '
+      +'for publicado, você fica sabendo por aqui.</p>';
+    return;
+  }
   var h = "";
   for(var i=0;i<lista.length;i++){
     var a = lista[i];
@@ -7672,31 +7668,41 @@ function rcbAutPedir(c){
   });
 }
 
+/* AUTORIZAR / RECUSAR COM A SENHA DO MASTER, NO COMPUTADOR DE QUEM PEDIU.
+   É como ele descreveu: ela cria o pedido, chama ele, e ele digita a senha ali mesmo.
+   Quem já está logado como master não digita nada — seria pedir a ele a própria senha.
+
+   A gravação vai por FUNÇÃO DO BANCO (rcb_autorizar / rcb_recusar) e não por escrita
+   direta, porque a política da tabela só deixa o master mudar o status: no login dela, a
+   escrita direta seria recusada mesmo com a senha certa. A função confere a senha lá
+   dentro, com trava de tentativas, e registra que foi a senha do master usada no login
+   dela — o rastro não se perde. */
 function rcbAutDecidir(id, autorizar){
   var sb=rcbSB(); if(!sb) return;
   var r=null; for(var i=0;i<(rcbAut||[]).length;i++){ if(rcbAut[i].id===id) r=rcbAut[i]; }
   if(!r) return;
-  if(autorizar){
-    /* A janela repete o que ele está liberando. Autorizar dinheiro no escuro, com um clique
-       perdido, é exatamente o que não pode acontecer aqui. */
-    uiConfirm({titulo:"Autorizar este recibo?",
-      msg:rcbAutResumo(r)+"\\n\\nPedido por "+(r.pedido_por_nome||"—")+".\\n\\nTotal: "+rcbMoeda(rcbAutTotal(r)),
-      ok:"Autorizar", cancel:"Cancelar"}).then(function(sim){
-        if(!sim) return;
-        sb.from("recibos_autorizacoes").update({ status:"autorizado",
-          decidido_por:rcbMeuId(), decidido_por_nome:rcbMeuNome(), decidido_em:new Date().toISOString()
-        }).eq("id",id).then(function(){ rcbAutCarregar(); }, function(){ rcbAutCarregar(); });
+
+  var cabeca = autorizar ? "Autorizar este recibo" : "Recusar este recibo";
+  var motivo = cabeca+":\\n\\n"+rcbAutResumo(r)
+    +"\\n\\nPedido por "+(r.pedido_por_nome||"—")
+    +"\\nTotal: "+rcbMoeda(rcbAutTotal(r))
+    +"\\n\\nDigite a senha do master.";
+
+  autorizarMaster(motivo, false, true).then(function(prova){
+    if(!prova) return;
+    var senha = (prova === true) ? null : String(prova);   // master logado não digita senha
+    sb.rpc(autorizar ? "rcb_autorizar" : "rcb_recusar", { p_id:id, p_senha:senha })
+      .then(function(res){
+        if(res && res.error){
+          uiConfirm({titulo:"Não consegui autorizar",
+            msg:"A senha do master não confere, ou o pedido já foi decidido.",ok:"OK",cancel:""});
+        }
+        rcbAutCarregar();
+      }, function(){
+        uiConfirm({titulo:"Não consegui autorizar",msg:"Tente de novo.",ok:"OK",cancel:""});
+        rcbAutCarregar();
       });
-    return;
-  }
-  uiConfirm({titulo:"Recusar este recibo?",
-    msg:rcbAutResumo(r)+"\\n\\nPedido por "+(r.pedido_por_nome||"—")+".\\n\\nEle sai da lista e a pessoa vê que foi recusado.",
-    ok:"Recusar", cancel:"Cancelar"}).then(function(sim){
-      if(!sim) return;
-      sb.from("recibos_autorizacoes").update({ status:"recusado",
-        decidido_por:rcbMeuId(), decidido_por_nome:rcbMeuNome(), decidido_em:new Date().toISOString()
-      }).eq("id",id).then(function(){ rcbAutCarregar(); }, function(){ rcbAutCarregar(); });
-    });
+  });
 }
 
 function rcbAutCancelar(id){
@@ -7744,18 +7750,20 @@ function rcbAutBloco(master){
   for(i=0;i<rcbAut.length;i++){
     r = rcbAut[i];
     var meuPedido = String(r.pedido_por||"")===String(meu);
-    // o dono vê o que tem para decidir; ela vê o que é dela
-    if(master ? !rcbAutPodeDecidir(r, true, meu) && !meuPedido : !meuPedido) continue;
+    /* Todo mundo com a página vê o que está esperando — é assim que funciona na prática:
+       ela chama o dono, ele vem no computador DELA e digita a senha. O que é só dela
+       (imprimir, desistir) continua sendo só dela. */
+    if(!rcbAutPodeDecidir(r) && !meuPedido) continue;
     n++;
 
     var acoes = "";
-    if(rcbAutPodeDecidir(r, master, meu)){
+    if(rcbAutPodeDecidir(r)){
       acoes = '<button class="btn-p" data-rcbaut-sim="'+pxEsc(r.id)+'">Autorizar</button>'
-            + '<button class="btn-s" data-rcbaut-nao="'+pxEsc(r.id)+'">Recusar</button>';
+            + '<button class="btn-s" data-rcbaut-nao="'+pxEsc(r.id)+'">Recusar</button>'
+            + (rcbAutPodeCancelar(r, meu)
+                ? '<button class="btn-s" data-rcbaut-can="'+pxEsc(r.id)+'">Desistir</button>' : '');
     } else if(rcbAutPodeImprimir(r, meu)){
       acoes = '<button class="btn-p" data-rcbaut-imp="'+pxEsc(r.id)+'">Imprimir</button>';
-    } else if(rcbAutPodeCancelar(r, meu)){
-      acoes = '<button class="btn-s" data-rcbaut-can="'+pxEsc(r.id)+'">Desistir</button>';
     }
 
     var cor = (r.status==="autorizado") ? "#1b9e4b" : "#9a6b00";
@@ -7773,23 +7781,22 @@ function rcbAutBloco(master){
   }
 
   if(!n){
-    return master
-      ? ''   // nada esperando: não ocupo a tela do dono com uma caixa vazia
-      : '<div class="card" style="max-width:760px;margin-top:18px;">'
-        +'<h2 style="margin:0 0 4px;font-size:16px;">Meus pedidos</h2>'
-        +'<p style="margin:0;color:#8a939e;font-size:12.5px;line-height:1.5;">'
-        +'Quando você pedir autorização, o pedido fica aqui até o administrador liberar. '
-        +'Depois disso aparece o botão de imprimir.</p></div>';
+    // Nada esperando: não ocupo a tela do dono com uma caixa vazia. Para quem emite, a
+    // caixa explica o caminho antes de ela precisar dele pela primeira vez.
+    if(master) return '';
+    return '<div class="card" style="max-width:760px;margin-top:18px;">'
+      +'<h2 style="margin:0 0 4px;font-size:16px;">Recibos esperando autorização</h2>'
+      +'<p style="margin:0;color:#8a939e;font-size:12.5px;line-height:1.5;">'
+      +'Nada esperando agora. Quando você pedir autorização, o recibo fica aqui até o '
+      +'administrador digitar a senha — aí aparece o botão de imprimir.</p></div>';
   }
 
   return '<div class="card" style="max-width:760px;margin-top:18px;">'
-    +'<h2 style="margin:0 0 2px;font-size:16px;">'
-      +(master ? 'Esperando sua autorização' : 'Meus pedidos')+'</h2>'
+    +'<h2 style="margin:0 0 2px;font-size:16px;">Recibos esperando autorização</h2>'
     +'<p style="margin:0 0 4px;color:#8a939e;font-size:12.5px;line-height:1.5;">'
-      +(master
-        ? 'Confira o valor e o motivo antes de liberar. Cada autorização vale para aquele recibo, uma vez.'
-        : 'Assim que o administrador autorizar, o botão de imprimir aparece aqui.')
-    +'</p>'+linhas+'</div>';
+      +'Chame o administrador: ele confere o valor e o motivo e digita a senha aqui mesmo. '
+      +'Depois disso o botão de imprimir aparece nesta lista.</p>'
+    +linhas+'</div>';
 }
 
 function rcbAutLigar(el){
