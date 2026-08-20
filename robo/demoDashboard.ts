@@ -268,6 +268,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
      distribuído igual. (No Histórico, que é apertado, o dinheiro segue à direita: lá as
      colunas são estreitas e o alinhamento por dígito ainda ajuda a comparar os meses.) */
   .flv-tbl.espalhada th, .flv-tbl.espalhada td { width:25%; text-align:center; }
+  /* O traço de "não tem valor aqui" é cinza claro de propósito: precisa ocupar a coluna
+     sem competir com os meses que têm número de verdade. */
+  .flv-tbl td.tr { color:#c3ccd8; }
   .flv-topo { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
   .flv-topo .dir { margin-left:auto; display:flex; gap:10px; align-items:center; }
   .flv-sel { padding:8px 11px; border:1px solid #cdd6e0; border-radius:8px; font-size:13px; background:#fff; color:#33404f; }
@@ -6542,8 +6545,13 @@ function flvRender(){
     +'<th class="num">Por colaborador</th><th class="sit">Situação</th></tr></thead><tbody>';
   serie.forEach(function(x){
     if(!x.fechamento){
-      h+='<tr><td class="mes">'+x.rotulo+'</td>'
-        +'<td colspan="3" class="flv-vazio aguardando">Aguardando fechamento</td></tr>';
+      /* Mês sem fechamento: cada coluna mostra o seu traço, em vez de uma célula só
+         atravessando três. Antes o texto ficava no meio da tabela e parecia pertencer à
+         coluna "Por colaborador". O aviso vai para a coluna Situação, que é onde ele
+         significa alguma coisa. */
+      h+='<tr class="sem"><td class="mes">'+x.rotulo+'</td>'
+        +'<td class="tr">—</td><td class="tr">—</td>'
+        +'<td>'+flvSeloSit(null)+'</td></tr>';
     } else {
       var pd=flvPremioPerdido(x.fechamento);
       h+='<tr><td class="mes">'+x.rotulo+'</td>'
