@@ -6270,23 +6270,34 @@ function flvAnoAtual(){
 }
 
 function flvCloudLoad(){
-  var sb=flvSB(); if(!sb || flvCarregando) return;
-  if(window.__PERFIL==null) return;
+  var sb=flvSB(); if(!sb) return;
+  if(flvCarregando) return;
+  if(window.__PERFIL==null) return;          // flvRender já agendou a nova tentativa
   if(!flvPodeVer()){ flvFech=[]; flvRender(); return; }
   flvCarregando=true;
-  sb.from("flv_fechamentos").select("*").order("competencia",{ascending:false}).then(function(r){
-    if(!r.error && r.data) flvFech=r.data;
-    else if(r.error) flvFech=flvFech||[];
-    sb.from("flv_equipe").select("*").order("nome").then(function(e){
-      if(!e.error && e.data) flvEquipe=e.data;
-      sb.from("flv_config").select("*").limit(1).then(function(c){
-        if(!c.error && c.data && c.data.length){
-          flvCfg={ meta:+c.data[0].meta_pct||5, fator:+c.data[0].fator_premio||0.0012 };
-        }
-        flvCarregando=false; flvRender();
-      },function(){ flvCarregando=false; flvRender(); });
-    },function(){ flvCarregando=false; flvRender(); });
-  },function(){ flvCarregando=false; flvFech=flvFech||[]; flvRender(); });
+
+  /* AS TRES DE UMA VEZ, não uma esperando a outra.
+     Antes era uma cadeia: buscava os fechamentos, e só quando ela voltava é que pedia a
+     equipe, e só depois a configuração. Três idas e voltas em fila dão ~1,5 segundo;
+     as mesmas três ao mesmo tempo dão ~0,5. Nenhuma delas depende do resultado da
+     outra, então a fila não servia para nada. */
+  Promise.all([
+    sb.from("flv_fechamentos").select("*").order("competencia",{ascending:false}),
+    sb.from("flv_equipe").select("*").order("nome"),
+    sb.from("flv_config").select("*").limit(1)
+  ]).then(function(res){
+    var r=res[0], e=res[1], c=res[2];
+    if(r && !r.error && r.data) flvFech=r.data; else flvFech=flvFech||[];
+    if(e && !e.error && e.data) flvEquipe=e.data;
+    if(c && !c.error && c.data && c.data.length){
+      flvCfg={ meta:+c.data[0].meta_pct||5, fator:+c.data[0].fator_premio||0.0012 };
+    }
+    flvCarregando=false; flvRender();
+  }, function(){
+    /* Uma que falhe não pode deixar a tela presa em "Carregando…" para sempre:
+       solta a trava e desenha com o que já existe. */
+    flvCarregando=false; flvFech=flvFech||[]; flvRender();
+  });
 }
 
 /* Um KPI no formato do painel. Aceita rodapé para a distância da meta. */
@@ -6371,7 +6382,16 @@ function flvItemCmp(rotulo, atual, anterior, tipo){
 function flvRender(){
   var el=document.getElementById("flvRoot"); if(!el) return;
   if(window.__PERFIL==null){
+    /* O login ainda não terminou de carregar o perfil. As outras páginas do painel
+       (Planta, Galpões, Configurações) tentam de novo em 700ms; o FLV desistia na
+       primeira e ficava parado em "Carregando…" até a pessoa clicar em outra página e
+       voltar. Não era lentidão — era desistência. */
     el.innerHTML='<div class="card"><span class="flv-vazio">Carregando…</span></div>';
+    if(!window.__flvRetry){
+      window.__flvRetry=setTimeout(function(){
+        window.__flvRetry=null; flvRender(); flvCloudLoad();
+      },700);
+    }
     return;
   }
   if(!flvPodeVer()){
