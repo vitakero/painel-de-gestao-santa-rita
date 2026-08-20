@@ -42,9 +42,11 @@ function req(metodo, caminho, corpo, prefer){
   const LIM=90000;
   if(txt.length>LIM) txt=txt.slice(0,LIM/2)+"\n\n[...cortei o meio...]\n\n"+txt.slice(-LIM/2);
   try{
-    const ev=await req("GET","/rest/v1/receb_eventos?select=id&limit=1");
+    // entidade_id e uuid — receb_eventos.id e NUMERO. Ver o comentario gemeo no
+    // vr-descobrir-notas.cjs: este erro custou uma rodada inteira na loja.
+    const loc=await req("GET","/rest/v1/receb_locais?select=id&order=criado_em&limit=1");
     await req("POST","/rest/v1/receb_eventos",[{ entidade:"robo_log",
-      entidade_id:(ev&&ev[0]&&ev[0].id)||"00000000-0000-0000-0000-000000000000",
+      entidade_id:(loc&&loc[0]&&loc[0].id)||"00000000-0000-0000-0000-000000000000",
       acao:apelido, motivo:path.basename(arq), detalhe:txt }],"return=minimal");
     console.log("  (log enviado para a nuvem: "+apelido+")");
   }catch(e){ console.log("  (mandar-log falhou: "+e.message+")"); }
