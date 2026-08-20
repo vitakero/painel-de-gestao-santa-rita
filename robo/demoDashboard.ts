@@ -3024,6 +3024,18 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       .cl-ped-sim:active{transform:translateY(1px);box-shadow:none;}
       .cl-ped-nao{background:#fff;color:#8a5a12;border:1px solid #e0c477!important;}
       .cl-ped-nao:hover{background:#fdf6e3;}
+      /* Recusar a ENTREGA é mais grave que recusar o horário: o caminhão está na doca.
+         Por isso vermelho, e não o amarelo do "Recusar" lá de cima. */
+      .cl-entc-bts{display:inline-flex;gap:8px;align-items:center;justify-content:flex-end;
+        flex-wrap:wrap;}
+      /* usado pelo uiPrompt quando a ação destrói alguma coisa (ver opts.perigo) */
+      .btn-p.btn-perigo{background:#b03024!important;border-color:#b03024!important;}
+      .btn-p.btn-perigo:hover{background:#8c2f28!important;border-color:#8c2f28!important;}
+      .cl-ped-recd{background:#fff;color:#b03024;border:1px solid #e8bbb5!important;
+        border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;
+        font-family:inherit;white-space:nowrap;}
+      .cl-ped-recd:hover{background:#fdf1ef;}
+      .cl-ped-recd:active{transform:translateY(1px);}
       .cl-ped-acoes button[disabled]{opacity:.5;cursor:default;}
       /* "entc" = ENTregas Confirmadas. Nao usar "cl-conf": a aba Conferencia
          dos carros ja usa esse prefixo e redefine .cl-conf-lin com QUATRO
@@ -5867,7 +5879,17 @@ function renderClPedidos(){
          '<span class="nm">'+pxEsc(p.fornecedor)+(p.pedido?' <span style="color:#8a97a8;font-weight:400;">· pedido '+pxEsc(p.pedido)+'</span>':'')+
            clTranspSelo(p)+clDetalheLinha(p)+'</span>'+
          (chegou && clPodeDecidir()
-           ? '<button type="button" class="cl-ped-sim" data-pconf="'+pxEsc(p.id)+'">✓ Conferido</button>'
+           /* DOIS BOTÕES, NÃO UM.
+              Até aqui, caminhão que chegava errado deixava quem recebe com duas saídas
+              ruins: marcar "Conferido" (mentira que entra na história e no faturamento)
+              ou deixar a linha pendurada para sempre. Recusar a entrega é um fato do
+              recebimento e agora tem onde ser dito. */
+           /* Os dois dentro de UM invólucro: a linha é uma grade de três colunas, e
+              dois elementos soltos jogariam o segundo para a linha de baixo. */
+           ? '<span class="cl-entc-bts">'+
+               '<button type="button" class="cl-ped-recd" data-precd="'+pxEsc(p.id)+'">Recusar entrega</button>'+
+               '<button type="button" class="cl-ped-sim" data-pconf="'+pxEsc(p.id)+'">✓ Conferido</button>'+
+             '</span>'
            : '<span class="selo">confirmada</span>')+
          '</div>';
     });
@@ -5881,6 +5903,31 @@ function clDecidir(id,status){
   var item=clPedidos.filter(function(p){ return p.id===id; })[0];
   var quem=item?item.fornecedor:"este fornecedor";
   var quando=item?(clDataLonga(item.data)+" às "+clHoraCurta(item.hora)):"";
+
+  /* RECUSAR A ENTREGA PEDE O MOTIVO, E O MOTIVO NÃO É ENFEITE.
+     É o texto que o fornecedor recebe por email e o que fica na história da entrega.
+     Sem ele a loja guarda "recusado" e ninguém nunca mais sabe por quê — e o
+     fornecedor manda o mesmo caminhão errado de novo na semana seguinte.
+     O servidor também exige: não dá para burlar tirando isto daqui. */
+  if(status==="recusado_na_doca"){
+    uiPrompt({
+      titulo:"Recusar a entrega de "+quem,
+      msg:quando+" — escreva o que houve com a carga.",
+      icone:"🚫", inputType:"text", ok:"Recusar entrega", cancel:"Voltar", perigo:true,
+      placeholder:"Ex.: produto trocado, validade curta, carga avariada"
+    }).then(function(txt){
+      if(txt===null || txt===undefined) return;
+      if(!String(txt).trim()){
+        uiConfirm({titulo:"Falta dizer o motivo",
+          msg:"Sem o motivo eu não registro a recusa. É o que o fornecedor precisa "+
+              "para corrigir, e é o que fica na história da entrega.",ok:"OK",cancel:""});
+        return;
+      }
+      clEnviarStatus(id, status, String(txt).trim(), quem);
+    });
+    return;
+  }
+
   var TXT={
     aprovado:{ t:"Aprovar ", m:"A janela fica reservada para este fornecedor e ninguém mais consegue agendar nesse horário.", ok:"Aprovar" },
     recusado:{ t:"Recusar ", m:"O horário volta a ficar livre para outro fornecedor.", ok:"Recusar" },
@@ -5891,19 +5938,29 @@ function clDecidir(id,status){
     titulo:cfg.t+quem, msg:quando+"\\n\\n"+cfg.m, ok:cfg.ok, cancel:"Cancelar"
   }).then(function(ok){
     if(!ok) return;
-    var bts=document.querySelectorAll('[data-psim="'+id+'"],[data-pnao="'+id+'"]');
-    for(var i=0;i<bts.length;i++) bts[i].disabled=true;
-    sb.rpc("ent_definir_status",{p_id:id,p_status:status}).then(function(r){
-      var d=(r&&r.data)||null;
-      if((r&&r.error)||(d&&d.ok===false)){
-        for(var j=0;j<bts.length;j++) bts[j].disabled=false;
-        uiConfirm({titulo:"Não deu certo",
-          msg:((r&&r.error&&r.error.message)||(d&&d.erro)||"Tente de novo."),ok:"OK",cancel:""});
-        return;
-      }
-      clPedidosLoad();
-      clAvisarFornecedor(id, status, quem);
-    });
+    clEnviarStatus(id, status, null, quem);
+  });
+}
+
+/* A GRAVAÇÃO, UMA SÓ.
+   Antes ela morava dentro do clDecidir. Com a recusa de doca passando por outro
+   caminho (a janela que pede o motivo), duas cópias iam divergir — e uma delas
+   esqueceria de destravar o botão ou de avisar o fornecedor. */
+function clEnviarStatus(id, status, motivo, quem){
+  var sb=window.__SB; if(!sb) return;
+  var bts=document.querySelectorAll('[data-psim="'+id+'"],[data-pnao="'+id+'"],'+
+                                   '[data-pconf="'+id+'"],[data-precd="'+id+'"]');
+  for(var i=0;i<bts.length;i++) bts[i].disabled=true;
+  sb.rpc("ent_definir_status",{p_id:id,p_status:status,p_motivo:motivo||null}).then(function(r){
+    var d=(r&&r.data)||null;
+    if((r&&r.error)||(d&&d.ok===false)){
+      for(var j=0;j<bts.length;j++) bts[j].disabled=false;
+      uiConfirm({titulo:"Não deu certo",
+        msg:((r&&r.error&&r.error.message)||(d&&d.erro)||"Tente de novo."),ok:"OK",cancel:""});
+      return;
+    }
+    clPedidosLoad();
+    clAvisarFornecedor(id, status, quem);
   });
 }
 /* O AVISO É SEPARADO DA DECISÃO, DE PROPÓSITO.
@@ -5912,7 +5969,7 @@ function clDecidir(id,status){
    pela metade — some o aviso, não a decisão. Por isso ele roda depois e só informa. */
 function clAvisarFornecedor(id, status, quem){
   var sb=window.__SB; if(!sb||!sb.functions) return;
-  if(["aprovado","recusado","conferido"].indexOf(status)<0) return;
+  if(["aprovado","recusado","conferido","recusado_na_doca"].indexOf(status)<0) return;
   sb.functions.invoke("aviso-agendamento",{ body:{ id:id, status:status } })
     .then(function(r){
       var d=(r&&r.data)||null, erro=(r&&r.error)||null;
@@ -8824,6 +8881,7 @@ function clImprimir(){
     var n=e.target.closest("[data-pnao]"); if(n){ clDecidir(n.getAttribute("data-pnao"),"recusado"); return; }
     var nf=e.target.closest("[data-clnf]"); if(nf){ clVerNotas(nf.getAttribute("data-clnf")); return; }
     var cf=e.target.closest("[data-pconf]"); if(cf){ clDecidir(cf.getAttribute("data-pconf"),"conferido"); return; }
+    var rd=e.target.closest("[data-precd]"); if(rd){ clDecidir(rd.getAttribute("data-precd"),"recusado_na_doca"); return; }
   });
   var lb=document.getElementById("clLinkBtn"); if(lb) lb.addEventListener("click",clLinkFornecedor);
 })();
@@ -11126,6 +11184,10 @@ function uiPrompt(opts){
     inp.value=(opts.valor!=null?opts.valor:""); inp.placeholder=opts.placeholder||"";
     var ok=document.getElementById("upOk"), cancel=document.getElementById("upCancel");
     ok.textContent=opts.ok||"Confirmar"; cancel.textContent=opts.cancel||"Cancelar";
+    /* opts.perigo: botão vermelho. Verde é cor de "pode seguir" — num botão que
+       RECUSA uma entrega ele diz o contrário do que faz, e quem recebe clica no
+       automático. Só muda a cor; a janela e o resto continuam iguais. */
+    ok.classList.toggle("btn-perigo", !!opts.perigo);
     bg.classList.add("show");
     function fechar(v){ bg.classList.remove("show"); ok.onclick=null; cancel.onclick=null; bg.onclick=null; inp.onkeydown=null; resolve(v); }
     ok.onclick=function(){ fechar(inp.value); };
