@@ -2463,6 +2463,19 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-hint{background:#eef6ff;border:1px solid #d5e6fb;border-radius:10px;padding:10px 12px;font-size:12.5px;color:#3a5573;margin:0 0 10px;}
         #page-cartaz textarea.cz-ta{width:100%;box-sizing:border-box;min-height:170px;border:1.5px solid #e1e7ee;border-radius:12px;padding:12px;font-family:monospace;font-size:14px;resize:vertical;color:#1d2733;}
         #page-cartaz .cz-count{font-size:12px;color:#8a97a8;margin-top:6px;}
+        /* Histórico de cartazes impressos — fica no fim da página do gerador. */
+        #page-cartaz .cz-hist{margin-top:26px;padding-top:20px;border-top:1px solid #e4e9f0;}
+        #page-cartaz .cz-histT{font-size:13px;font-weight:800;color:#1d2733;text-align:center;}
+        #page-cartaz .cz-histSub{font-size:12.5px;color:#6b7787;text-align:center;margin:5px 0 14px;line-height:1.5;}
+        #page-cartaz .cz-histVazio{font-size:12.5px;color:#8a97a8;text-align:center;margin:8px auto 0;max-width:560px;line-height:1.6;}
+        #page-cartaz .cz-histL{display:flex;flex-direction:column;gap:8px;max-width:760px;margin:0 auto;}
+        #page-cartaz .cz-histI{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e4e9f0;border-radius:11px;padding:11px 14px;}
+        #page-cartaz .cz-histC{flex:1;min-width:0;}
+        #page-cartaz .cz-histC b{display:block;font-size:13.5px;color:#1d2733;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        #page-cartaz .cz-histC span{display:block;font-size:11.5px;color:#6b7787;margin-top:2px;}
+        #page-cartaz .cz-histA{display:flex;align-items:center;gap:8px;flex:none;}
+        #page-cartaz .cz-histX{background:none;border:0;color:#b0bac6;font-size:14px;cursor:pointer;padding:6px 8px;border-radius:7px;line-height:1;}
+        #page-cartaz .cz-histX:hover{background:#fdecea;color:#c0392b;}
         #page-cartaz .cz-actions{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:18px;flex-wrap:wrap;}
         #page-cartaz .cz-btn{border:0;border-radius:11px;padding:11px 20px;font-size:14px;font-weight:800;cursor:pointer;}
         #page-cartaz .cz-btn.prim{background:linear-gradient(135deg,#23a847,#0c5a26);color:#fff;}
@@ -18084,6 +18097,254 @@ function czDatasOk(ini, fim){
   return String(fim) >= String(ini);
 }
 /* ==CZUP-FIM== */
+
+/* ==CZHIST-INICIO== HISTÓRICO DE CARTAZES IMPRESSOS (testado em
+   scripts/testes/cartaz-historico.test.cjs)
+
+   Pedido do dono em 20/08/2026: a placa rasga ou molha na gôndola e ele tem que digitar
+   tudo de novo pra reimprimir uma. Aqui fica o retrato do que já foi impresso.
+
+   Só entra o que foi REALMENTE impresso, e some quando a oferta vence — as duas coisas
+   pedidas por ele. Este bloco não toca em tela nem em nuvem: são só as contas. */
+
+/* O RETRATO DO CARTAZ INTEIRO, não só do produto.
+   O produto sozinho não reimprime igual: o modelo, o tamanho, o banner do topo, as datas e
+   o limite por cliente moram em variáveis da tela, e o rodapé é montado na hora. Se a
+   assinatura não incluísse tudo isso, dois cartazes diferentes contariam como o mesmo — e
+   a reimpressão sairia com a validade da oferta que estivesse aberta na tela. */
+function czHistAssinatura(r){
+  r = r || {};
+  function t(v){ return String(v==null ? "" : v).trim().toUpperCase(); }
+  return [t(r.modelo), t(r.tamanho), t(r.impressao),
+          t(r.oferta), t(r.nome), t(r.marca), t(r.tipo), t(r.gramatura),
+          t(r.preco), t(r.preco_de),
+          t(r.validade_ini), t(r.validade_fim), t(r.limite_cliente),
+          t(r.tema_nome)].join("|");
+}
+
+/* Venceu? Compara AAAA-MM-DD como TEXTO, que já ordena sozinho — de propósito, para não
+   entrar fuso horário na conta (é a mesma régua do czDatasOk). Sem data de fim eu não
+   considero vencido: melhor sobrar na lista do que sumir um cartaz que ainda está colado. */
+function czHistVencido(fim, hoje){
+  if(!fim || !hoje) return false;
+  return String(fim) < String(hoje);
+}
+
+/* A data de hoje em AAAA-MM-DD, no fuso de quem está usando. Não uso toISOString: ele
+   converte para UTC e, à noite, devolve o dia seguinte — o cartaz sumiria um dia antes. */
+function czHistHoje(d){
+  var x = d || new Date();
+  function dois(n){ return (n<10?"0":"")+n; }
+  return x.getFullYear()+"-"+dois(x.getMonth()+1)+"-"+dois(x.getDate());
+}
+
+/* Transforma a lista da tela nos registros a guardar.
+   A quantidade NÃO entra: quem imprimiu 3 placas do mesmo arroz tem UM cartaz no
+   histórico, porque o que ele quer depois é repor a que rasgou — uma. E linhas repetidas
+   viram uma só, pela assinatura. */
+function czHistDaLista(prods, cfg){
+  cfg = cfg || {};
+  var out = [], vistos = {}, i, p, r, a;
+  for(i=0; i<(prods||[]).length; i++){
+    p = prods[i] || {};
+    if(!String(p.nome||"").trim() || !String(p.preco||"").trim()) continue;
+    r = { modelo:cfg.modelo, tamanho:cfg.tamanho, impressao:cfg.impressao||null,
+          oferta:p.oferta||"", nome:String(p.nome).trim(), marca:p.marca||"",
+          tipo:p.tipo||"", gramatura:p.gram||"",
+          preco:String(p.preco).trim(), preco_de:(cfg.modelo==="depor" ? (p.precoDe||"") : ""),
+          validade_ini:cfg.validade_ini||null, validade_fim:cfg.validade_fim||null,
+          limite_cliente:Math.max(0, parseInt(cfg.limite_cliente,10)||0),
+          tema_id:cfg.tema_nome||null, tema_nome:cfg.tema_nome||null };
+    a = czHistAssinatura(r);
+    if(vistos[a]) continue;
+    vistos[a] = 1;
+    r.assinatura = a;
+    out.push(r);
+  }
+  return out;
+}
+
+/* O caminho de volta: do registro guardado para o item que o gerador entende.
+   qtd é sempre 1 — rasgou uma placa, repõe uma placa. */
+function czHistParaItem(r){
+  r = r || {};
+  return { oferta:r.oferta||"OFERTA", nome:r.nome||"", marca:r.marca||"",
+           tipo:r.tipo||"", gram:r.gramatura||"", precoDe:r.preco_de||"",
+           preco:r.preco||"", qtd:1 };
+}
+
+/* O que a linha do histórico mostra. Junta o que existe e pula o que está vazio, sem
+   deixar espaço sobrando nem hífen solto quando falta marca ou gramatura. */
+function czHistRotulo(r){
+  r = r || {};
+  var p = [];
+  if(String(r.nome||"").trim()) p.push(String(r.nome).trim());
+  if(String(r.marca||"").trim()) p.push(String(r.marca).trim());
+  if(String(r.tipo||"").trim()) p.push(String(r.tipo).trim());
+  if(String(r.gramatura||"").trim()) p.push(String(r.gramatura).trim());
+  return p.join(" ");
+}
+/* ==CZHIST-FIM== */
+
+/* O BLOCO QUE APARECE NO FIM DA PÁGINA.
+   Cada linha é um cartaz que já foi impresso e cuja oferta ainda está valendo. O botão
+   repete AQUELE cartaz sozinho — é o caso que ele descreveu: rasgou uma placa, repõe uma. */
+function czHistBloco(){
+  if(czHist == null){
+    return '<div class="cz-hist"><div class="cz-histT">Cartazes impressos</div>'
+      +'<p class="cz-histVazio">Carregando…</p></div>';
+  }
+  if(!czHist.length){
+    return '<div class="cz-hist"><div class="cz-histT">Cartazes impressos</div>'
+      +'<p class="cz-histVazio">Nada aqui ainda. Depois que você imprimir, os cartazes aparecem '
+      +'nesta lista — assim, se um rasgar ou molhar na gôndola, dá para reimprimir só ele, '
+      +'sem digitar tudo de novo. Cada cartaz sai da lista sozinho quando a oferta vence.</p></div>';
+  }
+  var h = '<div class="cz-hist"><div class="cz-histT">Cartazes impressos</div>'
+    +'<p class="cz-histSub">Rasgou ou molhou na gôndola? Reimprima só aquele. '
+    +'Cada cartaz sai da lista sozinho quando a oferta vence.</p><div class="cz-histL">';
+  for(var i=0;i<czHist.length;i++){
+    var r = czHist[i];
+    h += '<div class="cz-histI">'
+      +'<div class="cz-histC"><b>'+czEsc(czHistRotulo(r))+'</b>'
+        +'<span>R$ '+czEsc(r.preco||"")+(r.preco_de?(' · de R$ '+czEsc(r.preco_de)):'')
+        +' · '+czEsc(String(r.tamanho||""))
+        +' · vale até '+czEsc(czDataBr(r.validade_fim))+'</span></div>'
+      +'<div class="cz-histA">'
+        +'<button class="cz-btn sec" data-czhistimp="'+czEsc(r.id)+'">Imprimir de novo</button>'
+        +'<button class="cz-histX" data-czhistdel="'+czEsc(r.id)+'" title="Tirar do histórico">✕</button>'
+      +'</div></div>';
+  }
+  return h + '</div></div>';
+}
+
+var czHist = null;          // null = ainda não carregou; [] = carregou e está vazio
+var czHistCarregando = false;
+
+function czSB(){ try{ return window.__SB || null; }catch(e){ return null; } }
+
+/* Carrega o histórico e, na mesma ida, faz a faxina do que venceu.
+   O projeto não tem nada que se apague sozinho (não há tarefa agendada no banco), então a
+   limpeza acontece quando alguém abre a página. Apago DE VERDADE em vez de só esconder:
+   foi o pedido dele, "pra não lotar o banco de dados". */
+function czHistCloudLoad(){
+  var sb = czSB();
+  if(!sb || czHistCarregando) return;
+  if(window.__PERFIL == null){
+    /* O login ainda não terminou de carregar o perfil. As outras páginas do painel tentam
+       de novo em 700ms; sem isso o histórico ficaria preso em "Carregando…" até a pessoa
+       sair da página e voltar (foi exatamente o que aconteceu no FLV). */
+    if(!window.__czHistRetry){
+      window.__czHistRetry = setTimeout(function(){
+        window.__czHistRetry = null; czHistCloudLoad();
+      }, 700);
+    }
+    return;
+  }
+  czHistCarregando = true;
+  var hoje = czHistHoje();
+  sb.from("cartaz_historico").delete().lt("validade_fim", hoje).then(function(){
+    return sb.from("cartaz_historico").select("*")
+             .gte("validade_fim", hoje)
+             .order("criado_em", {ascending:false}).limit(60);
+  }).then(function(r){
+    czHist = (r && !r.error && r.data) ? r.data : (czHist || []);
+    czHistCarregando = false; renderCartaz();
+  }, function(){
+    /* Tabela ainda não criada, sem internet, sem permissão: a página do cartaz continua
+       funcionando igual. O histórico é um extra, não pode derrubar o gerador. */
+    czHist = czHist || []; czHistCarregando = false; renderCartaz();
+  });
+}
+
+/* Grava o que ACABOU de ser impresso. Chamado só do botão "Imprimir cartazes" — quem monta
+   a lista e desiste não entra no histórico, foi o que ele pediu. */
+function czHistSalvar(){
+  var sb = czSB(); if(!sb) return;
+  var linhas = czHistDaLista(czProdutos, {
+    modelo: czModelo, tamanho: (czModelo==="deitado" ? "A5" : czTamanho),
+    impressao: czImpressao,
+    validade_ini: czValIni || null, validade_fim: czValidade || null,
+    limite_cliente: czLimite,
+    tema_nome: czTema ? czTema.n : null
+  });
+  if(!linhas.length) return;
+  try{
+    var perfil = window.__PERFIL || {};
+    for(var i=0;i<linhas.length;i++){
+      linhas[i].criado_por = perfil.id || null;
+      linhas[i].criado_por_nome = perfil.nome || null;
+    }
+  }catch(e){}
+  sb.from("cartaz_historico").upsert(linhas, {onConflict:"tenant_id,assinatura"})
+    .then(function(){ czHistCloudLoad(); }, function(){ /* silencioso: não atrapalha quem está imprimindo */ });
+}
+
+/* Tira uma linha do histórico. Serve para o caso que eu não consigo detectar: a pessoa
+   gerou a folha e desistiu no diálogo do Chrome — o navegador não me conta se ela clicou
+   Imprimir ou Cancelar. */
+function czHistTirar(id){
+  var sb = czSB(); if(!sb || !id) return;
+  uiConfirm({titulo:"Tirar do histórico",
+    msg:"Este cartaz sai da lista. Isso não apaga nada que já foi impresso — é só para o histórico ficar limpo.",
+    ok:"Tirar", cancel:"Cancelar"}).then(function(sim){
+      if(!sim) return;
+      sb.from("cartaz_historico").delete().eq("id", id)
+        .then(function(){ czHistCloudLoad(); }, function(){ czHistCloudLoad(); });
+    });
+}
+
+/* REIMPRIME UM CARTAZ, do jeito que ele saiu da primeira vez.
+   Empresto as variáveis da tela para o czImprimir, que é quem sabe montar folha (A1..A7,
+   emenda, deitado, trava anti-estouro) — 180 linhas de regra de papel que ninguém deve
+   duplicar. E devolvo TUDO no fim, inclusive quando ele sai pelo meio: o czImprimir tem um
+   caminho que escreve em czModelo e redesenha a tela antes de retornar (o modelo deitado
+   com usuário não-master). Sem devolver, a lista do cartaz antigo apareceria no passo 3 e
+   as datas antigas nos campos. */
+function czHistImprimir(id){
+  var r = null, i;
+  for(i=0;i<(czHist||[]).length;i++){ if(czHist[i].id===id){ r=czHist[i]; break; } }
+  if(!r) return;
+
+  // A arte do topo tem que ser a MESMA. Se ela não estiver mais disponível, pergunto —
+  // imprimir com outro cabeçalho sairia um cartaz diferente do que está na gôndola.
+  var tema = null;
+  if(r.tema_nome){
+    var todos = czTemasTodos();
+    for(i=0;i<todos.length;i++){ if(todos[i].n === r.tema_nome){ tema = todos[i]; break; } }
+    if(!tema){
+      uiConfirm({titulo:"A arte do cabeçalho não está mais aqui",
+        msg:'Este cartaz foi impresso com a arte "'+czEsc(r.tema_nome)+'", que não está mais na lista de cabeçalhos.\\n\\nSe imprimir assim, o cartaz sai com o selo OFERTA em texto — diferente do que está na gôndola.',
+        ok:"Imprimir assim mesmo", cancel:"Cancelar"}).then(function(sim){
+        if(sim) czHistImprimirAgora(r, null);
+      });
+      return;
+    }
+  }
+  czHistImprimirAgora(r, tema);
+}
+
+function czHistImprimirAgora(r, tema){
+  var bak = { modelo:czModelo, tamanho:czTamanho, impressao:czImpressao, tema:czTema,
+              ini:czValIni, fim:czValidade, limite:czLimite, prods:czProdutos, step:czStep };
+  try{
+    czModelo = r.modelo || "padrao";
+    czTamanho = r.tamanho || "A4";
+    czImpressao = r.impressao || "multi";
+    czTema = tema;
+    czValIni = r.validade_ini || "";
+    czValidade = r.validade_fim || "";
+    czLimite = String(r.limite_cliente == null ? 0 : r.limite_cliente);
+    czProdutos = [ czHistParaItem(r) ];
+    czImprimir();
+  }catch(e){
+  }finally{
+    czModelo=bak.modelo; czTamanho=bak.tamanho; czImpressao=bak.impressao; czTema=bak.tema;
+    czValIni=bak.ini; czValidade=bak.fim; czLimite=bak.limite; czProdutos=bak.prods;
+    czStep=bak.step;
+    renderCartaz();
+  }
+}
 function czTemaUpload(inp){
   var f=inp.files&&inp.files[0]; if(!f) return;
   if(!f.type || f.type.indexOf('image/')!==0){ uiConfirm({titulo:'Arquivo inválido',msg:'Escolha uma imagem (JPG ou PNG).',ok:'OK',cancel:''}); return; }
@@ -18259,6 +18520,8 @@ function renderCartaz(){
        +'</div>'; }
     b+='<label class="cz-tema cz-temaUp"><input type="file" id="czTemaFile" accept="image/*" style="display:none;"><div class="cz-temaPlus">+</div><span>Enviar imagem</span></label>';
     b+='</div><div class="cz-actions"><button class="cz-btn prim" data-czact="step2">Continuar para produtos →</button></div>';
+    // O histórico fica no FIM da página, que foi onde ele apontou ("essa parte debaixo").
+    b+=czHistBloco();
   } else if(czStep===2){
     b='<p class="cz-sub">Coloque sua lista — cada linha vira um cartaz</p>'
      +'<div class="cz-hint">Formato: <b>PRODUTO MARCA TIPO GRAMATURA PREÇO</b><br>Ex: Arroz Camil Tipo 1 5KG 29,99<br><span style="opacity:.85;">O tipo pode ter mais de uma palavra, ou ficar de fora: <i>Arroz Camil 5KG 29,99</i></span></div>'
@@ -18347,6 +18610,8 @@ function czClick(e){
   if(t=e.target.closest('[data-cztemadel]')){ e.stopPropagation(); var di=parseInt(t.getAttribute('data-cztemadel'),10); var lt=czTemasGet(); var rem=lt.splice(di,1)[0]; czTemasSave(lt); if(czTema&&rem&&czTema.d===rem.d) czTema=null; renderCartaz(); return; }
   if(t=e.target.closest('[data-cztema]')){ var ti2=parseInt(t.getAttribute('data-cztema'),10); czTema=(ti2<0)?null:(czTemasTodos()[ti2]||null); renderCartaz(); return; }
   if(t=e.target.closest('[data-czmodel]')){ czModelo=t.getAttribute('data-czmodel'); renderCartaz(); return; }
+  if(t=e.target.closest('[data-czhistdel]')){ czHistTirar(t.getAttribute('data-czhistdel')); return; }
+  if(t=e.target.closest('[data-czhistimp]')){ czHistImprimir(t.getAttribute('data-czhistimp')); return; }
   if(t=e.target.closest('[data-czsize]')){ czTamanho=t.getAttribute('data-czsize'); renderCartaz(); return; }
   if(t=e.target.closest('[data-czdel]')){ czProdutos.splice(parseInt(t.getAttribute('data-czdel'),10),1); renderCartaz(); return; }
   if(t=e.target.closest('[data-czact]')){ var a=t.getAttribute('data-czact');
@@ -18373,6 +18638,8 @@ function czClick(e){
         var _dv=document.getElementById('czValidade'); if(_dv) _dv.focus();
         return;
       }
+      // Entra no histórico só aqui: quem monta a lista e desiste não aparece.
+      czHistSalvar();
       czImprimir(); return; }
     renderCartaz(); return;
   }
@@ -18631,7 +18898,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="acessos") renderAcessos();
     if(btn.dataset.page==="escala") voltarSetores();
     if(btn.dataset.page==="entregas"){ renderEntregas(); entCloudLoad(); entFilaProcessar(true); }
-    if(btn.dataset.page==="cartaz") renderCartaz();
+    if(btn.dataset.page==="cartaz"){ renderCartaz(); czHistCloudLoad(); }
     if(btn.dataset.page==="ferias"){ if(!document.getElementById("ferConsultaDia").value){ document.getElementById("ferConsultaDia").value=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2)+"-"+("0"+HOJE.getDate()).slice(-2); } renderFerias(); }
     if(btn.dataset.page==="negociar") renderNegociar();
     if(btn.dataset.page==="analise") renderAnalise();
