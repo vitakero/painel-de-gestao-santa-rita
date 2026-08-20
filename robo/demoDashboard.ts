@@ -233,13 +233,41 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #flvKpis .kpi .v .flv-vok { color:#1b9e4b; }
   #flvKpis .kpi .v .flv-vnao { color:#c0392b; }
   #flvKpis .kpi .v .flv-vneutro { color:#8a97a8; }
-  /* Tabela larga rola dentro da própria caixa, como as outras 11 do painel. */
-  .flv-twrap { overflow-x:auto; max-width:100%; border:1px solid #e6ebf1; border-radius:10px; }
-  /* 13 colunas com valores em dinheiro precisam de ~1.240px para não quebrar linha.
-     Abaixo disso a caixa rola na horizontal em vez de espremer os números. */
-  .flv-tbl.larga { min-width:1240px; }
-  .flv-tbl.larga th, .flv-tbl.larga td { white-space:nowrap; }
   .flv-tbl th.num, .flv-tbl td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  /* COLUNAS DISTRIBUÍDAS NA LARGURA INTEIRA.
+     Sem isto o navegador dá a cada coluna só o tamanho do conteúdo, e sobrava um vazio
+     grande à direita enquanto tudo se amontoava no meio. Com table-layout:fixed as
+     larguras abaixo mandam, e a soma dá 100%. */
+  .flv-tbl.espalhada { table-layout:fixed; }
+  /* Histórico: nove colunas somando 100%, sem rolagem lateral. */
+  .flv-tbl.hist { table-layout:fixed; }
+  .flv-tbl.hist th, .flv-tbl.hist td { padding:10px 8px; vertical-align:top; }
+  /* Larguras coluna a coluna, somando exatamente 100%. Pela classe não dava: "num" vale
+     para cinco colunas de tamanhos diferentes, e a soma passava de 100. */
+  .flv-tbl.hist th:nth-child(1), .flv-tbl.hist td:nth-child(1) { width:12%; }
+  .flv-tbl.hist th:nth-child(2), .flv-tbl.hist td:nth-child(2) { width:11%; }
+  .flv-tbl.hist th:nth-child(3), .flv-tbl.hist td:nth-child(3) { width:12%; }
+  .flv-tbl.hist th:nth-child(4), .flv-tbl.hist td:nth-child(4) { width:11%; }
+  .flv-tbl.hist th:nth-child(5), .flv-tbl.hist td:nth-child(5) { width:15%; }
+  .flv-tbl.hist th:nth-child(6), .flv-tbl.hist td:nth-child(6) { width:12%; }
+  .flv-tbl.hist th:nth-child(7), .flv-tbl.hist td:nth-child(7) { width:13%; }
+  .flv-tbl.hist th:nth-child(8), .flv-tbl.hist td:nth-child(8) { width:9%; }
+  .flv-tbl.hist th:nth-child(9), .flv-tbl.hist td:nth-child(9) { width:5%; }
+  .flv-tbl.hist th.sit,  .flv-tbl.hist td.sit  { text-align:center; }
+  .flv-tbl.hist th.acao, .flv-tbl.hist td.acao { text-align:center; }
+  /* O selo não pode quebrar em duas linhas: "Meta não atingida" é uma coisa só. */
+  .flv-tbl.hist .flv-sit { white-space:nowrap; }
+  /* A segunda linha da célula: o percentual embaixo do valor, o "meta ≤ 5%" embaixo do
+     selo. É o que permitiu juntar treze colunas em nove sem perder informação. */
+  .flv-sub { font-size:11px; font-weight:400; color:#8a97a8; margin-top:3px; line-height:1.35; }
+  .flv-tbl.hist td.sit .flv-sub { text-align:center; }
+  /* QUATRO COLUNAS IGUAIS, CONTEÚDO CENTRADO.
+     São só quatro colunas numa tabela larga, então cada uma fica enorme: com o dinheiro
+     à direita e o mês à esquerda, o conteúdo se agarrava nas bordas e o meio ficava
+     vazio. Com 25% cada e tudo centrado, vira uma grade regular e o espaço fica
+     distribuído igual. (No Histórico, que é apertado, o dinheiro segue à direita: lá as
+     colunas são estreitas e o alinhamento por dígito ainda ajuda a comparar os meses.) */
+  .flv-tbl.espalhada th, .flv-tbl.espalhada td { width:25%; text-align:center; }
   .flv-topo { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
   .flv-topo .dir { margin-left:auto; display:flex; gap:10px; align-items:center; }
   .flv-sel { padding:8px 11px; border:1px solid #cdd6e0; border-radius:8px; font-size:13px; background:#fff; color:#33404f; }
@@ -6510,19 +6538,20 @@ function flvRender(){
 
   /* ---- premiação mês a mês ---- */
   h+='<div class="card"><h2>Premiação mês a mês — '+ano+'</h2>'
-    +'<table class="flv-tbl"><thead><tr><th>Mês</th><th class="num">Prêmio total</th>'
-    +'<th class="num">Por colaborador</th><th>Situação</th></tr></thead><tbody>';
+    +'<table class="flv-tbl espalhada"><thead><tr><th class="mes">Mês</th><th class="num">Prêmio total</th>'
+    +'<th class="num">Por colaborador</th><th class="sit">Situação</th></tr></thead><tbody>';
   serie.forEach(function(x){
     if(!x.fechamento){
-      h+='<tr><td>'+x.rotulo+'</td><td colspan="3" class="flv-vazio">Aguardando fechamento</td></tr>';
+      h+='<tr><td class="mes">'+x.rotulo+'</td>'
+        +'<td colspan="3" class="flv-vazio aguardando">Aguardando fechamento</td></tr>';
     } else {
       var pd=flvPremioPerdido(x.fechamento);
-      h+='<tr><td>'+x.rotulo+'</td>'
+      h+='<tr><td class="mes">'+x.rotulo+'</td>'
         +'<td class="num">'+flvMoeda(x.premio_total)
           +(pd?'<div class="flv-teria">teria sido '+flvMoeda(pd.total)+'</div>':'')+'</td>'
         +'<td class="num"><b>'+flvMoeda(x.premio_individual)+'</b>'
           +(pd&&pd.individual!=null?'<div class="flv-teria">teria sido '+flvMoeda(pd.individual)+'</div>':'')+'</td>'
-        +'<td>'+flvSeloSit(x.fechamento.situacao)+'</td></tr>';
+        +'<td class="sit">'+flvSeloSit(x.fechamento.situacao)+'</td></tr>';
     }
   });
   h+='</tbody></table></div>';
@@ -6548,34 +6577,43 @@ function flvRender(){
   } else {
     /* Treze colunas não cabem na tela: a tabela rola dentro da própria caixa, como as
        outras onze tabelas largas do painel. Sem isso ela empurrava a página inteira. */
-    h+='<div class="flv-twrap"><table class="flv-tbl larga"><thead><tr><th>Competência</th><th class="num">Faturamento</th>'
-      +'<th class="num">Desperdício R$</th><th class="num">Desp. %</th>'
-      +'<th class="num">Qtd. desp.</th><th class="num">Qtd. %</th>'
-      +'<th class="num">Meta</th><th>Situação</th>'
-      +'<th class="num">Prêmio total</th><th class="num">Colab.</th>'
-      +'<th class="num">Individual</th><th>Status</th><th></th></tr></thead><tbody>';
+    /* TREZE COLUNAS NÃO CABEM NA TELA — e rolar de lado é ruim de usar.
+       Em vez de encolher tudo até ficar ilegível, junto o que é a mesma informação: o
+       valor fica em cima e o percentual dele logo abaixo, em letra menor. Treze viram
+       nove, e a tabela passa a caber inteira sem arrastar. O detalhe de cada mês
+       continua no botão Ver, que mostra tudo separado. */
+    h+='<table class="flv-tbl hist"><thead><tr>'
+      +'<th class="comp">Competência</th>'
+      +'<th class="num">Faturamento</th>'
+      +'<th class="num">Desperdício R$</th>'
+      +'<th class="num">Qtd. desperdiçada</th>'
+      +'<th class="sit">Situação</th>'
+      +'<th class="num">Prêmio total</th>'
+      +'<th class="num">Por colaborador</th>'
+      +'<th class="sit">Status</th>'
+      +'<th class="acao"></th></tr></thead><tbody>';
     hist.forEach(function(x){
       var pd=flvPremioPerdido(x);
       h+='<tr>'
-        +'<td><b>'+flvEsc(flvCompLabel(x.competencia))+'</b></td>'
+        +'<td class="comp"><b>'+flvEsc(flvCompLabel(x.competencia))+'</b></td>'
         +'<td class="num">'+flvMoeda(x.faturamento)+'</td>'
-        +'<td class="num">'+flvMoeda(x.desperdicio_valor)+'</td>'
-        +'<td class="num">'+flvPctTxt(x.pct_valor)+'</td>'
-        +'<td class="num">'+flvQtdTxt(x.qtd_desperdicada)+'</td>'
-        +'<td class="num">'+flvPctTxt(x.pct_qtd)+'</td>'
-        +'<td class="num">≤ '+flvPctTxt(x.meta_aplicada)+'</td>'
-        +'<td>'+flvSeloSit(x.situacao)+'</td>'
+        +'<td class="num">'+flvMoeda(x.desperdicio_valor)
+          +'<div class="flv-sub">'+flvPctTxt(x.pct_valor)+'</div></td>'
+        +'<td class="num">'+flvQtdTxt(x.qtd_desperdicada)
+          +'<div class="flv-sub">'+flvPctTxt(x.pct_qtd)+'</div></td>'
+        +'<td class="sit">'+flvSeloSit(x.situacao)
+          +'<div class="flv-sub">meta ≤ '+flvPctTxt(x.meta_aplicada)+'</div></td>'
         +'<td class="num">'+flvMoeda(x.premio_total)
           +(pd?'<div class="flv-teria">teria sido '+flvMoeda(pd.total)+'</div>':'')+'</td>'
-        +'<td class="num">'+(+x.participantes||0)+'</td>'
         +'<td class="num"><b>'+flvMoeda(x.premio_individual)+'</b>'
+          +'<div class="flv-sub">'+(+x.participantes||0)+' colaborador'+((+x.participantes||0)===1?'':'es')+'</div>'
           +(pd&&pd.individual!=null?'<div class="flv-teria">teria sido '+flvMoeda(pd.individual)+'</div>':'')+'</td>'
-        +'<td><span class="flv-sit '+(x.status==="fechado"?"ok":"vazio")+'">'
+        +'<td class="sit"><span class="flv-sit '+(x.status==="fechado"?"ok":"vazio")+'">'
           +(x.status==="fechado"?"Fechado":"Rascunho")+'</span></td>'
-        +'<td><button class="btn-s" data-flvver="'+flvEsc(x.id)+'">Ver</button></td>'
+        +'<td class="acao"><button class="btn-s" data-flvver="'+flvEsc(x.id)+'">Ver</button></td>'
         +'</tr>';
     });
-    h+='</tbody></table></div>';
+    h+='</tbody></table>';
   }
   h+='</div>';
 
