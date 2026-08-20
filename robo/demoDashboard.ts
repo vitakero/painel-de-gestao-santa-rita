@@ -18205,7 +18205,10 @@ function czHistDatas(r){
   r = r || {};
   function br(d){ var t=String(d||'').split('-'); return (t.length===3)?(t[2]+'/'+t[1]+'/'+t[0]):''; }
   var a = br(r.validade_ini), b = br(r.validade_fim);
-  if(a && b) return (a===b) ? ('vale em '+a) : ('vale de '+a+' a '+b);
+  /* Mostra as DUAS datas sempre, mesmo quando são o mesmo dia. Eu tinha resumido oferta
+     de um dia só para "vale em 20/08" achando que ficava mais limpo; ele pediu para ver o
+     começo e o fim de qualquer jeito — na lista, o que importa é enxergar os dois. */
+  if(a && b) return 'vale de '+a+' a '+b;
   if(b) return 'vale até '+b;
   if(a) return 'a partir de '+a;
   return 'sem validade';
