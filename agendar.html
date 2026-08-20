@@ -2936,8 +2936,9 @@ body.com-wz #toasts{bottom:86px}
 
       // Se o fornecedor tem pedido em aberto, passa pela etapa 2. Quem não tem
       // vai direto para o agendamento e nem vê que a etapa existe.
-      wz.etapa = (wz.pedidosLista && wz.pedidosLista.length) ? "pedidos" : "docs";
-      pintarWizard();
+      // as travas da loja sao conferidas AGORA, nao no ultimo clique
+      checarCedo(el("wzAvanca"),
+                 (wz.pedidosLista && wz.pedidosLista.length) ? "pedidos" : "docs");
     };
     pintarNotaCx();
   }
@@ -4193,7 +4194,8 @@ body.com-wz #toasts{bottom:86px}
     });
 
     el("wzVolta").onclick=function(){ wz.etapa="nf"; pintarWizard(); };
-    el("wzAvanca").onclick=function(){ wz.etapa="docs"; pintarWizard(); };
+    // trocar o pedido marcado muda o que a loja espera do caminhao: confiro de novo
+    el("wzAvanca").onclick=function(){ checarCedo(el("wzAvanca"), "docs"); };
   }
 
   // O que falta dentro de um pedido. O banco confere o dono antes de
@@ -4311,23 +4313,16 @@ body.com-wz #toasts{bottom:86px}
     el("wzVolta").onclick=function(){ wz.etapa = wz.cobranca ? "cobranca" : "agendamento"; pintarWizard(); };
     el("wzEnviar").onclick=enviarAgendamento;
   }
-  function enviarAgendamento(){
-    var bt=el("wzEnviar");
-    bt.disabled=true; bt.textContent="Enviando...";
-    SB.rpc("forn_agendar_portal",{p_data:wz.dia, p_hora:wz.hora,
-      p_pedido:wz.pedido||null, p_descricao:wz.descricao||null,
-      // sem isto, o CNPJ que ele digitou e o sistema conferiu era jogado fora:
-      // a loja esperava o caminhão do fornecedor e chegava outro.
-      p_transportadora_cnpj: wz.remetente==="transportadora" ? wz.transpCnpj : null,
-      p_minutos: wz.minutos||60,
-      p_carga: { tipo_carga:wz.tipoCarga||null, tipo_volume:wz.tipoVolume||null,
-                 qtd_volumes:wz.qtdVolumes||null, tipo_veiculo:wz.tipoVeiculo||null,
-                 placa:wz.placa||null, motorista:wz.motorista||null,
-                 motorista_fone:wz.motoristaFone||null,
-                 // o servidor recalcula tudo por conta própria; daqui vai só
-                 // o peso e a ciência, nunca um valor
-                 peso_kg:wz.peso, cobranca_ciente:!!wz.ciente },
-      p_notas: wz.comNota ? wz.chaves.map(function(n){
+  /* O PACOTE DAS NOTAS, MONTADO NUM LUGAR SO.
+     A tela pergunta ao servidor se as travas passam ANTES do fornecedor preencher o
+     resto (ver checarCedo). Se a pergunta mandasse um pacote e o envio final montasse
+     outro, os dois responderiam coisas diferentes sobre a mesma entrega - e o
+     fornecedor levaria um 'pode seguir' e depois um 'nao consigo agendar'. Uma
+     montagem so, usada pelos dois. */
+  function notasParaServidor(){
+    if(!wz.comNota) return null;
+    return wz.chaves.map(function(n){
+
         return { chave:n.chave, xml:n.xml||null, numero:n.numero, serie:n.serie,
                  /* O PEDIDO DESTA NOTA. O fornecedor vincula nota por nota na tela e isso
                     se perdia no caminho: só ia o texto de todos os pedidos colado com
@@ -4353,7 +4348,70 @@ body.com-wz #toasts{bottom:86px}
                  peso_bruto:n.pesoBruto||null, peso_liquido:n.pesoLiquido||null,
                  transportadora_nome:n.transportadoraNome||null,
                  transportadora_cnpj:n.transportadoraCnpj||null };
-      }) : null
+    });
+  }
+
+  /* RECUSAR CEDO.
+     As travas da loja (tem pedido? item fora do pedido? acima do pedido? pode agendar
+     sem nota?) sempre existiram, mas so eram conferidas no ULTIMO clique. O fornecedor
+     digitava a nota, vinculava o pedido, anexava documento, escolhia horario, preenchia
+     placa e motorista - e so entao levava "nao consegui agendar". Refazia tudo e ligava
+     para o recebimento, que e justamente o que este portal existe para evitar.
+
+     Aqui a tela PERGUNTA ao servidor, cedo, e mostra o problema no lugar de corrigir.
+     Nao ha copia de regra nenhuma nesta tela: quem decide continua sendo o banco, e o
+     gravar confere a MESMA funcao no fim. Burlar a tela nao agenda nada.
+
+     Se a pergunta falhar (rede, servidor fora), o fornecedor SEGUE. A conferencia
+     antecipada e um favor, nao uma tranca - trancar por falha de rede seria inventar um
+     problema que nao existe, e quem barra de verdade continua no fim. */
+  function checarCedo(bt, irPara){
+    var antes = bt ? bt.textContent : "";
+    if(bt){ bt.disabled=true; bt.textContent="Conferindo..."; }
+    function solta(){ if(bt){ bt.disabled=false; bt.textContent=antes; } }
+    function segue(){ solta(); wz.etapa=irPara; pintarWizard(); }
+    try{
+      SB.rpc("forn_checar_agendamento",{ p_pedido: wz.pedido||null,
+                                         p_notas: notasParaServidor() })
+        .then(function(r){
+          if(r && r.error) return segue();
+          var d = r && r.data;
+          if(d && d.ok===false){
+            solta();
+            uiAviso("Ainda não dá para agendar", d.erro || "Confira os dados da nota.")
+              .then(function(){
+                var onde = d.onde || "";
+                // levo o fornecedor ao lugar de corrigir - mas so se o lugar existir.
+                // Quem nao tem pedido em aberto nao tem a etapa "pedidos": mandar para
+                // la mostraria uma tela vazia.
+                if(onde==="pedidos" && wz.pedidosLista && wz.pedidosLista.length){
+                  wz.etapa="pedidos"; pintarWizard();
+                } else if(onde==="nf"){ wz.etapa="nf"; pintarWizard(); }
+              });
+            return;
+          }
+          segue();
+        }, function(){ segue(); });
+    }catch(e){ segue(); }
+  }
+
+  function enviarAgendamento(){
+    var bt=el("wzEnviar");
+    bt.disabled=true; bt.textContent="Enviando...";
+    SB.rpc("forn_agendar_portal",{p_data:wz.dia, p_hora:wz.hora,
+      p_pedido:wz.pedido||null, p_descricao:wz.descricao||null,
+      // sem isto, o CNPJ que ele digitou e o sistema conferiu era jogado fora:
+      // a loja esperava o caminhão do fornecedor e chegava outro.
+      p_transportadora_cnpj: wz.remetente==="transportadora" ? wz.transpCnpj : null,
+      p_minutos: wz.minutos||60,
+      p_carga: { tipo_carga:wz.tipoCarga||null, tipo_volume:wz.tipoVolume||null,
+                 qtd_volumes:wz.qtdVolumes||null, tipo_veiculo:wz.tipoVeiculo||null,
+                 placa:wz.placa||null, motorista:wz.motorista||null,
+                 motorista_fone:wz.motoristaFone||null,
+                 // o servidor recalcula tudo por conta própria; daqui vai só
+                 // o peso e a ciência, nunca um valor
+                 peso_kg:wz.peso, cobranca_ciente:!!wz.ciente },
+      p_notas: notasParaServidor()
     }).then(function(r){
       bt.disabled=false; bt.textContent="Pedir este horário";
       if(r.error||(r.data&&r.data.ok===false)){
