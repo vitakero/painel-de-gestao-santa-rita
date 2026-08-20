@@ -48,6 +48,8 @@ const FILES = [
   ["robo/vr-descobrir-perdas.cjs", "vr-descobrir-perdas.cjs", "receb_eventos"],
   ["robo/vr-descobrir-notas.cjs", "vr-descobrir-notas.cjs", "vr_notas"],
   ["robo/mandar-log.cjs", "mandar-log.cjs", "receb_eventos"],
+  // o "passo da vez" da investigacao das notas: o notas.bat chama sempre este nome
+  ["robo/notas-passo.cjs", "notas-passo.cjs", "vr_notas2"],
   // .bat de clicar duas vezes: vai para a RAIZ (C:\\vr-robo), nao para scripts/
   ["robo/notas.bat", "../notas.bat", "NOTAS-BAT"],
   ["robo/puxar-codigo.cjs", "puxar-codigo.cjs", "Baixa o codigo mais recente do GitHub via API"],
@@ -100,6 +102,13 @@ const headers = {
       let igual = false;
       try { igual = fs.readFileSync(dest, "utf8") === txt; } catch (e) {}
       if (igual) continue;
+      // O .bat que me chamou nao pode ser reescrito enquanto roda: o Windows le o
+      // arquivo linha por linha DURANTE a execucao, entao trocar o conteudo no meio
+      // embaralha o que ainda falta rodar. Ele se atualiza na proxima vez.
+      if (process.env.RODANDO_BAT && path.basename(dest) === process.env.RODANDO_BAT) {
+        console.log("  (" + local + " tem versao nova - guardo para a proxima, ele esta rodando agora)");
+        continue;
+      }
       fs.mkdirSync(path.dirname(dest), { recursive: true });   // garante subpasta (ex.: central/) antes de gravar
       fs.writeFileSync(dest, txt);
       console.log("  atualizado: " + local);
