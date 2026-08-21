@@ -51,6 +51,7 @@ const FILES = [
   // o "passo da vez" da investigacao das notas: o notas.bat chama sempre este nome
   ["robo/notas-passo.cjs", "notas-passo.cjs", "vr_notas2"],
   ["robo/vr-sync-notas.cjs", "vr-sync-notas.cjs", "receb_notas_vr"],
+  ["robo/vr-sync-codigos.cjs", "vr-sync-codigos.cjs", "receb_codigos_fornecedor"],
   // .bat de clicar duas vezes: vai para a RAIZ (C:\\vr-robo), nao para scripts/
   ["robo/notas.bat", "../notas.bat", "NOTAS-BAT"],
   ["robo/robo.bat", "../robo.bat", "ROBO-BAT"],
