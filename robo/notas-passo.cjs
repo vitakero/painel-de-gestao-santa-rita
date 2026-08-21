@@ -1,23 +1,26 @@
 // ============================================================================
-// O XML DAS NOTAS DE ENTRADA — RODADA 2 (mira certa)
+// O DE-PARA DO CODIGO DO FORNECEDOR — RODADA 3
 //
-// A rodada 1 varreu o banco inteiro e achou a tabela: public.notaentradanfe, com
-// 35.554 linhas e as colunas xml, chavenfe, importado, conferido, carregado,
-// id_situacaomanifestacaonfe. Ou seja: o VR ja busca as notas na Receita e guarda o
-// arquivo. Ela nao apareceu na lista da rodada 1 porque eu cortei nas 40 maiores.
+// O problema, medido em 3.480 notas reais (27.584 itens):
+//   6.408 itens (23,2%) nao tem NENHUM jeito de casar com o pedido de compra —
+//   nem codigo de barras, nem a linha do pedido dentro da nota.
+//   Desses, 6.021 (94%) usam um codigo de fornecedor que JA apareceu em outra nota.
 //
-// Esta rodada responde as perguntas que decidem o portal:
-//   1. das 35 mil, quantas tem XML de VERDADE (e nao so a linha)?
-//   2. continua enchendo hoje, ou parou em algum mes?
-//   3. o XML chega ANTES da mercadoria? (se chegar, a conferencia de itens pode
-//      acontecer antes do caminhao sair — e essa e a pergunta que vale dinheiro)
-//   4. da pra amarrar a nota ao pedido de compra que ja esta na nuvem?
+// Ou seja: a loja ja recebeu aquele produto daquele fornecedor antes, e alguem ja
+// disse qual produto do cadastro ele e. Se eu achar onde o VR guarda isso, o ponto
+// cego cai de 23,2% para 1,4%.
 //
-// ESTE ARQUIVO E O "PASSO DA VEZ" do notas.bat. O notas.bat chama SEMPRE este nome —
-// assim ele nunca precisa mudar, e o Windows nunca reescreve o .bat no meio da
-// execucao (ele le o .bat linha por linha enquanto roda).
+// O que procuro, em ordem de aposta:
+//   1. Uma tabela de-para pronta (produtofornecedor, codigoexterno, referencia...).
+//      A rodada 1 ja viu uma coluna "codigoexterno" por ai — bom sinal.
+//   2. O historico: notaentradaitemimportacaoxml tem 267.897 linhas e cheira a
+//      "o que veio no XML de cada item". Se ela guardar o codigo do fornecedor ao
+//      lado do id_produto da loja, o de-para se monta sozinho das 35 mil notas.
+//   3. Qualquer tabela que ligue produto e fornecedor.
 //
-// So LE o banco do VR. Nao escreve nada la.
+// SO LE o banco do VR. Nao muda nada la.
+//
+// Este e o "passo da vez" do notas.bat — ele chama sempre este nome de arquivo.
 // ============================================================================
 const fs=require("fs"), path=require("path"), https=require("https"), { Client }=require("pg");
 function env(){ for(const p of [path.join(__dirname,"..",".env"),".env","../.env"]){
@@ -40,14 +43,12 @@ function req(metodo, caminho, corpo, prefer){
   });
 }
 
-// Morte silenciosa nao acontece mais aqui: o que matar o script fica registrado.
 const out={ quando:new Date().toISOString(), etapa:"comecando", mortes:[] };
 process.on("uncaughtException", e=>{ out.mortes.push("uncaught: "+e.message); });
 process.on("unhandledRejection", e=>{ out.mortes.push("rejeicao: "+(e&&e.message||e)); });
 
 (async()=>{
   let c=null;
-  // uma pergunta por vez, cada uma com rede propria: uma que falha nao cala as outras
   const perg=async(nome, sql, params)=>{
     out.etapa=nome;
     try{ return (await c.query(sql, params||[])).rows; }
@@ -63,87 +64,64 @@ process.on("unhandledRejection", e=>{ out.mortes.push("rejeicao: "+(e&&e.message
     await c.connect();
     try{ await c.query("set statement_timeout = 240000"); }catch(e){}
 
-    // 1) tem XML de verdade dentro?
-    out.panorama=await perg("panorama", `
+    // 1) COLUNAS COM CARA DE "CODIGO DO FORNECEDOR"
+    out.colunas=await perg("colunas", `
+      select n.nspname esquema, cl.relname tabela, a.attname coluna,
+             format_type(a.atttypid, a.atttypmod) tipo,
+             greatest(cl.reltuples,0)::bigint linhas
+        from pg_attribute a
+        join pg_class cl on cl.oid = a.attrelid
+        join pg_namespace n on n.oid = cl.relnamespace
+       where cl.relkind='r' and a.attnum>0 and not a.attisdropped
+         and n.nspname = 'public'
+         and (a.attname ilike '%codigoexterno%' or a.attname ilike '%codexterno%'
+              or a.attname ilike '%codigofornec%' or a.attname ilike '%codforn%'
+              or a.attname ilike '%referencia%'   or a.attname ilike '%codigofabric%'
+              or a.attname ilike '%codigoprodutofornec%')
+       order by linhas desc limit 40`);
+
+    // 2) TABELAS QUE LIGAM PRODUTO E FORNECEDOR
+    out.tabelas=await perg("tabelas", `
+      select n.nspname esquema, cl.relname tabela,
+             greatest(cl.reltuples,0)::bigint linhas,
+             (select string_agg(a.attname, ',' order by a.attnum)
+                from pg_attribute a
+               where a.attrelid = cl.oid and a.attnum > 0 and not a.attisdropped) colunas
+        from pg_class cl join pg_namespace n on n.oid = cl.relnamespace
+       where cl.relkind='r' and n.nspname='public'
+         and (cl.relname ~ 'produto.*fornec' or cl.relname ~ 'fornec.*produto'
+              or cl.relname ~ 'produtoexterno' or cl.relname ~ 'codigoexterno'
+              or cl.relname ~ 'referenciaproduto')
+       order by linhas desc limit 30`);
+
+    // 3) AS TABELAS QUE MAIS PROMETEM, COLUNA POR COLUNA
+    out.detalhe={};
+    for(const t of ["notaentradaitem","notaentradaitemimportacaoxml","produto"]){
+      out.detalhe[t]=await perg("colunas_"+t, `
+        select a.attname coluna, format_type(a.atttypid, a.atttypmod) tipo
+          from pg_attribute a join pg_class cl on cl.oid=a.attrelid
+          join pg_namespace n on n.oid=cl.relnamespace
+         where n.nspname='public' and cl.relname=$1
+           and a.attnum>0 and not a.attisdropped
+         order by a.attnum`, [t]);
+    }
+
+    // 4) O HISTORICO SERVE? O que liga item de nota a produto da loja.
+    out.amostra_item=await perg("amostra_item", `
+      select i.id, i.id_notaentrada, i.id_produto, i.quantidade, i.descricaoxml
+        from public.notaentradaitem i
+       where i.id_produto is not null
+       order by i.id desc limit 3`);
+
+    // 5) E o xml de importacao guarda o codigo do fornecedor?
+    out.amostra_xml=await perg("amostra_xml", `
+      select * from public.notaentradaitemimportacaoxml order by id desc limit 2`);
+
+    // 6) Quantos produtos do cadastro tem codigo externo preenchido?
+    out.tem_externo=await perg("tem_externo", `
       select count(*)::int total,
-             count(*) filter (where xml is not null and length(xml) > 500)::int com_xml,
-             count(*) filter (where xml is not null and position('<det' in xml) > 0)::int com_itens,
-             count(*) filter (where chavenfe is not null and length(chavenfe::text) >= 44)::int com_chave,
-             min(dataentrada)::text desde, max(dataentrada)::text ate
-        from public.notaentradanfe`);
-
-    // 2) e de qual loja? (so a LOJA 01 nos interessa)
-    out.por_loja=await perg("por_loja", `
-      select id_loja, count(*)::int qtd,
-             count(*) filter (where xml is not null and length(xml) > 500)::int com_xml
-        from public.notaentradanfe group by 1 order by 2 desc`);
-
-    // 3) continua enchendo hoje, ou parou?
-    out.por_mes=await perg("por_mes", `
-      select to_char(dataentrada,'YYYY-MM') mes, count(*)::int qtd,
-             count(*) filter (where xml is not null and length(xml) > 500)::int com_xml
-        from public.notaentradanfe
-       where dataentrada >= (current_date - interval '14 months')
-       group by 1 order by 1 desc`);
-
-    // 4) A PERGUNTA QUE VALE DINHEIRO: o XML chega antes da mercadoria?
-    //    Se a Receita entrega a nota antes do caminhao encostar, a conferencia de itens
-    //    pode ser feita ANTES de o fornecedor sair — que e o que o Victor quer.
-    out.chega_antes=await perg("chega_antes", `
-      select count(*)::int total,
-             count(*) filter (where datahorarecebimento::date <  dataentrada)::int antes,
-             count(*) filter (where datahorarecebimento::date =  dataentrada)::int mesmo_dia,
-             count(*) filter (where datahorarecebimento::date >  dataentrada)::int depois,
-             round(avg(extract(epoch from (dataentrada::timestamp - datahorarecebimento))/3600)::numeric,1) horas_de_folga
-        from public.notaentradanfe
-       where datahorarecebimento is not null and dataentrada is not null
-         and dataentrada >= (current_date - interval '6 months')`);
-
-    // 5) o que significam as situacoes (numero -> palavra)
-    out.situacaonfe=await perg("situacaonfe", "select id, descricao from public.situacaonfe order by id");
-    out.situacaomanifestacao=await perg("situacaomanifestacao",
-      "select id, descricao from public.situacaomanifestacaonfe order by id");
-    out.situacoes_usadas=await perg("situacoes_usadas", `
-      select id_situacaonfe, id_situacaomanifestacaonfe, count(*)::int qtd
-        from public.notaentradanfe
-       where dataentrada >= (current_date - interval '6 months')
-       group by 1,2 order by 3 desc limit 20`);
-
-    // 6) da pra amarrar ao pedido de compra? (o portal ja tem os pedidos na nuvem)
-    out.com_pedido=await perg("com_pedido", `
-      select count(*)::int notas,
-             count(*) filter (where p.id is not null)::int com_pedido
-        from public.notaentradanfe nfe
-        left join public.notaentrada ne
-               on ne.numeronota = nfe.numeronota
-              and ne.id_fornecedor = nfe.id_fornecedor
-              and ne.id_loja = nfe.id_loja
-        left join public.notaentradapedido p on p.id_notaentrada = ne.id
-       where nfe.dataentrada >= (current_date - interval '3 months')`);
-
-    // 7) quantas chaves ja manifestadas (a Receita avisando que existe nota pra loja)
-    out.manifestacao=await perg("manifestacao",
-      "select count(*)::int chaves from public.notaentradanfechavemanifestacao");
-
-    // 8) uma nota recente de verdade, pra eu ver o formato com meus olhos
-    const am=await perg("amostra", `
-      select numeronota, chavenfe::text chave, id_fornecedor, id_loja,
-             dataentrada::text entrada, datahorarecebimento::text recebido,
-             importado, conferido, carregado,
-             id_situacaonfe, id_situacaomanifestacaonfe,
-             length(xml)::int tamanho, left(xml, 700) inicio
-        from public.notaentradanfe
-       where xml is not null and length(xml) > 500
-       order by dataentrada desc, id desc limit 2`);
-    if(am) out.amostra=am;
-
-    // 9) quantos itens vem dentro de uma nota (media) — isso dimensiona a tela de conferencia
-    out.itens_por_nota=await perg("itens_por_nota", `
-      select round(avg(qtd)::numeric,1) media, max(qtd)::int maior, count(*)::int notas
-        from (select (length(xml) - length(replace(xml,'<det','')))/4 qtd
-                from public.notaentradanfe
-               where xml is not null and length(xml) > 500
-                 and dataentrada >= (current_date - interval '3 months')) t`);
+             count(*) filter (where nullif(trim(coalesce(codigoexterno::text,'')),'') is not null)::int com_externo
+        from public.produto`);
 
     out.etapa="terminou";
   }catch(e){
@@ -152,30 +130,37 @@ process.on("unhandledRejection", e=>{ out.mortes.push("rejeicao: "+(e&&e.message
   }
   try{ if(c) await c.end(); }catch(e){}
 
-  // ------------------------------------------------------------------ relatorio
-  // Uma rede POR SECAO. Na rodada 1 uma rede unica deixou cair justamente a secao final,
-  // que era a resposta. Nao repito.
   const secao=(titulo,fn)=>{ console.log("\n=== "+titulo+" ===");
     try{ fn(); }catch(e){ console.log("  (esta secao falhou: "+e.message+")"); } };
   const linha=(o)=>{ try{ return JSON.stringify(o); }catch(e){ return "(ilegivel)"; } };
 
-  secao("TEM XML DE VERDADE?", ()=>{ (out.panorama||[]).forEach(r=>console.log("  "+linha(r))); });
-  secao("POR LOJA", ()=>{ (out.por_loja||[]).forEach(r=>console.log("  "+linha(r))); });
-  secao("MES A MES (continua enchendo?)", ()=>{ (out.por_mes||[]).forEach(r=>console.log("  "+linha(r))); });
-  secao("O XML CHEGA ANTES DA MERCADORIA?", ()=>{ (out.chega_antes||[]).forEach(r=>console.log("  "+linha(r))); });
-  secao("SITUACOES", ()=>{
-    console.log("  nfe:          "+linha(out.situacaonfe));
-    console.log("  manifestacao: "+linha(out.situacaomanifestacao));
-    console.log("  usadas:       "+linha(out.situacoes_usadas));
+  secao("COLUNAS COM CARA DE CODIGO DO FORNECEDOR", ()=>{
+    (out.colunas||[]).forEach(x=>console.log("  "+x.esquema+"."+x.tabela+"."+x.coluna+
+      "  ["+x.tipo+"]  "+x.linhas+" linhas"));
+    if(!(out.colunas||[]).length) console.log("  (nenhuma)");
   });
-  secao("AMARRA COM O PEDIDO?", ()=>{ (out.com_pedido||[]).forEach(r=>console.log("  "+linha(r))); });
-  secao("CHAVES MANIFESTADAS", ()=>{ (out.manifestacao||[]).forEach(r=>console.log("  "+linha(r))); });
-  secao("ITENS POR NOTA", ()=>{ (out.itens_por_nota||[]).forEach(r=>console.log("  "+linha(r))); });
-  secao("AMOSTRA", ()=>{ (out.amostra||[]).forEach(r=>{
-    const {inicio, ...resto}=r;
-    console.log("  "+linha(resto));
-    console.log("  inicio do xml: "+String(inicio||"").replace(/\s+/g," ").slice(0,700));
-  }); });
+  secao("TABELAS QUE LIGAM PRODUTO E FORNECEDOR", ()=>{
+    (out.tabelas||[]).forEach(t=>{
+      console.log("  "+t.esquema+"."+t.tabela+"  "+t.linhas+" linhas");
+      console.log("      "+String(t.colunas||"").slice(0,400));
+    });
+    if(!(out.tabelas||[]).length) console.log("  (nenhuma)");
+  });
+  secao("COLUNAS DAS TABELAS QUE PROMETEM", ()=>{
+    Object.keys(out.detalhe||{}).forEach(t=>{
+      const cs=(out.detalhe[t]||[]).map(x=>x.coluna).join(",");
+      console.log("  "+t+": "+(cs||"(nao existe)").slice(0,600));
+    });
+  });
+  secao("O HISTORICO LIGA ITEM DE NOTA A PRODUTO DA LOJA?", ()=>{
+    (out.amostra_item||[]).forEach(r=>console.log("  "+linha(r)));
+  });
+  secao("O QUE O XML DE IMPORTACAO GUARDA", ()=>{
+    (out.amostra_xml||[]).forEach(r=>console.log("  "+linha(r).slice(0,700)));
+  });
+  secao("PRODUTOS COM CODIGO EXTERNO PREENCHIDO", ()=>{
+    (out.tem_externo||[]).forEach(r=>console.log("  "+linha(r)));
+  });
   secao("ERROS", ()=>{
     const es=Object.keys(out).filter(k=>k.indexOf("erro")===0);
     console.log(es.length? es.map(k=>"  "+k+": "+out[k]).join("\n") : "  nenhum");
@@ -183,11 +168,11 @@ process.on("unhandledRejection", e=>{ out.mortes.push("rejeicao: "+(e&&e.message
   });
 
   try{
-    // entidade_id e uuid; receb_eventos.id e NUMERO. Ver o tombo da rodada 1.
     const loc=await req("GET","/rest/v1/receb_locais?select=id&order=criado_em&limit=1");
     await req("POST","/rest/v1/receb_eventos",[{ entidade:"vr_notas2",
       entidade_id:(loc&&loc[0]&&loc[0].id)||"00000000-0000-0000-0000-000000000000",
-      acao:"descoberta", motivo:"rodada 2: dentro da notaentradanfe", detalhe:out }],"return=minimal");
+      acao:"descoberta", motivo:"rodada 3: o de-para do codigo do fornecedor", detalhe:out }],
+      "return=minimal");
     console.log("\n>>> relatorio enviado para a nuvem.");
   }catch(e){ console.log("!! nao consegui mandar: "+e.message); }
 })();
