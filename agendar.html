@@ -834,7 +834,15 @@ body.com-wz #toasts{bottom:86px}
 .res-card .obs b{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;
   color:var(--txt3);font-weight:800;margin-bottom:3px}
 
-/* gaveta de avisos */
+/* gaveta de avisos.
+   O VEU DELA E PROPRIO, e nao o .mfundo das janelas.
+   O .mfundo vive na camada 85 e a gaveta na 80 — ou seja, o veu passava POR CIMA da
+   gaveta e escurecia justamente o que a pessoa abriu para ler. Um veu proprio na
+   camada 79 escurece so o que esta atras.
+   Nao subi a gaveta acima de 85 de proposito: o .mfundo tem que continuar cobrindo a
+   gaveta quando uma JANELA abre por cima dela (a janela mora na 95). */
+.gav-fundo{position:fixed;inset:0;background:rgba(9,32,19,.35);z-index:79;
+           animation:some .14s ease}
 .gaveta{position:fixed;top:0;right:0;bottom:0;width:min(376px,94vw);background:#fff;z-index:80;
         box-shadow:-14px 0 46px rgba(0,0,0,.26);display:flex;flex-direction:column;
         animation:entraLado .2s ease}
@@ -4558,7 +4566,7 @@ body.com-wz #toasts{bottom:86px}
   el("btSino").onclick=abrirAvisos;
 
   function abrirAvisos(){
-    var f=document.createElement("div"); f.className="mfundo"; f.style.background="rgba(9,32,19,.35)";
+    var f=document.createElement("div"); f.className="gav-fundo";
     var g=document.createElement("div"); g.className="gaveta";
     g.innerHTML='<header><b>Avisos</b><button class="icone" data-fecha="1">'+
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'+
