@@ -320,6 +320,17 @@ const Q_ITENS = `
      decidiu em 19/08/2026 continuar digitando os dois numeros na mao, entao tirei a
      chamada daqui. Os scripts continuam no repositorio, sem ninguem chamando. */
 
+  // ---- AS NOTAS DA RECEITA ----
+  // O VR baixa da Receita o XML de todas as notas de entrada. E dele que sai a
+  // conferencia quando o fornecedor manda so a chave, sem o arquivo. Pendurado aqui
+  // porque este script ja roda sozinho; mexer no robo.bat exige o Victor na loja.
+  // Falhar aqui nao pode derrubar a rodada dos pedidos, que ja terminou.
+  try {
+    console.log("\nTrazendo as notas que o VR baixou da Receita...");
+    require("child_process").execFileSync(process.execPath,
+      [path.join(__dirname, "vr-sync-notas.cjs")], { stdio: "inherit" });
+  } catch (e) { console.log("(sync das notas nao rodou: " + e.message + ")"); }
+
   if (orfaos) {
     console.log("\nAviso: " + orfaos + " pedido(s) sao de fornecedor que ainda nao tem");
     console.log("cadastro no portal. Ficam guardados e passam a aparecer sozinhos");
