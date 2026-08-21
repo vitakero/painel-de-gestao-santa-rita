@@ -50,6 +50,7 @@ const FILES = [
   ["robo/mandar-log.cjs", "mandar-log.cjs", "receb_eventos"],
   // o "passo da vez" da investigacao das notas: o notas.bat chama sempre este nome
   ["robo/notas-passo.cjs", "notas-passo.cjs", "vr_notas2"],
+  ["robo/vr-sync-notas.cjs", "vr-sync-notas.cjs", "receb_notas_vr"],
   // .bat de clicar duas vezes: vai para a RAIZ (C:\\vr-robo), nao para scripts/
   ["robo/notas.bat", "../notas.bat", "NOTAS-BAT"],
   ["robo/puxar-codigo.cjs", "puxar-codigo.cjs", "Baixa o codigo mais recente do GitHub via API"],
