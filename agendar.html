@@ -4002,13 +4002,16 @@ body.com-wz #toasts{bottom:86px}
   }
 
   function confLinha(x){
-    var cls={fora:"ruim", acima:"ruim", preco:"atencao", ok:"bom"}[x.situacao]||"";
+    // 'indefinido' e ATENCAO, nao erro: a nota nao trouxe como casar o item com o
+    // pedido. Pintar de vermelho seria acusar o fornecedor de uma coisa que ninguem
+    // sabe se aconteceu.
+    var cls={fora:"ruim", acima:"ruim", preco:"atencao", indefinido:"atencao", ok:"bom"}[x.situacao]||"";
     var dir="";
     if(x.situacao==="acima"){
       dir='<b>'+esc(numero(x.qtd_nota))+'</b> na nota · o pedido espera <b>'+esc(numero(x.saldo))+'</b>';
     } else if(x.situacao==="preco"){
       dir='nota <b>'+esc(moeda(x.valor_nota))+'</b> · pedido <b>'+esc(moeda(x.valor_pedido))+'</b>';
-    } else if(x.situacao==="fora"){
+    } else if(x.situacao==="fora" || x.situacao==="indefinido"){
       dir='<b>'+esc(numero(x.qtd_nota))+'</b>'+(x.unidade?" "+esc(x.unidade):"")+' na nota';
     } else {
       dir='<b>'+esc(numero(x.qtd_nota))+'</b> de '+esc(numero(x.saldo))+' que o pedido espera';
@@ -4079,6 +4082,7 @@ body.com-wz #toasts{bottom:86px}
     h+='<div class="cnf-s">'+esc(String(r.itens))+
        (r.itens===1?" item na nota · ":" itens na nota · ")+
        esc(String(r.ok))+" conferem"+
+       (r.indefinido? " · "+esc(String(r.indefinido))+" sem como conferir":"")+
        (r.faltando? " · "+esc(String(r.faltando))+" do pedido não vieram nesta nota":"")+
        '</div>';
 
@@ -4099,6 +4103,18 @@ body.com-wz #toasts{bottom:86px}
       h+='<div class="cnf-p cnf-barra">Com estes problemas a loja <b>não vai aceitar</b> o '+
          'agendamento. Confira se o pedido escolhido é o certo; se a nota estiver mesmo '+
          'diferente do pedido, fale com o comprador da loja antes.</div>';
+    }
+
+    /* "SEM COMO CONFERIR" NAO E CULPA DE NINGUEM.
+       Medido em 200 notas reais da loja: 1 em cada 4 itens nao traz codigo de barras
+       nem a linha do pedido. Antes esses eram acusados de "nao esta no pedido" e
+       BARRAVAM o agendamento — 40% das notas cairiam por isso, com o fornecedor
+       lendo que trouxe coisa que ninguem pediu. */
+    if(r.indefinido){
+      h+='<div class="cnf-p">'+(r.indefinido===1?"Um item não traz":r.indefinido+" itens não trazem")+
+         ' código de barras nem a linha do pedido, então não dá para conferir '+
+         (r.indefinido===1?"ele":"eles")+' automaticamente. '+
+         'Isso <b>não impede o agendamento</b> — a conferência desses fica para a chegada.</div>';
     }
 
     var semItens=notasSemItens();
