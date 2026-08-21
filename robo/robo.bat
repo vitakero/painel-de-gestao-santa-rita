@@ -37,6 +37,9 @@ echo.
 echo [1.8/4] Sincronizando notas da Receita Federal (conferencia automatica)...
 node scripts\vr-sync-notas.cjs
 echo.
+echo [1.9/4] Sincronizando o dicionario de codigos dos fornecedores...
+node scripts\vr-sync-codigos.cjs
+echo.
 echo [2/4] Gerando o painel (index.html)...
 node node_modules\tsx\dist\cli.mjs scripts\demoDashboard.ts
 if errorlevel 1 goto erro
