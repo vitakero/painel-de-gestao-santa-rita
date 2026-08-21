@@ -1620,10 +1620,29 @@ body.com-wz #toasts{bottom:86px}
     });
   }
 
+  function recusarComoErro(){
+    function mostrarLogin(){
+      el("eSenha").value="";
+      aba("entrar"); mostrar("telaAuth");
+      aviso("msgAuth","E-mail ou senha não conferem.");
+    }
+    try{ SB.auth.signOut().then(mostrarLogin, mostrarLogin); }catch(e){ mostrarLogin(); }
+  }
+
   function decidirTela(){
     return garantirCadastro().then(function(d){
-      if(!d||!d.ok){ el("esperaTit").textContent="Cadastro não encontrado";
-        el("esperaTxt").textContent="Não achei seu cadastro. Fale com a loja."; mostrar("telaEspera"); return; }
+      /* QUEM NÃO É FORNECEDOR É RECUSADO COMO QUALQUER LOGIN ERRADO.
+         O login do painel e o do portal moram no mesmo lugar, então um e-mail de
+         funcionário entra aqui. Até 21/08/2026 ele via "Cadastro não encontrado —
+         fale com a loja", que era duas coisas ruins de uma vez: mandava ele cobrar da
+         loja um cadastro que ele não deveria ter, e CONFIRMAVA, para quem estivesse
+         tentando e-mail por e-mail, que aquele endereço existe em algum sistema da
+         loja. O portal não tem por que entregar isso.
+         Agora ele vê exatamente o que quem erra a senha vê. Mesma frase do btEntrar.
+         ATENÇÃO: isto vale só para quem NÃO é fornecedor (d.ok falso). Fornecedor de
+         verdade esperando liberação continua vendo "Cadastro em análise" logo abaixo —
+         esse precisa mesmo falar com a loja. */
+      if(!d||!d.ok){ recusarComoErro(); return; }
       meuNome=d.empresa||""; meuCnpj=d.cnpj||""; meuResp=d.responsavel||"";
       if(d.liberado){ abrirCasa(); return; }
       var tit="Cadastro em análise",
