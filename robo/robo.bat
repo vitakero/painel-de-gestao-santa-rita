@@ -1,6 +1,19 @@
 @echo off
+REM ROBO-BAT - a rotina completa do robo da loja.
+REM
+REM A palavra ROBO-BAT na linha acima e a senha de conferencia do download: sem ela
+REM o puxar-codigo recusa o arquivo e a loja fica com a versao velha para sempre,
+REM dizendo so "invalido - mantendo o atual" no meio de vinte linhas. Foi o que
+REM aconteceu ate 21/08/2026: este arquivo nunca chegou na loja.
+REM
+REM SEM CARACTERE DE DESVIO DE SAIDA NOS COMENTARIOS: o cmd interpreta esses
+REM simbolos ate dentro de linha REM.
 title Robo do Painel Santa Rita
 cd /d %~dp0
+REM Avisa o puxar-codigo para nao reescrever ESTE arquivo agora: o Windows le o .bat
+REM linha por linha enquanto ele roda, e trocar o conteudo no meio embaralha o resto.
+REM Ele se atualiza na proxima vez, ou quando alguem roda o puxar-codigo sozinho.
+set RODANDO_BAT=robo.bat
 echo ================================================
 echo [%date% %time%] ROBO INICIADO
 echo ================================================
