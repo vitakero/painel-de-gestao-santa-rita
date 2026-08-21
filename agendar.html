@@ -887,6 +887,7 @@ body.com-wz #toasts{bottom:86px}
         <div class="pw-wrap"><input id="eSenha" type="password" autocomplete="current-password" placeholder="Sua senha">
           <span class="pw-eye" data-olho="eSenha"></span></div></div>
       <button class="bt larga" id="btEntrar">Entrar</button>
+      <div class="msg msg-auth" id="msgAuth"></div>
       <button class="link" id="btIrSenha">Esqueci minha senha</button>
     </div>
 
@@ -907,9 +908,8 @@ body.com-wz #toasts{bottom:86px}
         <div class="pw-wrap"><input id="cSenha" type="password" autocomplete="new-password" placeholder="Pelo menos 6 caracteres">
           <span class="pw-eye" data-olho="cSenha"></span></div></div>
       <button class="bt larga" id="btCriar">Cadastrar minha empresa</button>
+      <div class="msg msg-auth"></div>
     </div>
-
-    <div class="msg" id="msgAuth"></div>
   </div>
 
   <div class="esconde" id="telaSenha">
@@ -1488,9 +1488,22 @@ body.com-wz #toasts{bottom:86px}
     window.scrollTo(0,0);
   }
   function aviso(id, texto, tipo){
-    var m=el(id); if(!m) return;
-    m.textContent=texto||"";
-    m.className="msg "+(tipo||"err")+(texto?" on":"");
+    /* "msgAuth" tem DUAS caixas: uma embaixo do botao Entrar e outra embaixo do
+       Cadastrar. Cada aba precisa do recado logo abaixo do botao que a pessoa acabou
+       de clicar — no fim da tela, como era antes, ele ficava depois do "Esqueci minha
+       senha" e passava despercebido. Escrevo nas duas: a escondida nao aparece. */
+    var alvos = (id==="msgAuth")
+      ? [].slice.call(document.querySelectorAll(".msg-auth"))
+      : [el(id)].filter(Boolean);
+    /* classList, e nao className: reescrever a classe inteira colocava "msg-auth" ate
+       na caixa da tela de senha, e a partir dai um aviso da tela de entrada escreveria
+       nela tambem. Assim cada caixa mantem as classes que sao dela. */
+    alvos.forEach(function(m){
+      m.textContent=texto||"";
+      m.classList.remove("err","ok","on");
+      m.classList.add("msg", tipo||"err");
+      if(texto) m.classList.add("on");
+    });
   }
   function limpa(){ ["msgAuth","msgSenha"].forEach(function(i){ aviso(i,""); }); }
 
