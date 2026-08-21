@@ -322,14 +322,25 @@ const Q_ITENS = `
 
   // ---- AS NOTAS DA RECEITA ----
   // O VR baixa da Receita o XML de todas as notas de entrada. E dele que sai a
-  // conferencia quando o fornecedor manda so a chave, sem o arquivo. Pendurado aqui
-  // porque este script ja roda sozinho; mexer no robo.bat exige o Victor na loja.
-  // Falhar aqui nao pode derrubar a rodada dos pedidos, que ja terminou.
+  // conferencia quando o fornecedor manda so a chave, sem o arquivo.
+  //
+  // POR QUE ESTA PENDURADO AQUI, E QUANDO ELE SE CALA:
+  // o robo.bat novo ja chama o vr-sync-notas no passo 1.8. So que ate 21/08/2026 o
+  // robo.bat NUNCA chegou na loja (a senha de conferencia dele nao batia), entao
+  // pendurar aqui era a unica forma de o sync acontecer. Agora que a senha esta certa,
+  // as duas coisas conviveriam e o sync rodaria duas vezes por rodada.
+  // A saida: o robo.bat anuncia que esta rodando (RODANDO_BAT). Quando ele anuncia,
+  // eu me calo — ele mesmo vai chamar. Quando nao ha anuncio (loja com robo.bat velho,
+  // ou alguem rodando este script na mao), eu chamo. Nunca fica sem, nunca fica dobrado.
   try {
+    if (process.env.RODANDO_BAT === "robo.bat") {
+      console.log("\n(as notas da Receita ficam para o passo 1.8 do robo.bat)");
+      throw { pular: true };
+    }
     console.log("\nTrazendo as notas que o VR baixou da Receita...");
     require("child_process").execFileSync(process.execPath,
       [path.join(__dirname, "vr-sync-notas.cjs")], { stdio: "inherit" });
-  } catch (e) { console.log("(sync das notas nao rodou: " + e.message + ")"); }
+  } catch (e) { if (!e || !e.pular) console.log("(sync das notas nao rodou: " + (e && e.message) + ")"); }
 
   if (orfaos) {
     console.log("\nAviso: " + orfaos + " pedido(s) sao de fornecedor que ainda nao tem");
