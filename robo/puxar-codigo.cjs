@@ -53,6 +53,7 @@ const FILES = [
   ["robo/vr-sync-notas.cjs", "vr-sync-notas.cjs", "receb_notas_vr"],
   // .bat de clicar duas vezes: vai para a RAIZ (C:\\vr-robo), nao para scripts/
   ["robo/notas.bat", "../notas.bat", "NOTAS-BAT"],
+  ["robo/robo.bat", "../robo.bat", "ROBO-BAT"],
   ["robo/puxar-codigo.cjs", "puxar-codigo.cjs", "Baixa o codigo mais recente do GitHub via API"],
 ];
 
