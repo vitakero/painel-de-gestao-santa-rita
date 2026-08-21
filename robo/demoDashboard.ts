@@ -7666,12 +7666,16 @@ function rcbLigarAbas(el){
    é digitado a cada recibo — deixar aberto seria deixar qualquer um imprimir comprovante de
    qualquer quantia com o CNPJ da empresa em cima. */
 /* ---- SINO DE AVISOS ----
-   Um lugar só, no topo do painel, para o que está esperando uma decisão do dono. Hoje só
-   os recibos aguardando autorização entram aqui; a lista é montada por avisosDoPainel(),
-   e é lá que entra o que vier depois.
+   O lugar dos avisos e das novidades do painel. Ele é parte da casa: aparece em TODOS os
+   logins, sempre, mesmo vazio — foi assim que o dono pediu em 20/08/2026.
 
-   O sino SÓ APARECE quando há algo — botão que fica sempre aceso e nunca tem nada dentro
-   vira enfeite, e a pessoa para de olhar. */
+   Ele NÃO é fila de aprovação. Chegou a ser, por um dia: os recibos esperando autorização
+   apareciam aqui. Não funcionava na prática — quem pede o recibo é a funcionária, e o dono
+   autoriza no computador dela, digitando a senha ali mesmo. Passar pelo sino era um desvio
+   sem serventia. A autorização mora na própria página de Recibos.
+
+   O numerinho vermelho é que só surge quando existe aviso de verdade. A lista sai de
+   avisosDoPainel(), hoje vazia — é lá que entram os avisos quando houver. */
 function avisosDoPainel(){
   /* Por decisão dele (20/08/2026), o sino NÃO é fila de aprovação — é o lugar dos avisos
      e das novidades do painel, e existe em todos os logins como parte da casa.
