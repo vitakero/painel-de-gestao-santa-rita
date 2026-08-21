@@ -979,7 +979,17 @@ body.com-wz #toasts{bottom:86px}
 
 <script>
 (function(){
-  var SB = supabase.createClient("https://uabhsmculsfwzcrhyhch.supabase.co","sb_publishable_IPLbRjk89c666QkfcoVTiw_GXujUTZU");
+  /* O LOGIN MORRE QUANDO O NAVEGADOR FECHA — sessionStorage, e nao localStorage.
+     Sem isto o portal guardava o login para sempre: quem abrisse o endereco entrava
+     direto, sem digitar nada. Num computador de expedicao ou de portaria, que e
+     compartilhado, isso quer dizer que a proxima pessoa entra como o fornecedor
+     anterior e enxerga os pedidos e as notas dele.
+     O painel ja fazia assim; o portal ficou de fora por descuido, e o Victor pegou em
+     21/08/2026. Enquanto o navegador estiver aberto ele continua logado entre abas e
+     paginas — so precisa entrar de novo quando fechar tudo.
+     Combina com a limpeza do campo da senha no Sair, que ja existia pelo mesmo motivo. */
+  var SB = supabase.createClient("https://uabhsmculsfwzcrhyhch.supabase.co","sb_publishable_IPLbRjk89c666QkfcoVTiw_GXujUTZU",
+    { auth: { persistSession:true, autoRefreshToken:true, storage: window.sessionStorage } });
   var el = function(id){ return document.getElementById(id); };
 
   /* ==PORTAL-INICIO==
