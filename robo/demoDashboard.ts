@@ -20735,12 +20735,6 @@ function recEmbRowHtml(r0,i){
   var _sufEmb=_porPeca?"cada":("/"+_eun);
   var _dicaQtd=_porPeca?"Quantas unidades desta embalagem":("Quanto usa, em "+_eun);
   var custoTxt=cl.erro?('<span class="err" title="'+recEsc(cl.erro)+'">—</span>'):brl(cl.custo);
-  /* Quando a quantidade vem do Tempo de preparo, a pessoa TEM que ver de onde veio.
-     Numero que aparece sozinho sem explicacao ninguem confia — e com razao. */
-  var qDoTempo = cl.doTempo ? String(Math.round((+cl.q||0)*100)/100).replace(".",",") : "";
-  var dica = cl.doTempo
-    ? '<span class="rec-cop-dica" title="Veio do campo Tempo de preparo. Digite aqui para usar outro valor.">'
-      +qDoTempo+' — do tempo de preparo</span>' : "";
   var bases=EMB_BASES.map(function(b){ return '<option'+(b===r.base?' selected':'')+'>'+recEsc(b)+'</option>'; }).join('');
   return '<div class="rec-ing-row emb3" data-emb="'+i+'">'
     +'<input class="rec-ing-q" data-embf="q" inputmode="decimal" placeholder="1" title="'+recEsc(_dicaQtd)+'" value="'+recEsc(String(r.q||""))+'">'
@@ -20842,6 +20836,12 @@ function recCopRowHtml(r0,i){
   var custoTxt=cl.erro?('<span class="err" title="'+recEsc(cl.erro)+'">—</span>'):brl(cl.custo);
   var uns=COP_UNS.map(function(u){ return '<option'+(u===r.u?' selected':'')+'>'+recEsc(u)+'</option>'; }).join('');
   var pct=(r.u==="Percentual");
+  /* Quando a quantidade vem do Tempo de preparo, a pessoa TEM que ver de onde veio.
+     Numero que aparece sozinho sem explicacao ninguem confia — e com razao. */
+  var qDoTempo = cl.doTempo ? String(Math.round((+cl.q||0)*100)/100).replace(".",",") : "";
+  var dica = cl.doTempo
+    ? '<span class="rec-cop-dica" title="Veio do campo Tempo de preparo. Digite aqui para usar outro valor.">'
+      +qDoTempo+' — do tempo de preparo</span>' : "";
   return '<div class="rec-ing-row base2" data-cop="'+i+'">'
     +'<input class="rec-ing-q" data-copf="q" inputmode="decimal" placeholder="'+(qDoTempo||"1")+'" value="'+recEsc(String(r.q||""))+'"'+(pct?' disabled title="Percentual não usa quantidade"':'')+(cl.doTempo?' title="Em branco = usa o tempo de preparo da ficha"':'')+'>'
     +'<select class="rec-ing-u" data-copf="u" style="width:100%;">'+uns+'</select>'
@@ -21228,6 +21228,11 @@ function recFinLer(){
            rendQtd:despParseValor(recVal("recRendQtd")),
            rendUn:recVal("recRendUn"),
            pesoFinal:despParseValor(recVal("recPeso")),
+           /* O TEMPO PRECISA VIR AQUI TAMBEM.
+              Sem ele, a LINHA do custo mostrava R$ 40 (ela le o campo ao vivo) e o
+              TOTAL mostrava R$ 0 (ele monta a receita sem o tempo). Dois lugares
+              calculando o mesmo custo com entradas diferentes — o defeito classico. */
+           tempo:recVal("recTempo"),
            preco:despParseValor(recVal("recPreco")),
            markup:despParseValor(recVal("recMarkup")),
            modo:recFinModo };
