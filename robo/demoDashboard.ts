@@ -20324,7 +20324,11 @@ function recTotalEmb(rows,ctx){
    Cada custo do catálogo tem uma UNIDADE DE CÁLCULO. Hoje a quantidade é digitada;
    a arquitetura já prevê preencher sozinho no futuro (tempo da receita, peso, rendimento). */
 var COP_CATS=["Mão de obra","Energia elétrica","Gás","Água","Limpeza","Depreciação","Manutenção","Equipamentos","Produção","Outros"];
-var COP_UNS=["Por receita","Por hora","Por minuto","Por kg produzido","Por unidade produzida","Percentual","Valor fixo"];
+/* "Por dia" entrou em 21/08/2026, a pedido do dono. A conta e a mesma de todas as
+   outras (quantidade x valor), entao nao ha conversao nenhuma escondida: quem escolhe
+   "Por dia" diz na receita QUANTOS DIAS, do mesmo jeito que "Por hora" pede horas.
+   As unidades de tempo ficam juntas e em ordem decrescente — dia, hora, minuto. */
+var COP_UNS=["Por receita","Por dia","Por hora","Por minuto","Por kg produzido","Por unidade produzida","Percentual","Valor fixo"];
 // base = quanto multiplicar quando a unidade é automática no futuro (tempo, peso, rendimento)
 // e, no caso de Percentual, sobre qual valor incide (custo direto = ingredientes + embalagem).
 function recCopLinha(r,ctx){
@@ -20464,9 +20468,10 @@ var RAT_STATUS=["Rascunho","Calculado","Aprovado","Aplicado","Cancelado"];
 var RAT_PROD={ "Número de receitas":{un:"receitas", crit:"Por receita"},
                "Quilos produzidos":{un:"kg",        crit:"Por kg produzido"},
                "Unidades produzidas":{un:"unidades",crit:"Por unidade produzida"},
+               "Dias de produção" :{un:"dias",      crit:"Por dia"},
                "Horas de produção":{un:"horas",     crit:"Por hora"},
                "Minutos de produção":{un:"minutos", crit:"Por minuto"} };
-var RAT_CRITS=["Por receita","Por kg produzido","Por unidade produzida","Por hora","Por minuto","Valor fixo"];
+var RAT_CRITS=["Por receita","Por kg produzido","Por unidade produzida","Por dia","Por hora","Por minuto","Valor fixo"];
 function ratValorSetor(total,pct){
   var t=Number(total), p=Number(pct);
   if(!isFinite(t)||!isFinite(p)||t<0||p<0||p>100) return null;
