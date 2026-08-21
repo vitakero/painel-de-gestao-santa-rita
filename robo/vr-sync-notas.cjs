@@ -122,6 +122,11 @@ function lerNfe(xml) {
 // ---------------------------------------------------------------------------- roda
 const LOTE = 200;                 // quantas notas por ida ao VR
 const PRIMEIRA_JANELA_DIAS = 120; // na primeira vez, so os ultimos 4 meses
+// Quantas idas ao VR por rodada. A carga inicial sao ~3.500 notas: a 200 por ida,
+// seriam 18 rodadas na mao. Com 30 idas ela cabe numa so, e as rodadas seguintes
+// terminam na primeira ida porque nao ha nada novo.
+// O teto existe para o robo nunca ficar preso aqui: o que sobrar vai na proxima.
+const MAX_IDAS = 30;
 
 const morte = [];
 process.on("uncaughtException", (e) => { morte.push("uncaught: " + e.message); });
@@ -149,50 +154,72 @@ process.on("unhandledRejection", (e) => { morte.push("rejeicao: " + ((e && e.mes
     await c.connect();
     try { await c.query("set statement_timeout = 240000"); } catch (e) {}
 
-    const sql =
-      "select chavenfe::text chave, xml, datahorarecebimento, id_loja " +
-      "  from public.notaentradanfe " +
-      " where id_loja = 1 and xml is not null and length(xml) > 500 " +
-      (desde ? "   and datahorarecebimento > $1 "
-             : "   and datahorarecebimento >= (now() - interval '" + PRIMEIRA_JANELA_DIAS + " days') ") +
-      " order by datahorarecebimento asc limit " + LOTE;
+    // A CARGA INICIAL CABE NUMA RODADA SO.
+    // Cada ida traz LOTE notas e empurra o marcador para a frente; o laco repete ate
+    // o VR nao ter mais nada ou ate o teto de idas. Na primeira vez isso e a carga
+    // inteira; depois disso, a primeira ida ja volta vazia e ele para.
+    let idas = 0;
+    while (idas < MAX_IDAS) {
+      idas++;
+      const sql =
+        "select chavenfe::text chave, xml, datahorarecebimento, id_loja " +
+        "  from public.notaentradanfe " +
+        " where id_loja = 1 and xml is not null and length(xml) > 500 " +
+        (desde ? "   and datahorarecebimento > $1 "
+               : "   and datahorarecebimento >= (now() - interval '" + PRIMEIRA_JANELA_DIAS + " days') ") +
+        " order by datahorarecebimento asc limit " + LOTE;
 
-    const rows = (await c.query(sql, desde ? [desde] : [])).rows;
-    conta.lidas = rows.length;
-    console.log("Notas novas no VR: " + rows.length + (desde ? " (desde " + desde + ")" : " (primeira carga)"));
-
-    const linhas = [];
-    for (const r of rows) {
-      try {
-        const ch = so9(r.chave);
-        if (!ch || ch.length !== 44) { conta.puladas++; continue; }
-        const n = lerNfe(String(r.xml));
-        if (!n.itens.length) { conta.puladas++; continue; }
-        linhas.push({
-          chave: ch, numero: n.numero, serie: n.serie,
-          emitente_cnpj: n.emitente_cnpj, emitente_nome: n.emitente_nome,
-          destin_cnpj: n.destin_cnpj,
-          emissao: n.emissao, recebido_em: r.datahorarecebimento,
-          valor_total: n.valor_total, id_loja: r.id_loja,
-          itens: n.itens, sincronizado_em: new Date().toISOString(),
-        });
-      } catch (e) {
-        // uma nota ilegivel nao pode levar as outras junto
-        conta.puladas++;
-        if (conta.erros.length < 5) conta.erros.push("nota " + r.chave + ": " + e.message);
+      const rows = (await c.query(sql, desde ? [desde] : [])).rows;
+      if (!rows.length) {
+        if (idas === 1) console.log("Nada novo no VR.");
+        break;
       }
+      conta.lidas += rows.length;
+
+      const linhas = [];
+      for (const r of rows) {
+        try {
+          const ch = so9(r.chave);
+          if (!ch || ch.length !== 44) { conta.puladas++; continue; }
+          const n = lerNfe(String(r.xml));
+          if (!n.itens.length) { conta.puladas++; continue; }
+          linhas.push({
+            chave: ch, numero: n.numero, serie: n.serie,
+            emitente_cnpj: n.emitente_cnpj, emitente_nome: n.emitente_nome,
+            destin_cnpj: n.destin_cnpj,
+            emissao: n.emissao, recebido_em: r.datahorarecebimento,
+            valor_total: n.valor_total, id_loja: r.id_loja,
+            itens: n.itens, sincronizado_em: new Date().toISOString(),
+          });
+        } catch (e) {
+          // uma nota ilegivel nao pode levar as outras junto
+          conta.puladas++;
+          if (conta.erros.length < 5) conta.erros.push("nota " + r.chave + ": " + e.message);
+        }
+      }
+
+      // grava em pedacos: um POST gigante estoura o limite do PostgREST
+      for (let i = 0; i < linhas.length; i += 50) {
+        const pedaco = linhas.slice(i, i + 50);
+        await req("POST", "/rest/v1/receb_notas_vr?on_conflict=tenant_id,chave", pedaco,
+          "resolution=merge-duplicates,return=minimal");
+        conta.gravadas += pedaco.length;
+      }
+
+      // O MARCADOR ANDA MESMO QUE A NOTA TENHA SIDO PULADA.
+      // Se eu andasse so pelas gravadas, uma nota ilegivel no comeco do lote faria o
+      // laco reler o mesmo pedaco para sempre. Ando pela ultima nota LIDA.
+      desde = rows[rows.length - 1].datahorarecebimento;
+
+      console.log("  ida " + idas + ": " + rows.length + " lidas, " +
+                  conta.gravadas + " gravadas no total");
+      if (rows.length < LOTE) break;   // o VR entregou menos que o lote: acabou
     }
 
-    // grava em pedacos: um POST gigante estoura o limite do PostgREST
-    for (let i = 0; i < linhas.length; i += 50) {
-      const pedaco = linhas.slice(i, i + 50);
-      await req("POST", "/rest/v1/receb_notas_vr?on_conflict=tenant_id,chave", pedaco,
-        "resolution=merge-duplicates,return=minimal");
-      conta.gravadas += pedaco.length;
-    }
-    console.log("Gravadas na nuvem: " + conta.gravadas + " | puladas: " + conta.puladas);
-    if (rows.length === LOTE) {
-      console.log("Havia mais que " + LOTE + " esperando: a proxima rodada continua de onde parou.");
+    console.log("Notas: " + conta.lidas + " lidas, " + conta.gravadas + " gravadas, " +
+                conta.puladas + " puladas, em " + idas + " ida(s) ao VR.");
+    if (idas >= MAX_IDAS) {
+      console.log("Parei no teto de " + MAX_IDAS + " idas. A proxima rodada continua de onde parou.");
     }
   } catch (e) {
     conta.erros.push(e.message);
