@@ -50,6 +50,16 @@ function req(metodo, caminho, corpo, prefer) {
 }
 
 const so9 = (v) => String(v == null ? "" : v).replace(/[^0-9]/g, "") || null;
+
+// O CNPJ vem NUMERIC do VR, entao chega SEM OS ZEROS DA FRENTE: um CNPJ que comeca
+// com zero aparece com 13 digitos. Exigir 14 exatos descartava metade das linhas —
+// 14.608 de 31.030 na primeira rodada, em 21/08/2026.
+// Esta e a MESMA funcao do vr-sync-pedidos, de proposito: os dois lados que precisam
+// se reconhecer tem que ler o campo do mesmo jeito.
+function cnpj14(v) {
+  const s = String(v == null ? "" : v).replace(/[^0-9]/g, "");
+  return s ? s.padStart(14, "0") : "";
+}
 const num = (v) => { const n = parseFloat(String(v == null ? "" : v).replace(",", ".")); return isNaN(n) ? null : n; };
 
 const morte = [];
@@ -98,9 +108,12 @@ process.on("unhandledRejection", (e) => { morte.push("rejeicao: " + ((e && e.mes
     const vistos = {};
     const linhas = [];
     for (const r of rows) {
-      const cnpj = so9(r.cnpj);
+      const cnpj = cnpj14(r.cnpj);
       const cod = String(r.codigoexterno == null ? "" : r.codigoexterno).trim();
-      if (!cnpj || cnpj.length !== 14) { conta.sem_cnpj++; continue; }
+      // menos de 11 digitos nao e nem CPF: e campo vazio ou lixo, nao da para casar
+      // com fornecedor nenhum. Acima disso eu guardo — quem nao casar com ninguem no
+      // portal simplesmente nunca vai ser consultado.
+      if (!cnpj || cnpj.replace(/^0+/, "").length < 11) { conta.sem_cnpj++; continue; }
       if (!cod) { conta.sem_codigo++; continue; }
       // GRAVO EM MAIUSCULA, sempre.
       // A busca na hora da conferencia tem que ser exata para usar o indice; se eu
