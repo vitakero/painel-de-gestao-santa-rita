@@ -5692,16 +5692,26 @@ function clConfLoad(){
     }, function(){});
   }catch(e){}
 }
-var PX_CONFERIR_URL="https://painel-de-gestao-santa-rita.vercel.app/conferir.html";  // página pública de conferência da assinatura
+/* ENDEREÇOS PÚBLICOS — os que saem da loja e vão parar na mão de fora.
+   Tem que ser o domínio do supermercado, e não o endereço cru de quem hospeda: quem
+   recebe um endereço de hospedagem no WhatsApp não reconhece a loja, e link que
+   ninguém reconhece parece golpe. Os dois domínios servem o mesmo arquivo.
+   (O endereço da hospedagem não está escrito aqui de propósito: ele acabaria dentro
+   do painel publicado, e o teste de endereços públicos existe justamente para não
+   deixar nenhum passar.) */
+var PX_CONFERIR_URL="https://painel.supermercadosantarita.com.br/conferir.html";  // conferência pública da assinatura
 // 14/08/2026: este endereço agora abre o PORTAL DO FORNECEDOR (com cadastro, login e senha),
 // e não mais o formulário anônimo. O link nunca chegou a ser distribuído, então o portal ocupou
 // o mesmo endereço em vez de nascer num segundo — um endereço só, sem página de passagem.
 // Vira agendamento.supermercadosantarita.com.br quando o domínio ligar.
-var CL_AGENDAR_URL="https://painel-de-gestao-santa-rita.vercel.app/agendar.html";
+var CL_AGENDAR_URL="https://portaldofornecedor.supermercadosantarita.com.br/";   // o Portal do Fornecedor
 function clLinkFornecedor(){
   var url=CL_AGENDAR_URL;
   try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(url); }catch(e){}
-  uiConfirm({titulo:"Link de agendamento do fornecedor",msg:"Copiei o link! Mande pros seus fornecedores agendarem a entrega:   "+url,ok:"Abrir página",cancel:"Fechar"}).then(function(ok){ if(ok){ try{ window.open(url,"_blank"); }catch(e){} } });
+  uiConfirm({titulo:"Link do Portal do Fornecedor",
+    msg:"Copiei o link. Mande para o fornecedor — é por aqui que ele se cadastra e "+
+        "marca o horário da entrega.\\n\\n"+url,
+    ok:"Abrir página",cancel:"Fechar"}).then(function(ok){ if(ok){ try{ window.open(url,"_blank"); }catch(e){} } });
 }
 /* ---------- PEDIDOS DOS FORNECEDORES ----------
    O fornecedor agenda pelo link público e o pedido nasce PENDENTE. Até existir esta tela,
