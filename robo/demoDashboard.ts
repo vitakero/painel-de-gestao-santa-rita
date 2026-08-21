@@ -3026,6 +3026,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       .cl-ped-nao:hover{background:#fdf6e3;}
       /* Recusar a ENTREGA é mais grave que recusar o horário: o caminhão está na doca.
          Por isso vermelho, e não o amarelo do "Recusar" lá de cima. */
+      /* de onde veio a quantidade da linha de custo (o Tempo de preparo da ficha) */
+      .rec-cop-dica{display:block;font-size:11px;color:#8a97a8;font-weight:500;margin-top:2px;
+        line-height:1.3;}
       .cl-entc-bts{display:inline-flex;gap:8px;align-items:center;justify-content:flex-end;
         flex-wrap:wrap;}
       /* FORNECEDORES TRAVADOS — cor de atenção, não de erro: ninguém fez nada errado
@@ -20265,7 +20268,10 @@ function recFinCalc(e){
   var emb=(e.embalagens&&e.embalagens.length) ? recTotalEmb((typeof recEmbResolvLista==="function")?recEmbResolvLista(e.embalagens):e.embalagens,{rend:rend}) : Math.max(0,+e.custoEmb||0);
   // custos operacionais: percentual incide sobre o custo direto (ingredientes + embalagem)
   var direto=ing+emb;
-  var out=(e.custosOp&&e.custosOp.length) ? recTotalCop(e.custosOp,{direto:direto}) : Math.max(0,+e.outros||0);
+  // o tempo de preparo da ficha vai junto: linha de custo por hora/minuto sem
+  // quantidade digitada usa ele (ver recCopLinha)
+  var minFicha=(typeof recTempoMin==="function") ? recTempoMin(e.tempo) : null;
+  var out=(e.custosOp&&e.custosOp.length) ? recTotalCop(e.custosOp,{direto:direto,min:minFicha}) : Math.max(0,+e.outros||0);
   var total=direto+out;
   var custoUn = rend>0 ? total/rend : null;
   var preco=Math.max(0,+e.preco||0), markup=null, mk=+e.markup;
@@ -20333,13 +20339,28 @@ var COP_UNS=["Por receita","Por dia","Por hora","Por minuto","Por kg produzido",
 // e, no caso de Percentual, sobre qual valor incide (custo direto = ingredientes + embalagem).
 function recCopLinha(r,ctx){
   r=r||{}; ctx=ctx||{};
-  var q=Number(String(r.q==null?"":r.q).replace(",",".")); if(!isFinite(q)) q=0;
+  var bruto=String(r.q==null?"":r.q).trim();
+  var q=Number(bruto.replace(",",".")); if(!isFinite(q)) q=0;
   var p=Number(r.p); if(!isFinite(p)) p=0;
   var u=String(r.u||"");
   if(COP_UNS.indexOf(u)<0) return {ok:false,custo:0,erro:"unidade de cálculo inválida"};
   if(q<0||p<0) return {ok:false,custo:0,erro:"valor negativo"};
   if(u==="Percentual") return {ok:true, custo:(+ctx.direto||0)*(p/100), erro:""};   // % sobre ingredientes + embalagem
-  return {ok:true, custo:q*p, erro:""};                                            // demais: quantidade × valor de referência
+
+  /* O TEMPO DA FICHA ALIMENTA O CUSTO — deixar a quantidade em branco basta.
+     Antes o mesmo tempo era digitado DUAS vezes: "1h20" no campo Tempo de preparo e
+     "1,33" aqui. Dois lugares com o mesmo número sempre divergem — daqui a três meses
+     alguém corrige um e esquece o outro, e o custo passa a mentir sem ninguém ver.
+     Agora, quantidade em branco + unidade de tempo = usa o tempo de preparo.
+     Quem digitar alguma coisa manda: o campo continua valendo mais que a ficha.
+     "Por dia" NÃO entra aqui de propósito: converter minuto em dia exige saber quantas
+     horas tem o dia de produção, e isso é decisão do dono, não conta minha. */
+  var doTempo=false, min=+ctx.min;
+  if(bruto==="" && isFinite(min) && min>0){
+    if(u==="Por hora"){   q=min/60; doTempo=true; }
+    else if(u==="Por minuto"){ q=min; doTempo=true; }
+  }
+  return {ok:true, custo:q*p, erro:"", doTempo:doTempo, q:q};                       // demais: quantidade × valor de referência
 }
 function recTotalCop(rows,ctx){
   var mic=0;
@@ -20714,6 +20735,12 @@ function recEmbRowHtml(r0,i){
   var _sufEmb=_porPeca?"cada":("/"+_eun);
   var _dicaQtd=_porPeca?"Quantas unidades desta embalagem":("Quanto usa, em "+_eun);
   var custoTxt=cl.erro?('<span class="err" title="'+recEsc(cl.erro)+'">—</span>'):brl(cl.custo);
+  /* Quando a quantidade vem do Tempo de preparo, a pessoa TEM que ver de onde veio.
+     Numero que aparece sozinho sem explicacao ninguem confia — e com razao. */
+  var qDoTempo = cl.doTempo ? String(Math.round((+cl.q||0)*100)/100).replace(".",",") : "";
+  var dica = cl.doTempo
+    ? '<span class="rec-cop-dica" title="Veio do campo Tempo de preparo. Digite aqui para usar outro valor.">'
+      +qDoTempo+' — do tempo de preparo</span>' : "";
   var bases=EMB_BASES.map(function(b){ return '<option'+(b===r.base?' selected':'')+'>'+recEsc(b)+'</option>'; }).join('');
   return '<div class="rec-ing-row emb3" data-emb="'+i+'">'
     +'<input class="rec-ing-q" data-embf="q" inputmode="decimal" placeholder="1" title="'+recEsc(_dicaQtd)+'" value="'+recEsc(String(r.q||""))+'">'
@@ -20805,7 +20832,9 @@ function recCopLimpas(){
                });
 }
 function recCopCtx(){
-  return { direto: recTotalIngr(recIngResolvLista(recIngr)) + recTotalEmb(recEmbResolvLista(recEmbL),{rend:despParseValor(recVal("recRendQtd"))}) };
+  return { direto: recTotalIngr(recIngResolvLista(recIngr)) + recTotalEmb(recEmbResolvLista(recEmbL),{rend:despParseValor(recVal("recRendQtd"))}),
+           // o tempo digitado AGORA no campo de cima, para o custo acompanhar enquanto se edita
+           min: recTempoMin(recVal("recTempo")) };
 }
 function recCopRowHtml(r0,i){
   var r=recCopResolv(r0), doCat=!!r.cop;
@@ -20814,11 +20843,11 @@ function recCopRowHtml(r0,i){
   var uns=COP_UNS.map(function(u){ return '<option'+(u===r.u?' selected':'')+'>'+recEsc(u)+'</option>'; }).join('');
   var pct=(r.u==="Percentual");
   return '<div class="rec-ing-row base2" data-cop="'+i+'">'
-    +'<input class="rec-ing-q" data-copf="q" inputmode="decimal" placeholder="1" value="'+recEsc(String(r.q||""))+'"'+(pct?' disabled title="Percentual não usa quantidade"':'')+'>'
+    +'<input class="rec-ing-q" data-copf="q" inputmode="decimal" placeholder="'+(qDoTempo||"1")+'" value="'+recEsc(String(r.q||""))+'"'+(pct?' disabled title="Percentual não usa quantidade"':'')+(cl.doTempo?' title="Em branco = usa o tempo de preparo da ficha"':'')+'>'
     +'<select class="rec-ing-u" data-copf="u" style="width:100%;">'+uns+'</select>'
     +'<input class="rec-ing-n" data-copf="n" list="recCopLista" placeholder="Escolha ou digite (ex: Mão de obra)" value="'+recEsc(r.n||"")+'">'
     +'<div class="rec-ing-pw"><input class="rec-ing-p" data-copf="p" inputmode="decimal" placeholder="0,00" title="Valor de referência do cadastro — pode ajustar" value="'+recEsc(recPrecoCampo(r.p))+'"><span class="rec-ing-suf">'+(pct?"%":"")+'</span></div>'
-    +'<div class="rec-ing-calc"><span class="rec-ing-calclbl">Custo: </span>'+custoTxt+'</div>'
+    +'<div class="rec-ing-calc"><span class="rec-ing-calclbl">Custo: </span>'+custoTxt+dica+'</div>'
     +'<button type="button" class="rec-ing-x" data-copdel2="'+i+'" title="Remover este custo">×</button>'
     +'</div>';
 }
@@ -22113,6 +22142,9 @@ function recAbaIr(id){
       if(id==="recEmb"){ recAutoEmbCusto(); recFinSync(); }
       else if(id==="recPreco"){ recFinModo="preco"; recFinSync(); }
       else if(id==="recMarkup"){ recFinModo="markup"; recFinSync(); }
+      // o tempo alimenta as linhas de custo por hora/minuto: redesenho as linhas
+      // para a quantidade puxada aparecer enquanto ele digita
+      else if(id==="recTempo") recCopRender();
       else if(id==="recRendQtd"||id==="recRendUn"||id==="recPeso") recFinSync(); });
     // Enter numa linha: vai pra linha de baixo; se já for a última, cria uma nova
     fw.addEventListener("keydown",function(ev){
