@@ -3043,7 +3043,24 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       .cl-barr-ped{font-weight:400;color:#8a97a8;font-size:12.5px;}
       .cl-barr-mot{font-size:13px;color:#5c5340;line-height:1.45;min-width:0;}
       .cl-barr-qd{font-size:12px;color:#8a7448;white-space:nowrap;font-weight:600;}
-      /* usado pelo uiPrompt quando a ação destrói alguma coisa (ver opts.perigo) */
+      /* A JANELA DA RECUSA: duas escolhas grandes, fáceis de acertar com o caminhão
+         parado na doca. Nada de lista suspensa nem caixinha pequena. */
+      .rec-q{font:600 13px/1.4 inherit;color:#49525d;margin:2px 0 8px;}
+      .rec-esc{display:grid;gap:8px;margin-bottom:18px;}
+      .rec-esc label{display:flex;gap:11px;align-items:flex-start;cursor:pointer;
+        border:1px solid #e0e6ec;border-radius:10px;padding:12px 14px;background:#fff;
+        transition:border-color .12s,background .12s;}
+      .rec-esc label:hover{border-color:#c9d3dc;background:#fafcfd;}
+      /* :has deixa a escolhida acesa sem precisar de código nenhum ouvindo clique */
+      .rec-esc label:has(input:checked){border-color:#b03024;background:#fdf1ef;}
+      .rec-esc input{margin:3px 0 0;accent-color:#b03024;flex:none;width:17px;height:17px;}
+      .rec-esc span{display:block;font:400 12.5px/1.5 inherit;color:#6b7683;}
+      .rec-esc span b{display:block;font:700 14.5px/1.4 inherit;color:#1d2733;margin-bottom:2px;}
+      .rec-mot{width:100%;box-sizing:border-box;border:1px solid #d9e0e7;border-radius:10px;
+        padding:11px 13px;font:400 14px/1.5 inherit;color:#1d2733;resize:vertical;
+        background:#fff;}
+      .rec-mot:focus{outline:none;border-color:#b03024;box-shadow:0 0 0 3px rgba(176,48,36,.10);}
+      /* usado pelo uiPrompt e pelo uiConfirm quando a ação destrói alguma coisa */
       .btn-p.btn-perigo{background:#b03024!important;border-color:#b03024!important;}
       .btn-p.btn-perigo:hover{background:#8c2f28!important;border-color:#8c2f28!important;}
       .cl-ped-recd{background:#fff;color:#b03024;border:1px solid #e8bbb5!important;
@@ -5981,21 +5998,7 @@ function clDecidir(id,status){
      fornecedor manda o mesmo caminhão errado de novo na semana seguinte.
      O servidor também exige: não dá para burlar tirando isto daqui. */
   if(status==="recusado_na_doca"){
-    uiPrompt({
-      titulo:"Recusar a entrega de "+quem,
-      msg:quando+" — escreva o que houve com a carga.",
-      icone:"🚫", inputType:"text", ok:"Recusar entrega", cancel:"Voltar", perigo:true,
-      placeholder:"Ex.: produto trocado, validade curta, carga avariada"
-    }).then(function(txt){
-      if(txt===null || txt===undefined) return;
-      if(!String(txt).trim()){
-        uiConfirm({titulo:"Falta dizer o motivo",
-          msg:"Sem o motivo eu não registro a recusa. É o que o fornecedor precisa "+
-              "para corrigir, e é o que fica na história da entrega.",ok:"OK",cancel:""});
-        return;
-      }
-      clEnviarStatus(id, status, String(txt).trim(), quem);
-    });
+    clRecusarEntrega(id, quem, quando);
     return;
   }
 
@@ -6010,6 +6013,61 @@ function clDecidir(id,status){
   }).then(function(ok){
     if(!ok) return;
     clEnviarStatus(id, status, null, quem);
+  });
+}
+
+/* RECUSAR A ENTREGA: DE QUEM FOI, E POR QUÊ.
+   Duas situações muito diferentes moravam no mesmo botão:
+     · problema na CARGA  — produto trocado, avariado, validade curta. É do fornecedor,
+       e ele precisa acertar a mercadoria antes de reenviar.
+     · a LOJA não pôde receber — doca cheia, faltou gente, o carro anterior atrasou.
+       Não é culpa dele: é só remarcar.
+   Mandar "sua entrega foi recusada" quando a doca é que estava cheia faz o fornecedor
+   conferir a carga dele, ver que estava certa, e concluir que a loja é bagunçada e
+   ainda joga a culpa nele. Estraga relação em silêncio.
+
+   UMA JANELA SÓ, e não dois botões vermelhos na tela: com o caminhão na doca e o
+   motorista esperando, dois botões parecidos viram um clique no mais próximo.
+
+   O motivo é obrigatório nos DOIS casos — inclusive quando a culpa é da loja, porque
+   "doca cheia" e "faltou conferente" pedem providências diferentes. */
+function clRecusarEntrega(id, quem, quando){
+  var h =
+    '<p class="rec-q">'+pxEsc(quando)+' — o que houve?</p>'+
+    '<div class="rec-esc">'+
+      '<label><input type="radio" name="clRecTipo" value="carga">'+
+        '<span><b>Problema na carga</b>'+
+        'Produto trocado, avariado, validade curta. O fornecedor precisa acertar antes de reenviar.</span></label>'+
+      '<label><input type="radio" name="clRecTipo" value="loja">'+
+        '<span><b>A loja não pôde receber</b>'+
+        'Doca cheia, faltou gente, o carro anterior atrasou. Ele só precisa remarcar.</span></label>'+
+    '</div>'+
+    '<p class="rec-q">Escreva o que houve</p>'+
+    '<textarea id="clRecMotivo" class="rec-mot" rows="3" '+
+      'placeholder="O fornecedor recebe este texto por email, palavra por palavra."></textarea>';
+
+  uiConfirm({ titulo:"Recusar a entrega de "+quem, html:h, perigo:true, semEnter:true,
+              ok:"Recusar entrega", cancel:"Voltar" }).then(function(sim){
+    if(!sim) return;
+    var esc=document.querySelector('input[name="clRecTipo"]:checked');
+    var mot=document.getElementById("clRecMotivo");
+    var texto=mot ? String(mot.value||"").trim() : "";
+
+    if(!esc){
+      uiConfirm({titulo:"Falta dizer o que houve",
+        msg:"Escolha entre 'Problema na carga' e 'A loja não pôde receber'. "+
+            "É o que decide se o fornecedor precisa acertar a mercadoria ou só remarcar.",
+        ok:"Voltar",cancel:""}).then(function(){ clRecusarEntrega(id, quem, quando); });
+      return;
+    }
+    if(!texto){
+      uiConfirm({titulo:"Falta dizer o motivo",
+        msg:"Sem o motivo eu não registro a recusa. É o que o fornecedor recebe por email "+
+            "e o que fica na história da entrega.",ok:"Voltar",cancel:""})
+        .then(function(){ clRecusarEntrega(id, quem, quando); });
+      return;
+    }
+    clEnviarStatus(id, esc.value==="loja" ? "recusado_loja" : "recusado_carga", texto, quem);
   });
 }
 
@@ -6040,7 +6098,7 @@ function clEnviarStatus(id, status, motivo, quem){
    pela metade — some o aviso, não a decisão. Por isso ele roda depois e só informa. */
 function clAvisarFornecedor(id, status, quem){
   var sb=window.__SB; if(!sb||!sb.functions) return;
-  if(["aprovado","recusado","conferido","recusado_na_doca"].indexOf(status)<0) return;
+  if(["aprovado","recusado","conferido","recusado_carga","recusado_loja"].indexOf(status)<0) return;
   sb.functions.invoke("aviso-agendamento",{ body:{ id:id, status:status } })
     .then(function(r){
       var d=(r&&r.data)||null, erro=(r&&r.error)||null;
@@ -11230,6 +11288,10 @@ function uiConfirm(opts){
     if(icEl) icEl.style.display = (opts.html!=null && opts.cancel==="") ? "none" : "";
     var ok=document.getElementById("uiModalOk"), cancel=document.getElementById("uiModalCancel");
     ok.textContent=opts.ok||"Confirmar";
+    /* opts.perigo: botao vermelho. Verde e cor de "pode seguir" — num botao que
+       RECUSA uma entrega ele diz o contrario do que faz, e quem recebe clica no
+       automatico. */
+    ok.classList.toggle("btn-perigo", !!opts.perigo);
     var temCancel = opts.cancel!=="";
     cancel.textContent=opts.cancel||"Cancelar";
     cancel.style.display = temCancel ? "" : "none";
@@ -11238,7 +11300,13 @@ function uiConfirm(opts){
     ok.onclick=function(){ fechar(true); };
     cancel.onclick=function(){ fechar(false); };
     bg.onclick=function(e){ if(e.target===bg) fechar(false); };
-    document.onkeydown=function(e){ if(e.key==="Escape") fechar(false); else if(e.key==="Enter") fechar(true); };
+    /* opts.semEnter: quando a janela tem campo de escrever, Enter e quebra de linha,
+       nao "confirmar". Sem isso, quem aperta Enter no meio do motivo manda a recusa
+       pela metade — e a recusa e definitiva. */
+    document.onkeydown=function(e){
+      if(e.key==="Escape") fechar(false);
+      else if(e.key==="Enter" && !opts.semEnter) fechar(true);
+    };
     setTimeout(function(){ ok.focus(); }, 30);
   });
 }
