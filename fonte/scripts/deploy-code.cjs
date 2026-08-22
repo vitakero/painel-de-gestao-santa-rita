@@ -63,6 +63,9 @@ const PASTAS = [
   ["scripts", ".ts"],
   ["scripts/testes", ".cjs"],      // as travas que provam que nada quebrou
   ["email-templates", ""],         // o que o fornecedor e o funcionário recebem
+  ["scripts/central", ""],         // a Central Operacional (tela isolada + tipos)
+  ["src/config", ""],              // a configuração da loja
+  [".", ".cjs"],                   // os vigias que moram na raiz
 ];
 
 function varrer() {
