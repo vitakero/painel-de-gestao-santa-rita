@@ -4613,7 +4613,11 @@ body.com-wz #toasts{bottom:86px}
       if(a==="recarregar") irPara(pagAtual);
       return;
     }
-    if(ped){ uiToast("O detalhe do pedido abre quando o sistema da loja liberar os dados."); return; }
+    // O olho da lista de Pedidos. Ficou anos mostrando um recado enlatado dizendo que os
+    // dados "abrem quando o sistema da loja liberar" — e era mentira: os itens já estavam
+    // no banco e a tela que mostra eles já existia, usada quando o fornecedor vincula o
+    // pedido no agendamento. Faltava só apontar pra ela. (O dono pegou testando, 22/08.)
+    if(ped){ verItensDoPedido(ped.getAttribute("data-pedido")); return; }
     if(ver){ abrirDetalhe(ver.getAttribute("data-ver")); }
   });
 
