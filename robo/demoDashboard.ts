@@ -19547,10 +19547,22 @@ function czImprimir(){
       +'.pg{width:100%;aspect-ratio:'+folhaW+'/'+folhaH+';padding:'+pct((folhaH-CC.pgH)/2)+' '+pct((folhaW-CC.pgW)/2)+';box-sizing:border-box;overflow:hidden;break-inside:avoid;display:grid;grid-template-columns:repeat('+CC.cols+',minmax(0,1fr));grid-template-rows:repeat('+CC.rows+',minmax(0,1fr));gap:'+pct(gap)+';}.pg+.pg{page-break-before:always;}'
       +'.cell{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;}'
       /* O cartaz é uma fração da largura da célula, com a forma dele. Girado 90°, cobre a
-         célula inteira — e, fora do fluxo, não engana a trava anti-estouro com a altura
-         de antes de girar (era o que o encolhia para 71%). */
-      +'.cell>.poster{width:'+largPost.toFixed(3)+'%;aspect-ratio:'+razaoPost.toFixed(5)+';'
-        +(CC.rot?'position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(90deg);':'position:relative;')+'}'
+         célula inteira.
+
+         NADA DE position:absolute AQUI. O cartaz já ficou fora do fluxo, centrado com
+         left:50%/top:50% + translate(-50%,-50%). Na TELA isso funcionava perfeito — medi as
+         cinco placas e todas davam o mesmo tamanho, no mesmo lugar. No PAPEL não: quando o
+         Chrome pagina a folha, ele erra a posição do cartaz de baixo. Medido dentro do PDF:
+         o de cima certo, o de baixo empurrado 90,3pt para a direita e 230,8pt para baixo —
+         em TODAS as folhas, sempre o segundo. Ele saía pela borda e ficava cortado.
+         (Com um cartaz só, folha única, não aparecia: por isso demorei a achar.)
+
+         Agora o cartaz fica no fluxo normal e quem centraliza é a própria célula, que já é
+         flex com align/justify center. O giro é só o rotate, em cima do centro dele mesmo.
+         Isso não engana a trava anti-estouro: ela mede o PRÓPRIO cartaz (.poster), não a
+         célula, então a altura de antes de girar não entra na conta. */
+      +'.cell>.poster{width:'+largPost.toFixed(3)+'%;aspect-ratio:'+razaoPost.toFixed(5)+';position:relative;flex:none;'
+        +(CC.rot?'transform:rotate(90deg);':'')+'}'
       +'@media screen{html{background:#3c4043;}body{zoom:.45;background:#3c4043;padding:30px 0;}.pg{background:#fff;width:'+(_ehLand?'1122px':'794px')+';margin:0 auto 30px;box-shadow:0 8px 30px rgba(0,0,0,.45);}}';
     var cpg='';
     for(var ci=0;ci<itens.length;ci+=CC.cols*CC.rows){
