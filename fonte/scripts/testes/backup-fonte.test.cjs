@@ -42,7 +42,9 @@ console.log("\n=== Backup da fonte ===\n");
   [["sql", "o banco inteiro"],
    ["scripts", "os programas"],
    ["scripts/testes", "as travas"],
-   ["email-templates", "o que o fornecedor recebe"]].forEach(function (c, i) {
+   ["email-templates", "o que o fornecedor recebe"],
+   ["scripts/central", "a Central Operacional"],
+   ["src/config", "a configuração da loja"]].forEach(function (c, i) {
     eq((3 + i) + ") varre " + c[0] + " (" + c[1] + ")",
        DEP.indexOf('["' + c[0] + '"') >= 0, "true");
   });
@@ -56,14 +58,15 @@ console.log("\n=== Backup da fonte ===\n");
   const IGNORAR = new Set(["node_modules", "output", ".previa", ".git", "backups",
                            "assets", "docs", ".vercel", "dist"]);
   const EXT = [".sql", ".cjs", ".ts", ".bat", ".vbs"];
-  const PASTAS = ["sql", "scripts", "scripts/testes", "email-templates"];
+  const PASTAS = ["sql", "scripts", "scripts/testes", "email-templates",
+                  "scripts/central", "src/config", "."];
 
   const naLista = new Set((DEP.match(/\["([^"]+)", "robo\//g) || [])
     .map(function (m) { return m.slice(2, m.indexOf('", "robo/')); }));
 
   function coberto(rel) {
     if (naLista.has(rel)) return true;                 // vai pro robô
-    const dir = rel.slice(0, rel.lastIndexOf("/"));
+    const dir = rel.indexOf("/") < 0 ? "." : rel.slice(0, rel.lastIndexOf("/"));
     return PASTAS.indexOf(dir) >= 0;                   // cai na varredura
   }
 
@@ -82,7 +85,7 @@ console.log("\n=== Backup da fonte ===\n");
     });
   })("", 0);
 
-  eq("8) nenhum arquivo de fonte ficou sem cópia" + (fora.length ? " — " + fora.slice(0, 6).join(", ") : ""),
+  eq("9) nenhum arquivo de fonte ficou sem cópia" + (fora.length ? " — " + fora.slice(0, 6).join(", ") : ""),
      fora.length, 0);
 }
 
@@ -90,10 +93,10 @@ console.log("\n=== Backup da fonte ===\n");
 {
   // fonte/ e não robo/: a máquina da loja procura por nome dentro de robo/, e SQL
   // no meio do robô só serviria pra confundir a conferência dele.
-  eq("9) o backup vai para fonte/, longe do robô",
+  eq("10) o backup vai para fonte/, longe do robô",
      DEP.indexOf('"fonte/" + rel') >= 0, "true");
   const PUX = fs.readFileSync(path.join(RAIZ, "scripts", "puxar-codigo.cjs"), "utf8");
-  eq("10) e o robô da loja não tenta baixar nada de fonte/",
+  eq("11) e o robô da loja não tenta baixar nada de fonte/",
      PUX.indexOf("fonte/") >= 0, "false");
 }
 
@@ -102,10 +105,10 @@ console.log("\n=== Backup da fonte ===\n");
   // 178 arquivos = 178 commits. Se cada um disparasse uma publicação, o limite diário
   // do Vercel estouraria e o site pararia de atualizar, parecendo que o código não subiu.
   // O vercel.json só constrói com "[publicar]" na mensagem; a do backup é "deploy: ...".
-  eq("11) a mensagem do backup não é de publicação",
+  eq("12) a mensagem do backup não é de publicação",
      /message: "deploy: " \+ repoPath/.test(DEP), "true");
   const VER = fs.readFileSync(path.join(RAIZ, "vercel.json"), "utf8");
-  eq("12) e o site só publica com [publicar] na mensagem",
+  eq("13) e o site só publica com [publicar] na mensagem",
      VER.indexOf("[publicar]") >= 0, "true");
 }
 
