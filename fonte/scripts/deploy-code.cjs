@@ -57,8 +57,10 @@ const FILES = [
 //
 // Não dispara publicação no site: o vercel.json só constrói quando a mensagem do
 // commit tem "[publicar]", e a daqui é "deploy: ...".
+// O repositório de cima é PÚBLICO — é de lá que o painel e o portal são servidos.
+// Então aqui só entra o que já é público por natureza: o código que roda no navegador
+// de quem abre o site, e que qualquer um leria de qualquer jeito abrindo a página.
 const PASTAS = [
-  ["sql", ".sql"],                 // o banco: tabelas, funções, quem pode o quê
   ["scripts", ".cjs"],             // os que sobraram (montar-portal, publicar-*, previa-*, sicredi*)
   ["scripts", ".ts"],
   ["scripts/testes", ".cjs"],      // as travas que provam que nada quebrou
@@ -68,10 +70,26 @@ const PASTAS = [
   [".", ".cjs"],                   // os vigias que moram na raiz
 ];
 
-function varrer() {
+// O BANCO NÃO VAI PRO PÚBLICO.
+//
+// Em 22/08/2026 eu subi os 105 arquivos de SQL para o repositório público sem perguntar.
+// Não vazou senha nenhuma (os valores moram no .env, que nunca sobe), mas ficou visível a
+// planta do banco: cada tabela, cada função e — o que importa — cada regra de quem pode
+// ler o quê. Com um portal abrindo para 132 fornecedores de fora, isso é entregar o mapa
+// de onde procurar brecha. Tirei no mesmo dia.
+//
+// Para o SQL ter cópia, ele precisa de um repositório PRIVADO. Enquanto o Victor não
+// criar, o programa AVISA em vez de fingir que está tudo salvo — backup que a pessoa
+// pensa que tem e não tem é pior que não ter nenhum.
+const PASTAS_PRIVADAS = [
+  ["sql", ".sql"],                 // o banco: tabelas, funções, quem pode o quê
+];
+const REPO_FONTE = get("GITHUB_REPO_FONTE") || "";
+
+function varrer(pastas) {
   const achados = [];
   const jaTem = new Set(FILES.map(([lp]) => lp));
-  for (const [pasta, ext] of PASTAS) {
+  for (const [pasta, ext] of pastas) {
     const dir = path.join(__dirname, "..", pasta);
     if (!fs.existsSync(dir)) continue;
     for (const nome of fs.readdirSync(dir)) {
@@ -103,8 +121,8 @@ function shaGit(buf) {
 
 let pulados = 0;
 
-async function push(localPath, repoPath) {
-  const api = "https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/" + repoPath;
+async function push(localPath, repoPath, repo) {
+  const api = "https://api.github.com/repos/" + OWNER + "/" + (repo || REPO) + "/contents/" + repoPath;
   const buf = fs.readFileSync(path.join(__dirname, "..", localPath));
   const b64 = buf.toString("base64");
   let sha;
@@ -130,9 +148,22 @@ async function push(localPath, repoPath) {
   if (!TOKEN) { console.log("ERRO: GITHUB_TOKEN nao encontrado no .env"); process.exit(1); }
   console.log("Empurrando codigo para o GitHub...");
   for (const [lp, rp] of FILES) await push(lp, rp);
-  const extras = varrer();
+  const extras = varrer(PASTAS);
   for (const [lp, rp] of extras) await push(lp, rp);
+
+  // o banco só tem cópia se existir lugar fechado pra ele
+  const privados = varrer(PASTAS_PRIVADAS);
+  if (REPO_FONTE) {
+    for (const [lp, rp] of privados) await push(lp, rp, REPO_FONTE);
+    console.log("  banco: " + privados.length + " arquivo(s) salvos em " + OWNER + "/" + REPO_FONTE + " (privado)");
+  } else {
+    console.log("");
+    console.log("  ATENCAO: os " + privados.length + " arquivos de SQL do banco NAO tem copia.");
+    console.log("  Eles nao vao pro repositorio publico de proposito (expoem as regras de acesso).");
+    console.log("  Crie um repositorio PRIVADO e ponha o nome dele no .env:  GITHUB_REPO_FONTE=nome-do-repo");
+    console.log("");
+  }
   if (pulados) console.log("  (" + pulados + " arquivo(s) ja estavam iguais — nao reenviei)");
-  console.log("  backup da fonte: " + extras.length + " arquivo(s) acompanhados em fonte/");
+  console.log("  backup da fonte: " + extras.length + " arquivo(s) em fonte/ (publico)");
   console.log(">>> Codigo no GitHub atualizado. O servidor vai pegar na proxima rodada (ate ~5 min).");
 })().catch((e) => { console.log("ERRO:", e.message); process.exit(1); });
