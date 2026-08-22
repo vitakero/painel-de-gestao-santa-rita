@@ -31,16 +31,15 @@ console.log("\n=== Backup da fonte ===\n");
 // ------------------------------------------------------------ a varredura existe
 {
   eq("1) o deploy varre pasta, não depende de lista escrita à mão",
-     /function varrer\(\)/.test(DEP), "true");
+     /function varrer\(pastas\)/.test(DEP), "true");
   eq("2) e a varredura é chamada de verdade",
-     /const extras = varrer\(\);/.test(DEP), "true");
+     /const extras = varrer\(PASTAS\);/.test(DEP), "true");
 }
 
 // ------------------------------------------------------------ as pastas que importam
 {
   // Cada uma destas guarda algo que não se reconstrói de cabeça.
-  [["sql", "o banco inteiro"],
-   ["scripts", "os programas"],
+  [["scripts", "os programas"],
    ["scripts/testes", "as travas"],
    ["email-templates", "o que o fornecedor recebe"],
    ["scripts/central", "a Central Operacional"],
@@ -59,7 +58,7 @@ console.log("\n=== Backup da fonte ===\n");
                            "assets", "docs", ".vercel", "dist"]);
   const EXT = [".sql", ".cjs", ".ts", ".bat", ".vbs"];
   const PASTAS = ["sql", "scripts", "scripts/testes", "email-templates",
-                  "scripts/central", "src/config", "."];
+                  "scripts/central", "src/config", "."];  // sql conta: tem destino próprio (privado)
 
   const naLista = new Set((DEP.match(/\["([^"]+)", "robo\//g) || [])
     .map(function (m) { return m.slice(2, m.indexOf('", "robo/')); }));
@@ -85,18 +84,35 @@ console.log("\n=== Backup da fonte ===\n");
     });
   })("", 0);
 
-  eq("9) nenhum arquivo de fonte ficou sem cópia" + (fora.length ? " — " + fora.slice(0, 6).join(", ") : ""),
+  eq("9) nenhum arquivo fora do banco ficou sem cópia" + (fora.length ? " — " + fora.slice(0, 6).join(", ") : ""),
      fora.length, 0);
+}
+
+// ------------------------------------------------------------ o banco NAO vai pro publico
+{
+  // Em 22/08/2026 eu subi os 105 SQL para o repositório PÚBLICO sem perguntar. Não vazou
+  // senha (os valores moram no .env), mas ficou visível cada regra de quem pode ler o quê —
+  // com um portal abrindo para 132 fornecedores de fora, é entregar o mapa das brechas.
+  // Tirei no mesmo dia. Este teste existe pra não voltar por descuido.
+  eq("10) o SQL não está na lista do repositório público",
+     /const PASTAS = \[\s*\n\s*\["scripts", "\.cjs"\]/.test(DEP), "true");
+  eq("11) o SQL está na lista do repositório PRIVADO",
+     /const PASTAS_PRIVADAS = \[\s*\n\s*\["sql", "\.sql"\]/.test(DEP), "true");
+  eq("12) e o privado só recebe se existir repositório configurado",
+     /if \(REPO_FONTE\) \{/.test(DEP), "true");
+  // backup que a pessoa PENSA que tem e não tem é pior que não ter nenhum
+  eq("13) sem repositório privado, avisa em vez de calar",
+     DEP.indexOf("ATENCAO: os \" + privados.length + \" arquivos de SQL do banco NAO tem copia") >= 0, "true");
 }
 
 // ------------------------------------------------------------ vai pro lugar certo
 {
   // fonte/ e não robo/: a máquina da loja procura por nome dentro de robo/, e SQL
   // no meio do robô só serviria pra confundir a conferência dele.
-  eq("10) o backup vai para fonte/, longe do robô",
+  eq("14) o backup vai para fonte/, longe do robô",
      DEP.indexOf('"fonte/" + rel') >= 0, "true");
   const PUX = fs.readFileSync(path.join(RAIZ, "scripts", "puxar-codigo.cjs"), "utf8");
-  eq("11) e o robô da loja não tenta baixar nada de fonte/",
+  eq("15) e o robô da loja não tenta baixar nada de fonte/",
      PUX.indexOf("fonte/") >= 0, "false");
 }
 
@@ -105,10 +121,10 @@ console.log("\n=== Backup da fonte ===\n");
   // 178 arquivos = 178 commits. Se cada um disparasse uma publicação, o limite diário
   // do Vercel estouraria e o site pararia de atualizar, parecendo que o código não subiu.
   // O vercel.json só constrói com "[publicar]" na mensagem; a do backup é "deploy: ...".
-  eq("12) a mensagem do backup não é de publicação",
+  eq("16) a mensagem do backup não é de publicação",
      /message: "deploy: " \+ repoPath/.test(DEP), "true");
   const VER = fs.readFileSync(path.join(RAIZ, "vercel.json"), "utf8");
-  eq("13) e o site só publica com [publicar] na mensagem",
+  eq("17) e o site só publica com [publicar] na mensagem",
      VER.indexOf("[publicar]") >= 0, "true");
 }
 
