@@ -75,7 +75,7 @@ function varrer() {
     const dir = path.join(__dirname, "..", pasta);
     if (!fs.existsSync(dir)) continue;
     for (const nome of fs.readdirSync(dir)) {
-      const rel = pasta + "/" + nome;
+      const rel = (pasta === "." ? nome : pasta + "/" + nome);
       if (!fs.statSync(path.join(dir, nome)).isFile()) continue;
       if (ext && !nome.endsWith(ext)) continue;
       if (jaTem.has(rel)) continue;   // já sobe pro robô, não duplico
