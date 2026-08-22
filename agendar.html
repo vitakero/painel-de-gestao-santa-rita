@@ -299,6 +299,22 @@ body.com-wz #toasts{bottom:86px}
 .mcab b{font-size:16px;font-weight:800}
 .mcorpo{padding:18px 20px 22px}
 
+/* JANELA DE ALTURA FIXA — cabeçalho e rodapé parados, lista rolando no meio.
+   Antes a janela crescia junto com a lista: num pedido de 16 itens o fim ficava
+   fora da tela e não havia como chegar nele (o dono pegou testando em 22/08).
+   Os 52px descontados são o respiro do .mfundo, 26px em cima e 26 embaixo. */
+.mcaixa.alto{max-height:calc(100vh - 52px);display:flex;flex-direction:column}
+.mcaixa.alto > *{flex:0 0 auto}
+.mcaixa.alto > .rola{flex:1 1 auto;min-height:0;overflow:auto}
+.rola{padding:6px 20px 10px}
+/* rodapé fixo: o tamanho da carga não pode depender de rolar até o fim */
+.mpe{border-top:1px solid var(--borda);background:#f8fafb;padding:12px 20px;
+     display:flex;align-items:center;gap:28px;flex-wrap:wrap}
+.mpe .par label{display:block;font-size:10px;color:var(--txt3);text-transform:uppercase;
+     letter-spacing:.04em;font-weight:800}
+.mpe .par div{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums}
+.mpe .fim{margin-left:auto;font-size:12px;color:var(--txt2)}
+
 /* cabeçalho do detalhe */
 .det-cab{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:16px 20px;
          background:#f8fafb;border-bottom:1px solid var(--borda)}
@@ -2158,11 +2174,18 @@ body.com-wz #toasts{bottom:86px}
   // ============================================================
   // PEDIDOS
   // ============================================================
+  // A ficha de cada pedido, guardada quando a lista chega. O detalhe recebe so o id,
+  // e o cabecalho dele (numero, emissao, previsao) ja veio aqui — nao precisa ir de
+  // novo ao banco so pra repetir dado que o portal ja tem na mao.
+  var pedCache={};
+  function guardarPedidos(l){ for(var i=0;i<(l||[]).length;i++) if(l[i]&&l[i].id) pedCache[l[i].id]=l[i]; }
+
   function pagPedidos(){
     SB.rpc("forn_pedidos").then(function(r){
       if(pagAtual!=="pedidos") return;
       var d=deuCerto(r,"os pedidos"); if(d===null) return;
       var l=d.pedidos||[];
+      guardarPedidos(l);
 
       var h='<div class="linha-topo"><h2 class="h-sec">Pedidos<small>'+
             (d.ligado? l.length+(l.length===1?" pedido":" pedidos") : "Aguardando a ligação com o sistema da loja")+
@@ -2780,6 +2803,7 @@ body.com-wz #toasts{bottom:86px}
     SB.rpc("forn_pedidos").then(function(r){
       var d=(r&&r.data)||{};
       wz.pedidosLista = d.ok ? (d.pedidos||[]) : [];
+      guardarPedidos(wz.pedidosLista);
       // A lista chega DEPOIS do assistente abrir. Quem largou o XML nesse meio
       // tempo nao tinha com o que casar — agora tem, entao tento de novo.
       vincularPeloXml();
@@ -4272,27 +4296,68 @@ body.com-wz #toasts{bottom:86px}
 
   // O que falta dentro de um pedido. O banco confere o dono antes de
   // devolver linha — id de pedido alheio não abre nada.
+  //
+  // A janela tem ALTURA FIXA e a lista rola DENTRO dela. Antes ela crescia junto com
+  // a lista, e num pedido de 16 itens o fim ficava fora da tela sem como alcançar —
+  // o dono pegou testando em 22/08. Cabeçalho (de qual pedido é esta lista) e rodapé
+  // (o tamanho da carga) ficam parados: é o que se precisa enxergar o tempo todo
+  // enquanto se percorre a lista, e é justamente o que sumia ao rolar.
   function verItensDoPedido(id){
+    var p = pedCache[id] || null;
     SB.rpc("forn_pedido_itens",{p_id:id}).then(function(r){
       var d=(r&&r.data)||{};
       if(!d.ok){ uiAviso("Não consegui abrir", d.erro||"Pedido não encontrado."); return; }
-      var it=d.itens||[], h='';
-      if(!it.length) h='<p style="font-size:13px;color:var(--txt2)">Esse pedido não tem itens.</p>';
-      else {
-        h='<table class="res-tab"><thead><tr><th>Produto</th>'+
-          '<th class="n">Pedido</th><th class="n">Entregue</th><th class="n">Falta</th>'+
-          '</tr></thead><tbody>';
+      var it=d.itens||[];
+
+      // O que interessa para quem vai carregar o caminhão é o que FALTA, não o total
+      // do pedido: um pedido de 51 itens com 3 pendentes é uma entrega de 3.
+      var nFalta=0, vFalta=0;
+      for(var k=0;k<it.length;k++){
+        var sk=parseFloat(it[k].saldo)||0, vk=parseFloat(it[k].valor_unit)||0;
+        if(sk>0){ nFalta++; vFalta+=sk*vk; }
+      }
+
+      var h='<div class="det-cab">'+
+        '<div class="quem"><b>'+esc(p&&p.numero?("Pedido "+p.numero):"Pedido")+'</b>'+
+        '<span>'+esc(meuNome||"")+'</span></div>';
+      if(p&&p.emissao)  h+='<div class="par"><span class="ic">'+IC.papel+'</span>'+
+        '<div><label>Emissão</label><div>'+esc(p.emissao)+'</div></div></div>';
+      if(p&&p.previsao) h+='<div class="par"><span class="ic">'+IC.cal+'</span>'+
+        '<div><label>Previsão de entrega</label><div>'+esc(p.previsao)+'</div></div></div>';
+      h+='<div class="par"><span class="ic">'+IC.caixa+'</span>'+
+        '<div><label>Itens a entregar</label><div>'+nFalta+' de '+it.length+'</div></div></div>';
+      if(p&&p.situacao) h+='<div class="fim"><span class="selo aberto">'+esc(p.situacao)+'</span></div>';
+      h+='</div>';
+
+      if(!it.length){
+        h+='<div class="rola"><p style="font-size:13px;color:var(--txt2);padding:20px 0">'+
+           'Esse pedido não tem itens.</p></div>';
+      } else {
+        h+='<div class="rola"><table class="res-tab"><thead><tr><th>Produto</th>'+
+           '<th class="n">Pedido</th><th class="n">Entregue</th><th class="n">Falta</th>'+
+           '<th class="n">Valor un.</th><th class="n">A entregar</th>'+
+           '</tr></thead><tbody>';
         for(var i=0;i<it.length;i++){
-          var x=it[i], falta=parseFloat(x.saldo)||0;
+          var x=it[i], falta=parseFloat(x.saldo)||0, vu=parseFloat(x.valor_unit)||0;
           h+='<tr'+(falta<=0?' style="opacity:.45"':'')+'>'+
-             '<td><b>'+esc(x.descricao||"—")+'</b></td>'+
+             '<td><b>'+esc(x.descricao||"—")+'</b>'+
+             (x.codigo?'<span class="ch" style="display:block;margin-top:2px">'+esc(x.codigo)+
+                       (x.unidade?" · "+esc(x.unidade):"")+'</span>':'')+'</td>'+
              '<td class="n">'+esc(numero(x.qtd_pedida))+'</td>'+
              '<td class="n">'+esc(numero(x.qtd_entregue))+'</td>'+
-             '<td class="n"><b>'+esc(numero(x.saldo))+'</b></td></tr>';
+             '<td class="n"><b>'+esc(numero(x.saldo))+'</b></td>'+
+             '<td class="n">'+esc(moeda(vu))+'</td>'+
+             '<td class="n">'+(falta>0?esc(moeda(falta*vu)):"—")+'</td></tr>';
         }
-        h+='</tbody></table>';
+        h+='</tbody></table></div>'+
+           '<div class="mpe">'+
+           '<div class="par"><label>Itens a entregar</label><div>'+nFalta+'</div></div>'+
+           '<div class="par"><label>Valor a entregar</label><div>'+esc(moeda(vFalta))+'</div></div>'+
+           '<div class="fim">'+it.length+(it.length===1?" item":" itens")+' no pedido</div>'+
+           '</div>';
       }
-      uiModal({titulo:"O que falta neste pedido", corpo:'<div class="res-rola">'+h+'</div>', tam:"largo"});
+
+      uiModal({titulo:"Detalhes do pedido", cru:true, tam:"alto", corpo:h});
     });
   }
 
