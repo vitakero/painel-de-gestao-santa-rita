@@ -110,6 +110,31 @@ const headers = {
   "X-GitHub-Api-Version": "2022-11-28",
 };
 
+// ============================================================
+// UM ENVIO SÓ, NÃO UM POR ARQUIVO
+//
+// A versão antiga escrevia arquivo por arquivo (PUT em /contents/...). Cada PUT vira um
+// commit, e cada commit vira uma tentativa de publicação no Vercel — que tem limite
+// diário. Em 22/08/2026 o backup da fonte mandou 183 arquivos de uma vez, virou 183
+// commits, e o Vercel travou: "Deployment rate limited — retry in 24 hours". O site no ar
+// continuou de pé, mas ficou 24h sem poder ser atualizado. O comentário do próprio código
+// já avisava desse limite; eu achei que a regra do vercel.json protegia, e não protege —
+// ela impede a CONSTRUÇÃO, não a tentativa, e é a tentativa que conta no limite.
+//
+// Agora vai tudo num commit só, pelo caminho de baixo do git:
+//   1. lê a árvore inteira do repositório numa chamada (em vez de um GET por arquivo)
+//   2. manda só o conteúdo do que mudou como "blob" — blob NÃO é commit, não conta nada
+//   3. monta uma árvore nova em cima da atual
+//   4. faz UM commit e move o galho pra ele
+//
+// 183 arquivos = 1 publicação, não 183.
+// ============================================================
+async function gh(caminho, opts) {
+  const r = await fetch("https://api.github.com" + caminho, Object.assign({ headers }, opts || {}));
+  if (!r.ok) throw new Error(caminho + " -> " + r.status + " " + (await r.text()).slice(0, 200));
+  return r.json();
+}
+
 // SHA do git pro conteudo do arquivo. E o mesmo numero que a API do GitHub devolve,
 // entao da pra saber se o arquivo LA e identico ao daqui sem precisar baixar nada.
 function shaGit(buf) {
@@ -119,43 +144,62 @@ function shaGit(buf) {
   return h.digest("hex");
 }
 
-let pulados = 0;
+async function enviarLote(arquivos, repo, mensagem) {
+  const base = "/repos/" + OWNER + "/" + repo;
+  const ref = await gh(base + "/git/ref/heads/main");
+  const commitAtual = await gh(base + "/git/commits/" + ref.object.sha);
+  const arvore = await gh(base + "/git/trees/" + commitAtual.tree.sha + "?recursive=1");
+  const laDentro = new Map(arvore.tree.filter((t) => t.type === "blob").map((t) => [t.path, t.sha]));
 
-async function push(localPath, repoPath, repo) {
-  const api = "https://api.github.com/repos/" + OWNER + "/" + (repo || REPO) + "/contents/" + repoPath;
-  const buf = fs.readFileSync(path.join(__dirname, "..", localPath));
-  const b64 = buf.toString("base64");
-  let sha;
-  const r1 = await fetch(api, { headers });
-  if (r1.status === 200) sha = (await r1.json()).sha;
-  else if (r1.status !== 404) throw new Error(repoPath + " leitura " + r1.status + ": " + (await r1.text()));
+  // NAO REESCREVER O QUE JA ESTA IGUAL — comparando pelo sha, sem baixar nada.
+  const mudaram = [];
+  for (const [lp, rp] of arquivos) {
+    const buf = fs.readFileSync(path.join(__dirname, "..", lp));
+    if (laDentro.get(rp) === shaGit(buf)) { pulados++; continue; }
+    mudaram.push([rp, buf]);
+  }
+  if (!mudaram.length) return [];
 
-  // NAO REESCREVER O QUE JA ESTA IGUAL.
-  // Antes isso aqui empurrava os 14 arquivos toda vez, mudassem ou nao. Cada envio vira
-  // um commit, e cada commit dispara uma publicacao no Vercel — que tem limite diario.
-  // Num dia de muitos ajustes o limite estourava e o site parava de atualizar, parecendo
-  // que o codigo nao tinha subido. Agora so sobe o que realmente mudou.
-  if (sha && sha === shaGit(buf)) { pulados++; return; }
-
-  const body = { message: "deploy: " + repoPath, content: b64 };
-  if (sha) body.sha = sha;
-  const r2 = await fetch(api, { method: "PUT", headers, body: JSON.stringify(body) });
-  if (r2.status !== 200 && r2.status !== 201) throw new Error(repoPath + " envio " + r2.status + ": " + (await r2.text()));
-  console.log("  enviado -> " + repoPath);
+  const itens = [];
+  for (const [rp, buf] of mudaram) {
+    const blob = await gh(base + "/git/blobs", {
+      method: "POST",
+      body: JSON.stringify({ content: buf.toString("base64"), encoding: "base64" }),
+    });
+    itens.push({ path: rp, mode: "100644", type: "blob", sha: blob.sha });
+  }
+  const nova = await gh(base + "/git/trees", {
+    method: "POST",
+    body: JSON.stringify({ base_tree: commitAtual.tree.sha, tree: itens }),
+  });
+  const novoCommit = await gh(base + "/git/commits", {
+    method: "POST",
+    body: JSON.stringify({ message: mensagem, tree: nova.sha, parents: [ref.object.sha] }),
+  });
+  await gh(base + "/git/refs/heads/main", {
+    method: "PATCH",
+    body: JSON.stringify({ sha: novoCommit.sha }),
+  });
+  return mudaram.map(([rp]) => rp);
 }
+
+let pulados = 0;
 
 (async () => {
   if (!TOKEN) { console.log("ERRO: GITHUB_TOKEN nao encontrado no .env"); process.exit(1); }
   console.log("Empurrando codigo para o GitHub...");
-  for (const [lp, rp] of FILES) await push(lp, rp);
+
   const extras = varrer(PASTAS);
-  for (const [lp, rp] of extras) await push(lp, rp);
+  const publicos = FILES.concat(extras);
+  const enviados = await enviarLote(publicos, REPO, "deploy: codigo e backup da fonte (" + publicos.length + " arquivos)");
+  enviados.forEach((rp) => console.log("  enviado -> " + rp));
+  if (!enviados.length) console.log("  (nada mudou desde o ultimo envio)");
 
   // o banco só tem cópia se existir lugar fechado pra ele
   const privados = varrer(PASTAS_PRIVADAS);
   if (REPO_FONTE) {
-    for (const [lp, rp] of privados) await push(lp, rp, REPO_FONTE);
-    console.log("  banco: " + privados.length + " arquivo(s) salvos em " + OWNER + "/" + REPO_FONTE + " (privado)");
+    const n = await enviarLote(privados, REPO_FONTE, "backup do banco (" + privados.length + " arquivos)");
+    console.log("  banco: " + n.length + " arquivo(s) novos em " + OWNER + "/" + REPO_FONTE + " (privado)");
   } else {
     console.log("");
     console.log("  ATENCAO: os " + privados.length + " arquivos de SQL do banco NAO tem copia.");
@@ -163,7 +207,8 @@ async function push(localPath, repoPath, repo) {
     console.log("  Crie um repositorio PRIVADO e ponha o nome dele no .env:  GITHUB_REPO_FONTE=nome-do-repo");
     console.log("");
   }
+
   if (pulados) console.log("  (" + pulados + " arquivo(s) ja estavam iguais — nao reenviei)");
   console.log("  backup da fonte: " + extras.length + " arquivo(s) em fonte/ (publico)");
-  console.log(">>> Codigo no GitHub atualizado. O servidor vai pegar na proxima rodada (ate ~5 min).");
+  console.log(">>> Codigo no GitHub atualizado, em UM envio so. O servidor pega na proxima rodada (ate ~5 min).");
 })().catch((e) => { console.log("ERRO:", e.message); process.exit(1); });
