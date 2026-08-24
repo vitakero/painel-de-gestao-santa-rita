@@ -2693,153 +2693,80 @@ body.com-wz #toasts{bottom:86px}
     var nfs=(d.notas_fiscais||[]).map(function(n){ return n.chave||n.numero||""; }).filter(Boolean);
     var pds=(d.lista_pedidos||[]).map(function(p){ return p.numero; }).filter(Boolean);
 
-    // A CHAVE DA NOTA TEM 44 DÍGITOS EM FILA.
-    // Impressa em bloco, ninguém confere e ninguém digita sem errar. Em grupos de quatro,
-    // dá para ler em voz alta na portaria e para achar o lugar de onde parou.
-    function chaveFmt(v){
-      // BARRA DUPLA: este arquivo inteiro é um template literal, e \\d escrito com uma
-      // barra só chega no navegador como "d" — a expressão vira outra coisa em silêncio.
-      var x=String(v||"").replace(/\\D/g,"");
-      return (x.length===44) ? x.replace(/(\\d{4})(?=\\d)/g, "$1 ") : String(v||"");
-    }
-    // "não informado" em cinza claro: continua honesto, mas para de gritar mais alto
-    // que o dado de verdade — era metade da folha em negrito dizendo que faltava coisa.
-    function val(v){ return v ? esc(v) : '<i class="vazio">não informado</i>'; }
-    function lin(r,v){ return '<div class="li"><label>'+esc(r)+'</label><div>'+val(v)+'</div></div>'; }
-
-    var sit=String(d.situacao||"");
-    var sitCls = (sit==="confirmada"||sit==="concluida") ? "ok"
-               : (sit==="recusada"||sit==="cancelada")   ? "nao" : "esp";
+    function lin(r,v){ return '<tr><th>'+esc(r)+'</th><td>'+esc(v||"não informado")+'</td></tr>'; }
 
     var doc='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">'+
       '<title>Comprovante '+esc(d.ticket)+'</title><style>'+
-      '@page{size:A4;margin:14mm 13mm}'+
-      /* DOCUMENTO DE PAPEL, SEMPRE CLARO.
-         Sem isto o comprovante herda o modo escuro do navegador de quem abre: o fundo
-         vira preto, e o texto — que é escuro de propósito, para imprimir — some. No
-         papel sairia certo, mas ninguém confere um documento que não consegue ler na
-         tela antes de mandar imprimir. */
-      ':root{color-scheme:light only}'+
-      'html,body{background:#fff}'+
-      '*{box-sizing:border-box}'+
-      'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;'+
-        'color:#16202b;font-size:11.5px;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
-
-      /* topo */
-      '.topo{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;'+
-        'padding-bottom:14px;border-bottom:2px solid #0c5a26}'+
-      '.marca{display:flex;align-items:center;gap:11px}'+
-      '.marca img{width:46px;height:38px;object-fit:contain}'+
-      '.marca b{display:block;font-size:14px;line-height:1.2}'+
-      '.marca span{display:block;font-size:10px;color:#7a858f;margin-top:2px}'+
-      '.doc{text-align:right}'+
-      '.doc span{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.09em;color:#7a858f}'+
-      '.doc b{display:block;font-size:22px;letter-spacing:.01em;color:#0c5a26;margin-top:3px;'+
-        'font-variant-numeric:tabular-nums}'+
-
-      /* o bloco que a portaria olha */
-      '.hero{border:1px solid #cfe0d5;border-radius:10px;margin-top:14px;overflow:hidden}'+
-      '.hero .sit{padding:7px 14px;font-size:10px;font-weight:800;text-transform:uppercase;'+
-        'letter-spacing:.09em}'+
-      '.hero .sit.ok{background:#e8f5ec;color:#0c5a26}'+
-      '.hero .sit.esp{background:#fff6e6;color:#8a5a10}'+
-      '.hero .sit.nao{background:#fdecec;color:#9a2020}'+
-      '.quando{display:flex;border-top:1px solid #e6ecea}'+
-      '.quando > div{flex:1;padding:12px 14px;border-left:1px solid #e6ecea}'+
-      '.quando > div:first-child{border-left:0}'+
-      '.quando label{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.08em;'+
-        'color:#7a858f;font-weight:700}'+
-      '.quando b{display:block;font-size:17px;margin-top:4px;line-height:1.15;'+
-        'font-variant-numeric:tabular-nums}'+
-      '.quando small{display:block;font-size:10px;color:#7a858f;margin-top:3px}'+
-
-      /* as seções, duas colunas */
-      '.cols{display:flex;gap:16px;margin-top:16px}'+
-      '.col{flex:1;min-width:0}'+
-      'section{margin-bottom:14px}'+
-      'h2{font-size:9.5px;text-transform:uppercase;letter-spacing:.09em;color:#0c5a26;'+
-        'margin:0 0 7px;padding-bottom:4px;border-bottom:1px solid #e6ecea;font-weight:800}'+
-      '.li{display:flex;gap:10px;padding:3.5px 0;align-items:baseline}'+
-      '.li label{flex:0 0 42%;font-size:10.5px;color:#7a858f}'+
-      '.li > div{flex:1;font-weight:700;min-width:0;word-break:break-word}'+
-      '.vazio{font-style:normal;font-weight:400;color:#b3bcc4}'+
-      '.chave{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;'+
-        'letter-spacing:.02em;line-height:1.55;font-weight:600}'+
-      '.pedido{display:inline-block;border:1px solid #cfe0d5;background:#f4faf6;border-radius:5px;'+
-        'padding:1px 7px;margin:0 4px 4px 0;font-weight:800;font-variant-numeric:tabular-nums}'+
-
-      '.aviso{margin-top:2px;border:1px solid #ffd9a8;background:#fff8ee;border-radius:8px;'+
-        'padding:10px 13px;font-size:10.5px;color:#8a5a10;line-height:1.5}'+
-      '.aviso b{color:#7a4a06}'+
-      '.pe{margin-top:14px;padding-top:9px;border-top:1px solid #e6ecea;font-size:9.5px;'+
-        'color:#9aa5ad;display:flex;justify-content:space-between;gap:14px}'+
+      '@page{size:A4;margin:16mm 15mm}'+
+      'body{font-family:Arial,Helvetica,sans-serif;color:#1d2733;font-size:12px;margin:0}'+
+      '.cab{display:flex;align-items:center;gap:14px;border-bottom:3px solid #157a35;padding-bottom:12px;margin-bottom:16px}'+
+      '.cab img{width:56px;height:46px;object-fit:contain}'+
+      '.cab h1{margin:0;font-size:17px;color:#0c5a26}'+
+      '.cab p{margin:2px 0 0;font-size:11px;color:#69747f}'+
+      '.cab .cod{margin-left:auto;text-align:right}'+
+      '.cab .cod b{display:block;font-size:19px;letter-spacing:.02em}'+
+      '.cab .cod span{font-size:10px;color:#69747f;text-transform:uppercase;letter-spacing:.06em}'+
+      'h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#69747f;margin:18px 0 6px;'+
+      'border-bottom:1px solid #e4e9ef;padding-bottom:4px}'+
+      'table{width:100%;border-collapse:collapse}'+
+      'th{text-align:left;width:180px;padding:5px 0;font-size:11px;color:#69747f;font-weight:600;vertical-align:top}'+
+      'td{padding:5px 0;font-weight:700;vertical-align:top}'+
+      '.destaque{background:#f4faf6;border:1px solid #c5e3ce;border-radius:8px;padding:12px 14px;margin:14px 0}'+
+      '.destaque b{font-size:15px;color:#0c5a26}'+
+      '.alerta{background:#fff4e5;border:1px solid #ffd9a8;border-radius:8px;padding:10px 13px;'+
+      'margin:14px 0;font-size:11.5px;color:#9a5b12}'+
+      '.pe{margin-top:24px;border-top:1px solid #e4e9ef;padding-top:10px;font-size:10.5px;color:#98a3ae}'+
       '</style></head><body>'+
+      '<div class="cab"><img src="${LOGO}" alt="">'+
+      '<div><h1>Comprovante de agendamento</h1>'+
+      '<p>Supermercado Santa Rita · Caicó/RN</p></div>'+
+      '<div class="cod"><span>Ticket</span><b>'+esc(d.ticket)+'</b></div></div>'+
 
-      '<div class="topo">'+
-        '<div class="marca"><img src="${LOGO}" alt="">'+
-        '<div><b>Supermercado Santa Rita</b><span>Caicó · Rio Grande do Norte</span></div></div>'+
-        '<div class="doc"><span>Comprovante de agendamento</span><b>'+esc(d.ticket)+'</b></div>'+
-      '</div>'+
-
-      '<div class="hero">'+
-        '<div class="sit '+sitCls+'">'+esc(TXT_SIT[d.situacao]||d.situacao)+'</div>'+
-        '<div class="quando">'+
-          '<div><label>Data</label><b>'+esc(pC?pC.curta:(pS?pS.curta:"a definir"))+'</b>'+
-            '<small>'+esc(pC?pC.longa:(pS?pS.longa:""))+'</small></div>'+
-          '<div><label>Horário</label><b>'+
-            (pC ? esc(pC.hora)+(d.confirmada_ate?' – '+esc(d.confirmada_ate):'')
-                : (pS ? esc(pS.hora)+(d.solicitada_ate?' – '+esc(d.solicitada_ate):'') : "a definir"))+
-            '</b><small>'+(d.minutos?esc(d.minutos)+' minutos':'')+
-            (d.confirmada?'':' · ainda não confirmado pela loja')+'</small></div>'+
-          '<div><label>Local</label><b>'+esc(d.doca||d.local||"")+'</b>'+
-            '<small>'+esc(d.endereco||d.local||"")+'</small></div>'+
-        '</div>'+
+      '<div class="destaque"><b>'+esc(TXT_SIT[d.situacao]||d.situacao).toUpperCase()+'</b><br>'+
+      (d.confirmada
+        ? 'Horário confirmado: <b>'+esc(pC?pC.curta:"")+' às '+esc(pC?pC.hora:"")+
+          (d.confirmada_ate?' até '+esc(d.confirmada_ate):'')+'</b>'
+        : 'Ainda aguardando a confirmação da loja.')+
       '</div>'+
 
       (d.confirmada && d.solicitada && String(d.confirmada).slice(0,16)!==String(d.solicitada).slice(0,16)
-        ? '<div class="aviso" style="margin-top:12px"><b>A loja confirmou em horário diferente do solicitado.</b> '+
-          'Você havia pedido '+esc(pS?pS.curta+" às "+pS.hora:"")+'. '+
-          'Se não puder cumprir o novo horário, cancele o agendamento pelo portal.</div>' : '')+
+        ? '<div class="alerta">ATENÇÃO: a loja confirmou em horário diferente do solicitado. '+
+          'Se não puder cumprir, cancele o agendamento pelo portal.</div>' : '')+
 
-      '<div class="cols"><div class="col">'+
-        '<section><h2>Quem entrega</h2>'+
-          lin("Fornecedor", d.fornecedor)+
-          lin("CNPJ", d.cnpj?cnpjFmt(d.cnpj):"")+
-          ((d.transportadora||d.transportadora_cnpj)
-             ? lin("Transportadora", d.transportadora||cnpjFmt(d.transportadora_cnpj)) : "")+
-        '</section>'+
-        '<section><h2>Motorista e veículo</h2>'+
-          lin("Motorista", d.motorista)+
-          lin("Telefone", d.motorista_fone)+
-          lin("Tipo de veículo", d.tipo_veiculo)+
-          lin("Placa", d.placa)+
-        '</section>'+
-      '</div><div class="col">'+
-        '<section><h2>A carga</h2>'+
-          lin("Tipo de carga", d.tipo_carga)+
-          lin("Tipo de volume", d.tipo_volume)+
-          lin("Volumes", d.qtd_volumes?numero(d.qtd_volumes):"")+
-          lin("Peso", d.peso_kg?numero(d.peso_kg)+" kg":"")+
-        '</section>'+
-        '<section><h2>Pedidos de compra</h2>'+
-          (pds.length
-            ? '<div>'+pds.map(function(x){ return '<span class="pedido">'+esc(x)+'</span>'; }).join("")+'</div>'
-            : '<div class="li"><div><i class="vazio">nenhum pedido informado</i></div></div>')+
-        '</section>'+
-      '</div></div>'+
+      '<h2>A entrega</h2><table>'+
+      lin("Fornecedor", d.fornecedor)+
+      lin("CNPJ", d.cnpj?cnpjFmt(d.cnpj):"")+
+      ((d.transportadora||d.transportadora_cnpj)
+         ?lin("Transportadora", d.transportadora||cnpjFmt(d.transportadora_cnpj)):"")+
+      lin("Local de entrega", d.local)+
+      (d.endereco?lin("Endereço", d.endereco):"")+
+      (d.doca?lin("Doca", d.doca):"")+
+      lin("Horário solicitado", pS?(pS.curta+" às "+pS.hora+(d.solicitada_ate?" até "+d.solicitada_ate:"")):"")+
+      lin("Horário confirmado", pC?(pC.curta+" às "+pC.hora+(d.confirmada_ate?" até "+d.confirmada_ate:"")):"aguardando")+
+      lin("Duração prevista", d.minutos?d.minutos+" minutos":"")+
+      '</table>'+
 
-      '<section style="margin-top:-2px"><h2>Notas fiscais</h2>'+
-        (nfs.length
-          ? '<div class="chave">'+nfs.map(function(x){ return esc(chaveFmt(x)); }).join('<br>')+'</div>'
-          : '<div class="li"><div><i class="vazio">nenhuma nota informada</i></div></div>')+
-      '</section>'+
+      '<h2>A carga</h2><table>'+
+      lin("Tipo de carga", d.tipo_carga)+
+      lin("Tipo de volume", d.tipo_volume)+
+      lin("Quantidade de volumes", d.qtd_volumes?numero(d.qtd_volumes):"")+
+      lin("Peso", d.peso_kg?numero(d.peso_kg)+" kg":"")+
+      lin("Notas fiscais", nfs.length?nfs.join("  ·  "):"")+
+      lin("Pedidos", pds.length?pds.join("  ·  "):"")+
+      '</table>'+
 
-      '<div class="aviso"><b>Apresente este comprovante na portaria.</b> O motorista deve estar '+
-      'presente no horário confirmado — a doca é reservada só para esta janela, e atrasos podem '+
-      'exigir novo agendamento.</div>'+
+      '<h2>Motorista e veículo</h2><table>'+
+      lin("Motorista", d.motorista)+
+      lin("Telefone", d.motorista_fone)+
+      lin("Tipo de caminhão", d.tipo_veiculo)+
+      lin("Placa", d.placa)+
+      '</table>'+
 
-      '<div class="pe"><span>Emitido pelo Portal do Fornecedor · Supermercado Santa Rita</span>'+
-      '<span>'+esc(location.origin+location.pathname)+'</span></div>'+
+      '<div class="alerta" style="margin-top:18px">IMPORTANTE: o motorista deve estar presente no horário '+
+      'confirmado. Apresente este comprovante na portaria.</div>'+
+
+      '<div class="pe">Emitido pelo Portal do Fornecedor do Supermercado Santa Rita. '+
+      'Acompanhe seus agendamentos em '+esc(location.origin+location.pathname)+'</div>'+
       '</body></html>';
 
     var f=el("impressora");
