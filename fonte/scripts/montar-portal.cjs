@@ -425,7 +425,15 @@ body.com-wz #toasts{bottom:86px}
    resto. O dono estranhou isso olhando os detalhes do agendamento.
    Em tela estreita não divido a rolagem em duas: numa coluna só, dois pedaços rolando
    separados é pior que um. Aí rola o miolo inteiro. */
-.mcaixa.alto > .det-corpo{flex:1 1 auto;min-height:0}
+/* O INVOLUCRO DO MEIO.
+   A janela de detalhes nao pendura o conteudo direto na caixa: ele mora dentro de um
+   #detCorpo, que o uiModal cria. O seletor "filho direto" nao atravessa isso, entao a
+   altura nunca chegava no .det-corpo e nada rolava — a caixa so cortava.
+   Eu nao tinha visto porque montei a previa a mao, SEM esse involucro: rolava aqui e
+   travava no portal. Previa que nao reproduz a estrutura de verdade nao prova nada.
+   Agora o involucro estica junto (.mrola) e repassa a altura para dentro. */
+.mcaixa.alto > .mrola{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.mcaixa.alto .mrola > .det-corpo{flex:1 1 auto;min-height:0}
 .mcaixa.alto .det-main{overflow:auto;min-height:0}
 .mcaixa.alto .det-lado{overflow:auto;min-height:0}
 
@@ -448,7 +456,7 @@ body.com-wz #toasts{bottom:86px}
   border:2px solid transparent;background-clip:content-box}
 .rolavel::-webkit-scrollbar-thumb:hover{background:#a9b7b0;background-clip:content-box}
 @media (max-width:820px){
-  .mcaixa.alto > .det-corpo{overflow:auto}
+  .mcaixa.alto .det-corpo{overflow:auto}
   .mcaixa.alto .det-main,.mcaixa.alto .det-lado{overflow:visible}
 }
 @media (max-width:820px){ .det-lado{border-left:0;border-top:1px solid var(--borda)} }
@@ -2377,7 +2385,7 @@ body.com-wz #toasts{bottom:86px}
   function abrirDetalhe(id, aba){
     detAba=aba||"informacoes";
     var c=uiModal({titulo:"Detalhes do agendamento", cru:true, tam:"alto",
-                   corpo:'<div id="detCorpo">'+uiCarregando()+'</div>'});
+                   corpo:'<div id="detCorpo" class="mrola">'+uiCarregando()+'</div>'});
     SB.rpc("forn_agenda",{p_id:id}).then(function(r){
       var d=(r&&r.data)||{};
       if(!d.ok){

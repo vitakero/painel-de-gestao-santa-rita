@@ -25,6 +25,9 @@ const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&": "&am
   const dd = t => t ? new Date(t).toLocaleDateString("pt-BR") : "";
 
   const campo = (r, v) => '<div class="cp"><label>' + esc(r) + '</label><div>' + (v ? esc(v) : "—") + "</div></div>";
+  // conteúdo LONGO de propósito: é com pouca coisa que o defeito se esconde
+  const itensNota = await pega("receb_notas_vr?select=itens&emitente_cnpj=eq." + (forn.cnpj || "").replace(/\D/g, "") + "&order=emissao.desc&limit=1");
+  const prods = (itensNota[0] && itensNota[0].itens) || [];
   const corpo =
     '<div class="campos">' +
     campo("Solicitante", "Victor") + campo("Fornecedor", forn.razao_social) +
@@ -37,16 +40,30 @@ const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&": "&am
     campo("Qtd. de volumes", a.qtd_volumes) + campo("Peso", a.peso_kg + " kg") +
     campo("Tipo de caminhão", a.tipo_veiculo) + campo("Placa", a.placa) +
     campo("Motorista", a.motorista) + campo("Telefone do motorista", a.motorista_fone) +
-    "</div>";
+    "</div>" +
+    (prods.length ? '<h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#8a949c;margin:18px 0 6px">' +
+      "O que vem nesta nota — " + prods.length + " produtos</h4>" +
+      '<table class="res-tab"><thead><tr><th>Produto</th><th class="n">Qtd</th><th class="n">Unitário</th></tr></thead><tbody>' +
+      prods.map(x => "<tr><td><b>" + esc(x.descricao) + "</b></td><td class=\"n\">" +
+        esc(x.qtd) + " " + esc(x.unidade || "") + '</td><td class="n">R$ ' + esc(x.valor_unit) + "</td></tr>").join("") +
+      "</tbody></table>" : "");
 
   const ABAS = [["informacoes", "Informações"], ["notas", "Notas Fiscais"], ["pedidos", "Pedidos"],
                 ["obs", "Observações"], ["anexos", "Anexos"], ["dev", "Devoluções"]];
 
+  // A ESTRUTURA TEM QUE SER A DE VERDADE, INVOLUCRO INCLUIDO.
+  // O uiModal monta:  .mfundo > .mcaixa[tam] > .mcab + <corpo>
+  // e a janela de detalhes passa como corpo um <div id="detCorpo" class="mrola">.
+  // Na primeira versao desta previa eu pulei esse involucro e montei o conteudo direto
+  // na caixa. Resultado: rolava na previa e travava no portal, porque o CSS usava
+  // "filho direto" e nao atravessava o #detCorpo. Previa que nao reproduz a estrutura
+  // de verdade nao prova nada — foi assim que eu publiquei um conserto que nao consertava.
   const modal =
     '<div class="mfundo" style="position:fixed"><div class="mcaixa alto">' +
     '<div class="mcab"><b>Detalhes do agendamento</b>' +
     '<button class="icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
     '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>' +
+    '<div id="detCorpo" class="mrola">' +
     '<div class="det-cab">' +
       '<div class="quem"><b>' + esc(forn.razao_social) + '</b><span>' + esc(loc.nome) + " · " + esc(doca.nome) + '</span></div>' +
       '<div class="par"><span class="ic">' + ic("cal") + '</span><div><label>Data</label>' +
