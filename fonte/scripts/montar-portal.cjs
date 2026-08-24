@@ -489,7 +489,9 @@ body.com-wz #toasts{bottom:86px}
    Em tela estreita ela volta a ficar em pe: deitada viraria rolagem lateral dentro de
    uma janela que ja rola pra baixo, e duas rolagens cruzadas confundem mais do que
    ajudam. */
-.hist{list-style:none;margin:0;padding:0 0 2px;display:flex;gap:0;overflow-x:auto}
+/* a folga da esquerda e de cima nao e enfeite: a argola do ponto passa 3,5px para
+   fora do circulo, e sem essa margem a primeira bola sai cortada na borda da lista */
+.hist{list-style:none;margin:0;padding:4px 0 2px 5px;display:flex;gap:0;overflow-x:auto}
 .hist li{flex:1 1 0;min-width:126px;position:relative;padding:26px 14px 0 0;
          font-size:11.5px;color:var(--txt2);line-height:1.45}
 .hist li:after{content:"";position:absolute;left:0;top:4px;width:10px;height:10px;border-radius:999px;
