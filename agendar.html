@@ -298,6 +298,9 @@ body.com-wz #toasts{bottom:86px}
       padding:15px 20px;border-bottom:1px solid var(--borda)}
 .mcab b{font-size:16px;font-weight:800}
 .mcorpo{padding:18px 20px 22px}
+/* a conta da conversao fardo -> unidade, escrita por extenso */
+.cnf-c{font-size:11.5px;color:var(--txt2);margin-top:4px;line-height:1.5}
+.cnf-c b{color:var(--txt);font-weight:800}
 /* o codigo do erro, pequeno e discreto: serve pra pessoa repetir pra gente */
 .erro-tec{font-size:11.5px;color:var(--txt2);margin:9px 0 13px;line-height:1.45;
           font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-word}
@@ -4115,10 +4118,24 @@ body.com-wz #toasts{bottom:86px}
     } else {
       dir='<b>'+esc(numero(x.qtd_nota))+'</b> de '+esc(numero(x.saldo))+' que o pedido espera';
     }
+    // MOSTRAR A CONTA DA CONVERSAO.
+    // A nota cobra por fardo e o pedido guarda preco por unidade; o servidor converte
+    // antes de comparar. Se a tela mostrasse so o numero convertido, no dia em que
+    // houver divergencia DE VERDADE ninguem entenderia de onde saiu o valor — e o
+    // fornecedor, que ve R$ 59,00 na nota dele, leria "nota R$ 2,95" e acharia que o
+    // portal errou. Entao a conta aparece escrita.
+    var conv = "";
+    if(x.convertido && x.fator){
+      conv = '<div class="cnf-c">A nota cobra por '+
+        (x.unidade? '<b>'+esc(x.unidade)+'</b>, que são ' : 'embalagem de ')+
+        '<b>'+esc(numero(x.fator))+'</b> unidades — então '+
+        esc(moeda(x.valor_original))+' ÷ '+esc(numero(x.fator))+' = <b>'+esc(moeda(x.valor_nota))+'</b> a unidade.</div>';
+    }
     return '<div class="cnf-i '+cls+'">'+
       '<div class="cnf-d"><b>'+esc(x.descricao)+'</b>'+
         (x.ean?'<span class="cnf-e">'+esc(x.ean)+'</span>':'')+'</div>'+
       '<div class="cnf-n">'+dir+'</div>'+
+      conv+
       (x.motivo?'<div class="cnf-m">'+esc(x.motivo)+'</div>':'')+
       '</div>';
   }
