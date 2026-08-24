@@ -45,15 +45,16 @@ console.log("\n=== Portal — a etapa Pedidos só quando há o que decidir ===\n
      /for\(var i=0;i<wz\.chaves\.length;i\+\+\)\{ if\(!wz\.chaves\[i\]\.vinc\) return cb\("pedidos"\); \}/.test(HTML), "true");
   eq("6) nota apontando outro pedido, para (o aviso mora naquela tela)",
      /if\(avisosDoPedido\(\)\) return cb\("pedidos"\);/.test(HTML), "true");
-  eq("7) sem o que conferir, para", /if\(!its\.length \|\| !peds\.length\) return cb\("pedidos"\);/.test(HTML), "true");
+  eq("7) sem o que conferir, para", /if\(!gruposParaConferir\(\)\.length\) return cb\("pedidos"\);/.test(HTML), "true");
   eq("8) a conferência achou problema, para", /if\(\(rs\.problemas\|\|0\) > 0\) return cb\("pedidos"\);/.test(HTML), "true");
 }
 
 // ------------------------------------------------------------ na dúvida, mostra
 {
   // pular por causa de um erro de rede seria esconder divergência real
+  // e o erro agora vem embrulhado pelo conferirGrupos, que junta as respostas
   eq("9) erro ao conferir leva pra tela, não pula",
-     /if\(r\.error \|\| !v\.ok \|\| !v\.conferido\) return cb\("pedidos"\);/.test(HTML), "true");
+     /if\(!v \|\| v\.erro\) return cb\("pedidos"\);/.test(HTML), "true");
   eq("10) e falha de rede também", /\}, function\(\)\{ cb\("pedidos"\); \}\);/.test(HTML), "true");
 }
 

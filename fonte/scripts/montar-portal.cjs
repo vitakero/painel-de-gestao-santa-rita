@@ -3100,12 +3100,11 @@ body.com-wz #toasts{bottom:86px}
     for(var i=0;i<wz.chaves.length;i++){ if(!wz.chaves[i].vinc) return cb("pedidos"); }
     if(avisosDoPedido()) return cb("pedidos");                          // nota aponta outro pedido
 
-    var its=itensDasNotas(), peds=pedidosDoAgendamento();
-    if(!its.length || !peds.length) return cb("pedidos");               // sem o que conferir
+    if(!gruposParaConferir().length) return cb("pedidos");              // sem o que conferir
 
-    SB.rpc("forn_conferir_nota",{p_pedidos:peds, p_itens:its}).then(function(r){
-      var v=(r&&r.data)||{};
-      if(r.error || !v.ok || !v.conferido) return cb("pedidos");        // na duvida, mostro
+    // a MESMA conta da tela: cada nota contra o pedido dela
+    conferirGrupos().then(function(v){
+      if(!v || v.erro) return cb("pedidos");                            // na duvida, mostro
       wz.conf=v;                                                        // aproveito, se ele voltar
       var rs=v.resumo||{};
       if((rs.problemas||0) > 0) return cb("pedidos");
@@ -4166,13 +4165,71 @@ body.com-wz #toasts{bottom:86px}
     return n;
   }
 
+  // CADA NOTA CONTRA O PEDIDO DELA — não contra a soma dos pedidos marcados.
+  //
+  // Defeito que o dono achou testando em 22/08/2026: ele vinculou a nota ao pedido
+  // ERRADO e marcou também o certo. A tela disse "Tudo bate com o pedido · 16 de 16",
+  // e o Continuar barrou: "a nota traz 8 produtos que não estão no pedido 23209".
+  //
+  // A causa era essa: a conferência comparava os itens da nota contra a UNIÃO de todos
+  // os pedidos marcados — e como os 16 itens existiam no outro pedido, tudo "batia". O
+  // servidor, esse, compara cada nota com O PEDIDO QUE ELA APONTA, que é a regra da
+  // loja: é o vínculo que diz o que esperar daquele caminhão. Duas contas diferentes,
+  // duas respostas diferentes, e a pessoa no meio sem entender.
+  //
+  // Agora a tela faz a mesma conta do servidor. Notas que apontam o mesmo pedido são
+  // conferidas juntas — senão "do pedido não vieram nesta nota" contaria duas vezes.
+  function gruposParaConferir(){
+    var mapa={}, ordem=[];
+    for(var i=0;i<wz.chaves.length;i++){
+      var n=wz.chaves[i], v=String(n.vinc||""), its=n.itens||[];
+      if(!v || !its.length) continue;
+      if(!mapa[v]){ mapa[v]={pedido:v, itens:[]}; ordem.push(v); }
+      for(var j=0;j<its.length;j++){
+        var t=its[j];
+        mapa[v].itens.push({ ean:t.ean||"", codigo:t.codigo||"", descricao:t.descricao||"",
+                             unidade:t.unidade||"", qtd:t.qtd||0, valor_unit:t.valorUnit||0,
+                             pedido:t.pedido||"", item_pedido:t.itemPedido||"" });
+      }
+    }
+    var out=[]; for(var k=0;k<ordem.length;k++) out.push(mapa[ordem[k]]);
+    return out;
+  }
+
+  // junta o resultado de vários pedidos numa resposta só, do mesmo formato
+  function juntarConferencias(vs){
+    var r={ok:true, conferido:true, linhas:[], resumo:{itens:0,ok:0,acima:0,fora:0,preco:0,
+            faltando:0,indefinido:0,pelo_dicionario:0,problemas:0}};
+    for(var i=0;i<vs.length;i++){
+      var v=vs[i]||{}, rs=v.resumo||{};
+      r.linhas = r.linhas.concat(v.linhas||[]);
+      ["itens","ok","acima","fora","preco","faltando","indefinido","pelo_dicionario","problemas"]
+        .forEach(function(k){ r.resumo[k] += (rs[k]||0); });
+    }
+    return r;
+  }
+
+  function conferirGrupos(){
+    var gs=gruposParaConferir();
+    if(!gs.length) return Promise.resolve(null);
+    return Promise.all(gs.map(function(g){
+      return SB.rpc("forn_conferir_nota",{p_pedidos:[g.pedido], p_itens:g.itens});
+    })).then(function(rs){
+      for(var i=0;i<rs.length;i++){
+        var r=rs[i], v=(r&&r.data)||{};
+        if(r.error) return {erro:(r.error.message||"Não consegui conferir.")};
+        if(!v.ok)   return {erro:(v.erro||"Não consegui conferir.")};
+        if(!v.conferido) return null;
+      }
+      return juntarConferencias(rs.map(function(r){ return (r&&r.data)||{}; }));
+    });
+  }
+
   function conferirNota(){
-    var its=itensDasNotas(), peds=pedidosDoAgendamento();
-    if(!its.length || !peds.length){ wz.conf=null; pintarConfronto(); return; }
+    if(!gruposParaConferir().length){ wz.conf=null; pintarConfronto(); return; }
     wz.conf="carregando"; pintarConfronto();
-    SB.rpc("forn_conferir_nota",{p_pedidos:peds, p_itens:its}).then(function(r){
-      var v=(r&&r.data)||{};
-      wz.conf=(r.error||!v.ok) ? {erro:(r.error?r.error.message:v.erro)||"Não consegui conferir."} : v;
+    conferirGrupos().then(function(v){
+      wz.conf = v;
       pintarConfronto();
     }, function(){ wz.conf={erro:"Não consegui falar com o servidor."}; pintarConfronto(); });
   }
