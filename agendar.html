@@ -163,23 +163,37 @@ button{font-family:inherit}
 .bloco-corpo.zero{padding:0}
 
 /* linhas de agenda (Início) */
-.ag{display:flex;align-items:center;gap:14px;padding:13px 16px;border-bottom:1px solid #f1f4f7;
+/* GRADE, NAO FILA.
+   Em fila, a primeira coluna esticava e empurrava todas as outras para a direita: sobrava
+   um vao enorme depois da marca e as informacoes ficavam amontoadas no canto. Pior, cada
+   linha escolhia a propria largura, entao "Ticket" de uma nao ficava embaixo do "Ticket"
+   da outra. Com colunas definidas, o espaco se reparte e tudo alinha de cima a baixo.
+   O dono estranhou isso olhando a lista de proximos agendamentos, em 22/08/2026. */
+.ag{display:grid;align-items:center;gap:16px;padding:13px 16px;border-bottom:1px solid #f1f4f7;
+    grid-template-columns:minmax(170px,1.5fr) minmax(112px,1fr) minmax(84px,.8fr)
+                          minmax(140px,1.1fr) minmax(112px,auto) 16px;
     cursor:pointer;transition:.12s}
 .ag:last-child{border-bottom:0}
 .ag:hover{background:#f8fafb}
-.ag-nome{flex:1 1 220px;min-width:0}
+.ag-nome{min-width:0}
 .ag-nome b{display:block;font-size:13.5px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* a marca da loja, no lugar do nome escrito */
 .ag-logo{display:block;height:40px;width:auto;max-width:190px;object-fit:contain;
          object-position:left center;margin:-2px 0 3px}
 .ag-nome span{display:block;font-size:11.5px;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ag-c{flex:0 0 auto;min-width:96px}
+.ag-c{min-width:0}
 .ag-c label{display:block;font-size:10px;color:var(--txt3);text-transform:uppercase;
             letter-spacing:.04em;font-weight:800;margin-bottom:1px}
 .ag-c div{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
-.ag .seta{color:var(--txt3);flex:0 0 auto}
+.ag .seta{color:var(--txt3);justify-self:end}
 .ag .seta svg{width:16px;height:16px;display:block}
-@media (max-width:900px){ .ag{flex-wrap:wrap;gap:8px 14px} .ag-nome{flex:1 1 100%} }
+/* em tela estreita nao cabem cinco colunas: a marca ocupa a linha toda e o resto se
+   parte em duas. A seta sai — a linha inteira ja e clicavel, e ali cada pixel conta. */
+@media (max-width:900px){
+  .ag{grid-template-columns:1fr 1fr;gap:10px 14px}
+  .ag-nome{grid-column:1 / -1}
+  .ag .seta{display:none}
+}
 
 .num-lin{display:flex;align-items:center;justify-content:space-between;padding:9px 0;
          border-bottom:1px solid #f1f4f7}
@@ -1871,9 +1885,9 @@ body.com-wz #toasts{bottom:86px}
              '<span>'+esc(a.doca||"Doca a definir")+'</span></div>'+
              '<div class="ag-c"><label>Ticket</label><div>'+esc(a.ticket)+'</div></div>'+
              '<div class="ag-c"><label>Tipo</label><div>'+esc(TXT_TIPO[a.tipo]||a.tipo)+'</div></div>'+
-             '<div class="ag-c" style="min-width:132px"><label>Data da entrega</label><div>'+
+             '<div class="ag-c"><label>Data da entrega</label><div>'+
                 esc(p.curta+(p.hora?" · "+p.hora:""))+'</div></div>'+
-             '<div class="ag-c" style="min-width:118px">'+uiSelo(a.situacao)+'</div>'+
+             '<div class="ag-c">'+uiSelo(a.situacao)+'</div>'+
              '<span class="seta">'+IC.seta+'</span></div>';
         }
       }
