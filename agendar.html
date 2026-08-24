@@ -298,6 +298,10 @@ body.com-wz #toasts{bottom:86px}
       padding:15px 20px;border-bottom:1px solid var(--borda)}
 .mcab b{font-size:16px;font-weight:800}
 .mcorpo{padding:18px 20px 22px}
+/* rodape da janela de vincular: o que esta marcado + o botao de terminar */
+.vp-pe{display:flex;align-items:center;gap:14px;justify-content:space-between;
+       margin-top:14px;padding-top:14px;border-top:1px solid var(--borda);flex-wrap:wrap}
+.vp-pe-t{font-size:13px;font-weight:700;color:var(--txt2)}
 /* a conta da conversao fardo -> unidade, escrita por extenso */
 .cnf-c{font-size:11.5px;color:var(--txt2);margin-top:4px;line-height:1.5}
 .cnf-c b{color:var(--txt);font-weight:800}
@@ -3021,7 +3025,7 @@ body.com-wz #toasts{bottom:86px}
       if(wz.comNota && wz.pedidosLista && wz.pedidosLista.length){
         var soltas=[];
         for(var s=0;s<wz.chaves.length;s++){
-          if(!wz.chaves[s].vinc) soltas.push(String(wz.chaves[s].numero||("nota "+(s+1))));
+          if(!temVinc(wz.chaves[s])) soltas.push(String(wz.chaves[s].numero||("nota "+(s+1))));
         }
         if(soltas.length){
           uiAviso(soltas.length===1?"Falta vincular a nota ao pedido"
@@ -3067,7 +3071,7 @@ body.com-wz #toasts{bottom:86px}
   function paraOndeDepoisDaNota(cb){
     if(!wz.pedidosLista || !wz.pedidosLista.length) return cb("docs");   // nao tem pedido nenhum
     if(!wz.comNota) return cb("pedidos");                               // sem nota, ele escolhe ali
-    for(var i=0;i<wz.chaves.length;i++){ if(!wz.chaves[i].vinc) return cb("pedidos"); }
+    for(var i=0;i<wz.chaves.length;i++){ if(!temVinc(wz.chaves[i])) return cb("pedidos"); }
     if(avisosDoPedido()) return cb("pedidos");                          // nota aponta outro pedido
 
     if(!gruposParaConferir().length) return cb("pedidos");              // sem o que conferir
@@ -3078,7 +3082,8 @@ body.com-wz #toasts{bottom:86px}
       wz.conf=v;                                                        // aproveito, se ele voltar
       var rs=v.resumo||{};
       if((rs.problemas||0) > 0) return cb("pedidos");
-      var qs=(wz.chaves.length===1 && wz.chaves[0].vinc) ? (" com o pedido "+wz.chaves[0].vinc) : "";
+      var qs=(wz.chaves.length===1 && temVinc(wz.chaves[0]))
+        ? ((wz.chaves[0].vinc.length===1?" com o pedido ":" com os pedidos ")+vincTxt(wz.chaves[0])) : "";
       uiToast("Nota confere"+qs+" · "+(rs.ok||0)+" de "+(rs.itens||0)+" itens.");
       cb("docs");
     }, function(){ cb("pedidos"); });
@@ -3302,10 +3307,10 @@ body.com-wz #toasts{bottom:86px}
       // A COLUNA DO PEDIDO. Sem vinculo ela grita em vermelho, de proposito:
       // nota sem pedido chega na loja sem ninguem saber o que era esperado.
       var col;
-      if(n.vinc){
+      if(temVinc(n)){
         col='<div class="nf-ped ok">'+
-            '<span class="rot">'+(n.vincAuto?"Pedido":"Pedido manual")+'</span>'+
-            '<b>'+esc(n.vinc)+'</b>'+
+            '<span class="rot">'+(n.vinc.length>1?"Pedidos":(n.vincAuto?"Pedido":"Pedido manual"))+'</span>'+
+            '<b>'+esc(vincTxt(n))+'</b>'+
             '<button class="icone" data-troca="'+i+'" title="Trocar o pedido">'+IC.lapis+'</button>'+
             '<button class="icone" data-desv="'+i+'" title="Desvincular">'+IC.x+'</button>'+
             '</div>';
@@ -3776,14 +3781,33 @@ body.com-wz #toasts{bottom:86px}
   // para dizer qual era qual — marcava os dois e a loja adivinhava na doca.
   // ============================================================
 
+  // O VINCULO DA NOTA E UMA LISTA, NAO UM TEXTO.
+  //
+  // O dono explicou em 22/08/2026: "as vezes tira metade do pedido e a outra metade vai
+  // em outro pedido, so que foi emitido um XML so — eu teria que selecionar dois pedidos".
+  // Medido nas 3.516 notas reais da loja: 3 em cada 10 tem produto de mais de um pedido.
+  // Com um vinculo so, a outra metade caia em "este item nao esta no pedido" — acusacao
+  // que BARRA o caminhao, por uma escolha que foi do comprador da loja, nao dele.
+  //
+  // n.vinc passa a ser um array de numeros de pedido. Vazio = sem vinculo.
+  function temVinc(n){ return !!(n && n.vinc && n.vinc.length); }
+  function vincLista(n){ return (n && n.vinc) ? n.vinc.slice() : []; }
+  // "23102" · "23102 e 23209" · "23102, 23209 e 23301" — do jeito que se fala
+  function vincTxt(n){
+    var l=vincLista(n);
+    if(!l.length) return "";
+    if(l.length===1) return String(l[0]);
+    return l.slice(0,-1).join(", ")+" e "+l[l.length-1];
+  }
+
   // A LISTA UNICA de pedidos do agendamento. Sai dos vinculos das notas mais
   // o que foi acrescentado na etapa 2 (agendamento sem nota fiscal). Toda tela
   // le daqui; nenhuma guarda a sua propria copia, senao um dia discordam.
   function pedidosDoAgendamento(){
     var l=[], i, v;
     for(i=0;i<wz.chaves.length;i++){
-      v=String(wz.chaves[i].vinc||"");
-      if(v && l.indexOf(v)<0) l.push(v);
+      var vs=vincLista(wz.chaves[i]);
+      for(var j=0;j<vs.length;j++){ v=String(vs[j]); if(v && l.indexOf(v)<0) l.push(v); }
     }
     for(i=0;i<(wz.pedidosExtra||[]).length;i++){
       v=String(wz.pedidosExtra[i]);
@@ -3811,11 +3835,11 @@ body.com-wz #toasts{bottom:86px}
   function vincularPeloXml(){
     for(var i=0;i<wz.chaves.length;i++){
       var n=wz.chaves[i];
-      if(n.vinc) continue;
+      if(temVinc(n)) continue;
       var ps=(n.pedidos||[]).filter(function(x){ return !!pedidoPorNumero(x); });
       // Dois pedidos declarados na mesma nota: nao escolho por ele. Chutar um
       // seria pior que perguntar — o fornecedor clica em Vincular e decide.
-      if(ps.length===1){ n.vinc=String(ps[0]); n.vincAuto=true; }
+      if(ps.length===1){ n.vinc=[String(ps[0])]; n.vincAuto=true; }
     }
     sincronizarPedidoTexto();
   }
@@ -3837,7 +3861,35 @@ body.com-wz #toasts{bottom:86px}
         '<p class="subt" style="margin:0 0 12px">A que pedido se refere a nota '+
         esc(n.numero||"")+'?</p>'+
         '<input id="vpBusca" class="vp-b" type="text" placeholder="Procurar pelo número do pedido">'+
-        '<div id="vpLista" class="vp-l"></div></div>'});
+        '<div id="vpLista" class="vp-l"></div>'+
+        '<div id="vpPe" class="vp-pe"></div></div>'});
+
+    // O RODAPE DA JANELA. Mostra o que ja esta marcado e fecha quando ele terminar.
+    // Sem ele, marcar varios nao teria fim visivel: a pessoa nao saberia quando parar.
+    function pintarPeVinc(){
+      var pe=el("vpPe"); if(!pe) return;
+      var l=vincLista(n);
+      pe.innerHTML =
+        '<div class="vp-pe-t">'+(l.length
+          ? (l.length===1?"Marcado: pedido ":"Marcados: pedidos ")+esc(vincTxt(n))
+          : "Nenhum pedido marcado ainda")+'</div>'+
+        '<button class="bt'+(l.length?"":" fraco")+'" id="vpPronto">'+
+        (l.length?"Pronto":"Fechar")+'</button>';
+      el("vpPronto").onclick=function(){
+        uiFecharModal();
+        sincronizarPedidoTexto();
+        listarNotas();
+        pintarResumoLado();
+        // vincular pode ser feito TAMBEM na etapa 2, pelo aviso de nota solta:
+        // sem isto o aviso ficaria na tela depois de resolvido, e a conferencia
+        // continuaria olhando para o alvo antigo
+        conferirNota();
+        if(vincLista(n).length){
+          uiToast("Nota "+(n.numero||"")+" vinculada "+
+                  (vincLista(n).length===1?"ao pedido ":"aos pedidos ")+vincTxt(n)+".");
+        }
+      };
+    }
 
     // O QUE LIGA ESTA NOTA A ESTE PEDIDO.
     // A pergunta do Victor foi "como e que eu vou saber que essa nota e desse
@@ -3901,7 +3953,7 @@ body.com-wz #toasts{bottom:86px}
         h+='<p class="dica" style="padding:14px 2px">Nenhum pedido com esse número.</p>';
       }
       for(var i=0;i<vis.length;i++){
-        var x=vis[i], on=String(n.vinc||"")===String(x.numero);
+        var x=vis[i], on=vincLista(n).indexOf(String(x.numero))>=0;
         h+='<div class="vp-i'+(on?" on":"")+'" data-num="'+esc(x.numero)+'">'+
            '<div class="vp-c"><b>Pedido '+esc(x.numero)+'</b>'+
              selo(x)+
@@ -3913,26 +3965,27 @@ body.com-wz #toasts{bottom:86px}
            '<button class="vp-ok" title="Vincular a este pedido">'+IC_OK+'</button></div>';
       }
       el("vpLista").innerHTML=h;
+      // MARCAR, NAO ESCOLHER. Clicar LIGA e DESLIGA o pedido, e a janela fica aberta:
+      // uma nota pode cobrir mais de um pedido, e fechar no primeiro clique obrigaria a
+      // reabrir para marcar o segundo — parecendo que so cabe um.
       [].slice.call(el("vpLista").querySelectorAll(".vp-i[data-num]")).forEach(function(e){
         e.onclick=function(){
-          n.vinc=e.getAttribute("data-num");
+          var num=e.getAttribute("data-num"), l=vincLista(n), k=l.indexOf(num);
+          if(k>=0) l.splice(k,1); else l.push(num);
+          n.vinc=l;
           // marcado na mao: guardo isso porque vinculo manual erra mais que o
           // que veio escrito dentro da nota, e a loja merece saber a diferenca
           n.vincAuto=false;
-          uiFecharModal();
           sincronizarPedidoTexto();
-          listarNotas();
           pintarResumoLado();
-          // vincular pode ser feito TAMBEM na etapa 2, pelo aviso de nota solta:
-          // sem isto o aviso ficaria na tela depois de resolvido, e a conferencia
-          // continuaria olhando para o alvo antigo
-          conferirNota();
-          uiToast("Nota "+(n.numero||"")+" vinculada ao pedido "+n.vinc+".");
+          pinta();          // redesenha a lista com o novo estado
+          pintarPeVinc();   // e o rodape com o "Pronto"
         };
       });
     }
     el("vpBusca").oninput=pinta;
     pinta();
+    pintarPeVinc();
     try{ el("vpBusca").focus(); }catch(e){}
 
     // A comparacao chega depois e a janela se redesenha. Abrir esperando pela
@@ -3953,7 +4006,7 @@ body.com-wz #toasts{bottom:86px}
 
   function desvincularNota(idx){
     var n=wz.chaves[idx]; if(!n) return;
-    n.vinc=""; n.vincAuto=false;
+    n.vinc=[]; n.vincAuto=false;
     sincronizarPedidoTexto();
     listarNotas();
     pintarResumoLado();
@@ -4152,9 +4205,12 @@ body.com-wz #toasts{bottom:86px}
   function gruposParaConferir(){
     var mapa={}, ordem=[];
     for(var i=0;i<wz.chaves.length;i++){
-      var n=wz.chaves[i], v=String(n.vinc||""), its=n.itens||[];
-      if(!v || !its.length) continue;
-      if(!mapa[v]){ mapa[v]={pedido:v, itens:[]}; ordem.push(v); }
+      var n=wz.chaves[i], vs=vincLista(n), its=n.itens||[];
+      if(!vs.length || !its.length) continue;
+      // a chave do grupo e o CONJUNTO de pedidos: notas que apontam exatamente os
+      // mesmos pedidos conferem juntas, senao "nao vieram nesta nota" conta em dobro
+      var v=vs.slice().sort().join("|");
+      if(!mapa[v]){ mapa[v]={pedidos:vs, itens:[]}; ordem.push(v); }
       for(var j=0;j<its.length;j++){
         var t=its[j];
         mapa[v].itens.push({ ean:t.ean||"", codigo:t.codigo||"", descricao:t.descricao||"",
@@ -4183,7 +4239,7 @@ body.com-wz #toasts{bottom:86px}
     var gs=gruposParaConferir();
     if(!gs.length) return Promise.resolve(null);
     return Promise.all(gs.map(function(g){
-      return SB.rpc("forn_conferir_nota",{p_pedidos:[g.pedido], p_itens:g.itens});
+      return SB.rpc("forn_conferir_nota",{p_pedidos:g.pedidos, p_itens:g.itens});
     })).then(function(rs){
       for(var i=0;i<rs.length;i++){
         var r=rs[i], v=(r&&r.data)||{};
@@ -4367,7 +4423,7 @@ body.com-wz #toasts{bottom:86px}
     if(!wz.pedidosLista || !wz.pedidosLista.length) return "";  // sem lista nao ha como vincular
     var soltas=[];
     for(var i=0;i<wz.chaves.length;i++){
-      if(!wz.chaves[i].vinc) soltas.push({i:i, num:String(wz.chaves[i].numero||("nota "+(i+1)))});
+      if(!temVinc(wz.chaves[i])) soltas.push({i:i, num:String(wz.chaves[i].numero||("nota "+(i+1)))});
     }
     if(!soltas.length) return "";
     var h='<div class="cnf ruim"><div class="cnf-t">'+
@@ -4453,8 +4509,8 @@ body.com-wz #toasts{bottom:86px}
             // pedido, e que continua sem vínculo nenhum. Nota que ele vinculou a outro
             // pedido, ou que nunca teve vínculo, não é tocada.
             for(var q=0;q<wz.chaves.length;q++){
-              if(!wz.chaves[q].vinc && String(wz.chaves[q].vincSolto||"")===n){
-                wz.chaves[q].vinc=n;
+              if(!temVinc(wz.chaves[q]) && String(wz.chaves[q].vincSolto||"")===n){
+                wz.chaves[q].vinc=[n];
                 wz.chaves[q].vincAuto=!!wz.chaves[q].vincSoltoAuto;
                 wz.chaves[q].vincSolto="";
               }
@@ -4463,11 +4519,15 @@ body.com-wz #toasts{bottom:86px}
           if(!c){
             if(k>=0) wz.pedidosExtra.splice(k,1);
             for(var q=0;q<wz.chaves.length;q++){
-              if(String(wz.chaves[q].vinc||"")===n){
+              var vq=vincLista(wz.chaves[q]), kq=vq.indexOf(n);
+              if(kq>=0){
+                // tiro SO o pedido desmarcado; os outros vinculos da nota ficam
+                vq.splice(kq,1);
+                wz.chaves[q].vinc=vq;
                 // guardo o que soltei, para poder devolver se ele remarcar
                 wz.chaves[q].vincSolto=n;
                 wz.chaves[q].vincSoltoAuto=!!wz.chaves[q].vincAuto;
-                wz.chaves[q].vinc=""; wz.chaves[q].vincAuto=false;
+                if(!vq.length) wz.chaves[q].vincAuto=false;
               }
             }
           }
@@ -4660,7 +4720,11 @@ body.com-wz #toasts{bottom:86px}
                     se perdia no caminho: só ia o texto de todos os pedidos colado com
                     vírgula, que o banco cortava em 40 letras. Na doca, "45231, 45390,
                     453…" não serve para conferir nada. */
-                 pedido:n.vinc||null,
+                 /* A LISTA. 'pedido' continua indo com o primeiro: enquanto o SQL novo
+                    nao rodar, o servidor le dele — e assim nenhuma ordem de publicacao
+                    quebra nada, nos dois sentidos. */
+                 pedidos:vincLista(n),
+                 pedido:(vincLista(n)[0]||null),
                  // A chave de 44 dígitos NÃO carrega o dia, só mês e ano ("08/2026").
                  // Mandar isso como data derruba a gravação inteira no banco.
                  // Só o XML traz dia completo (10 caracteres).
