@@ -428,11 +428,28 @@ body.com-wz #toasts{bottom:86px}
 .campo label{display:block;font-size:10.5px;color:var(--txt3);text-transform:uppercase;
              letter-spacing:.04em;font-weight:800;margin-bottom:1px}
 .campo div{font-size:13.5px;font-weight:600;word-break:break-word}
-.hist{list-style:none;margin:0;padding:0 0 0 15px;border-left:2px solid var(--borda)}
-.hist li{font-size:12.5px;color:var(--txt2);padding:0 0 11px;position:relative;line-height:1.45}
-.hist li:before{content:"";position:absolute;left:-20px;top:5px;width:7px;height:7px;border-radius:999px;
-                background:var(--verde-bd);box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--verde-bd)}
-.hist li b{color:var(--txt);display:block}
+/* LINHA DO TEMPO DEITADA.
+   Em pe ela empilhava e empurrava o resto da aba para baixo — e o que ela conta e uma
+   SEQUENCIA: pedido, documento, cancelado. Deitada, a ordem se le de uma vez, do jeito
+   que se le uma linha do tempo. O dono pediu em 22/08/2026.
+   Em tela estreita ela volta a ficar em pe: deitada viraria rolagem lateral dentro de
+   uma janela que ja rola pra baixo, e duas rolagens cruzadas confundem mais do que
+   ajudam. */
+.hist{list-style:none;margin:0;padding:0 0 2px;display:flex;gap:0;overflow-x:auto}
+.hist li{flex:1 1 0;min-width:126px;position:relative;padding:26px 14px 0 0;
+         font-size:11.5px;color:var(--txt2);line-height:1.45}
+.hist li:after{content:"";position:absolute;left:0;top:4px;width:10px;height:10px;border-radius:999px;
+               background:var(--verde-bd);box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--verde-bd)}
+/* o traco que liga um ponto ao proximo; o ultimo nao tem para onde ligar */
+.hist li:not(:last-child):before{content:"";position:absolute;left:14px;top:8px;right:0;height:2px;
+               background:var(--borda)}
+.hist li b{color:var(--txt);display:block;font-size:12.5px;margin-bottom:2px}
+@media (max-width:620px){
+  .hist{display:block;padding:0 0 0 15px;border-left:2px solid var(--borda);overflow:visible}
+  .hist li{padding:0 0 11px;min-width:0}
+  .hist li:after{left:-20px;top:5px;width:7px;height:7px}
+  .hist li:not(:last-child):before{display:none}
+}
 .recado{background:#f7f9fb;border:1px solid var(--borda);border-radius:9px;padding:11px 13px;
         margin-bottom:8px;font-size:13px;line-height:1.5}
 .recado span{display:block;font-size:11px;color:var(--txt3);margin-top:5px}
