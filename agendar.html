@@ -169,7 +169,12 @@ button{font-family:inherit}
    linha escolhia a propria largura, entao "Ticket" de uma nao ficava embaixo do "Ticket"
    da outra. Com colunas definidas, o espaco se reparte e tudo alinha de cima a baixo.
    O dono estranhou isso olhando a lista de proximos agendamentos, em 22/08/2026. */
-.ag{display:grid;align-items:center;gap:16px;padding:13px 16px;border-bottom:1px solid #f1f4f7;
+/* O RECUO DA ESQUERDA E DE PROPOSITO.
+   Antes a linha comecava na MESMA margem do titulo "Proximos agendamentos" — tecnicamente
+   alinhado, mas na tela parecia que a marca estava jogada contra a borda. Um recuo pequeno
+   separa o conteudo do cabecalho e faz a lista ler como lista, nao como continuacao do
+   titulo. O dono pediu esse empurraozinho em 22/08/2026. */
+.ag{display:grid;align-items:center;gap:16px;padding:13px 16px 13px 24px;border-bottom:1px solid #f1f4f7;
     grid-template-columns:minmax(170px,1.5fr) minmax(112px,1fr) minmax(84px,.8fr)
                           minmax(140px,1.1fr) minmax(112px,auto) 16px;
     cursor:pointer;transition:.12s}
