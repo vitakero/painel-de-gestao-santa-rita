@@ -23,6 +23,23 @@ const RAIZ = path.join(process.env.HOME, "vr-looker-integration");
    Estava assim: `fs.readFileSync("/private/tmp/claude-501/.../scratchpad/simbolo.txt")` —
    um caminho de sessão antiga que sumiu, e com ele o gerador do portal parou de rodar.
    O arquivo de verdade mora em assets/, versionado, igual ao que o painel usa. */
+// A MARCA COMPLETA — o carrinho MAIS o nome "Supermercado Santa Rita".
+// Pedido do dono em 22/08/2026: na lista de agendamentos ele quer a marca inteira, não
+// só o símbolo. Uso uma cópia reduzida (170px de largura) de propósito: a original tem
+// 531px e engordaria o portal em 124 KB embutida. Nesta, são 26 KB, e ela é desenhada
+// com metade da largura do arquivo — fica nítida em tela retina.
+const LOGO_CHEIA = (function(){
+  try{
+    return "data:image/png;base64," +
+      fs.readFileSync(path.join(RAIZ, "assets", "logo-santa-rita-lista.png")).toString("base64");
+  }catch(e){
+    try{
+      return "data:image/png;base64," +
+        fs.readFileSync(path.join(RAIZ, "assets", "logo-santa-rita.png")).toString("base64");
+    }catch(e2){ return ""; }
+  }
+})();
+
 const LOGO = (function(){
   try{
     return "data:image/png;base64," +
@@ -207,8 +224,8 @@ button{font-family:inherit}
 .ag-nome{flex:1 1 220px;min-width:0}
 .ag-nome b{display:block;font-size:13.5px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* a marca da loja, no lugar do nome escrito */
-.ag-logo{display:block;height:26px;width:auto;max-width:150px;object-fit:contain;
-         object-position:left center;margin:0 0 3px}
+.ag-logo{display:block;height:40px;width:auto;max-width:190px;object-fit:contain;
+         object-position:left center;margin:-2px 0 3px}
 .ag-nome span{display:block;font-size:11.5px;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ag-c{flex:0 0 auto;min-width:96px}
 .ag-c label{display:block;font-size:10px;color:var(--txt3);text-transform:uppercase;
@@ -1416,6 +1433,7 @@ body.com-wz #toasts{bottom:86px}
   // (E nem citar o marcador em comentario da: este arquivo e um template literal,
   //  entao ate dentro de comentario ele e trocado pela imagem. Aconteceu aqui.)
   var LOGO_SRC = document.querySelector(".logo") ? document.querySelector(".logo").src : "";
+  var LOGO_CHEIA_SRC = "${LOGO_CHEIA}";
 
   var TXT_SIT={ solicitada:"aguardando", confirmada:"confirmada", em_recebimento:"em descarga",
                 concluida:"concluída", recusada:"recusada", cancelada:"cancelada",
@@ -1895,7 +1913,7 @@ body.com-wz #toasts{bottom:86px}
                 Pedido do dono em 22/08/2026. O nome fica no alt e no title: quem usa
                 leitor de tela continua ouvindo "Loja Santa Rita", e quem passa o mouse
                 continua lendo. Trocar imagem por texto nao pode custar a informacao. */
-             '<div class="ag-nome"><img class="ag-logo" src="'+LOGO_SRC+'" alt="'+
+             '<div class="ag-nome"><img class="ag-logo" src="'+LOGO_CHEIA_SRC+'" alt="'+
              esc(a.destinatario||"Santa Rita")+'" title="'+esc(a.destinatario||"Santa Rita")+'">'+
              '<span>'+esc(a.doca||"Doca a definir")+'</span></div>'+
              '<div class="ag-c"><label>Ticket</label><div>'+esc(a.ticket)+'</div></div>'+
