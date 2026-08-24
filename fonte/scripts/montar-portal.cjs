@@ -335,6 +335,12 @@ body.com-wz #toasts{bottom:86px}
       padding:15px 20px;border-bottom:1px solid var(--borda)}
 .mcab b{font-size:16px;font-weight:800}
 .mcorpo{padding:18px 20px 22px}
+/* a conta da conversao fardo -> unidade, escrita por extenso */
+.cnf-c{font-size:11.5px;color:var(--txt2);margin-top:4px;line-height:1.5}
+.cnf-c b{color:var(--txt);font-weight:800}
+/* o codigo do erro, pequeno e discreto: serve pra pessoa repetir pra gente */
+.erro-tec{font-size:11.5px;color:var(--txt2);margin:9px 0 13px;line-height:1.45;
+          font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-word}
 
 /* JANELA DE ALTURA FIXA — cabeçalho e rodapé parados, lista rolando no meio.
    Antes a janela crescia junto com a lista: num pedido de 16 itens o fim ficava
@@ -1404,11 +1410,27 @@ body.com-wz #toasts{bottom:86px}
   // Erro de rede NÃO pode virar estado vazio. "Você não tem nenhuma entrega"
   // quando na verdade a consulta falhou faz o fornecedor agendar de novo o que
   // já estava agendado. Devolve null quando deu ruim, e a tela mostra o erro.
+  // Qualquer tropeço virava "verifique sua internet". O dono pegou isso em 22/08/2026,
+  // com internet funcionando: a tela mandava ele procurar defeito no lugar errado, e o
+  // defeito de verdade — que era nosso — ficava escondido. Com fornecedor de fora seria
+  // pior: ele liga pra loja jurando que a internet dele está boa, e ninguém sabe o que houve.
+  //
+  // Agora: só fala em internet quando o navegador diz que está sem rede, ou quando o pedido
+  // nem chegou a ter resposta. Se o servidor respondeu "não deu", a tela ASSUME que a culpa
+  // é nossa e mostra o código do erro — é o que a pessoa repete pra gente pra descobrirmos.
   function deuCerto(r, onde){
     if(r && r.error){
+      var e = r.error || {};
+      var recado = String(e.message || "");
+      var semRede = (typeof navigator !== "undefined" && navigator.onLine === false)
+                 || /failed to fetch|networkerror|load failed|network request failed/i.test(recado);
+      var tec = [e.code, recado].filter(function(x){ return x; }).join(" · ");
       el("pagina").innerHTML=
         '<div class="bloco"><div class="bloco-corpo">'+
-        uiErro("Não consegui carregar "+onde+". Verifique sua internet e tente de novo.")+
+        uiErro(semRede
+          ? "Você está sem conexão. Quando a internet voltar, toque em Tentar de novo."
+          : "Não consegui carregar "+onde+". O problema foi aqui do nosso lado, não na sua internet.")+
+        (!semRede && tec ? '<p class="erro-tec">Detalhe técnico: '+esc(tec)+'</p>' : '')+
         '<button class="bt fraco mini" data-acao="recarregar">Tentar de novo</button></div></div>';
       return null;
     }
@@ -4126,10 +4148,24 @@ body.com-wz #toasts{bottom:86px}
     } else {
       dir='<b>'+esc(numero(x.qtd_nota))+'</b> de '+esc(numero(x.saldo))+' que o pedido espera';
     }
+    // MOSTRAR A CONTA DA CONVERSAO.
+    // A nota cobra por fardo e o pedido guarda preco por unidade; o servidor converte
+    // antes de comparar. Se a tela mostrasse so o numero convertido, no dia em que
+    // houver divergencia DE VERDADE ninguem entenderia de onde saiu o valor — e o
+    // fornecedor, que ve R$ 59,00 na nota dele, leria "nota R$ 2,95" e acharia que o
+    // portal errou. Entao a conta aparece escrita.
+    var conv = "";
+    if(x.convertido && x.fator){
+      conv = '<div class="cnf-c">A nota cobra por '+
+        (x.unidade? '<b>'+esc(x.unidade)+'</b>, que são ' : 'embalagem de ')+
+        '<b>'+esc(numero(x.fator))+'</b> unidades — então '+
+        esc(moeda(x.valor_original))+' ÷ '+esc(numero(x.fator))+' = <b>'+esc(moeda(x.valor_nota))+'</b> a unidade.</div>';
+    }
     return '<div class="cnf-i '+cls+'">'+
       '<div class="cnf-d"><b>'+esc(x.descricao)+'</b>'+
         (x.ean?'<span class="cnf-e">'+esc(x.ean)+'</span>':'')+'</div>'+
       '<div class="cnf-n">'+dir+'</div>'+
+      conv+
       (x.motivo?'<div class="cnf-m">'+esc(x.motivo)+'</div>':'')+
       '</div>';
   }
