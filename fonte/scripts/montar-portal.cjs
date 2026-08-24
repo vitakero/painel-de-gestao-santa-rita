@@ -379,6 +379,20 @@ body.com-wz #toasts{bottom:86px}
 @media (max-width:820px){ .det-corpo{grid-template-columns:minmax(0,1fr)} }
 .det-main{padding:16px 20px 22px;min-width:0}
 .det-lado{border-left:1px solid var(--borda);background:#f8fafb;padding:16px 16px 22px}
+
+/* JANELA PARADA, CONTEÚDO ROLANDO POR DENTRO.
+   Antes a janela inteira subia junto com a rolagem: o ticket, a data e o selo — que é o
+   que a pessoa está conferindo — saíam da tela justamente quando ela descia para ler o
+   resto. O dono estranhou isso olhando os detalhes do agendamento.
+   Em tela estreita não divido a rolagem em duas: numa coluna só, dois pedaços rolando
+   separados é pior que um. Aí rola o miolo inteiro. */
+.mcaixa.alto > .det-corpo{flex:1 1 auto;min-height:0}
+.mcaixa.alto .det-main{overflow:auto;min-height:0}
+.mcaixa.alto .det-lado{overflow:auto;min-height:0}
+@media (max-width:820px){
+  .mcaixa.alto > .det-corpo{overflow:auto}
+  .mcaixa.alto .det-main,.mcaixa.alto .det-lado{overflow:visible}
+}
 @media (max-width:820px){ .det-lado{border-left:0;border-top:1px solid var(--borda)} }
 .det-lado button{display:flex;align-items:center;gap:9px;width:100%;background:#fff;
      border:1px solid var(--borda);border-radius:9px;padding:10px 12px;font-size:13px;font-weight:700;
@@ -2290,7 +2304,8 @@ body.com-wz #toasts{bottom:86px}
   // lugar de modal só (o uiModal fecha o que estiver aberto antes de abrir).
   function abrirDetalhe(id, aba){
     detAba=aba||"informacoes";
-    var c=uiModal({titulo:"Detalhes do agendamento", cru:true, corpo:'<div id="detCorpo">'+uiCarregando()+'</div>'});
+    var c=uiModal({titulo:"Detalhes do agendamento", cru:true, tam:"alto",
+                   corpo:'<div id="detCorpo">'+uiCarregando()+'</div>'});
     SB.rpc("forn_agenda",{p_id:id}).then(function(r){
       var d=(r&&r.data)||{};
       if(!d.ok){
