@@ -2412,7 +2412,13 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         /* As PESSOAS esperando dentro de uma empresa já liberada. Classe, e não
            estilo solto na marcação, porque o tema escuro é gerado a partir do CSS. */
         /* O detalhe da carga, embaixo do nome do fornecedor. */
-        .cl-carga{display:block;font-size:11.5px;color:#56606d;margin-top:3px;line-height:1.45;}
+        /* A CAMADA QUE DECIDE. Escura e com os numeros em negrito de proposito: volume,
+           peso e tempo de doca sao o que responde "cabe hoje?". */
+        .cl-carga{display:block;font-size:12px;color:#3d4854;margin-top:5px;line-height:1.5;}
+        .cl-carga b{font-weight:800;color:#1d2733;}
+        /* A CAMADA DE APOIO. Quem dirige so importa depois de decidir — fica menor e
+           mais apagada, para nao disputar com a de cima. */
+        .cl-crew{display:block;font-size:11.5px;color:#95a1b0;margin-top:2px;line-height:1.45;}
         .cl-obs{display:block;font-size:11.5px;color:#8a97a8;font-style:italic;margin-top:2px;line-height:1.45;}
         .cl-cob{display:inline-block;margin-top:5px;margin-left:9px;font-size:11.5px;font-weight:700;color:#7a6320;}
         .cl-nf{display:inline-flex;align-items:center;margin-top:5px;background:#e9f5ed;border:1px solid #c5e3ce;
@@ -2989,14 +2995,19 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       /* ---- Caixa de pedidos dos fornecedores ---- */
       /* Fica ACIMA das abas de propósito: é a única coisa da Central que espera uma AÇÃO.
          Some inteira quando não há pedido — caixa vazia todo dia vira paisagem. */
-      .cl-ped{border:1px solid #e0c477;background:#fdf6e3;border-radius:12px;padding:14px 16px;margin-bottom:16px;}
+      /* AMARELO E COR DE ALARME, E GASTA-LO NO NORMAL DEIXA DE AVISAR.
+         A caixa inteira era ambar. Como agora ela mora numa aba que ja se chama
+         "Agendamentos pendentes", o amarelo repetia o titulo e ainda fazia um pedido
+         comum parecer problema. A caixa ficou neutra e o ambar sobrou para o unico
+         lugar onde ele quer dizer alguma coisa: o cartao que passou da data. */
+      .cl-ped{border:1px solid #e4e9ef;background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:16px;}
       .cl-ped-cab{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:10px;}
-      .cl-ped-cab b{font-size:14.5px;color:#7a5600;}
+      .cl-ped-cab b{font-size:14.5px;color:#1d2733;}
       .cl-ped-atras{font-size:11.5px;font-weight:700;color:#8c2f28;background:#fdecea;
         border:1px solid #f3cfca;border-radius:999px;padding:2px 9px;}
-      .cl-ped-item.venceu{background:#fffaf9;}
+
       .cl-ped-quando .av{display:block;font-size:11px;font-weight:700;color:#8c2f28;margin-top:1px;}
-      .cl-ped-cab .qt{background:#7a5600;color:#fff;border-radius:20px;padding:1px 9px;font-size:12px;font-weight:800;}
+      .cl-ped-cab .qt{background:#0c5a26;color:#fff;border-radius:20px;padding:1px 9px;font-size:12px;font-weight:800;}
       /* o numero na aba: mesma ideia do contador do menu — a fila saiu da vista,
          entao ela precisa se anunciar de onde a pessoa estiver */
       .cl-tab-qt{margin-left:6px;background:#c0392b;color:#fff;border-radius:10px;min-width:18px;
@@ -3016,16 +3027,35 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
                       radial-gradient(farthest-side at 50% 0,   rgba(122,86,0,.16), rgba(122,86,0,0)) top    / 100% 10px no-repeat scroll,
                       radial-gradient(farthest-side at 50% 100%,rgba(122,86,0,.16), rgba(122,86,0,0)) bottom / 100% 10px no-repeat scroll;}
       .cl-ped-lista::-webkit-scrollbar{width:9px;}
-      .cl-ped-lista::-webkit-scrollbar-thumb{background:#e0c477;border-radius:6px;
+      .cl-ped-lista::-webkit-scrollbar-thumb{background:#d3dbe4;border-radius:6px;
                     border:2px solid transparent;background-clip:content-box;}
-      .cl-ped-lista::-webkit-scrollbar-thumb:hover{background:#c9a94f;background-clip:content-box;}
-            .cl-ped-item{background:#fff;border:1px solid #eadfc2;border-radius:9px;padding:11px 13px;
+      .cl-ped-lista::-webkit-scrollbar-thumb:hover{background:#b6c1cd;background-clip:content-box;}
+            .cl-ped-item{background:#fff;border:1px solid #e8ecf1;border-radius:9px;padding:12px 14px;
                    display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:14px;align-items:start;}
+      .cl-ped-item + .cl-ped-item{margin-top:8px;}
+      /* SO O ATRASADO E AMBAR — e com a tarja na lateral, que se acha correndo o olho
+         pela beirada sem ler uma palavra. */
+      .cl-ped-item.venceu{border-color:#e0c477;box-shadow:inset 3px 0 0 #d9a520;}
       @media(max-width:760px){.cl-ped-item{grid-template-columns:minmax(0,1fr);}}
       .cl-ped-quando{font-weight:800;color:#0c5a26;font-size:14px;line-height:1.35;}
       .cl-ped-quem{min-width:0;}
-      .cl-ped-quem b{display:block;font-size:14px;color:#1d2733;}
-      .cl-ped-quem span{font-size:12px;color:#8a97a8;}
+      /* FILHO DIRETO, NAO DESCENDENTE.
+         Escrito como ".cl-ped-quem b" isto alcancava tambem os numeros em negrito da
+         carga, e cada um deles virava um BLOCO: "172" caia numa linha, "volumes" na
+         seguinte, "652,6" na outra. O nome do fornecedor e filho direto; o negrito da
+         carga e neto. O ">" separa os dois.
+         A regra generica de span saiu junto: hoje todo filho aqui dentro tem classe
+         propria (.cl-ped-doc, .cl-chip, .cl-carga, .cl-crew, .cl-obs, .cl-transp), e a
+         regra generica ganhava delas na disputa — apagando o estilo de cada uma. */
+      .cl-ped-quem > b{display:block;font-size:14px;color:#1d2733;}
+      .cl-ped-doc{display:block;font-size:12px;color:#8a97a8;margin-top:2px;
+                  font-variant-numeric:tabular-nums;letter-spacing:.1px;}
+      /* O numero do pedido vira ETIQUETA, nao mais um item da fileira cinza: ele e do
+         mesmo mundo da nota fiscal (papel da compra), e nao do mundo do CNPJ. */
+      .cl-chip{display:inline-block;margin-top:6px;margin-right:6px;background:#f1f4f8;
+               border:1px solid #dfe5ec;border-radius:999px;padding:2px 10px;
+               font-size:11.5px;font-weight:700;color:#4a5563;
+               font-variant-numeric:tabular-nums;}
       /* Quem CHEGA nem sempre é quem vende. Sem esta marca, o recebimento espera
          o caminhão do fornecedor e aparece outro, de outra empresa. */
       .cl-transp{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;
@@ -3043,8 +3073,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
                   box-shadow:0 1px 2px rgba(12,90,38,.18);transition:.13s;}
       .cl-ped-sim:hover{background:#0c5a26;box-shadow:0 2px 6px rgba(12,90,38,.26);}
       .cl-ped-sim:active{transform:translateY(1px);box-shadow:none;}
-      .cl-ped-nao{background:#fff;color:#8a5a12;border:1px solid #e0c477!important;}
-      .cl-ped-nao:hover{background:#fdf6e3;}
+      /* Recusar e ato NEGATIVO: vermelho discreto, igual ao "Recusar entrega" da doca.
+         Amarelo ali dizia "cuidado" sem dizer do que. */
+      .cl-ped-nao{background:#fff;color:#b03024;border:1px solid #e8bbb5!important;}
+      .cl-ped-nao:hover{background:#fdf1ef;}
       /* Recusar a ENTREGA é mais grave que recusar o horário: o caminhão está na doca.
          Por isso vermelho, e não o amarelo do "Recusar" lá de cima. */
       /* de onde veio a quantidade da linha de custo (o Tempo de preparo da ficha) */
@@ -5827,31 +5859,72 @@ function clDetalheLoad(){
     }, function(){});
 }
 
-function clNum(v){
-  var x=parseFloat(v); if(isNaN(x)) return '';
-  try{ return x.toLocaleString('pt-BR',{maximumFractionDigits:3}); }catch(e){ return String(v); }
+/* clNum vive mais abaixo, uma so vez. Aqui existia uma SEGUNDA copia com
+   comportamento diferente para campo vazio (esta devolvia nada, a de baixo devolve 0).
+   As duas no mesmo escopo: a ultima apagava a primeira em silencio. */
+
+/* DOCUMENTO E TELEFONE SE LEEM PONTUADOS, NAO EM BLOCO.
+   14 digitos colados nao se conferem de relance — e e exatamente o que a pessoa faz
+   com o CNPJ na tela: bate com a nota na mao. Sem os pontos, ela desiste e liga.
+   (Nada de \\d nestas expressoes: este arquivo e um template literal e a barra some.) */
+function clCnpjFmt(v){
+  var d=String(v==null?'':v).replace(/[^0-9]/g,'');
+  if(d.length!==14) return String(v==null?'':v);
+  return d.slice(0,2)+'.'+d.slice(2,5)+'.'+d.slice(5,8)+'/'+d.slice(8,12)+'-'+d.slice(12);
+}
+function clFoneFmt(v){
+  var d=String(v==null?'':v).replace(/[^0-9]/g,'');
+  if(d.length===11) return '('+d.slice(0,2)+') '+d.slice(2,7)+'-'+d.slice(7);
+  if(d.length===10) return '('+d.slice(0,2)+') '+d.slice(2,6)+'-'+d.slice(6);
+  return String(v==null?'':v);
+}
+/* Placa antiga (ABC1234) ganha o traco; Mercosul (ABC1D23) NAO leva traco nenhum.
+   Qualquer outra coisa sai como veio — inventar formato em cima de dado torto
+   esconde justamente o dado torto. */
+function clPlacaFmt(v){
+  var t=String(v==null?'':v).toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(t.length!==7) return String(v==null?'':v);
+  return /^[A-Z]{3}[0-9]{4}$/.test(t) ? t.slice(0,3)+'-'+t.slice(3) : t;
 }
 
 /* A linha de detalhe que aparece embaixo do nome do fornecedor.
    É o que quem recebe precisa saber ANTES de o caminhão encostar. */
 function clDetalheLinha(p){
   var d=clDetalhe[p.id]; if(!d) return '';
-  var b=[];
-  if(d.tipo_veiculo) b.push(pxEsc(d.tipo_veiculo)+(d.placa?' · '+pxEsc(d.placa):''));
-  // sem parenteses aqui: o telefone ja chega formatado como (84) 99999-9999
-  if(d.motorista)    b.push(pxEsc(d.motorista)+(d.motorista_fone?' · '+pxEsc(d.motorista_fone):''));
-  if(d.tipo_carga)   b.push(pxEsc(d.tipo_carga));
-  if(d.qtd_volumes)  b.push(pxEsc(clNum(d.qtd_volumes))+' '+pxEsc(d.tipo_volume||'volumes'));
-  if(d.peso_kg)      b.push(pxEsc(clNum(d.peso_kg))+' kg');
+
+  /* TRES CAMADAS, NAO UMA FILEIRA.
+     Antes tudo isto saia numa linha so — veiculo, placa, motorista, telefone, tipo de
+     carga, volume e peso — separado pelo MESMO ponto e no MESMO cinza. Sete fatos de
+     natureza diferente com peso igual: ninguem sabia que "FDSDFGHJ" era placa, e o
+     numero que decide se da para receber (volume, peso, tempo de doca) valia o mesmo
+     que o nome do motorista.
+     Agora: o que decide vem primeiro e escuro; quem dirige vem depois e apagado. */
+  var carga=[];
+  if(d.qtd_volumes){
+    /* "172 Paletizada" era o texto que saia aqui: faltava o substantivo. Paletizada
+       nao e unidade, e ARRANJO — como a carga vem arrumada. Sao dois fatos. */
+    carga.push('<b>'+pxEsc(clNum(d.qtd_volumes))+'</b> '+
+               (+d.qtd_volumes===1?'volume':'volumes'));
+  }
+  if(d.peso_kg)     carga.push('<b>'+pxEsc(clNum(d.peso_kg))+'</b> kg');
+  if(d.tipo_volume) carga.push(pxEsc(String(d.tipo_volume).toLowerCase()));
+  if(d.tipo_carga)  carga.push('carga '+pxEsc(String(d.tipo_carga).toLowerCase()));
   if(d.minutos_estimados && d.minutos_estimados!==60)
-    b.push(pxEsc(d.minutos_estimados>=60?(d.minutos_estimados/60)+'h':d.minutos_estimados+' min')+' de descarga');
+    carga.push('<b>'+pxEsc(d.minutos_estimados>=60?(d.minutos_estimados/60)+'h':d.minutos_estimados+' min')+'</b> de doca');
+
+  var crew=[];
+  if(d.tipo_veiculo) crew.push(pxEsc(d.tipo_veiculo));
+  if(d.placa)        crew.push('placa '+pxEsc(clPlacaFmt(d.placa)));
+  if(d.motorista)    crew.push('motorista '+pxEsc(d.motorista)+
+                               (d.motorista_fone?' · '+pxEsc(clFoneFmt(d.motorista_fone)):''));
 
   var nfs=clNotas[d.id]||[];
   var itens=0; nfs.forEach(function(n){ itens += (n.itens&&n.itens.length)||0; });
 
   var h='';
-  if(b.length) h+='<span class="cl-carga">'+b.join(' · ')+'</span>';
-  if(d.descricao) h+='<span class="cl-obs">“'+pxEsc(d.descricao)+'”</span>';
+  if(carga.length) h+='<span class="cl-carga">'+carga.join(' · ')+'</span>';
+  if(crew.length)  h+='<span class="cl-crew">'+crew.join(' · ')+'</span>';
+  if(d.descricao)  h+='<span class="cl-obs">“'+pxEsc(d.descricao)+'”</span>';
   if(nfs.length){
     h+='<button type="button" class="cl-nf" data-clnf="'+pxEsc(p.id)+'">'+
        nfs.length+(nfs.length>1?' notas fiscais':' nota fiscal')+
@@ -5945,17 +6018,21 @@ function renderClPedidos(){
       if(va!==vb) return va-vb;
       return String(a.data+a.hora).localeCompare(String(b.data+b.hora));
     }).forEach(function(p){
-      var extra=[];
-      if(p.documento) extra.push(pxEsc(p.documento));
-      if(p.contato) extra.push(pxEsc(p.contato));
-      if(p.pedido) extra.push("pedido "+pxEsc(p.pedido));
-      if(p.descricao) extra.push(pxEsc(p.descricao));
+      /* A IDENTIFICACAO E O PAPEL SAO COISAS DIFERENTES.
+         "pedido 23102" viajava junto do CNPJ e do telefone, como se fosse mais um jeito
+         de identificar a empresa. Nao e: e o documento da compra, irmao da nota fiscal.
+         Foi para o pe do cartao, do lado dela. */
+      var idlin=[];
+      if(p.documento) idlin.push(pxEsc(clCnpjFmt(p.documento)));
+      if(p.contato)   idlin.push(pxEsc(clFoneFmt(p.contato)));
       var passou=p.data<hoje;
       h+='<div class="cl-ped-item'+(passou?" venceu":"")+'" data-pid="'+pxEsc(p.id)+'">'+
          '<span class="cl-ped-quando">'+clDataLonga(p.data)+' · '+clHoraCurta(p.hora)+
            (passou?'<span class="av">passou da data</span>':'')+'</span>'+
          '<span class="cl-ped-quem"><b>'+pxEsc(p.fornecedor)+'</b>'+
-         (extra.length?'<span>'+extra.join(" · ")+'</span>':'')+
+         (idlin.length?'<span class="cl-ped-doc">'+idlin.join(" · ")+'</span>':'')+
+         (p.pedido?'<span class="cl-chip">Pedido '+pxEsc(p.pedido)+'</span>':'')+
+         (p.descricao?'<span class="cl-obs">“'+pxEsc(p.descricao)+'”</span>':'')+
          clTranspSelo(p)+clDetalheLinha(p)+'</span>'+
          (clPodeDecidir()
            ? '<span class="cl-ped-acoes">'+
