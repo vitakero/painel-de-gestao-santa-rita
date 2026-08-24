@@ -43,8 +43,12 @@ t("o clique chama a recusa de doca",
 
 // O botão nasce no MESMO lugar do "Conferido": só quando o dia chegou e só para quem
 // pode decidir. Fora disso, marcar o que aconteceu com um caminhão que não veio.
-const bloco = HTML.slice(HTML.indexOf("Entregas confirmadas"),
-                         HTML.indexOf("Entregas confirmadas") + 1400);
+// Ancorar no NOME DA CLASSE, não no texto: o texto "Entregas confirmadas" também
+// aparece em comentário do código, e comentário entra no HTML gerado — este teste já
+// se pegou sozinho uma vez por causa disso.
+const _i = HTML.indexOf('class="cl-entc"');
+const bloco = HTML.slice(_i, HTML.indexOf("clBarradosBloco()", _i));
+t("o bloco das confirmadas existe", _i > 0);
 t("só aparece quando o caminhão já era esperado", bloco.indexOf("chegou && clPodeDecidir()") > 0);
 t("nasce junto do Conferido", bloco.indexOf("data-precd") > 0 && bloco.indexOf("data-pconf") > 0);
 

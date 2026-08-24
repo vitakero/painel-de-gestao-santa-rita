@@ -1497,7 +1497,8 @@ body.com-wz #toasts{bottom:86px}
   // numa variavel e quem precisa aponta para ela.
   // (E nem citar o marcador em comentario da: este arquivo e um template literal,
   //  entao ate dentro de comentario ele e trocado pela imagem. Aconteceu aqui.)
-  var LOGO_SRC = document.querySelector(".logo") ? document.querySelector(".logo").src : "";
+  // Nada de ler a tela aqui dentro: este bloco e testado FORA do navegador, e uma
+  // linha com document. derruba a bateria inteira antes do primeiro teste rodar.
   var LOGO_CHEIA_SRC = "${LOGO_CHEIA}";
 
   var TXT_SIT={ solicitada:"aguardando", confirmada:"confirmada", em_recebimento:"em descarga",

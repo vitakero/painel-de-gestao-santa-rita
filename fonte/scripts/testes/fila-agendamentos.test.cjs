@@ -63,6 +63,34 @@ console.log("\n=== A fila de pedidos de fornecedor ===\n");
   eq("11) e se atualiza quando a lista chega", /clPedidos=\(r&&r\.data\)\|\|\[\];\s*\n\s*clAtualizaBadge\(\);/.test(H), "true");
 }
 
+// ------------------------------------------------------------ a fila saiu de cima
+{
+  // com teto ela ainda ocupava ~460px na frente da Visão de hoje, dos atrasados e dos
+  // horários livres. O dono viu isso com UM pedido na tela e disse: "vai empurrar a
+  // página para baixo". Foi para uma aba própria.
+  eq("14) existe a aba A responder", /data-clview="responder">A responder/.test(H), "true");
+  eq("15) a fila mora dentro dela", /<div id="clResponder" style="display:none;"><div id="clPedidos"><\/div><\/div>/.test(H), "true");
+  eq("16) e não sobrou fila em cima", /<div id="clIntegBanner"><\/div>\s*<div id="clPedidos">/.test(H), "false");
+  eq("17) o número aparece também na aba", H.indexOf('id="clTabQt"') >= 0, "true");
+  // tirar da vista sem lembrete seria trocar estorvo por esquecimento
+  eq("18) e continua no menu, porque pedido esquecido expira sozinho",
+     H.indexOf('id="clNavBadge"') >= 0, "true");
+}
+
+// ------------------------------------------------------------ o que NÃO foi junto
+{
+  // marcar conferido é trabalho do dia; o lugar dele é a Visão de hoje
+  eq("19) as entregas confirmadas ficaram na visão do dia",
+     /<div id="clHoje">\s*<div id="clConfirmadas"><\/div>/.test(H), "true");
+  eq("20) e são desenhadas na caixa delas", /if\(boxC\) boxC\.innerHTML=hC;/.test(H), "true");
+}
+
+// ------------------------------------------------------------ a aba não abre muda
+{
+  eq("21) sem nada esperando, a aba explica em vez de ficar vazia",
+     H.indexOf("Nenhum pedido esperando resposta") >= 0, "true");
+}
+
 // ------------------------------------------------------------ aparece sem visitar a Central
 {
   // se só carregasse ao abrir a Central, o número não serviria para lembrar de nada

@@ -2997,6 +2997,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       .cl-ped-item.venceu{background:#fffaf9;}
       .cl-ped-quando .av{display:block;font-size:11px;font-weight:700;color:#8c2f28;margin-top:1px;}
       .cl-ped-cab .qt{background:#7a5600;color:#fff;border-radius:20px;padding:1px 9px;font-size:12px;font-weight:800;}
+      /* o numero na aba: mesma ideia do contador do menu — a fila saiu da vista,
+         entao ela precisa se anunciar de onde a pessoa estiver */
+      .cl-tab-qt{margin-left:6px;background:#c0392b;color:#fff;border-radius:10px;min-width:18px;
+                 height:18px;padding:0 5px;font-size:11px;font-weight:800;display:inline-flex;
+                 align-items:center;justify-content:center;vertical-align:1px;}
       /* A FILA TEM TETO.
          Cada pedido e um cartao alto. Com um fornecedor da certo; com quinze, o bloco
          vira uma parede e empurra a Visao de hoje, os atrasados e os horarios livres
@@ -3256,7 +3261,6 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         </div>
         <p style="font-size:12.5px;color:#8a97a8;margin:2px 0 16px;">Programação de recebimentos — os fornecedores marcam a janela pelo link e você enxerga aqui o dia, a semana e os atrasos num relance.</p>
         <div id="clIntegBanner"></div>
-        <div id="clPedidos"></div>
         <div class="cl-dv-bg" id="clDvBg">
           <div class="cl-dv">
             <div class="cl-dv-top"><h3 id="clDvTit"></h3><div class="sub" id="clDvSub"></div></div>
@@ -3268,6 +3272,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <button type="button" class="cl-tab on" data-clview="hoje">Visão de hoje</button>
           <button type="button" class="cl-tab" data-clview="agenda">Agenda da semana</button>
           <button type="button" class="cl-tab" data-clview="conf">Conferência dos carros</button>
+          <button type="button" class="cl-tab" data-clview="responder">A responder<span class="cl-tab-qt" id="clTabQt" style="display:none;"></span></button>
           <button type="button" class="cl-tab" id="clLinkBtn" style="margin-left:auto;background:#0c5a26;color:#fff;border-color:#0c5a26;">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Link do fornecedor
           </button>
@@ -3275,7 +3280,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir
           </button>
         </div>
+        <div id="clResponder" style="display:none;"><div id="clPedidos"></div></div>
         <div id="clHoje">
+          <div id="clConfirmadas"></div>
           <div class="cl-datanav">
             <button type="button" id="clDiaPrev" title="Dia anterior">‹</button>
             <input type="date" id="clDiaInp">
@@ -5751,9 +5758,11 @@ function clPodeDecidir(){
    outro lado. Por isso o numero fica no menu lateral, visivel de qualquer pagina: o
    painel lembra, em vez de depender de alguem lembrar de entrar na Central. */
 function clAtualizaBadge(){
-  var b=document.getElementById("clNavBadge"); if(!b) return;
   var n=(clPedidos||[]).filter(function(p){ return p.status==="pendente"; }).length;
-  if(n>0){ b.textContent=n; b.style.display=""; } else { b.style.display="none"; }
+  var b=document.getElementById("clNavBadge");
+  if(b){ if(n>0){ b.textContent=n; b.style.display=""; } else { b.style.display="none"; } }
+  var t=document.getElementById("clTabQt");
+  if(t){ if(n>0){ t.textContent=n; t.style.display=""; } else { t.style.display="none"; } }
 }
 function clPedidosLoad(){
   var sb=window.__SB; if(!sb||clPedidosCarregando) return;
@@ -5901,11 +5910,24 @@ function clDataLonga(iso){
   var dias=["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
   return dias[d.getDay()]+", "+p[2]+"/"+p[1];
 }
+/* A FILA SAIU DE CIMA DA CENTRAL.
+   Ela ficava acima de tudo, e o dono viu o problema com UM pedido na tela: "vai ficar uma
+   lista grande sem necessidade e vai empurrar a pagina para baixo". Mesmo com teto eram
+   uns 460px na frente da Visao de hoje, dos atrasados e dos horarios livres — que e o que
+   a pagina existe para mostrar de relance.
+   Agora ela tem aba propria ("A responder"), e o numero aparece em DOIS lugares: na aba e
+   no menu lateral. Isso e proposital: pedido que ninguem responde EXPIRA SOZINHO, entao
+   tirar a fila da vista sem deixar um lembrete seria trocar um estorvo por um esquecimento
+   — e o esquecimento cai em cima do fornecedor, que fica sem entrega marcada.
+   As "Entregas confirmadas" NAO vieram junto: marcar conferido e trabalho do dia, e o
+   lugar dele e a Visao de hoje. */
 function renderClPedidos(){
-  var box=document.getElementById("clPedidos"); if(!box) return;
+  var box=document.getElementById("clPedidos");
+  var boxC=document.getElementById("clConfirmadas");
+  if(!box && !boxC) return;
   var pend=clPedidos.filter(function(p){ return p.status==="pendente"; });
   var apro=clPedidos.filter(function(p){ return p.status==="aprovado"; });
-  var h="";
+  var h="", hC="";
 
   if(pend.length){
     var hoje=clDataISO(new Date());
@@ -5946,6 +5968,15 @@ function renderClPedidos(){
     h+='</div></div>';
   }
 
+  if(!pend.length){
+    /* a aba nao pode abrir vazia sem dizer nada: sem isto, quem clica em "A responder"
+       e nao ve nada pensa que a tela quebrou, nao que nao ha o que responder */
+    h+='<div class="cl-ped" style="border-color:#cfe0d5;background:#f4faf6;">'+
+       '<div class="cl-ped-cab"><b style="color:#0c5a26;">Nenhum pedido esperando resposta</b></div>'+
+       '<p style="margin:0;font-size:13px;color:#5b6b63;">Quando um fornecedor pedir um horário pelo portal, '+
+       'ele aparece aqui — e o número aparece no menu, de qualquer página.</p></div>';
+  }
+
   if(apro.length){
     /* CONFERIDO É AÇÃO DE GENTE, NÃO RELÓGIO.
        O status "concluído" da agenda é calculado por horário ter passado — o caminhão pode
@@ -5953,10 +5984,10 @@ function renderClPedidos(){
        O botão só nasce quando o dia chega: marcar como conferido um caminhão que ainda não
        veio seria criar a mesma mentira, só que na mão. */
     var hj=clDataISO(new Date());
-    h+='<div class="cl-entc"><p class="cl-sec-tit">Entregas confirmadas</p>';
+    hC+='<div class="cl-entc"><p class="cl-sec-tit">Entregas confirmadas</p>';
     apro.slice(0,12).forEach(function(p){
       var chegou=p.data<=hj;
-      h+='<div class="cl-entc-lin"><span class="qd">'+clDataLonga(p.data)+' · '+clHoraCurta(p.hora)+'</span>'+
+      hC+='<div class="cl-entc-lin"><span class="qd">'+clDataLonga(p.data)+' · '+clHoraCurta(p.hora)+'</span>'+
          '<span class="nm">'+pxEsc(p.fornecedor)+(p.pedido?' <span style="color:#8a97a8;font-weight:400;">· pedido '+pxEsc(p.pedido)+'</span>':'')+
            clTranspSelo(p)+clDetalheLinha(p)+'</span>'+
          (chegou && clPodeDecidir()
@@ -5974,11 +6005,12 @@ function renderClPedidos(){
            : '<span class="selo">confirmada</span>')+
          '</div>';
     });
-    if(apro.length>12) h+='<p style="font-size:12.5px;color:#8a97a8;margin:4px 0 0;">e mais '+(apro.length-12)+'.</p>';
-    h+='</div>';
+    if(apro.length>12) hC+='<p style="font-size:12.5px;color:#8a97a8;margin:4px 0 0;">e mais '+(apro.length-12)+'.</p>';
+    hC+='</div>';
   }
-  h+=clBarradosBloco();
-  box.innerHTML=h;
+  hC+=clBarradosBloco();
+  if(box) box.innerHTML=h;
+  if(boxC) boxC.innerHTML=hC;
 }
 
 /* FORNECEDORES TRAVADOS NO PORTAL.
@@ -6179,9 +6211,12 @@ function renderCentral(semRecarregar){
   renderClInteg();
   renderClPedidos();
   if(!semRecarregar) clPedidosLoad();
-  var vh=document.getElementById("clHoje"), va=document.getElementById("clAgenda"), vc=document.getElementById("clConf");
-  if(vh)vh.style.display="none"; if(va)va.style.display="none"; if(vc)vc.style.display="none";
-  if(clView==="conf"){ if(vc)vc.style.display=""; renderClConf(); }
+  var vh=document.getElementById("clHoje"), va=document.getElementById("clAgenda"),
+      vc=document.getElementById("clConf"), vr=document.getElementById("clResponder");
+  if(vh)vh.style.display="none"; if(va)va.style.display="none";
+  if(vc)vc.style.display="none"; if(vr)vr.style.display="none";
+  if(clView==="responder"){ if(vr)vr.style.display=""; }
+  else if(clView==="conf"){ if(vc)vc.style.display=""; renderClConf(); }
   else if(clView==="agenda"){ if(va)va.style.display=""; renderClAgenda(); }
   else { if(vh)vh.style.display=""; renderClDataNav(); renderClFiltros(); renderClKpis(); renderClTimeline(); }
 }
