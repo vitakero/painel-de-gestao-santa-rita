@@ -206,6 +206,9 @@ button{font-family:inherit}
 .ag:hover{background:#f8fafb}
 .ag-nome{flex:1 1 220px;min-width:0}
 .ag-nome b{display:block;font-size:13.5px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* a marca da loja, no lugar do nome escrito */
+.ag-logo{display:block;height:26px;width:auto;max-width:150px;object-fit:contain;
+         object-position:left center;margin:0 0 3px}
 .ag-nome span{display:block;font-size:11.5px;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ag-c{flex:0 0 auto;min-width:96px}
 .ag-c label{display:block;font-size:10px;color:var(--txt3);text-transform:uppercase;
@@ -1406,6 +1409,14 @@ body.com-wz #toasts{bottom:86px}
     };
   }
 
+  // A MARCA, GUARDADA UMA VEZ SO.
+  // Cada marcador de logo escrito solto embute a imagem inteira outra vez no arquivo: a
+  // primeira versao disto engordou o portal em 38 KB por uma linha. Aqui ela mora
+  // numa variavel e quem precisa aponta para ela.
+  // (E nem citar o marcador em comentario da: este arquivo e um template literal,
+  //  entao ate dentro de comentario ele e trocado pela imagem. Aconteceu aqui.)
+  var LOGO_SRC = document.querySelector(".logo") ? document.querySelector(".logo").src : "";
+
   var TXT_SIT={ solicitada:"aguardando", confirmada:"confirmada", em_recebimento:"em descarga",
                 concluida:"concluída", recusada:"recusada", cancelada:"cancelada",
                 nao_compareceu:"não compareceu", rascunho:"rascunho" };
@@ -1880,7 +1891,12 @@ body.com-wz #toasts{bottom:86px}
         for(var i=0;i<prox.length;i++){
           var a=prox[i], p=partes(a.quando)||{curta:"",hora:""};
           h+='<div class="ag" data-ver="'+esc(a.id)+'">'+
-             '<div class="ag-nome"><b>'+esc(a.destinatario||"Santa Rita")+'</b>'+
+             /* A MARCA DA LOJA NO LUGAR DO NOME.
+                Pedido do dono em 22/08/2026. O nome fica no alt e no title: quem usa
+                leitor de tela continua ouvindo "Loja Santa Rita", e quem passa o mouse
+                continua lendo. Trocar imagem por texto nao pode custar a informacao. */
+             '<div class="ag-nome"><img class="ag-logo" src="'+LOGO_SRC+'" alt="'+
+             esc(a.destinatario||"Santa Rita")+'" title="'+esc(a.destinatario||"Santa Rita")+'">'+
              '<span>'+esc(a.doca||"Doca a definir")+'</span></div>'+
              '<div class="ag-c"><label>Ticket</label><div>'+esc(a.ticket)+'</div></div>'+
              '<div class="ag-c"><label>Tipo</label><div>'+esc(TXT_TIPO[a.tipo]||a.tipo)+'</div></div>'+
