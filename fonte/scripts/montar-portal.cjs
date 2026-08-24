@@ -3914,6 +3914,10 @@ body.com-wz #toasts{bottom:86px}
           sincronizarPedidoTexto();
           listarNotas();
           pintarResumoLado();
+          // vincular pode ser feito TAMBEM na etapa 2, pelo aviso de nota solta:
+          // sem isto o aviso ficaria na tela depois de resolvido, e a conferencia
+          // continuaria olhando para o alvo antigo
+          conferirNota();
           uiToast("Nota "+(n.numero||"")+" vinculada ao pedido "+n.vinc+".");
         };
       });
@@ -4277,7 +4281,39 @@ body.com-wz #toasts{bottom:86px}
     var c=el("wzConf"); if(!c) return;
     // o aviso de pedido trocado aparece MESMO sem conferencia: ele vale
     // inclusive quando a nota veio so pela chave, sem itens para comparar
-    c.innerHTML = avisosDoPedido() + blocoConfronto();
+    c.innerHTML = avisoNotaSolta() + avisosDoPedido() + blocoConfronto();
+    // o botao de vincular, desenhado aqui dentro, precisa da mesma janela da etapa 1
+    [].slice.call(c.querySelectorAll("[data-vinc2]")).forEach(function(b){
+      b.onclick=function(ev){ ev.preventDefault(); abrirEscolhaPedido(+b.getAttribute("data-vinc2")); };
+    });
+  }
+
+  // NOTA SEM PEDIDO, AVISADA AQUI E NAO NA PAREDE DO CONTINUAR.
+  //
+  // O servidor exige que CADA NOTA aponte um pedido. Marcar a caixinha do pedido nesta
+  // etapa nao faz isso — ela vale para o agendamento sem nota fiscal. Enquanto isso nao
+  // aparecia aqui, dava para ver a caixinha verde e "Tudo bate com o pedido" e ainda
+  // assim levar "Ainda nao da para agendar" no clique seguinte. Duas telas discordando,
+  // e a pessoa sem saber onde clicar. O dono bateu nisso testando, em 22/08/2026.
+  function avisoNotaSolta(){
+    if(!wz || !wz.comNota) return "";
+    if(!wz.pedidosLista || !wz.pedidosLista.length) return "";  // sem lista nao ha como vincular
+    var soltas=[];
+    for(var i=0;i<wz.chaves.length;i++){
+      if(!wz.chaves[i].vinc) soltas.push({i:i, num:String(wz.chaves[i].numero||("nota "+(i+1)))});
+    }
+    if(!soltas.length) return "";
+    var h='<div class="cnf ruim"><div class="cnf-t">'+
+      (soltas.length===1?"Falta dizer a que pedido esta nota se refere"
+                        :"Faltam vincular "+soltas.length+" notas ao pedido")+'</div>'+
+      '<div class="cnf-s">Marcar o pedido acima não faz isso: a loja precisa saber, de cada '+
+      'nota, o que esperar do caminhão.</div><div class="cnf-l">';
+    for(var k=0;k<soltas.length;k++){
+      h+='<div class="cnf-i ruim"><div class="cnf-d"><b>Nota '+esc(soltas[k].num)+'</b></div>'+
+         '<div class="cnf-n"><button class="nf-vinc" data-vinc2="'+soltas[k].i+'">'+
+         IC.alerta+'Vincular ao pedido</button></div></div>';
+    }
+    return h+'</div></div>';
   }
 
   function telaPedidos(){
@@ -4336,10 +4372,36 @@ body.com-wz #toasts{bottom:86px}
           // a nota tambem, senao a tela diria uma coisa e o vinculo outra.
           var k=(wz.pedidosExtra||[]).indexOf(n);
           if(c && k<0) wz.pedidosExtra.push(n);
+          if(c){
+            // DESFAZER O SOLTAR — a metade que faltava.
+            //
+            // Desmarcar soltava o vínculo da nota (é o "if(!c)" abaixo, e está certo).
+            // Marcar de novo só remarcava a caixinha e NÃO devolvia o vínculo: a linha
+            // ficava verde, a conferência dizia "tudo bate com o pedido", e o servidor
+            // recusava no Continuar com "a nota precisa estar vinculada a um pedido".
+            // A tela dizia uma coisa e o vínculo outra — exatamente o que o "if(!c)"
+            // existe para evitar. O dono bateu nisso testando, em 22/08/2026.
+            //
+            // Não é chute: só devolvo o vínculo para a nota que foi solta POR ESTE
+            // pedido, e que continua sem vínculo nenhum. Nota que ele vinculou a outro
+            // pedido, ou que nunca teve vínculo, não é tocada.
+            for(var q=0;q<wz.chaves.length;q++){
+              if(!wz.chaves[q].vinc && String(wz.chaves[q].vincSolto||"")===n){
+                wz.chaves[q].vinc=n;
+                wz.chaves[q].vincAuto=!!wz.chaves[q].vincSoltoAuto;
+                wz.chaves[q].vincSolto="";
+              }
+            }
+          }
           if(!c){
             if(k>=0) wz.pedidosExtra.splice(k,1);
             for(var q=0;q<wz.chaves.length;q++){
-              if(String(wz.chaves[q].vinc||"")===n){ wz.chaves[q].vinc=""; wz.chaves[q].vincAuto=false; }
+              if(String(wz.chaves[q].vinc||"")===n){
+                // guardo o que soltei, para poder devolver se ele remarcar
+                wz.chaves[q].vincSolto=n;
+                wz.chaves[q].vincSoltoAuto=!!wz.chaves[q].vincAuto;
+                wz.chaves[q].vinc=""; wz.chaves[q].vincAuto=false;
+              }
             }
           }
           e.classList.toggle("on", c);
