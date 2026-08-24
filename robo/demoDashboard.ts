@@ -929,7 +929,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="receitas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span> Receitas</button>
     <button class="nav-item" data-page="estld"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg></span> Loja / Depósito<span class="soon">novo</span></button>
     <button class="nav-item" data-page="pedidos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span> Pedidos<span class="soon">novo</span><span class="nav-badge" id="pedNavBadge" style="display:none;"></span></button>
-    <button class="nav-item" data-page="central"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Central Logística<span class="soon">novo</span></button>
+    <button class="nav-item" data-page="central"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Central Logística<span class="soon">novo</span><span class="nav-badge" id="clNavBadge" style="display:none;" title="pedidos de fornecedor aguardando resposta"></span></button>
     <button class="nav-item" data-page="fornecedores"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 11h.01M15 11h.01"/></svg></span> Fornecedores<span class="soon">novo</span></button>
     <button class="nav-item" data-page="cargos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4V10H4zM10 20h4V4h-4zM16 20h4v-7h-4z"/></svg></span> Cargos e Salários</button>
     <button class="nav-item" data-page="jornada"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span> Banco de Horas<span class="soon">novo</span></button>
@@ -2997,7 +2997,23 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       .cl-ped-item.venceu{background:#fffaf9;}
       .cl-ped-quando .av{display:block;font-size:11px;font-weight:700;color:#8c2f28;margin-top:1px;}
       .cl-ped-cab .qt{background:#7a5600;color:#fff;border-radius:20px;padding:1px 9px;font-size:12px;font-weight:800;}
-      .cl-ped-lista{display:flex;flex-direction:column;gap:8px;}
+      /* A FILA TEM TETO.
+         Cada pedido e um cartao alto. Com um fornecedor da certo; com quinze, o bloco
+         vira uma parede e empurra a Visao de hoje, os atrasados e os horarios livres
+         para fora da tela — justo o que a pagina existe para mostrar de relance.
+         Agora a fila para de crescer em ~5 pedidos e rola por dentro: a pagina fica do
+         mesmo tamanho com 1 ou com 40, e o numero no cabecalho conta quantos sao. */
+      .cl-ped-lista{display:flex;flex-direction:column;gap:8px;max-height:404px;overflow-y:auto;
+                    padding-right:4px;scrollbar-width:thin;
+                    background:
+                      linear-gradient(#fdf6e3 30%, rgba(253,246,227,0)) top    / 100% 22px no-repeat local,
+                      linear-gradient(rgba(253,246,227,0), #fdf6e3 70%) bottom / 100% 22px no-repeat local,
+                      radial-gradient(farthest-side at 50% 0,   rgba(122,86,0,.16), rgba(122,86,0,0)) top    / 100% 10px no-repeat scroll,
+                      radial-gradient(farthest-side at 50% 100%,rgba(122,86,0,.16), rgba(122,86,0,0)) bottom / 100% 10px no-repeat scroll;}
+      .cl-ped-lista::-webkit-scrollbar{width:9px;}
+      .cl-ped-lista::-webkit-scrollbar-thumb{background:#e0c477;border-radius:6px;
+                    border:2px solid transparent;background-clip:content-box;}
+      .cl-ped-lista::-webkit-scrollbar-thumb:hover{background:#c9a94f;background-clip:content-box;}
             .cl-ped-item{background:#fff;border:1px solid #eadfc2;border-radius:9px;padding:11px 13px;
                    display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:14px;align-items:start;}
       @media(max-width:760px){.cl-ped-item{grid-template-columns:minmax(0,1fr);}}
@@ -5728,6 +5744,17 @@ var clDetalhe={}, clNotas={};
 function clPodeDecidir(){
   try{ return !!(window.__PERFIL && window.__PERFIL.is_master) || podePagina("central"); }catch(e){ return false; }
 }
+/* O NUMERO NO MENU.
+   Pedido que ninguem responde EXPIRA SOZINHO — nao depende de ninguem clicar. O horario
+   passa, o sistema mata o pedido e o fornecedor fica sem entrega marcada. Ou seja,
+   esquecer de responder tem consequencia automatica, e ela cai em cima de quem esta do
+   outro lado. Por isso o numero fica no menu lateral, visivel de qualquer pagina: o
+   painel lembra, em vez de depender de alguem lembrar de entrar na Central. */
+function clAtualizaBadge(){
+  var b=document.getElementById("clNavBadge"); if(!b) return;
+  var n=(clPedidos||[]).filter(function(p){ return p.status==="pendente"; }).length;
+  if(n>0){ b.textContent=n; b.style.display=""; } else { b.style.display="none"; }
+}
 function clPedidosLoad(){
   var sb=window.__SB; if(!sb||clPedidosCarregando) return;
   clPedidosCarregando=true;
@@ -5747,6 +5774,7 @@ function clPedidosLoad(){
       clPedidosCarregando=false;
       if(r&&r.error) return;                    // sem permissão ou sem rede: não inventa lista
       clPedidos=(r&&r.data)||[];
+      clAtualizaBadge();
       clDetalheLoad();
       // A agenda também depende disto: sem redesenhar, o caminhão aprovado só apareceria
       // na próxima vez que alguém trocasse de aba.
@@ -5887,7 +5915,14 @@ function renderClPedidos(){
        '<span class="qt">'+pend.length+'</span>'+
        (vencidos?'<span class="cl-ped-atras">'+vencidos+' já passou da data</span>':'')+
        '</div><div class="cl-ped-lista">';
-    pend.forEach(function(p){
+    /* QUEM JA PASSOU DA DATA VEM PRIMEIRO.
+       Com a fila rolando, o que fica embaixo e o que ninguem ve. E o pedido vencido e
+       exatamente o que nao pode esperar: o fornecedor ja devia ter vindo. */
+    pend.slice().sort(function(a,b){
+      var va=(a.data<hoje)?0:1, vb=(b.data<hoje)?0:1;
+      if(va!==vb) return va-vb;
+      return String(a.data+a.hora).localeCompare(String(b.data+b.hora));
+    }).forEach(function(p){
       var extra=[];
       if(p.documento) extra.push(pxEsc(p.documento));
       if(p.contato) extra.push(pxEsc(p.contato));
@@ -22729,6 +22764,9 @@ function pedEnviar(){
         return;
       }
       fimChecagem(); applyPerms(perfil); showUser(perfil,email); ov.style.display="none";
+      /* o numero da Central tem que aparecer SEM precisar visitar a Central:
+         e o esquecimento que ele existe para evitar */
+      try{ if(typeof clPedidosLoad==="function") clPedidosLoad(); }catch(e){}
       /* O sino vale para o painel inteiro, então a carga acontece assim que o login
          termina — não só quando alguém abre a página de Recibos. Se dependesse da
          página, o dono só descobriria que tem recibo esperando ao passar por lá. */
