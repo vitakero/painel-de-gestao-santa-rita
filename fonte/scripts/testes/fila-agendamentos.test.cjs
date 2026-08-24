@@ -68,7 +68,8 @@ console.log("\n=== A fila de pedidos de fornecedor ===\n");
   // com teto ela ainda ocupava ~460px na frente da Visão de hoje, dos atrasados e dos
   // horários livres. O dono viu isso com UM pedido na tela e disse: "vai empurrar a
   // página para baixo". Foi para uma aba própria.
-  eq("14) existe a aba A responder", /data-clview="responder">A responder/.test(H), "true");
+  eq("14) existe a aba Agendamentos pendentes",
+     /data-clview="responder">Agendamentos pendentes/.test(H), "true");
   eq("15) a fila mora dentro dela", /<div id="clResponder" style="display:none;"><div id="clPedidos"><\/div><\/div>/.test(H), "true");
   eq("16) e não sobrou fila em cima", /<div id="clIntegBanner"><\/div>\s*<div id="clPedidos">/.test(H), "false");
   eq("17) o número aparece também na aba", H.indexOf('id="clTabQt"') >= 0, "true");
@@ -88,7 +89,11 @@ console.log("\n=== A fila de pedidos de fornecedor ===\n");
 // ------------------------------------------------------------ a aba não abre muda
 {
   eq("21) sem nada esperando, a aba explica em vez de ficar vazia",
-     H.indexOf("Nenhum pedido esperando resposta") >= 0, "true");
+     H.indexOf("Nenhum agendamento pendente") >= 0, "true");
+  // titulo da caixa nao pode ser copia do nome da aba: repetir a mesma frase duas vezes
+  // gasta a linha sem dizer nada novo
+  eq("22) o titulo de dentro diz mais que a aba",
+     H.indexOf("Fornecedores esperando resposta") >= 0, "true");
 }
 
 // ------------------------------------------------------------ aparece sem visitar a Central

@@ -3272,7 +3272,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <button type="button" class="cl-tab on" data-clview="hoje">Visão de hoje</button>
           <button type="button" class="cl-tab" data-clview="agenda">Agenda da semana</button>
           <button type="button" class="cl-tab" data-clview="conf">Conferência dos carros</button>
-          <button type="button" class="cl-tab" data-clview="responder">A responder<span class="cl-tab-qt" id="clTabQt" style="display:none;"></span></button>
+          <button type="button" class="cl-tab" data-clview="responder">Agendamentos pendentes<span class="cl-tab-qt" id="clTabQt" style="display:none;"></span></button>
           <button type="button" class="cl-tab" id="clLinkBtn" style="margin-left:auto;background:#0c5a26;color:#fff;border-color:#0c5a26;">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Link do fornecedor
           </button>
@@ -5915,7 +5915,7 @@ function clDataLonga(iso){
    lista grande sem necessidade e vai empurrar a pagina para baixo". Mesmo com teto eram
    uns 460px na frente da Visao de hoje, dos atrasados e dos horarios livres — que e o que
    a pagina existe para mostrar de relance.
-   Agora ela tem aba propria ("A responder"), e o numero aparece em DOIS lugares: na aba e
+   Agora ela tem aba propria ("Agendamentos pendentes"), e o numero aparece em DOIS lugares: na aba e
    no menu lateral. Isso e proposital: pedido que ninguem responde EXPIRA SOZINHO, entao
    tirar a fila da vista sem deixar um lembrete seria trocar um estorvo por um esquecimento
    — e o esquecimento cai em cima do fornecedor, que fica sem entrega marcada.
@@ -5933,7 +5933,7 @@ function renderClPedidos(){
     var hoje=clDataISO(new Date());
     var vencidos=pend.filter(function(p){ return p.data<hoje; }).length;
     h+='<div class="cl-ped"><div class="cl-ped-cab">'+
-       '<b>Pedidos de fornecedor aguardando resposta</b>'+
+       '<b>Fornecedores esperando resposta</b>'+
        '<span class="qt">'+pend.length+'</span>'+
        (vencidos?'<span class="cl-ped-atras">'+vencidos+' já passou da data</span>':'')+
        '</div><div class="cl-ped-lista">';
@@ -5969,10 +5969,10 @@ function renderClPedidos(){
   }
 
   if(!pend.length){
-    /* a aba nao pode abrir vazia sem dizer nada: sem isto, quem clica em "A responder"
+    /* a aba nao pode abrir vazia sem dizer nada: sem isto, quem clica em "Agendamentos pendentes"
        e nao ve nada pensa que a tela quebrou, nao que nao ha o que responder */
     h+='<div class="cl-ped" style="border-color:#cfe0d5;background:#f4faf6;">'+
-       '<div class="cl-ped-cab"><b style="color:#0c5a26;">Nenhum pedido esperando resposta</b></div>'+
+       '<div class="cl-ped-cab"><b style="color:#0c5a26;">Nenhum agendamento pendente</b></div>'+
        '<p style="margin:0;font-size:13px;color:#5b6b63;">Quando um fornecedor pedir um horário pelo portal, '+
        'ele aparece aqui — e o número aparece no menu, de qualquer página.</p></div>';
   }
