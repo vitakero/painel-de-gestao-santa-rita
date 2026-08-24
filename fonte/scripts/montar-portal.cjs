@@ -3066,13 +3066,53 @@ body.com-wz #toasts{bottom:86px}
         }
       }
 
-      // Se o fornecedor tem pedido em aberto, passa pela etapa 2. Quem não tem
-      // vai direto para o agendamento e nem vê que a etapa existe.
-      // as travas da loja sao conferidas AGORA, nao no ultimo clique
-      checarCedo(el("wzAvanca"),
-                 (wz.pedidosLista && wz.pedidosLista.length) ? "pedidos" : "docs");
+      // as travas da loja sao conferidas AGORA, nao no ultimo clique.
+      // Para ONDE ir depois, quem decide e paraOndeDepoisDaNota: a etapa dos
+      // pedidos so aparece quando ha o que decidir.
+      paraOndeDepoisDaNota(function(destino){
+        checarCedo(el("wzAvanca"), destino);
+      });
     };
     pintarNotaCx();
+  }
+
+  // PARA ONDE IR DEPOIS DA NOTA — a etapa "Pedidos" so aparece quando ha o que decidir.
+  //
+  // Pedido do dono em 22/08/2026, testando: "quando eu vincular na primeira tela e der
+  // arquivo vinculado, e eu apertar continuar, eu nao cair nessa tela de pedidos, ja que
+  // esta vinculado... So cair nessa tela se acontecer divergencia".
+  //
+  // Ele esta certo: se a nota ja aponta o pedido e a conferencia nao achou nada, aquela
+  // tela nao pede decisao nenhuma — vira burocracia entre ele e o agendamento. Mas ela
+  // precisa aparecer sempre que houver ALGO para ele resolver ou saber:
+  //
+  //   - nao ha nota fiscal            -> e ali que ele escolhe o pedido
+  //   - alguma nota sem vinculo       -> so ele sabe a que pedido a nota se refere
+  //   - a nota aponta pedido diferente do marcado -> o aviso mora naquela tela
+  //   - a conferencia achou problema  -> e a tela que mostra item por item
+  //   - a conferencia nao pode rodar  -> na duvida, mostro; pular seria esconder
+  //
+  // Quando pula, um aviso curto conta o que foi conferido: sumir em silencio faria
+  // parecer que a etapa nao existe, e no dia em que ela aparecer ele estranharia.
+  function paraOndeDepoisDaNota(cb){
+    if(!wz.pedidosLista || !wz.pedidosLista.length) return cb("docs");   // nao tem pedido nenhum
+    if(!wz.comNota) return cb("pedidos");                               // sem nota, ele escolhe ali
+    for(var i=0;i<wz.chaves.length;i++){ if(!wz.chaves[i].vinc) return cb("pedidos"); }
+    if(avisosDoPedido()) return cb("pedidos");                          // nota aponta outro pedido
+
+    var its=itensDasNotas(), peds=pedidosDoAgendamento();
+    if(!its.length || !peds.length) return cb("pedidos");               // sem o que conferir
+
+    SB.rpc("forn_conferir_nota",{p_pedidos:peds, p_itens:its}).then(function(r){
+      var v=(r&&r.data)||{};
+      if(r.error || !v.ok || !v.conferido) return cb("pedidos");        // na duvida, mostro
+      wz.conf=v;                                                        // aproveito, se ele voltar
+      var rs=v.resumo||{};
+      if((rs.problemas||0) > 0) return cb("pedidos");
+      var qs=(wz.chaves.length===1 && wz.chaves[0].vinc) ? (" com o pedido "+wz.chaves[0].vinc) : "";
+      uiToast("Nota confere"+qs+" · "+(rs.ok||0)+" de "+(rs.itens||0)+" itens.");
+      cb("docs");
+    }, function(){ cb("pedidos"); });
   }
 
   var INFO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
