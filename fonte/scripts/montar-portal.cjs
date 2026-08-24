@@ -428,6 +428,25 @@ body.com-wz #toasts{bottom:86px}
 .mcaixa.alto > .det-corpo{flex:1 1 auto;min-height:0}
 .mcaixa.alto .det-main{overflow:auto;min-height:0}
 .mcaixa.alto .det-lado{overflow:auto;min-height:0}
+
+/* DIZER QUE TEM MAIS COISA EMBAIXO.
+   A rolagem funcionava, mas ninguem via: no Mac a barra fica escondida ate a pessoa
+   tentar rolar, e com o mouse sobre a coluna dos botoes nada se mexe. O dono ficou sem
+   saber se a lista de produtos continuava — e um item que ele nao sabe que existe e o
+   mesmo que um item que nao esta la.
+   A sombrinha aparece SO quando ha conteudo alem da borda: os dois primeiros gradientes
+   sao brancos e rolam junto (local), tapando a sombra quando se chega no fim. */
+.rolavel{
+  background:
+    linear-gradient(#fff 30%, rgba(255,255,255,0)) top    / 100% 26px no-repeat local,
+    linear-gradient(rgba(255,255,255,0), #fff 70%) bottom / 100% 26px no-repeat local,
+    radial-gradient(farthest-side at 50% 0,   rgba(16,32,24,.13), rgba(16,32,24,0)) top    / 100% 11px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%,rgba(16,32,24,.13), rgba(16,32,24,0)) bottom / 100% 11px no-repeat scroll;
+  scrollbar-width:thin}
+.rolavel::-webkit-scrollbar{width:9px}
+.rolavel::-webkit-scrollbar-thumb{background:#c9d3cd;border-radius:6px;
+  border:2px solid transparent;background-clip:content-box}
+.rolavel::-webkit-scrollbar-thumb:hover{background:#a9b7b0;background-clip:content-box}
 @media (max-width:820px){
   .mcaixa.alto > .det-corpo{overflow:auto}
   .mcaixa.alto .det-main,.mcaixa.alto .det-lado{overflow:visible}
@@ -2387,7 +2406,7 @@ body.com-wz #toasts{bottom:86px}
         '<div>'+esc(d.ticket)+'</div></div></div>'+
       '<div class="fim">'+uiSelo(d.situacao)+'</div></div>';
 
-    h+='<div class="det-corpo"><div class="det-main">';
+    h+='<div class="det-corpo rolavel"><div class="det-main rolavel">';
     h+='<div class="abas">';
     for(var i=0;i<ABAS.length;i++){
       h+='<button data-aba="'+ABAS[i][0]+'"'+(detAba===ABAS[i][0]?' class="on"':'')+'>'+ABAS[i][1]+'</button>';
