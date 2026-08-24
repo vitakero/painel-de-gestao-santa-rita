@@ -42,7 +42,7 @@ console.log("\n=== Portal — a etapa Pedidos só quando há o que decidir ===\n
   eq("4) sem nota fiscal, para (é ali que ele escolhe o pedido)",
      /if\(!wz\.comNota\) return cb\("pedidos"\);/.test(HTML), "true");
   eq("5) nota sem vínculo, para (só ele sabe a que pedido se refere)",
-     /for\(var i=0;i<wz\.chaves\.length;i\+\+\)\{ if\(!wz\.chaves\[i\]\.vinc\) return cb\("pedidos"\); \}/.test(HTML), "true");
+     /for\(var i=0;i<wz\.chaves\.length;i\+\+\)\{ if\(!temVinc\(wz\.chaves\[i\]\)\) return cb\("pedidos"\); \}/.test(HTML), "true");
   eq("6) nota apontando outro pedido, para (o aviso mora naquela tela)",
      /if\(avisosDoPedido\(\)\) return cb\("pedidos"\);/.test(HTML), "true");
   eq("7) sem o que conferir, para", /if\(!gruposParaConferir\(\)\.length\) return cb\("pedidos"\);/.test(HTML), "true");
@@ -63,7 +63,8 @@ console.log("\n=== Portal — a etapa Pedidos só quando há o que decidir ===\n
   // sumir em silêncio faria parecer que a etapa não existe, e no dia em que ela
   // aparecesse ele estranharia
   eq("11) ao pular, conta o que foi conferido", /uiToast\("Nota confere"\+qs\+" · "/.test(HTML), "true");
-  eq("12) dizendo com qual pedido", HTML.indexOf('" com o pedido "+wz.chaves[0].vinc') >= 0, "true");
+  eq("12) dizendo com qual pedido — ou pedidos, no plural",
+     HTML.indexOf('" com o pedido ":" com os pedidos ")+vincTxt(wz.chaves[0])') >= 0, "true");
   eq("13) e guarda a conferência, caso ele volte", /wz\.conf=v;\s*\/\/ aproveito, se ele voltar/.test(HTML), "true");
 }
 

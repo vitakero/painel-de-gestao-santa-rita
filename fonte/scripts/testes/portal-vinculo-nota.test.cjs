@@ -42,10 +42,12 @@ console.log("\n=== Portal — vínculo da nota com o pedido ===\n");
 // ------------------------------------------------------------ marcar devolve
 {
   eq("3) marcar devolve o vínculo que aquele pedido soltou",
-     /if\(!wz\.chaves\[q\]\.vinc && String\(wz\.chaves\[q\]\.vincSolto\|\|""\)===n\)\{/.test(HTML), "true");
+     /if\(!temVinc\(wz\.chaves\[q\]\) && String\(wz\.chaves\[q\]\.vincSolto\|\|""\)===n\)\{/.test(HTML), "true");
   // as duas condições importam: nota que ele vinculou a OUTRO pedido não pode ser
   // sequestrada, e nota que nunca teve vínculo não pode ganhar um por adivinhação
-  eq("4) só se a nota está sem vínculo agora", HTML.indexOf("if(!wz.chaves[q].vinc &&") >= 0, "true");
+  eq("4) só se a nota está sem vínculo agora", HTML.indexOf("if(!temVinc(wz.chaves[q]) &&") >= 0, "true");
+  // e com vários vínculos, desmarcar um pedido tira SÓ ele — não solta a nota inteira
+  eq("4b) desmarcar tira só o pedido desmarcado", /vq\.splice\(kq,1\);/.test(HTML), "true");
   eq("5) e só se foi ESTE pedido que soltou", HTML.indexOf('.vincSolto||"")===n') >= 0, "true");
   eq("6) devolvendo também a marca de automático",
      /wz\.chaves\[q\]\.vincAuto=!!wz\.chaves\[q\]\.vincSoltoAuto;/.test(HTML), "true");
@@ -69,8 +71,9 @@ console.log("\n=== Portal — vínculo da nota com o pedido ===\n");
 // ------------------------------------------------------------ resolveu, o aviso some
 {
   // sem isto o aviso ficava na tela depois de resolvido e a conferência olhava o alvo velho
-  eq("13) vincular repinta a conferência da etapa 2",
-     /listarNotas\(\);\s*\n\s*pintarResumoLado\(\);[\s\S]{0,400}?conferirNota\(\);\s*\n\s*uiToast\("Nota "/.test(HTML), "true");
+  // agora quem fecha a janela é o "Pronto", e é ele que repinta
+  eq("13) terminar de vincular repinta a conferência da etapa 2",
+     /el\("vpPronto"\)\.onclick=function\(\)\{[\s\S]{0,500}?conferirNota\(\);/.test(HTML), "true");
 }
 
 // ------------------------------------------------------------ nada disso some se não há como vincular

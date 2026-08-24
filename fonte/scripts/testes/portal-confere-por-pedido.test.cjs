@@ -35,15 +35,18 @@ console.log("\n=== Portal — cada nota contra o pedido dela ===\n");
 {
   eq("1) existe o agrupamento por pedido", /function gruposParaConferir\(\)\{/.test(HTML), "true");
   eq("2) o grupo sai do VÍNCULO da nota, não dos marcados",
-     /var n=wz\.chaves\[i\], v=String\(n\.vinc\|\|""\), its=n\.itens\|\|\[\];/.test(HTML), "true");
-  eq("3) nota sem vínculo ou sem itens não entra", /if\(!v \|\| !its\.length\) continue;/.test(HTML), "true");
+     /var n=wz\.chaves\[i\], vs=vincLista\(n\), its=n\.itens\|\|\[\];/.test(HTML), "true");
+  eq("3) nota sem vínculo ou sem itens não entra", /if\(!vs\.length \|\| !its\.length\) continue;/.test(HTML), "true");
   // duas notas do mesmo pedido vão juntas, senão "não vieram nesta nota" conta duas vezes
-  eq("4) notas do mesmo pedido são conferidas juntas", /if\(!mapa\[v\]\)\{ mapa\[v\]=\{pedido:v, itens:\[\]\}; ordem\.push\(v\); \}/.test(HTML), "true");
+  // agora a chave é o CONJUNTO de pedidos da nota, não um pedido só
+  eq("4) notas com o MESMO conjunto de pedidos conferem juntas",
+     /if\(!mapa\[v\]\)\{ mapa\[v\]=\{pedidos:vs, itens:\[\]\}; ordem\.push\(v\); \}/.test(HTML), "true");
 }
 
 // ------------------------------------------------------------ um pedido por chamada
 {
-  eq("5) confere um pedido por vez", /SB\.rpc\("forn_conferir_nota",\{p_pedidos:\[g\.pedido\], p_itens:g\.itens\}\)/.test(HTML), "true");
+  eq("5) confere um grupo por vez, com os pedidos daquela nota",
+     /SB\.rpc\("forn_conferir_nota",\{p_pedidos:g\.pedidos, p_itens:g\.itens\}\)/.test(HTML), "true");
   eq("6) e nunca mais manda a lista inteira de marcados",
      /forn_conferir_nota",\{p_pedidos:peds/.test(HTML), "false");
   eq("7) juntando as respostas num resultado só", /function juntarConferencias\(vs\)\{/.test(HTML), "true");
