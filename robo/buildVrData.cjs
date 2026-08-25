@@ -16,9 +16,6 @@ const SB_HOST="uabhsmculsfwzcrhyhch.supabase.co", SB_KEY=get("SUPABASE_SERVICE_K
 const PROD_SYNC_MS=3*3600*1000; // no maximo 1x a cada 3h (produto novo aparece em ate 3h)
 const PROD_SYNC_SQL="SELECT DISTINCT ON (p.id) pa.codigobarras::text cod, p.descricaocompleta nome, e.estoque::text total FROM public.produto p JOIN public.produtoautomacao pa ON pa.id_produto::text=p.id::text LEFT JOIN public.estoque e ON e.id_produto::text=p.id::text AND e.id_loja::text='1' WHERE pa.codigobarras IS NOT NULL AND trim(pa.codigobarras::text)<>'' ORDER BY p.id, pa.qtdembalagem";
 function sbUpsertProdutos(rows){return new Promise((res,rej)=>{const body=JSON.stringify(rows);const req=https.request({host:SB_HOST,path:"/rest/v1/estoque_produtos?on_conflict=cod",method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal","Content-Length":Buffer.byteLength(body)}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>r.statusCode<300?res():rej(new Error("HTTP "+r.statusCode+" "+d)))});req.on("error",rej);req.write(body);req.end();});}
-function sbUpsertVendaSetor(rows){return new Promise((res,rej)=>{const body=JSON.stringify(rows);const req=https.request({host:SB_HOST,path:"/rest/v1/vendasetor_mes?on_conflict=ano,mes,setor",method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal","Content-Length":Buffer.byteLength(body)}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>r.statusCode<300?res():rej(new Error("HTTP "+r.statusCode+" "+d)))});req.on("error",rej);req.write(body);req.end();});}
-function sbGetJson(q){return new Promise((res,rej)=>{const req=https.request({host:SB_HOST,path:"/rest/v1/"+q,method:"GET",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>{if(r.statusCode>=300)return rej(new Error("HTTP "+r.statusCode+" "+d));try{res(JSON.parse(d));}catch(e){rej(e);}})});req.on("error",rej);req.end();});}
-const VS_SYNC_MS=3600*1000; // resumo mensal: 1x por hora basta
 
 // ---- Cobranca Pix REAL (Sicredi) - worker do robo ----
 // O painel INSERE pedidos na tabela pix_cobrancas (status 'pedido'); aqui o robo gera o
@@ -119,14 +116,11 @@ async function timed(c,nome,sql,params){
     .map(r=>({d:d10(r.data),p:pagMap[r.f]||("Forma "+r.f),fat:num(r.fat)}));
 
   // ---- SETOR: dia x setor (itens x produto) ----
-  // A QUANTIDADE entra junto com o valor: mesma tabela, mesma linha, custo zero.
-  // Ela NAO vai pro vr-data.json de proposito — engordaria o painel publicado em ~150KB
-  // sem serventia. Serve so pro resumo MENSAL que sobe pra nuvem mais abaixo.
-  const setorRows=await timed(c,"SETOR",`
-    SELECT v.data, p.mercadologico1 m, SUM(v.valortotal) fat, SUM(v.quantidade) qtd
+  const SETOR=(await timed(c,"SETOR",`
+    SELECT v.data, p.mercadologico1 m, SUM(v.valortotal) fat
     FROM pdv.vendaitem v JOIN public.produto p ON p.id=v.id_produto
-    WHERE v.cancelado=false GROUP BY 1,2`);
-  const SETOR=setorRows.map(r=>({d:d10(r.data),s:setorMap[r.m]||("Setor "+r.m),fat:num(r.fat)}));
+    WHERE v.cancelado=false GROUP BY 1,2`))
+    .map(r=>({d:d10(r.data),s:setorMap[r.m]||("Setor "+r.m),fat:num(r.fat)}));
 
   // ---- RANKING PRODUTOS por mes (top 300/mes) ----
   const mp=await timed(c,"RANKING produtos/mes (top300)",`
@@ -180,49 +174,6 @@ async function timed(c,nome,sql,params){
       console.log("Sync produtos: "+ok+" produtos enviados pra nuvem (Loja/Deposito).");
     }
   }catch(e){ console.log("Sync produtos: erro ("+e.message+") - robo segue normal, produtos na proxima."); }
-
-  // ---- SYNC venda por setor (MENSAL) pra nuvem: alimenta a aba "Venda por setor" ----
-  // Quantidade, nao dinheiro. Uma linha por ano+mes+setor, na tabela vendasetor_mes.
-  //
-  // O MES CORRENTE VAI MARCADO completo=false. Ele so tem os dias que ja passaram, e a
-  // tela precisa saber disso pra deixar de fora da comparacao. Sem essa marca, todo
-  // setor aparece despencando 20-30% no dia 5 de cada mes — foi exatamente o que o
-  // relatorio de 25/08/2026 mostrou em agosto, nos treze setores de uma vez.
-  const vsMarkF=path.join(__dirname,"..","output","last-vendasetor-sync.txt");
-  try{
-    let ultima=0; try{ ultima=Number(fs.readFileSync(vsMarkF,"utf8"))||0; }catch(e){}
-    if(!SB_KEY){ console.log("Sync venda/setor: sem SUPABASE_SERVICE_KEY no .env - pulando."); }
-    else if(Date.now()-ultima < VS_SYNC_MS){ console.log("Sync venda/setor: feito ha < 1h - pulando."); }
-    else {
-      // de-para do nome cru do VR ("NOVO ACOUGUE") pro nome da loja ("Acougue").
-      // mostrar=false fica de fora: "A ACERTAR" (produto ainda sem setor) e "NOVO DESPESA"
-      // (lancamento de despesa) nao sao venda de setor. Sao esses dois que explicam a
-      // sobra de ~0,3% entre a soma dos 13 setores e o total da loja.
-      const apel={};
-      (await sbGetJson("vendasetor_apelido?select=setor_vr,setor,mostrar")).forEach(a=>{ apel[a.setor_vr]=a; });
-      const hoje=new Date(), anoHoje=hoje.getFullYear(), mesHoje=hoje.getMonth()+1;
-      const acc={}, desconhecidos={};
-      setorRows.forEach(r=>{
-        const cru=(setorMap[r.m]||"").trim(), a=apel[cru];
-        if(!a){ desconhecidos[cru]=1; return; }        // setor novo no VR: avisa, nao inventa
-        if(!a.mostrar) return;
-        const d=d10(r.data), k=(+d.slice(0,4))+"|"+(+d.slice(5,7))+"|"+a.setor;
-        acc[k]=(acc[k]||0)+(Number(r.qtd)||0);
-      });
-      const agora=new Date().toISOString();
-      const linhas=Object.keys(acc).map(k=>{
-        const parte=k.split("|"), ano=+parte[0], mes=+parte[1];
-        return { ano, mes, setor:parte[2], quantidade:Math.round(acc[k]*1000)/1000,
-                 completo:!(ano===anoHoje && mes===mesHoje), origem:"robo", atualizado_em:agora };
-      }).filter(l=>l.ano>=anoHoje-3);                  // tres anos pra tras cobrem a tela
-      let ok=0;
-      for(let i=0;i<linhas.length;i+=500){ await sbUpsertVendaSetor(linhas.slice(i,i+500)); ok+=Math.min(500,linhas.length-i); }
-      try{ fs.writeFileSync(vsMarkF, String(Date.now())); }catch(e){}
-      console.log("Sync venda/setor: "+ok+" linhas (ano+mes+setor) enviadas pra nuvem.");
-      const nd=Object.keys(desconhecidos);
-      if(nd.length) console.log("Sync venda/setor: SETOR NOVO no VR, sem apelido cadastrado -> "+nd.join(", ")+" (cadastre em vendasetor_apelido)");
-    }
-  }catch(e){ console.log("Sync venda/setor: erro ("+e.message+") - robo segue normal, tenta na proxima."); }
 
   // ---- WORKER PIX (Sicredi): gera as cobrancas pedidas no painel + concilia os pagos ----
   // Roda por ultimo, so fala https (Supabase + Sicredi), e NUNCA derruba a rodada.
