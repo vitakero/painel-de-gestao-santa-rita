@@ -44,8 +44,13 @@ const vr = JSON.parse(await readFile("output/vr-data.json", "utf8")) as {
   PAG: { d: string; p: string; fat: number }[];
   SETOR: { d: string; s: string; fat: number }[];
   MESPROD: { m: string; id: string; nome: string; qtd: number; fat: number }[];
+  // Quem mais caiu / mais cresceu em cada setor, ja calculado na loja sobre TODOS os
+  // produtos. Opcional: retrato antigo do VR nao tem, e o painel tem que abrir do mesmo
+  // jeito (a tela avisa que o dado ainda nao chegou).
+  SETPROD?: { s: string; de: number; para: number; id: string; nome: string; qd: number; qp: number; m: number }[];
 };
 const { DIA, HORA, OP, PAG, SETOR, MESPROD } = vr;
+const SETPROD = vr.SETPROD || [];
 const estoque: { id_produto: string; produto: string; setor: string; estoque: number; ruptura: string }[] = [];
 
 const dataMin = DIA.length ? DIA[0].d : "";
@@ -4289,6 +4294,7 @@ const OPER = ${JSON.stringify(OP)};
 const PAGS = ${JSON.stringify(PAG)};
 const SETORES = ${JSON.stringify(SETOR)};
 const MESPROD = ${JSON.stringify(MESPROD)};
+const SETPROD = ${JSON.stringify(SETPROD)};
 const ESTOQUE = ${JSON.stringify(estoque)};
 const PRODUTOS = ${JSON.stringify(produtosUnicos)}; // [[codigo, nome], ...]
 const DATA_MIN = ${JSON.stringify(dataMin)};
@@ -7512,7 +7518,7 @@ function vsRender(){
   h+='</tbody></table><div class="vs-eixo"><span>−'+teto+'%</span><span>0</span><span>+'+teto+'%</span></div>';
   if(vsPodeVerProduto()){
     h+= vsProdSel
-      ? '<div class="vs-prod">'+vsProdHtml(vsProdSel,anoDe,anoPara,mesesUsados)+'</div>'
+      ? '<div class="vs-prod">'+vsProdHtml(vsProdSel,anoDe,anoPara)+'</div>'
       : '<p style="margin:10px 0 0;color:#6b7787;font-size:12.5px;">Clique num setor para ver quais produtos puxaram o número.</p>';
   }
   h+='</div>';
@@ -7630,75 +7636,50 @@ document.addEventListener("mousemove", function(e){
   vsTipEsconde();
 });
 
-/* ==VSPCALC-INICIO== VENDA POR SETOR / DETALHE DO PRODUTO — módulo puro
-   (testado em scripts/testes/vendasetor-produto.test.cjs). Só conta.
+/* ==VSPCALC-INICIO== QUEM CAIU / QUEM CRESCEU em cada setor — módulo puro
+   (testado em scripts/testes/vendasetor-produto.test.cjs).
 
-   A fonte é o ranking mensal do VR: os 300 produtos mais vendidos de CADA mês,
-   escolhidos por faturamento. Isso cria uma armadilha que não existe no nível do setor:
+   A conta pesada NÃO é feita aqui: o robô já comparou TODOS os produtos do setor
+   dentro da loja e mandou só o resultado. Aqui é só filtrar e ordenar.
 
-   UM PRODUTO PODE ENTRAR E SAIR DA LISTA. Se a Coca 2L está no top-300 em janeiro de
-   2025 mas não em fevereiro, somar "janeiro a julho" dos dois anos compara 7 meses de
-   um lado com 6 do outro — e inventa uma queda que não existe. Por isso cada produto é
-   comparado SÓ nos meses em que aparece nos dois anos, e a tela diz quantos foram.
+   Foi assim porque a versão anterior mandava os 25 mais VENDIDOS de cada setor e
+   comparava no navegador. O 26º podia ter despencado e ninguém ficava sabendo — em
+   Perfumaria os 25 eram 21% do setor, e a lista de quedas nascia incompleta com cara
+   de completa.
 
-   Um produto que sai da lista de vez também some daqui. Não é bug: ele deixou de estar
-   entre os 300 maiores, o que já é um sinal por si só — mas não dá pra medir o tamanho
-   da queda com um dado que não existe. */
+   Duas leituras que o número sozinho não dá:
+   - vendia antes e agora é ZERO  -> a loja parou de vender. É a maior queda possível.
+   - não vendia e agora vende     -> produto novo. Não tem porcentagem (dividir por
+                                     zero), então a variação vem null e a tela escreve
+                                     "novo" em vez de inventar um número. */
 
-function vspMes(m){ return +String(m).slice(5,7); }
-function vspAno(m){ return +String(m).slice(0,4); }
-
-/* produtos de um setor (nome CRU do VR), no ano pedido */
-function vspDoSetor(prods, setorVr, ano){
-  var r=[],i,p;
-  for(i=0;i<prods.length;i++){ p=prods[i];
-    if(p.s===setorVr && vspAno(p.m)===+ano) r.push(p); }
-  return r;
+function vspLista(setprod, setorVr, anoDe, anoPara){
+  var out=[], i, r, de, para;
+  for(i=0;i<setprod.length;i++){
+    r=setprod[i];
+    if(r.s!==setorVr || +r.de!==+anoDe || +r.para!==+anoPara) continue;
+    de=+r.qd||0; para=+r.qp||0;
+    out.push({ nome:r.nome, de:de, para:para, meses:+r.m||0, dif:para-de,
+               variacao: de>0 ? (para/de-1)*100 : null,
+               sumiu: (de>0 && para===0), novo: (de===0 && para>0) });
+  }
+  /* pior primeiro: ordena pela DIFERENÇA, não pela porcentagem. -80% de um produto que
+     vendia 5 unidades não interessa a ninguém; -12% de um que vendia 30 mil, sim. */
+  return out.sort(function(a,b){ return a.dif-b.dif; });
 }
 
-/* Compara os produtos de UM setor entre dois anos.
-   mesesPermitidos = os meses que a página do setor já considera comparáveis
-   (ex.: 1..7). Cada produto usa a interseção disso com os meses em que ele
-   aparece nos DOIS anos. */
-function vspComparar(prods, setorVr, anoDe, anoPara, mesesPermitidos){
-  var A={}, B={}, nomes={};
-  vspDoSetor(prods,setorVr,anoDe).forEach(function(p){
-    if(mesesPermitidos.indexOf(vspMes(p.m))<0) return;
-    (A[p.id]=A[p.id]||{})[vspMes(p.m)]=(+p.qtd||0); nomes[p.id]=p.nome; });
-  vspDoSetor(prods,setorVr,anoPara).forEach(function(p){
-    if(mesesPermitidos.indexOf(vspMes(p.m))<0) return;
-    (B[p.id]=B[p.id]||{})[vspMes(p.m)]=(+p.qtd||0); nomes[p.id]=p.nome; });
-
-  var saida=[];
-  Object.keys(nomes).forEach(function(id){
-    var a=A[id]||{}, b=B[id]||{};
-    var juntos=Object.keys(a).filter(function(m){ return b[m]!==undefined; }).map(Number).sort(function(x,y){return x-y;});
-    if(!juntos.length){
-      // aparece só num dos anos: entra marcado, sem porcentagem inventada
-      var so = Object.keys(b).length ? anoPara : anoDe;
-      saida.push({ id:id, nome:nomes[id], de:null, para:null, variacao:null, meses:0, soEm:so });
-      return;
-    }
-    var de=0, para=0;
-    juntos.forEach(function(m){ de+=a[m]; para+=b[m]; });
-    saida.push({ id:id, nome:nomes[id], de:de, para:para,
-                 variacao: de>0 ? (para/de-1)*100 : null,
-                 meses:juntos.length, soEm:null });
-  });
-  // pior primeiro; quem não dá pra medir vai pro fim
-  return saida.sort(function(x,y){
-    if(x.variacao===null && y.variacao===null) return x.nome<y.nome?-1:1;
-    if(x.variacao===null) return 1;
-    if(y.variacao===null) return -1;
-    return x.variacao-y.variacao;
-  });
+function vspSetores(setprod){
+  var s={}, i; for(i=0;i<setprod.length;i++) s[setprod[i].s]=1;
+  return Object.keys(s).sort();
 }
 
-/* quanto do setor esses produtos explicam — pra tela não fingir que é a loja toda */
-function vspCobertura(lista){
-  var de=0, para=0, n=0;
-  lista.forEach(function(p){ if(p.variacao!==null){ de+=p.de; para+=p.para; n++; } });
-  return { de:de, para:para, medidos:n, semMedida:lista.length-n };
+function vspResumo(lista){
+  var caiu=0, subiu=0, nc=0, ns=0, i;
+  for(i=0;i<lista.length;i++){
+    if(lista[i].dif<0){ caiu+=-lista[i].dif; nc++; }
+    else if(lista[i].dif>0){ subiu+=lista[i].dif; ns++; }
+  }
+  return { caiu:caiu, subiu:subiu, nCaiu:nc, nSubiu:ns, liquido:subiu-caiu };
 }
 /* ==VSPCALC-FIM== */
 
@@ -7715,71 +7696,42 @@ function vsCru(nomeLoja){
   return null;
 }
 
-function vsProdHtml(setor, anoDe, anoPara, meses){
+function vsProdHtml(setor, anoDe, anoPara){
   var cru=vsCru(setor);
   if(!cru) return '<div class="vs-vazio">Não achei a tradução do setor <b>'+vsEsc(setor)+'</b> na tabela de apelidos.</div>';
-  var temSetor=false;
-  for(var i=0;i<MESPROD.length;i++){ if(MESPROD[i].s){ temSetor=true; break; } }
-  if(!temSetor){
-    return '<div class="vs-vazio">O ranking de produtos ainda não traz o setor.<br>'
-      +'Ele começa a vir na próxima vez que o robô rodar dentro da loja — aí este detalhe se preenche sozinho.</div>';
+  if(!SETPROD.length){
+    return '<div class="vs-vazio">A lista de quedas por produto ainda não chegou.<br>'
+      +'Ela é calculada dentro da loja e vem na próxima vez que o robô publicar.</div>';
   }
-  var lista=vspComparar(MESPROD, cru, anoDe, anoPara, meses);
-  if(!lista.length) return '<div class="vs-vazio">Nenhum produto deste setor entrou no ranking dos 300 mais vendidos nesses meses.</div>';
-  var cob=vspCobertura(lista);
+  var lista=vspLista(SETPROD, cru, anoDe, anoPara);
+  if(!lista.length) return '<div class="vs-vazio">Sem movimentação registrada neste setor entre '+anoDe+' e '+anoPara+'.</div>';
+  var res=vspResumo(lista);
 
   var h='<div class="vs-prod-top"><div>'
-    +'<h3>'+vsEsc(setor)+' — produto por produto</h3>'
-    +'<p>Os '+cob.medidos+' produtos deste setor que aparecem no ranking dos 300 mais vendidos '
-    +'nos dois anos. Do que mais caiu ao que mais cresceu.</p></div>'
+    +'<h3>'+vsEsc(setor)+' — quem caiu e quem cresceu</h3>'
+    +'<p>O robô comparou <b>todos</b> os produtos deste setor dentro da loja e mandou os que mais se mexeram. '
+    +'Mesmos meses da tela do setor, nos dois anos.</p></div>'
     +'<button class="btn-s" id="vsProdX" type="button">Fechar</button></div>';
 
-  h+='<div class="vs-aviso">Isto é <b>uma parte do setor</b>, não ele inteiro: só entram produtos que ficaram '
-    +'entre os 300 mais vendidos do mês. Somados, dão '+vsNum(cob.de)+' → '+vsNum(cob.para)
-    +' — o setor todo foi '+vsNum(vsRankAtual.filter(function(r){return r.setor===setor;})[0].de)+' → '
-    +vsNum(vsRankAtual.filter(function(r){return r.setor===setor;})[0].para)+'. '
-    +'Cada produto é comparado só nos meses em que aparece nos <b>dois</b> anos; a coluna "meses" mostra quantos foram.</div>';
+  h+='<div class="vs-aviso"><b>'+res.nCaiu+' produtos caíram</b> (−'+vsNum(res.caiu)+') e '
+    +'<b>'+res.nSubiu+' cresceram</b> (+'+vsNum(res.subiu)+'). '
+    +'A lista está ordenada pelo <b>tamanho da diferença</b>, não pela porcentagem: '
+    +'−80% de um produto que vendia 5 unidades não muda nada; −12% de um que vendia 30 mil, muda.</div>';
 
-  /* SEPARA POR FORÇA DA MEDIÇÃO. Um produto comparado em UM mês só não pode ficar
-     ombro a ombro com outro comparado em sete: -6% de um mês é ruído, e misturado na
-     mesma lista vira "produto em queda" na cabeça de quem lê. */
-  var FIRME=3;
-  var firmes=[], fracos=[], entraram=[], sairam=[];
+  h+='<div style="overflow-x:auto;"><table class="vs-tbl"><thead><tr>'
+    +'<th>Produto</th><th>'+anoDe+'</th><th>'+anoPara+'</th><th>Diferença</th><th>Variação</th>'
+    +'</tr></thead><tbody>';
   lista.forEach(function(p){
-    if(p.variacao===null){ (p.soEm===anoPara?entraram:sairam).push(p.nome); return; }
-    (p.meses>=FIRME?firmes:fracos).push(p);
+    var cls = p.dif<0 ? "vs-neg" : (p.dif>0 ? "vs-pos" : "vs-nulo");
+    var v = p.novo  ? '<span class="vs-selo vs-s-alta">novo</span>'
+          : p.sumiu ? '<span class="vs-selo vs-s-queda">parou de vender</span>'
+          : '<b>'+vsPct(p.variacao)+'</b>';
+    h+='<tr><td><b>'+vsEsc(p.nome)+'</b></td>'
+      +'<td>'+vsNum(p.de)+'</td><td>'+vsNum(p.para)+'</td>'
+      +'<td class="'+cls+'">'+(p.dif>=0?"+":"−")+vsNum(Math.abs(p.dif))+'</td>'
+      +'<td class="'+cls+'">'+v+'</td></tr>';
   });
-
-  function tabela(ls){
-    var t='<div style="overflow-x:auto;"><table class="vs-tbl"><thead><tr>'
-      +'<th>Produto</th><th>'+anoDe+'</th><th>'+anoPara+'</th><th>Diferença</th><th>Variação</th><th>Meses</th>'
-      +'</tr></thead><tbody>';
-    ls.forEach(function(p){
-      var dif=p.para-p.de, cls=vsCor(vscClassifica(p.variacao));
-      t+='<tr><td><b>'+vsEsc(p.nome)+'</b></td>'
-        +'<td>'+vsNum(p.de)+'</td><td>'+vsNum(p.para)+'</td>'
-        +'<td class="'+cls+'">'+(dif>=0?"+":"−")+vsNum(Math.abs(dif))+'</td>'
-        +'<td class="'+cls+'"><b>'+vsPct(p.variacao)+'</b></td>'
-        +'<td>'+p.meses+'</td></tr>';
-    });
-    return t+'</tbody></table></div>';
-  }
-
-  if(firmes.length) h+=tabela(firmes);
-  else h+='<div class="vs-vazio">Nenhum produto deste setor tem '+FIRME+' meses ou mais de comparação.</div>';
-
-  if(fracos.length){
-    h+='<div class="vs-prod-fraco"><b>Medição fraca — olhe com desconfiança.</b> '
-      +'Estes aparecem no ranking em menos de '+FIRME+' meses dos dois anos, então a porcentagem '
-      +'vem de pouca coisa e balança fácil.'+tabela(fracos)+'</div>';
-  }
-  if(entraram.length || sairam.length){
-    h+='<div class="vs-prod-mov">';
-    if(entraram.length) h+='<p><b>Entraram no ranking em '+anoPara+':</b> '+vsEsc(entraram.join(", "))+'</p>';
-    if(sairam.length)  h+='<p><b>Estavam em '+anoDe+' e saíram:</b> '+vsEsc(sairam.join(", "))
-      +' — sair dos 300 mais vendidos já é sinal, mas não dá pra medir o tamanho.</p>';
-    h+='</div>';
-  }
+  h+='</tbody></table></div>';
   return h;
 }
 
@@ -24672,4 +24624,23 @@ const comTema = injetarTemaEscuro(comCentral);
 }
 
 await writeFile("output/index.html", comTema);
+/* VIGIA DE TAMANHO DO PAINEL.
+   O painel e UM arquivo so: o codigo da tela e o retrato do VR viajam juntos, e TODA
+   pessoa baixa o arquivo inteiro toda vez que abre — mesmo pra ver so a Escala.
+   Hoje sao ~8,8 MB. Cada camada nova de detalhe (produto por setor, dado por dia)
+   engorda isso pra todo mundo.
+   Quando passar dos limites abaixo, a conversa deixa de ser "cabe?" e vira "esta na
+   hora de tirar os resumos de dentro do arquivo e servir do Supabase sob demanda".
+   Isto NAO derruba o build de proposito: e um aviso, nao uma trava. */
+const MB_PAINEL = comTema.length / 1048576;
+if (MB_PAINEL >= 15) {
+  console.log("   !!! PAINEL COM " + MB_PAINEL.toFixed(1) + " MB — PASSOU DE 15. Em conexao de celular isto ja incomoda.");
+  console.log("       HORA DE CONVERSAR COM O VICTOR sobre servir os resumos do Supabase sob demanda,");
+  console.log("       em vez de mandar tudo dentro do arquivo. Ele pediu pra ser avisado.");
+} else if (MB_PAINEL >= 12) {
+  console.log("   ATENCAO: painel com " + MB_PAINEL.toFixed(1) + " MB (limite de conforto: 12). Comecar a planejar");
+  console.log("       tirar os resumos de dentro do arquivo. Avisar o Victor.");
+} else {
+  console.log("   tamanho do painel: " + MB_PAINEL.toFixed(1) + " MB (folga ate 12).");
+}
 console.log("OK -> output/index.html (painel com dados reais do VR; tema escuro premium gerado: " + Math.round((comTema.length-comCentral.length)/1024) + "KB)");

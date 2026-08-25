@@ -1,4 +1,4 @@
-// Testes do detalhe por produto (Venda por setor).
+// Testes de "quem caiu / quem cresceu" por setor (Venda por setor).
 // Extrai o módulo do painel gerado, entre ==VSPCALC-INICIO== e ==VSPCALC-FIM==.
 //   node scripts/testes/vendasetor-produto.test.cjs
 const fs = require("fs");
@@ -9,7 +9,7 @@ const ini = HTML.indexOf("==VSPCALC-INICIO==");
 const fim = HTML.indexOf("==VSPCALC-FIM==");
 if (ini < 0 || fim < 0) { console.log("ERRO: não achei o módulo no output/index.html (rode o build antes)."); process.exit(1); }
 const codigo = HTML.slice(HTML.indexOf("*/", ini) + 2, HTML.lastIndexOf("/*", fim));
-const M = new Function(codigo + "\nreturn {vspMes,vspAno,vspDoSetor,vspComparar,vspCobertura};")();
+const M = new Function(codigo + "\nreturn {vspLista,vspSetores,vspResumo};")();
 
 let ok = 0, falhou = 0;
 function eq(nome, obtido, esperado) {
@@ -18,90 +18,91 @@ function eq(nome, obtido, esperado) {
   bate ? ok++ : falhou++;
 }
 const d2 = (v) => v === null ? "null" : (Math.round(v * 100) / 100).toFixed(2);
-const P = (m, id, nome, s, qtd) => ({ m, id, nome, s, qtd, fat: qtd * 10 });
-const JAN_JUL = [1, 2, 3, 4, 5, 6, 7];
+// uma linha como o robô manda
+const L = (s, de, para, nome, qd, qp, m = 7) => ({ s, de, para, id: nome, nome, qd, qp, m });
 
 // ===========================================================================
-// A ARMADILHA PRINCIPAL: o produto entra e sai do top-300.
-// Se ele aparece em 7 meses de 2025 e só em 3 de 2026, somar tudo compara
-// 7 meses contra 3 e inventa uma queda de 57% que não existe.
+// A ORDEM É PELO TAMANHO DA DIFERENÇA, NÃO PELA PORCENTAGEM.
+// Um produto que vendia 5 e caiu pra 1 é -80%, mas são 4 unidades: não muda nada.
+// Um que vendia 30.000 e caiu pra 26.400 é -12%, mas são 3.600 unidades.
+// Ordenar por % põe o irrelevante no topo e esconde o que importa.
 // ===========================================================================
 {
-  const L = [];
-  for (let m = 1; m <= 7; m++) L.push(P("2025-0" + m, "1", "COCA 2L", "NOVO BEBIDAS", 100));
-  for (const m of [1, 2, 3]) L.push(P("2026-0" + m, "1", "COCA 2L", "NOVO BEBIDAS", 100));
-  const r = M.vspComparar(L, "NOVO BEBIDAS", 2025, 2026, JAN_JUL)[0];
-  eq("compara só os meses dos dois lados", r.meses, 3);
-  eq("2025 usa só esses 3 meses", r.de, 300);
-  eq("2026 idem", r.para, 300);
-  eq("resultado: empate, não -57%", d2(r.variacao), "0.00");
+  const D = [L("NOVO BEBIDAS", 2025, 2026, "MIUDO", 5, 1),
+             L("NOVO BEBIDAS", 2025, 2026, "GRANDE", 30000, 26400)];
+  const r = M.vspLista(D, "NOVO BEBIDAS", 2025, 2026);
+  eq("o de maior volume vem primeiro", r[0].nome, "GRANDE");
+  eq("mesmo tendo caído menos em %", d2(r[0].variacao), "-12.00");
+  eq("o miúdo cai -80% e fica embaixo", d2(r[1].variacao), "-80.00");
 }
 
 // ===========================================================================
-// Produto que aparece só num dos anos: entra marcado, sem % inventada
+// Parou de vender: é a maior queda possível e NÃO pode sumir da lista
 // ===========================================================================
 {
-  const L = [P("2025-01", "9", "SUMIU", "NOVO BEBIDAS", 50),
-             P("2026-01", "8", "CHEGOU", "NOVO BEBIDAS", 70),
-             P("2025-01", "1", "NORMAL", "NOVO BEBIDAS", 100),
-             P("2026-01", "1", "NORMAL", "NOVO BEBIDAS", 80)];
-  const r = M.vspComparar(L, "NOVO BEBIDAS", 2025, 2026, JAN_JUL);
-  const sumiu = r.find((x) => x.nome === "SUMIU");
-  const chegou = r.find((x) => x.nome === "CHEGOU");
-  eq("quem sumiu: sem variação", sumiu.variacao, null);
-  eq("quem sumiu: marcado no ano certo", sumiu.soEm, 2025);
-  eq("quem chegou: marcado no ano certo", chegou.soEm, 2026);
-  eq("quem dá pra medir vem primeiro", r[0].nome, "NORMAL");
-  eq("e os sem medida vão pro fim", r[r.length - 1].variacao, null);
+  const D = [L("NOVO BEBIDAS", 2025, 2026, "SUMIU", 8000, 0),
+             L("NOVO BEBIDAS", 2025, 2026, "CAIU", 8000, 7000)];
+  const r = M.vspLista(D, "NOVO BEBIDAS", 2025, 2026);
+  eq("quem parou de vender lidera", r[0].nome, "SUMIU");
+  eq("marcado como sumiu", r[0].sumiu, true);
+  eq("e a variação é -100%", d2(r[0].variacao), "-100.00");
+  eq("quem só caiu não é marcado", r[1].sumiu, false);
 }
 
 // ===========================================================================
-// Só o setor pedido entra; e só os meses que a página do setor permite
+// Produto novo: não inventa porcentagem (dividir por zero)
 // ===========================================================================
 {
-  const L = [P("2025-01", "1", "CERVEJA", "NOVO BEBIDAS", 100), P("2026-01", "1", "CERVEJA", "NOVO BEBIDAS", 90),
-             P("2025-01", "2", "ARROZ", "NOVO - MERCEARIA", 100), P("2026-01", "2", "ARROZ", "NOVO - MERCEARIA", 50),
-             P("2025-08", "1", "CERVEJA", "NOVO BEBIDAS", 999), P("2026-08", "1", "CERVEJA", "NOVO BEBIDAS", 1)];
-  const r = M.vspComparar(L, "NOVO BEBIDAS", 2025, 2026, JAN_JUL);
-  eq("só produtos do setor pedido", r.length, 1);
-  eq("é a cerveja", r[0].nome, "CERVEJA");
-  eq("agosto fora: não entra na conta", r[0].de, 100);
-  eq("variação sem agosto", d2(r[0].variacao), "-10.00");
+  const D = [L("NOVO BEBIDAS", 2025, 2026, "NOVO", 0, 5000)];
+  const r = M.vspLista(D, "NOVO BEBIDAS", 2025, 2026)[0];
+  eq("variação de produto novo é null", r.variacao, null);
+  eq("marcado como novo", r.novo, true);
+  eq("mas a diferença existe", r.dif, 5000);
 }
 
 // ===========================================================================
-// Ordem: do que mais caiu ao que mais cresceu
+// Filtra por setor E por par de anos
 // ===========================================================================
 {
-  const L = [];
-  const par = (id, nome, a, b) => { L.push(P("2025-01", id, nome, "NOVO BEBIDAS", a)); L.push(P("2026-01", id, nome, "NOVO BEBIDAS", b)); };
-  par("1", "SOBE", 100, 130);
-  par("2", "DESPENCA", 100, 40);
-  par("3", "CAI POUCO", 100, 95);
-  const r = M.vspComparar(L, "NOVO BEBIDAS", 2025, 2026, JAN_JUL);
-  eq("ordem dos nomes", r.map((x) => x.nome).join(" > "), "DESPENCA > CAI POUCO > SOBE");
+  const D = [L("NOVO BEBIDAS", 2025, 2026, "CERVEJA", 100, 50),
+             L("NOVO - MERCEARIA", 2025, 2026, "ARROZ", 100, 50),
+             L("NOVO BEBIDAS", 2024, 2025, "CERVEJA", 200, 100)];
+  eq("só o setor pedido", M.vspLista(D, "NOVO BEBIDAS", 2025, 2026).length, 1);
+  eq("e só o par de anos pedido", M.vspLista(D, "NOVO BEBIDAS", 2025, 2026)[0].de, 100);
+  eq("o outro par existe separado", M.vspLista(D, "NOVO BEBIDAS", 2024, 2025)[0].de, 200);
+  eq("setores disponíveis", M.vspSetores(D).join(" | "), "NOVO - MERCEARIA | NOVO BEBIDAS");
 }
 
 // ===========================================================================
-// Cobertura: a tela não pode fingir que os 300 são o setor inteiro
+// Resumo: quanto caiu, quanto subiu, e o líquido
 // ===========================================================================
 {
-  const L = [P("2025-01", "1", "A", "NOVO BEBIDAS", 100), P("2026-01", "1", "A", "NOVO BEBIDAS", 80),
-             P("2025-01", "2", "B", "NOVO BEBIDAS", 50), P("2026-01", "2", "B", "NOVO BEBIDAS", 60),
-             P("2025-01", "3", "SO2025", "NOVO BEBIDAS", 999)];
-  const c = M.vspCobertura(M.vspComparar(L, "NOVO BEBIDAS", 2025, 2026, JAN_JUL));
-  eq("soma só o que dá pra medir (2025)", c.de, 150);
-  eq("soma só o que dá pra medir (2026)", c.para, 140);
-  eq("quantos medidos", c.medidos, 2);
-  eq("quantos sem medida", c.semMedida, 1);
+  const D = [L("S", 2025, 2026, "A", 100, 40),    // -60
+             L("S", 2025, 2026, "B", 100, 130),   // +30
+             L("S", 2025, 2026, "C", 50, 50),     //   0 (não conta pra lado nenhum)
+             L("S", 2025, 2026, "D", 200, 190)];  // -10
+  const r = M.vspResumo(M.vspLista(D, "S", 2025, 2026));
+  eq("quantos caíram", r.nCaiu, 2);
+  eq("quanto caiu", r.caiu, 70);
+  eq("quantos subiram", r.nSubiu, 1);
+  eq("quanto subiu", r.subiu, 30);
+  eq("líquido", r.liquido, -40);
+  eq("o empatado não entra em nenhum lado", r.nCaiu + r.nSubiu, 3);
 }
 
 // ===========================================================================
-// Base zero não vira queda de 100%
+// Números REAIS: as cervejas que o Victor viu em 25/08/2026
 // ===========================================================================
 {
-  const L = [P("2025-01", "1", "X", "NOVO BEBIDAS", 0), P("2026-01", "1", "X", "NOVO BEBIDAS", 90)];
-  eq("dividir por zero devolve null", M.vspComparar(L, "NOVO BEBIDAS", 2025, 2026, JAN_JUL)[0].variacao, null);
+  const D = [L("NOVO BEBIDAS", 2025, 2026, "CERV BUDWEISER 350ML LATA SLEEK", 32489, 15125),
+             L("NOVO BEBIDAS", 2025, 2026, "CERV DEVASSA 350ML LT", 33416, 19847),
+             L("NOVO BEBIDAS", 2025, 2026, "CERV ITAIPAVA 350ML PILSEN LATA", 11761, 16652)];
+  const r = M.vspLista(D, "NOVO BEBIDAS", 2025, 2026);
+  eq("Budweiser é a maior queda em unidades", r[0].nome.indexOf("BUDWEISER") >= 0, true);
+  eq("Budweiser em %", d2(r[0].variacao), "-53.45");
+  eq("Devassa em %", d2(r[1].variacao), "-40.61");
+  eq("Itaipava subiu e vai pro fim", r[2].nome.indexOf("ITAIPAVA") >= 0, true);
+  eq("Itaipava em %", d2(r[2].variacao), "41.59");
 }
 
 console.log("\n" + ok + " ok, " + falhou + " falha(s).");

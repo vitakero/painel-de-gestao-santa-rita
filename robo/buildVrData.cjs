@@ -162,8 +162,62 @@ async function timed(c,nome,sql,params){
     console.log("  RANKING novo falhou ("+e.message+") - caindo na consulta antiga, sem setor.");
     mp=await timed(c,"RANKING produtos/mes (antiga, sem setor)", SQL_RANK_ANTIGA);
   }
+  // ---- QUEM MAIS CAIU / MAIS CRESCEU em cada setor (a conta feita AQUI, na loja) ----
+  // Antes eu mandava os 25 mais VENDIDOS de cada setor e deixava o painel comparar. O
+  // problema: o 26o podia ter despencado e ninguem ficava sabendo. Em Perfumaria os 25
+  // eram 21% do setor — a lista de quedas nascia incompleta e parecia completa.
+  //
+  // Agora o robo compara TODOS os produtos (ele tem os 47 mil aqui) e manda so o
+  // resultado: 40 maiores quedas + 15 maiores altas por setor, por par de anos.
+  // ~1.500 linhas em vez de 18 mil, e a resposta fica inteira.
+  //
+  // A JANELA e a mesma da tela do setor: meses fechados nos DOIS anos. O mes corrente
+  // fica de fora — se entrasse pela metade, todo produto apareceria caindo.
+  // Ausencia conta como ZERO de proposito: produto que a loja parou de vender e
+  // exatamente a maior queda possivel, e some se eu exigir venda nos dois anos.
+  const SQL_SETPROD=`
+    WITH lim AS (
+      SELECT EXTRACT(YEAR FROM CURRENT_DATE)::int ano_atual,
+             EXTRACT(MONTH FROM CURRENT_DATE)::int mes_atual),
+    base AS (
+      SELECT p.mercadologico1 m1, v.id_produto,
+             EXTRACT(YEAR FROM v.data)::int ano, EXTRACT(MONTH FROM v.data)::int mes,
+             SUM(v.quantidade) qtd
+      FROM pdv.vendaitem v JOIN public.produto p ON p.id=v.id_produto
+      WHERE v.cancelado=false AND v.data >= (CURRENT_DATE - INTERVAL '3 years')
+      GROUP BY 1,2,3,4),
+    pares AS (
+      SELECT DISTINCT ano AS ano_de, ano+1 AS ano_para FROM base
+      WHERE ano+1 IN (SELECT DISTINCT ano FROM base)),
+    janela AS (
+      SELECT pr.ano_de, pr.ano_para, g.mes
+      FROM pares pr CROSS JOIN generate_series(1,12) AS g(mes) CROSS JOIN lim
+      WHERE NOT (pr.ano_para = lim.ano_atual AND g.mes >= lim.mes_atual)),
+    soma AS (
+      SELECT j.ano_de, j.ano_para, b.m1, b.id_produto,
+             SUM(CASE WHEN b.ano=j.ano_de   THEN b.qtd ELSE 0 END) de,
+             SUM(CASE WHEN b.ano=j.ano_para THEN b.qtd ELSE 0 END) para,
+             COUNT(DISTINCT b.mes) meses
+      FROM janela j
+      JOIN base b ON b.mes=j.mes AND b.ano IN (j.ano_de, j.ano_para)
+      GROUP BY 1,2,3,4),
+    r AS (
+      SELECT *, (para-de) AS dif,
+        row_number() OVER (PARTITION BY m1, ano_de ORDER BY (para-de) ASC)  rn_caiu,
+        row_number() OVER (PARTITION BY m1, ano_de ORDER BY (para-de) DESC) rn_subiu
+      FROM soma WHERE de>0 OR para>0)
+    SELECT ano_de, ano_para, m1, id_produto, de, para, meses
+    FROM r WHERE rn_caiu<=40 OR rn_subiu<=15`;
+  let setprodRows=[];
+  try{
+    setprodRows=await timed(c,"QUEDAS/ALTAS por setor (todos os produtos)", SQL_SETPROD);
+  }catch(e){
+    // Mesma regra do resto: um detalhe novo nao pode derrubar a rodada inteira.
+    console.log("  QUEDAS/ALTAS falhou ("+e.message+") - segue sem esse bloco.");
+  }
+
   // nomes dos produtos que aparecem no ranking
-  const ids=[...new Set(mp.map(r=>r.id_produto))];
+  const ids=[...new Set(mp.map(r=>r.id_produto).concat(setprodRows.map(r=>r.id_produto)))];
   const nomeProd={};
   for(let i=0;i<ids.length;i+=2000){
     const chunk=ids.slice(i,i+2000);
@@ -174,11 +228,16 @@ async function timed(c,nome,sql,params){
   // tela, lendo vendasetor_apelido — assim existe UM lugar so com a traducao.
   // Classificar por NOME nunca: "REFRIG COCA-COLA ZERO ACUCAR" iria parar na mercearia,
   // e "AGUA SANIT" nas bebidas.
+  const SETPROD=setprodRows.map(r=>({
+    s:setorMap[r.m1]||"", de:Number(r.ano_de), para:Number(r.ano_para),
+    id:String(r.id_produto), nome:nomeProd[r.id_produto]||("Prod "+r.id_produto),
+    qd:num(r.de), qp:num(r.para), m:Number(r.meses)
+  })).filter(x=>x.s);
   const MESPROD=mp.map(r=>({m:r.mes,id:String(r.id_produto),nome:nomeProd[r.id_produto]||("Prod "+r.id_produto),s:setorMap[r.m1]||"",qtd:num(r.qtd),fat:num(r.fat)}));
 
   await c.end();
 
-  const data={ gerado:new Date().toISOString(), DIA, HORA, OP, PAG, SETOR, MESPROD };
+  const data={ gerado:new Date().toISOString(), DIA, HORA, OP, PAG, SETOR, MESPROD, SETPROD };
   const outDir=path.join(__dirname,"..","output");
   if(!fs.existsSync(outDir)) fs.mkdirSync(outDir);
   const file=path.join(outDir,"vr-data.json");
@@ -186,7 +245,7 @@ async function timed(c,nome,sql,params){
   const mb=(fs.statSync(file).size/1048576).toFixed(2);
   try{ fs.writeFileSync(lockF, String(Date.now())); }catch(e){}
   console.log("\nOK -> output/vr-data.json ("+mb+" MB)");
-  console.log("Linhas: DIA="+DIA.length+" HORA="+HORA.length+" OP="+OP.length+" PAG="+PAG.length+" SETOR="+SETOR.length+" MESPROD="+MESPROD.length);
+  console.log("Linhas: SETPROD="+SETPROD.length+" DIA="+DIA.length+" HORA="+HORA.length+" OP="+OP.length+" PAG="+PAG.length+" SETOR="+SETOR.length+" MESPROD="+MESPROD.length);
   console.log("Periodo: "+(DIA[0]&&DIA[0].d)+" a "+(DIA[DIA.length-1]&&DIA[DIA.length-1].d));
 
   // ---- SYNC de produtos/estoque pra nuvem (conexao NOVA e separada, no fim; throttle 3h; nunca derruba o robo) ----
