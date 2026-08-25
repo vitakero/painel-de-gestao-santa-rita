@@ -7524,7 +7524,7 @@ function vsRender(){
   h+='</tbody></table><div class="vs-eixo"><span>−'+teto+'%</span><span>0</span><span>+'+teto+'%</span></div>';
   if(vsPodeVerProduto()){
     h+= vsProdSel
-      ? '<div class="vs-prod">'+vsProdHtml(vsProdSel,anoDe,anoPara)+'</div>'
+      ? '<div class="vs-prod">'+vsProdHtml(vsProdSel,anoDe,anoPara,mesesUsados)+'</div>'
       : '<p style="margin:10px 0 0;color:#6b7787;font-size:12.5px;">Clique num setor para ver quais produtos puxaram o número.</p>';
   }
   h+='</div>';
@@ -7693,6 +7693,16 @@ function vspResumo(lista){
    Só desenho; as contas ficam no módulo VSPCALC acima. ---- */
 var vsProdSel=null;   /* setor aberto (nome da loja) ou null */
 
+function vsCabAno(meses, ano){
+  if(!meses || !meses.length || meses.length===12) return String(ano);
+  return VS_MES3[meses[0]-1]+'–'+VS_MES3[meses[meses.length-1]-1]+'<br><span style="font-weight:400;">'+ano+'</span>';
+}
+function vsPeriodo(meses, ano){
+  if(!meses || !meses.length) return String(ano);
+  var a=VS_MESN[meses[0]-1], b=VS_MESN[meses[meses.length-1]-1];
+  if(meses.length===12) return "o ano inteiro de "+ano;
+  return (a===b ? a : (a+" a "+b))+" de "+ano;
+}
 function vsProdFecha(){ vsProdSel=null; vsRender(); }
 
 /* Os produtos vêm com o nome CRU do VR ("NOVO BEBIDAS"); a tela usa o nome da loja
@@ -7702,7 +7712,7 @@ function vsCru(nomeLoja){
   return null;
 }
 
-function vsProdHtml(setor, anoDe, anoPara){
+function vsProdHtml(setor, anoDe, anoPara, meses){
   var cru=vsCru(setor);
   if(!cru) return '<div class="vs-vazio">Não achei a tradução do setor <b>'+vsEsc(setor)+'</b> na tabela de apelidos.</div>';
   if(!SETPROD.length){
@@ -7715,8 +7725,11 @@ function vsProdHtml(setor, anoDe, anoPara){
 
   var h='<div class="vs-prod-top"><div>'
     +'<h3>'+vsEsc(setor)+' — quem caiu e quem cresceu</h3>'
-    +'<p>O robô comparou <b>todos</b> os produtos deste setor dentro da loja e mandou os que mais se mexeram. '
-    +'Mesmos meses da tela do setor, nos dois anos.</p></div>'
+    /* DIZER O PERIODO POR EXTENSO. Antes estava escrito "mesmos meses da tela do setor",
+       o que so faz sentido pra quem escreveu: quem abre a tela nao tem como saber que
+       isso quer dizer janeiro a julho. Numero sem periodo nao da pra conferir com nada. */
+    +'<p><b>'+vsPeriodo(meses,anoDe)+'</b> comparado com <b>'+vsPeriodo(meses,anoPara)+'</b>. '
+    +'O robô comparou <b>todos</b> os produtos deste setor dentro da loja e mandou os que mais se mexeram.</p></div>'
     +'<button class="btn-s" id="vsProdX" type="button">Fechar</button></div>';
 
   /* NAO deixar isto virar "o balanco do setor". Sao os EXTREMOS: as maiores quedas e as
@@ -7730,7 +7743,8 @@ function vsProdHtml(setor, anoDe, anoPara){
     +'5 unidades não muda nada; −12% de um que vendia 30 mil, muda.</div>';
 
   h+='<div style="overflow-x:auto;"><table class="vs-tbl"><thead><tr>'
-    +'<th>Produto</th><th>'+anoDe+'</th><th>'+anoPara+'</th><th>Diferença</th><th>Variação</th>'
+    +'<th>Produto</th><th>'+vsCabAno(meses,anoDe)+'</th><th>'+vsCabAno(meses,anoPara)+'</th>'
+    +'<th>Diferença</th><th>Variação</th>'
     +'</tr></thead><tbody>';
   lista.forEach(function(p){
     var cls = p.dif<0 ? "vs-neg" : (p.dif>0 ? "vs-pos" : "vs-nulo");

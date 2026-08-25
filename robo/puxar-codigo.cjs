@@ -46,6 +46,7 @@ const FILES = [
   ["robo/vr-medir-pedidos.cjs", "vr-medir-pedidos.cjs", "MEDIDOR"],
   ["robo/vr-sync-pedidos.cjs", "vr-sync-pedidos.cjs", "receb_pedido_itens"],
   ["robo/vr-descobrir-perdas.cjs", "vr-descobrir-perdas.cjs", "receb_eventos"],
+  ["robo/vr-conferir-setor.cjs", "vr-conferir-setor.cjs", "mercadologico"],
   ["robo/vr-descobrir-notas.cjs", "vr-descobrir-notas.cjs", "vr_notas"],
   ["robo/mandar-log.cjs", "mandar-log.cjs", "receb_eventos"],
   // o "passo da vez" da investigacao das notas: o notas.bat chama sempre este nome

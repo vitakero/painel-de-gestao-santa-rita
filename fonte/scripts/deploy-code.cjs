@@ -31,6 +31,7 @@ const FILES = [
   ["scripts/vr-medir-pedidos.cjs", "robo/vr-medir-pedidos.cjs"],
   ["scripts/vr-sync-pedidos.cjs", "robo/vr-sync-pedidos.cjs"],
   ["scripts/vr-descobrir-perdas.cjs", "robo/vr-descobrir-perdas.cjs"],
+  ["scripts/vr-conferir-setor.cjs", "robo/vr-conferir-setor.cjs"],   // roda na loja, compara minha conta x relatorio do VR
   ["scripts/vr-descobrir-notas.cjs", "robo/vr-descobrir-notas.cjs"],
   ["scripts/mandar-log.cjs", "robo/mandar-log.cjs"],
   ["scripts/notas-passo.cjs", "robo/notas-passo.cjs"],
