@@ -215,6 +215,62 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .kpi .v { font-size:22px; font-weight:700; color:#0c5a26; }
   .kpi .l { font-size:12px; color:#6b7787; margin-top:3px; text-transform:uppercase; letter-spacing:.4px; }
   .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+  /* ---- Venda por setor: ranking, tabela e a tira dos doze meses. Reaproveita
+     .card/.kpi/.btn-s; aqui só o que o painel ainda não tinha. Tudo em cores CLARAS
+     de propósito — o tema escuro é derivado destas regras no build. ---- */
+  .vs-top { display:flex; justify-content:space-between; align-items:flex-end; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
+  .vs-top h2 { margin:0 0 3px; font-size:19px; color:#1f2b3a; }
+  .vs-top p { margin:0; color:#6b7787; font-size:13px; max-width:78ch; line-height:1.5; }
+  .vs-sel { border:1px solid #dbe2ea; background:#fff; color:#33404f; border-radius:9px; padding:8px 12px; font-size:13px; font-weight:600; cursor:pointer; }
+  .vs-aviso { background:#fdf6e6; border:1px solid #f0e0bb; border-radius:10px; padding:11px 14px; font-size:13px; color:#6b5a2e; margin-bottom:16px; line-height:1.55; }
+  .vs-aviso b { color:#4a3c17; }
+  .vs-rank { width:100%; border-collapse:collapse; }
+  .vs-rank td { padding:6px 8px; border-bottom:1px solid #eef2f7; vertical-align:middle; }
+  .vs-rank tr:last-child td { border-bottom:0; }
+  .vs-rank .nm { width:150px; text-align:right; font-size:13px; font-weight:600; color:#33404f; }
+  .vs-rank .vl { width:82px; text-align:right; font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .vs-trilho { position:relative; display:block; height:20px; }
+  .vs-trilho i { position:absolute; top:-3px; bottom:-3px; left:50%; width:1px; background:#dbe2ea; }
+  .vs-bar { position:absolute; top:3px; height:14px; cursor:default; }
+  /* Frios varia -0,01% -> a barra tem menos de 1px. Sem isto era impossivel acertar o
+     mouse nela. A area de toque cresce 4px pra cada lado; a barra desenhada NAO muda. */
+  .vs-bar::after { content:""; position:absolute; top:-5px; bottom:-5px; left:-4px; right:-4px; }
+  .vs-bneg { background:#c0442c; border-radius:4px 0 0 4px; }
+  .vs-bpos { background:#157a35; border-radius:0 4px 4px 0; }
+  .vs-neg { color:#b3341f; } .vs-pos { color:#0c5a26; } .vs-nulo { color:#6b7787; }
+  .vs-eixo { display:flex; justify-content:space-between; color:#8b96a5; font-size:11px; padding:6px 0 0; }
+  .vs-tbl { width:100%; border-collapse:collapse; font-size:13px; }
+  .vs-tbl th { text-align:right; font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:#6b7787; padding:8px; border-bottom:1px solid #dbe2ea; white-space:nowrap; }
+  .vs-tbl td { text-align:right; padding:9px 8px; border-bottom:1px solid #eef2f7; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .vs-tbl th:first-child, .vs-tbl td:first-child { text-align:left; }
+  .vs-tbl tr:last-child td { border-bottom:0; }
+  .vs-selo { display:inline-block; font-size:11.5px; font-weight:600; border-radius:6px; padding:3px 9px; }
+  .vs-s-queda { background:#fdecea; color:#b3341f; }
+  .vs-s-alta { background:#e7f4ec; color:#0c5a26; }
+  .vs-s-empate { background:#eef2f7; color:#6b7787; }
+  .vs-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(292px,1fr)); gap:12px; }
+  .vs-mini { border:1px solid #eef2f7; border-radius:10px; padding:12px 13px; }
+  .vs-mini h4 { margin:0 0 10px; font-size:13.5px; display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-weight:700; color:#33404f; }
+  .vs-tira { display:flex; gap:3px; height:52px; position:relative; align-items:stretch; }
+  .vs-tira::before { content:""; position:absolute; left:0; right:0; top:50%; height:1px; background:#e6ebf1; }
+  .vs-col { flex:1; position:relative; }
+  .vs-col b { position:absolute; left:14%; right:14%; display:block; }
+  .vs-col b.n { background:#c0442c; top:50%; border-radius:0 0 3px 3px; }
+  .vs-col b.p { background:#157a35; bottom:50%; border-radius:3px 3px 0 0; }
+  .vs-col.vazio::after { content:""; position:absolute; left:28%; right:28%; top:50%; height:2px; margin-top:-1px; background:#e6ebf1; border-radius:1px; }
+  .vs-meses { display:flex; gap:3px; margin-top:6px; }
+  .vs-meses span { flex:1; text-align:center; font-size:9.5px; color:#8b96a5; }
+  .vs-meses span.off { opacity:.4; }
+  .vs-vazio { padding:28px 6px; text-align:center; color:#6b7787; font-size:13.5px; line-height:1.6; }
+  /* Balão desenhado por nós. O "title" do navegador demora ~1s pra aparecer, some sozinho
+     e não aceita cor — num gráfico onde o número exato é o que importa, isso atrapalha. */
+  #vsTip { position:fixed; z-index:60; pointer-events:none; opacity:0; transition:opacity .1s;
+    background:#1f2b3a; color:#f3f4f6; border-radius:9px; padding:10px 13px; font-size:12.5px;
+    line-height:1.55; box-shadow:0 10px 30px -8px rgba(0,0,0,.45); max-width:250px; }
+  #vsTip b { display:block; font-weight:700; margin-bottom:5px; }
+  #vsTip .r { display:flex; justify-content:space-between; gap:18px; color:#aab7c6; }
+  #vsTip .r em { font-style:normal; font-variant-numeric:tabular-nums; color:#f3f4f6; }
+  #vsTip .r em.neg { color:#f19d8e; } #vsTip .r em.pos { color:#7fd2a3; }
   /* ---- FLV: desperdício e premiação. Reaproveita .card/.kpi/.bars; o que existe aqui
      é só o que o painel ainda não tinha: a linha da meta sobre as barras, o selo de
      situação e a caixa da prévia do fechamento. ---- */
@@ -906,6 +962,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <div class="nav-scroll">
     <button class="nav-item ativo" data-page="vendas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Vendas</button>
     <button class="nav-item" data-page="analise"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span> Análise</button>
+    <button class="nav-item" data-page="vendasetor"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="21" x2="21" y2="21"/><rect x="5" y="11" width="3.4" height="8"/><rect x="10.3" y="6" width="3.4" height="13"/><rect x="15.6" y="14" width="3.4" height="5"/></svg></span> Venda por setor<span class="soon">novo</span></button>
     <button class="nav-item" data-page="estoque"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Estoque</button>
     <button class="nav-item" data-page="datas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/></svg></span> Datas críticas</button>
     <button class="nav-item" data-page="calendario"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Calendário</button>
@@ -3286,6 +3343,210 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       .cl-wk-blk.atrasado{background:#b8382a;}
       .cl-wk-blk.cancelado{background:#aeb8c3;}
       .cl-vazio{padding:30px;text-align:center;color:#8a97a8;font-size:13.5px;}
+
+      /* ======================================================================
+         CENTRAL DE APROVAÇÃO DE AGENDAMENTOS
+         ----------------------------------------------------------------------
+         Desenhada para LISTA LONGA, não para cartão bonito: o piloto começa com
+         5 fornecedores e vai subindo de 5 em 5. Com 30 solicitações, o que
+         importa é correr o olho pela coluna da esquerda e ver a sequência dos
+         recebimentos — por isso data e hora ficam numa coluna própria, alinhadas,
+         com número tabular (todo dígito com a mesma largura, senão as linhas
+         desalinham e a leitura vertical morre).
+         Escala do Design System: raio 8px, passo de 4px, Inter, sombra 4%.
+         Sem cartão flutuando, sem gradiente, sem badge colorido a mais.
+         ====================================================================== */
+      .cl-ap{border:1px solid #e4e9ef;background:#fff;border-radius:12px;overflow:hidden;margin-bottom:16px;}
+      .cl-ap-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+                 padding:14px 16px 12px;border-bottom:1px solid #eef2f6;}
+      .cl-ap-cab h4{margin:0;font-size:14.5px;font-weight:700;color:#1d2733;letter-spacing:-.1px;}
+      .cl-ap-qt{background:#0c5a26;color:#fff;border-radius:999px;padding:1px 9px;
+                font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;}
+      .cl-ap-atras{font-size:11.5px;font-weight:700;color:#8c2f28;background:#fdecea;
+                   border:1px solid #f3cfca;border-radius:999px;padding:2px 9px;}
+
+      /* Controles: busca + filtros. Só existem porque os dados JÁ existem
+         (fornecedor, pedido e data vêm na mesma consulta) — nada aqui pede
+         uma consulta nova ao banco. Filtrar é trabalho de memória. */
+      .cl-ap-ctrl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+                  padding:10px 16px;border-bottom:1px solid #eef2f6;background:#fafbfc;}
+      .cl-ap-busca{position:relative;flex:1 1 240px;min-width:180px;max-width:340px;}
+      .cl-ap-busca svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);
+                       color:#9aa5b1;pointer-events:none;}
+      .cl-ap-busca input{width:100%;border:1px solid #dfe5ec;border-radius:8px;
+                         padding:7px 30px 7px 30px;font-size:13px;font-family:inherit;
+                         color:#2a3340;background:#fff;height:34px;box-sizing:border-box;}
+      .cl-ap-busca input:focus{outline:0;border-color:#9ec4ac;box-shadow:0 0 0 3px rgba(21,122,53,.10);}
+      .cl-ap-limpa{position:absolute;right:6px;top:50%;transform:translateY(-50%);
+                   border:0;background:none;color:#9aa5b1;font-size:16px;line-height:1;
+                   cursor:pointer;padding:3px 5px;font-family:inherit;}
+      .cl-ap-limpa:hover{color:#46535f;}
+      .cl-ap-fil{display:flex;gap:6px;flex-wrap:wrap;}
+      .cl-ap-fil button{border:1px solid #dfe5ec;background:#fff;border-radius:8px;
+                        padding:6px 12px;font-size:12.5px;font-weight:600;color:#5b6672;
+                        cursor:pointer;font-family:inherit;height:34px;
+                        display:inline-flex;align-items:center;gap:6px;}
+      .cl-ap-fil button:hover{background:#f4f6f9;color:#2a3340;}
+      .cl-ap-fil button.on{background:#0c5a26;border-color:#0c5a26;color:#fff;}
+      .cl-ap-fil .n{font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;
+                    background:#eef2f6;color:#5b6672;border-radius:999px;padding:0 6px;}
+      .cl-ap-fil button.on .n{background:rgba(255,255,255,.22);color:#fff;}
+
+      /* A LISTA. Divisor sutil entre linhas, nunca cartão com borda própria:
+         com 30 solicitações, 30 bordas viram uma grade e cansa a vista. */
+      .cl-ap-lista{max-height:560px;overflow-y:auto;overscroll-behavior:contain;}
+      .cl-ap-lista::-webkit-scrollbar{width:9px;}
+      .cl-ap-lista::-webkit-scrollbar-thumb{background:#d3dbe4;border-radius:6px;
+                    border:2px solid transparent;background-clip:content-box;}
+      .cl-ap-lista::-webkit-scrollbar-thumb:hover{background:#b6c1cd;background-clip:content-box;}
+
+      .cl-ap-lin{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:16px;
+                 padding:12px 16px;border-bottom:1px solid #f1f4f7;
+                 transition:background .12s;position:relative;}
+      .cl-ap-lin:last-child{border-bottom:0;}
+      .cl-ap-lin:hover{background:#fafbfc;}
+      /* Atrasado se acha pela BEIRADA, sem ler uma palavra. */
+      .cl-ap-lin.atrasado{box-shadow:inset 3px 0 0 #d9a520;}
+      .cl-ap-lin.atrasado:hover{background:#fffdf7;}
+
+      /* Coluna 1 — quando. Leitura vertical: "25 AGO / 16:00" repetido linha a
+         linha deixa a sequência dos recebimentos visível de relance. */
+      .cl-ap-q{display:flex;flex-direction:column;gap:1px;padding-top:1px;}
+      .cl-ap-dow{font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9aa5b1;}
+      .cl-ap-dia{font-size:13px;font-weight:800;color:#1d2733;letter-spacing:.2px;
+                 font-variant-numeric:tabular-nums;text-transform:uppercase;white-space:nowrap;}
+      .cl-ap-hora{font-size:16px;font-weight:800;color:#0c5a26;line-height:1.2;
+                  font-variant-numeric:tabular-nums;letter-spacing:-.2px;}
+      .cl-ap-lin.atrasado .cl-ap-hora{color:#8a5a12;}
+
+      /* Coluna 2 — quem e o quê. */
+      .cl-ap-c{min-width:0;display:flex;flex-direction:column;gap:3px;}
+      .cl-ap-nome{font-size:13.5px;font-weight:700;color:#1d2733;letter-spacing:.2px;
+                  text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+      .cl-ap-id{font-size:12px;color:#8a97a8;font-variant-numeric:tabular-nums;}
+      .cl-ap-id b{font-weight:700;color:#5b6672;}
+      /* A camada que DECIDE: volume, peso e tempo de doca respondem "cabe hoje?". */
+      .cl-ap-carga{font-size:12.5px;color:#3d4854;line-height:1.5;}
+      .cl-ap-carga b{font-weight:800;color:#1d2733;font-variant-numeric:tabular-nums;}
+      /* O separador vale para as TRES linhas. Faltando a de identidade, o ponto saía
+         colado e escuro: "20.947.638/0002-18·Pedido" em vez de "… • Pedido". */
+      .cl-ap-id .sep,.cl-ap-carga .sep,.cl-ap-tr .sep{color:#c8d0d9;margin:0 5px;}
+      /* A camada de apoio: quem dirige só importa depois de decidir. */
+      .cl-ap-tr{font-size:11.5px;color:#95a1b0;line-height:1.45;overflow:hidden;
+                text-overflow:ellipsis;white-space:nowrap;}
+      .cl-ap-obs{font-size:11.5px;color:#8a97a8;font-style:italic;}
+      /* TRANSPORTADORA NA LINHA DE IDENTIDADE, e não numa linha própria.
+         O selo grande custava uma linha inteira por solicitação — com 30 na tela isso
+         é meia tela de altura só para uma etiqueta. Aqui ele é um chip discreto ao lado
+         do CNPJ (que é o lugar certo: também é identidade de quem chega), com o CNPJ da
+         transportadora no title e por extenso na gaveta de detalhes.
+         O azul continua porque é o aviso de que quem encosta na doca é OUTRA empresa. */
+      .cl-ap-transp{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;
+                    font-weight:700;letter-spacing:.2px;color:#1c5a9c;background:#e7f0fb;
+                    border:1px solid #c6dcf5;border-radius:999px;padding:1px 8px;
+                    vertical-align:1px;}
+      /* A observação divide a linha dos documentos em vez de abrir outra: corta com
+         reticências e aparece inteira na gaveta. */
+      .cl-ap-doc .cl-ap-obs{flex:1 1 140px;min-width:0;overflow:hidden;
+                            text-overflow:ellipsis;white-space:nowrap;}
+      .cl-ap-doc{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px;}
+      .cl-ap-nf{display:inline-flex;align-items:center;gap:5px;background:#f1f5f9;
+                border:1px solid #e2e8ef;color:#46535f;border-radius:8px;padding:3px 9px;
+                font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+      .cl-ap-nf:hover{background:#e7edf3;color:#1d2733;}
+      .cl-ap-nf svg{color:#8a97a8;flex:none;}
+      .cl-ap-ver{border:0;background:none;color:#0c5a26;font-size:11.5px;font-weight:700;
+                 cursor:pointer;font-family:inherit;padding:3px 2px;display:inline-flex;
+                 align-items:center;gap:4px;}
+      .cl-ap-ver:hover{text-decoration:underline;}
+      .cl-ap-cob{font-size:11.5px;font-weight:700;color:#7a6320;}
+
+      /* Coluna 3 — situação e ações. */
+      .cl-ap-a{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;
+               gap:10px;flex:none;}
+      /* ÂMBAR para aguardando, e NÃO verde: o verde do painel quer dizer "positivo,
+         resolvido" (confirmado, aprovado, concluído). Aguardando é justamente o que
+         ainda NÃO foi resolvido — pintar de verde faz a fila parecer feita. */
+      .cl-ap-sit{display:inline-flex;align-items:center;gap:6px;border-radius:999px;
+                 padding:3px 10px;font-size:11px;font-weight:700;white-space:nowrap;
+                 letter-spacing:.2px;}
+      .cl-ap-sit::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none;}
+      .cl-ap-sit.aguardando{background:#fdf6e3;border:1px solid #ecd9a4;color:#8a5a12;}
+      .cl-ap-sit.atrasado{background:#fdecea;border:1px solid #f3cfca;color:#8c2f28;}
+      .cl-ap-bts{display:flex;gap:8px;align-items:center;}
+      .cl-ap-bts button{border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;
+                        cursor:pointer;font-family:inherit;line-height:1;
+                        display:inline-flex;align-items:center;gap:6px;}
+      /* Aprovar é a ação principal: verde sólido. Recusar existe, mas não disputa. */
+      .cl-ap-sim{background:#157a35;color:#fff;border:1px solid #157a35;}
+      .cl-ap-sim:hover{background:#0c5a26;border-color:#0c5a26;box-shadow:0 2px 6px rgba(12,90,38,.22);}
+      .cl-ap-sim:active{transform:translateY(1px);box-shadow:none;}
+      .cl-ap-nao{background:#fff;color:#b03024;border:1px solid #e8bbb5;font-weight:600;}
+      .cl-ap-nao:hover{background:#fdf1ef;border-color:#dda49c;}
+      .cl-ap-nao:active{transform:translateY(1px);}
+      .cl-ap-bts button[disabled]{opacity:.5;cursor:default;}
+      .cl-ap-semperm{font-size:12px;color:#8a97a8;white-space:nowrap;}
+
+      .cl-ap-nada{padding:26px 16px;text-align:center;color:#8a97a8;font-size:13px;}
+      .cl-ap-nada button{border:0;background:none;color:#0c5a26;font-weight:700;
+                         font-size:13px;cursor:pointer;font-family:inherit;text-decoration:underline;}
+
+      /* ---- TABLET: a linha de transporte sai da lista (continua nos detalhes) ---- */
+      @media(max-width:1080px){
+        .cl-ap-lin{grid-template-columns:88px minmax(0,1fr) auto;gap:12px;}
+        .cl-ap-tr{display:none;}
+      }
+      /* ---- CELULAR: empilha data/hora, fornecedor, carga, situação e ações ---- */
+      @media(max-width:760px){
+        .cl-ap-lin{grid-template-columns:minmax(0,1fr);gap:8px;padding:14px 14px;}
+        .cl-ap-q{flex-direction:row;align-items:baseline;gap:8px;}
+        .cl-ap-dow::after{content:",";}
+        .cl-ap-hora{font-size:15px;margin-left:auto;}
+        .cl-ap-nome{white-space:normal;}
+        .cl-ap-tr{display:block;white-space:normal;}
+        .cl-ap-a{flex-direction:row;align-items:center;justify-content:space-between;width:100%;}
+        .cl-ap-bts{flex:1;justify-content:flex-end;}
+        .cl-ap-lista{max-height:none;}
+        .cl-ap-busca{max-width:none;}
+      }
+
+      /* ======================= GAVETA DE DETALHES =======================
+         Gaveta lateral, e não página nova: quem está aprovando não pode perder
+         a fila de vista nem a rolagem onde estava. z-index 9500 de propósito, abaixo
+         do modal de confirmação, que é 100000 — aprovar tem que vir por cima.
+         (E o nome do modal não se escreve aqui seguido de parêntese: a trava do build
+          lê "nome(" como chamada de função, e este comentário já derrubou um build.) */
+      .cl-pd-bg{position:fixed;inset:0;background:rgba(16,24,32,.42);z-index:9500;
+                display:none;justify-content:flex-end;}
+      .cl-pd-bg.show{display:flex;}
+      .cl-pd{background:#fff;width:100%;max-width:460px;height:100%;display:flex;
+             flex-direction:column;box-shadow:-8px 0 32px rgba(16,24,40,.14);
+             animation:clPdIn .18s ease;}
+      @keyframes clPdIn{from{transform:translateX(24px);opacity:.6;}to{transform:none;opacity:1;}}
+      .cl-pd-top{display:flex;align-items:flex-start;gap:12px;padding:18px 20px 14px;
+                 border-bottom:1px solid #eef2f6;flex:none;}
+      .cl-pd-top h3{margin:0;font-size:15.5px;color:#1d2733;font-weight:700;letter-spacing:.2px;}
+      .cl-pd-top .sub{margin:3px 0 0;font-size:12.5px;color:#8a97a8;}
+      .cl-pd-x{margin-left:auto;border:0;background:none;font-size:24px;line-height:1;
+               color:#9aa5b1;cursor:pointer;padding:0 4px;font-family:inherit;flex:none;}
+      .cl-pd-x:hover{color:#46535f;}
+      /* min-height:0 é o que faz a rolagem existir dentro de um filho de flex —
+         sem ele o corpo cresce e quem rola é a página inteira. */
+      .cl-pd-corpo{flex:1 1 auto;min-height:0;overflow-y:auto;padding:16px 20px 20px;}
+      .cl-pd-sec{font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
+                 color:#9aa5b1;margin:16px 0 8px;}
+      .cl-pd-sec:first-child{margin-top:0;}
+      .cl-pd-l{display:grid;grid-template-columns:118px minmax(0,1fr);gap:6px 12px;
+               padding:6px 0;border-bottom:1px solid #f4f6f9;font-size:12.5px;}
+      .cl-pd-l:last-child{border-bottom:0;}
+      .cl-pd-l dt{color:#8a97a8;}
+      .cl-pd-l dd{margin:0;color:#1d2733;font-weight:600;word-break:break-word;
+                  font-variant-numeric:tabular-nums;}
+      .cl-pd-pe{flex:none;padding:12px 20px;border-top:1px solid #eef2f6;background:#fafbfc;
+                display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap;}
+      @media(max-width:760px){
+        .cl-pd{max-width:none;}
+      }
       </style>
       <div class="card">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:2px;">
@@ -3313,6 +3574,19 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           </button>
         </div>
         <div id="clResponder" style="display:none;"><div id="clPedidos"></div></div>
+        <!-- GAVETA DE DETALHES. Fica na marcação, e não criada por JS, porque a trava do
+             build cobra que todo getElementById tenha alvo — e porque uma gaveta que já
+             existe abre sem pintar a tela por um quadro. Vazia não custa nada: display:none. -->
+        <div class="cl-pd-bg" id="clPdBg">
+          <aside class="cl-pd" id="clPd" role="dialog" aria-modal="true" aria-labelledby="clPdTit">
+            <div class="cl-pd-top">
+              <div><h3 id="clPdTit">Detalhes</h3><p class="sub" id="clPdSub"></p></div>
+              <button type="button" class="cl-pd-x" id="clPdX" aria-label="Fechar">&times;</button>
+            </div>
+            <div class="cl-pd-corpo" id="clPdCorpo"></div>
+            <div class="cl-pd-pe" id="clPdPe"></div>
+          </aside>
+        </div>
         <div id="clHoje">
           <div id="clConfirmadas"></div>
           <div class="cl-datanav">
@@ -3984,6 +4258,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div id="copLista"></div>
       </div>
     </section>
+    <section id="page-vendasetor" class="page"><div id="vsRoot"></div></section>
     <section id="page-despesas" class="page"><div id="despRoot"></div></section>
     <section id="page-flv" class="page"><div id="flvRoot"></div></section>
     <section id="page-recibos" class="page"><div id="rcbRoot"></div></section>
@@ -5662,7 +5937,12 @@ function pltDetalhe(){
 var centralAg=[];
 var centralModo="demo";     // "demo" | "live"
 var centralAtz="";          // hora da última sincronização (modo live)
-var clView="hoje";          // "hoje" | "agenda" | "conf"
+var clView="hoje";          // "hoje" | "agenda" | "conf" | "responder"
+/* Busca e filtro da central de aprovacao. Moram FORA da funcao de desenho para
+   sobreviver ao redesenho: os dados chegam em tres etapas (agendamento, detalhe,
+   notas) e cada uma redesenha a lista. Se o filtro morasse no DOM, ele se perderia
+   no meio da digitacao. */
+var clApBusca="", clApFiltro="todos";
 var centralConf=[];         // conferências lidas de central_conferencias (o robô preenche)
 var centralConfModo="";     // "live" quando veio da nuvem
 var clConfDia=null;         // dia escolhido na aba Conferência
@@ -5994,63 +6274,339 @@ function clDataLonga(iso){
    — e o esquecimento cai em cima do fornecedor, que fica sem entrega marcada.
    As "Entregas confirmadas" NAO vieram junto: marcar conferido e trabalho do dia, e o
    lugar dele e a Visao de hoje. */
+/* =====================================================================
+   CENTRAL DE APROVACAO DE AGENDAMENTOS
+   ---------------------------------------------------------------------
+   Refatoracao de INTERFACE. Nada de regra de negocio mudou: quem decide
+   continua sendo clDecidir(), quem mostra as notas continua sendo
+   clVerNotas(), quem diz se pode continua sendo clPodeDecidir(), e os
+   dados continuam vindo das mesmas tres consultas de clPedidosLoad().
+   ===================================================================== */
+
+// Icone de 12px, traco fino, mesma linguagem dos que ja existem no painel.
+function clApIco(nome){
+  var d={
+    busca:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+    nota:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',
+    caixa:'<path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/>',
+    seta:'<path d="M9 18l6-6-6-6"/>'
+  }[nome]||"";
+  return '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" '+
+         'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+d+'</svg>';
+}
+
+/* O CASCO: cabecalho, busca e filtros. Desenhado UMA vez (ver renderClPedidos). */
+function clApCascoHtml(){
+  return '<div class="cl-ap" id="clApCasco">'+
+    '<div class="cl-ap-cab">'+
+      '<h4>Agendamentos aguardando aprovação</h4>'+
+      '<span class="cl-ap-qt" id="clApQt">0</span>'+
+      '<span id="clApAtras"></span>'+
+    '</div>'+
+    '<div class="cl-ap-ctrl">'+
+      '<span class="cl-ap-busca">'+clApIco('busca')+
+        '<input type="text" id="clApBusca" placeholder="Buscar fornecedor ou pedido..." '+
+        'autocomplete="off" spellcheck="false">'+
+        '<button type="button" class="cl-ap-limpa" id="clApLimpa" title="Limpar" style="display:none;">&times;</button>'+
+      '</span>'+
+      '<span class="cl-ap-fil" id="clApFil"></span>'+
+    '</div>'+
+    '<div class="cl-ap-lista" id="clApLista"></div>'+
+  '</div>';
+}
+
+/* Contagem do cabecalho por textContent, nao por innerHTML: trocar o numero nao
+   pode custar redesenhar o campo de busca que a pessoa esta usando. */
+function clApCabecalho(pend){
+  var hoje=clDataISO(new Date());
+  var qt=document.getElementById("clApQt");
+  if(qt) qt.textContent=String(pend.length);
+  var at=document.getElementById("clApAtras");
+  if(at){
+    var v=pend.filter(function(p){ return p.data<hoje; }).length;
+    if(v){ at.className="cl-ap-atras"; at.textContent=v+(v>1?" atrasados":" atrasado"); }
+    else { at.className=""; at.textContent=""; }
+  }
+}
+
+/* AS QUATRO FAIXAS SAO CALCULADAS DA DATA QUE JA VEM NA CONSULTA.
+   Nenhuma delas inventa campo nem pede nada novo ao banco. */
+function clApFaixa(p, hoje, amanha){
+  if(p.data<hoje)    return "atrasados";
+  if(p.data===hoje)  return "hoje";
+  if(p.data===amanha)return "amanha";
+  return "depois";
+}
+function clApFiltra(pend){
+  var hoje=clDataISO(new Date());
+  var amanha=clDataISO(new Date(Date.now()+86400000));
+  var t=clApBusca.trim().toLowerCase();
+  return pend.filter(function(p){
+    if(clApFiltro!=="todos" && clApFaixa(p,hoje,amanha)!==clApFiltro) return false;
+    if(!t) return true;
+    // busca por nome, pedido e CNPJ — os tres identificam a solicitacao no dia a dia,
+    // e o CNPJ so digitos para achar tanto "20947638000141" quanto o pontuado
+    var alvo=(String(p.fornecedor||"")+" "+String(p.pedido||"")+" "+
+              String(p.documento||"")+" "+String(clCnpjFmt(p.documento)||"")).toLowerCase();
+    return alvo.indexOf(t)>=0;
+  });
+}
+
+function clApDesenhaLinhas(pend){
+  var lista=document.getElementById("clApLista");
+  if(!lista) return;
+  var hoje=clDataISO(new Date());
+  var amanha=clDataISO(new Date(Date.now()+86400000));
+
+  // contagem de cada filtro sai da lista INTEIRA, nao da filtrada: o numero no botao
+  // precisa dizer quantos existem, senao "Hoje 0" apareceria so por estar em outro filtro
+  var cont={todos:pend.length, hoje:0, amanha:0, atrasados:0};
+  pend.forEach(function(p){ var f=clApFaixa(p,hoje,amanha); if(cont[f]!=null) cont[f]++; });
+  var fil=document.getElementById("clApFil");
+  if(fil){
+    var FS=[["todos","Todos"],["hoje","Hoje"],["amanha","Amanhã"],["atrasados","Atrasados"]];
+    fil.innerHTML=FS.map(function(f){
+      return '<button type="button" data-apfil="'+f[0]+'"'+(clApFiltro===f[0]?' class="on"':'')+'>'+
+             f[1]+'<span class="n">'+cont[f[0]]+'</span></button>';
+    }).join("");
+  }
+
+  /* QUEM JA PASSOU DA DATA VEM PRIMEIRO.
+     Com a fila rolando, o que fica embaixo e o que ninguem ve. E o pedido vencido e
+     exatamente o que nao pode esperar: o fornecedor ja devia ter vindo. */
+  var itens=clApFiltra(pend).sort(function(a,b){
+    var va=(a.data<hoje)?0:1, vb=(b.data<hoje)?0:1;
+    if(va!==vb) return va-vb;
+    return String(a.data+a.hora).localeCompare(String(b.data+b.hora));
+  });
+
+  if(!itens.length){
+    lista.innerHTML='<div class="cl-ap-nada">Nenhum agendamento nesse recorte.'+
+      ' <button type="button" id="clApZerar">Ver todos</button></div>';
+    return;
+  }
+  lista.innerHTML=itens.map(clApLinha).join("");
+}
+
+var CL_AP_MES=["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+var CL_AP_DOW=["DOM","SEG","TER","QUA","QUI","SEX","SAB"];
+function clApQuando(iso){
+  var p=String(iso||"").split("-");
+  if(p.length<3) return {dow:"", dia:String(iso||"")};
+  var d=new Date(+p[0],+p[1]-1,+p[2]);
+  return { dow:CL_AP_DOW[d.getDay()], dia:p[2]+" "+(CL_AP_MES[+p[1]-1]||"") };
+}
+
+function clApLinha(p){
+  var hoje=clDataISO(new Date());
+  var atrasado=p.data<hoje;
+  var q=clApQuando(p.data);
+  var d=clDetalhe[p.id]||null;
+  var nfs=(d&&clNotas[d.id])||[];
+  var itens=0; nfs.forEach(function(n){ itens+=(n.itens&&n.itens.length)||0; });
+  var pode=clPodeDecidir();
+  var SEP='<span class="sep">•</span>';
+
+  // ---- carga: o que responde "cabe hoje?" ----
+  var carga=[];
+  if(d){
+    if(d.qtd_volumes) carga.push('<b>'+pxEsc(clNum(d.qtd_volumes))+'</b> '+(+d.qtd_volumes===1?'volume':'volumes'));
+    if(d.peso_kg)     carga.push('<b>'+pxEsc(clNum(d.peso_kg))+'</b> kg');
+    if(d.tipo_volume) carga.push(pxEsc(d.tipo_volume));
+    if(d.tipo_carga)  carga.push('Carga '+pxEsc(String(d.tipo_carga).toLowerCase()));
+    if(d.minutos_estimados && d.minutos_estimados!==60)
+      carga.push('<b>'+pxEsc(d.minutos_estimados>=60?(d.minutos_estimados/60)+'h':d.minutos_estimados+' min')+'</b> de doca');
+  }
+  // ---- transporte: so importa depois de decidir ----
+  var tr=[];
+  if(d){
+    if(d.tipo_veiculo) tr.push(pxEsc(d.tipo_veiculo));
+    if(d.placa)        tr.push(pxEsc(clPlacaFmt(d.placa)));
+    if(d.motorista)    tr.push('Motorista: '+pxEsc(d.motorista));
+  }
+
+  var idl=[];
+  if(p.documento) idl.push('CNPJ <b>'+pxEsc(clCnpjFmt(p.documento))+'</b>');
+  if(p.pedido)    idl.push('Pedido <b>#'+pxEsc(p.pedido)+'</b>');
+  /* Quem CHEGA nem sempre e quem vende. Sem esta marca, o recebimento espera o caminhao
+     do fornecedor e aparece outro, de outra empresa. Versao compacta: o selo por extenso
+     (clTranspSelo) continua servindo as Entregas confirmadas, que nao sao lista longa. */
+  var tcnpj=String((p&&p.transportadora_cnpj)||"").replace(/[^0-9]/g,"");
+  if(tcnpj.length===14)
+    idl.push('<span class="cl-ap-transp" title="Chega por transportadora · '+
+             pxEsc(frnCnpjFmt(tcnpj))+'">Transportadora</span>');
+
+  var docs=[];
+  if(nfs.length) docs.push('<button type="button" class="cl-ap-nf" data-clnf="'+pxEsc(p.id)+'">'+
+    clApIco('nota')+nfs.length+' NF-e'+(itens?'<span class="sep">•</span>'+clApIco('caixa')+itens+(itens>1?' produtos':' produto'):'')+'</button>');
+  docs.push('<button type="button" class="cl-ap-ver" data-apdet="'+pxEsc(p.id)+'">Ver detalhes'+clApIco('seta')+'</button>');
+  if(d && d.cobranca_total>0)
+    docs.push('<span class="cl-ap-cob">Descarga: R$ '+pxEsc(clNum(d.cobranca_total))+' previsto</span>');
+
+  return '<div class="cl-ap-lin'+(atrasado?' atrasado':'')+'" data-pid="'+pxEsc(p.id)+'">'+
+    '<div class="cl-ap-q">'+
+      '<span class="cl-ap-dow">'+q.dow+'</span>'+
+      '<span class="cl-ap-dia">'+pxEsc(q.dia)+'</span>'+
+      '<span class="cl-ap-hora">'+pxEsc(clHoraCurta(p.hora))+'</span>'+
+    '</div>'+
+    '<div class="cl-ap-c">'+
+      '<span class="cl-ap-nome" title="'+pxEsc(p.fornecedor)+'">'+pxEsc(p.fornecedor)+'</span>'+
+      (idl.length?'<span class="cl-ap-id">'+idl.join(SEP)+'</span>':'')+
+      (carga.length?'<span class="cl-ap-carga">'+carga.join(SEP)+'</span>':'')+
+      (tr.length?'<span class="cl-ap-tr">'+tr.join(SEP)+'</span>':'')+
+      '<span class="cl-ap-doc">'+docs.join("")+
+        (p.descricao?'<span class="cl-ap-obs" title="'+pxEsc(p.descricao)+'">“'+pxEsc(p.descricao)+'”</span>':'')+
+      '</span>'+
+    '</div>'+
+    '<div class="cl-ap-a">'+
+      '<span class="cl-ap-sit '+(atrasado?'atrasado':'aguardando')+'">'+
+        (atrasado?'Atrasado':'Aguardando aprovação')+'</span>'+
+      (pode
+        ? '<span class="cl-ap-bts">'+
+            '<button type="button" class="cl-ap-nao" data-pnao="'+pxEsc(p.id)+'">Recusar</button>'+
+            /* Data vencida nao se aprova: aprovar um horario que ja passou reserva uma
+               doca no passado e o fornecedor recebe confirmacao de uma entrega que nao
+               tem mais como acontecer. So resta recusar (ou ele reagendar). */
+            (atrasado?'':'<button type="button" class="cl-ap-sim" data-psim="'+pxEsc(p.id)+'">✓ Aprovar</button>')+
+          '</span>'
+        : '<span class="cl-ap-semperm">aguardando o responsável</span>')+
+    '</div>'+
+  '</div>';
+}
+
+/* ---------------- GAVETA DE DETALHES ----------------
+   So MOSTRA o que ja foi carregado (clPedidos + clDetalhe + clNotas). Nao busca nada
+   no banco: abrir detalhe de 30 solicitacoes nao pode virar 30 consultas. */
+function clApLinhaDet(rot,val){
+  if(val==null || val==="") return "";
+  return '<div class="cl-pd-l"><dt>'+rot+'</dt><dd>'+val+'</dd></div>';
+}
+function clApDetalhe(id){
+  var p=null;
+  for(var i=0;i<clPedidos.length;i++){ if(clPedidos[i].id===id){ p=clPedidos[i]; break; } }
+  if(!p) return;
+  var d=clDetalhe[id]||{};
+  var nfs=(d&&clNotas[d.id])||[];
+  var bg=document.getElementById("clPdBg");
+  var tit=document.getElementById("clPdTit"), sub=document.getElementById("clPdSub");
+  var corpo=document.getElementById("clPdCorpo"), pe=document.getElementById("clPdPe");
+  if(!bg||!tit||!sub||!corpo||!pe) return;
+
+  tit.textContent=p.fornecedor||"Agendamento";
+  sub.textContent=clDataLonga(p.data)+" às "+clHoraCurta(p.hora)+
+                  (d.ticket?"  ·  "+d.ticket:"");
+
+  var itens=0; nfs.forEach(function(n){ itens+=(n.itens&&n.itens.length)||0; });
+  var h='';
+  h+='<p class="cl-pd-sec">Fornecedor</p>';
+  h+=clApLinhaDet("Razão social", pxEsc(p.fornecedor));
+  h+=clApLinhaDet("CNPJ", p.documento?pxEsc(clCnpjFmt(p.documento)):"");
+  h+=clApLinhaDet("Telefone", p.contato?pxEsc(clFoneFmt(p.contato)):"");
+  h+=clApLinhaDet("Pedido", p.pedido?"#"+pxEsc(p.pedido):"");
+  var tc=String((p&&p.transportadora_cnpj)||"").replace(/[^0-9]/g,"");
+  h+=clApLinhaDet("Transportadora", tc.length===14?pxEsc(frnCnpjFmt(tc)):"");
+
+  h+='<p class="cl-pd-sec">Janela pedida</p>';
+  h+=clApLinhaDet("Data", pxEsc(clDataLonga(p.data)));
+  h+=clApLinhaDet("Horário", pxEsc(clHoraCurta(p.hora)));
+  h+=clApLinhaDet("Tempo de doca", d.minutos_estimados?
+      pxEsc(d.minutos_estimados>=60?(d.minutos_estimados/60)+"h":d.minutos_estimados+" min"):"");
+  h+=clApLinhaDet("Situação", p.data<clDataISO(new Date())
+      ? '<span style="color:#8c2f28;">Atrasado — passou da data</span>'
+      : "Aguardando aprovação");
+
+  h+='<p class="cl-pd-sec">Carga</p>';
+  h+=clApLinhaDet("Volumes", d.qtd_volumes?pxEsc(clNum(d.qtd_volumes)):"");
+  h+=clApLinhaDet("Peso", d.peso_kg?pxEsc(clNum(d.peso_kg))+" kg":"");
+  h+=clApLinhaDet("Tipo de volume", d.tipo_volume?pxEsc(d.tipo_volume):"");
+  h+=clApLinhaDet("Tipo de carga", d.tipo_carga?pxEsc(d.tipo_carga):"");
+  h+=clApLinhaDet("Descarga prevista", d.cobranca_total>0?"R$ "+pxEsc(clNum(d.cobranca_total)):"");
+
+  h+='<p class="cl-pd-sec">Transporte</p>';
+  h+=clApLinhaDet("Veículo", d.tipo_veiculo?pxEsc(d.tipo_veiculo):"");
+  h+=clApLinhaDet("Placa", d.placa?pxEsc(clPlacaFmt(d.placa)):"");
+  h+=clApLinhaDet("Motorista", d.motorista?pxEsc(d.motorista):"");
+  h+=clApLinhaDet("Telefone do motorista", d.motorista_fone?pxEsc(clFoneFmt(d.motorista_fone)):"");
+
+  if(nfs.length){
+    h+='<p class="cl-pd-sec">Documentação</p>';
+    nfs.forEach(function(n){
+      h+=clApLinhaDet("Nota "+pxEsc(n.numero||"—"),
+        (n.serie?"série "+pxEsc(n.serie)+" · ":"")+
+        (n.valor_total?"R$ "+pxEsc(clNum(n.valor_total)):"")+
+        ((n.itens&&n.itens.length)?" · "+n.itens.length+" produto"+(n.itens.length>1?"s":""):""));
+    });
+    h+=clApLinhaDet("Total de produtos", itens?String(itens):"");
+  }
+
+  var obs=[p.descricao,d.descricao].filter(function(x){ return x; });
+  if(obs.length){
+    h+='<p class="cl-pd-sec">Observações</p>';
+    obs.forEach(function(o){ h+='<div class="cl-pd-l" style="grid-template-columns:1fr;"><dd style="font-weight:400;font-style:italic;color:#5b6672;">“'+pxEsc(o)+'”</dd></div>'; });
+  }
+  corpo.innerHTML=h;
+  corpo.scrollTop=0;
+
+  /* O RODAPE REUSA OS MESMOS BOTOES DA LISTA — mesmos data-atributos, mesmo
+     clDecidir, mesma confirmacao, mesma regra. Fechar antes de decidir porque a
+     confirmacao e um modal: gaveta e modal empilhados viram duas camadas escuras. */
+  var pode=clPodeDecidir(), atras=p.data<clDataISO(new Date());
+  pe.innerHTML=(nfs.length?'<button type="button" class="cl-ap-nf" data-clnf="'+pxEsc(p.id)+'" style="margin-right:auto;">'+
+      clApIco('nota')+'Ver produtos</button>':'')+
+    (pode?'<button type="button" class="cl-ap-nao" data-pnao="'+pxEsc(p.id)+'">Recusar</button>'+
+      (atras?'':'<button type="button" class="cl-ap-sim" data-psim="'+pxEsc(p.id)+'">✓ Aprovar</button>')
+     :'<span class="cl-ap-semperm">aguardando o responsável</span>');
+  bg.classList.add("show");
+}
+function clApFecharDet(){
+  var bg=document.getElementById("clPdBg");
+  if(bg) bg.classList.remove("show");
+}
+
+/* Redesenha SO as linhas. O casco (cabecalho, busca, filtros) fica de pe — e por
+   isso que filtrar nao apaga o que a pessoa digitou nem rouba o foco do campo. */
+function clApRedesenha(){
+  var pend=clPedidos.filter(function(p){ return p.status==="pendente"; });
+  clApCabecalho(pend);
+  clApDesenhaLinhas(pend);
+}
+/* Quando o codigo zera a busca (botao limpar, "ver todos"), o campo tem que
+   acompanhar — senao a caixa mostra um texto que nao filtra mais nada. */
+function clApSincronizaBusca(){
+  var i=document.getElementById("clApBusca");
+  if(i) i.value=clApBusca;
+  var lp=document.getElementById("clApLimpa");
+  if(lp) lp.style.display=clApBusca?"":"none";
+}
+
 function renderClPedidos(){
   var box=document.getElementById("clPedidos");
   var boxC=document.getElementById("clConfirmadas");
   if(!box && !boxC) return;
   var pend=clPedidos.filter(function(p){ return p.status==="pendente"; });
   var apro=clPedidos.filter(function(p){ return p.status==="aprovado"; });
-  var h="", hC="";
+  var hC="";
 
-  if(pend.length){
-    var hoje=clDataISO(new Date());
-    var vencidos=pend.filter(function(p){ return p.data<hoje; }).length;
-    h+='<div class="cl-ped"><div class="cl-ped-cab">'+
-       '<b>Fornecedores esperando resposta</b>'+
-       '<span class="qt">'+pend.length+'</span>'+
-       (vencidos?'<span class="cl-ped-atras">'+vencidos+' já passou da data</span>':'')+
-       '</div><div class="cl-ped-lista">';
-    /* QUEM JA PASSOU DA DATA VEM PRIMEIRO.
-       Com a fila rolando, o que fica embaixo e o que ninguem ve. E o pedido vencido e
-       exatamente o que nao pode esperar: o fornecedor ja devia ter vindo. */
-    pend.slice().sort(function(a,b){
-      var va=(a.data<hoje)?0:1, vb=(b.data<hoje)?0:1;
-      if(va!==vb) return va-vb;
-      return String(a.data+a.hora).localeCompare(String(b.data+b.hora));
-    }).forEach(function(p){
-      /* A IDENTIFICACAO E O PAPEL SAO COISAS DIFERENTES.
-         "pedido 23102" viajava junto do CNPJ e do telefone, como se fosse mais um jeito
-         de identificar a empresa. Nao e: e o documento da compra, irmao da nota fiscal.
-         Foi para o pe do cartao, do lado dela. */
-      var idlin=[];
-      if(p.documento) idlin.push(pxEsc(clCnpjFmt(p.documento)));
-      if(p.contato)   idlin.push(pxEsc(clFoneFmt(p.contato)));
-      var passou=p.data<hoje;
-      h+='<div class="cl-ped-item'+(passou?" venceu":"")+'" data-pid="'+pxEsc(p.id)+'">'+
-         '<span class="cl-ped-quando">'+clDataLonga(p.data)+' · '+clHoraCurta(p.hora)+
-           (passou?'<span class="av">passou da data</span>':'')+'</span>'+
-         '<span class="cl-ped-quem"><b>'+pxEsc(p.fornecedor)+'</b>'+
-         (idlin.length?'<span class="cl-ped-doc">'+idlin.join(" · ")+'</span>':'')+
-         (p.pedido?'<span class="cl-chip">Pedido '+pxEsc(p.pedido)+'</span>':'')+
-         (p.descricao?'<span class="cl-obs">“'+pxEsc(p.descricao)+'”</span>':'')+
-         clTranspSelo(p)+clDetalheLinha(p)+'</span>'+
-         (clPodeDecidir()
-           ? '<span class="cl-ped-acoes">'+
-             '<button type="button" class="cl-ped-nao" data-pnao="'+pxEsc(p.id)+'">Recusar</button>'+
-             (passou ? '' : '<button type="button" class="cl-ped-sim" data-psim="'+pxEsc(p.id)+'">Aprovar</button>')+
-             '</span>'
-           : '<span style="font-size:12.5px;color:#8a97a8;">aguardando o responsável</span>')+
-         '</div>';
-    });
-    h+='</div></div>';
+  if(box && pend.length){
+    /* O CASCO SE DESENHA UMA VEZ SO.
+       Os dados chegam em TRES etapas (agendamento, depois detalhe, depois notas) e cada
+       uma pede um redesenho. Refazer o casco inteiro a cada etapa apagaria o que a pessoa
+       acabou de digitar na busca e devolveria o foco pro nada. Entao: casco uma vez,
+       linhas quantas forem precisas — que e tambem o caminho barato com 30 solicitacoes. */
+    var casco=document.getElementById("clApCasco");
+    if(!casco) box.innerHTML=clApCascoHtml();
+    clApCabecalho(pend);
+    clApDesenhaLinhas(pend);
   }
 
-  if(!pend.length){
-    /* a aba nao pode abrir vazia sem dizer nada: sem isto, quem clica em "Agendamentos pendentes"
-       e nao ve nada pensa que a tela quebrou, nao que nao ha o que responder */
-    h+='<div class="cl-ped" style="border-color:#cfe0d5;background:#f4faf6;">'+
-       '<div class="cl-ped-cab"><b style="color:#0c5a26;">Nenhum agendamento pendente</b></div>'+
-       '<p style="margin:0;font-size:13px;color:#5b6b63;">Quando um fornecedor pedir um horário pelo portal, '+
+  if(box && !pend.length){
+    /* a aba nao pode abrir vazia sem dizer nada: sem isto, quem clica em "Agendamentos
+       pendentes" e nao ve nada pensa que a tela quebrou, nao que nao ha o que responder.
+       Aqui o casco morre de proposito: com a fila zerada, busca e filtro nao tem sobre o
+       que operar, e um campo de busca vazio numa tela vazia so faz perguntar o que sumiu. */
+    box.innerHTML='<div class="cl-ap" style="border-color:#cfe0d5;background:#f4faf6;">'+
+       '<div class="cl-ap-cab" style="border-bottom:0;"><h4 style="color:#0c5a26;">Nenhum agendamento pendente</h4></div>'+
+       '<p style="margin:0;padding:0 16px 16px;font-size:13px;color:#5b6b63;">Quando um fornecedor pedir um horário pelo portal, '+
        'ele aparece aqui — e o número aparece no menu, de qualquer página.</p></div>';
   }
 
@@ -6086,7 +6642,6 @@ function renderClPedidos(){
     hC+='</div>';
   }
   hC+=clBarradosBloco();
-  if(box) box.innerHTML=h;
   if(boxC) boxC.innerHTML=hC;
 }
 
@@ -6676,6 +7231,343 @@ function flvVizinhos(lista, comp){
 
 /* ==FLVCALC-FIM== */
 
+
+/* ==VSCALC-INICIO== VENDA POR SETOR — módulo puro (testado em
+   scripts/testes/vendasetor.test.cjs). Só faz conta: não toca em tela nem em nuvem.
+
+   Três regras que parecem detalhe e não são. Cada uma já mentiu na prática:
+
+   1) MÊS PELA METADE NÃO ENTRA. O relatório do VR tirado em 25/08/2026 trouxe agosto
+      com o mês ainda correndo. Comparado com o agosto inteiro do ano anterior, os
+      TREZE setores apareciam caindo de 15% a 39%. Não era queda: era meio mês.
+   2) SÓ COMPARA MÊS QUE EXISTE DOS DOIS LADOS. Se o ano novo só tem até julho, o ano
+      velho também entra só até julho. Sete meses contra doze dá "queda" em tudo.
+   3) MENOS DE MEIO POR CENTO É EMPATE. Frios variou -0,01% — 26 unidades em 245 mil.
+      Chamar isso de "setor em queda" manda o pessoal caçar problema onde não tem.
+
+   As linhas que entram aqui são as da tabela vendasetor_mes:
+   {ano, mes, setor, quantidade, completo}. */
+
+var VS_LIMIAR = 0.5;   /* % pra qualquer lado; dentro disso é empate */
+
+/* meses (1..12) que existem E fecharam naquele ano */
+function vscMesesBons(linhas, ano){
+  var achou = {}, i, r;
+  for(i=0;i<linhas.length;i++){ r=linhas[i];
+    if(+r.ano===+ano && r.completo && +r.quantidade>0) achou[+r.mes]=1; }
+  return Object.keys(achou).map(Number).sort(function(a,b){return a-b;});
+}
+
+/* os que dá pra comparar: bons nos DOIS anos */
+function vscMesesComparaveis(linhas, anoDe, anoPara){
+  var a=vscMesesBons(linhas,anoDe), b=vscMesesBons(linhas,anoPara);
+  return a.filter(function(m){ return b.indexOf(m)>=0; });
+}
+
+function vscSoma(linhas, ano, setor, meses){
+  var t=0,i,r;
+  for(i=0;i<linhas.length;i++){ r=linhas[i];
+    if(+r.ano===+ano && r.setor===setor && meses.indexOf(+r.mes)>=0) t+=(+r.quantidade||0); }
+  return t;
+}
+
+/* null quando não dá pra dividir — base zero não vira "queda de 100%" */
+function vscVariacao(de, para){
+  if(!(de>0)) return null;
+  return (para/de - 1)*100;
+}
+
+function vscClassifica(v){
+  if(v===null || isNaN(v)) return "sem";
+  if(Math.abs(v)<=VS_LIMIAR) return "empate";
+  return v<0 ? "queda" : "alta";
+}
+
+function vscSetores(linhas){
+  var s={},i; for(i=0;i<linhas.length;i++) s[linhas[i].setor]=1;
+  return Object.keys(s).sort();
+}
+
+function vscAnos(linhas){
+  var s={},i; for(i=0;i<linhas.length;i++) s[+linhas[i].ano]=1;
+  return Object.keys(s).map(Number).sort(function(a,b){return a-b;});
+}
+
+/* do pior pro melhor; quem não dá pra calcular vai pro fim */
+function vscRanking(linhas, anoDe, anoPara){
+  var meses=vscMesesComparaveis(linhas,anoDe,anoPara);
+  return vscSetores(linhas).map(function(nome){
+    var de=vscSoma(linhas,anoDe,nome,meses), para=vscSoma(linhas,anoPara,nome,meses);
+    var v=vscVariacao(de,para);
+    return {setor:nome, de:de, para:para, variacao:v, classe:vscClassifica(v), meses:meses.length};
+  }).filter(function(r){ return r.de>0 || r.para>0; })
+    .sort(function(x,y){
+      if(x.variacao===null && y.variacao===null) return x.setor<y.setor?-1:1;
+      if(x.variacao===null) return 1;
+      if(y.variacao===null) return -1;
+      return x.variacao-y.variacao;
+    });
+}
+
+/* sempre os DOZE meses: o que não dá pra comparar volta variacao=null e a tela
+   desenha o espaço vazio. Sumir com o mês faz parecer que faltou dado. */
+function vscPorMes(linhas, anoDe, anoPara, setor){
+  var bons=vscMesesComparaveis(linhas,anoDe,anoPara), saida=[], m, de, para;
+  for(m=1;m<=12;m++){
+    if(bons.indexOf(m)<0){ saida.push({mes:m, de:null, para:null, variacao:null}); continue; }
+    de=vscSoma(linhas,anoDe,setor,[m]); para=vscSoma(linhas,anoPara,setor,[m]);
+    saida.push({mes:m, de:de, para:para, variacao:vscVariacao(de,para)});
+  }
+  return saida;
+}
+
+/* a loja inteira = soma dos setores, nos mesmos meses comparáveis */
+function vscLoja(linhas, anoDe, anoPara){
+  var meses=vscMesesComparaveis(linhas,anoDe,anoPara), de=0, para=0;
+  vscSetores(linhas).forEach(function(s){
+    de+=vscSoma(linhas,anoDe,s,meses); para+=vscSoma(linhas,anoPara,s,meses); });
+  return {de:de, para:para, variacao:vscVariacao(de,para), meses:meses.length};
+}
+
+/* quem caiu nos DOIS saltos seguidos (precisa de três anos). Isso é tendência;
+   cair num ano e subir no outro é oscilação e não merece o mesmo alarme. */
+function vscCaiDoisAnos(linhas, anoA, anoB, anoC){
+  var r1={}, r2={};
+  vscRanking(linhas,anoA,anoB).forEach(function(r){ r1[r.setor]=r; });
+  vscRanking(linhas,anoB,anoC).forEach(function(r){ r2[r.setor]=r; });
+  return Object.keys(r2).filter(function(s){
+    return r1[s] && r1[s].classe==="queda" && r2[s].classe==="queda";
+  }).sort();
+}
+
+/* meses que existem no ano mas ficaram de fora por não terem fechado */
+function vscMesesIgnorados(linhas, ano){
+  var fora={},i,r;
+  for(i=0;i<linhas.length;i++){ r=linhas[i];
+    if(+r.ano===+ano && !r.completo) fora[+r.mes]=1; }
+  return Object.keys(fora).map(Number).sort(function(a,b){return a-b;});
+}
+/* ==VSCALC-FIM== */
+
+/* ---- Venda por setor: tela e nuvem. As contas ficam no módulo VSCALC acima;
+   aqui é só desenho. Quem escreve na tabela é o robô (service key), então esta
+   página só LÊ — não existe botão de salvar de propósito. ---- */
+function vsSB(){ try{ return window.__SB||null; }catch(e){ return null; } }
+function vsPodeVer(){ try{ return podePagina("vendasetor"); }catch(e){ return false; } }
+var vsLinhas=null, vsCarregando=false, vsPar=null, vsErro="";
+var vsRankAtual=[], vsMesesAtual=[];   /* o balão lê daqui, sem refazer conta */
+var VS_MES3=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+var VS_MESN=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+
+var VS_ESC={"&":"&amp;","<":"&lt;",">":"&gt;"}; VS_ESC[String.fromCharCode(34)]="&quot;";
+var VS_NL=String.fromCharCode(10);   /* barra-n de verdade: escrita assim porque este arquivo
+   é gerado de dentro de um template literal, onde uma barra invertida some no caminho. */
+function vsEsc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return VS_ESC[c]; }); }
+function vsNum(n){ return (Math.round(+n||0)).toLocaleString("pt-BR"); }
+function vsPct(v){
+  if(v===null||isNaN(v)) return "—";
+  var s=Math.abs(v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+  return (v<0?"−":"+")+s+"%";
+}
+function vsCor(c){ return c==="queda"?"vs-neg":(c==="alta"?"vs-pos":"vs-nulo"); }
+
+/* pares de anos disponíveis, do mais novo pro mais velho */
+function vsPares(){
+  var anos=vscAnos(vsLinhas||[]), p=[], i;
+  for(i=anos.length-1;i>0;i--) p.push([anos[i-1],anos[i]]);
+  return p;
+}
+
+function vsCloudLoad(){
+  var sb=vsSB(); if(!sb) return;
+  if(vsCarregando) return;
+  if(window.__PERFIL==null) return;              /* vsRender já reagenda */
+  if(!vsPodeVer()){ vsLinhas=[]; vsRender(); return; }
+  vsCarregando=true;
+  sb.from("vendasetor_mes").select("ano,mes,setor,quantidade,completo,origem")
+    .then(function(r){
+      vsCarregando=false;
+      if(r&&r.error){ vsErro=r.error.message||"não deu pra ler"; vsLinhas=vsLinhas||[]; }
+      else { vsErro=""; vsLinhas=(r&&r.data)?r.data:[]; }
+      vsRender();
+    });
+}
+
+function vsRender(){
+  var el=document.getElementById("vsRoot"); if(!el) return;
+
+  /* o perfil ainda não chegou: espera, senão a tela pisca "sem acesso" pra quem tem */
+  if(window.__PERFIL==null){ el.innerHTML='<div class="vs-vazio">Carregando…</div>'; setTimeout(vsRender,700); return; }
+  if(!vsPodeVer()){
+    el.innerHTML='<div class="card"><div class="vs-vazio">Esta página não está liberada no seu acesso.<br>Peça ao administrador pra liberar <b>Venda por setor</b> no seu cadastro.</div></div>';
+    return;
+  }
+  if(vsLinhas===null){ el.innerHTML='<div class="vs-vazio">Carregando…</div>'; vsCloudLoad(); return; }
+
+  var pares=vsPares();
+  if(!pares.length){
+    el.innerHTML='<div class="card"><div class="vs-vazio">'
+      +(vsErro?("Não deu pra ler os dados: "+vsEsc(vsErro))
+              :"Ainda não tem número aqui. O robô grava sozinho a cada rodada; se acabou de ligar, espera a próxima.")
+      +'</div></div>';
+    return;
+  }
+  if(!vsPar || !pares.some(function(p){ return p[0]===vsPar[0] && p[1]===vsPar[1]; })) vsPar=pares[0];
+
+  var anoDe=vsPar[0], anoPara=vsPar[1];
+  var rank=vscRanking(vsLinhas,anoDe,anoPara);
+  var loja=vscLoja(vsLinhas,anoDe,anoPara);
+  var anos=vscAnos(vsLinhas);
+  var dobro=(anos.length>=3)?vscCaiDoisAnos(vsLinhas,anos[anos.length-3],anos[anos.length-2],anos[anos.length-1]):[];
+  var nQueda=rank.filter(function(r){return r.classe==="queda";}).length;
+  var nEmpate=rank.filter(function(r){return r.classe==="empate";}).length;
+  var nAlta=rank.filter(function(r){return r.classe==="alta";}).length;
+  var ignorados=vscMesesIgnorados(vsLinhas,anoPara);
+  var mesesUsados=vscMesesComparaveis(vsLinhas,anoDe,anoPara);
+
+  var h='';
+  h+='<div class="vs-top"><div>'
+    +'<h2>Venda por setor</h2>'
+    +'<p>Quanto <b>saiu da loja</b> em quantidade — quilos no açougue, hortifruti e padaria; unidades no bazar, bebidas e limpeza. '
+    +'Não é dinheiro: um setor pode vender menos quilo e faturar mais, se o preço subiu.</p></div>'
+    +'<select class="vs-sel" id="vsParSel">';
+  pares.forEach(function(p){
+    h+='<option value="'+p[0]+'-'+p[1]+'"'+((p[0]===anoDe&&p[1]===anoPara)?" selected":"")+'>'+p[0]+' → '+p[1]+'</option>';
+  });
+  h+='</select></div>';
+
+  /* por que o período não é o ano inteiro */
+  if(mesesUsados.length<12){
+    h+='<div class="vs-aviso">Comparando <b>'+VS_MESN[mesesUsados[0]-1]+' a '+VS_MESN[mesesUsados[mesesUsados.length-1]-1]+'</b>'
+      +' nos dois anos — só os meses que já fecharam dos dois lados.';
+    if(ignorados.length) h+=' <b>'+ignorados.map(function(m){return VS_MESN[m-1];}).join(", ")
+      +'</b> de '+anoPara+' ainda não fechou e ficou de fora: se entrasse pela metade, todo setor apareceria caindo.';
+    h+='</div>';
+  }
+
+  h+='<div class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:16px;">'
+    +'<div class="kpi"><div class="v '+vsCor(vscClassifica(loja.variacao))+'">'+vsPct(loja.variacao)+'</div>'
+    +'<div class="l">A loja inteira</div>'
+    +'<div class="l" style="text-transform:none;letter-spacing:0;margin-top:6px;">'+vsNum(loja.de)+' → '+vsNum(loja.para)+'</div></div>'
+    +'<div class="kpi"><div class="v">'+nQueda+' <span style="font-size:14px;color:#6b7787;font-weight:600;">de '+rank.length+'</span></div>'
+    +'<div class="l">Setores em queda</div>'
+    +'<div class="l" style="text-transform:none;letter-spacing:0;margin-top:6px;">'+nEmpate+' empataram e '+nAlta+' cresceram</div></div>'
+    +'<div class="kpi"><div class="v">'+dobro.length+'</div>'
+    +'<div class="l">Cai há dois anos</div>'
+    +'<div class="l" style="text-transform:none;letter-spacing:0;margin-top:6px;">'+(dobro.length?vsEsc(dobro.join(", ")):"nenhum setor")+'</div></div>'
+    +'</div>';
+
+  /* ranking: barra saindo do zero pros dois lados */
+  var teto=Math.max(6,Math.ceil(rank.reduce(function(m,r){ return Math.max(m,Math.abs(r.variacao||0)); },0)));
+  h+='<div class="card" style="margin-bottom:16px;"><h3 style="margin:0 0 4px;font-size:15px;">Do que mais caiu ao que mais cresceu</h3>'
+    +'<p style="margin:0 0 12px;color:#6b7787;font-size:12.5px;">A linha do meio é o empate com '+anoDe+'.</p>'
+    +'<table class="vs-rank"><tbody>';
+  rank.forEach(function(r){
+    var larg=(r.variacao===null)?0:Math.min(Math.abs(r.variacao)/teto,1)*50;
+    var mk=' data-vsi="'+rank.indexOf(r)+'"';
+    var barra=(r.variacao===null)?''
+      :(r.variacao<0 ? '<span class="vs-bar vs-bneg"'+mk+' style="right:50%;width:'+larg+'%"></span>'
+                     : '<span class="vs-bar vs-bpos"'+mk+' style="left:50%;width:'+larg+'%"></span>');
+    h+='<tr><td class="nm">'+vsEsc(r.setor)+'</td>'
+      +'<td><span class="vs-trilho"><i></i>'+barra+'</span></td>'
+      +'<td class="vl '+vsCor(r.classe)+'">'+vsPct(r.variacao)+'</td></tr>';
+  });
+  h+='</tbody></table><div class="vs-eixo"><span>−'+teto+'%</span><span>0</span><span>+'+teto+'%</span></div></div>';
+
+  /* tabela */
+  h+='<div class="card" style="margin-bottom:16px;"><h3 style="margin:0 0 12px;font-size:15px;">Setor por setor</h3>'
+    +'<div style="overflow-x:auto;"><table class="vs-tbl"><thead><tr>'
+    +'<th>Setor</th><th>'+anoDe+'</th><th>'+anoPara+'</th><th>Diferença</th><th>Variação</th><th style="text-align:left;">Leitura</th>'
+    +'</tr></thead><tbody>';
+  rank.forEach(function(r){
+    var dif=r.para-r.de;
+    var selo=r.classe==="queda"?'<span class="vs-selo vs-s-queda">Caiu</span>'
+            :r.classe==="alta"?'<span class="vs-selo vs-s-alta">Cresceu</span>'
+            :r.classe==="empate"?'<span class="vs-selo vs-s-empate">Ficou na mesma</span>'
+            :'<span class="vs-selo vs-s-empate">Sem base</span>';
+    if(dobro.indexOf(r.setor)>=0) selo+=' <span class="vs-selo vs-s-queda">2 anos seguidos</span>';
+    h+='<tr><td><b>'+vsEsc(r.setor)+'</b></td><td>'+vsNum(r.de)+'</td><td>'+vsNum(r.para)+'</td>'
+      +'<td class="'+vsCor(r.classe)+'">'+(dif>=0?"+":"−")+vsNum(Math.abs(dif))+'</td>'
+      +'<td class="'+vsCor(r.classe)+'"><b>'+vsPct(r.variacao)+'</b></td>'
+      +'<td style="text-align:left;">'+selo+'</td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+
+  /* mês a mês: sempre os doze, os que não dá pra comparar ficam vazios */
+  var TETO_MES=25;
+  h+='<div class="card"><h3 style="margin:0 0 4px;font-size:15px;">Onde a queda aconteceu</h3>'
+    +'<p style="margin:0 0 12px;color:#6b7787;font-size:12.5px;">Cada barra é um mês de '+anoPara+' contra o mesmo mês de '+anoDe+'. '
+    +'Serve pra separar o setor que caiu o ano todo daquele que teve um mês ruim e nada mais. '
+    +'Barra que passa de '+TETO_MES+'% encosta na borda; o número exato aparece ao passar o mouse.</p>'
+    +'<div class="vs-cards">';
+  rank.forEach(function(r){
+    var mm=vscPorMes(vsLinhas,anoDe,anoPara,r.setor), tiras='', rot='';
+    mm.forEach(function(x){
+      if(x.variacao===null){ tiras+='<span class="vs-col vazio"></span>'; rot+='<span class="off">'+VS_MES3[x.mes-1]+'</span>'; return; }
+      var alt=Math.min(Math.abs(x.variacao)/TETO_MES,1)*50;
+      tiras+='<span class="vs-col" data-vsi="'+rank.indexOf(r)+'" data-vsm="'+x.mes+'"><b class="'+(x.variacao<0?"n":"p")+'" style="height:'+alt+'%"></b></span>';
+      rot+='<span>'+VS_MES3[x.mes-1]+'</span>';
+    });
+    h+='<div class="vs-mini"><h4><span>'+vsEsc(r.setor)+'</span><span class="'+vsCor(r.classe)+'">'+vsPct(r.variacao)+'</span></h4>'
+      +'<div class="vs-tira">'+tiras+'</div><div class="vs-meses">'+rot+'</div></div>';
+  });
+  h+='</div></div>';
+
+  el.innerHTML=h;
+  vsRankAtual=rank; vsMesesAtual=mesesUsados;
+  var sel=document.getElementById("vsParSel");
+  if(sel) sel.onchange=function(){ var p=this.value.split("-"); vsPar=[+p[0],+p[1]]; vsRender(); };
+}
+
+/* ---- o balão ---- */
+function vsFaixa(){
+  if(!vsMesesAtual.length) return "";
+  var a=VS_MES3[vsMesesAtual[0]-1].toLowerCase(), b=VS_MES3[vsMesesAtual[vsMesesAtual.length-1]-1].toLowerCase();
+  return a===b ? a : (a+"–"+b);
+}
+function vsTipEl(){
+  var t=document.getElementById("vsTip");
+  if(!t){ t=document.createElement("div"); t.id="vsTip"; document.body.appendChild(t); }
+  return t;
+}
+function vsTipMostra(html,e){
+  var t=vsTipEl();
+  t.innerHTML=html; t.style.opacity=1;
+  var r=t.getBoundingClientRect();
+  var x=e.clientX+14, y=e.clientY-r.height-12;
+  if(x+r.width>innerWidth-8) x=e.clientX-r.width-14;
+  if(y<8) y=e.clientY+18;
+  t.style.left=x+"px"; t.style.top=y+"px";
+}
+function vsTipEsconde(){ var t=document.getElementById("vsTip"); if(t) t.style.opacity=0; }
+function vsLinha(rot,val,cls){
+  return '<div class="r"><span>'+rot+'</span><em'+(cls?' class="'+cls+'"':'')+'>'+val+'</em></div>';
+}
+document.addEventListener("mousemove", function(e){
+  var pg=document.getElementById("page-vendasetor");
+  if(!pg || !pg.classList.contains("ativo")) return vsTipEsconde();
+
+  var col=e.target.closest ? e.target.closest(".vs-col") : null;
+  if(col && col.dataset.vsi!==undefined){
+    var s=vsRankAtual[+col.dataset.vsi]; if(!s) return vsTipEsconde();
+    var x=vscPorMes(vsLinhas,vsPar[0],vsPar[1],s.setor)[+col.dataset.vsm-1];
+    if(!x || x.variacao===null) return vsTipEsconde();
+    return vsTipMostra('<b>'+vsEsc(s.setor)+' · '+VS_MES3[x.mes-1]+'</b>'
+      +vsLinha(vsPar[0], vsNum(x.de))
+      +vsLinha(vsPar[1], vsNum(x.para))
+      +vsLinha("variação", vsPct(x.variacao), x.variacao<0?"neg":"pos"), e);
+  }
+  var bar=e.target.closest ? e.target.closest(".vs-bar") : null;
+  if(bar && bar.dataset.vsi!==undefined){
+    var r2=vsRankAtual[+bar.dataset.vsi]; if(!r2) return vsTipEsconde();
+    var dif=r2.para-r2.de, fx=vsFaixa();
+    return vsTipMostra('<b>'+vsEsc(r2.setor)+'</b>'
+      +vsLinha(fx+" "+vsPar[0], vsNum(r2.de))
+      +vsLinha(fx+" "+vsPar[1], vsNum(r2.para))
+      +vsLinha("diferença", (dif>=0?"+":"−")+vsNum(Math.abs(dif)), dif<0?"neg":"pos"), e);
+  }
+  vsTipEsconde();
+});
 /* ---- FLV: tela, nuvem e ações. As contas ficam no módulo FLVCALC acima; aqui só desenho. ---- */
 function flvSB(){ try{ return window.__SB||null; }catch(e){ return null; } }
 function flvPodeVer(){ try{ return podePagina("flv"); }catch(e){ return false; } }
@@ -9175,6 +10067,45 @@ function clImprimir(){
     var nf=e.target.closest("[data-clnf]"); if(nf){ clVerNotas(nf.getAttribute("data-clnf")); return; }
     var cf=e.target.closest("[data-pconf]"); if(cf){ clDecidir(cf.getAttribute("data-pconf"),"conferido"); return; }
     var rd=e.target.closest("[data-precd]"); if(rd){ clDecidir(rd.getAttribute("data-precd"),"recusado_na_doca"); return; }
+    /* Os de baixo sao SO INTERFACE — filtrar, buscar e abrir detalhe. Entram nesta
+       mesma delegacao (e nao num onclick por linha) porque a lista se redesenha a
+       cada chegada de dado: ouvinte por linha viraria ouvinte perdido. */
+    var fb=e.target.closest("[data-apfil]");
+    if(fb){ clApFiltro=fb.getAttribute("data-apfil"); clApRedesenha(); return; }
+    var zr=e.target.closest("#clApZerar");
+    if(zr){ clApFiltro="todos"; clApBusca=""; clApSincronizaBusca(); clApRedesenha(); return; }
+    var lp=e.target.closest("#clApLimpa");
+    if(lp){ clApBusca=""; clApSincronizaBusca(); clApRedesenha(); return; }
+    var dt=e.target.closest("[data-apdet]");
+    if(dt){ clApDetalhe(dt.getAttribute("data-apdet")); return; }
+  });
+  /* A BUSCA NAO REDESENHA A CADA TECLA.
+     Com 30 solicitacoes, refazer a lista a cada letra e desperdicio visivel. 120ms
+     depois da ultima tecla e imperceptivel para quem digita e corta o trabalho por
+     uma ordem de grandeza. O casco nunca e refeito, entao o foco e o cursor ficam. */
+  var clApTmr=null;
+  if(cp) cp.addEventListener("input",function(e){
+    var i=e.target.closest("#clApBusca"); if(!i) return;
+    clApBusca=i.value||"";
+    var lp=document.getElementById("clApLimpa");
+    if(lp) lp.style.display=clApBusca?"":"none";
+    if(clApTmr) clearTimeout(clApTmr);
+    clApTmr=setTimeout(function(){ clApTmr=null; clApRedesenha(); },120);
+  });
+  /* A gaveta fecha no X, no fundo escuro e no Esc. Clique DENTRO dela nao fecha —
+     por isso o teste de alvo em vez de um ouvinte solto no fundo. */
+  var pdbg=document.getElementById("clPdBg");
+  if(pdbg) pdbg.addEventListener("click",function(e){
+    if(e.target===pdbg || e.target.closest("#clPdX")){ clApFecharDet(); return; }
+    var nf=e.target.closest("[data-clnf]"); if(nf){ clVerNotas(nf.getAttribute("data-clnf")); return; }
+    var s=e.target.closest("[data-psim]");
+    if(s){ var i1=s.getAttribute("data-psim"); clApFecharDet(); clDecidir(i1,"aprovado"); return; }
+    var n=e.target.closest("[data-pnao]");
+    if(n){ var i2=n.getAttribute("data-pnao"); clApFecharDet(); clDecidir(i2,"recusado"); return; }
+  });
+  document.addEventListener("keydown",function(e){
+    var bg=document.getElementById("clPdBg");
+    if(e.key==="Escape" && bg && bg.classList.contains("show")) clApFecharDet();
   });
   var lb=document.getElementById("clLinkBtn"); if(lb) lb.addEventListener("click",clLinkFornecedor);
 })();
@@ -19809,6 +20740,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="galpoes"){ try{ glCloudLoad(); glRealtime(); renderGalpoes(); }catch(e){} }
     if(btn.dataset.page==="despesas"){ try{ despRender(); despCloudLoad(); }catch(e){} }
     if(btn.dataset.page==="flv"){ try{ flvRender(); flvCloudLoad(); }catch(e){} }
+    if(btn.dataset.page==="vendasetor"){ try{ vsRender(); vsCloudLoad(); }catch(e){} }
     if(btn.dataset.page==="recibos"){ try{ rcbRender(); rcbAutCarregar(); }catch(e){} }
     if(btn.dataset.page==="planta"){ try{ glCloudLoad(); glRealtime(); renderPlanta(); }catch(e){} }
     if(btn.dataset.page==="central"){ try{ clCloudLoad(); }catch(e){} }

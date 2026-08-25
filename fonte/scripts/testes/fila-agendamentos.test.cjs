@@ -50,8 +50,17 @@ console.log("\n=== A fila de pedidos de fornecedor ===\n");
      /var va=\(a\.data<hoje\)\?0:1, vb=\(b\.data<hoje\)\?0:1;/.test(H), "true");
   eq("6) e o resto em ordem de data e hora",
      /return String\(a\.data\+a\.hora\)\.localeCompare\(String\(b\.data\+b\.hora\)\);/.test(H), "true");
-  // ordenar não pode mexer na lista original
-  eq("7) ordena numa cópia, não na lista de verdade", /pend\.slice\(\)\.sort\(/.test(H), "true");
+  // ORDENAR NAO PODE MEXER NA LISTA ORIGINAL.
+  // .sort() ordena NO LUGAR. Aplicado direto em clPedidos (ou no recorte "pend", que é
+  // usado em mais de um lugar), ele embaralharia a ordem que outras telas contam.
+  // Hoje a ordenação cai sobre o retorno de clApFiltra, que é um .filter() — array novo.
+  // O que este teste guarda é a GARANTIA, não o jeito: nenhum sort direto no que é de todos.
+  eq("7a) ordena sobre um array novo, saído de filtro",
+     /var itens=clApFiltra\(pend\)\.sort\(/.test(H), "true");
+  eq("7b) e nunca direto na lista de verdade",
+     /clPedidos\.sort\(|(^|[^.\w])pend\.sort\(/.test(H), "false");
+  eq("7c) clApFiltra devolve array novo, não o mesmo",
+     /function clApFiltra\(pend\)\{[\s\S]{0,600}?return pend\.filter\(/.test(H), "true");
 }
 
 // ------------------------------------------------------------ o número no menu
@@ -90,10 +99,10 @@ console.log("\n=== A fila de pedidos de fornecedor ===\n");
 {
   eq("21) sem nada esperando, a aba explica em vez de ficar vazia",
      H.indexOf("Nenhum agendamento pendente") >= 0, "true");
-  // titulo da caixa nao pode ser copia do nome da aba: repetir a mesma frase duas vezes
-  // gasta a linha sem dizer nada novo
-  eq("22) o titulo de dentro diz mais que a aba",
-     H.indexOf("Fornecedores esperando resposta") >= 0, "true");
+  // O titulo da secao foi definido pelo dono: "Agendamentos aguardando aprovação".
+  eq("22) o titulo da secao", H.indexOf("Agendamentos aguardando aprovação") >= 0, "true");
+  // e ele nao pode ser copia exata do nome da aba, que e curto de proposito
+  eq("23) a aba continua curta", /data-clview="responder">Agendamentos pendentes/.test(H), "true");
 }
 
 // ------------------------------------------------------------ aparece sem visitar a Central
