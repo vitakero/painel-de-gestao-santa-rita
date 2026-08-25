@@ -85,11 +85,12 @@ async function timed(c,nome,sql,params){
     SELECT data, SUM(subtotalimpressora) fat FROM pdv.venda WHERE cancelado=false GROUP BY data`);
   const fatByDia={}; diaFat.forEach(r=>fatByDia[d10(r.data)]=num(r.fat));
   const diaIt=await timed(c,"DIA itens (margem/qtd/nprod)",`
-    SELECT data,
-           SUM(valortotal - COALESCE(customediosemimposto,0)*quantidade) marg,
-           SUM(quantidade) qtd,
+    SELECT v.data,
+           SUM(v.valortotal - COALESCE(v.customediosemimposto,0)*v.quantidade) marg,
+           SUM(v.quantidade) qtd,
            COUNT(*) nprod
-    FROM pdv.vendaitem WHERE cancelado=false GROUP BY data`);
+    FROM pdv.vendaitem v JOIN pdv.venda cp ON cp.id=v.id_venda
+    WHERE v.cancelado=false AND cp.cancelado=false GROUP BY v.data`);
   const diaCup=await timed(c,"DIA cupons",`
     SELECT data, COUNT(*) cup FROM pdv.venda WHERE cancelado=false GROUP BY data`);
   const cupByDia={}; diaCup.forEach(r=>cupByDia[d10(r.data)]=Number(r.cup));
@@ -116,10 +117,18 @@ async function timed(c,nome,sql,params){
     .map(r=>({d:d10(r.data),p:pagMap[r.f]||("Forma "+r.f),fat:num(r.fat)}));
 
   // ---- SETOR: dia x setor (itens x produto) ----
+  // CUPOM CANCELADO CONTA DUAS VEZES: o item tem a marca "cancelado" dele e o CUPOM tem a
+  // dele. Filtrando so a do item, passa item de cupom cancelado inteiro — e a conta fica
+  // ~0,8% ACIMA do relatorio "Estatisticas" do VR. Medido DENTRO da loja em 25/08/2026
+  // contra tres numeros conferidos (Bebidas jan/26, jul/26 e jan-jul/26): com os DOIS
+  // filtros bate 0,00% nos tres. (Mesma pegadinha que ja tinha mordido o faturamento por
+  // dia, la em cima — la a saida foi somar pelo cupom.)
   const SETOR=(await timed(c,"SETOR",`
     SELECT v.data, p.mercadologico1 m, SUM(v.valortotal) fat
-    FROM pdv.vendaitem v JOIN public.produto p ON p.id=v.id_produto
-    WHERE v.cancelado=false GROUP BY 1,2`))
+    FROM pdv.vendaitem v
+    JOIN public.produto p ON p.id=v.id_produto
+    JOIN pdv.venda cp ON cp.id=v.id_venda
+    WHERE v.cancelado=false AND cp.cancelado=false GROUP BY 1,2`))
     .map(r=>({d:d10(r.data),s:setorMap[r.m]||("Setor "+r.m),fat:num(r.fat)}));
 
   // ---- RANKING PRODUTOS por mes (top 300/mes) ----
@@ -136,9 +145,10 @@ async function timed(c,nome,sql,params){
   // robo segue normal. O detalhe por setor simplesmente nao aparece ate a gente ajustar.
   const SQL_RANK_ANTIGA=`
     WITH mp AS (
-      SELECT to_char(date_trunc('month',data),'YYYY-MM') mes, id_produto,
-             SUM(quantidade) qtd, SUM(valortotal) fat
-      FROM pdv.vendaitem WHERE cancelado=false GROUP BY 1,2)
+      SELECT to_char(date_trunc('month',v.data),'YYYY-MM') mes, v.id_produto,
+             SUM(v.quantidade) qtd, SUM(v.valortotal) fat
+      FROM pdv.vendaitem v JOIN pdv.venda cp ON cp.id=v.id_venda
+      WHERE v.cancelado=false AND cp.cancelado=false GROUP BY 1,2)
     SELECT mes, id_produto, NULL::int m1, qtd, fat FROM (
       SELECT *, row_number() OVER (PARTITION BY mes ORDER BY fat DESC) rn FROM mp) t
     WHERE rn<=300`;
@@ -149,8 +159,10 @@ async function timed(c,nome,sql,params){
       SELECT to_char(date_trunc('month',v.data),'YYYY-MM') mes, v.id_produto,
              p.mercadologico1 m1,
              SUM(v.quantidade) qtd, SUM(v.valortotal) fat
-      FROM pdv.vendaitem v JOIN public.produto p ON p.id=v.id_produto
-      WHERE v.cancelado=false GROUP BY 1,2,3),
+      FROM pdv.vendaitem v
+      JOIN public.produto p ON p.id=v.id_produto
+      JOIN pdv.venda cp ON cp.id=v.id_venda
+      WHERE v.cancelado=false AND cp.cancelado=false GROUP BY 1,2,3),
     num AS (
       SELECT *,
              row_number() OVER (PARTITION BY mes ORDER BY fat DESC)        rn_loja,
@@ -188,7 +200,9 @@ async function timed(c,nome,sql,params){
              EXTRACT(YEAR FROM v.data)::int ano, EXTRACT(MONTH FROM v.data)::int mes,
              SUM(v.quantidade) qtd
       FROM pdv.vendaitem v
-      WHERE v.cancelado=false AND v.data >= (CURRENT_DATE - INTERVAL '3 years')
+      JOIN pdv.venda cp ON cp.id=v.id_venda
+      WHERE v.cancelado=false AND cp.cancelado=false
+        AND v.data >= (CURRENT_DATE - INTERVAL '3 years')
       GROUP BY 1,2,3),
     base AS (
       SELECT p.mercadologico1 m1, c.id_produto, c.ano, c.mes, c.qtd
