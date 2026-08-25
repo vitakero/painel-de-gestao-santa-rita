@@ -223,6 +223,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   /* ---- Venda por setor: ranking, tabela e a tira dos doze meses. Reaproveita
      .card/.kpi/.btn-s; aqui só o que o painel ainda não tinha. Tudo em cores CLARAS
      de propósito — o tema escuro é derivado destas regras no build. ---- */
+.eld-nuvem { display:flex; align-items:center; gap:12px; margin-top:10px; flex-wrap:wrap; }
+  .eld-nuvem span { font-size:12.5px; color:#6b7787; }
   .vs-top { display:flex; justify-content:space-between; align-items:flex-end; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
   .vs-top h2 { margin:0 0 3px; font-size:19px; color:#1f2b3a; }
   .vs-top p { margin:0; color:#6b7787; font-size:13px; max-width:78ch; line-height:1.5; }
@@ -3052,6 +3054,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
             <button class="eld-btn" id="eldBipBtn" type="button">Transferir p/ loja</button>
           </div>
           <div class="eld-feed" id="eldFeed"></div>
+          <div class="eld-nuvem">
+            <button class="btn-s" id="eldAtualizar" type="button">Atualizar da nuvem</button>
+            <span id="eldIdade"></span>
+          </div>
         </div>
         <div class="eld-kpis" id="eldKpis"></div>
         <div style="margin:14px 0 10px;"><input class="eld-inp" id="eldBusca" placeholder="Buscar produto por nome ou código de barras" autocomplete="off" style="width:100%;max-width:430px;box-sizing:border-box;"></div>
@@ -7713,10 +7719,15 @@ function vsProdHtml(setor, anoDe, anoPara){
     +'Mesmos meses da tela do setor, nos dois anos.</p></div>'
     +'<button class="btn-s" id="vsProdX" type="button">Fechar</button></div>';
 
-  h+='<div class="vs-aviso"><b>'+res.nCaiu+' produtos caíram</b> (−'+vsNum(res.caiu)+') e '
-    +'<b>'+res.nSubiu+' cresceram</b> (+'+vsNum(res.subiu)+'). '
-    +'A lista está ordenada pelo <b>tamanho da diferença</b>, não pela porcentagem: '
-    +'−80% de um produto que vendia 5 unidades não muda nada; −12% de um que vendia 30 mil, muda.</div>';
+  /* NAO deixar isto virar "o balanco do setor". Sao os EXTREMOS: as maiores quedas e as
+     maiores altas. O miolo (produto que variou pouco) fica de fora de proposito, entao a
+     soma daqui NAO bate com o total do setor — e nem deveria. */
+  h+='<div class="vs-aviso">São os <b>que mais se mexeram</b> — as maiores quedas e as maiores altas. '
+    +'Aqui estão <b>'+res.nCaiu+' caindo</b> (−'+vsNum(res.caiu)+') e <b>'+res.nSubiu+' subindo</b> (+'+vsNum(res.subiu)+'), '
+    +'mas <b>isto não é o balanço do setor</b>: quem variou pouco não aparece, então não some estes '
+    +'números esperando dar o total lá de cima. '
+    +'A ordem é pelo <b>tamanho da diferença</b>, não pela porcentagem — −80% de um produto que vendia '
+    +'5 unidades não muda nada; −12% de um que vendia 30 mil, muda.</div>';
 
   h+='<div style="overflow-x:auto;"><table class="vs-tbl"><thead><tr>'
     +'<th>Produto</th><th>'+anoDe+'</th><th>'+anoPara+'</th><th>Diferença</th><th>Variação</th>'
@@ -20900,7 +20911,12 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="cargos") renderCargos();
     if(btn.dataset.page==="receitas"){ try{ var _ab=localStorage.getItem("ui_aba_receitas")||"receitas"; if(_ab!=="receitas" && typeof recAbaIr==="function"){ recAbaIr(_ab); return; } }catch(e){} }
     if(btn.dataset.page==="receitas") renderReceitas();
-    if(btn.dataset.page==="estld"){ renderEstLD(); eldCloudLoad(); var _ei=document.getElementById("eldInp"); if(_ei) _ei.focus(); }
+    /* NAO chama eldCloudLoad aqui de proposito. Abrir a aba baixava os 49 mil produtos
+       da nuvem (~6,4 MB, em 50 pedidos) TODA VEZ — era o que comia quase toda a franquia
+       de trafego do Supabase: 2 GB de 5 num mes, com 12 pessoas usando.
+       Os produtos ficam guardados no proprio navegador, entao a aba abre com o que ja
+       tem. Quem quiser o retrato novo aperta "Atualizar da nuvem". */
+    if(btn.dataset.page==="estld"){ renderEstLD(); eldAvisoIdade(); var _ei=document.getElementById("eldInp"); if(_ei) _ei.focus(); }
     if(btn.dataset.page==="pedidos"){ renderPedidos(); pedCloudLoad(); pedRealtime(); }
     if(btn.dataset.page==="config") renderConfig();
     if(btn.dataset.page==="pontos"||btn.dataset.page==="mapa"){ pxCloudLoad(); try{ if(typeof pixCobLoad==="function") pixCobLoad(); }catch(e){} }
@@ -23509,6 +23525,18 @@ function eldBipar(cod){
 }
 var eldCloudOK=false;
 function eldSB(){ return window.__SB||null; }
+/* Diz de quando e o retrato que esta na tela. Sem isto a pessoa nao tem como saber se
+   esta olhando estoque de hoje ou de tres semanas atras — e antes ela nem precisava
+   pensar nisso, porque baixava tudo toda vez. */
+function eldAvisoIdade(){
+  var el=document.getElementById("eldIdade"); if(!el) return;
+  var q=null; try{ q=localStorage.getItem("eld_baixado_em"); }catch(e){}
+  if(!q){ el.textContent="Nenhum produto carregado ainda — aperte o botão."; return; }
+  var d=new Date(q), dias=Math.floor((Date.now()-d.getTime())/86400000);
+  var quando = dias===0 ? "hoje" : (dias===1 ? "ontem" : ("há "+dias+" dias"));
+  el.textContent = (eldData&&eldData.length ? eldData.length.toLocaleString("pt-BR")+" produtos" : "Produtos")
+    + " carregados " + quando + " (" + d.toLocaleDateString("pt-BR") + ").";
+}
 function eldCloudLoad(){
   var sb=eldSB(); if(!sb) return;
   var fd=document.getElementById("eldFeed"); if(fd) fd.innerHTML='<span style="color:#8a97a8;">Carregando produtos da nuvem...</span>';
@@ -23524,12 +23552,16 @@ function eldCloudLoad(){
       eldData=todos.map(function(x){ return {cod:""+x.cod,nome:x.nome||"",total:+x.total||0,loja:+x.loja||0}; });
       eldData.sort(function(a,b){ return (a.nome||"")<(b.nome||"")?-1:1; }); eldPagina=1;
       eldSave(); renderEstLD();
+      try{ localStorage.setItem("eld_baixado_em", new Date().toISOString()); }catch(e){}
+      eldAvisoIdade();
       if(fd) fd.innerHTML='<span style="color:#157a35;font-weight:600;">'+todos.length.toLocaleString("pt-BR")+' produtos carregados da nuvem</span>';
     },function(){ if(fd) fd.innerHTML=avisoLogin; });
   },function(){ if(fd) fd.innerHTML=avisoLogin; });
 }
 function eldCloudUpsert(x){ var sb=eldSB(); if(!sb||!eldCloudOK) return; sb.from("estoque_produtos").upsert({cod:x.cod,nome:x.nome,total:+x.total||0,loja:+x.loja||0,atualizado_em:new Date().toISOString()}).then(function(){},function(){}); }
 (function initEstLD(){
+  var at=document.getElementById("eldAtualizar");
+  if(at) at.onclick=function(){ eldCloudLoad(); };
   var inp=document.getElementById("eldInp"), btn=document.getElementById("eldBipBtn");
   var bs=document.getElementById("eldBusca"); if(bs) bs.addEventListener("input",function(){ eldPagina=1; renderEstLD(); });
   var flc=document.getElementById("eldFiltros"); if(flc) flc.addEventListener("click",function(ev){ var t=ev.target; while(t&&t!==flc&&!(t.classList&&t.classList.contains("eld-flt"))) t=t.parentNode; if(t&&t!==flc){ eldFiltro=t.getAttribute("data-f")||"todos"; eldPagina=1; renderEstLD(); } });
