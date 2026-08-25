@@ -179,13 +179,21 @@ async function timed(c,nome,sql,params){
     WITH lim AS (
       SELECT EXTRACT(YEAR FROM CURRENT_DATE)::int ano_atual,
              EXTRACT(MONTH FROM CURRENT_DATE)::int mes_atual),
-    base AS (
-      SELECT p.mercadologico1 m1, v.id_produto,
+    -- SOMA PRIMEIRO, JUNTA DEPOIS. Na primeira versao eu juntava produto ANTES de
+    -- agrupar: o banco cruzava produto com ~20 MILHOES de linhas de item de venda.
+    -- Agrupando antes, sobram ~500 mil linhas e so entao se junta o cadastro.
+    -- Mesmo resultado, uma fracao do trabalho.
+    cru AS (
+      SELECT v.id_produto,
              EXTRACT(YEAR FROM v.data)::int ano, EXTRACT(MONTH FROM v.data)::int mes,
              SUM(v.quantidade) qtd
-      FROM pdv.vendaitem v JOIN public.produto p ON p.id=v.id_produto
+      FROM pdv.vendaitem v
       WHERE v.cancelado=false AND v.data >= (CURRENT_DATE - INTERVAL '3 years')
-      GROUP BY 1,2,3,4),
+      GROUP BY 1,2,3),
+    base AS (
+      SELECT p.mercadologico1 m1, c.id_produto, c.ano, c.mes, c.qtd
+      FROM cru c JOIN public.produto p ON p.id=c.id_produto
+      WHERE p.mercadologico1 IS NOT NULL),
     pares AS (
       SELECT DISTINCT ano AS ano_de, ano+1 AS ano_para FROM base
       WHERE ano+1 IN (SELECT DISTINCT ano FROM base)),
