@@ -250,6 +250,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .vs-s-empate { background:#eef2f7; color:#6b7787; }
   .vs-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(292px,1fr)); gap:12px; }
   .vs-mini { border:1px solid #eef2f7; border-radius:10px; padding:12px 13px; }
+  .vs-mini.clicavel { cursor:pointer; }
+  .vs-mini.clicavel:hover { border-color:#cfe3d6; background:#fbfdfc; }
+  .vs-mini.aberta { border-color:#157a35; background:#f4faf6; }
   .vs-mini h4 { margin:0 0 10px; font-size:13.5px; display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-weight:700; color:#33404f; }
   .vs-tira { display:flex; gap:3px; height:52px; position:relative; align-items:stretch; }
   .vs-tira::before { content:""; position:absolute; left:0; right:0; top:50%; height:1px; background:#e6ebf1; }
@@ -261,6 +264,18 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .vs-meses { display:flex; gap:3px; margin-top:6px; }
   .vs-meses span { flex:1; text-align:center; font-size:9.5px; color:#8b96a5; }
   .vs-meses span.off { opacity:.4; }
+.vs-prod { margin:16px 0 0; border-top:2px solid #157a35; background:#fbfdfc; border-radius:0 0 12px 12px; padding:18px 20px 16px; }
+  .vs-prod-top { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:12px; }
+  .vs-prod-top h3 { margin:0 0 3px; font-size:16px; color:#1f2b3a; }
+  .vs-prod-top p { margin:0; color:#6b7787; font-size:12.5px; max-width:70ch; line-height:1.5; }
+.vs-prod-fraco { margin-top:14px; padding:12px 14px; background:#fdf6e6; border:1px solid #f0e0bb; border-radius:10px; font-size:12.5px; color:#6b5a2e; }
+  .vs-prod-fraco b { color:#4a3c17; }
+  .vs-prod-mov { margin-top:12px; font-size:12.5px; color:#6b7787; line-height:1.6; }
+  .vs-prod-mov p { margin:0 0 6px; }
+  .vs-prod-mov b { color:#33404f; }
+  .vs-rank tr.clicavel { cursor:pointer; }
+  .vs-rank tr.clicavel:hover td { background:#f4f7fa; }
+  .vs-rank tr.aberta td { background:#eaf3ee; }
   .vs-vazio { padding:28px 6px; text-align:center; color:#6b7787; font-size:13.5px; line-height:1.6; }
   /* Balão desenhado por nós. O "title" do navegador demora ~1s pra aparecer, some sozinho
      e não aceita cor — num gráfico onde o número exato é o que importa, isso atrapalha. */
@@ -7353,8 +7368,24 @@ function vscMesesIgnorados(linhas, ano){
    aqui é só desenho. Quem escreve na tabela é o robô (service key), então esta
    página só LÊ — não existe botão de salvar de propósito. ---- */
 function vsSB(){ try{ return window.__SB||null; }catch(e){ return null; } }
+/* A PÁGINA segue a regra normal: vê quem for master OU tiver "Venda por setor" marcado
+   nos Acessos. É o que o pessoal de compras usa. */
 function vsPodeVer(){ try{ return podePagina("vendasetor"); }catch(e){ return false; } }
+
+/* O DETALHE DO PRODUTO (clicar no setor e ver quais produtos estão caindo) é outra coisa:
+   fica SÓ MASTER enquanto está em observação. Quando for soltar pra compras, trocar para
+   false — não precisa mexer em mais nada, nem na tela nem no banco, porque o detalhe é
+   calculado a partir de dados que a página já carrega. */
+var VS_PRODUTO_SO_MASTER = true;
+function vsPodeVerProduto(){
+  try{
+    if(!vsPodeVer()) return false;
+    if(VS_PRODUTO_SO_MASTER) return !!(window.__PERFIL && window.__PERFIL.is_master);
+    return true;
+  }catch(e){ return false; }
+}
 var vsLinhas=null, vsCarregando=false, vsPar=null, vsErro="";
+var vsApel=[];   /* traducao NOVO BEBIDAS -> Bebidas */
 var vsRankAtual=[], vsMesesAtual=[];   /* o balão lê daqui, sem refazer conta */
 var VS_MES3=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 var VS_MESN=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
@@ -7384,13 +7415,18 @@ function vsCloudLoad(){
   if(window.__PERFIL==null) return;              /* vsRender já reagenda */
   if(!vsPodeVer()){ vsLinhas=[]; vsRender(); return; }
   vsCarregando=true;
-  sb.from("vendasetor_mes").select("ano,mes,setor,quantidade,completo,origem")
-    .then(function(r){
-      vsCarregando=false;
-      if(r&&r.error){ vsErro=r.error.message||"não deu pra ler"; vsLinhas=vsLinhas||[]; }
-      else { vsErro=""; vsLinhas=(r&&r.data)?r.data:[]; }
-      vsRender();
-    });
+  /* as duas juntas, nao uma esperando a outra */
+  Promise.all([
+    sb.from("vendasetor_mes").select("ano,mes,setor,quantidade,completo,origem"),
+    sb.from("vendasetor_apelido").select("setor_vr,setor,mostrar")
+  ]).then(function(res){
+    var r=res[0], a=res[1];
+    vsCarregando=false;
+    if(r&&r.error){ vsErro=r.error.message||"não deu pra ler"; vsLinhas=vsLinhas||[]; }
+    else { vsErro=""; vsLinhas=(r&&r.data)?r.data:[]; }
+    if(a&&!a.error&&a.data) vsApel=a.data;
+    vsRender();
+  });
 }
 
 function vsRender(){
@@ -7468,11 +7504,18 @@ function vsRender(){
     var barra=(r.variacao===null)?''
       :(r.variacao<0 ? '<span class="vs-bar vs-bneg"'+mk+' style="right:50%;width:'+larg+'%"></span>'
                      : '<span class="vs-bar vs-bpos"'+mk+' style="left:50%;width:'+larg+'%"></span>');
-    h+='<tr><td class="nm">'+vsEsc(r.setor)+'</td>'
+    var clic=vsPodeVerProduto();
+    h+='<tr'+(clic?' class="vs-lin clicavel'+(vsProdSel===r.setor?' aberta':'')+'" data-setor="'+vsEsc(r.setor)+'"':'')+'><td class="nm">'+vsEsc(r.setor)+'</td>'
       +'<td><span class="vs-trilho"><i></i>'+barra+'</span></td>'
       +'<td class="vl '+vsCor(r.classe)+'">'+vsPct(r.variacao)+'</td></tr>';
   });
-  h+='</tbody></table><div class="vs-eixo"><span>−'+teto+'%</span><span>0</span><span>+'+teto+'%</span></div></div>';
+  h+='</tbody></table><div class="vs-eixo"><span>−'+teto+'%</span><span>0</span><span>+'+teto+'%</span></div>';
+  if(vsPodeVerProduto()){
+    h+= vsProdSel
+      ? '<div class="vs-prod">'+vsProdHtml(vsProdSel,anoDe,anoPara,mesesUsados)+'</div>'
+      : '<p style="margin:10px 0 0;color:#6b7787;font-size:12.5px;">Clique num setor para ver quais produtos puxaram o número.</p>';
+  }
+  h+='</div>';
 
   /* tabela */
   h+='<div class="card" style="margin-bottom:16px;"><h3 style="margin:0 0 12px;font-size:15px;">Setor por setor</h3>'
@@ -7508,7 +7551,10 @@ function vsRender(){
       tiras+='<span class="vs-col" data-vsi="'+rank.indexOf(r)+'" data-vsm="'+x.mes+'"><b class="'+(x.variacao<0?"n":"p")+'" style="height:'+alt+'%"></b></span>';
       rot+='<span>'+VS_MES3[x.mes-1]+'</span>';
     });
-    h+='<div class="vs-mini"><h4><span>'+vsEsc(r.setor)+'</span><span class="'+vsCor(r.classe)+'">'+vsPct(r.variacao)+'</span></h4>'
+    var abr=vsPodeVerProduto();
+    h+='<div class="vs-mini'+(abr?(' clicavel'+(vsProdSel===r.setor?' aberta':'')):'')+'"'
+      +(abr?(' data-setor="'+vsEsc(r.setor)+'"'):'')
+      +'><h4><span>'+vsEsc(r.setor)+'</span><span class="'+vsCor(r.classe)+'">'+vsPct(r.variacao)+'</span></h4>'
       +'<div class="vs-tira">'+tiras+'</div><div class="vs-meses">'+rot+'</div></div>';
   });
   h+='</div></div>';
@@ -7516,7 +7562,22 @@ function vsRender(){
   el.innerHTML=h;
   vsRankAtual=rank; vsMesesAtual=mesesUsados;
   var sel=document.getElementById("vsParSel");
-  if(sel) sel.onchange=function(){ var p=this.value.split("-"); vsPar=[+p[0],+p[1]]; vsRender(); };
+  if(sel) sel.onchange=function(){ var p=this.value.split("-"); vsPar=[+p[0],+p[1]]; vsProdSel=null; vsRender(); };
+  function vsAbrir(s){
+    vsProdSel = (vsProdSel===s) ? null : s;   /* clicar de novo fecha */
+    vsRender();
+    /* o painel nasce junto do ranking, la em cima. Quem clicou no cartao do mes a mes,
+       que fica bem mais abaixo, nao veria nada acontecer. */
+    if(vsProdSel){ var alvo=document.querySelector(".vs-prod"); if(alvo) alvo.scrollIntoView({block:"center"}); }
+  }
+  el.querySelectorAll(".vs-rank tr.clicavel").forEach(function(tr){
+    tr.onclick=function(){ vsAbrir(this.dataset.setor); };
+  });
+  el.querySelectorAll(".vs-mini.clicavel").forEach(function(c){
+    c.onclick=function(){ vsAbrir(this.dataset.setor); };
+  });
+  var fx=document.getElementById("vsProdX");
+  if(fx) fx.onclick=function(e){ e.stopPropagation(); vsProdFecha(); };
 }
 
 /* ---- o balão ---- */
@@ -7568,6 +7629,160 @@ document.addEventListener("mousemove", function(e){
   }
   vsTipEsconde();
 });
+
+/* ==VSPCALC-INICIO== VENDA POR SETOR / DETALHE DO PRODUTO — módulo puro
+   (testado em scripts/testes/vendasetor-produto.test.cjs). Só conta.
+
+   A fonte é o ranking mensal do VR: os 300 produtos mais vendidos de CADA mês,
+   escolhidos por faturamento. Isso cria uma armadilha que não existe no nível do setor:
+
+   UM PRODUTO PODE ENTRAR E SAIR DA LISTA. Se a Coca 2L está no top-300 em janeiro de
+   2025 mas não em fevereiro, somar "janeiro a julho" dos dois anos compara 7 meses de
+   um lado com 6 do outro — e inventa uma queda que não existe. Por isso cada produto é
+   comparado SÓ nos meses em que aparece nos dois anos, e a tela diz quantos foram.
+
+   Um produto que sai da lista de vez também some daqui. Não é bug: ele deixou de estar
+   entre os 300 maiores, o que já é um sinal por si só — mas não dá pra medir o tamanho
+   da queda com um dado que não existe. */
+
+function vspMes(m){ return +String(m).slice(5,7); }
+function vspAno(m){ return +String(m).slice(0,4); }
+
+/* produtos de um setor (nome CRU do VR), no ano pedido */
+function vspDoSetor(prods, setorVr, ano){
+  var r=[],i,p;
+  for(i=0;i<prods.length;i++){ p=prods[i];
+    if(p.s===setorVr && vspAno(p.m)===+ano) r.push(p); }
+  return r;
+}
+
+/* Compara os produtos de UM setor entre dois anos.
+   mesesPermitidos = os meses que a página do setor já considera comparáveis
+   (ex.: 1..7). Cada produto usa a interseção disso com os meses em que ele
+   aparece nos DOIS anos. */
+function vspComparar(prods, setorVr, anoDe, anoPara, mesesPermitidos){
+  var A={}, B={}, nomes={};
+  vspDoSetor(prods,setorVr,anoDe).forEach(function(p){
+    if(mesesPermitidos.indexOf(vspMes(p.m))<0) return;
+    (A[p.id]=A[p.id]||{})[vspMes(p.m)]=(+p.qtd||0); nomes[p.id]=p.nome; });
+  vspDoSetor(prods,setorVr,anoPara).forEach(function(p){
+    if(mesesPermitidos.indexOf(vspMes(p.m))<0) return;
+    (B[p.id]=B[p.id]||{})[vspMes(p.m)]=(+p.qtd||0); nomes[p.id]=p.nome; });
+
+  var saida=[];
+  Object.keys(nomes).forEach(function(id){
+    var a=A[id]||{}, b=B[id]||{};
+    var juntos=Object.keys(a).filter(function(m){ return b[m]!==undefined; }).map(Number).sort(function(x,y){return x-y;});
+    if(!juntos.length){
+      // aparece só num dos anos: entra marcado, sem porcentagem inventada
+      var so = Object.keys(b).length ? anoPara : anoDe;
+      saida.push({ id:id, nome:nomes[id], de:null, para:null, variacao:null, meses:0, soEm:so });
+      return;
+    }
+    var de=0, para=0;
+    juntos.forEach(function(m){ de+=a[m]; para+=b[m]; });
+    saida.push({ id:id, nome:nomes[id], de:de, para:para,
+                 variacao: de>0 ? (para/de-1)*100 : null,
+                 meses:juntos.length, soEm:null });
+  });
+  // pior primeiro; quem não dá pra medir vai pro fim
+  return saida.sort(function(x,y){
+    if(x.variacao===null && y.variacao===null) return x.nome<y.nome?-1:1;
+    if(x.variacao===null) return 1;
+    if(y.variacao===null) return -1;
+    return x.variacao-y.variacao;
+  });
+}
+
+/* quanto do setor esses produtos explicam — pra tela não fingir que é a loja toda */
+function vspCobertura(lista){
+  var de=0, para=0, n=0;
+  lista.forEach(function(p){ if(p.variacao!==null){ de+=p.de; para+=p.para; n++; } });
+  return { de:de, para:para, medidos:n, semMedida:lista.length-n };
+}
+/* ==VSPCALC-FIM== */
+
+/* ---- Detalhe do produto: clicar no setor e ver o que puxou pra baixo.
+   Só desenho; as contas ficam no módulo VSPCALC acima. ---- */
+var vsProdSel=null;   /* setor aberto (nome da loja) ou null */
+
+function vsProdFecha(){ vsProdSel=null; vsRender(); }
+
+/* Os produtos vêm com o nome CRU do VR ("NOVO BEBIDAS"); a tela usa o nome da loja
+   ("Bebidas"). A tradução mora na tabela vendasetor_apelido — um lugar só. */
+function vsCru(nomeLoja){
+  for(var i=0;i<vsApel.length;i++) if(vsApel[i].setor===nomeLoja) return vsApel[i].setor_vr;
+  return null;
+}
+
+function vsProdHtml(setor, anoDe, anoPara, meses){
+  var cru=vsCru(setor);
+  if(!cru) return '<div class="vs-vazio">Não achei a tradução do setor <b>'+vsEsc(setor)+'</b> na tabela de apelidos.</div>';
+  var temSetor=false;
+  for(var i=0;i<MESPROD.length;i++){ if(MESPROD[i].s){ temSetor=true; break; } }
+  if(!temSetor){
+    return '<div class="vs-vazio">O ranking de produtos ainda não traz o setor.<br>'
+      +'Ele começa a vir na próxima vez que o robô rodar dentro da loja — aí este detalhe se preenche sozinho.</div>';
+  }
+  var lista=vspComparar(MESPROD, cru, anoDe, anoPara, meses);
+  if(!lista.length) return '<div class="vs-vazio">Nenhum produto deste setor entrou no ranking dos 300 mais vendidos nesses meses.</div>';
+  var cob=vspCobertura(lista);
+
+  var h='<div class="vs-prod-top"><div>'
+    +'<h3>'+vsEsc(setor)+' — produto por produto</h3>'
+    +'<p>Os '+cob.medidos+' produtos deste setor que aparecem no ranking dos 300 mais vendidos '
+    +'nos dois anos. Do que mais caiu ao que mais cresceu.</p></div>'
+    +'<button class="btn-s" id="vsProdX" type="button">Fechar</button></div>';
+
+  h+='<div class="vs-aviso">Isto é <b>uma parte do setor</b>, não ele inteiro: só entram produtos que ficaram '
+    +'entre os 300 mais vendidos do mês. Somados, dão '+vsNum(cob.de)+' → '+vsNum(cob.para)
+    +' — o setor todo foi '+vsNum(vsRankAtual.filter(function(r){return r.setor===setor;})[0].de)+' → '
+    +vsNum(vsRankAtual.filter(function(r){return r.setor===setor;})[0].para)+'. '
+    +'Cada produto é comparado só nos meses em que aparece nos <b>dois</b> anos; a coluna "meses" mostra quantos foram.</div>';
+
+  /* SEPARA POR FORÇA DA MEDIÇÃO. Um produto comparado em UM mês só não pode ficar
+     ombro a ombro com outro comparado em sete: -6% de um mês é ruído, e misturado na
+     mesma lista vira "produto em queda" na cabeça de quem lê. */
+  var FIRME=3;
+  var firmes=[], fracos=[], entraram=[], sairam=[];
+  lista.forEach(function(p){
+    if(p.variacao===null){ (p.soEm===anoPara?entraram:sairam).push(p.nome); return; }
+    (p.meses>=FIRME?firmes:fracos).push(p);
+  });
+
+  function tabela(ls){
+    var t='<div style="overflow-x:auto;"><table class="vs-tbl"><thead><tr>'
+      +'<th>Produto</th><th>'+anoDe+'</th><th>'+anoPara+'</th><th>Diferença</th><th>Variação</th><th>Meses</th>'
+      +'</tr></thead><tbody>';
+    ls.forEach(function(p){
+      var dif=p.para-p.de, cls=vsCor(vscClassifica(p.variacao));
+      t+='<tr><td><b>'+vsEsc(p.nome)+'</b></td>'
+        +'<td>'+vsNum(p.de)+'</td><td>'+vsNum(p.para)+'</td>'
+        +'<td class="'+cls+'">'+(dif>=0?"+":"−")+vsNum(Math.abs(dif))+'</td>'
+        +'<td class="'+cls+'"><b>'+vsPct(p.variacao)+'</b></td>'
+        +'<td>'+p.meses+'</td></tr>';
+    });
+    return t+'</tbody></table></div>';
+  }
+
+  if(firmes.length) h+=tabela(firmes);
+  else h+='<div class="vs-vazio">Nenhum produto deste setor tem '+FIRME+' meses ou mais de comparação.</div>';
+
+  if(fracos.length){
+    h+='<div class="vs-prod-fraco"><b>Medição fraca — olhe com desconfiança.</b> '
+      +'Estes aparecem no ranking em menos de '+FIRME+' meses dos dois anos, então a porcentagem '
+      +'vem de pouca coisa e balança fácil.'+tabela(fracos)+'</div>';
+  }
+  if(entraram.length || sairam.length){
+    h+='<div class="vs-prod-mov">';
+    if(entraram.length) h+='<p><b>Entraram no ranking em '+anoPara+':</b> '+vsEsc(entraram.join(", "))+'</p>';
+    if(sairam.length)  h+='<p><b>Estavam em '+anoDe+' e saíram:</b> '+vsEsc(sairam.join(", "))
+      +' — sair dos 300 mais vendidos já é sinal, mas não dá pra medir o tamanho.</p>';
+    h+='</div>';
+  }
+  return h;
+}
+
 /* ---- FLV: tela, nuvem e ações. As contas ficam no módulo FLVCALC acima; aqui só desenho. ---- */
 function flvSB(){ try{ return window.__SB||null; }catch(e){ return null; } }
 function flvPodeVer(){ try{ return podePagina("flv"); }catch(e){ return false; } }

@@ -28,7 +28,10 @@ if (!BASE || !KEY) { console.log("ERRO: SUPABASE_URL ou SUPABASE_SERVICE_KEY fal
 // ---- o esperado: as linhas dos PDFs, lidas da própria carga ----
 const sql = fs.readFileSync(path.join(RAIZ, "sql", "vendasetor_carga.sql"), "utf8");
 const esperado = new Map();
-for (const m of sql.matchAll(/\((\d+),(\d+),'([^']*)',([\d.]+),(true|false)\)/g)) {
+// A carga tem SEIS valores por linha: ano, mes, setor, quantidade, completo, origem.
+// Já mordeu uma vez: a expressão parou no quinto, não casou com nada, e a conferência
+// passou a comparar contra uma base VAZIA — dizendo "bateu em tudo" sem comparar nada.
+for (const m of sql.matchAll(/\((\d+),(\d+),'((?:[^']|'')*)',([\d.]+),(true|false),'\w+'\)/g)) {
   if (m[5] !== "true") continue;                     // mês incompleto não se compara
   esperado.set(m[1] + "|" + m[2] + "|" + m[3].replace(/''/g, "'"), Number(m[4]));
 }
@@ -45,6 +48,7 @@ for (const m of sql.matchAll(/\((\d+),(\d+),'([^']*)',([\d.]+),(true|false)\)/g)
   const doRobo = linhas.filter((l) => l.origem === "robo" && l.completo);
   const doPdf  = linhas.filter((l) => l.origem === "pdf");
 
+  console.log("Base conferida lida: " + esperado.size + " linhas (se der 0, a leitura da carga quebrou)");
   console.log("Na tabela: " + linhas.length + " linhas  (" + doPdf.length + " da carga, " + doRobo.length + " do robô)\n");
   if (!doRobo.length) {
     console.log("O robô ainda não gravou nada. Ele só alcança o VR de dentro da rede da loja;");
@@ -82,5 +86,10 @@ for (const m of sql.matchAll(/\((\d+),(\d+),'([^']*)',([\d.]+),(true|false)\)/g)
     console.log("    relatório do VR são coisas diferentes — e é a diferença que precisa ser entendida.");
     process.exit(1);
   }
-  console.log(">>> Bateu em tudo. O robô reproduz o relatório do VR; o automático pode assumir.");
+  if (!bate) {
+    console.log(">>> NADA FOI COMPARADO. Nenhuma linha do robô encontrou par na base conferida —");
+    console.log("    ou os nomes de setor estão diferentes, ou a base não foi lida. Isto NÃO é aprovação.");
+    process.exit(1);
+  }
+  console.log(">>> Bateu em " + bate + " linhas. O robô reproduz o relatório do VR; o automático pode assumir.");
 })().catch((e) => { console.log("ERRO: " + e.message); process.exit(1); });

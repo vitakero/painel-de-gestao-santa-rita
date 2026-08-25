@@ -123,14 +123,45 @@ async function timed(c,nome,sql,params){
     .map(r=>({d:d10(r.data),s:setorMap[r.m]||("Setor "+r.m),fat:num(r.fat)}));
 
   // ---- RANKING PRODUTOS por mes (top 300/mes) ----
-  const mp=await timed(c,"RANKING produtos/mes (top300)",`
+  // DUAS REGUAS, na mesma consulta:
+  //  (a) os 300 maiores da LOJA por faturamento — e o que a aba Vendas ja usava, nao mexo.
+  //  (b) os 25 maiores de CADA SETOR por quantidade, de 2024 pra ca — sem isto, setor
+  //      pequeno quase nao aparece: Bebidas conseguia so 12 produtos mensuraveis dentro
+  //      do top-300 da loja, e "quais produtos cairam" ficava sem resposta.
+  // A soma das duas e deduplicada pelo proprio SELECT (uma linha por mes+produto).
+  // REDE DE SEGURANCA: a consulta nova junta produto e faz duas janelas sobre a base
+  // inteira. Se ela demorar demais (limite de 4 min) ou falhar, a rodada TODA morreria e
+  // o painel pararia de atualizar — o preco seria alto demais por um detalhe novo.
+  // Entao: tenta a nova; se der errado, cai na antiga (top-300 da loja, sem setor) e o
+  // robo segue normal. O detalhe por setor simplesmente nao aparece ate a gente ajustar.
+  const SQL_RANK_ANTIGA=`
     WITH mp AS (
       SELECT to_char(date_trunc('month',data),'YYYY-MM') mes, id_produto,
              SUM(quantidade) qtd, SUM(valortotal) fat
       FROM pdv.vendaitem WHERE cancelado=false GROUP BY 1,2)
-    SELECT mes, id_produto, qtd, fat FROM (
+    SELECT mes, id_produto, NULL::int m1, qtd, fat FROM (
       SELECT *, row_number() OVER (PARTITION BY mes ORDER BY fat DESC) rn FROM mp) t
-    WHERE rn<=300`);
+    WHERE rn<=300`;
+  let mp;
+  try{
+    mp=await timed(c,"RANKING produtos/mes (top300 loja + top25 por setor)",`
+    WITH mp AS (
+      SELECT to_char(date_trunc('month',v.data),'YYYY-MM') mes, v.id_produto,
+             p.mercadologico1 m1,
+             SUM(v.quantidade) qtd, SUM(v.valortotal) fat
+      FROM pdv.vendaitem v JOIN public.produto p ON p.id=v.id_produto
+      WHERE v.cancelado=false GROUP BY 1,2,3),
+    num AS (
+      SELECT *,
+             row_number() OVER (PARTITION BY mes ORDER BY fat DESC)        rn_loja,
+             row_number() OVER (PARTITION BY mes, m1 ORDER BY qtd DESC)    rn_setor
+      FROM mp)
+    SELECT mes, id_produto, m1, qtd, fat FROM num
+    WHERE rn_loja<=300 OR (rn_setor<=25 AND mes >= '2024-01')`);
+  }catch(e){
+    console.log("  RANKING novo falhou ("+e.message+") - caindo na consulta antiga, sem setor.");
+    mp=await timed(c,"RANKING produtos/mes (antiga, sem setor)", SQL_RANK_ANTIGA);
+  }
   // nomes dos produtos que aparecem no ranking
   const ids=[...new Set(mp.map(r=>r.id_produto))];
   const nomeProd={};
@@ -139,7 +170,11 @@ async function timed(c,nome,sql,params){
     (await c.query(`SELECT id, descricaocompleta n FROM public.produto WHERE id = ANY($1)`,[chunk]))
       .rows.forEach(r=>nomeProd[r.id]=(r.n||"").trim());
   }
-  const MESPROD=mp.map(r=>({m:r.mes,id:String(r.id_produto),nome:nomeProd[r.id_produto]||("Prod "+r.id_produto),qtd:num(r.qtd),fat:num(r.fat)}));
+  // Guarda o nome CRU do setor no VR ("NOVO BEBIDAS"). Quem traduz pro nome da loja e a
+  // tela, lendo vendasetor_apelido — assim existe UM lugar so com a traducao.
+  // Classificar por NOME nunca: "REFRIG COCA-COLA ZERO ACUCAR" iria parar na mercearia,
+  // e "AGUA SANIT" nas bebidas.
+  const MESPROD=mp.map(r=>({m:r.mes,id:String(r.id_produto),nome:nomeProd[r.id_produto]||("Prod "+r.id_produto),s:setorMap[r.m1]||"",qtd:num(r.qtd),fat:num(r.fat)}));
 
   await c.end();
 
