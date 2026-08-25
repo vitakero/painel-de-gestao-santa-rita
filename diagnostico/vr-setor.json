@@ -1,0 +1,1031 @@
+{
+ "quando": "2026-08-25T23:06:53.732Z",
+ "alvos": {
+  "2026-07": 55842,
+  "2026-01": 51681,
+  "2025-07": 64129,
+  "jan-jul 2026": 372813
+ },
+ "provas": [
+  {
+   "nome": "codigo do setor Bebidas",
+   "ok": true,
+   "linhas": [
+    {
+     "m1": 45,
+     "descricao": "NOVO BEBIDAS"
+    }
+   ]
+  },
+  {
+   "nome": "colunas de pdv.vendaitem",
+   "ok": true,
+   "linhas": [
+    {
+     "column_name": "id",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "id_venda",
+     "data_type": "bigint"
+    },
+    {
+     "column_name": "id_produto",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "quantidade",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "precovenda",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "valortotal",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "id_aliquota",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "cancelado",
+     "data_type": "boolean"
+    },
+    {
+     "column_name": "valorcancelado",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "id_tipocancelamento",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "matriculacancelamento",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "contadordoc",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "valordesconto",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "valoracrescimo",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "valordescontocupom",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "valoracrescimocupom",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "regracalculo",
+     "data_type": "character varying"
+    },
+    {
+     "column_name": "codigobarras",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "unidademedida",
+     "data_type": "character varying"
+    },
+    {
+     "column_name": "totalizadorparcial",
+     "data_type": "character varying"
+    },
+    {
+     "column_name": "sequencia",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "valoracrescimofixo",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "valordescontopromocao",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "oferta",
+     "data_type": "boolean"
+    },
+    {
+     "column_name": "id_tipodesconto",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "custocomimposto",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "custosemimposto",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "customediocomimposto",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "customediosemimposto",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "aplicadescontopromocao",
+     "data_type": "boolean"
+    },
+    {
+     "column_name": "id_tipooferta",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "atacado",
+     "data_type": "boolean"
+    },
+    {
+     "column_name": "cfop",
+     "data_type": "character varying"
+    },
+    {
+     "column_name": "percentualstpauta",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "valorbasesubstituicaoretido",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "valoricmssubstituicaoretido",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "basefcpstretido",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "valorfcpstretido",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "valorbasesubstituicaoefetivo",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "valoricmssubstituicaoefetivo",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "codigobeneficiocst",
+     "data_type": "character varying"
+    },
+    {
+     "column_name": "valoricmsdesonerado",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "alteradopaf",
+     "data_type": "boolean"
+    },
+    {
+     "column_name": "iskit",
+     "data_type": "boolean"
+    },
+    {
+     "column_name": "data",
+     "data_type": "date"
+    },
+    {
+     "column_name": "valordescontomanual",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "descontomanual",
+     "data_type": "smallint"
+    },
+    {
+     "column_name": "valordescontomercafacil",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "iskitpreconormal",
+     "data_type": "boolean"
+    },
+    {
+     "column_name": "valordescontomercafacilcancelado",
+     "data_type": "numeric"
+    }
+   ]
+  },
+  {
+   "nome": "colunas de pdv.venda",
+   "ok": true,
+   "linhas": [
+    {
+     "column_name": "id",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "id_loja",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "numerocupom",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "ecf",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "data",
+     "data_type": "date"
+    },
+    {
+     "column_name": "id_clientepreferencial",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "matricula",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "horainicio",
+     "data_type": "time without time zone"
+    },
+    {
+     "column_name": "horatermino",
+     "data_type": "time without time zone"
+    },
+    {
+     "column_name": "cancelado",
+     "data_type": "boolean"
+    },
+    {
+     "column_name": "subtotalimpressora",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "matriculacancelamento",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "id_tipocancelamento",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "cpf",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "contadordoc",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "valordesconto",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "valoracrescimo",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "canceladoemvenda",
+     "data_type": "boolean"
+    },
+    {
+     "column_name": "numeroserie",
+     "data_type": "character varying"
+    },
+    {
+     "column_name": "mfadicional",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "modeloimpressora",
+     "data_type": "character varying"
+    },
+    {
+     "column_name": "numerousuario",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "nomecliente",
+     "data_type": "character varying"
+    },
+    {
+     "column_name": "enderecocliente",
+     "data_type": "character varying"
+    },
+    {
+     "column_name": "id_clienteeventual",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "chavecfe",
+     "data_type": "character varying"
+    },
+    {
+     "column_name": "cpfcrm",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "cpfcnpjentidade",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "razaosocialentidade",
+     "data_type": "character varying"
+    },
+    {
+     "column_name": "chavenfce",
+     "data_type": "character varying"
+    },
+    {
+     "column_name": "id_tipodesconto",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "xml",
+     "data_type": "text"
+    },
+    {
+     "column_name": "percentualstpauta",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "valorbasesubstituicaoretido",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "valoricmssubstituicaoretido",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "valoricmsstretido",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "basefcpstretido",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "valorfcpstretido",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "valorbasesubstituicaoefetivo",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "valoricmssubstituicaoefetivo",
+     "data_type": "numeric"
+    },
+    {
+     "column_name": "alteradopaf",
+     "data_type": "boolean"
+    },
+    {
+     "column_name": "nfe",
+     "data_type": "boolean"
+    },
+    {
+     "column_name": "modelo",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "rateioaplicado",
+     "data_type": "smallint"
+    },
+    {
+     "column_name": "indicadorpagamento",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "numeronota",
+     "data_type": "integer"
+    },
+    {
+     "column_name": "vendaecommerce",
+     "data_type": "boolean"
+    },
+    {
+     "column_name": "vendaecommercemercafacil",
+     "data_type": "boolean"
+    },
+    {
+     "column_name": "vendaecommercesitemercado",
+     "data_type": "boolean"
+    },
+    {
+     "column_name": "id_pedidoecommerce",
+     "data_type": "bigint"
+    },
+    {
+     "column_name": "protocolorecebimentonfce",
+     "data_type": "character varying"
+    },
+    {
+     "column_name": "datahoraemissaonfce",
+     "data_type": "timestamp without time zone"
+    },
+    {
+     "column_name": "datahorarecebimentonfce",
+     "data_type": "timestamp without time zone"
+    },
+    {
+     "column_name": "recibonfce",
+     "data_type": "character varying"
+    },
+    {
+     "column_name": "vendaecommerceapi",
+     "data_type": "boolean"
+    },
+    {
+     "column_name": "cupomverde",
+     "data_type": "boolean"
+    },
+    {
+     "column_name": "baixaestoque",
+     "data_type": "boolean"
+    }
+   ]
+  },
+  {
+   "nome": "tabelas com nome de devolucao/troca",
+   "ok": true,
+   "linhas": [
+    {
+     "table_schema": "pdv",
+     "table_name": "devolucaocupom"
+    },
+    {
+     "table_schema": "pdv",
+     "table_name": "devolucaocupomitem"
+    },
+    {
+     "table_schema": "pdv",
+     "table_name": "situacaodevolucaocupom"
+    },
+    {
+     "table_schema": "pdv",
+     "table_name": "situacaotrocacupom"
+    },
+    {
+     "table_schema": "pdv",
+     "table_name": "trocacupom"
+    },
+    {
+     "table_schema": "pdv",
+     "table_name": "trocacupomitem"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "entradasaidatipodevolucaovenda"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "logtroca"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "mercafacil_devolucoes"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "mercafacil_devolucoes_itens"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "notasaidadevolucaocupom"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "notasaidadevolucaoressarcimento"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "notasaidadevolucaoressarcimentoitem"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "notasaidatrocacupom"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "pagarfornecedorparceladevolucao"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "pedidonegociacaotroca"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "receberbonificacaodevolucao"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "receberdevolucao"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "receberdevolucaohistoricoboleto"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "receberdevolucaoitem"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "receberdevolucaoitemrecebercaixa"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "receberverbatrocanegociacao"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "situacaoreceberdevolucao"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "situacaotrocanegociacao"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "tipocustodevolucaotroca"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "tipodevolucao"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "tipolocaldestinotrocanegociacao"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "tipolocaltroca"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "tipomotivotroca"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "tipoorigemtrocanegociacao"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "tipotroca"
+    },
+    {
+     "table_schema": "public",
+     "table_name": "trocanegociacao"
+    }
+   ]
+  },
+  {
+   "nome": "A) como esta hoje (cancelado=false)",
+   "ok": true,
+   "linhas": [
+    {
+     "mes": "2025-01",
+     "q": "45377.000"
+    },
+    {
+     "mes": "2025-02",
+     "q": "81608.000"
+    },
+    {
+     "mes": "2025-03",
+     "q": "72884.000"
+    },
+    {
+     "mes": "2025-04",
+     "q": "45180.000"
+    },
+    {
+     "mes": "2025-05",
+     "q": "51512.000"
+    },
+    {
+     "mes": "2025-06",
+     "q": "47891.000"
+    },
+    {
+     "mes": "2025-07",
+     "q": "64508.000"
+    },
+    {
+     "mes": "2025-08",
+     "q": "55621.000"
+    },
+    {
+     "mes": "2025-09",
+     "q": "50619.000"
+    },
+    {
+     "mes": "2025-10",
+     "q": "51097.000"
+    },
+    {
+     "mes": "2025-11",
+     "q": "56676.000"
+    },
+    {
+     "mes": "2025-12",
+     "q": "67584.000"
+    },
+    {
+     "mes": "2026-01",
+     "q": "52099.000"
+    },
+    {
+     "mes": "2026-02",
+     "q": "78535.000"
+    },
+    {
+     "mes": "2026-03",
+     "q": "46610.000"
+    },
+    {
+     "mes": "2026-04",
+     "q": "45984.000"
+    },
+    {
+     "mes": "2026-05",
+     "q": "46894.000"
+    },
+    {
+     "mes": "2026-06",
+     "q": "49139.000"
+    },
+    {
+     "mes": "2026-07",
+     "q": "56325.000"
+    }
+   ]
+  },
+  {
+   "nome": "B) sem filtrar cancelado",
+   "ok": true,
+   "linhas": [
+    {
+     "mes": "2025-01",
+     "q": "45626.000"
+    },
+    {
+     "mes": "2025-02",
+     "q": "82912.000"
+    },
+    {
+     "mes": "2025-03",
+     "q": "73264.000"
+    },
+    {
+     "mes": "2025-04",
+     "q": "46431.000"
+    },
+    {
+     "mes": "2025-05",
+     "q": "51883.000"
+    },
+    {
+     "mes": "2025-06",
+     "q": "48229.000"
+    },
+    {
+     "mes": "2025-07",
+     "q": "65243.000"
+    },
+    {
+     "mes": "2025-08",
+     "q": "57085.000"
+    },
+    {
+     "mes": "2025-09",
+     "q": "50959.000"
+    },
+    {
+     "mes": "2025-10",
+     "q": "51429.000"
+    },
+    {
+     "mes": "2025-11",
+     "q": "57112.000"
+    },
+    {
+     "mes": "2025-12",
+     "q": "68090.000"
+    },
+    {
+     "mes": "2026-01",
+     "q": "52417.000"
+    },
+    {
+     "mes": "2026-02",
+     "q": "78994.000"
+    },
+    {
+     "mes": "2026-03",
+     "q": "46985.000"
+    },
+    {
+     "mes": "2026-04",
+     "q": "46277.000"
+    },
+    {
+     "mes": "2026-05",
+     "q": "47067.000"
+    },
+    {
+     "mes": "2026-06",
+     "q": "49318.000"
+    },
+    {
+     "mes": "2026-07",
+     "q": "56505.000"
+    }
+   ]
+  },
+  {
+   "nome": "C) so quantidade positiva",
+   "ok": true,
+   "linhas": [
+    {
+     "mes": "2025-01",
+     "q": "45377.000"
+    },
+    {
+     "mes": "2025-02",
+     "q": "81608.000"
+    },
+    {
+     "mes": "2025-03",
+     "q": "72884.000"
+    },
+    {
+     "mes": "2025-04",
+     "q": "45180.000"
+    },
+    {
+     "mes": "2025-05",
+     "q": "51512.000"
+    },
+    {
+     "mes": "2025-06",
+     "q": "47891.000"
+    },
+    {
+     "mes": "2025-07",
+     "q": "64508.000"
+    },
+    {
+     "mes": "2025-08",
+     "q": "55621.000"
+    },
+    {
+     "mes": "2025-09",
+     "q": "50619.000"
+    },
+    {
+     "mes": "2025-10",
+     "q": "51097.000"
+    },
+    {
+     "mes": "2025-11",
+     "q": "56676.000"
+    },
+    {
+     "mes": "2025-12",
+     "q": "67584.000"
+    },
+    {
+     "mes": "2026-01",
+     "q": "52099.000"
+    },
+    {
+     "mes": "2026-02",
+     "q": "78535.000"
+    },
+    {
+     "mes": "2026-03",
+     "q": "46610.000"
+    },
+    {
+     "mes": "2026-04",
+     "q": "45984.000"
+    },
+    {
+     "mes": "2026-05",
+     "q": "46894.000"
+    },
+    {
+     "mes": "2026-06",
+     "q": "49139.000"
+    },
+    {
+     "mes": "2026-07",
+     "q": "56325.000"
+    }
+   ]
+  },
+  {
+   "nome": "D) cupom nao cancelado tambem (join em venda)",
+   "ok": true,
+   "linhas": [
+    {
+     "mes": "2025-01",
+     "q": "44992.000"
+    },
+    {
+     "mes": "2025-02",
+     "q": "80376.000"
+    },
+    {
+     "mes": "2025-03",
+     "q": "72168.000"
+    },
+    {
+     "mes": "2025-04",
+     "q": "44726.000"
+    },
+    {
+     "mes": "2025-05",
+     "q": "50812.000"
+    },
+    {
+     "mes": "2025-06",
+     "q": "47428.000"
+    },
+    {
+     "mes": "2025-07",
+     "q": "64129.000"
+    },
+    {
+     "mes": "2025-08",
+     "q": "55230.000"
+    },
+    {
+     "mes": "2025-09",
+     "q": "50168.000"
+    },
+    {
+     "mes": "2025-10",
+     "q": "50850.000"
+    },
+    {
+     "mes": "2025-11",
+     "q": "56464.000"
+    },
+    {
+     "mes": "2025-12",
+     "q": "67241.000"
+    },
+    {
+     "mes": "2026-01",
+     "q": "51681.000"
+    },
+    {
+     "mes": "2026-02",
+     "q": "77537.000"
+    },
+    {
+     "mes": "2026-03",
+     "q": "46443.000"
+    },
+    {
+     "mes": "2026-04",
+     "q": "45814.000"
+    },
+    {
+     "mes": "2026-05",
+     "q": "46465.000"
+    },
+    {
+     "mes": "2026-06",
+     "q": "49031.000"
+    },
+    {
+     "mes": "2026-07",
+     "q": "55842.000"
+    }
+   ]
+  },
+  {
+   "nome": "E) so loja 1 (se a coluna existir)",
+   "ok": true,
+   "linhas": [
+    {
+     "mes": "2025-01",
+     "q": "45377.000"
+    },
+    {
+     "mes": "2025-02",
+     "q": "81608.000"
+    },
+    {
+     "mes": "2025-03",
+     "q": "72884.000"
+    },
+    {
+     "mes": "2025-04",
+     "q": "45180.000"
+    },
+    {
+     "mes": "2025-05",
+     "q": "51512.000"
+    },
+    {
+     "mes": "2025-06",
+     "q": "47891.000"
+    },
+    {
+     "mes": "2025-07",
+     "q": "64508.000"
+    },
+    {
+     "mes": "2025-08",
+     "q": "55621.000"
+    },
+    {
+     "mes": "2025-09",
+     "q": "50619.000"
+    },
+    {
+     "mes": "2025-10",
+     "q": "51097.000"
+    },
+    {
+     "mes": "2025-11",
+     "q": "56676.000"
+    },
+    {
+     "mes": "2025-12",
+     "q": "67584.000"
+    },
+    {
+     "mes": "2026-01",
+     "q": "52099.000"
+    },
+    {
+     "mes": "2026-02",
+     "q": "78535.000"
+    },
+    {
+     "mes": "2026-03",
+     "q": "46610.000"
+    },
+    {
+     "mes": "2026-04",
+     "q": "45984.000"
+    },
+    {
+     "mes": "2026-05",
+     "q": "46894.000"
+    },
+    {
+     "mes": "2026-06",
+     "q": "49139.000"
+    },
+    {
+     "mes": "2026-07",
+     "q": "56325.000"
+    }
+   ]
+  }
+ ],
+ "resumo": [
+  "conectado no VR. investigando...\n",
+  "setor Bebidas = mercadologico1 45 (NOVO BEBIDAS)\n",
+  "BEBIDAS — cada jeito de contar, contra o relatorio do VR:\n",
+  "  A) como esta hoje (cancelado=false)",
+  "      jul/2026: 56325   (alvo 55.842, dif 0.86%)",
+  "      jan/2026: 52099   (alvo 51.681, dif 0.81%)",
+  "      jan-jul:  375586  (alvo 372.813, dif 0.74%)",
+  "  B) sem filtrar cancelado",
+  "      jul/2026: 56505   (alvo 55.842, dif 1.19%)",
+  "      jan/2026: 52417   (alvo 51.681, dif 1.42%)",
+  "      jan-jul:  377563  (alvo 372.813, dif 1.27%)",
+  "  C) so quantidade positiva",
+  "      jul/2026: 56325   (alvo 55.842, dif 0.86%)",
+  "      jan/2026: 52099   (alvo 51.681, dif 0.81%)",
+  "      jan-jul:  375586  (alvo 372.813, dif 0.74%)",
+  "  D) cupom nao cancelado tambem (join em venda)",
+  "      jul/2026: 55842   (alvo 55.842, dif 0.00%)",
+  "      jan/2026: 51681   (alvo 51.681, dif 0.00%)",
+  "      jan-jul:  372813  (alvo 372.813, dif 0.00%)",
+  "  E) so loja 1 (se a coluna existir)",
+  "      jul/2026: 56325   (alvo 55.842, dif 0.86%)",
+  "      jan/2026: 52099   (alvo 51.681, dif 0.81%)",
+  "      jan-jul:  375586  (alvo 372.813, dif 0.74%)",
+  "\nO jeito com dif 0,00% nos tres e o que o relatorio do VR usa."
+ ]
+}
