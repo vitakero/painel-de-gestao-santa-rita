@@ -281,7 +281,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 .vs-seta { border:0; background:transparent; cursor:pointer; color:#8b96a5; font-size:12px;
     line-height:1; padding:3px 6px; border-radius:5px; vertical-align:middle; }
   .vs-seta:hover { background:#eef2f7; color:#33404f; }
+  /* inline-block: sem isso o transform nao pega num elemento de linha */
+  .vs-seta span { display:inline-block; transition:transform .15s; }
   .vs-seta.aberta { color:#157a35; }
+  .vs-seta.aberta span { transform:rotate(90deg); }
   .vs-card { position:sticky; left:0; background:#f7fbf8; border:1px solid #d8e8de; border-left:3px solid #157a35;
     border-radius:0 8px 8px 0; padding:14px 16px; margin:4px 0 10px; }
   .vs-card h5 { margin:0 0 12px; font-size:13.5px; color:#1f2b3a; font-weight:700; }
@@ -7923,7 +7926,7 @@ function vsProdHtml(setor, anoDe, anoPara, meses){
           : p.sumiu ? '<span class="vs-selo vs-s-queda">parou de vender</span>'
           : '<b>'+vsPct(p.variacao)+'</b>';
     var seta = vsPodeVerCompra()
-      ? '<button class="vs-seta" type="button" data-pid="'+vsEsc(p.id)+'" data-nome="'+vsEsc(p.nome)+'" title="Ver as compras deste produto">&#9654;</button> '
+      ? '<button class="vs-seta" type="button" data-pid="'+vsEsc(p.id)+'" data-nome="'+vsEsc(p.nome)+'" title="Ver as compras deste produto"><span>&#9654;</span></button> '
       : '';
     h+='<tr><td>'+seta+'<b>'+vsEsc(p.nome)+'</b></td>'
       +'<td>'+vsNum(p.de)+'</td><td>'+vsNum(p.para)+'</td>'
