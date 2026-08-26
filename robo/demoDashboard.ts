@@ -3282,6 +3282,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       .cl-dv-top .sub{font-size:12.5px;color:#8a97a8;margin-top:3px;}
       .cl-dv-corpo{padding:16px 22px 20px;overflow:auto;}
       .cl-dv-tipos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+      /* janela do detalhe enquanto busca, ou quando nao conseguiu buscar */
+      .cl-dv-aviso{padding:22px 4px;color:#6b7787;font-size:13.5px;text-align:center;}
       .cl-dv-tipo{border:1px solid #e6ebf1;border-radius:8px;padding:6px 12px;font-size:12.5px;color:#46535f;}
       .cl-dv-tipo b{color:#1d2733;font-size:15px;margin-right:5px;}
       .cl-dv-tipo.grave{border-color:#e6c9c6;background:#fdf3f2;color:#8c2f28;}
@@ -5220,8 +5222,11 @@ function agCloudLoad(){
   var seq=++agReqSeq, reqAno=agAno, reqMes=agMes;
   var ini=agK(reqAno,reqMes,1), fim=agK(reqAno,reqMes,new Date(reqAno,reqMes+1,0).getDate());
   // Q1 = eventos únicos + início de séries dentro do mês; Q2 = séries que começaram ANTES deste mês (recorrem pra cá).
-  var q1=sb.from("agenda_eventos").select("*").eq("para_id",uid).gte("data",ini).lte("data",fim);
-  var q2=sb.from("agenda_eventos").select("*").eq("para_id",uid).not("repete","is",null).lt("data",ini);
+  /* de 420 bytes por compromisso, 256 sao tenant_id, criado_por, para_id, cor,
+     created_at e updated_at — nenhum deles aparece no calendario nem no painel do dia */
+  var AG_COLS="id,data,hora,titulo,descricao,repete,repete_ate";
+  var q1=sb.from("agenda_eventos").select(AG_COLS).eq("para_id",uid).gte("data",ini).lte("data",fim);
+  var q2=sb.from("agenda_eventos").select(AG_COLS).eq("para_id",uid).not("repete","is",null).lt("data",ini);
   function terminar(rows,erro){
     if(seq!==agReqSeq) return;                                   // resposta velha: já saiu uma carga mais nova
     if(reqAno!==agAno||reqMes!==agMes){ agCloudLoad(); return; } // mês mudou durante a carga → recarrega o certo
@@ -5709,7 +5714,7 @@ function despCloudLoad(){ var sb=despSB(); if(!sb||despCarregando) return;
       despMeses=r.data.map(function(x){ return {comp:x.competencia, label:despMesLabel(x.competencia), total:+x.total||0, qtd:+x.qtd||0, categorias:(x.categorias||[]), maiores:(x.maiores||[]), atualizado_em:x.atualizado_em}; });
       despCloudOK=true; if(despIdx>despMeses.length-1) despIdx=0;
     }
-    sb.from("despesas_teto").select("*").then(function(t){
+    sb.from("despesas_teto").select("categoria,valor").then(function(t){
       if(!t.error && t.data){ var mp={}; t.data.forEach(function(row){ mp[row.categoria]=+row.valor||0; }); despTetos=mp; try{ localStorage.setItem("despesas_tetos",JSON.stringify(despTetos)); }catch(e){} }
       despRender();
     },function(){ despRender(); });
@@ -6074,7 +6079,11 @@ function clCloudLoad(){
   var sb=clSB();
   if(!sb){ centralAg=[]; centralModo="vazio"; renderCentral(); return; }
   try{
-    sb.from("central_agendamentos").select("*").then(function(r){
+    /* colunas + TETO. A tabela e minuscula hoje porque o robo do VR ainda nao liga nela;
+       sem limite, no dia em que ligar, esta linha volta a baixar a agenda inteira a cada
+       clique em "Central". Sem filtro de data de proposito: a tela navega semanas pra tras. */
+    sb.from("central_agendamentos").select("id,loja,data,hi,hf,fornecedor,situacao,pedido")
+      .order("data",{ascending:false}).limit(600).then(function(r){
       if(r&&!r.error&&r.data&&r.data.length){
         centralAg=r.data.map(function(x){ return {id:x.id,vrId:x.vr_id||x.id,loja:x.loja||"",data:x.data||"",hi:x.hi||"",hf:x.hf||"",fornecedor:x.fornecedor||"",situacao:x.situacao||"",pedido:x.pedido||""}; });
         centralModo="live"; centralAtz=clAgoraHM();
@@ -6082,18 +6091,49 @@ function clCloudLoad(){
       renderCentral();
     }, function(){ centralAg=[]; centralModo="vazio"; renderCentral(); });
   }catch(e){ centralAg=[]; centralModo="vazio"; renderCentral(); }
-  clConfLoad();
+  /* a conferencia NAO entra aqui: ela carrega quando a aba dela abrir */
 }
 // Lê central_conferencias — o resumo do que o conferente já bipou no coletor.
 // Vazia = o robô ainda não rodou; a tela explica isso em vez de inventar exemplo.
-function clConfLoad(){
+/* PEDIR SO O QUE A LISTA DESENHA.
+   Ate 26/08/2026 isto era select("*") e trazia as 600 conferencias INTEIRAS — 3,3 MB por
+   abertura da Central. 94% desse peso era UM campo: divergencia_detalhe, o item-a-item do
+   que divergiu, que a lista nao mostra: ele so aparece quando alguem CLICA numa linha.
+   Agora a lista custa 0,22 MB e o clique custa 1,6 KB (os dois medidos no dia).
+   O resumo por tipo continua vindo, pelo pedaco do JSON: "divergencia_detalhe->tipos"
+   chega na chave "tipos". */
+var CL_CONF_COLS="id,senha,data,fornecedor,inicio,fim,minutos,bipagens,notas,"
+  +"notas_finalizadas,divergencias,situacao,divergencia_detalhe->tipos";
+
+/* O resumo por tipo pode chegar de tres jeitos: solto (lista nova), dentro do campo
+   inteiro (depois do clique, ou nos dados de exemplo). Um lugar so pra ler os tres. */
+function clConfTipos(c){
+  if(c && c.tipos && c.tipos.length) return c.tipos;
+  if(c && c.divergencia_detalhe && c.divergencia_detalhe.tipos) return c.divergencia_detalhe.tipos;
+  return [];
+}
+
+/* SO CARREGA QUANDO A ABA ABRIR.
+   Ate 26/08/2026 esta carga saia de clCloudLoad(), que dispara no clique de "Central" no
+   MENU. So que a Central tem quatro abas, e a conferencia e a terceira: quem so queria a
+   "Visao de hoje" baixava as 600 conferencias sem ver nenhuma. Com 12 pessoas entrando
+   ~5 vezes por dia, eram ~1.800 cargas por mes de gente que nem abriu a aba.
+   Agora quem chama e renderCentral(), no ramo da aba — e no maximo de 3 em 3 minutos,
+   pra quem fica trocando de aba nao repedir toda vez. */
+var clConfQuando=0, clConfCarregando=false;
+var CL_CONF_VALE_MS=3*60*1000;
+function clConfLoad(forcar){
   var sb=clSB(); if(!sb) return;
+  if(clConfCarregando) return;
+  if(!forcar && clConfQuando && (Date.now()-clConfQuando)<CL_CONF_VALE_MS) return;
+  clConfCarregando=true;
   try{
-    sb.from("central_conferencias").select("*").order("data",{ascending:false}).limit(600).then(function(r){
-      if(r&&!r.error&&r.data){ centralConf=r.data; centralConfModo=r.data.length?"live":""; }
+    sb.from("central_conferencias").select(CL_CONF_COLS).order("data",{ascending:false}).limit(600).then(function(r){
+      clConfCarregando=false;
+      if(r&&!r.error&&r.data){ clConfQuando=Date.now(); centralConf=r.data; centralConfModo=r.data.length?"live":""; }
       if(clView==="conf") renderClConf();
-    }, function(){});
-  }catch(e){}
+    }, function(){ clConfCarregando=false; });
+  }catch(e){ clConfCarregando=false; }
 }
 /* ENDEREÇOS PÚBLICOS — os que saem da loja e vão parar na mão de fora.
    Tem que ser o domínio do supermercado, e não o endereço cru de quem hospeda: quem
@@ -6913,7 +6953,7 @@ function renderCentral(semRecarregar){
   if(vh)vh.style.display="none"; if(va)va.style.display="none";
   if(vc)vc.style.display="none"; if(vr)vr.style.display="none";
   if(clView==="responder"){ if(vr)vr.style.display=""; }
-  else if(clView==="conf"){ if(vc)vc.style.display=""; renderClConf(); }
+  else if(clView==="conf"){ if(vc)vc.style.display=""; clConfLoad(); renderClConf(); }
   else if(clView==="agenda"){ if(va)va.style.display=""; renderClAgenda(); }
   else { if(vh)vh.style.display=""; renderClDataNav(); renderClFiltros(); renderClKpis(); renderClTimeline(); }
 }
@@ -6968,7 +7008,7 @@ function clConfDias(){
    ou 8 arredondamentos de fração de centavo. Aqui o número vira a conta POR TIPO. */
 var CL_DV_GRAVE={"NAO ENTREGUE":1,"QUANTIDADE":1,"QUANTIDADE/CUSTO":1,"CUSTO":1,"SEM PEDIDO":1};
 function clConfResumoTipos(c,dv){
-  var t=(c.divergencia_detalhe&&c.divergencia_detalhe.tipos)||[];
+  var t=clConfTipos(c);
   if(!t.length) return dv+" com divergência";
   return t.slice(0,3).map(function(x){ return x.qtd+" "+String(x.tipo||"").toLowerCase(); }).join(" · ")
        + (t.length>3?" · +"+(t.length-3):"");
@@ -7567,15 +7607,26 @@ function vsPares(){
   return p;
 }
 
-function vsCloudLoad(){
+/* NAO RELER A CADA ENTRADA NA ABA.
+   Ate 26/08/2026 esta funcao so se protegia do pedido em voo (vsCarregando): entrar,
+   sair pra ver outra coisa e voltar dez segundos depois relia as tres tabelas inteiras.
+   Agora o que ja foi lido vale 5 minutos — tempo menor que o do robo, que grava de 20
+   em 20 minutos, entao nada fica velho na tela. */
+var vsQuando=0;
+var VS_VALE_MS=5*60*1000;
+function vsCloudLoad(forcar){
   var sb=vsSB(); if(!sb) return;
   if(vsCarregando) return;
   if(window.__PERFIL==null) return;              /* vsRender já reagenda */
   if(!vsPodeVer()){ vsLinhas=[]; vsRender(); return; }
+  if(!forcar && vsQuando && vsLinhas && (Date.now()-vsQuando)<VS_VALE_MS){ vsRender(); return; }
   vsCarregando=true;
   /* as duas juntas, nao uma esperando a outra */
   Promise.all([
-    sb.from("vendasetor_mes").select("ano,mes,setor,quantidade,completo,origem"),
+    /* "origem" (pdf/robo) nao aparece em lugar nenhum da tela — sao 16 bytes x 416 linhas
+       jogados fora a cada leitura. O teto de 2000 e rede de seguranca: a API corta em
+       1.000 sem avisar, e 416 linhas crescem ~13 por mes. */
+    sb.from("vendasetor_mes").select("ano,mes,setor,quantidade,completo").limit(2000),
     sb.from("vendasetor_apelido").select("setor_vr,setor,mostrar"),
     /* SÓ OS DIAS DE QUE A TELA PRECISA: o mês corrente e o mesmo mês do ano passado.
        A API do Supabase entrega no máximo 1.000 linhas por pedido e NÃO avisa quando
@@ -7595,7 +7646,7 @@ function vsCloudLoad(){
     else { vsErroDia=""; vsDias=(d&&d.data)?d.data:[]; }
     /* o mensal manda nos meses fechados; o diário serve só pro mês em andamento */
     if(r&&r.error){ vsErro=r.error.message||"não deu pra ler"; vsLinhas=vsLinhas||[]; }
-    else { vsErro=""; vsLinhas=(r&&r.data)?r.data:[]; }
+    else { vsErro=""; vsLinhas=(r&&r.data)?r.data:[]; vsQuando=Date.now(); }
     vsRender();
   });
 }
@@ -8160,8 +8211,10 @@ function flvCloudLoad(){
      outra, então a fila não servia para nada. */
   Promise.all([
     sb.from("flv_fechamentos").select("*").order("competencia",{ascending:false}),
-    sb.from("flv_equipe").select("*").order("nome"),
-    sb.from("flv_config").select("*").limit(1)
+    /* a linha inteira tem ~361 bytes e 206 deles sao criado_em/criado_por/atualizado_em/
+       atualizado_por, que a tela nem lê */
+    sb.from("flv_equipe").select("id,nome,ativo").order("nome"),
+    sb.from("flv_config").select("meta_pct,fator_premio").limit(1)
   ]).then(function(res){
     var r=res[0], e=res[1], c=res[2];
     if(r && !r.error && r.data) flvFech=r.data; else flvFech=flvFech||[];
@@ -8875,7 +8928,7 @@ function flvAbrirConfig(){
         criado_por:(window.__PERFIL&&window.__PERFIL.id)||null }).then(function(r){
           if(r.error){ if(er) er.textContent=String(r.error.message||"Não consegui adicionar."); return; }
           e.value="";
-          sb.from("flv_equipe").select("*").order("nome").then(function(q){
+          sb.from("flv_equipe").select("id,nome,ativo").order("nome").then(function(q){
             if(!q.error&&q.data) flvEquipe=q.data;
             desenha();
           },function(){ desenha(); });
@@ -8887,7 +8940,7 @@ function flvAbrirConfig(){
                 atualizado_em:new Date().toISOString() };
       if(!ativo) upd.inativado_em=new Date().toISOString();
       sb.from("flv_equipe").update(upd).eq("id",id).then(function(){
-        sb.from("flv_equipe").select("*").order("nome").then(function(q){
+        sb.from("flv_equipe").select("id,nome,ativo").order("nome").then(function(q){
           if(!q.error&&q.data) flvEquipe=q.data;
           desenha();
         },function(){ desenha(); });
@@ -9420,7 +9473,7 @@ function rcbAutCarregar(){
   var sb=rcbSB(); if(!sb || rcbAutCarregando) return;
   if(window.__PERFIL==null) return;          // rcbRender já agenda a nova tentativa
   rcbAutCarregando=true;
-  sb.from("recibos_autorizacoes").select("*")
+  sb.from("recibos_autorizacoes").select("id,status,pedido_por,pedido_por_nome,quantidade,valor,motivo,data")
     .in("status",["pendente","autorizado"])
     .order("pedido_em",{ascending:false}).limit(40)
     .then(function(r){
@@ -10272,27 +10325,53 @@ function clDvBlocosHtml(itens){
   return h;
 }
 /* ==CONFDV-FIM== */
-function clAbreDivergencia(id){
-  var c=clConfAcha(id); if(!c) return;
-  var d=c.divergencia_detalhe||{}, tipos=d.tipos||[], itens=d.itens||[];
-  var bg=document.getElementById("clDvBg"); if(!bg) return;
-
-  var chips=tipos.map(function(x){
-    var g=CL_DV_GRAVE[String(x.tipo||"").toUpperCase()];
-    return '<span class="cl-dv-tipo '+(g?"grave":"ruido")+'"><b>'+x.qtd+'</b>'+pxEsc(String(x.tipo||"").toLowerCase())+'</span>';
-  }).join("");
-
-
-
+/* O cabecalho da janela sai dos campos leves, que a lista ja tem. Serve tanto pra janela
+   pronta quanto pra janela ainda buscando ou com erro. */
+function clDvCab(c){
   document.getElementById("clDvTit").textContent=c.fornecedor||"(sem nota ligada)";
   document.getElementById("clDvSub").textContent=
     clDataLonga(c.data)+" · senha "+(c.senha||"")+" · "+(c.bipagens||0)+" produtos bipados · "
     +(c.notas||0)+(+c.notas===1?" nota":" notas");
+  var bg=document.getElementById("clDvBg"); if(bg) bg.classList.add("show");
+}
+function clDvPinta(c){
+  var d=c.divergencia_detalhe||{}, tipos=d.tipos||clConfTipos(c), itens=d.itens||[];
+  var chips=tipos.map(function(x){
+    var g=CL_DV_GRAVE[String(x.tipo||"").toUpperCase()];
+    return '<span class="cl-dv-tipo '+(g?"grave":"ruido")+'"><b>'+x.qtd+'</b>'+pxEsc(String(x.tipo||"").toLowerCase())+'</span>';
+  }).join("");
+  clDvCab(c);
   document.getElementById("clDvCorpo").innerHTML=
     '<div class="cl-dv-tipos">'+chips+'</div>'
     +clDvBlocosHtml(itens)
     +clDvRodapeHtml(itens);
-  bg.classList.add("show");
+}
+/* Janela sem detalhe: DIZ o que houve. Janela vazia e muda seria pior que erro nenhum —
+   a pessoa leria como "essa conferencia nao teve divergencia", que e o contrario. */
+function clDvAviso(c,txt){
+  clDvCab(c);
+  var el=document.getElementById("clDvCorpo");
+  if(el) el.innerHTML='<div class="cl-dv-aviso">'+pxEsc(txt)+'</div>';
+}
+/* O DETALHE VEM SO AGORA, e so desta conferencia. Antes ele vinha junto com a lista, pras
+   600 de uma vez, sem ninguem pedir. Depois de buscado fica guardado no proprio registro:
+   clicar de novo na mesma nao pede outra vez. */
+function clAbreDivergencia(id){
+  var c=clConfAcha(id); if(!c) return;
+  if(!document.getElementById("clDvBg")) return;
+  if(c.divergencia_detalhe){ clDvPinta(c); return; }
+  clDvAviso(c,"Buscando o que divergiu…");
+  var sb=clSB();
+  if(!sb){ clDvAviso(c,"Sem conexão com a nuvem. Atualize a página e tente de novo."); return; }
+  var falhou=function(){ clDvAviso(c,"Não consegui buscar o detalhe desta conferência. Tente de novo."); };
+  try{
+    sb.from("central_conferencias").select("divergencia_detalhe").eq("id",c.id).limit(1).then(function(r){
+      if(r&&!r.error&&r.data&&r.data.length){
+        c.divergencia_detalhe=r.data[0].divergencia_detalhe||{tipos:clConfTipos(c),itens:[]};
+        clDvPinta(c);
+      }else falhou();
+    }, falhou);
+  }catch(e){ falhou(); }
 }
 function renderClConf(){
   var el=document.getElementById("clConf"); if(!el) return;
@@ -10330,7 +10409,10 @@ function renderClConf(){
   doDia.forEach(function(c){
     var st=clConfSt(c), mm=clConfMin(c.minutos), dv=+c.divergencias||0;
     var notas=(+c.notas||0), nf=(+c.notas_finalizadas||0);
-    var temDet=!!(c.divergencia_detalhe&&c.divergencia_detalhe.itens&&c.divergencia_detalhe.itens.length);
+    /* O robo monta os "tipos" contando os "itens" (montaDetalhe, em vr-sync-conferencia.cjs):
+       ter tipo e ter item sao a mesma coisa, por construcao. Entao da pra decidir se a linha
+       e clicavel sem baixar o item-a-item. */
+    var temDet=!!clConfTipos(c).length;
     h+='<div class="cl-conf-lin'+(clConfEhExemplo()?" fake":"")+(temDet?" clicavel":"")+'"'
       +(temDet?' data-conf="'+pxEsc(c.id)+'" title="Clique para ver o que divergiu"':'')+'>'
       +'<div class="cl-conf-a"><div class="cl-conf-f">'
@@ -13763,7 +13845,7 @@ function jorRFromRow(x){ return {pis:x.pis||"",nome:x.nome||"",cargo:x.cargo||""
 function jorCloudLoad(){
   var sb=jorSB(); if(!sb) return;
   if(!podePagina("jornada")){ jorReg=[]; try{ localStorage.removeItem("jornada_reg"); }catch(e){} return; }
-  sb.from("banco_horas").select("*").then(function(r){
+  sb.from("banco_horas").select("pis,nome,cargo,setor,saldo_min,pos_min,neg_min,dia_min,ref").then(function(r){
     if(r.error||!r.data) return; // sem tabela -> segue local
     jorCloudOK=true;
     if(r.data.length){
@@ -15949,7 +16031,8 @@ function entFilaProcessar(forcar){
       if(entRecusas.length>5) entRecusas.shift();
       entFilaSalvar(); entFilaRodando=false; entSyncPintar();
       // O que está na tela não é o que está no banco: recarrega pra mostrar a verdade.
-      entCloudLoad();
+      // forcar=true: aqui o guarda de 5 minutos NÃO pode valer.
+      entCloudLoad(true);
       try{ console.warn("[Entregas] alteração recusada pela regra; descartada",proximo); }catch(e){}
       entFilaProcessar(forcar);
       return;
@@ -16174,7 +16257,12 @@ function entCfgLoad(a,m,depois){
   entCfgMes=chave;
   Promise.all([
     sb.rpc("entregas_config_do_mes",{p_ano:a,p_mes:m+1}),
-    sb.from("entregas_competencia").select("*").eq("competencia", a+"-"+("0"+(m+1)).slice(-2)+"-01")
+    /* o "detalhe" e um JSON com o espelho entregador por entregador do fechamento —
+       ~1,9 KB por mes fechado que NENHUMA tela do painel desenha. Fora dele, saem os
+       carimbos de quem-mexeu-e-quando. */
+    sb.from("entregas_competencia").select("status,fechado_em,fechado_por,meta_base_qtd,"
+      +"meta_desafio_qtd,valor_base,valor_desafio,total_entregas,total_remuneracao")
+      .eq("competencia", a+"-"+("0"+(m+1)).slice(-2)+"-01")
   ]).then(function(rs){
     entCfg.carregado=true;
     // Falhou a consulta (sessão caiu, rede)? MANTÉM a última configuração boa.
@@ -16214,8 +16302,18 @@ function entCfgLoad(a,m,depois){
 function entSB(){ return window.__SB||null; }
 var entCloudOK=false, entCarregando=false, entRT=null;
 
-function entCloudLoad(){
+/* NAO CARREGAR NO LOGIN, E NAO RELER A TOA.
+   Esta e a leitura mais pesada do login: entregas_lancamentos sozinha tem ~112 KB. Ela
+   rodava DUAS vezes pra quem abre a pagina (uma no login, outra no clique) e UMA vez a
+   toa pra quem nunca abre Entregas. A pagina ja se vira sozinha no clique (o menu chama
+   esta funcao), entao a do login saiu.
+   O guarda de 5 minutos evita reler a cada ida e volta; quem precisa do numero fresco
+   (a fila, depois de uma alteracao recusada) chama com forcar=true. */
+var entQuando=0;
+var ENT_VALE_MS=5*60*1000;
+function entCloudLoad(forcar){
   var sb=entSB(); if(!sb||entCarregando) return;
+  if(!forcar && entQuando && (Date.now()-entQuando)<ENT_VALE_MS) return;
   entCarregando=true;
   Promise.all([
     sb.rpc("entregas_listar_equipe",{p_incluir_inativos:true}),
@@ -16224,7 +16322,7 @@ function entCloudLoad(){
   ]).then(function(rs){
     entCarregando=false;
     if(rs[0].error||rs[1].error) return;   // sem login / sem permissão -> segue no cache
-    entCloudOK=true;
+    entCloudOK=true; entQuando=Date.now();   /* so marca a hora quando a leitura deu certo */
     var doServidor=(rs[0].data||[]).map(function(p){ return {id:p.id,nome:p.nome,ativo:!!p.ativo}; });
     // CONSERTO DE CÓDIGO ÓRFÃO.
     // O servidor já criou a pessoa com OUTRO código, e o que está guardado aqui aponta
@@ -20573,7 +20671,10 @@ function czHistCloudLoad(){
   czHistCarregando = true;
   var hoje = czHistHoje();
   sb.from("cartaz_historico").delete().lt("validade_fim", hoje).then(function(){
-    return sb.from("cartaz_historico").select("*")
+    /* 711 bytes por cartaz caem pra ~340: o peso e a "assinatura", que nao e desenhada
+       em lugar nenhum — nem na lista, nem na janela "Ver a placa" */
+    return sb.from("cartaz_historico").select("id,modelo,tamanho,impressao,oferta,nome,marca,"
+      +"tipo,gramatura,preco,preco_de,validade_ini,validade_fim,limite_cliente,tema_nome")
              .gte("validade_fim", hoje)
              .order("criado_em", {ascending:false}).limit(60);
   }).then(function(r){
@@ -24397,7 +24498,7 @@ function pedEnviar(){
       try{ if(typeof glCloudLoad==="function"){ glCloudLoad(); glRealtime(); var _gp=document.getElementById('page-galpoes'); if(_gp && _gp.classList.contains('ativo')) renderGalpoes(); } }catch(e){}
       try{ if(typeof despCloudLoad==="function") despCloudLoad(); }catch(e){}
       try{ if(typeof pixCobLoad==="function") pixCobLoad(); }catch(e){}
-      try{ if(typeof entCloudLoad==="function") entCloudLoad(); }catch(e){}
+      /* Entregas NAO entra aqui: a pagina carrega sozinha no clique do menu. */
       try{ if(typeof agCloudLoad==="function"){ agCloudLoad(); if(typeof agRealtime==="function") agRealtime(); } }catch(e){}
       try{ SB.rpc("tocar_visto").then(function(){},function(){}); if(!window.__VISTO_HB){ window.__VISTO_HB=setInterval(function(){ try{ if(window.__SB) window.__SB.rpc("tocar_visto").then(function(){},function(){}); }catch(e){} }, 60000); } }catch(e){}
       try{ if(window.__syncPull) window.__syncPull(); }catch(e){}
@@ -24457,12 +24558,19 @@ function pedEnviar(){
         }).subscribe();
       }
     }catch(e){}
+    /* DE 30 SEGUNDOS PRA 2 MINUTOS.
+       Esta e a tela de quem criou login e espera ser liberado. Ela pergunta "ja liberou?"
+       sozinha, e a resposta tem 40 bytes de dado com ~800 bytes de cabecalho. A 30
+       segundos eram 120 perguntas por hora: uma aba esquecida aberta um dia de trabalho
+       gastava ~800 KB sem ninguem estar usando nada. A 2 minutos sao 30 por hora, e o
+       funcionario descobre que foi liberado no maximo 2 minutos depois — que na pratica
+       e a mesma coisa, porque quem libera e uma pessoa. */
     if(!window.__WAITT && uid){
       window.__WAITT=setInterval(function(){
         SB.from("perfis").select("aprovado,is_master").eq("id",uid).maybeSingle().then(function(r){
           if(r && r.data && (r.data.aprovado||r.data.is_master)) location.reload();
         });
-      },30000);
+      },120000);
     }
   }
   SB.auth.getSession().then(function(r){
