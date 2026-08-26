@@ -55,6 +55,12 @@ async function pixToken(){ const r=await fetch(PIX_BASE+"/auth/openapi/token",{m
 
 const d10=v=> (v instanceof Date) ? v.toISOString().slice(0,10) : String(v).slice(0,10);
 const num=v=> Math.round(Number(v||0)*100)/100;
+// QUILO PRECISA DE 3 CASAS. num() arredonda em 2, que e o certo pra dinheiro e errado pra
+// quantidade: no acougue, hortifruti e padaria a balanca vende de 5 em 5 gramas, e cortar
+// a terceira casa deslocava ate 0,005 por dia/setor. Medido em 26/08/2026 comparando o
+// painel com o banco do VR ao vivo: das 12.467 linhas de dia, 5.410 diferiam — TODAS so
+// por isso, nenhuma por outro motivo. Com 3 casas o painel fica identico ao VR.
+const num3=v=> Math.round(Number(v||0)*1000)/1000;
 
 async function timed(c,nome,sql,params){
   const t=Date.now();
@@ -141,7 +147,7 @@ async function timed(c,nome,sql,params){
     JOIN public.produto p ON p.id=v.id_produto
     JOIN pdv.venda cp ON cp.id=v.id_venda
     WHERE v.cancelado=false AND cp.cancelado=false GROUP BY 1,2`))
-    .map(r=>({d:d10(r.data),s:setorMap[r.m]||("Setor "+r.m),fat:num(r.fat),q:num(r.qtd)}));
+    .map(r=>({d:d10(r.data),s:setorMap[r.m]||("Setor "+r.m),fat:num(r.fat),q:num3(r.qtd)}));
 
   // ---- RANKING PRODUTOS por mes (top 300/mes) ----
   // DUAS REGUAS, na mesma consulta:

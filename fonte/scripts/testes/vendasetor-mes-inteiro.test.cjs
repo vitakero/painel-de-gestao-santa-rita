@@ -64,5 +64,18 @@ eq("corte no meio: abril/2024 fecha", decide(2024, 4, HOJE_A, HOJE_M, MEIO), tru
 eq("em jan/2027, janeiro/2027 NAO fecha", decide(2027, 1, 2027, 1, CORTE), false);
 eq("em jan/2027, dezembro/2026 fecha", decide(2026, 12, 2027, 1, CORTE), true);
 
+// ---------------------------------------------------------------------------
+// 3) QUILO PRECISA DE 3 CASAS. num() arredonda em 2 (certo pra dinheiro) e cortava a
+//    terceira casa da quantidade. Medido em 26/08/2026 contra o banco do VR ao vivo:
+//    5.410 das 12.467 linhas de dia diferiam — todas SO por isso.
+// ---------------------------------------------------------------------------
+eq("existe um num3 de 3 casas", /const\s+num3\s*=\s*v\s*=>\s*Math\.round\(Number\(v\|\|0\)\*1000\)\/1000;/.test(ROBO), true);
+eq("a quantidade por setor usa num3", /q:\s*num3\(r\.qtd\)/.test(ROBO), true);
+eq("a quantidade por setor NAO usa mais num()", /q:\s*num\(r\.qtd\)/.test(ROBO), false);
+const num3 = new Function("v", "return " + (ROBO.match(/const\s+num3\s*=\s*v\s*=>\s*([^;]+);/) || [])[1] + ";");
+eq("num3 guarda o milesimo", num3(1024.795), 1024.795);
+eq("num3 nao inventa quarta casa", num3(1024.7954), 1024.795);
+eq("num2 (o antigo) perdia isso", Math.round(1024.795 * 100) / 100, 1024.8);
+
 console.log("\n" + ok + " ok, " + falhou + " falha(s).");
 process.exit(falhou ? 1 : 0);
