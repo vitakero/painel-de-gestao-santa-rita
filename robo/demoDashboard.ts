@@ -254,6 +254,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
      tabela pra fora da tela e levava junto o card de compras, que mora dentro dela. */
   .vs-tbl td:first-child { white-space:normal; min-width:220px; }
   .vs-tbl tr:last-child td { border-bottom:0; }
+.vs-naoreal { display:inline-block; font-size:10.5px; font-weight:600; background:#eef2f7;
+    color:#6b7787; border-radius:5px; padding:2px 7px; vertical-align:middle; }
   .vs-selo { display:inline-block; font-size:11.5px; font-weight:600; border-radius:6px; padding:3px 9px; }
   .vs-s-queda { background:#fdecea; color:#b3341f; }
   .vs-s-alta { background:#e7f4ec; color:#0c5a26; }
@@ -270,6 +272,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .vs-col b { position:absolute; left:14%; right:14%; display:block; }
   .vs-col b.n { background:#c0442c; top:50%; border-radius:0 0 3px 3px; }
   .vs-col b.p { background:#157a35; bottom:50%; border-radius:3px 3px 0 0; }
+.vs-col b.andando { opacity:.8; background-image:repeating-linear-gradient(45deg,
+    rgba(255,255,255,.6) 0 3px, transparent 3px 6px); }
+  .vs-meses span.andando { color:#33404f; font-weight:700; }
   .vs-col.vazio::after { content:""; position:absolute; left:28%; right:28%; top:50%; height:2px; margin-top:-1px; background:#e6ebf1; border-radius:1px; }
   .vs-meses { display:flex; gap:3px; margin-top:6px; }
   .vs-meses span { flex:1; text-align:center; font-size:9.5px; color:#8b96a5; }
@@ -7292,6 +7297,88 @@ function flvVizinhos(lista, comp){
 /* ==FLVCALC-FIM== */
 
 
+
+/* ==VSDIACALC-INICIO== DIA A DIA -> MÊS (testado em scripts/testes/vendasetor-dia.test.cjs)
+
+   Guardar por DIA é o que deixa a tela ao vivo. Guardando só o mês fechado, agosto só
+   apareceria em 1º de setembro — e se entrasse pela metade, TODO setor apareceria
+   despencando (o relatório de 25/08 mostrou os treze caindo de 15% a 39% só porque
+   agosto tinha 25 dias de 31).
+
+   A saída aqui é comparar O MESMO PEDAÇO: 1 a 26 de agosto de 2026 contra 1 a 26 de
+   agosto de 2025. Aí o mês em andamento pode ser mostrado sem mentir.
+
+   Uma coisa que parece detalhe e não é: o "até que dia" sai do ÚLTIMO DIA COM VENDA,
+   não da data de hoje. Se o robô parar de rodar numa sexta, no domingo a tela ainda
+   compara até sexta nos dois anos — em vez de contar dois dias vazios como queda. */
+
+/* junta os dias em meses, no formato que o resto da tela já entende.
+   hojeISO ("2026-08-26") diz qual é o mês corrente — esse nasce incompleto. */
+function vsdParaMeses(dias, hojeISO){
+  var acc={}, i, r, ano, mes, k;
+  var anoHoje=+String(hojeISO).slice(0,4), mesHoje=+String(hojeISO).slice(5,7);
+  for(i=0;i<dias.length;i++){
+    r=dias[i]; ano=+String(r.data).slice(0,4); mes=+String(r.data).slice(5,7);
+    k=ano+"|"+mes+"|"+r.setor;
+    if(!acc[k]) acc[k]={ano:ano, mes:mes, setor:r.setor, quantidade:0,
+                        completo: !(ano===anoHoje && mes===mesHoje)};
+    acc[k].quantidade += (+r.quantidade||0);
+  }
+  return Object.keys(acc).map(function(k){ return acc[k]; });
+}
+
+/* Menos que isto e dia de semana, nao tendencia: no dia 2 o mes tem UM dia fechado, e
+   se esse dia cai num sabado de um lado e numa terca do outro, a "variacao" passa de 80%
+   sem nada ter acontecido na loja. */
+var VSD_MIN_DIAS=3;
+
+/* Ate que dia o mes corrente tem DIA FECHADO. HOJE NAO CONTA.
+   O robo regrava a linha de hoje a cada 20 minutos com a venda ate aquele minuto: em
+   26/08/2026, as 15h34, o dia 26 tinha 39% do que seria um dia inteiro. Comparado com o
+   dia 26 CHEIO do ano passado, ele sozinho empurrava agosto de -4,42% pra -6,66% —
+   2,24 pontos de queda que nao existiam.
+   O corte pelo "ultimo dia com venda" continua valendo pro caso do robo parar: fica o
+   menor dos dois. */
+function vsdUltimoDia(dias, ano, mes, hojeISO){
+  var maior=0, i, r, d, limite=null;
+  if(hojeISO && +String(hojeISO).slice(0,4)===+ano && +String(hojeISO).slice(5,7)===+mes){
+    limite=+String(hojeISO).slice(8,10)-1;
+  }
+  for(i=0;i<dias.length;i++){
+    r=dias[i];
+    if(+String(r.data).slice(0,4)!==+ano || +String(r.data).slice(5,7)!==+mes) continue;
+    d=+String(r.data).slice(8,10);
+    if(limite!==null && d>limite) continue;
+    if(d>maior) maior=d;
+  }
+  return maior||null;
+}
+
+/* soma de um setor num pedaço do mês (dia 1 até ateDia) */
+function vsdParcial(dias, ano, mes, ateDia, setor){
+  var t=0, i, r;
+  for(i=0;i<dias.length;i++){
+    r=dias[i];
+    if(setor!=null && r.setor!==setor) continue;
+    if(+String(r.data).slice(0,4)!==+ano || +String(r.data).slice(5,7)!==+mes) continue;
+    if(+String(r.data).slice(8,10)>ateDia) continue;
+    t+=(+r.quantidade||0);
+  }
+  return t;
+}
+
+/* o mês em andamento, comparado com o MESMO pedaço do ano passado */
+function vsdMesCorrente(dias, ano, mes, setor, hojeISO){
+  var ate=vsdUltimoDia(dias, ano, mes, hojeISO);
+  if(!ate) return null;
+  var agora=vsdParcial(dias, ano, mes, ate, setor);
+  var antes=vsdParcial(dias, ano-1, mes, ate, setor);
+  var poucos = ate<VSD_MIN_DIAS;
+  return { ateDia:ate, de:antes, para:agora, poucos:poucos,
+           variacao: (antes>0 && !poucos) ? (agora/antes-1)*100 : null };
+}
+/* ==VSDIACALC-FIM== */
+
 /* ==VSCALC-INICIO== VENDA POR SETOR — módulo puro (testado em
    scripts/testes/vendasetor.test.cjs). Só faz conta: não toca em tela nem em nuvem.
 
@@ -7431,6 +7518,23 @@ function vsPodeVerProduto(){
 }
 var vsLinhas=null, vsCarregando=false, vsPar=null, vsErro="";
 var vsApel=[];   /* traducao NOVO BEBIDAS -> Bebidas */
+var vsDias=[];   /* venda por setor, dia a dia — e daqui que sai o mes em andamento */
+var vsErroDia="";/* se a leitura do dia a dia falhar, a tela DIZ, em vez de esconder */
+var vsHojeISO=new Date().toISOString().slice(0,10);
+/* janela do mês corrente (recuo=0) e do mesmo mês do ano passado (recuo=1) */
+function vsIniMes(recuo){ var a=+vsHojeISO.slice(0,4)-recuo; return a+"-"+vsHojeISO.slice(5,7)+"-01"; }
+/* ULTIMO DIA DE VERDADE, nao "dia 31". Grudar -31 em todo mes montava datas que nao
+   existem (2026-09-31, 2026-02-31); o Postgres recusava a consulta inteira com HTTP 400
+   e o erro era engolido, entao o mes em andamento sumia da tela sem aviso em fevereiro,
+   abril, junho, setembro e novembro — cinco dos doze meses. Achado em 26/08/2026, cinco
+   dias antes de setembro. new Date(a, m, 0) devolve o ultimo dia do mes m e ja acerta
+   ano bissexto. */
+function vsFimMes(recuo){
+  var a=+vsHojeISO.slice(0,4)-recuo, m=+vsHojeISO.slice(5,7);
+  var n=new Date(a, m, 0).getDate();
+  return a+"-"+vsHojeISO.slice(5,7)+"-"+(n<10?"0"+n:""+n);
+}
+var vsAnoHoje=+vsHojeISO.slice(0,4), vsMesHoje=+vsHojeISO.slice(5,7);
 var vsRankAtual=[], vsMesesAtual=[];   /* o balão lê daqui, sem refazer conta */
 var VS_MES3=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 var VS_MESN=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
@@ -7448,9 +7552,18 @@ function vsPct(v){
 function vsCor(c){ return c==="queda"?"vs-neg":(c==="alta"?"vs-pos":"vs-nulo"); }
 
 /* pares de anos disponíveis, do mais novo pro mais velho */
+/* SO PAR QUE DA PRA COMPARAR. Em 1o de janeiro o robo grava as primeiras linhas do ano
+   novo e o ano passa a existir na lista; o par mais novo virava o par de abertura com
+   ZERO mes fechado dos dois lados, o ranking saia vazio e o aviso escrevia "Comparando
+   undefined a undefined". Um par so entra se tiver pelo menos um mes fechado nos dois
+   anos. Nos primeiros dias de janeiro a tela abre no ultimo par que fechou, que e a
+   comparacao honesta que existe naquele momento. */
 function vsPares(){
-  var anos=vscAnos(vsLinhas||[]), p=[], i;
-  for(i=anos.length-1;i>0;i--) p.push([anos[i-1],anos[i]]);
+  var anos=vscAnos(vsLinhas||[]), p=[], i, par;
+  for(i=anos.length-1;i>0;i--){
+    par=[anos[i-1],anos[i]];
+    if(vscMesesComparaveis(vsLinhas||[], par[0], par[1]).length) p.push(par);
+  }
   return p;
 }
 
@@ -7463,13 +7576,26 @@ function vsCloudLoad(){
   /* as duas juntas, nao uma esperando a outra */
   Promise.all([
     sb.from("vendasetor_mes").select("ano,mes,setor,quantidade,completo,origem"),
-    sb.from("vendasetor_apelido").select("setor_vr,setor,mostrar")
+    sb.from("vendasetor_apelido").select("setor_vr,setor,mostrar"),
+    /* SÓ OS DIAS DE QUE A TELA PRECISA: o mês corrente e o mesmo mês do ano passado.
+       A API do Supabase entrega no máximo 1.000 linhas por pedido e NÃO avisa quando
+       corta — pedir os 14 mil dias devolveria 1.000 e a tela mostraria número errado
+       achando que leu tudo. Dois meses dão ~800 linhas, cabe num pedido só.
+       O resto (os meses fechados) vem do resumo mensal, que o robô mantém. */
+    sb.from("vendasetor_dia").select("data,setor,quantidade")
+      .or("and(data.gte."+vsIniMes(0)+",data.lte."+vsFimMes(0)+"),and(data.gte."+vsIniMes(1)+",data.lte."+vsFimMes(1)+")")
   ]).then(function(res){
-    var r=res[0], a=res[1];
+    var r=res[0], a=res[1], d=res[2];
     vsCarregando=false;
+    if(a&&!a.error&&a.data) vsApel=a.data;
+    /* NAO ENGOLIR O ERRO. Enquanto isto era um "?:" mudo, um filtro invalido (o fim do
+       mes vinha sempre como dia 31, e setembro dava HTTP 400) apagava o mes em andamento
+       da tela e ninguem ficava sabendo. Agora o erro aparece escrito. */
+    if(d&&d.error){ vsErroDia=d.error.message||"não deu pra ler o dia a dia"; vsDias=[]; }
+    else { vsErroDia=""; vsDias=(d&&d.data)?d.data:[]; }
+    /* o mensal manda nos meses fechados; o diário serve só pro mês em andamento */
     if(r&&r.error){ vsErro=r.error.message||"não deu pra ler"; vsLinhas=vsLinhas||[]; }
     else { vsErro=""; vsLinhas=(r&&r.data)?r.data:[]; }
-    if(a&&!a.error&&a.data) vsApel=a.data;
     vsRender();
   });
 }
@@ -7497,12 +7623,15 @@ function vsRender(){
 
   var anoDe=vsPar[0], anoPara=vsPar[1];
   var rank=vscRanking(vsLinhas,anoDe,anoPara);
-  var loja=vscLoja(vsLinhas,anoDe,anoPara);
+  /* o total da loja soma SÓ setor de verdade: "A acertar" e "Despesa" ficam fora,
+     senão o número deixa de ser comparável com o histórico. */
+  var loja=vscLoja(vsLinhas.filter(function(l){ return vsEhSetorReal(l.setor); }),anoDe,anoPara);
   var anos=vscAnos(vsLinhas);
   var dobro=(anos.length>=3)?vscCaiDoisAnos(vsLinhas,anos[anos.length-3],anos[anos.length-2],anos[anos.length-1]):[];
-  var nQueda=rank.filter(function(r){return r.classe==="queda";}).length;
-  var nEmpate=rank.filter(function(r){return r.classe==="empate";}).length;
-  var nAlta=rank.filter(function(r){return r.classe==="alta";}).length;
+  var rankReal=rank.filter(function(r){ return vsEhSetorReal(r.setor); });
+  var nQueda=rankReal.filter(function(r){return r.classe==="queda";}).length;
+  var nEmpate=rankReal.filter(function(r){return r.classe==="empate";}).length;
+  var nAlta=rankReal.filter(function(r){return r.classe==="alta";}).length;
   var ignorados=vscMesesIgnorados(vsLinhas,anoPara);
   var mesesUsados=vscMesesComparaveis(vsLinhas,anoDe,anoPara);
 
@@ -7518,7 +7647,7 @@ function vsRender(){
   h+='</select></div>';
 
   /* por que o período não é o ano inteiro */
-  if(mesesUsados.length<12){
+  if(mesesUsados.length && mesesUsados.length<12){
     h+='<div class="vs-aviso">Comparando <b>'+VS_MESN[mesesUsados[0]-1]+' a '+VS_MESN[mesesUsados[mesesUsados.length-1]-1]+'</b>'
       +' nos dois anos — só os meses que já fecharam dos dois lados.';
     if(ignorados.length) h+=' <b>'+ignorados.map(function(m){return VS_MESN[m-1];}).join(", ")
@@ -7583,14 +7712,47 @@ function vsRender(){
 
   /* mês a mês: sempre os doze, os que não dá pra comparar ficam vazios */
   var TETO_MES=25;
+  /* uma conta so, reaproveitada na frase e nas barras */
+  var vsAte = (vsDias.length && anoPara===vsAnoHoje)
+    ? vsdUltimoDia(vsDias, anoPara, vsMesHoje, vsHojeISO) : null;
+  var vsFrase = '';
+  if(vsErroDia){
+    vsFrase = ' <b>O dia a dia não carregou</b> ('+vsEsc(vsErroDia)+'), então '
+      +VS_MESN[vsMesHoje-1]+' está sem barra. Os meses fechados acima continuam certos.';
+  }else if(anoPara===vsAnoHoje && vsDias.length && !vsAte){
+    vsFrase = ' <b>'+VS_MESN[vsMesHoje-1]+' ainda não tem nenhum dia fechado</b>, então ele '
+      +'não aparece. O dia de hoje só entra amanhã, quando estiver inteiro.';
+  }else if(vsAte && vsAte<VSD_MIN_DIAS){
+    vsFrase = ' <b>'+VS_MESN[vsMesHoje-1]+' começou há '+vsAte+' dia'+(vsAte>1?'s':'')+'</b> — '
+      +'pouco pra comparar (um sábado a mais de um lado já vira 80%), então a barra dele fica '
+      +'vazia até fechar '+VSD_MIN_DIAS+' dias.';
+  }else if(vsAte){
+    vsFrase = ' <b>'+VS_MESN[vsMesHoje-1]+' ainda está correndo</b> — a barra dele sai listrada e '
+      +'compara só até o dia '+vsAte+' (o dia de hoje não entra, porque ainda não acabou), '
+      +'contra o mesmo pedaço de '+anoDe+'. Atualiza sozinha várias vezes por dia.';
+  }
   h+='<div class="card"><h3 style="margin:0 0 4px;font-size:15px;">Onde a queda aconteceu</h3>'
     +'<p style="margin:0 0 12px;color:#6b7787;font-size:12.5px;">Cada barra é um mês de '+anoPara+' contra o mesmo mês de '+anoDe+'. '
     +'Serve pra separar o setor que caiu o ano todo daquele que teve um mês ruim e nada mais. '
-    +'Barra que passa de '+TETO_MES+'% encosta na borda; o número exato aparece ao passar o mouse.</p>'
+    +'Barra que passa de '+TETO_MES+'% encosta na borda; o número exato aparece ao passar o mouse.'
+    +vsFrase
+    +'</p>'
     +'<div class="vs-cards">';
   rank.forEach(function(r){
     var mm=vscPorMes(vsLinhas,anoDe,anoPara,r.setor), tiras='', rot='';
+    /* MÊS EM ANDAMENTO: agosto não fecha até o dia 31, mas dá pra comparar o pedaço que
+       já passou com o MESMO pedaço do ano anterior — 1 a 26 contra 1 a 26. A barra sai
+       listrada e o nome do mês em negrito, pra ninguém ler como mês fechado. */
+    var andando = (vsDias.length && anoPara===vsAnoHoje)
+      ? vsdMesCorrente(vsDias, anoPara, vsMesHoje, r.setor, vsHojeISO) : null;
     mm.forEach(function(x){
+      if(andando && x.mes===vsMesHoje && andando.variacao!==null){
+        var a2=Math.min(Math.abs(andando.variacao)/TETO_MES,1)*50;
+        tiras+='<span class="vs-col" data-vsi="'+rank.indexOf(r)+'" data-vsm="'+x.mes+'" data-and="1">'
+          +'<b class="'+(andando.variacao<0?"n":"p")+' andando" style="height:'+a2+'%"></b></span>';
+        rot+='<span class="andando">'+VS_MES3[x.mes-1]+'</span>';
+        return;
+      }
       if(x.variacao===null){ tiras+='<span class="vs-col vazio"></span>'; rot+='<span class="off">'+VS_MES3[x.mes-1]+'</span>'; return; }
       var alt=Math.min(Math.abs(x.variacao)/TETO_MES,1)*50;
       tiras+='<span class="vs-col" data-vsi="'+rank.indexOf(r)+'" data-vsm="'+x.mes+'"><b class="'+(x.variacao<0?"n":"p")+'" style="height:'+alt+'%"></b></span>';
@@ -7737,6 +7899,14 @@ document.addEventListener("mousemove", function(e){
   var col=e.target.closest ? e.target.closest(".vs-col") : null;
   if(col && col.dataset.vsi!==undefined){
     var s=vsRankAtual[+col.dataset.vsi]; if(!s) return vsTipEsconde();
+    if(col.dataset.and==="1"){
+      var an=vsdMesCorrente(vsDias, vsPar[1], vsMesHoje, s.setor, vsHojeISO);
+      if(!an) return vsTipEsconde();
+      return vsTipMostra('<b>'+vsEsc(s.setor)+' · '+VS_MES3[vsMesHoje-1]+' até o dia '+an.ateDia+'</b>'
+        +vsLinha(vsPar[0]+' (mesmo período)', vsNum(an.de))
+        +vsLinha(vsPar[1]+' até agora', vsNum(an.para))
+        +vsLinha('variação', vsPct(an.variacao), an.variacao<0?"neg":"pos"), e);
+    }
     var x=vscPorMes(vsLinhas,vsPar[0],vsPar[1],s.setor)[+col.dataset.vsm-1];
     if(!x || x.variacao===null) return vsTipEsconde();
     return vsTipMostra('<b>'+vsEsc(s.setor)+' · '+VS_MES3[x.mes-1]+'</b>'
@@ -7881,6 +8051,14 @@ function vsProdFecha(){ vsProdSel=null; vsRender(); }
 
 /* Os produtos vêm com o nome CRU do VR ("NOVO BEBIDAS"); a tela usa o nome da loja
    ("Bebidas"). A tradução mora na tabela vendasetor_apelido — um lugar só. */
+/* REDE DE SEGURANÇA: "A acertar" e "Despesa" existem no VR e NÃO são venda de setor.
+   Hoje o robô já não os manda (decisão do Victor em 26/08: só os 13 de verdade). Se um
+   dia voltarem, esta função os mantém fora do total da loja — senão o "+0,61%" passaria
+   a somar coisa que não é venda e deixaria de ser comparável com o histórico. */
+function vsEhSetorReal(nome){
+  for(var i=0;i<vsApel.length;i++) if(vsApel[i].setor===nome) return !!vsApel[i].mostrar;
+  return true;
+}
 function vsCru(nomeLoja){
   for(var i=0;i<vsApel.length;i++) if(vsApel[i].setor===nomeLoja) return vsApel[i].setor_vr;
   return null;

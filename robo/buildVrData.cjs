@@ -13,8 +13,18 @@ const cfg={ host:get("PG_HOST"), port:+get("PG_PORT"), database:get("PG_DATABASE
 // So LE o VR; ESCREVE na nuvem. NAO apaga a coluna "loja" (bipados) graças ao merge-duplicates.
 // PEGADINHA: codigobarras no VR e NUMERIC -> usar ::text em tudo pra nao dar erro de "numeric".
 const SB_HOST="uabhsmculsfwzcrhyhch.supabase.co", SB_KEY=get("SUPABASE_SERVICE_KEY");
+// PISO DO HISTORICO, um lugar so. Janela rolante ("3 anos pra tras") anda sozinha todo dia:
+// ja trouxe um agosto/2023 com 6 dias marcado como mes fechado, e a tela comparou 6 dias
+// contra 31. Todo corte de historico deste arquivo tem que sair daqui.
+const ANO_PISO=2024;
+const PISO_DATA=ANO_PISO+"-01-01";
+const PISO_MES=ANO_PISO+"-01";
 const PROD_SYNC_MS=3*3600*1000; // no maximo 1x a cada 3h (produto novo aparece em ate 3h)
 const PROD_SYNC_SQL="SELECT DISTINCT ON (p.id) pa.codigobarras::text cod, p.descricaocompleta nome, e.estoque::text total FROM public.produto p JOIN public.produtoautomacao pa ON pa.id_produto::text=p.id::text LEFT JOIN public.estoque e ON e.id_produto::text=p.id::text AND e.id_loja::text='1' WHERE pa.codigobarras IS NOT NULL AND trim(pa.codigobarras::text)<>'' ORDER BY p.id, pa.qtdembalagem";
+function sbGetJson(q){return new Promise((res,rej)=>{const req=https.request({host:SB_HOST,path:"/rest/v1/"+q,method:"GET",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>{if(r.statusCode>=300)return rej(new Error("HTTP "+r.statusCode+" "+d));try{res(JSON.parse(d));}catch(e){rej(e);}})});req.on("error",rej);req.end();});}
+function sbUpsertMes(rows){return new Promise((res,rej)=>{const body=JSON.stringify(rows);const req=https.request({host:SB_HOST,path:"/rest/v1/vendasetor_mes?on_conflict=ano,mes,setor",method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal","Content-Length":Buffer.byteLength(body)}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>r.statusCode<300?res():rej(new Error("HTTP "+r.statusCode+" "+d)))});req.on("error",rej);req.write(body);req.end();});}
+function sbUpsertDia(rows){return new Promise((res,rej)=>{const body=JSON.stringify(rows);const req=https.request({host:SB_HOST,path:"/rest/v1/vendasetor_dia?on_conflict=data,setor",method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal","Content-Length":Buffer.byteLength(body)}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>r.statusCode<300?res():rej(new Error("HTTP "+r.statusCode+" "+d)))});req.on("error",rej);req.write(body);req.end();});}
+const DIA_SYNC_MS=20*60*1000; // 1x a cada 20 min: a tela e diaria, nao precisa de mais
 function sbUpsertCompras(rows){return new Promise((res,rej)=>{const body=JSON.stringify(rows);const req=https.request({host:SB_HOST,path:"/rest/v1/compra_entradas?on_conflict=id_item",method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal","Content-Length":Buffer.byteLength(body)}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>r.statusCode<300?res():rej(new Error("HTTP "+r.statusCode+" "+d)))});req.on("error",rej);req.write(body);req.end();});}
 const COMPRAS_SYNC_MS=6*3600*1000; // nota de entrada nao muda de hora em hora: 1x a cada 6h
 function sbUpsertProdutos(rows){return new Promise((res,rej)=>{const body=JSON.stringify(rows);const req=https.request({host:SB_HOST,path:"/rest/v1/estoque_produtos?on_conflict=cod",method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal","Content-Length":Buffer.byteLength(body)}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>r.statusCode<300?res():rej(new Error("HTTP "+r.statusCode+" "+d)))});req.on("error",rej);req.write(body);req.end();});}
@@ -126,12 +136,12 @@ async function timed(c,nome,sql,params){
   // filtros bate 0,00% nos tres. (Mesma pegadinha que ja tinha mordido o faturamento por
   // dia, la em cima — la a saida foi somar pelo cupom.)
   const SETOR=(await timed(c,"SETOR",`
-    SELECT v.data, p.mercadologico1 m, SUM(v.valortotal) fat
+    SELECT v.data, p.mercadologico1 m, SUM(v.valortotal) fat, SUM(v.quantidade) qtd
     FROM pdv.vendaitem v
     JOIN public.produto p ON p.id=v.id_produto
     JOIN pdv.venda cp ON cp.id=v.id_venda
     WHERE v.cancelado=false AND cp.cancelado=false GROUP BY 1,2`))
-    .map(r=>({d:d10(r.data),s:setorMap[r.m]||("Setor "+r.m),fat:num(r.fat)}));
+    .map(r=>({d:d10(r.data),s:setorMap[r.m]||("Setor "+r.m),fat:num(r.fat),q:num(r.qtd)}));
 
   // ---- RANKING PRODUTOS por mes (top 300/mes) ----
   // DUAS REGUAS, na mesma consulta:
@@ -171,7 +181,7 @@ async function timed(c,nome,sql,params){
              row_number() OVER (PARTITION BY mes, m1 ORDER BY qtd DESC)    rn_setor
       FROM mp)
     SELECT mes, id_produto, m1, qtd, fat FROM num
-    WHERE rn_loja<=300 OR (rn_setor<=25 AND mes >= '2024-01')`);
+    WHERE rn_loja<=300 OR (rn_setor<=25 AND mes >= '${PISO_MES}')`);
   }catch(e){
     console.log("  RANKING novo falhou ("+e.message+") - caindo na consulta antiga, sem setor.");
     mp=await timed(c,"RANKING produtos/mes (antiga, sem setor)", SQL_RANK_ANTIGA);
@@ -204,7 +214,7 @@ async function timed(c,nome,sql,params){
       FROM pdv.vendaitem v
       JOIN pdv.venda cp ON cp.id=v.id_venda
       WHERE v.cancelado=false AND cp.cancelado=false
-        AND v.data >= (CURRENT_DATE - INTERVAL '3 years')
+        AND v.data >= '${PISO_DATA}'
       GROUP BY 1,2,3),
     base AS (
       SELECT p.mercadologico1 m1, c.id_produto, c.ano, c.mes, c.qtd
@@ -261,7 +271,10 @@ async function timed(c,nome,sql,params){
 
   await c.end();
 
-  const data={ gerado:new Date().toISOString(), DIA, HORA, OP, PAG, SETOR, MESPROD, SETPROD };
+  // A quantidade por setor/dia sai do arquivo do painel: ela vai pro Supabase, e a tela
+  // busca de la. Deixar aqui engordaria o arquivo pra todo mundo sem necessidade.
+  const SETOR_ARQ = SETOR.map(r=>({d:r.d,s:r.s,fat:r.fat}));
+  const data={ gerado:new Date().toISOString(), DIA, HORA, OP, PAG, SETOR:SETOR_ARQ, MESPROD, SETPROD };
   const outDir=path.join(__dirname,"..","output");
   if(!fs.existsSync(outDir)) fs.mkdirSync(outDir);
   const file=path.join(outDir,"vr-data.json");
@@ -342,6 +355,91 @@ async function timed(c,nome,sql,params){
       console.log("Sync compras: "+ok+" entradas de "+idsProd.length+" produtos enviadas pra nuvem.");
     }
   }catch(e){ console.log("Sync compras: erro ("+e.message+") - robo segue normal, tenta na proxima."); }
+
+  // ---- SYNC VENDA POR SETOR, DIA A DIA ----
+  // E o que faz a tela ficar AO VIVO: com o dia guardado, o mes corrente pode ser
+  // comparado com o MESMO PEDACO do ano passado (1 a 26 de agosto contra 1 a 26 de
+  // agosto). Guardando so o mes fechado, agosto so apareceria em setembro.
+  //
+  // Manda so os APELIDOS conhecidos: "A ACERTAR" e "NOVO DESPESA" ficam de fora, porque
+  // nao sao venda de setor (sao os ~0,06% que sobram entre a soma dos 13 e o total).
+  const diaMarkF=path.join(__dirname,"..","output","last-vsdia-sync.txt");
+  try{
+    let ultima=0; try{ ultima=Number(fs.readFileSync(diaMarkF,"utf8"))||0; }catch(e){}
+    if(!SB_KEY){ console.log("Sync setor/dia: sem SUPABASE_SERVICE_KEY - pulando."); }
+    else if(Date.now()-ultima < DIA_SYNC_MS){ console.log("Sync setor/dia: feito ha < 20 min - pulando."); }
+    else {
+      const apel={};
+      (await sbGetJson("vendasetor_apelido?select=setor_vr,setor,mostrar")).forEach(a=>{ apel[a.setor_vr]=a; });
+      // TRADUCAO VAZIA = RODADA ABORTADA. sbGetJson so reclama de HTTP>=300; um 200 com
+      // lista vazia (RLS mexida, chave trocada, tabela limpa por engano) faz TODO setor
+      // cair no ramo "sem apelido", grava ZERO linha, escreve o marcador de "feito" e
+      // ainda imprime "0 linhas enviadas" como se fosse rodada limpa. A nuvem congelaria
+      // nos numeros de ontem e ninguem ficaria sabendo. Melhor estourar e tentar de novo.
+      if(!Object.keys(apel).length) throw new Error("vendasetor_apelido voltou VAZIA - nao gravo nada nesta rodada");
+      // PISO FIXO, nao janela rolante. O VR guarda ~3 anos, entao "3 anos pra tras"
+      // trazia um agosto/2023 pela metade (comecava no dia 26) e a tela comparava 6 dias
+      // de 2023 contra 31 de 2024 — crescimento gigante que nao existe. E pior: a janela
+      // andava sozinha todo dia. Com piso em 1/1/2024, todo mes que entra e mes INTEIRO.
+      // Ano ja gravado na nuvem nao some quando sair do VR: o upsert nao apaga.
+      const corte=PISO_DATA;
+      const desconhecidos={};
+      const linhas=[]; const agora=new Date().toISOString();
+      SETOR.forEach(r=>{
+        if(r.d < corte) return;
+        const a=apel[(r.s||"").trim()];
+        if(!a){ const nm=(r.s||"").trim(); desconhecidos[nm]=(desconhecidos[nm]||0)+(r.q||0); return; }
+        // mostrar=false fica de fora: "A ACERTAR" (produto ainda sem setor) e
+        // "NOVO DESPESA" (lancamento de despesa) nao sao venda de setor. Sao eles que
+        // explicam a sobra de ~0,06% entre a soma dos 13 e o total da loja.
+        if(!a.mostrar) return;
+        linhas.push({ data:r.d, setor:a.setor, quantidade:r.q, atualizado_em:agora });
+      });
+      // Se o VR trouxe venda e sobrou ZERO linha pra gravar, alguma coisa quebrou no
+      // meio (apelido, piso, nome de setor). Nao marca a rodada como feita.
+      if(SETOR.length && !linhas.length) throw new Error("o VR trouxe "+SETOR.length+" linhas e sobrou ZERO pra gravar - nao marco a rodada como feita");
+      let ok=0;
+      for(let i=0;i<linhas.length;i+=1000){ await sbUpsertDia(linhas.slice(i,i+1000)); ok+=Math.min(1000,linhas.length-i); }
+
+      // ---- e o RESUMO MENSAL, feito a partir dos mesmos dias ----
+      // POR QUE OS DOIS: a API do Supabase entrega no maximo 1.000 linhas por pedido e
+      // NAO avisa quando corta. Se a tela lesse os 14 mil dias, receberia 1.000 e
+      // mostraria numero errado achando que leu tudo. Entao a tela le o mensal (pequeno)
+      // e so busca o DIA do mes corrente, que cabe num pedido so.
+      // O mes corrente vai marcado completo=false — a tela precisa saber pra comparar
+      // com o mesmo pedaco do ano passado em vez do mes inteiro.
+      const hj=new Date(), anoHj=hj.getFullYear(), mesHj=hj.getMonth()+1;
+      const accM={};
+      linhas.forEach(l=>{
+        const a=+l.data.slice(0,4), m=+l.data.slice(5,7), k=a+"|"+m+"|"+l.setor;
+        // completo=false no mes corrente E em qualquer mes que nao caiba INTEIRO na
+        // janela — cinto de seguranca pra nunca mais entrar mes pela metade como fechado.
+        const mesIni=a+"-"+String(m).padStart(2,"0")+"-01";
+        if(!accM[k]) accM[k]={ano:a,mes:m,setor:l.setor,quantidade:0,
+          completo:!(a===anoHj&&m===mesHj) && mesIni>=corte, origem:"robo", atualizado_em:agora};
+        accM[k].quantidade+=l.quantidade;
+      });
+      const mensal=Object.keys(accM).map(k=>{ const x=accM[k];
+        x.quantidade=Math.round(x.quantidade*1000)/1000; return x; });
+      let okM=0;
+      for(let i=0;i<mensal.length;i+=500){ await sbUpsertMes(mensal.slice(i,i+500)); okM+=Math.min(500,mensal.length-i); }
+
+      try{ fs.writeFileSync(diaMarkF, String(Date.now())); }catch(e){}
+      console.log("Sync setor/dia: "+ok+" linhas de dia e "+okM+" de mes enviadas pra nuvem.");
+      // SETOR SEM APELIDO SOME DA CONTA. O total da loja no painel e a soma dos setores,
+      // entao o que cai aqui vira buraco invisivel. Imprime QUANTO se perdeu, nao so o
+      // nome: 0,00% e ruido de cadastro, 3% e o painel mentindo.
+      const nd=Object.keys(desconhecidos);
+      if(nd.length){
+        const perdido=nd.reduce((a,k)=>a+desconhecidos[k],0);
+        const total=linhas.reduce((a,l)=>a+l.quantidade,0)+perdido;
+        const pct=total?(perdido/total*100):0;
+        console.log("Sync setor/dia: SETOR NOVO no VR SEM APELIDO, ficou de fora do painel:");
+        nd.forEach(k=>console.log("   - "+k+"  ("+Math.round(desconhecidos[k])+" unidades)"));
+        console.log("   isso e "+pct.toFixed(2)+"% de tudo que a loja vendeu. Cadastre em vendasetor_apelido.");
+      }
+    }
+  }catch(e){ console.log("Sync setor/dia: erro ("+e.message+") - robo segue normal, tenta na proxima."); }
 
   // ---- WORKER PIX (Sicredi): gera as cobrancas pedidas no painel + concilia os pagos ----
   // Roda por ultimo, so fala https (Supabase + Sicredi), e NUNCA derruba a rodada.
