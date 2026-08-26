@@ -15,6 +15,8 @@ const cfg={ host:get("PG_HOST"), port:+get("PG_PORT"), database:get("PG_DATABASE
 const SB_HOST="uabhsmculsfwzcrhyhch.supabase.co", SB_KEY=get("SUPABASE_SERVICE_KEY");
 const PROD_SYNC_MS=3*3600*1000; // no maximo 1x a cada 3h (produto novo aparece em ate 3h)
 const PROD_SYNC_SQL="SELECT DISTINCT ON (p.id) pa.codigobarras::text cod, p.descricaocompleta nome, e.estoque::text total FROM public.produto p JOIN public.produtoautomacao pa ON pa.id_produto::text=p.id::text LEFT JOIN public.estoque e ON e.id_produto::text=p.id::text AND e.id_loja::text='1' WHERE pa.codigobarras IS NOT NULL AND trim(pa.codigobarras::text)<>'' ORDER BY p.id, pa.qtdembalagem";
+function sbUpsertCompras(rows){return new Promise((res,rej)=>{const body=JSON.stringify(rows);const req=https.request({host:SB_HOST,path:"/rest/v1/compra_entradas?on_conflict=id_item",method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal","Content-Length":Buffer.byteLength(body)}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>r.statusCode<300?res():rej(new Error("HTTP "+r.statusCode+" "+d)))});req.on("error",rej);req.write(body);req.end();});}
+const COMPRAS_SYNC_MS=6*3600*1000; // nota de entrada nao muda de hora em hora: 1x a cada 6h
 function sbUpsertProdutos(rows){return new Promise((res,rej)=>{const body=JSON.stringify(rows);const req=https.request({host:SB_HOST,path:"/rest/v1/estoque_produtos?on_conflict=cod",method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal","Content-Length":Buffer.byteLength(body)}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>r.statusCode<300?res():rej(new Error("HTTP "+r.statusCode+" "+d)))});req.on("error",rej);req.write(body);req.end();});}
 
 // ---- Cobranca Pix REAL (Sicredi) - worker do robo ----
@@ -290,6 +292,56 @@ async function timed(c,nome,sql,params){
       console.log("Sync produtos: "+ok+" produtos enviados pra nuvem (Loja/Deposito).");
     }
   }catch(e){ console.log("Sync produtos: erro ("+e.message+") - robo segue normal, produtos na proxima."); }
+
+  // ---- SYNC COMPRAS (notas de ENTRADA) dos produtos que a tela mostra ----
+  // Alimenta o card que abre ao clicar num produto em "Venda por setor": quando chegou,
+  // de quem, quantas unidades e a que custo.
+  //
+  // ENTRADA e nao PEDIDO de proposito: o pedido tem buraco — o acucar e comprado por
+  // telefone e o pedido nao e lancado, entao pelo pedido ele apareceria como "nunca
+  // comprado", sendo o produto que mais cai na mercearia. A nota de entrada existe
+  // sempre, nao importa como a compra foi feita.
+  //
+  // UNIDADES, NAO FARDOS: a nota guarda 480 (fardos) e 30 (por fardo) em campos
+  // separados. Aqui ja vai multiplicado — 14.400 — senao a tela compara 480 comprados
+  // com 78 mil vendidos e parece defeito do sistema.
+  const compMarkF=path.join(__dirname,"..","output","last-compras-sync.txt");
+  try{
+    let ultima=0; try{ ultima=Number(fs.readFileSync(compMarkF,"utf8"))||0; }catch(e){}
+    if(!SB_KEY){ console.log("Sync compras: sem SUPABASE_SERVICE_KEY no .env - pulando."); }
+    else if(!SETPROD.length){ console.log("Sync compras: sem lista de produtos - pulando."); }
+    else if(Date.now()-ultima < COMPRAS_SYNC_MS){ console.log("Sync compras: feito ha < 6h - pulando."); }
+    else {
+      const idsProd=[...new Set(SETPROD.map(x=>Number(x.id)))].filter(n=>n>0);
+      const c3=new Client({ ...cfg, query_timeout:600000 });
+      await c3.connect();
+      const linhas=(await c3.query(`
+        SELECT nei.id AS id_item, nei.id_produto, ne.dataentrada AS data,
+               COALESCE(f.nomefantasia, f.razaosocial) AS fornecedor,
+               ne.numeronota::text AS nota,
+               (nei.quantidade * GREATEST(COALESCE(nei.qtdembalagem,1),1)) AS unidades,
+               nei.valor AS custo,
+               COALESCE(nei.quantidadedevolvida,0) AS devolvidas,
+               COALESCE(nei.quantidadebonificacao,0) AS bonificadas
+        FROM public.notaentradaitem nei
+        JOIN public.notaentrada ne ON ne.id = nei.id_notaentrada
+        LEFT JOIN public.fornecedor f ON f.id = ne.id_fornecedor
+        WHERE nei.id_produto = ANY($1::int[])
+          AND ne.dataentrada >= (CURRENT_DATE - INTERVAL '3 years')`,[idsProd])).rows;
+      await c3.end();
+      const dados=linhas.map(r=>({
+        id_item:Number(r.id_item), id_produto:Number(r.id_produto),
+        data:d10(r.data), fornecedor:(r.fornecedor||"").trim()||null,
+        nota:(r.nota||"").trim()||null,
+        unidades:num(r.unidades), custo:r.custo==null?null:Number(r.custo),
+        devolvidas:num(r.devolvidas), bonificadas:num(r.bonificadas),
+        atualizado_em:new Date().toISOString() }));
+      let ok=0;
+      for(let i=0;i<dados.length;i+=500){ await sbUpsertCompras(dados.slice(i,i+500)); ok+=Math.min(500,dados.length-i); }
+      try{ fs.writeFileSync(compMarkF, String(Date.now())); }catch(e){}
+      console.log("Sync compras: "+ok+" entradas de "+idsProd.length+" produtos enviadas pra nuvem.");
+    }
+  }catch(e){ console.log("Sync compras: erro ("+e.message+") - robo segue normal, tenta na proxima."); }
 
   // ---- WORKER PIX (Sicredi): gera as cobrancas pedidas no painel + concilia os pagos ----
   // Roda por ultimo, so fala https (Supabase + Sicredi), e NUNCA derruba a rodada.

@@ -250,6 +250,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .vs-tbl th { text-align:right; font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:#6b7787; padding:8px; border-bottom:1px solid #dbe2ea; white-space:nowrap; }
   .vs-tbl td { text-align:right; padding:9px 8px; border-bottom:1px solid #eef2f7; font-variant-numeric:tabular-nums; white-space:nowrap; }
   .vs-tbl th:first-child, .vs-tbl td:first-child { text-align:left; }
+  /* Nome de produto e longo ("ACUCAR ECOCUCAR 1KG CRISTAL"). Com nowrap ele empurrava a
+     tabela pra fora da tela e levava junto o card de compras, que mora dentro dela. */
+  .vs-tbl td:first-child { white-space:normal; min-width:220px; }
   .vs-tbl tr:last-child td { border-bottom:0; }
   .vs-selo { display:inline-block; font-size:11.5px; font-weight:600; border-radius:6px; padding:3px 9px; }
   .vs-s-queda { background:#fdecea; color:#b3341f; }
@@ -275,7 +278,34 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .vs-prod-top { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:12px; }
   .vs-prod-top h3 { margin:0 0 3px; font-size:16px; color:#1f2b3a; }
   .vs-prod-top p { margin:0; color:#6b7787; font-size:12.5px; max-width:70ch; line-height:1.5; }
-.vs-prod-fraco { margin-top:14px; padding:12px 14px; background:#fdf6e6; border:1px solid #f0e0bb; border-radius:10px; font-size:12.5px; color:#6b5a2e; }
+.vs-seta { border:0; background:transparent; cursor:pointer; color:#8b96a5; font-size:12px;
+    line-height:1; padding:3px 6px; border-radius:5px; vertical-align:middle; }
+  .vs-seta:hover { background:#eef2f7; color:#33404f; }
+  .vs-seta.aberta { color:#157a35; }
+  .vs-card { position:sticky; left:0; background:#f7fbf8; border:1px solid #d8e8de; border-left:3px solid #157a35;
+    border-radius:0 8px 8px 0; padding:14px 16px; margin:4px 0 10px; }
+  .vs-card h5 { margin:0 0 12px; font-size:13.5px; color:#1f2b3a; font-weight:700; }
+  .vs-card-res { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:12px; margin-bottom:12px; }
+  .vs-card-res > div { background:#fff; border:1px solid #e6ebf1; border-radius:8px; padding:9px 11px; }
+  .vs-card-res i { display:block; font-style:normal; font-size:10.5px; text-transform:uppercase;
+    letter-spacing:.4px; color:#8b96a5; margin-bottom:3px; }
+  .vs-card-res b { display:block; font-size:15px; color:#33404f; font-weight:700;
+    font-variant-numeric:tabular-nums; }
+  .vs-card-res s { display:block; text-decoration:none; font-size:11.5px; color:#6b7787; margin-top:2px; }
+  .vs-card-alerta { background:#fdf6e6; border:1px solid #f0e0bb; border-radius:8px;
+    padding:9px 12px; font-size:12.5px; color:#6b5a2e; margin-bottom:12px; line-height:1.55; }
+  .vs-card-alerta b { color:#4a3c17; }
+  .vs-ent-wrap { overflow-x:auto; }
+  .vs-ent { width:100%; border-collapse:collapse; font-size:12.5px; }
+  .vs-ent th { text-align:right; font-size:10.5px; text-transform:uppercase; letter-spacing:.4px;
+    color:#8b96a5; padding:6px 8px; border-bottom:1px solid #dfe8e2; white-space:nowrap; }
+  .vs-ent td { text-align:right; padding:6px 8px; border-bottom:1px solid #edf3ef;
+    font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .vs-ent th:nth-child(2), .vs-ent td:nth-child(2) { text-align:left; }
+  .vs-ent tr:last-child td { border-bottom:0; }
+  .vs-card-vazio { font-size:12.5px; color:#6b7787; line-height:1.6; }
+  .vs-prod-fraco { margin-top:14px; padding:12px 14px; background:#fdf6e6; border:1px solid #f0e0bb; border-radius:10px; font-size:12.5px; color:#6b5a2e; }
   .vs-prod-fraco b { color:#4a3c17; }
   .vs-prod-mov { margin-top:12px; font-size:12.5px; color:#6b7787; line-height:1.6; }
   .vs-prod-mov p { margin:0 0 6px; }
@@ -7588,8 +7618,89 @@ function vsRender(){
   el.querySelectorAll(".vs-mini.clicavel").forEach(function(c){
     c.onclick=function(){ vsAbrir(this.dataset.setor); };
   });
+  el.querySelectorAll(".vs-seta").forEach(function(bt){
+    bt.onclick=function(ev){ ev.stopPropagation(); vsAbreCompra(this); };
+  });
   var fx=document.getElementById("vsProdX");
   if(fx) fx.onclick=function(e){ e.stopPropagation(); vsProdFecha(); };
+}
+
+/* ---- card de compras de um produto ---- */
+function vsCardHtml(nome, entradas, anoDe, anoPara){
+  if(!entradas.length){
+    return '<div class="vs-card"><h5>'+vsEsc(nome)+' — compras</h5>'
+      +'<div class="vs-card-vazio">Nenhuma nota de entrada registrada nos últimos 3 anos.<br>'
+      +'Costuma ser produto <b>feito na própria loja</b> (padaria, açougue) ou comprado sem nota lançada.</div></div>';
+  }
+  var rA=vscpResumo(entradas,anoDe), rB=vscpResumo(entradas,anoPara);
+  var forn=vscpFornecedores(entradas);
+  var gap=vscpMaiorIntervalo(entradas,anoPara);
+  var vend=null;
+  try{ var l=vspLista(SETPROD, vsCru(vsProdSel), anoDe, anoPara);
+       for(var i=0;i<l.length;i++) if(String(l[i].nome)===String(nome)) vend=l[i]; }catch(e){}
+
+  var h='<div class="vs-card"><h5>'+vsEsc(nome)+' — o que entrou na loja</h5>';
+  function bloco(rot,val,sub){ return '<div><i>'+rot+'</i><b>'+val+'</b>'+(sub?('<s>'+sub+'</s>'):'')+'</div>'; }
+  h+='<div class="vs-card-res">'
+    +bloco('Comprou em '+anoDe, vsNum(rA.unidades), vend?('vendeu '+vsNum(vend.de)):'')
+    +bloco('Comprou em '+anoPara, vsNum(rB.unidades), vend?('vendeu '+vsNum(vend.para)):'')
+    +(rA.custoMedio&&rB.custoMedio
+      ? bloco('Custo por unidade', vsReais(rB.custoMedio),
+              'era '+vsReais(rA.custoMedio)+' &middot; '+vsPct((rB.custoMedio/rA.custoMedio-1)*100)) : '')
+    +bloco('Fornecedores', forn.quantos, forn.ultimo?('último: '+vsEsc(forn.ultimo)):'')
+    +'</div>';
+
+  /* Buraco longo entre uma entrada e a seguinte pode explicar queda de venda: se não
+     chegou, não teve o que vender. MAS o número sozinho engana — o açúcar ficou 84 dias
+     sem entrar em 2026 e 106 em 2025, então 84 é o normal dele, não um problema.
+     Por isso o alerta sempre mostra o ano anterior do lado, e só chama de "fora do
+     padrão" quando é bem maior que o do ano passado. */
+  var gapA=vscpMaiorIntervalo(entradas,anoDe);
+  if(gap && gap.dias>=45){
+    var pior = !gapA || gap.dias > gapA.dias*1.3;
+    h+='<div class="vs-card-alerta">Ficou <b>'+gap.dias+' dias sem entrar</b> em '+anoPara
+      +' (de '+vsData(gap.de)+' a '+vsData(gap.ate)+'). '
+      +(gapA ? ('Em '+anoDe+' o maior intervalo foi de <b>'+gapA.dias+' dias</b>. ') : '')
+      +(pior ? 'É bem mais que no ano passado — vale checar se faltou na prateleira.'
+             : 'Está dentro do padrão deste produto, então provavelmente não é falta.')
+      +'</div>';
+  }
+
+  h+='<div class="vs-ent-wrap"><table class="vs-ent"><thead><tr><th>Data</th><th>Fornecedor</th><th>Unidades</th><th>Custo un.</th><th>Nota</th></tr></thead><tbody>';
+  entradas.slice().sort(function(a,b){ return a.data<b.data?1:-1; }).forEach(function(e){
+    h+='<tr><td>'+vsData(e.data)+'</td><td>'+vsEsc(e.fornecedor||'—')+'</td>'
+      +'<td>'+vsNum(e.unidades)+'</td><td>'+(e.custo==null?'—':vsReais(e.custo))+'</td>'
+      +'<td>'+vsEsc(e.nota||'—')+'</td></tr>';
+  });
+  return h+'</tbody></table></div></div>';
+}
+function vsData(d){ if(!d) return '—'; var p=String(d).slice(0,10).split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+function vsReais(v){ return 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+function vsAbreCompra(bt){
+  var pid=bt.dataset.pid, nome=bt.dataset.nome;
+  var tr=document.getElementById('vsc-'+pid); if(!tr) return;
+  var td=tr.firstElementChild;
+  if(tr.style.display!=='none'){ tr.style.display='none'; bt.classList.remove('aberta'); return; }
+  tr.style.display=''; bt.classList.add('aberta');
+  var par=vsPar||[0,0];
+  if(vsCompras[pid]){ td.innerHTML=vsCardHtml(nome, vsCompras[pid], par[0], par[1]); return; }
+  td.innerHTML='<div class="vs-card"><div class="vs-card-vazio">Buscando as compras…</div></div>';
+  var sb=vsSB();
+  if(!sb){ td.innerHTML='<div class="vs-card"><div class="vs-card-vazio">Sem conexão com a nuvem.</div></div>'; return; }
+  sb.from('compra_entradas')
+    .select('data,fornecedor,nota,unidades,custo')
+    .eq('id_produto', pid)
+    .order('data',{ascending:false})
+    .then(function(r){
+      if(r&&r.error){
+        td.innerHTML='<div class="vs-card"><div class="vs-card-vazio">Não deu pra ler as compras: '
+          +vsEsc(r.error.message||'')+'</div></div>';
+        return;
+      }
+      vsCompras[pid]=(r&&r.data)?r.data:[];
+      td.innerHTML=vsCardHtml(nome, vsCompras[pid], par[0], par[1]);
+    });
 }
 
 /* ---- o balão ---- */
@@ -7642,6 +7753,62 @@ document.addEventListener("mousemove", function(e){
   vsTipEsconde();
 });
 
+
+/* ==VSCOMPCALC-INICIO== COMPRAS DE UM PRODUTO — módulo puro
+   (testado em scripts/testes/vendasetor-compras.test.cjs). Só conta.
+
+   Entra a lista de entradas do produto ({data, unidades, custo, fornecedor}) e sai o
+   que a tela precisa: quanto entrou em cada ano, quanto custou em média, e o maior
+   tempo que o produto ficou SEM chegar.
+
+   O intervalo é a parte que ninguém pede e todo mundo precisa: um produto que passou
+   84 dias sem entrar teve prateleira vazia em algum momento, e isso explica queda de
+   venda melhor do que qualquer porcentagem. Sem essa conta, a pessoa teria que olhar
+   as datas uma por uma e fazer a subtração de cabeça. */
+
+function vscpDoAno(entradas, ano){
+  var r=[],i; for(i=0;i<entradas.length;i++){
+    if(String(entradas[i].data).slice(0,4)===String(ano)) r.push(entradas[i]); }
+  return r.sort(function(a,b){ return a.data<b.data?-1:1; });
+}
+
+function vscpResumo(entradas, ano){
+  var l=vscpDoAno(entradas,ano), un=0, gasto=0, i;
+  for(i=0;i<l.length;i++){
+    un += (+l[i].unidades||0);
+    if(l[i].custo!=null) gasto += (+l[i].unidades||0)*(+l[i].custo||0);
+  }
+  return { entradas:l.length, unidades:un,
+           custoMedio: un>0 && gasto>0 ? gasto/un : null,
+           primeira: l.length?l[0].data:null,
+           ultima: l.length?l[l.length-1].data:null };
+}
+
+/* maior buraco entre uma entrada e a seguinte, dentro do ano */
+function vscpMaiorIntervalo(entradas, ano){
+  var l=vscpDoAno(entradas,ano);
+  if(l.length<2) return null;
+  var pior=0, de=null, ate=null, i, a, b, dias;
+  for(i=1;i<l.length;i++){
+    a=new Date(l[i-1].data+"T00:00:00"); b=new Date(l[i].data+"T00:00:00");
+    dias=Math.round((b-a)/86400000);
+    if(dias>pior){ pior=dias; de=l[i-1].data; ate=l[i].data; }
+  }
+  return { dias:pior, de:de, ate:ate };
+}
+
+/* quantos fornecedores diferentes, e quem foi o ultimo */
+function vscpFornecedores(entradas){
+  var vistos={}, ordem=[], i, f;
+  var l=entradas.slice().sort(function(a,b){ return a.data<b.data?-1:1; });
+  for(i=0;i<l.length;i++){
+    f=(l[i].fornecedor||"").trim(); if(!f) continue;
+    if(!vistos[f]){ vistos[f]=1; ordem.push(f); }
+  }
+  return { quantos:ordem.length, lista:ordem, ultimo: l.length?((l[l.length-1].fornecedor||"").trim()||null):null };
+}
+/* ==VSCOMPCALC-FIM== */
+
 /* ==VSPCALC-INICIO== QUEM CAIU / QUEM CRESCEU em cada setor — módulo puro
    (testado em scripts/testes/vendasetor-produto.test.cjs).
 
@@ -7665,7 +7832,7 @@ function vspLista(setprod, setorVr, anoDe, anoPara){
     r=setprod[i];
     if(r.s!==setorVr || +r.de!==+anoDe || +r.para!==+anoPara) continue;
     de=+r.qd||0; para=+r.qp||0;
-    out.push({ nome:r.nome, de:de, para:para, meses:+r.m||0, dif:para-de,
+    out.push({ id:r.id, nome:r.nome, de:de, para:para, meses:+r.m||0, dif:para-de,
                variacao: de>0 ? (para/de-1)*100 : null,
                sumiu: (de>0 && para===0), novo: (de===0 && para>0) });
   }
@@ -7692,6 +7859,10 @@ function vspResumo(lista){
 /* ---- Detalhe do produto: clicar no setor e ver o que puxou pra baixo.
    Só desenho; as contas ficam no módulo VSPCALC acima. ---- */
 var vsProdSel=null;   /* setor aberto (nome da loja) ou null */
+/* As compras (fornecedor e preço pago) seguem a MESMA trava do detalhe do produto:
+   é informação de negociação, não de operação. */
+function vsPodeVerCompra(){ return vsPodeVerProduto(); }
+var vsCompras={};     /* cache por produto — não busca a mesma coisa duas vezes */
 
 function vsCabAno(meses, ano){
   if(!meses || !meses.length || meses.length===12) return String(ano);
@@ -7751,10 +7922,15 @@ function vsProdHtml(setor, anoDe, anoPara, meses){
     var v = p.novo  ? '<span class="vs-selo vs-s-alta">novo</span>'
           : p.sumiu ? '<span class="vs-selo vs-s-queda">parou de vender</span>'
           : '<b>'+vsPct(p.variacao)+'</b>';
-    h+='<tr><td><b>'+vsEsc(p.nome)+'</b></td>'
+    var seta = vsPodeVerCompra()
+      ? '<button class="vs-seta" type="button" data-pid="'+vsEsc(p.id)+'" data-nome="'+vsEsc(p.nome)+'" title="Ver as compras deste produto">&#9654;</button> '
+      : '';
+    h+='<tr><td>'+seta+'<b>'+vsEsc(p.nome)+'</b></td>'
       +'<td>'+vsNum(p.de)+'</td><td>'+vsNum(p.para)+'</td>'
       +'<td class="'+cls+'">'+(p.dif>=0?"+":"−")+vsNum(Math.abs(p.dif))+'</td>'
       +'<td class="'+cls+'">'+v+'</td></tr>';
+    if(vsPodeVerCompra())
+      h+='<tr class="vs-card-linha" id="vsc-'+vsEsc(p.id)+'" style="display:none;"><td colspan="5" style="padding:0 4px;"></td></tr>';
   });
   h+='</tbody></table></div>';
   return h;
