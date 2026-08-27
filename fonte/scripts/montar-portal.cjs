@@ -40,6 +40,17 @@ const LOGO_CHEIA = (function(){
   }
 })();
 
+/* O ÍCONE DA ABA — o MESMO arquivo que o painel usa (assets/favicon-carrinho.png).
+   Sem esta linha o navegador desenha o globo cinza genérico, e o fornecedor com
+   várias abas abertas não acha a nossa. Vai embutido em base64 pelo mesmo motivo
+   do resto: o portal é UM arquivo, sem pedir imagem a lugar nenhum. */
+const FAVICON = (function(){
+  try{
+    return "data:image/png;base64," +
+      fs.readFileSync(path.join(RAIZ, "assets", "favicon-carrinho.png")).toString("base64");
+  }catch(e){ return ""; }
+})();
+
 const LOGO = (function(){
   try{
     return "data:image/png;base64," +
@@ -58,6 +69,8 @@ const html = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Portal do Fornecedor · Supermercado Santa Rita</title>
+<link rel="icon" type="image/png" href="${FAVICON}">
+<link rel="apple-touch-icon" href="${FAVICON}">
 <meta name="theme-color" content="#0a4d21">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
