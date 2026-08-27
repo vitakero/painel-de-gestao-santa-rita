@@ -65,5 +65,9 @@ eq("a trava dura é conferida antes do ritmo", SRC.indexOf("TETO_DIA)") < SRC.in
 eq("FORCAR=1 continua furando a régua", /if \(process\.env\.FORCAR !== "1"\) \{/.test(SRC), true);
 eq('"nada mudou" continua vindo antes do ritmo', SRC.indexOf("Nada mudou desde") < SRC.indexOf("Teto do dia"), true);
 
+// --- dá pra saber QUEM publicou? sem isso não se audita o ritmo ---
+eq("a mensagem diz de onde veio", /const deOnde = \(process\.env\.FORCAR === "1"\) \? "mac" : "loja"/.test(SRC), true);
+eq("e entra na mensagem do commit", /"Painel \(" \+ deOnde \+ "\)"/.test(SRC), true);
+
 console.log("\n" + ok + " ok, " + falhou + " falha(s).");
 process.exit(falhou ? 1 : 0);

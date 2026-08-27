@@ -7411,14 +7411,21 @@ function rvTexto(min){
 /* Le UMA linha da nuvem (o carimbo mais novo) e pinta o aviso. Custa ~60 bytes: e a
    leitura mais barata do painel inteiro. Roda no login e de 10 em 10 minutos. */
 function rvSB(){ try{ return window.__SB||null; }catch(e){ return null; } }
+/* SO O MASTER VE ESTE AVISO. Pedido do dono em 27/08/2026, e ele tem razao: quem opera
+   caixa ou repoe gondola nao tem o que fazer com "o robo parou" — so ficaria assustado
+   sem poder resolver. Quem mexe no robo e quem precisa saber. Sem master, nem consulta:
+   economiza tambem a leitura. */
+function rvEhMaster(){ try{ return !!(window.__PERFIL && window.__PERFIL.is_master); }catch(e){ return false; } }
 function rvPintar(min){
   var el=document.getElementById("rvAviso"); if(!el) return;
+  if(!rvEhMaster()){ el.innerHTML=""; return; }
   var t=rvTexto(min);
   if(!t){ el.innerHTML=""; return; }
   el.innerHTML='<div class="rv-aviso rv-'+t.nivel+'"><span class="rv-ico">'+t.ico+'</span>'
     +'<span><b>'+t.titulo+'</b> '+t.corpo+'</span></div>';
 }
 function rvConferir(){
+  if(!rvEhMaster()) return;
   var sb=rvSB(); if(!sb) return;
   try{
     sb.from("vendasetor_dia").select("atualizado_em").order("atualizado_em",{ascending:false}).limit(1)

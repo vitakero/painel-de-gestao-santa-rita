@@ -101,7 +101,11 @@ const headers = {
   //   robo da loja (sem FORCAR) -> SEMPRE marca: producao precisa do dado fresco
   //   Mac (FORCAR=1)            -> so marca com SUBIR=1
   const vaiPraProducao = (process.env.FORCAR !== "1") || (process.env.SUBIR === "1");
-  const msg = "Atualizacao automatica do painel" + (vaiPraProducao ? " [publicar]" : "");
+  // DE ONDE VEIO. Ate 27/08/2026 a mensagem era igual nos dois casos, e depois de mexer no
+  // ritmo eu nao consegui auditar se a regua estava valendo: nao dava pra separar as
+  // publicacoes do robo das minhas. Sem isso nao se mede nada.
+  const deOnde = (process.env.FORCAR === "1") ? "mac" : "loja";
+  const msg = "Painel (" + deOnde + ")" + (vaiPraProducao ? " [publicar]" : "");
   const body = { message: msg, content: b64 };
   if (sha) body.sha = sha;
 

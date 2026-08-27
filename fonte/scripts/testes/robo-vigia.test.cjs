@@ -76,5 +76,20 @@ eq("sem acesso à tabela NÃO inventa alarme", /if\(!r\|\|r\.error\|\|!r\.data\|
 eq("tem estilo pro atraso", /\.rv-atraso \{/.test(HTML), true);
 eq("tem estilo pro parado", /\.rv-parado \{/.test(HTML), true);
 
+// ---------------------------------------------------------------- só o master
+// Pedido do dono: quem não mexe no robô não tem o que fazer com esse aviso.
+eq("existe a checagem de master", /function rvEhMaster\(\)/.test(HTML), true);
+eq("nem consulta a nuvem se não for master", /function rvConferir\(\)\{\s*if\(!rvEhMaster\(\)\) return;/.test(HTML), true);
+eq("e limpa o aviso se não for master", /if\(!rvEhMaster\(\)\)\{ el\.innerHTML=""; return; \}/.test(HTML), true);
+// monta a função de verdade, injetando um "window" de mentira em cada caso
+const corpo = HTML.slice(HTML.indexOf("function rvEhMaster()"),
+  HTML.indexOf("function rvEhMaster()") + 200).split("\n")[0];
+const fabrica = new Function("window", corpo + "\nreturn rvEhMaster;");
+const ehMaster = (w) => fabrica(w)();
+eq("master vê", ehMaster({ __PERFIL: { is_master: true } }), true);
+eq("funcionário comum não vê", ehMaster({ __PERFIL: { is_master: false } }), false);
+eq("perfil ainda não carregou: não vê", ehMaster({ __PERFIL: null }), false);
+eq("sem perfil nenhum: não vê", ehMaster({}), false);
+
 console.log("\n" + ok + " ok, " + falhou + " falha(s).");
 process.exit(falhou ? 1 : 0);
