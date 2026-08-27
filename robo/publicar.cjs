@@ -32,11 +32,32 @@ const headers = {
   const buf = fs.readFileSync(path.join(__dirname, "..", "output", "index.html"));
   const b64 = buf.toString("base64");
 
-  // ECONOMIA DE PUBLICACOES (limite do Vercel: ~100 deploys/dia):
+  // ECONOMIA DE PUBLICACOES (limite do Vercel: 100 deploys/dia):
   // 1) se o conteudo nao mudou (ignorando o carimbo "gerado em HH:MM"), nao publica;
-  // 2) mudou? publica ja (ciclo de 5 min normal). So comeca a ESPACAR se o dia
-  //    estiver chegando perto do limite: 60+ publicacoes -> minimo 15 min;
-  //    80+ -> minimo 30 min. (FORCAR=1 ignora tudo isso.)
+  // 2) mudou? o ritmo depende da HORA — rapido quando a loja vende, devagar quando nao.
+  //    (FORCAR=1 ignora tudo isso: publicacao manual passa por cima.)
+  //
+  // O RITMO SAI DO MOVIMENTO REAL DA LOJA, nao de chute. Medido em 27/08/2026 sobre a
+  // media dos ultimos 90 dias de faturamento por hora, que o proprio robo coleta:
+  //   segunda a sabado (06:30 as 21h): DOIS picos — manha 08-10h e tarde 16-19h — com
+  //     vale no almoco. As 18h sozinha vale 11,3% do dia; as 06h vale 1,2%.
+  //   domingo (07 as 13h): seis horas concentradas, 09h e 10h valendo 20% cada.
+  //
+  // AS HORAS DE FECHAMENTO SAO RAPIDAS MESMO VENDENDO POUCO. As 20h e 21h de segunda a
+  // sabado (e 13h/14h no domingo) tem pouco volume, mas e quando o numero do DIA fecha —
+  // e e a hora em que o dono olha o faturamento. Esperar uma hora ali seria o pior
+  // momento possivel pra ser lento. Foi pedido dele, em 27/08/2026.
+  //
+  // Escolha do dono (opcao "2" de cinco calculadas): pico 10 min, meio 30, fraco 60.
+  // Da 67 publicacoes no pior dia (sabado) e 48 no domingo, contra 89 da regra antiga.
+  // Sobram ~33 para as publicacoes manuais, que furam a fila.
+  //
+  // ISTO E TETO, NAO OBRIGACAO: a regra 1 manda mais que esta. Numa hora sem venda
+  // nenhuma ele nao publica nem uma vez, por mais rapido que esteja o ritmo.
+  const RITMO_SEM = [60,60,60,60,60,60,60,30,10,10,10,30,30,30,30,30,10,10,10,10,10,10,60,60];
+  const RITMO_DOM = [60,60,60,60,60,60,60,10,10,10,10,10,10,10,10,60,60,60,60,60,60,60,60,60];
+  // trava dura: mesmo que tudo o mais falhe, o dia para aqui. 15 de folga ate o limite.
+  const TETO_DIA = 85;
   const statePath = path.join(__dirname, "..", "output", ".pub-state.json");
   // NORMALIZAR O RELOGIO ANTES DE COMPARAR.
   //   O painel carimba "Atualizado 10/08 as 20:03". Esse texto muda em TODA construcao, entao
@@ -54,10 +75,16 @@ const headers = {
   const pubsHoje = (st && st.dia === hoje) ? (st.pubs || 0) : 0;
   if (process.env.FORCAR !== "1") {
     if (st && st.hash === hash) { console.log(">>> Nada mudou desde a ultima publicacao. Nao vou publicar (economia de deploys)."); process.exit(0); }
-    const minEspera = (pubsHoje >= 80) ? 30 : (pubsHoje >= 60) ? 15 : 0;
-    if (minEspera && st && st.ts && (Date.now() - st.ts) < minEspera * 60 * 1000) {
+    if (pubsHoje >= TETO_DIA) {
+      console.log(">>> Teto do dia atingido (" + pubsHoje + " de " + TETO_DIA + "). Nao publico mais hoje.");
+      process.exit(0);
+    }
+    const agora = new Date();
+    const minEspera = (agora.getDay() === 0 ? RITMO_DOM : RITMO_SEM)[agora.getHours()];
+    if (st && st.ts && (Date.now() - st.ts) < minEspera * 60 * 1000) {
       const falta = Math.ceil((minEspera * 60 * 1000 - (Date.now() - st.ts)) / 60000);
-      console.log(">>> Dia com muitas publicacoes (" + pubsHoje + "). Espacando: proxima em ~" + falta + " min.");
+      console.log(">>> Ritmo das " + agora.getHours() + "h: " + minEspera + " min entre publicacoes."
+        + " Proxima em ~" + falta + " min. (" + pubsHoje + " publicacoes hoje)");
       process.exit(0);
     }
   }
