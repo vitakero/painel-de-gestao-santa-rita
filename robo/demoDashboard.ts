@@ -231,6 +231,16 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .vs-sel { border:1px solid #dbe2ea; background:#fff; color:#33404f; border-radius:9px; padding:8px 12px; font-size:13px; font-weight:600; cursor:pointer; }
   .vs-aviso { background:#fdf6e6; border:1px solid #f0e0bb; border-radius:10px; padding:11px 14px; font-size:13px; color:#6b5a2e; margin-bottom:16px; line-height:1.55; }
   .vs-aviso b { color:#4a3c17; }
+  /* AVISO DE ROBO PARADO — aparece no topo de TODAS as paginas.
+     Em 27/08/2026 o robo ficou 2 horas sem gravar e ninguem soube: o painel continuou
+     mostrando os numeros das 09h como se fossem de agora. Numero velho sem etiqueta e
+     pior que numero faltando, porque a pessoa decide em cima dele achando que e de hoje. */
+  .rv-aviso { border-radius:10px; padding:12px 16px; font-size:13.5px; margin:0 0 18px;
+    line-height:1.55; display:flex; gap:11px; align-items:flex-start; }
+  .rv-aviso .rv-ico { font-size:17px; line-height:1.2; flex:none; }
+  .rv-atraso { background:#fdf6e6; border:1px solid #f0e0bb; color:#6b5a2e; }
+  .rv-parado { background:#fdeceb; border:1px solid #f3c8c4; color:#8c2c22; }
+  .rv-aviso b { font-weight:700; }
   .vs-rank { width:100%; border-collapse:collapse; }
   .vs-rank td { padding:6px 8px; border-bottom:1px solid #eef2f7; vertical-align:middle; }
   .vs-rank tr:last-child td { border-bottom:0; }
@@ -1060,6 +1070,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     </div>
   </nav>
   <main>
+    <div id="rvAviso"></div>
     <section id="page-vendas" class="page ativo">
     <div class="filtros">
       <div class="campo">
@@ -7337,6 +7348,86 @@ function flvVizinhos(lista, comp){
 /* ==FLVCALC-FIM== */
 
 
+
+/* ==ROBOVIGIA-INICIO== O ROBO ESTA VIVO? (testado em scripts/testes/robo-vigia.test.cjs)
+
+   Em 27/08/2026 o robo da loja ficou DUAS HORAS sem gravar e ninguem percebeu. O painel
+   continuou mostrando os numeros das 09h com a maior cara de atual. Foram tres problemas
+   empilhados: o sistema da contabilidade entupiu o banco do VR com 332 conexoes; alguem
+   reextraiu um zip velho e sumiu com o node_modules; e o mesmo zip trocou o .env por uma
+   versao sem a chave da nuvem — essa ultima fazia o robo ler o VR inteiro e JOGAR FORA,
+   terminando com "SUCESSO".
+
+   Numero velho sem etiqueta e pior que numero faltando: a pessoa decide em cima dele
+   achando que e de agora. Entao o painel passa a dizer, sozinho, quando parou de receber.
+
+   O robo carimba atualizado_em em TODA rodada, mesmo quando nao houve venda nova — entao
+   esse carimbo mede o robo estar vivo, e nao a loja estar vendendo. Vale de madrugada
+   tambem. So faz conta, nao toca em tela nem em nuvem. */
+
+/* ha quantos minutos foi a ultima gravacao. null = nao deu pra saber. */
+function rvIdadeMin(agoraMs, ultimoISO){
+  if(!ultimoISO) return null;
+  var t=new Date(ultimoISO).getTime();
+  if(!t || isNaN(t)) return null;
+  var min=Math.floor((agoraMs-t)/60000);
+  return min<0 ? 0 : min;      /* relogio do navegador atrasado nao vira "negativo" */
+}
+
+/* O ciclo do robo e de ~20 min. 90 minutos sao quatro rodadas perdidas: tarde o
+   bastante pra nao dar alarme falso, cedo o bastante pra achar no mesmo dia. */
+var RV_ATRASO=90, RV_PARADO=360;
+function rvNivel(min){
+  if(min===null) return "sem";
+  if(min<RV_ATRASO) return "ok";
+  if(min<RV_PARADO) return "atraso";
+  return "parado";
+}
+
+/* "ha 2 horas", "ha 3 dias" — em vez de 4.320 minutos */
+function rvQuanto(min){
+  if(min===null) return "";
+  if(min<60) return "há "+min+" minuto"+(min===1?"":"s");
+  var h=Math.floor(min/60);
+  if(h<48) return "há "+h+" hora"+(h===1?"":"s");
+  return "há "+Math.floor(h/24)+" dias";
+}
+
+function rvTexto(min){
+  var n=rvNivel(min);
+  if(n==="ok"||n==="sem") return null;
+  var q=rvQuanto(min);
+  if(n==="atraso") return { nivel:"atraso", ico:"⚠️",
+    titulo:"Os números podem estar atrasados.",
+    corpo:"O robô da loja não grava nada "+q+" — o normal é a cada 20 minutos. "
+      +"O que está na tela é a última coisa que ele mandou." };
+  return { nivel:"parado", ico:"🛑",
+    titulo:"O robô da loja parou.",
+    corpo:"A última gravação foi "+q+". Os números desta tela são desse momento, "
+      +"não de agora. Alguém precisa olhar o computador do robô." };
+}
+/* ==ROBOVIGIA-FIM== */
+
+/* Le UMA linha da nuvem (o carimbo mais novo) e pinta o aviso. Custa ~60 bytes: e a
+   leitura mais barata do painel inteiro. Roda no login e de 10 em 10 minutos. */
+function rvSB(){ try{ return window.__SB||null; }catch(e){ return null; } }
+function rvPintar(min){
+  var el=document.getElementById("rvAviso"); if(!el) return;
+  var t=rvTexto(min);
+  if(!t){ el.innerHTML=""; return; }
+  el.innerHTML='<div class="rv-aviso rv-'+t.nivel+'"><span class="rv-ico">'+t.ico+'</span>'
+    +'<span><b>'+t.titulo+'</b> '+t.corpo+'</span></div>';
+}
+function rvConferir(){
+  var sb=rvSB(); if(!sb) return;
+  try{
+    sb.from("vendasetor_dia").select("atualizado_em").order("atualizado_em",{ascending:false}).limit(1)
+      .then(function(r){
+        if(!r||r.error||!r.data||!r.data.length) return;   /* sem acesso: nao inventa alarme */
+        rvPintar(rvIdadeMin(Date.now(), r.data[0].atualizado_em));
+      }, function(){});
+  }catch(e){}
+}
 
 /* ==VSDIACALC-INICIO== DIA A DIA -> MÊS (testado em scripts/testes/vendasetor-dia.test.cjs)
 
@@ -24493,6 +24584,7 @@ function pedEnviar(){
       try{ if(window.__temaAplica) window.__temaAplica(); }catch(e){}   // tema escolhido só entra em cena DEPOIS do login
       try{ localStorage.setItem("sr_lib", uid||''); }catch(e){}   // lembra que este login já está liberado -> reload não pisca a tela verde
       try{ localStorage.setItem("sr_master", (perfil&&perfil.is_master)?"1":"0"); }catch(e){}   // lembra se é master -> reload não pisca as abas só-master (Galpões/Planta)
+      try{ if(typeof rvConferir==="function"){ rvConferir(); setInterval(rvConferir, 10*60*1000); } }catch(e){}
       try{ if(typeof manCloudLoad==="function") manCloudLoad(); }catch(e){}
       try{ if(typeof pxCloudLoad==="function") pxCloudLoad(); }catch(e){}
       try{ if(typeof glCloudLoad==="function"){ glCloudLoad(); glRealtime(); var _gp=document.getElementById('page-galpoes'); if(_gp && _gp.classList.contains('ativo')) renderGalpoes(); } }catch(e){}

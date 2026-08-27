@@ -34,6 +34,7 @@ const FILES = [
   ["scripts/vr-conferir-setor.cjs", "robo/vr-conferir-setor.cjs"],   // roda na loja, compara minha conta x relatorio do VR
   ["scripts/vr-descobrir-notas.cjs", "robo/vr-descobrir-notas.cjs"],
   ["scripts/mandar-log.cjs", "robo/mandar-log.cjs"],
+  ["scripts/conferir-pecas.cjs", "robo/conferir-pecas.cjs"],   // 1a coisa que o robo.bat chama
   ["scripts/notas-passo.cjs", "robo/notas-passo.cjs"],
   ["scripts/vr-sync-notas.cjs", "robo/vr-sync-notas.cjs"],
   ["scripts/vr-sync-codigos.cjs", "robo/vr-sync-codigos.cjs"],

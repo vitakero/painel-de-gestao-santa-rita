@@ -21,6 +21,17 @@ echo.
 echo [0/4] Baixando codigo mais recente do GitHub (via API)...
 node scripts\puxar-codigo.cjs
 echo.
+echo [0.5/4] Conferindo se as pecas estao no lugar...
+REM Em 27/08/2026 alguem reextraiu um vr-robo2.zip VELHO por cima desta pasta. Sumiu o
+REM node_modules e o .env voltou pra uma versao sem a chave da nuvem. O robo rodava, lia o
+REM VR inteiro e jogava fora sem dar erro; ficou 2 horas assim e so foi achado por acaso.
+REM Agora ele reinstala peca faltando sozinho, e PARA quando falta configuracao (essa
+REM ninguem conserta sozinho: a chave nao esta no repositorio, de proposito).
+REM A conferencia mora num script node (scripts\conferir-pecas.cjs) e nao aqui dentro,
+REM porque assim da pra testar cada jeito de dar errado antes de mandar pra loja.
+node scripts\conferir-pecas.cjs
+if errorlevel 1 goto pecas
+echo.
 echo [1/4] Lendo as vendas do VR (Postgres)...
 node scripts\buildVrData.cjs
 if errorlevel 1 goto erro
@@ -54,4 +65,10 @@ exit /b 0
 :erro
 echo.
 echo [%date% %time%] ERRO durante a execucao do robo.
+exit /b 1
+
+:pecas
+echo.
+echo [%date% %time%] RODADA CANCELADA: falta peca ou configuracao (veja acima).
+echo Rodar assim faria o robo ler o VR e jogar fora, congelando o painel em silencio.
 exit /b 1

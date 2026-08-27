@@ -49,6 +49,9 @@ const FILES = [
   ["robo/vr-conferir-setor.cjs", "vr-conferir-setor.cjs", "mercadologico"],
   ["robo/vr-descobrir-notas.cjs", "vr-descobrir-notas.cjs", "vr_notas"],
   ["robo/mandar-log.cjs", "mandar-log.cjs", "receb_eventos"],
+  // o conferidor de pecas: e a PRIMEIRA coisa que o robo.bat chama. Se ele nao chegar
+  // na loja, o robo se recusa a rodar (o .bat trata o arquivo faltando como falha).
+  ["robo/conferir-pecas.cjs", "conferir-pecas.cjs", "CONFIG_OBRIGATORIA"],
   // o "passo da vez" da investigacao das notas: o notas.bat chama sempre este nome
   ["robo/notas-passo.cjs", "notas-passo.cjs", "vr_notas2"],
   ["robo/vr-sync-notas.cjs", "vr-sync-notas.cjs", "receb_notas_vr"],
