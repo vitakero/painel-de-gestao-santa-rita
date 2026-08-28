@@ -159,6 +159,21 @@ select s.senha, s.id_loja, s.ini, s.fim, s.bipagens, s.itens,
            and not dvv.resolvida)::int divergencias,
        -- DETALHE: 8 divergências pode ser 8 produtos que não vieram ou 8 arredondamentos
        -- de centavo. Somar tipos diferentes num número só esconde justamente o que importa.
+       -- RESUMO POR TIPO: contado sobre a divergencia INTEIRA, sem teto.
+       -- 28/08/2026: o resumo era montado no Node em cima da lista de 60 abaixo. Como ela sai
+       -- "order by d.tipo", o corte e ALFABETICO — e os tipos de CONTAGEM (NAO ENTREGUE,
+       -- QUANTIDADE, QUANTIDADE/CUSTO, SEM PEDIDO) vem todos DEPOIS de CUSTO ANTERIOR. Num
+       -- carro com mais de 60 diferencas sobrava so preco, e a marcacao automatica concluia
+       -- "sem diferenca de contagem" para um carro com 15 produtos NAO ENTREGUE. Foram 70
+       -- conferencias de 1.108 nessa situacao, escondendo 483 diferencas de contagem.
+       -- A lista de itens continua com teto (e so o que a tela desenha); o RESUMO nao pode ter.
+       coalesce((
+         select jsonb_agg(jsonb_build_object('tipo', g.tipo, 'qtd', g.n) order by g.n desc, g.tipo)
+           from (select d.tipo, count(*)::int n
+                   from dvv d
+                  where d.senha = s.senha and d.id_loja is not distinct from s.id_loja
+                    and not d.resolvida
+                  group by d.tipo) g), '[]'::jsonb) tipos,
        coalesce((
          select jsonb_agg(x order by x->>'tipo', x->>'produto')
            from (
@@ -179,7 +194,18 @@ select s.senha, s.id_loja, s.ini, s.fim, s.bipagens, s.itens,
                left join produto pr on pr.id = d.id_produto
               where d.senha = s.senha and d.id_loja is not distinct from s.id_loja
                 and not d.resolvida
-              order by d.tipo, d.id_produto
+              -- A ORDEM DECIDE QUEM SOBREVIVE AO TETO — entao o que FALTOU vem primeiro.
+              -- Era "order by d.tipo": alfabetica. CUSTO e CUSTO ANTERIOR vinham antes de
+              -- NAO ENTREGUE, QUANTIDADE e SEM PEDIDO, entao um carro com muita diferenca de
+              -- preco enchia as 60 vagas de preco e o dono clicava no detalhe sem achar UM
+              -- produto que faltou. Medido na FAMA de 28/08/2026: 105 diferencas, 15 de
+              -- falta, e a lista guardada tinha 29 CUSTO + 31 CUSTO ANTERIOR e ZERO faltas.
+              -- Falta de mercadoria e a unica pergunta que a loja faz aqui; ela nao pode ser
+              -- a primeira a ser jogada fora.
+              order by case when d.tipo in ('COLETOR','NAO ENTREGUE','QUANTIDADE',
+                                            'QUANTIDADE/CUSTO','SEM PEDIDO') then 0
+                            else 1 end,
+                       d.tipo, d.id_produto
               limit 60
            ) t), '[]'::jsonb) detalhe
   from ses s
@@ -190,12 +216,13 @@ select s.senha, s.id_loja, s.ini, s.fim, s.bipagens, s.itens,
 
 // Agrupa por tipo e devolve {tipos:[{tipo,qtd}], itens:[...]}. A tela mostra o resumo por
 // tipo primeiro; a lista de produtos só quando a pessoa abre.
-function montaDetalhe(lista){
+function montaDetalhe(lista, tiposCompletos){
   const itens = Array.isArray(lista) ? lista : [];
-  const conta = {};
-  for (const i of itens) conta[i.tipo] = (conta[i.tipo] || 0) + 1;
-  const tipos = Object.keys(conta).map(t => ({ tipo: t, qtd: conta[t] }))
-                      .sort((a,b) => b.qtd - a.qtd);
+  // OS TIPOS VEM DO BANCO, CONTADOS SOBRE TUDO. Nao conte a lista de itens aqui: ela tem teto
+  // de 60 e contar por cima dela e exatamente o defeito de 28/08/2026 (ver comentario no SQL).
+  const tipos = (Array.isArray(tiposCompletos) ? tiposCompletos : [])
+                  .map(t => ({ tipo: String(t.tipo || ""), qtd: Number(t.qtd) || 0 }))
+                  .filter(t => t.tipo && t.qtd > 0);
   return { tipos, itens: itens.map(i => ({
     tipo: i.tipo, produto: i.produto,
     pedido: Number(i.pedido) || 0, veio: Number(i.veio) || 0,
@@ -244,7 +271,7 @@ function situacao(r, minutosDesdeUltima){
       bipagens: x.bipagens, itens: Number(x.itens) || 0,
       notas: x.notas, notas_finalizadas: x.notas_fin,
       divergencias: x.divergencias,
-      divergencia_detalhe: montaDetalhe(x.detalhe),
+      divergencia_detalhe: montaDetalhe(x.detalhe, x.tipos),
       situacao: situacao(x, desdeUltima),
       atualizado_em: new Date().toISOString()
     };

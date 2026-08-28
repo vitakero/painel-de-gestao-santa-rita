@@ -6083,7 +6083,7 @@ function clStatus(a){
   try{
     if(a.origem==="painel" && a.situacao!=="conferido" && a.situacao!=="cancelado"
        && String(a.situacao||"").indexOf("recusad")<0){
-      var vv=caVeredito({status:"aprovado", documento:a.documento, data:a.data}, caHoje);
+      var vv=caVeredito({status:"aprovado", documento:a.documento, data:a.data}, caHoje, clPedidos);
       if(vv && vv.marcar) return {k:"concluido",t:"Conferido"};
     }
   }catch(e){}
@@ -6182,14 +6182,16 @@ function caAplicar(){
   for(i=0;i<clPedidos.length;i++){
     var p=clPedidos[i];
     if(caTentados[p.id]) continue;
-    var v=caVeredito(p, caHoje);
+    var v=caVeredito(p, caHoje, clPedidos);
     if(!v.marcar) continue;
     caTentados[p.id]=1;
     mudou=true;
-    clAvisoToast("Conferido sozinho: "+(p.fornecedor||"")+" — "+v.motivo, true);
     /* PELA GRAVACAO UNICA, como todo o resto. Ela ja recarrega a lista e manda o email
-       pro fornecedor — o mesmo email do clique manual. */
-    clEnviarStatus(p.id, "conferido", null, p.fornecedor, true);
+       pro fornecedor — o mesmo email do clique manual.
+       O AVISO NA TELA SO DEPOIS DE GRAVAR: antes ele aparecia primeiro, entao uma falha do
+       servidor deixava a frase "Conferido sozinho" na tela sem nada ter sido conferido. */
+    clEnviarStatus(p.id, "conferido", null, p.fornecedor, true,
+      "Conferido sozinho: "+(p.fornecedor||"")+" — "+v.motivo);
   }
   return mudou;
 }
@@ -6201,8 +6203,15 @@ function caLoad(forcar){
   caCarregando=true;
   try{
     sb.from("central_conferencias")
-      .select("id,data,cnpj,situacao,bipagens,notas,divergencia_detalhe->tipos")
+      /* "divergencias" e o total SEM teto. Sem ele nao da pra saber se o resumo por tipo veio
+         inteiro ou cortado — foi assim que um carro com 15 produtos NAO ENTREGUE passou por
+         "sem diferenca de contagem" em 28/08/2026. Uma coluna a mais, so do dia de hoje. */
+      .select("id,data,cnpj,situacao,bipagens,notas,divergencias,divergencia_detalhe->tipos")
       .eq("data", clDataISO(new Date()))
+      /* ORDEM PEDIDA, NAO SORTEADA: sem .order() o banco devolve na ordem fisica das linhas, que
+         muda a cada rodada do robo. Nao decide mais nada sozinha (o veredito recusa quando ha
+         mais de uma), mas linha instavel faz a tela pular sem motivo. */
+      .order("id")
       .then(function(r){
         caCarregando=false;
         if(r&&!r.error&&r.data){ caQuando=Date.now(); caHoje=r.data; caAplicar(); renderCentral(true); }
@@ -6814,11 +6823,10 @@ function renderClPedidos(){
     hC+='<div class="cl-entc"><p class="cl-sec-tit">Entregas confirmadas</p>';
     apro.slice(0,12).forEach(function(p){
       var chegou=p.data<=hj;
-      /* MODO MOSTRAR: por enquanto ele so DIZ o que faria, e continua esperando o clique.
-         Combinado com ele em 28/08: tres ou quatro dias assim, conferindo se acerta, e so
-         depois ligar de verdade. Ligar sem essa fase seria marcar carro errado pra descobrir
-         o defeito olhando o estrago. */
-      var vd=caVeredito(p, caHoje);
+      /* O MESMO VEREDITO QUE MARCA, escrito na linha. Tem que receber a lista de
+         entregas igual caAplicar recebe — senao a tela promete "marcaria" e a marcacao
+         recusa, e a pessoa fica sem entender qual dos dois esta certo. */
+      var vd=caVeredito(p, caHoje, clPedidos);
       var selo="";
       if(vd.marcar) selo='<div class="cl-ca cl-ca-sim">✓ <b>Este eu marcaria sozinho</b> — '+pxEsc(vd.motivo)+'</div>';
       else if(vd.conf) selo='<div class="cl-ca cl-ca-nao">Já foi bipado, mas não marco: '+pxEsc(vd.motivo)+'</div>';
@@ -6934,43 +6942,97 @@ function caDigitos(v){ return String(v==null?"":v).replace(/[^0-9]/g,""); }
 
 /* quantas diferencas de CONTAGEM a conferencia tem. Le do resumo por tipo, que e leve —
    nao precisa do item-a-item, que so vem quando alguem clica. */
+function caTipos(conf){
+  return (conf && (conf.tipos || (conf.divergencia_detalhe && conf.divergencia_detalhe.tipos))) || [];
+}
 function caContagem(conf){
-  var t=(conf && (conf.tipos || (conf.divergencia_detalhe && conf.divergencia_detalhe.tipos))) || [];
-  var n=0, i;
+  var t=caTipos(conf), n=0, i;
   for(i=0;i<t.length;i++) if(CA_CONTAGEM.test(String(t[i].tipo||""))) n+=(+t[i].qtd||0);
   return n;
 }
 
-/* acha a conferencia daquele agendamento: mesmo CNPJ (14 digitos) e mesmo dia.
+/* O RESUMO DESCREVE O CARRO INTEIRO, OU SO UM PEDACO?
+   28/08/2026: o robo guardava so as 60 primeiras diferencas e montava o resumo por tipo em
+   cima delas. Como a lista sai em ordem alfabetica de tipo, e os tipos de CONTAGEM (NAO
+   ENTREGUE, QUANTIDADE, QUANTIDADE/CUSTO, SEM PEDIDO) vem todos DEPOIS de CUSTO ANTERIOR, num
+   carro com mais de 60 diferencas sobrava so preco. A conta dizia "zero de contagem" para um
+   carro com 15 produtos que nao chegaram. Foram 70 carros de 1.108 assim, 483 diferencas de
+   contagem escondidas — 360 delas NAO ENTREGUE.
+   O robo foi consertado, mas a trava fica: soma dos tipos tem que alcancar o total. Resumo
+   incompleto e CONHECIMENTO INCOMPLETO, e conhecimento incompleto nunca pode virar
+   "sem diferenca de contagem". Sem o total a conta tambem nao vale — na duvida, nao marca. */
+function caResumoCompleto(conf){
+  if(!conf) return false;
+  if(conf.divergencias==null) return false;
+  var t=caTipos(conf), s=0, i;
+  for(i=0;i<t.length;i++) s+=(+t[i].qtd||0);
+  return s>=(+conf.divergencias||0);
+}
+
+/* acha as conferencias daquele agendamento: mesmo CNPJ (14 digitos) e mesmo dia.
+   Devolve TODAS, nao a primeira. Ate 28/08/2026 devolvia a primeira que aparecesse, e a ordem
+   vinha do banco sem ninguem pedir ordem nenhuma — o mesmo CNPJ com dois carros no dia era
+   decidido por sorteio. Um dos casos reais: 03454838000143 em 27/08 tinha um carro limpo e
+   outro com 10 produtos NAO ENTREGUE; qual valia dependia da posicao da linha.
    CNPJ pela metade nao serve — casaria com a empresa errada. */
 function caAchar(ag, confs){
-  var doc=caDigitos(ag && ag.documento);
-  if(doc.length!==14) return null;
-  var i;
+  var doc=caDigitos(ag && ag.documento), achadas=[], i;
+  if(doc.length!==14) return achadas;
   for(i=0;i<(confs||[]).length;i++){
     var c=confs[i];
-    if(caDigitos(c.cnpj)===doc && String(c.data)===String(ag && ag.data)) return c;
+    if(caDigitos(c.cnpj)===doc && String(c.data)===String(ag && ag.data)) achadas.push(c);
   }
-  return null;
+  return achadas;
+}
+
+/* quantas entregas dessa mesma empresa estao marcadas para esse mesmo dia (contando ela).
+   Duas entregas da mesma empresa no dia e uma conferencia so: sem isto, a mesma conferencia
+   marcava as DUAS e o fornecedor recebia dois "entrega recebida" — um deles de um caminhao
+   que talvez nem tenha chegado. Recusadas e canceladas nao contam. */
+function caIrmaos(ag, ags){
+  var doc=caDigitos(ag && ag.documento), n=0, j;
+  if(doc.length!==14 || !ags || !ags.length) return 0;
+  for(j=0;j<ags.length;j++){
+    var o=ags[j]; if(!o) continue;
+    if(caDigitos(o.documento)!==doc) continue;
+    if(String(o.data)!==String(ag && ag.data)) continue;
+    var st=String(o.status||"");
+    if(st==="cancelado" || st.indexOf("recusad")>=0) continue;
+    n++;
+  }
+  return n;
 }
 
 /* O VEREDITO. Devolve sempre um motivo escrito — o dono precisa saber POR QUE marcou,
    e por que nao marcou. Estado sem explicacao e o defeito que este painel ja teve demais. */
-function caVeredito(ag, confs){
+function caVeredito(ag, confs, ags){
   if(!ag || String(ag.status)!=="aprovado") return {marcar:false, motivo:"", conf:null};
-  var c=caAchar(ag, confs);
-  if(!c) return {marcar:false, motivo:"ainda não chegou conferência desta empresa hoje", conf:null};
+  var achadas=caAchar(ag, confs);
+  if(!achadas.length) return {marcar:false, motivo:"ainda não chegou conferência desta empresa hoje", conf:null};
+  /* NA DUVIDA, NAO ESCOLHE — PERGUNTA. Duas conferencias da mesma empresa no dia sao dois
+     carros, e so quem esta na loja sabe qual e este agendamento. Escolher por conta propria
+     seria assinar "recebido" no carro errado. */
+  if(achadas.length>1) return {marcar:false, conf:achadas[0],
+    motivo: achadas.length+" conferências desta empresa hoje — diga você qual é esta entrega"};
+  var irmaos=caIrmaos(ag, ags);
+  if(irmaos>1) return {marcar:false, conf:achadas[0],
+    motivo: irmaos+" entregas desta empresa marcadas hoje — diga você qual foi conferida"};
+  var c=achadas[0];
   if(c.situacao!=="finalizado"){
     return {marcar:false, conf:c,
       motivo: c.situacao==="conferindo" ? "ainda está sendo conferido"
                                         : "bipou, mas a nota não foi finalizada"};
   }
+  if(!caResumoCompleto(c)) return {marcar:false, conf:c,
+    motivo: "o resumo das diferenças veio incompleto — não dá pra dizer que não falta nada"};
   var nc=caContagem(c);
   if(nc>0) return {marcar:false, conf:c,
     motivo: nc+(nc===1?" diferença":" diferenças")+" de contagem — precisa da sua decisão"};
+  var nb=+c.bipagens||0, nn=+c.notas||0;
   return {marcar:true, conf:c,
-    motivo: (c.bipagens||0)+" produtos bipados · "+(c.notas||0)+" nota"+((+c.notas===1)?"":"s")
-            +" fechada"+((+c.notas===1)?"":"s")+" · sem diferença de contagem"};
+    motivo: nb+" produto"+(nb===1?"":"s")+" bipado"+(nb===1?"":"s")
+            +" · "+nn+" nota"+(nn===1?"":"s")+" fechada"+(nn===1?"":"s")
+            +" · sem diferença de contagem"};
 }
 /* ==CONFAUTO-FIM== */
 
@@ -7066,7 +7128,7 @@ function clRecusarEntrega(id, quem, quando){
 /* auto=true: veio da marcacao automatica, nao de um clique. Muda so o que acontece quando
    FALHA — janela de erro no meio da tela sem ninguem ter clicado assusta e nao ajuda; quem
    chamou trata. O caminho de sucesso e exatamente o mesmo, inclusive o email. */
-function clEnviarStatus(id, status, motivo, quem, auto){
+function clEnviarStatus(id, status, motivo, quem, auto, okMsg){
   var sb=window.__SB; if(!sb) return;
   var bts=document.querySelectorAll('[data-psim="'+id+'"],[data-pnao="'+id+'"],'+
                                    '[data-pconf="'+id+'"],[data-precd="'+id+'"]');
@@ -7081,6 +7143,11 @@ function clEnviarStatus(id, status, motivo, quem, auto){
       return;
     }
     clPedidosLoad();
+    if(okMsg) clAvisoToast(okMsg, true);
+    /* CA_AVISAR ERA UM FREIO DE MAO DESLIGADO: estava escrito que ele parava o email, e nada
+       o lia. Agora para de verdade — mas so o email que sai SOZINHO. O clique de uma pessoa
+       continua avisando o fornecedor, como sempre. */
+    if(auto && typeof CA_AVISAR!=="undefined" && !CA_AVISAR) return;
     clAvisarFornecedor(id, status, quem);
   });
 }
@@ -11882,6 +11949,21 @@ function pxAnoMesAtual(){ return HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)
 // helpers leem o estado dos dois formatos sem quebrar os registros antigos.
 function pxManSt(man){ return (typeof man==="string") ? man : ((man&&man.st)||""); }
 function pxManBonif(man){ return !!(man && typeof man==="object" && man.t==="bonif"); }
+/* PAGAMENTO MANUAL COM MOTIVO — {t:"manual", st, motivo, quem, quando}.
+   Nasceu em 28/08/2026: ele cadastrou um ponto extra novo e o calendario comecou em julho,
+   mes que ja tinha sido pago por fora. Sem isto nao havia como registrar isso, porque o
+   botao de marcar pago tinha sido tirado quando o Sicredi entrou ("quem confirma e o banco").
+   A regra continua valendo — o banco confirma o que passa pelo banco. Isto e para o que NAO
+   passou: dinheiro, transferencia, mes pago antes do cadastro.
+   Usa objeto e nao texto para o motivo viajar junto; pxManSt ja le os dois, e pxManBonif
+   devolve false aqui, entao nenhum caminho de bonificacao e afetado. Vai pra nuvem de
+   carona na coluna "manuais", que ja existe. */
+function pxManManual(man){ return !!(man && typeof man==="object" && man.t==="manual"); }
+function pxManMotivo(man){
+  if(!pxManManual(man)) return "";
+  var q=man.quem?(" — "+String(man.quem)):"";
+  return String(man.motivo||"").replace(/[<>"]/g,"")+q;
+}
 // Extrai nº da nota e mercadoria (o que veio) do estado atual da bonificação, pra colunas próprias
 function bonifCampos(man){
   if(!pxManBonif(man)) return {nota:"",desc:""};
@@ -12052,10 +12134,13 @@ function pxAgendaHtml(p){
     const bonTit = manBon ? (man.hist||[]).map(function(h){ return "Veio "+brl(h.valor||0)+(h.nota?(" (nota "+h.nota+")"):"")+(h.por?(" · registrado por "+h.por):"")+(h.autPor?(" · autorizado por "+h.autPor):""); }).join(" | ").replace(/[<>"]/g,"") : "";
     const icoGift='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.79 0l-8-4a2 2 0 0 1-1.1-1.8V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"></path><polyline points="2.32 6.16 12 11 21.68 6.16"></polyline><line x1="12" y1="22.76" x2="12" y2="11"></line><line x1="7" y1="3.5" x2="17" y2="8.5"></line></svg>';
     const bonFalta = manBon ? Math.max(0,Math.round(((+p.valor||0)-(+man.tot||0))*100)/100) : (+p.valor||0);
+    /* MARCAR PAGO — so aparece onde nao atrapalha: sem cobranca, com boleto de pe, ou depois
+       de erro do banco. Nao aparece em bonificacao (tem fluxo proprio) nem no que ja esta pago. */
+    const btMarcar = ' <button type="button" class="px-aut" data-marcarpago="'+ref+'" title="Recebeu por fora (dinheiro, transferencia, ou mes pago antes do cadastro)? Marque aqui. Precisa da autorizacao do master para valer.">Marcar pago</button>';
     const pixCell = quit
-      ? '<span class="px-quitado" title="'+(manBon?("Pago com mercadoria. "+bonTit):"Mensalidade quitada")+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'+(manSt==="autorizado"?(manBon?"Pago (bonificação)":"Pago (autorizado)"):(pixCobPaga(p,key)?rotuloPago:"Quitado"))+'</span>'+(manSt==="autorizado"?' <button type="button" class="px-rec" data-desfazerpago="'+ref+'" title="Desfazer pagamento (precisa senha master)">✕</button>':((cob&&cob.status==="pago"&&cob.tipo_liquidacao==="TESTE")?' <button type="button" class="px-rec" data-desfazerteste="'+ref+'" title="Desfazer simulação de teste">✕</button>':''))
+      ? '<span class="px-quitado" title="'+(manBon?("Pago com mercadoria. "+bonTit):(pxManManual(man)?("Pago por fora: "+pxManMotivo(man)):"Mensalidade quitada"))+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'+(manSt==="autorizado"?(manBon?"Pago (bonificação)":"Pago (autorizado)"):(pixCobPaga(p,key)?rotuloPago:"Quitado"))+'</span>'+(manSt==="autorizado"?' <button type="button" class="px-rec" data-desfazerpago="'+ref+'" title="Desfazer pagamento (precisa senha master)">✕</button>':((cob&&cob.status==="pago"&&cob.tipo_liquidacao==="TESTE")?' <button type="button" class="px-rec" data-desfazerteste="'+ref+'" title="Desfazer simulação de teste">✕</button>':''))
       : manSt==="pendente"
-      ? '<span class="px-aguard" title="'+(manBon?("Mercadoria registrada ("+brl((man.pend&&man.pend.valor)||0)+(man.pend&&man.pend.nota?(", nota "+String(man.pend.nota).replace(/[<>"]/g,"")):"")+") — aguardando autorização do administrador. Para autorizar, o arquivo da nota precisa estar anexado na coluna Comprovante."):"Aguardando autorização do administrador")+'">'+icoRelogio+(manBon?'Aguardando ('+brl((man.pend&&man.pend.valor)||0)+')':'Aguardando')+'</span> <button type="button" class="px-aut" data-autorizar="'+ref+'">Autorizar</button> <button type="button" class="px-rec" data-recusar="'+ref+'" title="Recusar">✕</button>'
+      ? '<span class="px-aguard" title="'+(pxManManual(man)?("Pago por fora: "+pxManMotivo(man)+" — aguardando a autorizacao do master"):"")+(manBon?("Mercadoria registrada ("+brl((man.pend&&man.pend.valor)||0)+(man.pend&&man.pend.nota?(", nota "+String(man.pend.nota).replace(/[<>"]/g,"")):"")+") — aguardando autorização do administrador. Para autorizar, o arquivo da nota precisa estar anexado na coluna Comprovante."):"Aguardando autorização do administrador")+'">'+icoRelogio+(manBon?'Aguardando ('+brl((man.pend&&man.pend.valor)||0)+')':'Aguardando')+'</span> <button type="button" class="px-aut" data-autorizar="'+ref+'">Autorizar</button> <button type="button" class="px-rec" data-recusar="'+ref+'" title="Recusar">✕</button>'
       : manSt==="parcial"
       ? '<span class="px-aguard" title="Bonificação parcial: já veio '+brl(+man.tot||0)+' de '+brl(+p.valor||0)+'. '+bonTit+'">'+icoGift+'Parcial · faltam '+brl(bonFalta)+'</span> <button type="button" class="px-pix-btn" data-bonif="'+ref+'" title="Registrar o restante da mercadoria">'+icoGift+'Registrar restante</button>'
       : cob && (cob.status==="pedido"||cob.status==="gerando")
@@ -12065,12 +12150,12 @@ function pxAgendaHtml(p){
       : cob && cob.status==="cancelar"
       ? '<span class="px-aguard" title="O banco (Sicredi) exige de 1 a 3 minutos para liberar o cancelamento de uma cobrança recém-criada. É normal. Pode fechar a tela — o botão de gerar volta sozinho quando terminar.">'+icoRelogio+'Cancelando…</span>'
       : cob && cob.status==="gerado"
-      ? '<button type="button" class="px-pix-btn" data-pixver="'+ref+'" title="Cobrança registrada no Sicredi — '+(ehBoleto?"ver o boleto":"ver o QR Code")+'">'+(ehBoleto?icoBarras:icoQr)+(ehBoleto?'Ver boleto':'Ver QR Code')+'</button> <button type="button" class="px-rec" data-pixcancel="'+ref+'" title="Cancelar esta cobrança no banco (libera gerar outra)">✕</button>'
+      ? '<button type="button" class="px-pix-btn" data-pixver="'+ref+'" title="Cobrança registrada no Sicredi — '+(ehBoleto?"ver o boleto":"ver o QR Code")+'">'+(ehBoleto?icoBarras:icoQr)+(ehBoleto?'Ver boleto':'Ver QR Code')+'</button> <button type="button" class="px-rec" data-pixcancel="'+ref+'" title="Cancelar esta cobrança no banco (libera gerar outra)">✕</button>'+btMarcar
       : cob && cob.status==="erro"
-      ? '<span class="px-aguard" title="'+String(cob.erro_msg||"O banco recusou a cobrança").slice(0,180).replace(/[<>]/g,"").replace(/"/g,"&quot;")+'">'+icoAlerta+'Erro no banco</span> <button type="button" class="px-aut" data-pixretry="'+ref+'" title="Corrija o cadastro (ex: CNPJ) e peça de novo">Tentar de novo</button>'
+      ? '<span class="px-aguard" title="'+String(cob.erro_msg||"O banco recusou a cobrança").slice(0,180).replace(/[<>]/g,"").replace(/"/g,"&quot;")+'">'+icoAlerta+'Erro no banco</span> <button type="button" class="px-aut" data-pixretry="'+ref+'" title="Corrija o cadastro (ex: CNPJ) e peça de novo">Tentar de novo</button>'+btMarcar
       : ehBonif
       ? '<button type="button" class="px-pix-btn" data-bonif="'+ref+'" title="Chegou a mercadoria da bonificação? Registre aqui (precisa autorização do master pra valer)">'+icoGift+'Registrar bonificação</button>'
-      : '<button type="button" class="px-pix-btn" data-pix="'+ref+'">'+(ehBoleto?'Gerar boleto':'Gerar Pix')+'</button>';
+      : '<button type="button" class="px-pix-btn" data-pix="'+ref+'">'+(ehBoleto?'Gerar boleto':'Gerar Pix')+'</button>'+btMarcar;
     var bonifCols="";
     if(ehBonifComp){ var bc=bonifCampos(man); bonifCols='<td class="bonif-c">'+(bc.nota||'<span class="bonif-vazio">—</span>')+'</td><td class="bonif-c">'+(bc.desc||'<span class="bonif-vazio">—</span>')+'</td>'; }
     return '<tr'+passou+'><td>'+(i+1)+'</td><td>'+pxDataChip(d)+'</td><td>'+brl(p.valor||0)+'</td><td class="px-pix-cell">'+pixCell+'</td>'+bonifCols+'<td class="px-comp-cell">'+cell+'</td></tr>';
@@ -13544,7 +13629,39 @@ async function pixTravaClick(){
     const bnf=e.target.closest("[data-bonif]");
     if(bnf){ const pr=bnf.dataset.bonif.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p) bonifAbrir(p,pr[1]); return; }
     const mark=e.target.closest("[data-marcarpago]");
-    if(mark){ const pr=mark.dataset.marcarpago.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p){ p.manuais=p.manuais||{}; p.manuais[pr[1]]="pendente"; savePontosG(); renderPontosG(); pxReabrir(p.id); uiConfirm({titulo:"Enviado para autorização",msg:"Pagamento marcado. Está AGUARDANDO a autorização do administrador (senha master) para ficar pago.",ok:"Ok",cancel:""}); } return; }
+    if(mark){
+      const pr=mark.dataset.marcarpago.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(!p) return;
+      const kk=pr[1];
+      /* O BOLETO VIVO E O PERIGO DESTA TELA. Marcar pago aqui nao cancela nada no banco: se
+         o boleto continuar de pe, a pessoa pode pagar de novo. Entao eu aviso ANTES, com o
+         caminho escrito, em vez de deixar o dinheiro em dobro acontecer calado. */
+      const cobV=(typeof pixCobDe==="function")?pixCobDe(p,kk):null;
+      const vivo=!!(cobV && (cobV.status==="gerado"||cobV.status==="pedido"||cobV.status==="gerando"));
+      const seguir=vivo
+        ? uiConfirm({titulo:"O boleto continua aberto no banco",
+            msg:"Esta parcela tem cobrança registrada no Sicredi. Marcar como paga aqui NÃO cancela ela — a pessoa ainda consegue pagar o boleto, e você recebe duas vezes.\\n\\nCancele a cobrança no ✕ ao lado antes, ou siga assim mesmo se souber o que está fazendo.",
+            ok:"Marcar mesmo assim", cancel:"Cancelar"})
+        : Promise.resolve(true);
+      seguir.then(function(ok){
+        if(!ok) return;
+        return uiPrompt({titulo:"Por que está marcando como paga?", icone:"💬", inputType:"text",
+          placeholder:"ex: pago em dinheiro antes do cadastro",
+          msg:"Escreva em uma linha. Fica guardado na história desta parcela — sem isso, daqui a seis meses ninguém sabe por que ela está paga sem ter passado pelo banco.",
+          ok:"Continuar", cancel:"Cancelar"}).then(function(motivo){
+            if(motivo===null) return;
+            motivo=String(motivo||"").trim();
+            if(!motivo){ uiConfirm({titulo:"Falta o motivo",msg:"Escreva o motivo para poder marcar.",ok:"Ok",cancel:""}); return; }
+            p.manuais=p.manuais||{};
+            p.manuais[kk]={ t:"manual", st:"pendente", motivo:motivo.slice(0,140),
+                            quem:(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"", quando:new Date().toISOString() };
+            savePontosG(); renderPontosG(); pxReabrir(p.id);
+            uiConfirm({titulo:"Enviado para autorização",
+              msg:"Pagamento marcado. Está AGUARDANDO a autorização do administrador (senha master) para ficar pago.",
+              ok:"Ok",cancel:""});
+          });
+      });
+      return;
+    }
     const aut=e.target.closest("[data-autorizar]");
     if(aut){ const pr=aut.dataset.autorizar.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p){
       const kk=pr[1]; const manA=(p.manuais||{})[kk];
@@ -13580,7 +13697,14 @@ async function pixTravaClick(){
         });
         return;
       }
-      pxExigeMaster("Digite a senha master para AUTORIZAR este pagamento.").then(function(ok){ if(!ok) return; const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return; pA.manuais=pA.manuais||{}; pA.manuais[kk]="autorizado"; savePontosG(); renderPontosG(); pxReabrir(pA.id); });
+      pxExigeMaster("Digite a senha master para AUTORIZAR este pagamento.").then(function(ok){ if(!ok) return; const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return; pA.manuais=pA.manuais||{};
+        /* NAO APAGAR O MOTIVO. Ate 28/08/2026 esta linha era manuais[kk]="autorizado", o que
+           trocava o registro inteiro por uma palavra — e o porque do pagamento sumia junto. */
+        var mAnt=pA.manuais[kk];
+        pA.manuais[kk] = pxManManual(mAnt)
+          ? Object.assign({}, mAnt, {st:"autorizado", autorizado_em:new Date().toISOString()})
+          : "autorizado";
+        savePontosG(); renderPontosG(); pxReabrir(pA.id); });
     } return; }
     const rec=e.target.closest("[data-recusar]");
     if(rec){ const pr=rec.dataset.recusar.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p&&p.manuais){

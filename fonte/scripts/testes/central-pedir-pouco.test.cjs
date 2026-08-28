@@ -67,10 +67,25 @@ eq("sem divergencia: lista vazia", JSON.stringify(clConfTipos({ divergencias: 0 
 eq("registro nulo nao quebra", JSON.stringify(clConfTipos(null)), "[]");
 eq("tipos vazio cai pro campo inteiro", JSON.stringify(clConfTipos({ tipos: [], divergencia_detalhe: { tipos: T } })), JSON.stringify(T));
 
-// a linha so e clicavel quando ha tipo — e o robo monta tipo a partir de item,
-// entao "tem tipo" e "tem item" sao a mesma coisa (vr-sync-conferencia.cjs, montaDetalhe)
+// O RESUMO POR TIPO NAO PODE SAIR DA LISTA DE ITENS. Ela tem teto de 60 e sai em ordem
+// alfabetica de tipo; os tipos de CONTAGEM vem todos depois de CUSTO ANTERIOR, entao o corte
+// comia justamente eles. Em 28/08/2026 isso fez a marcacao automatica ver "zero de contagem"
+// num carro com 15 produtos NAO ENTREGUE (FAMA, 105 diferencas, painel via 60).
+// Ate essa data ESTE TESTE COBRAVA O DEFEITO — exigia que o robo contasse a lista cortada.
+// Agora cobra o contrario: os tipos vem do banco, contados sobre tudo.
 const ROBO = fs.readFileSync(path.join(__dirname, "..", "vr-sync-conferencia.cjs"), "utf8");
-eq("o robo monta os tipos contando os itens", /for \(const i of itens\) conta\[i\.tipo\]/.test(ROBO), true);
+eq("o robo NAO conta os tipos pela lista cortada", /for \(const i of itens\) conta\[i\.tipo\]/.test(ROBO), false);
+eq("os tipos vem do banco, agrupados sem teto", /group by d\.tipo/.test(ROBO), true);
+eq("e o teto de 60 continua so na lista de itens", (ROBO.match(/limit 60/g) || []).length, 1);
+eq("montaDetalhe recebe os tipos prontos", /function montaDetalhe\(lista, tiposCompletos\)/.test(ROBO), true);
+// E A ORDEM DA LISTA DE ITENS: o que FALTOU tem que vir antes do preco, senao o teto de 60
+// come justamente os produtos que a loja quer ver. Na FAMA de 28/08 a lista guardada tinha
+// 29 CUSTO + 31 CUSTO ANTERIOR e ZERO das 15 faltas — o dono clicava e nao achava nenhuma.
+eq("a lista poe FALTA antes de preco", /order by case when d\.tipo in \('COLETOR','NAO ENTREGUE','QUANTIDADE',/.test(ROBO), true);
+eq("e os 5 tipos de falta estao todos na frente",
+   ["COLETOR","NAO ENTREGUE","QUANTIDADE","QUANTIDADE/CUSTO","SEM PEDIDO"]
+     .every(t => new RegExp("'" + t.replace("/","\\/") + "'").test((ROBO.match(/order by case when[\s\S]{0,220}/)||[""])[0])), true);
+eq("e e chamada com eles", /montaDetalhe\(x\.detalhe, x\.tipos\)/.test(ROBO), true);
 eq("e devolve os dois juntos", /return \{ tipos, itens:/.test(ROBO), true);
 
 console.log("\n" + ok + " ok, " + falhou + " falha(s).");
