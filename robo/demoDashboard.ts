@@ -11982,6 +11982,11 @@ function pxQuitado(p,key){
   const man=(p.manuais||{})[key];
   // bonificação em andamento: o anexo da nota é só PROVA, não quita — quem quita é a autorização do master
   if(pxManBonif(man) && man.st!=="autorizado") return pixCobPaga(p,key);
+  /* PAGAMENTO MANUAL AGUARDANDO: idem, e por pouco isto nao virou um buraco. A linha de baixo
+     da "quitado" para QUALQUER parcela com comprovante anexado — entao o financeiro anexar o
+     comprovante ja marcaria a parcela como paga, PULANDO a autorizacao do master, que e o
+     ponto inteiro do desenho que ele pediu em 28/08/2026. */
+  if(pxManManual(man) && man.st!=="autorizado") return pixCobPaga(p,key);
   return !!comps[key] || pxManSt(man)==="autorizado" || pixCobPaga(p,key);
 }
 // true se editar o ponto (com as datas novas) vai DESLOCAR as parcelas e orfanar alguma
@@ -12137,15 +12142,13 @@ function pxAgendaHtml(p){
     const bonTit = manBon ? (man.hist||[]).map(function(h){ return "Veio "+brl(h.valor||0)+(h.nota?(" (nota "+h.nota+")"):"")+(h.por?(" · registrado por "+h.por):"")+(h.autPor?(" · autorizado por "+h.autPor):""); }).join(" | ").replace(/[<>"]/g,"") : "";
     const icoGift='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.79 0l-8-4a2 2 0 0 1-1.1-1.8V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"></path><polyline points="2.32 6.16 12 11 21.68 6.16"></polyline><line x1="12" y1="22.76" x2="12" y2="11"></line><line x1="7" y1="3.5" x2="17" y2="8.5"></line></svg>';
     const bonFalta = manBon ? Math.max(0,Math.round(((+p.valor||0)-(+man.tot||0))*100)/100) : (+p.valor||0);
-    /* MARCAR PAGO — SO O MASTER VE (decisao dele em 28/08/2026). Dizer que uma parcela esta
-       paga sem o banco ter confirmado e afirmar que dinheiro entrou; nao e coisa para ficar
-       ao alcance de quem so cuida dos pontos. E como so o master ve, nao ha o que autorizar
-       depois: o clique dele JA e a autorizacao.
+    /* MARCAR PAGO — o financeiro marca, o MASTER autoriza (desenho dele, 28/08/2026, no mesmo
+       molde dos recibos). Quem clica escreve o motivo e anexa o comprovante; a parcela fica
+       AGUARDANDO e so vira paga quando o master autoriza com a senha. Assim ele nao precisa
+       ficar marcando parcela a parcela, e nada entra como pago sem um segundo par de olhos.
        Aparece onde nao atrapalha: sem cobranca, com boleto de pe, ou depois de erro do banco.
        Nunca em bonificacao (tem fluxo proprio) nem no que ja esta pago. */
-    const btMarcar = (window.__PERFIL && window.__PERFIL.is_master)
-      ? ' <button type="button" class="px-aut" data-marcarpago="'+ref+'" title="Recebeu por fora (dinheiro, transferencia, ou mes pago antes do cadastro)? Marque aqui.">Marcar pago</button>'
-      : '';
+    const btMarcar = ' <button type="button" class="px-aut" data-marcarpago="'+ref+'" title="Recebeu por fora (dinheiro, transferencia, ou mes pago antes do cadastro)? Marque aqui: escreva o motivo e anexe o comprovante. O master autoriza depois.">Marcar pago</button>';
     const pixCell = quit
       ? '<span class="px-quitado" title="'+(manBon?("Pago com mercadoria. "+bonTit):(pxManManual(man)?("Pago por fora: "+pxManMotivo(man)):"Mensalidade quitada"))+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'+(manSt==="autorizado"?(manBon?"Pago (bonificação)":"Pago (autorizado)"):(pixCobPaga(p,key)?rotuloPago:"Quitado"))+'</span>'+(manSt==="autorizado"?' <button type="button" class="px-rec" data-desfazerpago="'+ref+'" title="Desfazer pagamento (precisa senha master)">✕</button>':((cob&&cob.status==="pago"&&cob.tipo_liquidacao==="TESTE")?' <button type="button" class="px-rec" data-desfazerteste="'+ref+'" title="Desfazer simulação de teste">✕</button>':''))
       : manSt==="pendente"
@@ -12455,6 +12458,107 @@ function bonifArqTxt(anexado,nome,durl){
     if(b){ b.style.cursor="pointer"; }
   }
 }
+/* ==MARCARPAGO-INICIO==
+   PAGAMENTO QUE NAO PASSOU PELO BANCO — quem marca e o financeiro, quem autoriza e o master.
+
+   Desenho pedido por ele em 28/08/2026, no mesmo molde dos recibos: o funcionario do
+   financeiro marca e escreve o MOTIVO, anexa o COMPROVANTE, e fica aguardando; o master
+   autoriza com a senha e so entao a parcela vira paga.
+
+   POR QUE O COMPROVANTE E OBRIGATORIO AQUI E NAO NO RESTO: quando a cobranca passa pelo
+   Sicredi, quem prova o pagamento e o banco — nao precisa de papel nenhum. Este caminho existe
+   justamente para o dinheiro que NAO passou pelo banco (dinheiro, transferencia, mes pago antes
+   do cadastro). Sem o anexo, a unica coisa sustentando "esta pago" seria a palavra de quem
+   clicou. Palavras dele: "se fosse marcado como pago, teria que ter anexar o comprovante de
+   pagamento tambem. E se fosse pago normal, nao precisaria."
+*/
+var mpgCtx=null, mpgArquivo=null, mpgArqVer=null;
+function mpgArqTxt(anexado,nome,durl){
+  var t=document.getElementById("mpgArqTxt"); if(!t) return;
+  mpgArqVer = anexado ? (durl||null) : null;
+  if(anexado){
+    t.style.width="100%";
+    t.innerHTML='<div data-mpg-ver title="Clique para ver o arquivo" style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e3e8ee;border-radius:10px;padding:11px 14px;width:100%;box-sizing:border-box;cursor:pointer;">'+
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1b9e4b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>'+
+      '<span style="flex:1;text-align:left;color:#2a3340;font-weight:700;font-size:13px;word-break:break-all;">'+pxEsc(nome||"comprovante")+'</span>'+
+      '<span data-mpg-remover title="Remover" style="flex-shrink:0;display:inline-flex;padding:3px;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9aa6b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span></div>';
+  } else {
+    t.style.width="";
+    t.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>Anexar comprovante';
+  }
+}
+function mpgProcessaArquivo(f){
+  var prev=document.getElementById("mpgArqPrev"); if(prev) prev.innerHTML="";
+  if(!f) return;
+  var tipoOk=/pdf$/i.test(f.type)||/^image\//i.test(f.type)||/\.(pdf|png|jpe?g|webp|heic)$/i.test(f.name||"");
+  if(!tipoOk){ mpgArquivo=null; mpgArqTxt(false,""); if(prev) prev.textContent="Envie um PDF ou uma foto do comprovante."; return; }
+  if(f.size>3*1024*1024){ mpgArquivo=null; mpgArqTxt(false,""); if(prev) prev.textContent="Arquivo muito grande (máx 3 MB). Tente um menor."; return; }
+  var reader=new FileReader();
+  reader.onload=function(){ mpgArquivo={ arquivo:reader.result, nome:f.name }; mpgArqTxt(true,f.name,reader.result); };
+  reader.readAsDataURL(f);
+}
+function mpgAbrir(p,key){
+  if(!window.__PERFIL){ uiConfirm({titulo:"Entre no painel",msg:"Faça login para marcar o pagamento.",ok:"Entendi",cancel:""}); return; }
+  var m=document.getElementById("mpgModal");
+  if(!m){
+    m=document.createElement("div"); m.id="mpgModal"; m.className="modal-bg";
+    m.innerHTML='<div class="modal-cx" style="max-width:400px;">'+
+      '<div class="modal-top"><div class="modal-ic" style="background:#e3f0e8;color:#157a35;">💬</div><div class="modal-tit">Marcar como paga</div></div>'+
+      '<div class="pix-body"><div class="pix-sub" id="mpgSub"></div>'+
+      '<div class="pix-cc-lbl">Por que está sendo dada como paga?</div>'+
+      '<input type="text" id="mpgMotivo" maxlength="140" placeholder="ex: pago em dinheiro antes do cadastro" style="width:100%;box-sizing:border-box;border:1px solid #cdd6e0;border-radius:8px;padding:9px 10px;font-size:14px;color:#2a3340;">'+
+      '<div class="pix-cc-lbl">Comprovante do pagamento (PDF ou foto)</div>'+
+      '<div id="mpgArqBtn" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;min-height:56px;border:1px dashed #b9c3cf;border-radius:8px;padding:12px 14px;text-align:center;font-size:13px;font-weight:700;color:#33404f;cursor:pointer;word-break:break-all;line-height:1.35;"><span id="mpgArqTxt" style="display:inline-flex;align-items:center;gap:7px;justify-content:center;flex-wrap:wrap;"></span><input type="file" id="mpgArqFile" accept="application/pdf,image/*" style="display:none;"></div>'+
+      '<div id="mpgArqPrev" style="margin-top:6px;font-size:12px;color:#c0392b;"></div></div>'+
+      '<div class="modal-acts"><button type="button" class="btn-p" id="mpgOk" style="background:#157a35;color:#fff;border:0;">Enviar para autorização</button><button type="button" class="btn-s" id="mpgFechar">Cancelar</button></div>'+
+      '</div>';
+    document.body.appendChild(m);
+    m.addEventListener("click",function(e){ if(e.target===m) m.classList.remove("show"); });
+    document.getElementById("mpgFechar").addEventListener("click",function(){ m.classList.remove("show"); });
+    document.getElementById("mpgOk").addEventListener("click",mpgConfirmar);
+    document.getElementById("mpgMotivo").addEventListener("input",function(){ this.classList.remove("campo-erro"); });
+    document.getElementById("mpgArqBtn").addEventListener("click",function(e){
+      if(e.target.closest("[data-mpg-remover]")){ mpgArquivo=null; document.getElementById("mpgArqFile").value=""; document.getElementById("mpgArqPrev").innerHTML=""; mpgArqTxt(false,""); return; }
+      if(e.target.closest("[data-mpg-ver]")){ if(mpgArqVer) pxAbrirArquivo(mpgArqVer); return; }
+      if(!mpgArqVer){ document.getElementById("mpgArqFile").click(); }
+    });
+    document.getElementById("mpgArqFile").addEventListener("change",function(){ mpgProcessaArquivo(this.files&&this.files[0]); });
+  }
+  mpgCtx={ pid:p.id, key:key };
+  mpgArquivo=null; mpgArqVer=null;
+  document.getElementById("mpgMotivo").value="";
+  document.getElementById("mpgMotivo").classList.remove("campo-erro");
+  document.getElementById("mpgArqFile").value="";
+  document.getElementById("mpgArqPrev").innerHTML="";
+  document.getElementById("mpgArqBtn").classList.remove("campo-erro");
+  mpgArqTxt(false,"");
+  document.getElementById("mpgSub").textContent="Parcela de "+pxFmtData(key)+" — "+brl(p.valor||0)+". Ela fica AGUARDANDO a autorização do master para virar paga.";
+  m.classList.add("show");
+  setTimeout(function(){ document.getElementById("mpgMotivo").focus(); },40);
+}
+function mpgConfirmar(){
+  if(!mpgCtx) return;
+  var mot=String(document.getElementById("mpgMotivo").value||"").trim();
+  var prev=document.getElementById("mpgArqPrev");
+  if(!mot){ document.getElementById("mpgMotivo").classList.add("campo-erro"); document.getElementById("mpgMotivo").focus(); return; }
+  /* SEM COMPROVANTE NAO SAI. Esta e a unica prova que vai existir deste pagamento. */
+  if(!mpgArquivo){ document.getElementById("mpgArqBtn").classList.add("campo-erro"); if(prev) prev.textContent="Anexe o comprovante do pagamento."; return; }
+  var p=pontosG.find(function(x){ return x.id===mpgCtx.pid; });
+  if(!p){ document.getElementById("mpgModal").classList.remove("show"); return; }
+  var kk=mpgCtx.key;
+  p.manuais=p.manuais||{};
+  p.manuais[kk]={ t:"manual", st:"pendente", motivo:mot.slice(0,140),
+                  quem:(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"",
+                  quando:new Date().toISOString() };
+  p.comprovantes=p.comprovantes||{};
+  p.comprovantes[kk]={ arquivo:mpgArquivo.arquivo, nome:mpgArquivo.nome };
+  savePontosG(); renderPontosG(); pxReabrir(p.id);
+  document.getElementById("mpgModal").classList.remove("show");
+  uiConfirm({titulo:"Enviado para autorização",
+    msg:"Pagamento marcado, com o motivo e o comprovante. Está AGUARDANDO a autorização do master para ficar pago.",
+    ok:"Ok",cancel:""});
+}
+/* ==MARCARPAGO-FIM== */
 function bonifAbrir(p,key){
   if(!pxSB() || !window.__PERFIL){ uiConfirm({ titulo:"Entre no painel", msg:"Faça login para registrar a bonificação.", ok:"Entendi", cancel:"" }); return; }
   if(!pxExigeContrato(p)) return; // sem contrato anexado, não registra bonificação
@@ -13651,31 +13755,28 @@ async function pixTravaClick(){
             msg:"Esta parcela tem cobrança registrada no Sicredi. Marcar como paga aqui NÃO cancela ela — a pessoa ainda consegue pagar o boleto, e você recebe duas vezes.\\n\\nCancele a cobrança no ✕ ao lado antes, ou siga assim mesmo se souber o que está fazendo.",
             ok:"Marcar mesmo assim", cancel:"Cancelar"})
         : Promise.resolve(true);
-      seguir.then(function(ok){
-        if(!ok) return;
-        /* UM PASSO SO, MAS COM O MOTIVO ESCRITO (como ele pediu em 28/08/2026).
-           Como so o master ve o botao, nao ha segundo par de olhos para esperar: o clique
-           dele JA e a autorizacao. O que nao se abre mao e do porque — daqui a seis meses,
-           "paga sem ter passado pelo banco" sem explicacao nenhuma nao se defende. */
-        return uiPrompt({titulo:"Por que está marcando como paga?", icone:"💬", inputType:"text",
-          placeholder:"ex: pago em dinheiro antes do cadastro",
-          msg:"Escreva em uma linha. Fica guardado na história desta parcela, com seu nome e a data.",
-          ok:"Marcar como paga", cancel:"Cancelar"}).then(function(motivo){
-            if(motivo===null) return;
-            motivo=String(motivo||"").trim();
-            if(!motivo){ uiConfirm({titulo:"Falta o motivo",msg:"Escreva por que esta parcela está sendo dada como paga.",ok:"Ok",cancel:""}); return; }
-            p.manuais=p.manuais||{};
-            p.manuais[kk]={ t:"manual", st:"autorizado", motivo:motivo.slice(0,140),
-                            quem:(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"",
-                            quando:new Date().toISOString(), autorizado_em:new Date().toISOString() };
-            savePontosG(); renderPontosG(); pxReabrir(p.id);
-          });
-      });
+      seguir.then(function(ok){ if(ok) mpgAbrir(p, kk); });
       return;
     }
     const aut=e.target.closest("[data-autorizar]");
     if(aut){ const pr=aut.dataset.autorizar.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p){
       const kk=pr[1]; const manA=(p.manuais||{})[kk];
+      if(pxManManual(manA)){
+        /* SEM O COMPROVANTE NAO AUTORIZA — mesma regra da bonificacao. Se alguem removeu o
+           anexo depois de marcar, a autorizacao para aqui: o que sustenta este pagamento e o
+           papel, porque o banco nao viu nada. */
+        if(!((p.comprovantes||{})[kk])){ uiConfirm({titulo:"Falta o comprovante",msg:"Para autorizar, o comprovante do pagamento precisa estar anexado na coluna Comprovante desta parcela. Se ele foi removido, peça para anexar de novo.",ok:"Entendi",cancel:""}); return; }
+        pxExigeMaster("Digite a senha master para AUTORIZAR este pagamento.").then(function(ok){
+          if(!ok) return;
+          const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return;
+          const mA=(pA.manuais||{})[kk]; if(!pxManManual(mA) || mA.st!=="pendente"){ renderPontosG(); return; }
+          pA.manuais[kk]=Object.assign({}, mA, {st:"autorizado",
+            autorizado_por:(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"",
+            autorizado_em:new Date().toISOString()});
+          savePontosG(); renderPontosG(); pxReabrir(pA.id);
+        });
+        return;
+      }
       if(pxManBonif(manA)){
         // BONIFICAÇÃO: só autoriza com o arquivo da nota anexado (a prova é obrigatória)
         if(!((p.comprovantes||{})[kk])){ uiConfirm({titulo:"Falta o arquivo da nota",msg:"Para autorizar a bonificação, anexe primeiro o ARQUIVO da nota fiscal (PDF) no botão Anexar, na coluna Comprovante desta parcela.",ok:"Entendi",cancel:""}); return; }
@@ -13738,7 +13839,16 @@ async function pixTravaClick(){
     const cpview=e.target.closest("[data-compview]");
     if(cpview){ e.preventDefault(); const pr=cpview.dataset.compview.split("|"); const p=pontosG.find(x=>x.id===pr[0]); const c=p&&p.comprovantes?p.comprovantes[pr[1]]:null; if(c) pxAbrirArquivo(c.arquivo); return; }
     const cprem=e.target.closest("[data-comprem]");
-    if(cprem){ const pr=cprem.dataset.comprem.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p&&p.comprovantes&&p.comprovantes[pr[1]]){ uiConfirm({ titulo:"Remover comprovante", msg:"Remover o comprovante desta parcela?", ok:"Remover", cancel:"Cancelar" }).then(function(sim){ if(!sim) return; delete p.comprovantes[pr[1]]; savePontosG(); renderPontosG(); pxReabrir(p.id); }); } return; }
+    if(cprem){ const pr=cprem.dataset.comprem.split("|"); const p=pontosG.find(x=>x.id===pr[0]);
+      /* A PROVA DE UM PAGAMENTO AUTORIZADO NAO SE APAGA. Sem o banco por tras, o comprovante e
+         a unica coisa que sustenta "esta pago" — se ele sumir, sobra a palavra de quem clicou.
+         Para trocar o arquivo, desfaz o pagamento (o ✕ ao lado de "Pago") e marca de novo. */
+      const mC=p&&(p.manuais||{})[pr[1]];
+      if(pxManManual(mC) && mC.st==="autorizado"){
+        uiConfirm({titulo:"Não dá para remover",msg:"Este comprovante é a prova de um pagamento que não passou pelo banco e já foi autorizado. Para trocá-lo, desfaça o pagamento primeiro e marque de novo.",ok:"Entendi",cancel:""});
+        return;
+      }
+      if(p&&p.comprovantes&&p.comprovantes[pr[1]]){ uiConfirm({ titulo:"Remover comprovante", msg:"Remover o comprovante desta parcela?", ok:"Remover", cancel:"Cancelar" }).then(function(sim){ if(!sim) return; delete p.comprovantes[pr[1]]; savePontosG(); renderPontosG(); pxReabrir(p.id); }); } return; }
     const cass=e.target.closest("[data-cassinar]");
     if(cass){ pxAssinar(cass.dataset.cassinar); return; }
     const carem=e.target.closest("[data-cassinrem]");

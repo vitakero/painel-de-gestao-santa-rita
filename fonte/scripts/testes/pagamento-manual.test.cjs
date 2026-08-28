@@ -52,29 +52,32 @@ eq("   se um dia vier motivo, ele aparece na frente",
 eq("   bonificação não tem motivo manual", M.pxManMotivo(BONIF), "");
 eq("   escapa caractere perigoso", /[<>"]/.test(M.pxManMotivo({ t:"manual", motivo:'<script>"x"', quem:'<b>' })), false);
 
-console.log("\n3) as travas no painel");
+console.log("\n3) o caminho: financeiro marca, master autoriza");
 eq("   o botão Marcar pago é DESENHADO", /data-marcarpago="'\+ref\+'"/.test(HTML), true);
-// A TRAVA QUE ELE PEDIU: só o master vê. Dizer que entrou dinheiro sem o banco ter confirmado
-// não pode ficar ao alcance de quem só cuida dos pontos.
-eq("   SÓ o master vê o botão",
-   /const btMarcar = \(window\.__PERFIL && window\.__PERFIL\.is_master\)/.test(HTML), true);
-eq("   e some para quem não é master", /\n\s*: '';/.test(HTML), true);
-eq("   pede o motivo escrito", /Por que está marcando como paga\?/.test(HTML), true);
-eq("   e recusa em branco", /Escreva por que esta parcela está sendo dada como paga\./.test(HTML), true);
-// UM PASSO SO: como so o master ve o botao, o clique dele ja e a autorizacao — nao ha
-// segundo par de olhos para esperar, entao a parcela nao passa por "Aguardando".
-eq("   já nasce autorizado (sem passo de autorização)", /st:"autorizado", motivo:motivo\.slice\(0,140\)/.test(HTML), true);
-eq("   o motivo é limitado a 140 letras", /motivo\.slice\(0,140\)/.test(HTML), true);
-eq("   avisa quando o boleto continua vivo no banco", /O boleto continua aberto no banco/.test(HTML), true);
-eq("   e só considera vivo o que está de pé",
-   /cobV\.status==="gerado"\|\|cobV\.status==="pedido"\|\|cobV\.status==="gerando"/.test(HTML), true);
-// ESTA É A TRAVA QUE IMPORTA: autorizar não pode apagar o motivo trocando o objeto por texto.
-eq("   autorizar PRESERVA o motivo", /pxManManual\(mAnt\)\s*\?\s*Object\.assign\(\{\}, mAnt, \{st:"autorizado"/.test(HTML), true);
-eq("   quem marcou fica registrado", /quem:\(window\.__PERFIL&&window\.__PERFIL\.nome\)\|\|window\.__EMAIL\|\|"",/.test(HTML), true);
-eq("   e a data também", /quando:new Date\(\)\.toISOString\(\)/.test(HTML), true);
-eq("   o caminho da bonificação continua exigindo a senha master",
+eq("   NÃO é mais só do master (o financeiro marca)",
+   /const btMarcar = \(window\.__PERFIL && window\.__PERFIL\.is_master\)/.test(HTML), false);
+eq("   abre a janela do marcar pago", /mpgAbrir\(p, kk\)/.test(HTML), true);
+eq("   a janela pede o motivo", /Por que está sendo dada como paga\?/.test(HTML), true);
+eq("   e pede o comprovante", /Comprovante do pagamento \(PDF ou foto\)/.test(HTML), true);
+eq("   sem comprovante não envia", /Anexe o comprovante do pagamento\./.test(HTML), true);
+eq("   nasce AGUARDANDO, não pago", /t:"manual", st:"pendente", motivo:mot\.slice\(0,140\)/.test(HTML), true);
+eq("   guarda o comprovante junto", /p\.comprovantes\[kk\]=\{ arquivo:mpgArquivo\.arquivo/.test(HTML), true);
+
+console.log("\n4) as travas que seguram o dinheiro");
+// A MAIS IMPORTANTE: anexar comprovante NÃO pode quitar sozinho, senão o financeiro anexa e a
+// parcela já vira paga — pulando a autorização, que é o ponto inteiro do desenho.
+eq("   anexo NÃO quita sozinho (pula a autorização)",
+   /if\(pxManManual\(man\) && man\.st!=="autorizado"\) return pixCobPaga\(p,key\);/.test(HTML), true);
+eq("   autorizar exige a senha master",
    /pxExigeMaster\("Digite a senha master para AUTORIZAR este pagamento\."\)/.test(HTML), true);
-eq("   manuais vai pra nuvem (o motivo vai de carona)", /manuais:p\.manuais\|\|null/.test(HTML), true);
+eq("   e exige o comprovante anexado", /Para autorizar, o comprovante do pagamento precisa estar anexado/.test(HTML), true);
+eq("   só autoriza o que está pendente", /if\(!pxManManual\(mA\) \|\| mA\.st!=="pendente"\)/.test(HTML), true);
+eq("   guarda QUEM autorizou", /autorizado_por:\(window\.__PERFIL&&window\.__PERFIL\.nome\)/.test(HTML), true);
+eq("   a prova de pagamento autorizado não se apaga", /Não dá para remover/.test(HTML), true);
+eq("   avisa quando o boleto continua vivo no banco", /O boleto continua aberto no banco/.test(HTML), true);
+eq("   arquivo grande é recusado", /Arquivo muito grande \(máx 3 MB\)/.test(HTML), true);
+eq("   manuais e comprovantes vão pra nuvem",
+   /manuais:p\.manuais\|\|null,comprovantes:p\.comprovantes\|\|null/.test(HTML), true);
 
 console.log("\n" + ok + " ok, " + falhou + " falha(s).");
 process.exit(falhou ? 1 : 0);
