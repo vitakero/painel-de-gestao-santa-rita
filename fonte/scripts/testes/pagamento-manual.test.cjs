@@ -79,10 +79,15 @@ console.log("\n5) o motivo é VISÍVEL — não escondido no passar-o-mouse");
 // Ele reclamou disso em 28/08 com a linha na tela: "só consigo ver o comprovante e autorizar,
 // mas não vejo o motivo de ter pago dessa forma". E como ele é master, o pxExigeMaster passa
 // direto: sem a confirmação abaixo, o clique autorizava na hora, sem ele ler nada.
-eq("   o motivo é escrito na linha que aguarda", /<div class="px-motivo">'\+pxEsc\(man\.motivo/.test(HTML), true);
-eq("   e continua escrito depois de pago", (HTML.match(/<div class="px-motivo">/g) || []).length >= 2, true);
-eq("   diz quem marcou, na linha", /px-motivo-quem/.test(HTML), true);
+eq("   o motivo é escrito na linha que aguarda", /<span class="px-motivo" title=/.test(HTML), true);
+eq("   e continua escrito depois de pago", (HTML.match(/<span class="px-motivo" title=/g) || []).length >= 2, true);
 eq("   tem estilo próprio (não some no meio)", /\.px-motivo \{/.test(HTML), true);
+// O DEFEITO QUE ELE VIU: o motivo entrou entre o selo e o ✕, e o ✕ caiu para a linha de baixo.
+// O balão é inline-flex e vem DEPOIS dos botões — as duas coisas juntas seguram a linha.
+eq("   o balão é inline (não empurra o ✕ pra baixo)", /\.px-motivo \{ display:inline-flex;/.test(HTML), true);
+eq("   e vem DEPOIS do botão de desfazer",
+   HTML.indexOf('data-desfazerpago="') < HTML.lastIndexOf('class="px-motivo"'), true);
+eq("   o texto completo fica no title (quando o balão corta)", /title="'\+pxEsc\(man\.motivo\|\|""\)\+' — marcado por /.test(HTML), true);
 eq("   e mostra o motivo ANTES de autorizar", /Autorizar este pagamento\?/.test(HTML), true);
 eq("   com o motivo dentro da pergunta", /Motivo: "\+String\(manA\.motivo/.test(HTML), true);
 eq("   avisando que o comprovante não poderá ser apagado",

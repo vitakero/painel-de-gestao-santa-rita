@@ -513,9 +513,14 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .px-arq-link { display:inline-flex; align-items:center; gap:6px; max-width:240px; padding:5px 12px; background:#e3f0e8; color:#157a35; border-radius:7px; font-size:13px; font-weight:600; text-decoration:none; }
   .px-arq-link span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#157a35; font-size:13px; }
   .px-arq-link:hover { background:#d3e8dc; }
-  /* o motivo do pagamento manual, escrito embaixo do estado — pequeno, mas VISIVEL */
-  .px-motivo { margin-top:5px; font-size:11.5px; line-height:1.4; color:#5c6b7a; font-style:italic; max-width:340px; }
-  .px-motivo-quem { color:#8a97a8; font-style:normal; }
+  /* O MOTIVO DO PAGAMENTO MANUAL — balaozinho cinza, na MESMA linha do selo (modelo B,
+     escolhido por ele em 28/08/2026). Fica sempre a vista: quem autoriza precisa saber POR QUE
+     antes de clicar, e em celular nao existe passar o mouse. inline-flex para nao empurrar o ✕
+     para a linha de baixo, que foi o defeito da primeira tentativa. */
+  .px-motivo { display:inline-flex; align-items:center; vertical-align:middle; margin-left:7px;
+    font-size:11.5px; font-style:italic; color:#5c6b7a; background:#f4f6f9; border-radius:6px;
+    padding:3px 9px; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .px-motivo-quem { color:#a3aeba; font-style:normal; }
   .px-arq-anexar { display:inline-flex; align-items:center; justify-content:center; gap:7px; box-sizing:border-box; width:100%; max-width:200px; min-width:0; min-height:46px; padding:11px 16px; background:transparent; color:#33404f; border:1px dashed #b9c3cf; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; text-align:center; }
   .px-arq-anexar:hover { background:#f6f8fb; border-color:#8fa0b3; }
   .px-arq-btn { padding:5px 11px; background:#fff; color:#46535f; border:1px solid #cdd6e0; border-radius:7px; font-size:12px; font-weight:600; cursor:pointer; }
@@ -12153,12 +12158,12 @@ function pxAgendaHtml(p){
        Nunca em bonificacao (tem fluxo proprio) nem no que ja esta pago. */
     const btMarcar = ' <button type="button" class="px-aut" data-marcarpago="'+ref+'" title="Recebeu por fora (dinheiro, transferencia, ou mes pago antes do cadastro)? Marque aqui: escreva o motivo e anexe o comprovante. O master autoriza depois.">Marcar pago</button>';
     const pixCell = quit
-      ? '<span class="px-quitado" title="'+(manBon?("Pago com mercadoria. "+bonTit):(pxManManual(man)?("Pago por fora: "+pxManMotivo(man)):"Mensalidade quitada"))+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'+(manSt==="autorizado"?(manBon?"Pago (bonificação)":"Pago (autorizado)"):(pixCobPaga(p,key)?rotuloPago:"Quitado"))+'</span>'+
-        (pxManManual(man)&&manSt==="autorizado"
-          ? '<div class="px-motivo">'+pxEsc(man.motivo||"(sem motivo)")+
-            '<span class="px-motivo-quem"> — '+pxEsc(man.quem||"")+
-            (man.autorizado_por?(', autorizado por '+pxEsc(man.autorizado_por)):'')+'</span></div>'
-          : '')+(manSt==="autorizado"?' <button type="button" class="px-rec" data-desfazerpago="'+ref+'" title="Desfazer pagamento (precisa senha master)">✕</button>':((cob&&cob.status==="pago"&&cob.tipo_liquidacao==="TESTE")?' <button type="button" class="px-rec" data-desfazerteste="'+ref+'" title="Desfazer simulação de teste">✕</button>':''))
+      ? '<span class="px-quitado" title="'+(manBon?("Pago com mercadoria. "+bonTit):(pxManManual(man)?("Pago por fora: "+pxManMotivo(man)):"Mensalidade quitada"))+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'+(manSt==="autorizado"?(manBon?"Pago (bonificação)":"Pago (autorizado)"):(pixCobPaga(p,key)?rotuloPago:"Quitado"))+'</span>'+(manSt==="autorizado"?' <button type="button" class="px-rec" data-desfazerpago="'+ref+'" title="Desfazer pagamento (precisa senha master)">✕</button>':((cob&&cob.status==="pago"&&cob.tipo_liquidacao==="TESTE")?' <button type="button" class="px-rec" data-desfazerteste="'+ref+'" title="Desfazer simulação de teste">✕</button>':''))
+        +(pxManManual(man)&&manSt==="autorizado"
+          ? '<span class="px-motivo" title="'+pxEsc(man.motivo||"")+' — marcado por '+pxEsc(man.quem||"")+
+            (man.autorizado_por?(', autorizado por '+pxEsc(man.autorizado_por)):'')+'">“'+
+            pxEsc(man.motivo||"(sem motivo)")+'”</span>'
+          : '')
       : manSt==="pendente"
       ? (pxManManual(man)
          /* O MOTIVO TEM QUE ESTAR ESCRITO, NAO ESCONDIDO NO PASSAR-O-MOUSE. Quem autoriza
@@ -12168,9 +12173,9 @@ function pxAgendaHtml(p){
          ? '<span class="px-aguard" title="Aguardando a sua autorização">'+icoRelogio+'Aguardando</span>'+
            ' <button type="button" class="px-aut" data-autorizar="'+ref+'">Autorizar</button>'+
            ' <button type="button" class="px-rec" data-recusar="'+ref+'" title="Recusar">✕</button>'+
-           '<div class="px-motivo">'+pxEsc(man.motivo||"(sem motivo)")+
-             '<span class="px-motivo-quem"> — '+pxEsc(man.quem||"")+
-             (man.quando?(' em '+pxEsc(new Date(man.quando).toLocaleDateString("pt-BR"))):'')+'</span></div>'
+           '<span class="px-motivo" title="'+pxEsc(man.motivo||"")+' — marcado por '+pxEsc(man.quem||"")+
+             (man.quando?(' em '+pxEsc(new Date(man.quando).toLocaleDateString("pt-BR"))):'')+'">“'+
+             pxEsc(man.motivo||"(sem motivo)")+'”</span>'
          : '<span class="px-aguard" title="'+(pxManManual(man)?("Pago por fora: "+pxManMotivo(man)+" — aguardando a autorizacao do master"):"")+(manBon?("Mercadoria registrada ("+brl((man.pend&&man.pend.valor)||0)+(man.pend&&man.pend.nota?(", nota "+String(man.pend.nota).replace(/[<>"]/g,"")):"")+") — aguardando autorização do administrador. Para autorizar, o arquivo da nota precisa estar anexado na coluna Comprovante."):"Aguardando autorização do administrador")+'">'+icoRelogio+(manBon?'Aguardando ('+brl((man.pend&&man.pend.valor)||0)+')':'Aguardando')+'</span> <button type="button" class="px-aut" data-autorizar="'+ref+'">Autorizar</button> <button type="button" class="px-rec" data-recusar="'+ref+'" title="Recusar">✕</button>')
       : manSt==="parcial"
       ? '<span class="px-aguard" title="Bonificação parcial: já veio '+brl(+man.tot||0)+' de '+brl(+p.valor||0)+'. '+bonTit+'">'+icoGift+'Parcial · faltam '+brl(bonFalta)+'</span> <button type="button" class="px-pix-btn" data-bonif="'+ref+'" title="Registrar o restante da mercadoria">'+icoGift+'Registrar restante</button>'
