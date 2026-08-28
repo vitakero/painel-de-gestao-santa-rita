@@ -11961,8 +11961,11 @@ function pxManBonif(man){ return !!(man && typeof man==="object" && man.t==="bon
 function pxManManual(man){ return !!(man && typeof man==="object" && man.t==="manual"); }
 function pxManMotivo(man){
   if(!pxManManual(man)) return "";
-  var q=man.quem?(" — "+String(man.quem)):"";
-  return String(man.motivo||"").replace(/[<>"]/g,"")+q;
+  var mot=String(man.motivo||"").replace(/[<>"]/g,"");
+  var q=man.quem?String(man.quem).replace(/[<>"]/g,""):"";
+  var d=""; try{ if(man.quando) d=new Date(man.quando).toLocaleDateString("pt-BR"); }catch(e){}
+  var fim=[q,d].filter(Boolean).join(" em ");
+  return mot ? (mot+(fim?(" — "+fim):"")) : fim;
 }
 // Extrai nº da nota e mercadoria (o que veio) do estado atual da bonificação, pra colunas próprias
 function bonifCampos(man){
@@ -12134,9 +12137,15 @@ function pxAgendaHtml(p){
     const bonTit = manBon ? (man.hist||[]).map(function(h){ return "Veio "+brl(h.valor||0)+(h.nota?(" (nota "+h.nota+")"):"")+(h.por?(" · registrado por "+h.por):"")+(h.autPor?(" · autorizado por "+h.autPor):""); }).join(" | ").replace(/[<>"]/g,"") : "";
     const icoGift='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.79 0l-8-4a2 2 0 0 1-1.1-1.8V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"></path><polyline points="2.32 6.16 12 11 21.68 6.16"></polyline><line x1="12" y1="22.76" x2="12" y2="11"></line><line x1="7" y1="3.5" x2="17" y2="8.5"></line></svg>';
     const bonFalta = manBon ? Math.max(0,Math.round(((+p.valor||0)-(+man.tot||0))*100)/100) : (+p.valor||0);
-    /* MARCAR PAGO — so aparece onde nao atrapalha: sem cobranca, com boleto de pe, ou depois
-       de erro do banco. Nao aparece em bonificacao (tem fluxo proprio) nem no que ja esta pago. */
-    const btMarcar = ' <button type="button" class="px-aut" data-marcarpago="'+ref+'" title="Recebeu por fora (dinheiro, transferencia, ou mes pago antes do cadastro)? Marque aqui. Precisa da autorizacao do master para valer.">Marcar pago</button>';
+    /* MARCAR PAGO — SO O MASTER VE (decisao dele em 28/08/2026). Dizer que uma parcela esta
+       paga sem o banco ter confirmado e afirmar que dinheiro entrou; nao e coisa para ficar
+       ao alcance de quem so cuida dos pontos. E como so o master ve, nao ha o que autorizar
+       depois: o clique dele JA e a autorizacao.
+       Aparece onde nao atrapalha: sem cobranca, com boleto de pe, ou depois de erro do banco.
+       Nunca em bonificacao (tem fluxo proprio) nem no que ja esta pago. */
+    const btMarcar = (window.__PERFIL && window.__PERFIL.is_master)
+      ? ' <button type="button" class="px-aut" data-marcarpago="'+ref+'" title="Recebeu por fora (dinheiro, transferencia, ou mes pago antes do cadastro)? Marque aqui.">Marcar pago</button>'
+      : '';
     const pixCell = quit
       ? '<span class="px-quitado" title="'+(manBon?("Pago com mercadoria. "+bonTit):(pxManManual(man)?("Pago por fora: "+pxManMotivo(man)):"Mensalidade quitada"))+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'+(manSt==="autorizado"?(manBon?"Pago (bonificação)":"Pago (autorizado)"):(pixCobPaga(p,key)?rotuloPago:"Quitado"))+'</span>'+(manSt==="autorizado"?' <button type="button" class="px-rec" data-desfazerpago="'+ref+'" title="Desfazer pagamento (precisa senha master)">✕</button>':((cob&&cob.status==="pago"&&cob.tipo_liquidacao==="TESTE")?' <button type="button" class="px-rec" data-desfazerteste="'+ref+'" title="Desfazer simulação de teste">✕</button>':''))
       : manSt==="pendente"
@@ -13644,20 +13653,19 @@ async function pixTravaClick(){
         : Promise.resolve(true);
       seguir.then(function(ok){
         if(!ok) return;
-        return uiPrompt({titulo:"Por que está marcando como paga?", icone:"💬", inputType:"text",
-          placeholder:"ex: pago em dinheiro antes do cadastro",
-          msg:"Escreva em uma linha. Fica guardado na história desta parcela — sem isso, daqui a seis meses ninguém sabe por que ela está paga sem ter passado pelo banco.",
-          ok:"Continuar", cancel:"Cancelar"}).then(function(motivo){
-            if(motivo===null) return;
-            motivo=String(motivo||"").trim();
-            if(!motivo){ uiConfirm({titulo:"Falta o motivo",msg:"Escreva o motivo para poder marcar.",ok:"Ok",cancel:""}); return; }
+        /* SEM PERGUNTAR NADA: como so o master ve o botao, o clique dele ja vale como
+           autorizacao — nao ha um segundo par de olhos para esperar. Quem marcou e quando
+           ficam gravados sozinhos, sem ele digitar: isso nao custa nada a ele e e o que
+           responde "por que essa parcela esta paga sem passar pelo banco?" mais tarde. */
+        return uiConfirm({titulo:"Marcar esta parcela como paga?",
+          msg:"Ela fica como PAGA (autorizado) sem ter passado pelo banco. Use quando o dinheiro entrou por fora — dinheiro, transferência, ou mês já pago antes do cadastro.",
+          ok:"Marcar como paga", cancel:"Cancelar"}).then(function(sim){
+            if(!sim) return;
             p.manuais=p.manuais||{};
-            p.manuais[kk]={ t:"manual", st:"pendente", motivo:motivo.slice(0,140),
-                            quem:(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"", quando:new Date().toISOString() };
+            p.manuais[kk]={ t:"manual", st:"autorizado", motivo:"",
+                            quem:(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"",
+                            quando:new Date().toISOString(), autorizado_em:new Date().toISOString() };
             savePontosG(); renderPontosG(); pxReabrir(p.id);
-            uiConfirm({titulo:"Enviado para autorização",
-              msg:"Pagamento marcado. Está AGUARDANDO a autorização do administrador (senha master) para ficar pago.",
-              ok:"Ok",cancel:""});
           });
       });
       return;
