@@ -148,6 +148,12 @@ select s.senha, s.id_loja, s.ini, s.fim, s.bipagens, s.itens,
        count(distinct n.id_nota)::int notas,
        count(distinct n.id_nota) filter (where n.fin = 1)::int notas_fin,
        max(f.razaosocial) fornecedor,
+       -- CNPJ: e a UNICA chave que casa a conferencia com o agendamento do Portal.
+       -- O nome nao serve: em 28/08/2026 o mesmo fornecedor era "GJ DOS SANTOS" no portal
+       -- (digitado por ele) e "G J DOS SANTOS" no VR (cadastro da loja) — um espaco de
+       -- diferenca. O cnpj no VR e NUMERIC, entao vira texto de 14 digitos com zero na
+       -- frente (a mesma pegadinha dos pedidos de compra).
+       lpad(max(f.cnpj)::text, 14, '0') cnpj,
        (select count(*) from dvv
          where dvv.senha = s.senha and dvv.id_loja is not distinct from s.id_loja
            and not dvv.resolvida)::int divergencias,
@@ -228,6 +234,9 @@ function situacao(r, minutosDesdeUltima){
       id: x.senha + "|" + (x.id_loja == null ? "" : x.id_loja) + "|" + li.data,
       senha: String(x.senha), loja: x.id_loja == null ? "" : String(x.id_loja),
       data: li.data, fornecedor: x.fornecedor || "",
+      // so grava se vierem os 14 digitos: cnpj pela metade casaria com a empresa errada
+      cnpj: (x.cnpj && String(x.cnpj).replace(/[^0-9]/g, "").length === 14)
+              ? String(x.cnpj).replace(/[^0-9]/g, "") : null,
       inicio: li.hora, fim: lf.hora,
       // duração 0 = o coletor mandou tudo de uma vez; grava NULL para a tela mostrar "—"
       // em vez de fingir que a conferência levou zero minuto.

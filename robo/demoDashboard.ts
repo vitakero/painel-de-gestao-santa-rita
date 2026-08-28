@@ -231,6 +231,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .vs-sel { border:1px solid #dbe2ea; background:#fff; color:#33404f; border-radius:9px; padding:8px 12px; font-size:13px; font-weight:600; cursor:pointer; }
   .vs-aviso { background:#fdf6e6; border:1px solid #f0e0bb; border-radius:10px; padding:11px 14px; font-size:13px; color:#6b5a2e; margin-bottom:16px; line-height:1.55; }
   .vs-aviso b { color:#4a3c17; }
+  /* veredito da conferencia automatica, na linha da entrega confirmada */
+  .cl-ca{ display:inline-flex; align-items:center; gap:6px; margin-top:6px;
+    font-size:12.5px; padding:4px 10px; border-radius:6px; line-height:1.45; }
+  .cl-ca-sim{ background:#e8f4ec; color:#1c6b45; border:1px solid #c6e3d2; }
+  .cl-ca-nao{ background:#f4f6f8; color:#5b6875; border:1px solid #e0e6ec; }
+  .cl-ca b{ font-weight:700; }
   /* AVISO DE ROBO PARADO — aparece no topo de TODAS as paginas.
      Em 27/08/2026 o robo ficou 2 horas sem gravar e ninguem soube: o painel continuou
      mostrando os numeros das 09h como se fossem de agora. Numero velho sem etiqueta e
@@ -6068,6 +6074,19 @@ function clAgendaTudo(){
   return vr.concat(pn);
 }
 function clStatus(a){
+  /* A CONFERENCIA MANDA MAIS QUE O RELOGIO.
+     Em 28/08/2026 um carro foi conferido as 09:30, antes da janela das 10h. A tela dizia
+     "Em andamento" as 10h e diria "Atrasado" as 11h20 — o caminhao ja tinha ido embora.
+     Nenhuma das linhas de baixo olhava a conferencia; era tudo relogio. Agora, se existe
+     conferencia finalizada e limpa daquela empresa naquele dia, o estado e Conferido —
+     mesmo antes de a marcacao ter ido e voltado do banco. */
+  try{
+    if(a.origem==="painel" && a.situacao!=="conferido" && a.situacao!=="cancelado"
+       && String(a.situacao||"").indexOf("recusad")<0){
+      var vv=caVeredito({status:"aprovado", documento:a.documento, data:a.data}, caHoje);
+      if(vv && vv.marcar) return {k:"concluido",t:"Conferido"};
+    }
+  }catch(e){}
   /* O que veio do painel a gente SABE se foi conferido — não precisa adivinhar pelo relógio.
      Aprovado com a data já passada e ninguém conferiu não é "concluído": é pendência. */
   if(a.origem==="painel"){
@@ -6102,7 +6121,9 @@ function clCloudLoad(){
       renderCentral();
     }, function(){ centralAg=[]; centralModo="vazio"; renderCentral(); });
   }catch(e){ centralAg=[]; centralModo="vazio"; renderCentral(); }
-  /* a conferencia NAO entra aqui: ela carrega quando a aba dela abrir */
+  /* a conferencia CHEIA nao entra aqui: ela carrega quando a aba dela abrir.
+     O que entra e a lista LEVE de hoje, que a Visao de hoje usa pro veredito automatico. */
+  caLoad();
 }
 // Lê central_conferencias — o resumo do que o conferente já bipou no coletor.
 // Vazia = o robô ainda não rodou; a tela explica isso em vez de inventar exemplo.
@@ -6132,6 +6153,62 @@ function clConfTipos(c){
    Agora quem chama e renderCentral(), no ramo da aba — e no maximo de 3 em 3 minutos,
    pra quem fica trocando de aba nao repedir toda vez. */
 var clConfQuando=0, clConfCarregando=false;
+/* CONFERENCIAS DE HOJE, so pro veredito automatico.
+   A lista cheia (600 conferencias) so carrega quando a aba de Conferencia abre. Mas a
+   "Visao de hoje" tambem precisa saber se o carro ja foi conferido — entao ela pede so o
+   dia de hoje e so os campos que o veredito usa. Sao ~6 linhas: custa alguns bytes. */
+var caHoje=[], caQuando=0, caCarregando=false;
+/* LIGADO: ele MARCA sozinho. Pra desligar, troque para "mostrar" — a tela volta a so dizer
+   o que faria, sem mexer em nada. E o interruptor combinado em 28/08/2026. */
+var CA_MODO="marcar";
+/* O EMAIL SAI TAMBEM (decisao dele em 28/08). O fornecedor recebe "sua entrega foi
+   conferida" igual ao que ja recebe quando alguem clica — a diferenca e que agora sai
+   sozinho. Mesmo texto, mesmo remetente; muda so quem apertou. */
+var CA_AVISAR=true;
+/* ids ja tentados nesta sessao: sem isto, cada redesenho da tela tentaria marcar de novo */
+var caTentados={};
+var CA_VALE_MS=3*60*1000;
+/* Deu errado ao marcar sozinho: solta a trava pra tentar de novo na proxima rodada.
+   NAO finge que marcou — estado errado em silencio e o defeito que este painel ja teve demais. */
+function caFalhou(id){ delete caTentados[id]; }
+
+/* Marca os que passaram nas tres condicoes. So roda com os DOIS lados carregados —
+   agendamentos e conferencias do dia. So marca: nunca recusa, nunca apaga. */
+function caAplicar(){
+  if(CA_MODO!=="marcar") return false;
+  var sb=clSB(); if(!sb) return false;
+  if(!caHoje.length || !clPedidos || !clPedidos.length) return false;
+  var i, mudou=false;
+  for(i=0;i<clPedidos.length;i++){
+    var p=clPedidos[i];
+    if(caTentados[p.id]) continue;
+    var v=caVeredito(p, caHoje);
+    if(!v.marcar) continue;
+    caTentados[p.id]=1;
+    mudou=true;
+    clAvisoToast("Conferido sozinho: "+(p.fornecedor||"")+" — "+v.motivo, true);
+    /* PELA GRAVACAO UNICA, como todo o resto. Ela ja recarrega a lista e manda o email
+       pro fornecedor — o mesmo email do clique manual. */
+    clEnviarStatus(p.id, "conferido", null, p.fornecedor, true);
+  }
+  return mudou;
+}
+
+function caLoad(forcar){
+  var sb=clSB(); if(!sb) return;
+  if(caCarregando) return;
+  if(!forcar && caQuando && (Date.now()-caQuando)<CA_VALE_MS) return;
+  caCarregando=true;
+  try{
+    sb.from("central_conferencias")
+      .select("id,data,cnpj,situacao,bipagens,notas,divergencia_detalhe->tipos")
+      .eq("data", clDataISO(new Date()))
+      .then(function(r){
+        caCarregando=false;
+        if(r&&!r.error&&r.data){ caQuando=Date.now(); caHoje=r.data; caAplicar(); renderCentral(true); }
+      }, function(){ caCarregando=false; });
+  }catch(e){ caCarregando=false; }
+}
 var CL_CONF_VALE_MS=3*60*1000;
 function clConfLoad(forcar){
   var sb=clSB(); if(!sb) return;
@@ -6212,6 +6289,7 @@ function clPedidosLoad(){
       if(r&&r.error) return;                    // sem permissão ou sem rede: não inventa lista
       clPedidos=(r&&r.data)||[];
       clAtualizaBadge();
+      caAplicar();                 /* os dois lados na mao: da pra decidir */
       clDetalheLoad();
       // A agenda também depende disto: sem redesenhar, o caminhão aprovado só apareceria
       // na próxima vez que alguém trocasse de aba.
@@ -6736,9 +6814,17 @@ function renderClPedidos(){
     hC+='<div class="cl-entc"><p class="cl-sec-tit">Entregas confirmadas</p>';
     apro.slice(0,12).forEach(function(p){
       var chegou=p.data<=hj;
+      /* MODO MOSTRAR: por enquanto ele so DIZ o que faria, e continua esperando o clique.
+         Combinado com ele em 28/08: tres ou quatro dias assim, conferindo se acerta, e so
+         depois ligar de verdade. Ligar sem essa fase seria marcar carro errado pra descobrir
+         o defeito olhando o estrago. */
+      var vd=caVeredito(p, caHoje);
+      var selo="";
+      if(vd.marcar) selo='<div class="cl-ca cl-ca-sim">✓ <b>Este eu marcaria sozinho</b> — '+pxEsc(vd.motivo)+'</div>';
+      else if(vd.conf) selo='<div class="cl-ca cl-ca-nao">Já foi bipado, mas não marco: '+pxEsc(vd.motivo)+'</div>';
       hC+='<div class="cl-entc-lin"><span class="qd">'+clDataLonga(p.data)+' · '+clHoraCurta(p.hora)+'</span>'+
          '<span class="nm">'+pxEsc(p.fornecedor)+(p.pedido?' <span style="color:#8a97a8;font-weight:400;">· pedido '+pxEsc(p.pedido)+'</span>':'')+
-           clTranspSelo(p)+clDetalheLinha(p)+'</span>'+
+           clTranspSelo(p)+clDetalheLinha(p)+selo+'</span>'+
          (chegou && clPodeDecidir()
            /* DOIS BOTÕES, NÃO UM.
               Até aqui, caminhão que chegava errado deixava quem recebe com duas saídas
@@ -6814,6 +6900,80 @@ function clBarradosBloco(){
     h+='<p style="font-size:12.5px;color:#8a97a8;margin:6px 0 0;">e mais '+(clBarrados.length-10)+'.</p>';
   return h+'</div>';
 }
+/* ==CONFAUTO-INICIO== O CARRO JA FOI CONFERIDO? (testado em scripts/testes/conf-automatica.test.cjs)
+
+   Pedido dele em 28/08/2026, com o caminhao na tela: "quando o conferente bipar e o pessoal
+   de entrada de nota conferir o que veio e der ok, que bateu tudo, aparecer conferido
+   automaticamente". A frase que resume o problema e dele: "o painel ja sabe; ele so nao
+   conversa consigo mesmo" — numa aba o carro esta Finalizado, na outra o MESMO carro esta
+   Programado pedindo confirmacao.
+
+   TRES CONDICOES, todas obrigatorias:
+     1. existe conferencia do MESMO CNPJ no MESMO dia;
+     2. a ENTRADA DE NOTA fechou a nota (situacao "finalizado") — bipar nao basta;
+     3. ZERO divergencia de CONTAGEM.
+
+   DIVERGENCIA DE PRECO NAO SEGURA. No carro de 28/08 o biscoito veio a 2,75 contra 3,40 do
+   pedido: a mercadoria bateu, o preco mudou a favor da loja. Isso e assunto de compras, nao
+   do recebimento — segurar o carro por causa disso seria pedir decisao sobre coisa nenhuma.
+
+   POR QUE CNPJ E NAO NOME: no mesmo carro, o portal tinha "GJ DOS SANTOS E FILHOS LTDA"
+   (digitado pelo fornecedor) e o VR "G J DOS SANTOS E FILHOS LTDA" (cadastro da loja). Um
+   espaco de diferenca. Casar por nome falharia no primeiro carro real.
+
+   MEDIDO em 1.104 conferencias de 11/06 a 28/08: 45% passariam nas tres condicoes. Os outros
+   55% ficam esperando decisao — 599 com diferenca de contagem (409 com produto NAO ENTREGUE)
+   e 10 com a nota sem fechar. E esta certo que fiquem: e ali que a loja perde mercadoria.
+
+   So faz conta. Nao toca em tela nem em nuvem. */
+
+/* os tipos que sao FALTA DE MERCADORIA. O resto (CUSTO, CUSTO ANTERIOR) e preco. */
+var CA_CONTAGEM=/QUANTIDADE|NAO ENTREGUE|COLETOR|SEM PEDIDO/i;
+
+function caDigitos(v){ return String(v==null?"":v).replace(/[^0-9]/g,""); }
+
+/* quantas diferencas de CONTAGEM a conferencia tem. Le do resumo por tipo, que e leve —
+   nao precisa do item-a-item, que so vem quando alguem clica. */
+function caContagem(conf){
+  var t=(conf && (conf.tipos || (conf.divergencia_detalhe && conf.divergencia_detalhe.tipos))) || [];
+  var n=0, i;
+  for(i=0;i<t.length;i++) if(CA_CONTAGEM.test(String(t[i].tipo||""))) n+=(+t[i].qtd||0);
+  return n;
+}
+
+/* acha a conferencia daquele agendamento: mesmo CNPJ (14 digitos) e mesmo dia.
+   CNPJ pela metade nao serve — casaria com a empresa errada. */
+function caAchar(ag, confs){
+  var doc=caDigitos(ag && ag.documento);
+  if(doc.length!==14) return null;
+  var i;
+  for(i=0;i<(confs||[]).length;i++){
+    var c=confs[i];
+    if(caDigitos(c.cnpj)===doc && String(c.data)===String(ag && ag.data)) return c;
+  }
+  return null;
+}
+
+/* O VEREDITO. Devolve sempre um motivo escrito — o dono precisa saber POR QUE marcou,
+   e por que nao marcou. Estado sem explicacao e o defeito que este painel ja teve demais. */
+function caVeredito(ag, confs){
+  if(!ag || String(ag.status)!=="aprovado") return {marcar:false, motivo:"", conf:null};
+  var c=caAchar(ag, confs);
+  if(!c) return {marcar:false, motivo:"ainda não chegou conferência desta empresa hoje", conf:null};
+  if(c.situacao!=="finalizado"){
+    return {marcar:false, conf:c,
+      motivo: c.situacao==="conferindo" ? "ainda está sendo conferido"
+                                        : "bipou, mas a nota não foi finalizada"};
+  }
+  var nc=caContagem(c);
+  if(nc>0) return {marcar:false, conf:c,
+    motivo: nc+(nc===1?" diferença":" diferenças")+" de contagem — precisa da sua decisão"};
+  return {marcar:true, conf:c,
+    motivo: (c.bipagens||0)+" produtos bipados · "+(c.notas||0)+" nota"+((+c.notas===1)?"":"s")
+            +" fechada"+((+c.notas===1)?"":"s")+" · sem diferença de contagem"};
+}
+/* ==CONFAUTO-FIM== */
+
 function clDecidir(id,status){
   var sb=window.__SB; if(!sb) return;
   var item=clPedidos.filter(function(p){ return p.id===id; })[0];
@@ -6903,7 +7063,10 @@ function clRecusarEntrega(id, quem, quando){
    Antes ela morava dentro do clDecidir. Com a recusa de doca passando por outro
    caminho (a janela que pede o motivo), duas cópias iam divergir — e uma delas
    esqueceria de destravar o botão ou de avisar o fornecedor. */
-function clEnviarStatus(id, status, motivo, quem){
+/* auto=true: veio da marcacao automatica, nao de um clique. Muda so o que acontece quando
+   FALHA — janela de erro no meio da tela sem ninguem ter clicado assusta e nao ajuda; quem
+   chamou trata. O caminho de sucesso e exatamente o mesmo, inclusive o email. */
+function clEnviarStatus(id, status, motivo, quem, auto){
   var sb=window.__SB; if(!sb) return;
   var bts=document.querySelectorAll('[data-psim="'+id+'"],[data-pnao="'+id+'"],'+
                                    '[data-pconf="'+id+'"],[data-precd="'+id+'"]');
@@ -6912,6 +7075,7 @@ function clEnviarStatus(id, status, motivo, quem){
     var d=(r&&r.data)||null;
     if((r&&r.error)||(d&&d.ok===false)){
       for(var j=0;j<bts.length;j++) bts[j].disabled=false;
+      if(auto){ if(typeof caFalhou==="function") caFalhou(id); return; }
       uiConfirm({titulo:"Não deu certo",
         msg:((r&&r.error&&r.error.message)||(d&&d.erro)||"Tente de novo."),ok:"OK",cancel:""});
       return;
