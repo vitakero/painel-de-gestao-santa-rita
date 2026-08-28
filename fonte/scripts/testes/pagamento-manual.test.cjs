@@ -25,7 +25,7 @@ const M = new Function(
   (HTML.match(/function pxManMotivo\(man\)\{[\s\S]*?\n\}/) || [""])[0] + "\n" +
   "return {pxManSt,pxManBonif,pxManManual,pxManMotivo};")();
 
-const MANUAL = { t:"manual", st:"autorizado", motivo:"", quem:"Victor", quando:"2026-08-28T12:00:00.000Z" };
+const MANUAL = { t:"manual", st:"autorizado", motivo:"pago em dinheiro", quem:"Victor", quando:"2026-08-28T12:00:00.000Z" };
 const BONIF  = { t:"bonif",  st:"pendente", tot:0 };
 
 console.log("1) o formato novo não atrapalha os antigos");
@@ -43,9 +43,10 @@ eq("   nulo não quebra nada", M.pxManBonif(null) || M.pxManManual(null) || M.px
 console.log("\n2) quem marcou e quando ficam gravados sozinhos");
 // Ele pediu em 28/08 que NÃO precisasse digitar motivo: como só o master vê o botão, o clique
 // dele já é a autorização. Mas quem e quando continuam sendo gravados sem custo nenhum pra ele.
+eq("   guarda o motivo", /pago em dinheiro/.test(M.pxManMotivo(MANUAL)), true);
 eq("   diz quem marcou", /Victor/.test(M.pxManMotivo(MANUAL)), true);
 eq("   e a data", /28\/08\/2026/.test(M.pxManMotivo(MANUAL)), true);
-eq("   sem motivo digitado não fica frase solta", /^Victor em /.test(M.pxManMotivo(MANUAL)), true);
+eq("   sem motivo digitado não fica frase solta", /^Victor em /.test(M.pxManMotivo({ ...MANUAL, motivo:"" })), true);
 eq("   se um dia vier motivo, ele aparece na frente",
    /^pago em dinheiro — Victor/.test(M.pxManMotivo({ ...MANUAL, motivo:"pago em dinheiro" })), true);
 eq("   bonificação não tem motivo manual", M.pxManMotivo(BONIF), "");
@@ -58,9 +59,12 @@ eq("   o botão Marcar pago é DESENHADO", /data-marcarpago="'\+ref\+'"/.test(HT
 eq("   SÓ o master vê o botão",
    /const btMarcar = \(window\.__PERFIL && window\.__PERFIL\.is_master\)/.test(HTML), true);
 eq("   e some para quem não é master", /\n\s*: '';/.test(HTML), true);
-eq("   um clique só, sem digitar motivo", /Marcar esta parcela como paga\?/.test(HTML), true);
-eq("   e já nasce autorizado", /st:"autorizado", motivo:"",/.test(HTML), true);
-eq("   não pede mais para digitar", /Por que está marcando como paga\?/.test(HTML), false);
+eq("   pede o motivo escrito", /Por que está marcando como paga\?/.test(HTML), true);
+eq("   e recusa em branco", /Escreva por que esta parcela está sendo dada como paga\./.test(HTML), true);
+// UM PASSO SO: como so o master ve o botao, o clique dele ja e a autorizacao — nao ha
+// segundo par de olhos para esperar, entao a parcela nao passa por "Aguardando".
+eq("   já nasce autorizado (sem passo de autorização)", /st:"autorizado", motivo:motivo\.slice\(0,140\)/.test(HTML), true);
+eq("   o motivo é limitado a 140 letras", /motivo\.slice\(0,140\)/.test(HTML), true);
 eq("   avisa quando o boleto continua vivo no banco", /O boleto continua aberto no banco/.test(HTML), true);
 eq("   e só considera vivo o que está de pé",
    /cobV\.status==="gerado"\|\|cobV\.status==="pedido"\|\|cobV\.status==="gerando"/.test(HTML), true);

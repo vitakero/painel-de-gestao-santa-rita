@@ -13653,16 +13653,19 @@ async function pixTravaClick(){
         : Promise.resolve(true);
       seguir.then(function(ok){
         if(!ok) return;
-        /* SEM PERGUNTAR NADA: como so o master ve o botao, o clique dele ja vale como
-           autorizacao — nao ha um segundo par de olhos para esperar. Quem marcou e quando
-           ficam gravados sozinhos, sem ele digitar: isso nao custa nada a ele e e o que
-           responde "por que essa parcela esta paga sem passar pelo banco?" mais tarde. */
-        return uiConfirm({titulo:"Marcar esta parcela como paga?",
-          msg:"Ela fica como PAGA (autorizado) sem ter passado pelo banco. Use quando o dinheiro entrou por fora — dinheiro, transferência, ou mês já pago antes do cadastro.",
-          ok:"Marcar como paga", cancel:"Cancelar"}).then(function(sim){
-            if(!sim) return;
+        /* UM PASSO SO, MAS COM O MOTIVO ESCRITO (como ele pediu em 28/08/2026).
+           Como so o master ve o botao, nao ha segundo par de olhos para esperar: o clique
+           dele JA e a autorizacao. O que nao se abre mao e do porque — daqui a seis meses,
+           "paga sem ter passado pelo banco" sem explicacao nenhuma nao se defende. */
+        return uiPrompt({titulo:"Por que está marcando como paga?", icone:"💬", inputType:"text",
+          placeholder:"ex: pago em dinheiro antes do cadastro",
+          msg:"Escreva em uma linha. Fica guardado na história desta parcela, com seu nome e a data.",
+          ok:"Marcar como paga", cancel:"Cancelar"}).then(function(motivo){
+            if(motivo===null) return;
+            motivo=String(motivo||"").trim();
+            if(!motivo){ uiConfirm({titulo:"Falta o motivo",msg:"Escreva por que esta parcela está sendo dada como paga.",ok:"Ok",cancel:""}); return; }
             p.manuais=p.manuais||{};
-            p.manuais[kk]={ t:"manual", st:"autorizado", motivo:"",
+            p.manuais[kk]={ t:"manual", st:"autorizado", motivo:motivo.slice(0,140),
                             quem:(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"",
                             quando:new Date().toISOString(), autorizado_em:new Date().toISOString() };
             savePontosG(); renderPontosG(); pxReabrir(p.id);
