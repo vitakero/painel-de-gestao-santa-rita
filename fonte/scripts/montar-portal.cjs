@@ -305,20 +305,6 @@ button{font-family:inherit}
    e a mesma ideia visual — acabou, nao exige nada de ninguem. */
 .selo.atendido,.selo.encerrado{background:#eef2f6;color:#56606d;border-color:var(--borda)}
 
-/* ============================================================
-   HISTORICO DE PEDIDOS — a sanfona "Ja entregues"
-   Nasce FECHADA: quem abre a tela quer ver o que falta entregar, nao o que
-   ja acabou. O que ja acabou fica a um clique, nao na cara.
-   ============================================================ */
-.pedhist{margin-top:18px;border:1px solid var(--borda);border-radius:14px;background:#fff;overflow:hidden}
-.pedhist>summary{list-style:none;cursor:pointer;padding:14px 18px;display:flex;align-items:center;gap:10px;
-      font-size:14px;font-weight:700;color:var(--txt2);user-select:none}
-.pedhist>summary::-webkit-details-marker{display:none}
-.pedhist>summary:hover{background:var(--verde-bg)}
-.pedhist>summary .seta{transition:transform .15s;display:inline-block;color:var(--txt3)}
-.pedhist[open]>summary{border-bottom:1px solid var(--borda)}
-.pedhist[open]>summary .seta{transform:rotate(90deg)}
-.pedhist>summary .qt{margin-left:auto;font-weight:600;font-size:12px;color:var(--txt3)}
 
 /* filtros */
 .filtros{border-bottom:1px solid var(--borda)}
@@ -4798,7 +4784,10 @@ body.com-wz #toasts{bottom:86px}
         '<div><label>Previsão de entrega</label><div>'+esc(p.previsao)+'</div></div></div>';
       h+='<div class="par"><span class="ic">'+IC.caixa+'</span>'+
         '<div><label>Itens a entregar</label><div>'+nFalta+' de '+it.length+'</div></div></div>';
-      if(p&&p.situacao) h+='<div class="fim"><span class="selo aberto">'+esc(p.situacao)+'</span></div>';
+      // O selo era classe "aberto" FIXA com a palavra crua do banco: pedido entregue
+      // abria com selo VERDE escrito "atendido". Agora usa a MESMA funcao da lista —
+      // uma regra so decide cor e palavra nos dois lugares.
+      if(p&&p.situacao) h+='<div class="fim">'+seloPedido(p.situacao)+'</div>';
       h+='</div>';
 
       if(!it.length){

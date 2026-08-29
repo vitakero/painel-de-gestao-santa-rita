@@ -352,6 +352,33 @@ const Q_ITENS = `
     await fechar(atendidos, "atendido");
     await fechar(encerrados, "encerrado");
 
+    // ---- e o "Entregue" de cada item, para o detalhe nao se contradizer ----
+    // O fechar() acima zera o SALDO, que e o que a lista usa. Mas o detalhe do
+    // pedido mostra tres numeros: Pedido, Entregue e Falta. Zerando so o saldo,
+    // um pedido entregue abria dizendo "Pedido 20, Entregue 0, Falta 0" — as
+    // tres coisas nao podem ser verdade juntas.
+    //
+    // So para os ATENDIDOS. Nesses o VR abateu tudo, entao entregue = pedido e
+    // uma afirmacao verdadeira. Nos ENCERRADOS o VR nunca contou o final da
+    // historia; escrever ali que foi tudo entregue seria inventar, e o selo
+    // ENCERRADO ja avisa que aquele pedido acabou sem confirmacao.
+    if (atendidos.length) {
+      try {
+        for (const lote of emLotes(atendidos, 60)) {
+          const ids = lote.map((x) => encodeURIComponent(x.id)).join(",");
+          const its = await req("GET", "/rest/v1/receb_pedido_itens?select=id,qtd_pedida" +
+                                       "&pedido_id=in.(" + ids + ")&limit=2000");
+          const arrumados = (its || []).map((i) => ({ id: i.id, qtd_entregue: i.qtd_pedida, saldo: 0 }));
+          for (const l2 of emLotes(arrumados, 400)) {
+            await req("POST", "/rest/v1/receb_pedido_itens?on_conflict=id", l2,
+                      "resolution=merge-duplicates,return=minimal");
+          }
+        }
+      } catch (e) {
+        console.log("!! nao consegui acertar o 'entregue' dos itens: " + e.message);
+      }
+    }
+
     if (atendidos.length || encerrados.length) {
       console.log("Pedidos fechados nesta rodada: " + atendidos.length + " atendido(s)" +
                   (encerrados.length ? ", " + encerrados.length + " encerrado(s) por idade" : "") + ".");
