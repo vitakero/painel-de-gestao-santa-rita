@@ -398,7 +398,6 @@ const Q_ITENS = `
         console.log("!! nao consegui acertar o 'entregue' dos itens: " + e.message);
       }
     }
-    }
 
     if (atendidos.length || encerrados.length) {
       console.log("Pedidos fechados nesta rodada: " + atendidos.length + " atendido(s)" +
