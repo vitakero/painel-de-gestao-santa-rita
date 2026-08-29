@@ -236,6 +236,24 @@ button{font-family:inherit}
 .selo.concluida{background:#eef2f6;color:#56606d;border-color:var(--borda)}
 .selo.recusada,.selo.cancelada,.selo.nao_compareceu{background:var(--verm-bg);color:var(--verm);border-color:var(--verm-bd)}
 .selo.aberto{background:var(--verde-cl);color:var(--verde-esc);border-color:var(--verde-bd)}
+/* Pedido que nao tem mais saldo. Reaproveita o cinza do .concluida de proposito:
+   e a mesma ideia visual — acabou, nao exige nada de ninguem. */
+.selo.atendido,.selo.encerrado{background:#eef2f6;color:#56606d;border-color:var(--borda)}
+
+/* ============================================================
+   HISTORICO DE PEDIDOS — a sanfona "Ja entregues"
+   Nasce FECHADA: quem abre a tela quer ver o que falta entregar, nao o que
+   ja acabou. O que ja acabou fica a um clique, nao na cara.
+   ============================================================ */
+.pedhist{margin-top:18px;border:1px solid var(--borda);border-radius:14px;background:#fff;overflow:hidden}
+.pedhist>summary{list-style:none;cursor:pointer;padding:14px 18px;display:flex;align-items:center;gap:10px;
+      font-size:14px;font-weight:700;color:var(--txt2);user-select:none}
+.pedhist>summary::-webkit-details-marker{display:none}
+.pedhist>summary:hover{background:var(--verde-bg)}
+.pedhist>summary .seta{transition:transform .15s;display:inline-block;color:var(--txt3)}
+.pedhist[open]>summary{border-bottom:1px solid var(--borda)}
+.pedhist[open]>summary .seta{transform:rotate(90deg)}
+.pedhist>summary .qt{margin-left:auto;font-weight:600;font-size:12px;color:var(--txt3)}
 
 /* filtros */
 .filtros{border-bottom:1px solid var(--borda)}
@@ -2305,23 +2323,71 @@ body.com-wz #toasts{bottom:86px}
   var pedCache={};
   function guardarPedidos(l){ for(var i=0;i<(l||[]).length;i++) if(l[i]&&l[i].id) pedCache[l[i].id]=l[i]; }
 
-  function pagPedidos(){
-    SB.rpc("forn_pedidos").then(function(r){
-      if(pagAtual!=="pedidos") return;
-      var d=deuCerto(r,"os pedidos"); if(d===null) return;
-      var l=d.pedidos||[];
-      guardarPedidos(l);
+  // Como o pedido fechado se chama na tela. O banco guarda "atendido" e
+  // "encerrado", que sao coisas diferentes e por isso tem palavras diferentes:
+  //   atendido  = o VR olhou e ele nao tem mais saldo -> foi ENTREGUE
+  //   encerrado = o VR nem olha mais para ele (velho demais) -> so ENCERRADO
+  // Chamar os dois de "entregue" seria afirmar o que nao se sabe.
+  function seloPedido(sit){
+    var s=String(sit||"aberto");
+    if(s==="atendido")  return '<span class="selo atendido">entregue</span>';
+    if(s==="encerrado") return '<span class="selo encerrado">encerrado</span>';
+    return '<span class="selo aberto">'+esc(s)+'</span>';
+  }
 
-      var h='<div class="linha-topo"><h2 class="h-sec">Pedidos<small>'+
-            (d.ligado? l.length+(l.length===1?" pedido":" pedidos") : "Aguardando a ligação com o sistema da loja")+
+  function colunasPedido(comSaldo){
+    var c=[
+      {ch:"Pedido",cl:"nowrap",v:function(p){ return '<span class="tick">'+esc(p.numero)+'</span>'; }},
+      {ch:"Fornecedor",v:function(p){ return esc(meuNome); }},
+      {ch:"Destinatário",v:function(p){ return esc(p.destinatario||"Santa Rita"); }},
+      {ch:"Emissão",cl:"nowrap",v:function(p){ return esc(p.emissao||"—"); }},
+      {ch:"Previsão",cl:"nowrap",v:function(p){ return esc(p.previsao||"—"); }},
+      {ch:"Itens",cl:"nowrap",v:function(p){ return esc(String(p.itens||0)); }}
+    ];
+    // "Para entrega" e "Saldo" so fazem sentido em cima do que ainda falta.
+    // No historico as duas seriam zero em toda linha — coluna que so sabe
+    // dizer zero nao informa, so ocupa o olho.
+    if(comSaldo){
+      c.push({ch:"Para entrega",cl:"nowrap",v:function(p){ return '<b>'+esc(String(p.itens_saldo||0))+'</b>'; }});
+    }
+    c.push({ch:"Total",cl:"nowrap",v:function(p){ return esc(moeda(p.valor)); }});
+    if(comSaldo){
+      c.push({ch:"Saldo",cl:"nowrap",v:function(p){ return esc(moeda(p.saldo)); }});
+    }
+    c.push({ch:"Situação",cl:"nowrap",v:function(p){ return seloPedido(p.situacao); }});
+    c.push({ch:"",cl:"nowrap",w:"44px",v:function(p){
+        return '<button class="olho" data-pedido="'+esc(p.id)+'" title="Ver pedido">'+IC.olho+'</button>'; }});
+    return c;
+  }
+
+  function pagPedidos(){
+    // DUAS PERGUNTAS, UMA VIAGEM SO. O que falta entregar e o que ja foi vem
+    // juntos; buscando em sequencia a tela desenharia duas vezes e piscaria.
+    Promise.all([SB.rpc("forn_pedidos"), SB.rpc("forn_pedidos_entregues")]).then(function(rr){
+      if(pagAtual!=="pedidos") return;
+      var d=deuCerto(rr[0],"os pedidos"); if(d===null) return;
+      var l=d.pedidos||[];
+
+      // O HISTORICO NAO PODE DERRUBAR A TELA. Se a segunda pergunta falhar —
+      // a funcao ainda nao rodada no banco, por exemplo — o fornecedor
+      // continua vendo o que tem para entregar, que e o que ele veio fazer.
+      var ent=(rr[1] && rr[1].data && rr[1].data.ok) ? (rr[1].data.pedidos||[]) : [];
+      guardarPedidos(l); guardarPedidos(ent);
+
+      var h='<div class="linha-topo"><h2 class="h-sec">Para entregar<small>'+
+            (d.ligado ? (l.length ? l.length+(l.length===1?" pedido":" pedidos") : "nada pendente")
+                      : "Aguardando a ligação com o sistema da loja")+
             '</small></h2></div><div class="bloco">';
 
       if(!l.length){
-        // Duas ausências diferentes, duas frases diferentes. Enquanto era só
-        // "vazio", esta tela dizia "estamos trabalhando para trazer os pedidos"
-        // até para quem simplesmente não tem pedido em aberto — e virou mentira
-        // no dia em que os pedidos do VR chegaram.
-        h += (d.motivo==="sem_pedido_meu")
+        // Tres ausencias diferentes, tres frases diferentes. A terceira nasceu
+        // em 29/08/2026: quem entregou tudo nao pode ler "você não tem pedido",
+        // que soa como "a loja nao comprou de voce" — ele acabou de entregar.
+        h += (ent.length)
+          ? uiVazio({ic:IC.caixa,titulo:"Você entregou tudo",
+              texto:"Não há pedido seu aguardando entrega no momento. O que já foi entregue está logo abaixo, "+
+                    "em “Já entregues”. Quando a loja emitir um novo pedido, ele aparece aqui sozinho."})
+          : (d.motivo==="sem_pedido_meu")
           ? uiVazio({ic:IC.caixa,titulo:"Você não tem pedido em aberto",
               texto:"Nenhum pedido de compra da loja para você está aguardando entrega no momento. "+
                     "Quando a loja emitir um novo pedido, ele aparece aqui sozinho."})
@@ -2330,22 +2396,21 @@ body.com-wz #toasts{bottom:86px}
                     "para cá — quando isso acontecer, você vai ver o que foi pedido, o que já entregou e o que "+
                     "ainda falta. Por enquanto, informe o número do pedido na hora de agendar a entrega."});
       } else {
-        h+=uiTabela([
-          {ch:"Pedido",cl:"nowrap",v:function(p){ return '<span class="tick">'+esc(p.numero)+'</span>'; }},
-          {ch:"Fornecedor",v:function(p){ return esc(meuNome); }},
-          {ch:"Destinatário",v:function(p){ return esc(p.destinatario||"Santa Rita"); }},
-          {ch:"Emissão",cl:"nowrap",v:function(p){ return esc(p.emissao||"—"); }},
-          {ch:"Previsão",cl:"nowrap",v:function(p){ return esc(p.previsao||"—"); }},
-          {ch:"Itens",cl:"nowrap",v:function(p){ return esc(String(p.itens||0)); }},
-          {ch:"Para entrega",cl:"nowrap",v:function(p){ return '<b>'+esc(String(p.itens_saldo||0))+'</b>'; }},
-          {ch:"Total",cl:"nowrap",v:function(p){ return esc(moeda(p.valor)); }},
-          {ch:"Saldo",cl:"nowrap",v:function(p){ return esc(moeda(p.saldo)); }},
-          {ch:"Situação",cl:"nowrap",v:function(p){ return '<span class="selo aberto">'+esc(p.situacao||"aberto")+'</span>'; }},
-          {ch:"",cl:"nowrap",w:"44px",v:function(p){
-              return '<button class="olho" data-pedido="'+esc(p.id)+'" title="Ver pedido">'+IC.olho+'</button>'; }}
-        ], l, {});
+        h+=uiTabela(colunasPedido(true), l, {});
       }
-      el("pagina").innerHTML=h+'</div>';
+      h+='</div>';
+
+      // ---- JA ENTREGUES: fica, mas separado e fechado ----
+      if(ent.length){
+        h+='<details class="pedhist"><summary>'+
+             '<span class="seta">'+IC.seta+'</span>Já entregues'+
+             '<span class="qt">'+esc(String(ent.length))+(ent.length===1?" pedido":" pedidos")+'</span>'+
+           '</summary>'+
+           uiTabela(colunasPedido(false), ent, {})+
+           '</details>';
+      }
+
+      el("pagina").innerHTML=h;
     });
   }
 
@@ -4840,7 +4905,22 @@ body.com-wz #toasts{bottom:86px}
                  emitente_cnpj:n.emitenteCnpj || n.cnpj ||
                    (n.chave && n.chave.length===44 ? n.chave.slice(6,20) : null),
                  emitente_nome:n.emitenteNome||null, destino_cnpj:n.destinoCnpj||null,
-                 itens:n.itens||null, volumes:n.volumes||null, especie:n.especie||null,
+                 /* OS ITENS VAO COM OS DOIS NOMES DE CAMPO — e por isso que a conferencia
+                    de preco nunca funcionou. O leitor do XML monta 'valorUnit' e 'itemPedido'
+                    (o jeito do JavaScript), e a funcao do banco procura 'valor_unit' e
+                    'item_pedido' (o jeito do Postgres). Nomes diferentes = campo vazio: o
+                    servidor recebia preco NULO em toda linha, e o ramo que compara preco
+                    exige preco > 0 para disparar. Resultado: NENHUMA nota jamais foi acusada
+                    de preco acima do pedido — nem na tela do fornecedor, nem no servidor.
+                    Descoberto em 28/08/2026, revisando a trava de preco antes de liga-la.
+                    Mando os dois nomes de proposito: a tela do portal le os antigos. */
+                 itens: n.itens ? n.itens.map(function(it){
+                   return Object.assign({}, it, {
+                     valor_unit:  (it.valor_unit  != null ? it.valor_unit  : it.valorUnit),
+                     item_pedido: (it.item_pedido != null ? it.item_pedido : it.itemPedido)
+                   });
+                 }) : null,
+                 volumes:n.volumes||null, especie:n.especie||null,
                  peso_bruto:n.pesoBruto||null, peso_liquido:n.pesoLiquido||null,
                  transportadora_nome:n.transportadoraNome||null,
                  transportadora_cnpj:n.transportadoraCnpj||null };
