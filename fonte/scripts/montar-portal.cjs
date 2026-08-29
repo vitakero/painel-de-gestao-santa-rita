@@ -2432,20 +2432,24 @@ body.com-wz #toasts{bottom:86px}
       var ent=(rr[1] && rr[1].data && rr[1].data.ok) ? (rr[1].data.pedidos||[]) : [];
       guardarPedidos(l); guardarPedidos(ent);
 
-      var h='<div class="linha-topo"><h2 class="h-sec">Para entregar<small>'+
-            (d.ligado ? (l.length ? l.length+(l.length===1?" pedido":" pedidos") : "nada pendente")
+      // TUDO NUMA LISTA SO. O que ja foi entregue nao sai da tela: fica na
+      // mesma tabela, e quem diz o estado e o selo da coluna Situacao.
+      // Ordem: previsao mais recente primeiro, misturando pendente e entregue —
+      // e a ordem em que as coisas aconteceram, que e como a pessoa lembra.
+      var todos=l.concat(ent);
+      todos.sort(function(a,b){
+        var x=String(a.previsao_iso||""), y=String(b.previsao_iso||"");
+        return x<y?1:(x>y?-1:0);
+      });
+
+      var h='<div class="linha-topo"><h2 class="h-sec">Pedidos<small>'+
+            (d.ligado ? (todos.length+(todos.length===1?" pedido":" pedidos")+
+                         (l.length? " · "+l.length+" para entregar" : " · nada pendente"))
                       : "Aguardando a ligação com o sistema da loja")+
             '</small></h2></div><div class="bloco">';
 
-      if(!l.length){
-        // Tres ausencias diferentes, tres frases diferentes. A terceira nasceu
-        // em 29/08/2026: quem entregou tudo nao pode ler "você não tem pedido",
-        // que soa como "a loja nao comprou de voce" — ele acabou de entregar.
-        h += (ent.length)
-          ? uiVazio({ic:IC.caixa,titulo:"Você entregou tudo",
-              texto:"Não há pedido seu aguardando entrega no momento. O que já foi entregue está logo abaixo, "+
-                    "em \u201cJá entregues\u201d. Quando a loja emitir um novo pedido, ele aparece aqui sozinho."})
-          : (d.motivo==="sem_pedido_meu")
+      if(!todos.length){
+        h += (d.motivo==="sem_pedido_meu")
           ? uiVazio({ic:IC.caixa,titulo:"Você não tem pedido em aberto",
               texto:"Nenhum pedido de compra da loja para você está aguardando entrega no momento. "+
                     "Quando a loja emitir um novo pedido, ele aparece aqui sozinho."})
@@ -2454,19 +2458,9 @@ body.com-wz #toasts{bottom:86px}
                     "para cá — quando isso acontecer, você vai ver o que foi pedido, o que já entregou e o que "+
                     "ainda falta. Por enquanto, informe o número do pedido na hora de agendar a entrega."});
       } else {
-        h+=uiTabela(colunasPedido(true), l, {});
+        h+=uiTabela(colunasPedido(true), todos, {});
       }
       h+='</div>';
-
-      // ---- JA ENTREGUES: fica, mas separado e fechado ----
-      if(ent.length){
-        h+='<details class="pedhist"><summary>'+
-             '<span class="seta">'+IC.seta+'</span>Já entregues'+
-             '<span class="qt">'+esc(String(ent.length))+(ent.length===1?" pedido":" pedidos")+'</span>'+
-           '</summary>'+
-           uiTabela(colunasPedido(false), ent, {})+
-           '</details>';
-      }
 
       el("pagina").innerHTML=h;
     });
