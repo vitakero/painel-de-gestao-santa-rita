@@ -364,19 +364,40 @@ const Q_ITENS = `
     // ENCERRADO ja avisa que aquele pedido acabou sem confirmacao.
     if (atendidos.length) {
       try {
+        // ATENCAO — NAO trocar isto por upsert (POST com on_conflict=id).
+        // Tentei e o PostgREST devolve 23502: mandando so algumas colunas ele
+        // trata como INSERT da linha inteira e esbarra nas obrigatorias
+        // (pedido_id, seq). Nao gravou nada.
+        //
+        // O jeito que funciona: agrupar os itens pela QUANTIDADE PEDIDA e dar
+        // um PATCH por grupo. Como "entregue = pedido", todo item do grupo
+        // recebe o mesmo numero. Medido na faxina dos 92 pedidos atrasados:
+        // 720 itens acertados em 79 chamadas.
+        const porQtd = {};
         for (const lote of emLotes(atendidos, 60)) {
           const ids = lote.map((x) => encodeURIComponent(x.id)).join(",");
-          const its = await req("GET", "/rest/v1/receb_pedido_itens?select=id,qtd_pedida" +
-                                       "&pedido_id=in.(" + ids + ")&limit=2000");
-          const arrumados = (its || []).map((i) => ({ id: i.id, qtd_entregue: i.qtd_pedida, saldo: 0 }));
-          for (const l2 of emLotes(arrumados, 400)) {
-            await req("POST", "/rest/v1/receb_pedido_itens?on_conflict=id", l2,
-                      "resolution=merge-duplicates,return=minimal");
+          const its = await req("GET", "/rest/v1/receb_pedido_itens?select=id,qtd_pedida,qtd_entregue" +
+                                       "&pedido_id=in.(" + ids + ")&limit=5000");
+          (its || []).forEach((i) => {
+            if (Number(i.qtd_entregue) === Number(i.qtd_pedida)) return;   // ja esta certo
+            const k = String(i.qtd_pedida);
+            (porQtd[k] = porQtd[k] || []).push(i.id);
+          });
+        }
+        let n = 0;
+        for (const q of Object.keys(porQtd)) {
+          for (const l2 of emLotes(porQtd[q], 150)) {
+            await req("PATCH", "/rest/v1/receb_pedido_itens?id=in.(" +
+                               l2.map(encodeURIComponent).join(",") + ")",
+                      { qtd_entregue: Number(q), saldo: 0 }, "return=minimal");
+            n += l2.length;
           }
         }
+        if (n) console.log("Itens marcados como entregues: " + n + ".");
       } catch (e) {
         console.log("!! nao consegui acertar o 'entregue' dos itens: " + e.message);
       }
+    }
     }
 
     if (atendidos.length || encerrados.length) {
