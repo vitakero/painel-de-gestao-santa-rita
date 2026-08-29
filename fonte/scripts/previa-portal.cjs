@@ -241,6 +241,18 @@ const STUB = `<script>
          valor:"8910.00",saldo:"8910.00",itens:11,itens_saldo:11},
         {id:"pd3",numero:"44980",situacao:"aberto",emissao:"29/07/2026",previsao:"18/08/2026",
          valor:"2300.48",saldo:"180.00",itens:17,itens_saldo:3}]};
+      // O HISTORICO da tela Pedidos (aba "Ja entregues"), criado em 29/08/2026.
+      // Dois selos DIFERENTES de proposito: "atendido" e o pedido que o VR
+      // olhou e nao tem mais saldo (vira ENTREGUE na tela); "encerrado" e o
+      // velho demais, que o VR nem acompanha mais e sobre o qual nao da para
+      // afirmar que foi entregue.
+      else if(nome==="forn_pedidos_entregues") v={ok:true,meus:3,pedidos:[
+        {id:"pe1",numero:"45102",situacao:"atendido",emissao:"22/07/2026",previsao:"05/08/2026",
+         valor:"12530.50",saldo:"0",itens:23},
+        {id:"pe2",numero:"44871",situacao:"atendido",emissao:"14/07/2026",previsao:"28/07/2026",
+         valor:"6983.00",saldo:"0",itens:9},
+        {id:"pe3",numero:"44510",situacao:"encerrado",emissao:"30/06/2026",previsao:"12/07/2026",
+         valor:"3967.00",saldo:"0",itens:14}]};
       // CONFRONTO DA NOTA COM O PEDIDO. Aqui e IMITACAO: no ar quem faz a conta
       // e o banco (forn_conferir_nota). Esta versao existe so para eu ver a tela
       // desenhada com os quatro casos que importam.

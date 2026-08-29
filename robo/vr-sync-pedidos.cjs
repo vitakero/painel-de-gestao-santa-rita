@@ -275,6 +275,93 @@ const Q_ITENS = `
   console.log("Itens na nuvem: " + novos.length +
               "  (com saldo: " + novos.filter((x) => x.saldo > 0).length + ")");
 
+  // ============================================================
+  // FECHA O QUE O VR NAO DEVOLVE MAIS
+  //
+  // A consulta la em cima pede ao VR so os pedidos QUE AINDA TEM SALDO
+  // (o "having ... > 0"). Quando a loja lanca a nota e o VR abate tudo, o
+  // pedido simplesmente PARA DE VIR. Ate 29/08/2026 este script so regravava
+  // o que chegava e nunca fechava o que sumia — entao o pedido CONGELAVA na
+  // nuvem com o ultimo retrato: "aberto", saldo cheio, para sempre.
+  //
+  // Medido antes do conserto: 200 dos 517 pedidos na nuvem eram fantasmas.
+  // O fornecedor via como aberto pedido que ele ja tinha entregue, e a trava
+  // do "nao pode entregar acima do pedido" conferia contra saldo velho.
+  //
+  // DOIS motivos fazem um pedido sumir da consulta, e eles NAO sao a mesma
+  // coisa — por isso a data decide o nome:
+  //
+  //   dentro da janela  -> o VR OLHOU e nao devolveu = foi todo atendido
+  //                        -> "atendido"  (a tela mostra ENTREGUE)
+  //   fora da janela    -> o VR nem olha mais para ele; nunca vamos saber
+  //                        -> "encerrado" (a tela mostra ENCERRADO)
+  //
+  // Chamar os dois de "entregue" seria inventar. Sao selos diferentes de
+  // proposito.
+  //
+  // SEGURANCA: isto so roda depois de uma leitura do VR que deu certo E
+  // trouxe pedido. O caso perigoso — VR mudo devolvendo zero linha, que
+  // fecharia a lista inteira — nao chega aqui: o script ja saiu antes, la no
+  // "if (!peds.length) return".
+  // ============================================================
+  try {
+    const trazidos = {};
+    linhas.forEach((x) => { trazidos[x.numero] = 1; });
+
+    // le TODOS os nossos pedidos, de pagina em pagina (o Supabase corta em 1000)
+    const meus = [];
+    for (let de = 0; ; de += 1000) {
+      const pg = await req("GET", "/rest/v1/receb_pedidos?select=id,numero,previsao,situacao" +
+                                  "&order=numero&limit=1000&offset=" + de);
+      if (!pg || !pg.length) break;
+      pg.forEach((x) => meus.push(x));
+      if (pg.length < 1000) break;
+    }
+
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const diasAte = (iso) => {
+      if (!iso) return null;
+      const d = new Date(iso + "T00:00:00");
+      if (isNaN(d.getTime())) return null;
+      return Math.round((d - hoje) / 86400000);   // negativo = passado
+    };
+
+    const atendidos = [], encerrados = [];
+    for (const p of meus) {
+      if (trazidos[p.numero]) continue;               // o VR ainda cuida dele
+      if (p.situacao !== "aberto") continue;          // ja foi fechado antes
+      const d = diasAte(p.previsao);
+      // a MESMA janela da consulta la em cima; se um dia ela mudar, muda junto
+      const naJanela = d !== null && d >= -DIAS_ATRAS && d <= DIAS_FRENTE;
+      (naJanela ? atendidos : encerrados).push(p);
+    }
+
+    async function fechar(lista, situacao) {
+      if (!lista.length) return;
+      for (const lote of emLotes(lista, 60)) {
+        const ids = lote.map((x) => encodeURIComponent(x.id)).join(",");
+        await req("PATCH", "/rest/v1/receb_pedidos?id=in.(" + ids + ")",
+                  { situacao: situacao, saldo_valor: 0 }, "return=minimal");
+        // o saldo dos ITENS tambem precisa zerar: e ele que a forn_pedidos usa
+        // para decidir se o pedido ainda aparece, e e contra ele que a
+        // conferencia mede o "acima do pedido".
+        await req("PATCH", "/rest/v1/receb_pedido_itens?pedido_id=in.(" + ids + ")",
+                  { saldo: 0 }, "return=minimal");
+      }
+    }
+    await fechar(atendidos, "atendido");
+    await fechar(encerrados, "encerrado");
+
+    if (atendidos.length || encerrados.length) {
+      console.log("Pedidos fechados nesta rodada: " + atendidos.length + " atendido(s)" +
+                  (encerrados.length ? ", " + encerrados.length + " encerrado(s) por idade" : "") + ".");
+    }
+  } catch (e) {
+    // fechar pedido e faxina, nao e o trabalho. Se falhar, a sincronizacao do
+    // que importa ja aconteceu — nao derrubo a rodada por causa disto.
+    console.log("!! nao consegui fechar os pedidos que sumiram do VR: " + e.message);
+  }
+
   // ---- liga quem ficou solto ----
   // UMA regra decide de quem é o pedido, e ela mora no banco. Aqui eu só peço
   // para ela rodar. Se eu recalculasse por aqui, um dia as duas contas
