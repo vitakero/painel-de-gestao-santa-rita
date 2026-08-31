@@ -794,8 +794,15 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
      (altura da janela − 318) ÷ 6 e o mês INTEIRO cabe sem rolar.
      Piso de 72px: menos que isso não cabe o número do dia e 3 compromissos, e aí é melhor
      rolar do que ficar ilegível. */
-  .ag-cal { width:100%; }
-  #agDias.cal-grid { grid-auto-rows: max(72px, calc((100dvh - 318px) / 6)); }
+  /* A altura da linha é o que sobra da janela; a LARGURA do dia não pode sair correndo
+     atrás dela, senão o quadrado vira um retângulo deitado. Então a coluna vale no
+     máximo 1,45 vez a altura, e o que sobrar de largura fica de margem — a grade
+     centraliza. (O dono, vendo a primeira versão: "os quadrados estão um pouco puxados
+     para o lado".) O cabeçalho DOM..SÁB usa a MESMA conta, senão os nomes dos dias
+     desalinham das casinhas. */
+  .ag-cal { width:100%; --ag-lin: max(72px, calc((100dvh - 318px) / 6)); }
+  .ag-cal .cal-grid { grid-template-columns: repeat(7, minmax(0, calc(var(--ag-lin) * 1.45))); justify-content:center; }
+  #agDias.cal-grid { grid-auto-rows: var(--ag-lin); }
   .ag-topdir { margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
   .ag-cel { min-height:0; border:1px solid #eef1f4; border-radius:8px; padding:4px 5px; cursor:pointer; background:#fff; overflow:hidden; display:flex; flex-direction:column; }
   .ag-cel:hover { background:#f6faf7; }

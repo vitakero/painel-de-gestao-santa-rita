@@ -277,8 +277,12 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
   // Medido no Chrome: em volta da grade há 285px fixos + 30 dos vãos = 315. Por isso a
   // linha passou a ser (altura da janela − 318) ÷ 6, com piso de 72px.
   eq("87) a linha do mês se ajusta à janela",
-     /#agDias\.cal-grid \{ grid-auto-rows: max\(72px, calc\(\(100dvh - 318px\) \/ 6\)\); \}/.test(H), "true");
-  eq("88) e a grade ocupa a largura inteira", /\.ag-cal \{ width:100%; \}/.test(H), "true");
+     /--ag-lin: max\(72px, calc\(\(100dvh - 318px\) \/ 6\)\)/.test(H)
+     && /#agDias\.cal-grid \{ grid-auto-rows: var\(--ag-lin\); \}/.test(H), "true");
+  // e o dia não vira um retângulo deitado: no máximo 1,55 vez mais largo que alto
+  eq("87b) a largura do dia acompanha a altura",
+     /repeat\(7, minmax\(0, calc\(var\(--ag-lin\) \* 1\.45\)\)\)/.test(H), "true");
+  eq("88) e a grade ocupa a largura inteira", /\.ag-cal \{ width:100%;/.test(H), "true");
   eq("89) o painel de 340px na lateral não existe mais", /class="ag-painel"/.test(H), "false");
   // o 1px que TODA página do painel tinha: o rodapé mede 35, não 34
   eq("90) o rodapé passou a ser descontado certo",
