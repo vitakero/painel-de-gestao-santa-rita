@@ -23,9 +23,11 @@ const STUB = `<script>
     { id:"e1", fornecedor:"Distribuidora Nordeste Ltda", documento:"12345678000190",
       contato:"(84) 99999-0000", data:hoje(0), hora:"09:00:00", pedido:"45231",
       descricao:"Bebidas - 12 paletes", status:"aprovado", criado_em:hoje(-3) },
+    // Este ja encostou: e o estado "chegou", criado em 29/08/2026. Serve para a
+    // previa mostrar os DOIS lados da linha — antes e depois do registro da chegada.
     { id:"e2", fornecedor:"Laticinios Serido S/A", documento:"98765432000110",
       contato:"(84) 98888-1111", data:hoje(0), hora:"11:00:00", pedido:"45390",
-      descricao:"Refrigerados", status:"aprovado", criado_em:hoje(-2) },
+      descricao:"Refrigerados", status:"chegou", criado_em:hoje(-2) },
     { id:"e3", fornecedor:"Panificadora Caico ME", documento:"11222333000144",
       contato:"(84) 97777-2222", data:hoje(-7), hora:"14:00:00", pedido:"45102",
       descricao:"Farinha", status:"pendente", criado_em:hoje(-9) }
@@ -56,7 +58,23 @@ const STUB = `<script>
                insert:function(){ return resp([]); }, upsert:function(){ return resp([]); },
                update:function(){ return resp([]); }, delete:function(){ return resp([]); } };
     },
-    rpc: function(){ return resp({ ok:true }); },
+    rpc: function(nome){
+      // O que o coletor do VR ja registrou, casado por CNPJ + dia (criado 29/08/2026).
+      // e1: uma conferencia so, sem duracao — o caso comum (o coletor descarrega tudo
+      //     de uma vez, entao inicio e fim caem no mesmo minuto).
+      // e2: o fornecedor teve DOIS carros no dia; a hora mostrada e a mais proxima do
+      //     horario marcado, e o selo fica ambar para avisar que e palpite.
+      if(nome==="receb_coleta_das_entregas") return resp({
+        // e1: ninguem apertou nada — so o registro do coletor, de graca
+        e1:{ inicio:"09:12", fim:"09:12", minutos:null, bipagens:9, itens:1135,
+             situacao:"finalizado", quantas:1, encostou:null, minutos_doca:null },
+        // e2: apertaram "Encostou" as 10:52 e o VR fechou a conferencia as 11:49
+        //     -> 57 minutos na doca. E o numero que responde "cabe mais um carro?".
+        e2:{ inicio:"11:04", fim:"11:49", minutos:45, bipagens:16, itens:1668,
+             situacao:"finalizado", quantas:1, encostou:"10:52", minutos_doca:57 }
+      });
+      return resp({ ok:true });
+    },
     functions: { invoke: function(){ return Promise.resolve({ data:{ok:true,para:"fornecedor@exemplo"}, error:null }); } },
     channel: function(){ return { on:function(){ return this; }, subscribe:function(){ return this; } }; },
     removeChannel: function(){}

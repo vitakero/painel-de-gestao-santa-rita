@@ -1837,7 +1837,15 @@ body.com-wz #toasts{bottom:86px}
         return SB.rpc("forn_cadastrar",{ p_cnpj:m.cnpj, p_razao_social:m.razao_social,
           p_email:(u.data.user.email||""), p_telefone:m.telefone||null,
           p_responsavel:m.responsavel||null, p_nome:m.nome||null })
-          .then(function(){
+          .then(function(rc){
+            /* O RETORNO ERA JOGADO FORA. Se o cadastro falhasse por qualquer motivo,
+               a situacao vinha vazia, a tela caia no recusarComoErro e a pessoa lia
+               "Email ou senha errados" — frase certa para senha errada, mentirosa
+               para tudo o mais, e que esconde o motivo real de quem poderia
+               resolver. Agora o motivo sobe. */
+            var res=(rc&&rc.data)||null;
+            if(rc&&rc.error) return { __erro: rc.error.message||"Não consegui criar seu cadastro." };
+            if(res&&res.ok===false) return { __erro: res.erro||"Não consegui criar seu cadastro." };
             try{ SB.functions.invoke("aviso-conta-criada",{body:{evento:"cadastro"}}); }catch(e){}
             return SB.rpc("forn_minha_situacao").then(function(r2){ return r2.data; });
           });
@@ -1867,6 +1875,18 @@ body.com-wz #toasts{bottom:86px}
          ATENÇÃO: isto vale só para quem NÃO é fornecedor (d.ok falso). Fornecedor de
          verdade esperando liberação continua vendo "Cadastro em análise" logo abaixo —
          esse precisa mesmo falar com a loja. */
+      /* DUAS AUSENCIAS DIFERENTES, DUAS RESPOSTAS DIFERENTES.
+         Sem cadastro NENHUM (d vazio) = nao e fornecedor: e o login de funcionario
+         entrando pela porta errada, e ele tem que ver exatamente o que quem erra a
+         senha ve. Isso NAO pode afrouxar — e o que impede descobrir, e-mail por
+         e-mail, quem existe no sistema da loja.
+         Mas quando a criacao do cadastro FOI tentada e falhou, esconder o motivo so
+         atrapalha quem esta do lado de ca. */
+      if(d&&d.__erro){
+        aviso("msgAuth", d.__erro);
+        aba("entrar"); mostrar("telaAuth");
+        return;
+      }
       if(!d||!d.ok){ recusarComoErro(); return; }
       meuNome=d.empresa||""; meuCnpj=d.cnpj||""; meuResp=d.responsavel||"";
       if(d.liberado){ abrirCasa(); return; }

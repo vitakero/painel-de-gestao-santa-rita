@@ -821,6 +821,43 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .ag-aviso { font-size:12px; color:#8a5a00; background:#fdf3e3; border:1px solid #f3dcae; border-radius:7px; padding:7px 9px; margin-bottom:10px; }
   .ag-form select.ag-f-rep { width:auto; margin-bottom:0; padding:6px 8px; border:1px solid #cfd8e3; border-radius:8px; font-size:13px; font-family:inherit; background:#fff; }
   .ag-f-ate-wrap input.ag-f-ate { width:auto; margin-bottom:0; }
+  /* --- Parte 2: convite entre setores --- */
+  .ag-ev.pend { border-color:#f0d9a8; background:#fffdf6; }
+  .ag-ev-dono { font-size:11.5px; color:#8a97a8; margin-top:3px; }
+  .ag-st { font-size:10.5px; font-weight:700; border-radius:5px; padding:1px 7px; white-space:nowrap; }
+  .ag-st.ok { color:#12692f; background:#e6f4ea; }
+  .ag-st.no { color:#a5341f; background:#fbe9e5; }
+  .ag-st.wait { color:#8a5a00; background:#fdf3e3; }
+  .ag-conv { margin-top:8px; border-top:1px dashed #e6ebf0; padding-top:7px; }
+  .ag-conv-tit { font-size:10.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:#8a97a8; margin-bottom:4px; }
+  .ag-conv-li { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:3px; }
+  .ag-conv-nome { font-size:12.5px; font-weight:600; color:#26313a; }
+  .ag-conv-setor { font-size:11px; color:#7b8792; background:#eef1f4; border-radius:4px; padding:1px 6px; }
+  .ag-conv-rec { font-size:11.5px; color:#a5341f; background:#fdf1ee; border:1px solid #f3d9d1; border-radius:7px; padding:6px 8px; margin:2px 0 6px; }
+  .ag-conv-sug { margin-top:4px; color:#5b6670; display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+  .ag-meu { display:flex; align-items:center; gap:7px; margin-top:8px; flex-wrap:wrap; }
+  .ag-meu-txt { font-size:11.5px; color:#5b6670; }
+  .ag-mini.ok { color:#12692f; border-color:#bfe0c9; }
+  .ag-recusa { margin-top:9px; border:1px solid #f3d9d1; background:#fdf7f5; border-radius:9px; padding:9px 10px; }
+  .ag-recusa textarea, .ag-recusa input { width:100%; box-sizing:border-box; border:1px solid #cfd8e3; border-radius:8px; padding:7px 9px; font-size:13px; font-family:inherit; margin-bottom:7px; }
+  .ag-recusa .ag-f-row input { width:auto; margin-bottom:0; }
+  .ag-f-conv { border-top:1px dashed #dbe7df; padding-top:9px; margin-bottom:8px; }
+  .ag-form select.ag-c-setor, .ag-form select.ag-c-pessoa, .ag-verbar select { max-width:132px; margin-bottom:0; padding:6px 8px; border:1px solid #cfd8e3; border-radius:8px; font-size:12.5px; font-family:inherit; background:#fff; color:#1d2733; }
+  .ag-cchips { display:flex; flex-wrap:wrap; gap:6px; }
+  .ag-cchips:not(:empty) { margin:7px 0 4px; }
+  .ag-cchip { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; color:#1b4f86; background:#e6f0fb; border:1px solid #d3e3f5; border-radius:20px; padding:3px 4px 3px 10px; }
+  .ag-cchip i { font-style:normal; font-weight:500; color:#6b86a6; }
+  .ag-cx { border:0; background:transparent; color:#6b86a6; font-size:14px; line-height:1; cursor:pointer; padding:0 4px; }
+  .ag-cx:hover { color:#c0392b; }
+  .ag-verbar { border:1px solid #e2e8ee; background:#fafbfc; border-radius:9px; padding:8px 10px; margin-bottom:11px; }
+  .ag-verbar .ag-f-row { flex-wrap:wrap; }
+  .ag-vendo { font-size:12px; color:#5b6670; }
+  .ag-link { border:0; background:transparent; color:#157a35; font:inherit; font-size:12px; font-weight:600; text-decoration:underline; cursor:pointer; padding:0; }
+  .ag-pendbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:12.5px; color:#8a5a00;
+               background:#fdf3e3; border:1px solid #f3dcae; border-radius:9px; padding:8px 10px; margin-bottom:11px; }
+  .ag-pendbar .ag-link { color:#8a5a00; }
+  .ag-chip.pend { background:#fdf3e3; color:#8a5a00; }
+  .ag-chip i { font-style:normal; opacity:.75; }
   .esc-domcol { font-weight:700; color:#0c5a26; }
   .px-venc-vencido { color:#c0392b; font-weight:700; }
   .px-venc-prox { color:#e8820e; font-weight:700; }
@@ -1050,7 +1087,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="estoque"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Estoque</button>
     <button class="nav-item" data-page="datas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/></svg></span> Datas críticas</button>
     <button class="nav-item" data-page="calendario"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Calendário</button>
-    <button class="nav-item" data-page="agenda"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg></span> Agenda</button>
+    <button class="nav-item" data-page="agenda"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg></span> Agenda<span class="nav-badge" id="agNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="escala"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span> Escala</button>
     <button class="nav-item" data-page="ferias"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg></span> Férias</button>
     <button class="nav-item" data-page="pontos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span> Pontos extras<span class="nav-badge" id="pxNavBadge" style="display:none;"></span></button>
@@ -2594,6 +2631,16 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-fornecedores .frn-bt.sim{background:#157a35;border-color:#157a35;color:#fff;}
         #page-fornecedores .frn-bt.sim:hover{background:#12692e;}
         #page-fornecedores .frn-bt.nao:hover,#page-fornecedores .frn-bt.bloq:hover{border-color:#a8322a;color:#a8322a;}
+        /* A LINHA DA EXCEÇÃO "sem nota fiscal".
+           Cinza quando está tudo como deveria (exige nota) e âmbar quando o fornecedor
+           é exceção — âmbar e não verde de propósito: liberado sem nota não é uma coisa
+           boa que aconteceu, é uma trava desligada, e quem passa o olho tem que notar. */
+        #page-fornecedores .frn-semnota{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+              margin-top:10px;padding:8px 12px;border-radius:9px;border:1px solid #e4e9ef;
+              background:#f7f9fb;font-size:12.5px;color:#6b7787;}
+        #page-fornecedores .frn-semnota.on{background:#fff8ea;border-color:#f0dcb2;color:#8a5a12;}
+        #page-fornecedores .frn-semnota b{font-weight:700;}
+        #page-fornecedores .frn-semnota .frn-bt.mini{margin-left:auto;padding:4px 12px;font-size:12px;}
         #page-fornecedores .frn-vazio{color:#8a97a8;font-size:14px;margin:10px 0 0;}
         #page-fornecedores .frn-erro{color:#a8322a;font-size:14px;margin:10px 0 0;}
         #page-cartaz .cz-sub{text-align:center;color:#6b7787;font-size:13px;margin:0 0 14px;}
@@ -3270,6 +3317,36 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         font-family:inherit;white-space:nowrap;}
       .cl-ped-recd:hover{background:#fdf1ef;}
       .cl-ped-recd:active{transform:translateY(1px);}
+      /* "CHEGOU": azul, entre o vermelho de recusar e o verde de conferir.
+         Azul porque não é decisão nem julgamento — é registro de um fato que
+         aconteceu. Verde diria "aprovado" e vermelho diria "problema"; nenhum
+         dos dois é o que este botão faz. */
+      .cl-ped-cheg{background:#fff;color:#1d5fa8;border:1px solid #bcd4ee!important;
+        border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;
+        font-family:inherit;white-space:nowrap;}
+      .cl-ped-cheg:hover{background:#eef5fd;}
+      .cl-ped-cheg:active{transform:translateY(1px);}
+      /* Depois de registrado vira TEXTO, não botão: não há o que clicar de novo,
+         e um botão apagado ainda convida ao clique. */
+      .cl-chegou-ok{display:inline-flex;align-items:center;padding:7px 12px;border-radius:999px;
+        background:#eef5fd;color:#1d5fa8;font-size:12.5px;font-weight:600;white-space:nowrap;}
+      /* O SELO DA COLETA. Cinza-azulado e discreto: é informação que o sistema
+         descobriu sozinho, não pedido de ação. Âmbar só quando houve mais de uma
+         conferência daquele fornecedor no dia — aí a hora mostrada é um palpite
+         (a mais próxima do horário marcado) e quem lê precisa saber disso. */
+      .cl-coleta{display:inline-block;margin-left:8px;padding:2px 9px;border-radius:999px;
+        background:#eef3f8;color:#4a6076;font-size:11.5px;font-weight:600;white-space:nowrap;
+        vertical-align:1px;cursor:help;}
+      .cl-coleta.varias{background:#fff6e6;color:#8a5a12;}
+      /* O tempo na doca e o unico numero desta tela que responde "cabe mais um carro
+         hoje?". Verde, e nao cinza como os outros selos: aqui a informacao foi
+         conquistada — alguem apertou e o sistema fechou a conta. */
+      .cl-coleta.doca{background:#e8f5ec;color:#15682f;}
+      /* Os botões da linha da grade. Ficam na terceira coluna, no lugar onde antes
+         só havia o selo de status — a grade é um grid de três colunas e um elemento
+         solto a mais jogaria tudo para a linha de baixo. */
+      .cl-tl-bts{display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap;}
+      .cl-tl-bts .cl-ped-cheg,.cl-tl-bts .cl-ped-sim{padding:5px 13px;font-size:12.5px;}
       .cl-ped-acoes button[disabled]{opacity:.5;cursor:default;}
       /* "entc" = ENTregas Confirmadas. Nao usar "cl-conf": a aba Conferencia
          dos carros ja usa esse prefixo e redefine .cl-conf-lin com QUATRO
@@ -5185,18 +5262,39 @@ const CZ_BANNER_URI = ${JSON.stringify(cartazBannerUri)};
 const DOW_PT = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 
 // ================= AGENDA (compromissos por dia — na nuvem) =================
+// Parte 1 = a agenda pessoal. Parte 2 (31/08/2026) = compromisso ENTRE SETORES:
+// convido pessoas de outros setores, elas precisam ACEITAR, recusar exige motivo
+// escrito + uma nova data sugerida, e o master enxerga a agenda de qualquer um.
 let agAno=HOJE.getFullYear(), agMes=HOJE.getMonth(), agSel=null, agEditId=null;
 let agEventos={};   // "YYYY-MM-DD" -> [eventos]
 let agReqSeq=0;     // sequência de carregamento — descarta respostas obsoletas em navegação rápida
 let agRT=null;      // canal realtime
 let agErro=false;   // o último carregamento falhou?
+let agParte2=null;  // o SQL dos convites já rodou no banco? (null = ainda não sei)
+let agPessoas=null; // [{id,nome,setor}] — quem dá pra convidar
+let agVerAlvo=null; // master vendo a agenda de OUTRA pessoa (uuid)
+let agVerSetor=null;// master vendo um SETOR inteiro
+let agConvSel=[];   // convidados escolhidos no formulário (ids)
+let agRespId=null;  // qual evento está com a caixinha de recusa aberta
+let agPend={n:0,data:null}; // convites esperando MINHA resposta (nº + o mais próximo)
 const AG_DOW_LONGO=["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
 function agSB(){ return window.__SB||null; }
 function agUid(){ return (window.__PERFIL&&window.__PERFIL.id)||null; }
+function agMaster(){ return !!(window.__PERFIL&&window.__PERFIL.is_master); }
+// "estou olhando a agenda de outra pessoa?" — escolher a mim mesmo na lista
+// do setor continua sendo a MINHA agenda (o formulário não some).
+function agVendoOutro(){ return agVerAlvo?(agVerAlvo!==agUid()):!!agVerSetor; }
+// Quem eu quero ver: a PESSOA vence o setor. Mandar os dois faria o banco
+// devolver o setor inteiro e a tela rotularia como sendo daquela pessoa.
+function agAlvoPedido(){
+  if(agVerAlvo) return (agVerAlvo===agUid())?{alvo:null,setor:null}:{alvo:agVerAlvo,setor:null};
+  return {alvo:null,setor:agVerSetor||null};
+}
 function agK(a,m,d){ return a+"-"+("0"+(m+1)).slice(-2)+"-"+("0"+d).slice(-2); }
 function agParse(k){ var p=String(k).split("-"); return new Date(+p[0],+p[1]-1,+p[2]); }
 function agEhHoje(a,m,d){ var h=new Date(); return h.getFullYear()===a&&h.getMonth()===m&&h.getDate()===d; }
 function agFmtHora(t){ return t?String(t).slice(0,5):""; }
+function agFmtDia(k){ var p=String(k).split("-"); return p[2]+"/"+p[1]; }
 function agFmtDataBr(k){ var p=String(k).split("-"); return DOW_PT[new Date(+p[0],+p[1]-1,+p[2]).getDay()]+", "+p[2]+"/"+p[1]+"/"+p[0]; }
 function agEsc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
 function agRepete(ev){ return ev&&ev.repete&&ev.repete!=="nao"?ev.repete:null; }
@@ -5241,61 +5339,183 @@ function agOcorre(ev,ano,mes){
 }
 function agFindEv(id){ var e=null; (agEventos[agSel]||[]).forEach(function(x){ if(x.id===id) e=x; }); return e; }
 
+/* ---------------- gente pra convidar (setor + nome) ---------------- */
+function agPessoasLoad(){
+  var sb=agSB(); if(!sb||agPessoas) return;
+  sb.rpc("agenda_pessoas").then(function(r){
+    agPessoas=(r&&!r.error&&r.data)?r.data:[];   // sem a Parte 2 no banco: some o convite, o resto funciona
+    agRenderDia();
+  },function(){ agPessoas=[]; agRenderDia(); });
+  /* chega em milissegundos, antes de qualquer digitação: aqui o redesenho é seguro */
+}
+function agSetores(){ var vis={}, out=[]; (agPessoas||[]).forEach(function(p){ if(!vis[p.setor]){ vis[p.setor]=1; out.push(p.setor); } }); return out.sort(); }
+function agDoSetor(st){ return (agPessoas||[]).filter(function(p){ return p.setor===st; }); }
+function agPessoa(id){ var n=null; (agPessoas||[]).forEach(function(p){ if(p.id===id) n=p; }); return n; }
+
+/* ---------------- carregar o mês ---------------- */
+// "a Parte 2 ainda não foi pro banco" é diferente de "a internet caiu": só o
+// primeiro caso justifica voltar pro jeito antigo (agenda pessoal, sem convite).
+function agSemParte2(e){
+  var c=String((e&&e.code)||""), m=String((e&&e.message)||"");
+  return c==="PGRST202"||c==="42883"||(/agenda_mes|agenda_convidados/.test(m)&&/(does not exist|não existe|not find|schema cache)/i.test(m));
+}
+function agTerminar(seq,reqAno,reqMes,rows,erro){
+  if(seq!==agReqSeq) return;                                   // resposta velha: já saiu uma carga mais nova
+  if(reqAno!==agAno||reqMes!==agMes){ agCloudLoad(); return; }  // mês mudou durante a carga → recarrega o certo
+  if(erro){ agErro=true; agRenderMes(); agRenderDia(); return; }// preserva o que já estava na tela + mostra aviso
+  agErro=false;
+  var mapa={};
+  (rows||[]).forEach(function(ev){ agOcorre(ev,agAno,agMes).forEach(function(key){ (mapa[key]=mapa[key]||[]).push(ev); }); });
+  Object.keys(mapa).forEach(function(k){ mapa[k].sort(function(a,b){ return (a.hora||"99")<(b.hora||"99")?-1:1; }); });
+  agEventos=mapa; agRenderMes(); agRenderDia();
+}
 function agCloudLoad(){
   var sb=agSB(), uid=agUid();
   if(!sb||!uid){ agRenderMes(); agRenderDia(); return; }
   var seq=++agReqSeq, reqAno=agAno, reqMes=agMes;
   var ini=agK(reqAno,reqMes,1), fim=agK(reqAno,reqMes,new Date(reqAno,reqMes+1,0).getDate());
-  // Q1 = eventos únicos + início de séries dentro do mês; Q2 = séries que começaram ANTES deste mês (recorrem pra cá).
-  /* de 420 bytes por compromisso, 256 sao tenant_id, criado_por, para_id, cor,
-     created_at e updated_at — nenhum deles aparece no calendario nem no painel do dia */
+  var _q=agAlvoPedido(), alvo=_q.alvo, setor=_q.setor;
+  if(agParte2===false && !alvo && !setor){ agCloudLoadPessoal(seq,reqAno,reqMes,ini,fim); return; }
+  /* uma pergunta só pro mês inteiro: o evento + quem foi convidado + como cada um
+     respondeu. A função devolve apenas as colunas que a tela desenha. */
+  sb.rpc("agenda_mes",{p_ini:ini,p_fim:fim,p_alvo:alvo||null,p_setor:setor||null}).then(function(r){
+    if(r&&r.error){
+      if(agSemParte2(r.error)&&!alvo&&!setor){ agParte2=false; agCloudLoadPessoal(seq,reqAno,reqMes,ini,fim); return; }
+      agTerminar(seq,reqAno,reqMes,null,true); return;
+    }
+    agParte2=true; agTerminar(seq,reqAno,reqMes,(r&&r.data)||[],false);
+  },function(){ agTerminar(seq,reqAno,reqMes,null,true); });
+}
+// Plano B: o painel novo com o banco AINDA no formato antigo (SQL dos convites não rodou).
+function agCloudLoadPessoal(seq,reqAno,reqMes,ini,fim){
+  var sb=agSB(), uid=agUid();
   var AG_COLS="id,data,hora,titulo,descricao,repete,repete_ate";
   var q1=sb.from("agenda_eventos").select(AG_COLS).eq("para_id",uid).gte("data",ini).lte("data",fim);
   var q2=sb.from("agenda_eventos").select(AG_COLS).eq("para_id",uid).not("repete","is",null).lt("data",ini);
-  function terminar(rows,erro){
-    if(seq!==agReqSeq) return;                                   // resposta velha: já saiu uma carga mais nova
-    if(reqAno!==agAno||reqMes!==agMes){ agCloudLoad(); return; } // mês mudou durante a carga → recarrega o certo
-    if(erro){ agErro=true; agRenderMes(); agRenderDia(); return; } // preserva o que já estava na tela + mostra aviso
-    agErro=false;
-    var mapa={};
-    rows.forEach(function(ev){ agOcorre(ev,agAno,agMes).forEach(function(key){ (mapa[key]=mapa[key]||[]).push(ev); }); });
-    Object.keys(mapa).forEach(function(k){ mapa[k].sort(function(a,b){ return (a.hora||"99")<(b.hora||"99")?-1:1; }); });
-    agEventos=mapa; agRenderMes(); agRenderDia();
-  }
   Promise.all([
     q1.then(function(r){ return r; }, function(){ return {error:true}; }),
-    q2.then(function(r){ return r; }, function(){ return {data:[]}; })   // Q2 falhar (ex.: coluna 'repete' ainda não existe) só desliga a recorrência
+    q2.then(function(r){ return r; }, function(){ return {data:[]}; })
   ]).then(function(res){
     var r1=res[0]||{}, r2=res[1]||{};
-    if(r1.error){ terminar(null,true); return; }
+    if(r1.error){ agTerminar(seq,reqAno,reqMes,null,true); return; }
     var rows=[], vistos={};
-    (r1.data||[]).concat(r2.data||[]).forEach(function(ev){ if(ev&&!vistos[ev.id]){ vistos[ev.id]=1; rows.push(ev); } });
-    terminar(rows,false);
-  },function(){ terminar(null,true); });
+    (r1.data||[]).concat(r2.data||[]).forEach(function(ev){ if(ev&&!vistos[ev.id]){ vistos[ev.id]=1; ev.sou_dono=true; ev.convidados=[]; rows.push(ev); } });
+    agTerminar(seq,reqAno,reqMes,rows,false);
+  },function(){ agTerminar(seq,reqAno,reqMes,null,true); });
+}
+// Bolinha no menu: quantos convites estão esperando resposta minha — e a data
+// do mais próximo, que é o que permite LEVAR a pessoa até ele.
+function agBadge(){
+  var el=document.getElementById("agNavBadge");
+  var sb=agSB(); if(!sb){ if(el) el.style.display="none"; return; }
+  sb.rpc("agenda_convites_pendentes").then(function(r){
+    var d=(r&&!r.error)?r.data:null;
+    agPend=(d&&typeof d==="object")?{n:+d.n||0,data:d.data||null}:{n:0,data:null};
+    if(el){ el.textContent=agPend.n>99?"99+":String(agPend.n); el.style.display=agPend.n?"":"none"; }
+    agRenderDia();
+  },function(){ agPend={n:0,data:null}; if(el) el.style.display="none"; });
+}
+// A faixa que leva até o convite. Sem ela a bolinha avisa e a pessoa fica procurando:
+// o compromisso pode estar em outro mês, e o calendário abre sempre no mês de hoje.
+function agPendHtml(){
+  if(agVendoOutro()||!agPend.n) return "";
+  var d=agPend.data||"", noDia=(d&&d===agSel);
+  return '<div class="ag-pendbar"><span>⏳ <b>'+agPend.n+' convite'+(agPend.n>1?'s':'')+'</b> esperando sua resposta'+
+    (d&&!noDia?(' — o mais próximo é <b>'+agFmtDataBr(d)+'</b>'):'')+'.</span>'+
+    (d&&!noDia?('<button type="button" class="ag-link" data-agirconvite="'+agEsc(d)+'">ver</button>'):'')+'</div>';
 }
 
+/* ---------------- calendário ---------------- */
 function agRenderMes(){
   var tit=document.getElementById("agTitulo"); if(tit) tit.textContent=MESES[agMes]+" "+agAno;
   var grid=document.getElementById("agDias"); if(!grid) return;
   grid.innerHTML=celulasDoMes(agAno,agMes).map(function(c){
     if(c.fora) return '<div class="ag-cel fora"><span class="ag-num">'+c.dia+'</span></div>';
     var key=agK(agAno,agMes,c.dia), evs=agEventos[key]||[];
-    var chips=evs.slice(0,3).map(function(ev){ return '<div class="ag-chip">'+(agRepete(ev)?'🔁 ':'')+(ev.hora?('<b>'+agFmtHora(ev.hora)+'</b> '):'')+agEsc(ev.titulo)+'</div>'; }).join('');
+    var chips=evs.slice(0,3).map(function(ev){
+      var esp=(ev.meu_status==="aguardando")?'⏳ ':'';
+      var quem=(agVerSetor&&ev.dono_nome)?('<i>'+agEsc(String(ev.dono_nome).split(" ")[0])+'</i> '):'';
+      return '<div class="ag-chip'+(ev.meu_status==="aguardando"?" pend":"")+'">'+esp+(agRepete(ev)?'🔁 ':'')+quem+(ev.hora?('<b>'+agFmtHora(ev.hora)+'</b> '):'')+agEsc(ev.titulo)+'</div>';
+    }).join('');
     var mais=evs.length>3?('<div class="ag-mais">+'+(evs.length-3)+' mais</div>'):'';
     return '<div class="ag-cel'+(agEhHoje(agAno,agMes,c.dia)?' hoje':'')+(agSel===key?' sel':'')+'" data-agdia="'+key+'"><span class="ag-num">'+c.dia+'</span>'+chips+mais+'</div>';
   }).join('');
 }
 
+/* ---------------- painel do dia ---------------- */
+function agStPill(st){
+  if(st==="confirmado") return '<span class="ag-st ok">✓ Confirmado</span>';
+  if(st==="recusado")   return '<span class="ag-st no">✕ Recusou</span>';
+  return '<span class="ag-st wait">⏳ Aguardando</span>';
+}
+function agConvHtml(ev){
+  var cs=ev.convidados||[]; if(!cs.length) return "";
+  var linhas=cs.map(function(c){
+    return '<div class="ag-conv-li"><span class="ag-conv-nome">'+agEsc(c.nome)+'</span>'+
+           '<span class="ag-conv-setor">'+agEsc(c.setor)+'</span>'+agStPill(c.status)+'</div>'+
+           (c.status==="recusado"?
+             '<div class="ag-conv-rec">Motivo: '+agEsc(c.motivo||'')+
+             (c.sug_data?('<div class="ag-conv-sug">Sugeriu <b>'+agFmtDataBr(c.sug_data)+'</b>'+(c.sug_hora?(' às <b>'+agFmtHora(c.sug_hora)+'</b>'):'')+
+               (ev.sou_dono?('<button type="button" class="ag-mini ok" data-agremarcar="'+ev.id+'" data-d="'+agEsc(c.sug_data)+'" data-h="'+agEsc(c.sug_hora||'')+'">Remarcar pra esta data</button>'):'')+
+             '</div>'):'')+'</div>':'');
+  }).join('');
+  return '<div class="ag-conv"><div class="ag-conv-tit">Convidados</div>'+linhas+'</div>';
+}
+function agRespostaHtml(ev){
+  if(!ev.meu_status||ev.sou_dono) return "";
+  if(agRespId===ev.id){
+    return '<div class="ag-recusa">'+
+      '<div class="ag-f-lbl">Por que não dá? (obrigatório)</div>'+
+      '<textarea class="ag-r-motivo" rows="2" maxlength="300" placeholder="Ex.: já tenho o fechamento do caixa nesse horário"></textarea>'+
+      '<div class="ag-f-row"><span class="ag-f-lbl">Sugerir novo dia:</span><input type="date" class="ag-r-data" value="'+agEsc(agSel||'')+'"></div>'+
+      '<div class="ag-f-row"><span class="ag-f-lbl">Nova hora (opcional):</span><input type="time" class="ag-r-hora" value="'+agEsc(agFmtHora(ev.hora))+'"></div>'+
+      '<div class="ag-r-erro" style="display:none;color:#c0392b;font-size:12.5px;margin:2px 0 6px;"></div>'+
+      '<div style="display:flex;gap:8px;"><button type="button" class="ag-salvar" data-agrecusaok="'+ev.id+'">Enviar recusa</button>'+
+      '<button type="button" class="ag-mini" data-agrecusacancel>Voltar</button></div></div>';
+  }
+  var meu='<div class="ag-meu">'+agStPill(ev.meu_status)+
+    (ev.meu_status==="aguardando"?'<span class="ag-meu-txt">— você foi convidado, responda:</span>':'')+'</div>';
+  if(ev.meu_status==="aguardando"){
+    return meu+'<div class="ag-ev-acoes"><button type="button" class="ag-mini ok" data-agaceitar="'+ev.id+'">Aceitar</button>'+
+      '<button type="button" class="ag-mini danger" data-agrecusar="'+ev.id+'">Recusar</button></div>';
+  }
+  return meu+'<div class="ag-ev-acoes"><button type="button" class="ag-mini" data-agrecusar="'+ev.id+'">Mudar minha resposta</button></div>';
+}
 function agEvHtml(ev){
-  var rep=agRepLabel(ev);
-  return '<div class="ag-ev"><div class="ag-ev-top">'+
+  var rep=agRepLabel(ev), meu=!!ev.sou_dono;
+  var acoes=(meu&&!agVendoOutro())?('<div class="ag-ev-acoes"><button type="button" class="ag-mini" data-ageditar="'+ev.id+'">Editar</button>'+
+    '<button type="button" class="ag-mini danger" data-agexcluir="'+ev.id+'">Excluir</button></div>'):'';
+  return '<div class="ag-ev'+(ev.meu_status==="aguardando"?" pend":"")+'"><div class="ag-ev-top">'+
     (ev.hora?'<span class="ag-ev-hora">'+agFmtHora(ev.hora)+'</span>':'<span class="ag-ev-hora dia">dia todo</span>')+
     '<span class="ag-ev-tit">'+agEsc(ev.titulo)+'</span>'+
     (rep?'<span class="ag-ev-rep">🔁 '+rep+'</span>':'')+'</div>'+
+    ((!meu&&ev.dono_nome)?'<div class="ag-ev-dono">marcado por '+agEsc(ev.dono_nome)+'</div>':'')+
     (ev.descricao?'<div class="ag-ev-desc">'+agEsc(ev.descricao)+'</div>':'')+
-    '<div class="ag-ev-acoes"><button type="button" class="ag-mini" data-ageditar="'+ev.id+'">Editar</button>'+
-    '<button type="button" class="ag-mini danger" data-agexcluir="'+ev.id+'">Excluir</button></div></div>';
+    agConvHtml(ev)+ (agVendoOutro()?'':agRespostaHtml(ev)) + acoes+'</div>';
 }
+/* --- escolher quem convidar: primeiro o setor, depois a pessoa daquele setor --- */
+function agConvidarHtml(){
+  if(agParte2===false) return "";
+  if(!agPessoas) return '<div class="ag-f-hint">Carregando a lista de pessoas...</div>';
+  var sets=agSetores();
+  if(!sets.length) return "";
+  return '<div class="ag-f-conv"><div class="ag-f-lbl" style="margin-bottom:5px;">Convidar (opcional):</div>'+
+    '<div class="ag-f-row"><select class="ag-c-setor"><option value="">Setor...</option>'+
+      sets.map(function(s){ return '<option value="'+agEsc(s)+'">'+agEsc(s)+'</option>'; }).join('')+'</select>'+
+    '<select class="ag-c-pessoa"><option value="">Pessoa...</option></select>'+
+    '<button type="button" class="ag-mini" data-agaddconv>Adicionar</button></div>'+
+    '<div class="ag-cchips" id="agCChips">'+agConvChipsHtml()+'</div>'+
+    '<div class="ag-f-hint">Quem for convidado precisa aceitar. Se recusar, tem que dizer o motivo e sugerir outra data.</div></div>';
+}
+// Só a fileira de convidados. Mexer nela NÃO pode redesenhar o formulário inteiro:
+// era assim que o título e a hora já digitados sumiam ao clicar em "Adicionar".
+function agConvChipsHtml(){
+  return agConvSel.map(function(id){
+    var p=agPessoa(id); if(!p) return "";
+    return '<span class="ag-cchip">'+agEsc(p.nome)+' <i>'+agEsc(p.setor)+'</i><button type="button" class="ag-cx" data-agtiraconv="'+id+'" title="Tirar">×</button></span>';
+  }).join('');
+}
+function agConvChipsPinta(){ var c=document.getElementById("agCChips"); if(c) c.innerHTML=agConvChipsHtml(); }
 function agFormHtml(){
   var ev = agEditId ? agFindEv(agEditId) : null;
   var rep = ev&&ev.repete?ev.repete:"nao";
@@ -5312,20 +5532,53 @@ function agFormHtml(){
     '<div class="ag-f-hint"'+(mostrarRep?'':' style="display:none;"')+'>'+agRepHint(rep)+'</div>'+
     '<div class="ag-f-row ag-f-ate-wrap"'+(mostrarRep?'':' style="display:none;"')+'><span class="ag-f-lbl">Repetir até (opcional):</span><input type="date" class="ag-f-ate" value="'+(ate?agEsc(ate):'')+'"></div>'+
     '<textarea class="ag-f-desc" rows="2" maxlength="500" placeholder="Anotação (opcional)">'+(ev?agEsc(ev.descricao||''):'')+'</textarea>'+
+    agConvidarHtml()+
     '<div class="ag-f-erro" style="display:none;color:#c0392b;font-size:12.5px;margin-top:2px;"></div>'+
     '<div style="display:flex;gap:8px;align-items:center;"><button type="button" class="ag-salvar" data-agsalvar="'+(ev?ev.id:'')+'">'+(ev?'Salvar':'Adicionar')+'</button>'+
     (ev?'<button type="button" class="ag-mini" data-agcancelaredit>Cancelar</button>':'')+'</div></div>';
 }
+/* --- barra do master: de quem é a agenda que estou vendo --- */
+function agVerBarHtml(){
+  if(!agMaster()||agParte2===false) return "";
+  if(!agPessoas) return "";
+  var sets=agSetores();
+  var pes=agVerSetor?agDoSetor(agVerSetor):[];
+  var qual="";
+  if(agVerAlvo){ var p=agPessoa(agVerAlvo); qual=p?('Vendo a agenda de <b>'+agEsc(p.nome)+'</b>'):''; }
+  else if(agVerSetor){ qual='Vendo o setor <b>'+agEsc(agVerSetor)+'</b> inteiro'; }
+  return '<div class="ag-verbar"><div class="ag-f-row" style="margin-bottom:6px;"><span class="ag-f-lbl">Ver agenda de:</span>'+
+    '<select class="ag-v-setor"><option value="">Minha agenda</option>'+
+      sets.map(function(s){ return '<option value="'+agEsc(s)+'"'+(agVerSetor===s?' selected':'')+'>'+agEsc(s)+'</option>'; }).join('')+'</select>'+
+    (agVerSetor?('<select class="ag-v-pessoa"><option value="">Setor inteiro</option>'+
+      pes.map(function(p){ return '<option value="'+agEsc(p.id)+'"'+(agVerAlvo===p.id?' selected':'')+'>'+agEsc(p.nome)+'</option>'; }).join('')+'</select>'):'')+
+    '</div>'+(qual?('<div class="ag-vendo">'+qual+' — <button type="button" class="ag-link" data-agvoltarmeu>voltar pra minha agenda</button></div>'):'')+'</div>';
+}
 function agRenderDia(){
   var p=document.getElementById("agPainel"); if(!p) return;
   var aviso=agErro?'<div class="ag-aviso">Não deu pra carregar a agenda agora. Verifique a conexão e toque em "Hoje".</div>':'';
-  if(!agSel){ p.innerHTML=aviso+'<div class="ag-vazio">Escolha um dia no calendário para ver e marcar seus compromissos.</div>'; return; }
+  var barra=agVerBarHtml()+agPendHtml();
+  if(!agSel){ p.innerHTML=barra+aviso+'<div class="ag-vazio">Escolha um dia no calendário para ver e marcar seus compromissos.</div>'; return; }
   var evs=agEventos[agSel]||[];
-  var lista=evs.length?evs.map(agEvHtml).join(''):'<div class="ag-vazio">Nada marcado neste dia ainda.</div>';
-  p.innerHTML=aviso+'<div class="ag-painel-tit">'+agFmtDataBr(agSel)+'</div><div class="ag-lista">'+lista+'</div>'+agFormHtml();
+  var vazio=agVendoOutro()?'Nada marcado neste dia.':'Nada marcado neste dia ainda.';
+  var lista=evs.length?evs.map(agEvHtml).join(''):'<div class="ag-vazio">'+vazio+'</div>';
+  var form=agVendoOutro()
+    ? ('<div class="ag-f-hint">Você está só olhando. Para marcar alguma coisa com '+(agVerSetor&&!agVerAlvo?'este setor':'esta pessoa')+', volte pra sua agenda e mande o convite.</div>')
+    : agFormHtml();
+  p.innerHTML=barra+aviso+'<div class="ag-painel-tit">'+agFmtDataBr(agSel)+'</div><div class="ag-lista">'+lista+'</div>'+form;
 }
-function renderAgenda(){ if(!agSel){ var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate()); } agRenderMes(); agRenderDia(); }
+function renderAgenda(){ if(!agSel){ var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate()); } agPessoasLoad(); agRenderMes(); agRenderDia(); }
 
+/* ---------------- gravar ---------------- */
+// Só o que mudou: convida quem entrou na lista, desconvida quem saiu.
+function agSyncConvidados(sb,evId,antesArr){
+  var antes=(antesArr||[]).map(function(c){ return c.pessoa_id; });
+  var add=agConvSel.filter(function(id){ return antes.indexOf(id)<0; });
+  var rem=antes.filter(function(id){ return agConvSel.indexOf(id)<0; });
+  var ps=[];
+  if(add.length) ps.push(sb.from("agenda_convidados").insert(add.map(function(id){ return {evento_id:evId,pessoa_id:id}; })).select());
+  if(rem.length) ps.push(sb.from("agenda_convidados").delete().eq("evento_id",evId).in("pessoa_id",rem));
+  return ps.length?Promise.all(ps):Promise.resolve([]);
+}
 function agSalvar(btn,id){
   var box=btn.closest(".ag-form"); if(!box) return;
   var titulo=(box.querySelector(".ag-f-tit").value||"").trim();
@@ -5339,6 +5592,7 @@ function agSalvar(btn,id){
   if(rep&&rep!=="nao"&&ate&&agSel&&ate<agSel) return eMsg('"Repetir até" não pode ser antes do dia do compromisso.');
   var sb=agSB(); if(!sb||!agUid()) return eMsg("Entre no painel pra salvar.");
   btn.disabled=true;
+  var evAntes=id?agFindEv(id):null;
   var payload={ titulo:titulo, hora:hora||null, descricao:desc||null };
   var q;
   if(id){
@@ -5349,39 +5603,117 @@ function agSalvar(btn,id){
     if(rep&&rep!=="nao"){ payload.repete=rep; if(ate) payload.repete_ate=ate; } // insert de "não repete" não toca nas colunas novas
     q=sb.from("agenda_eventos").insert(Object.assign({data:agSel},payload)).select();
   }
-  q.then(function(r){ btn.disabled=false;
-    if(r&&r.error){ eMsg("Não deu pra salvar. Tente de novo."); return; }
-    if(r&&r.data&&r.data.length===0){ eMsg("Não foi possível salvar (sem permissão)."); return; }  // 0 linhas = RLS barrou
-    agEditId=null; agCloudLoad();
+  q.then(function(r){
+    if(r&&r.error){ btn.disabled=false; eMsg("Não deu pra salvar. Tente de novo."); return; }
+    if(r&&r.data&&r.data.length===0){ btn.disabled=false; eMsg("Não foi possível salvar (sem permissão)."); return; }  // 0 linhas = RLS barrou
+    var evId=id||((r&&r.data&&r.data[0])?r.data[0].id:null);
+    if(!evId||agParte2===false){ btn.disabled=false; agEditId=null; agConvSel=[]; agCloudLoad(); return; }
+    agSyncConvidados(sb,evId,evAntes?evAntes.convidados:[]).then(function(){
+      btn.disabled=false; agEditId=null; agConvSel=[]; agCloudLoad(); agBadge();
+    },function(){
+      // o compromisso ficou salvo; só o convite falhou — falar a verdade em vez de sumir
+      btn.disabled=false; agCloudLoad(); eMsg("O compromisso foi salvo, mas não deu pra enviar o convite. Tente de novo pelo Editar.");
+    });
   },function(){ btn.disabled=false; eMsg("Falha de conexão. Tente de novo."); });
 }
 function agExcluir(id){
-  uiConfirm({titulo:"Excluir compromisso?",msg:"Tem certeza que quer excluir este compromisso?",ok:"Excluir",cancel:"Cancelar"}).then(function(ok){
+  uiConfirm({titulo:"Excluir compromisso?",msg:"Tem certeza que quer excluir este compromisso? Quem foi convidado deixa de ver.",ok:"Excluir",cancel:"Cancelar"}).then(function(ok){
     if(!ok) return; var sb=agSB(); if(!sb) return;
-    sb.from("agenda_eventos").delete().eq("id",id).select().then(function(r){ if(!(r&&r.error)){ agEditId=null; agCloudLoad(); } });
+    sb.from("agenda_eventos").delete().eq("id",id).select().then(function(r){ if(!(r&&r.error)){ agEditId=null; agConvSel=[]; agCloudLoad(); agBadge(); } });
   });
 }
-function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; function rec(){ clearTimeout(deb); deb=setTimeout(agCloudLoad,700); } agRT=sb.channel("agenda_sync").on("postgres_changes",{event:"*",schema:"public",table:"agenda_eventos"},rec).subscribe(); }catch(e){} }
+function agResponder(id,status,motivo,sugD,sugH,onErro){
+  var sb=agSB(); if(!sb) return;
+  sb.rpc("agenda_responder",{p_evento:id,p_status:status,p_motivo:motivo||null,p_sug_data:sugD||null,p_sug_hora:sugH||null}).then(function(r){
+    if(r&&r.error){ if(onErro) onErro(r.error.message||"Não deu pra responder."); return; }
+    agRespId=null; agCloudLoad(); agBadge();
+  },function(){ if(onErro) onErro("Falha de conexão. Tente de novo."); });
+}
+// Quem convidou aceita a data sugerida: o gatilho do banco devolve TODO MUNDO
+// pra "Aguardando", porque o dia mudou e ninguém confirmou esse novo dia ainda.
+function agRemarcar(id,d,h){
+  uiConfirm({titulo:"Remarcar?",msg:"O compromisso passa para "+agFmtDataBr(d)+(h?(" às "+agFmtHora(h)):"")+". Todos os convidados voltam a ter que confirmar.",ok:"Remarcar",cancel:"Cancelar"}).then(function(ok){
+    if(!ok) return; var sb=agSB(); if(!sb) return;
+    sb.from("agenda_eventos").update({data:d,hora:h||null}).eq("id",id).select().then(function(r){
+      if(r&&r.error) return;
+      // a nova data quase sempre cai em OUTRO mês: o calendário vai junto,
+      // senão o compromisso "some" (o painel mostra um dia que a grade não desenha)
+      var nd=agParse(d); agAno=nd.getFullYear(); agMes=nd.getMonth();
+      agSel=d; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); agBadge();
+    });
+  });
+}
+function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; function rec(){ clearTimeout(deb); deb=setTimeout(function(){ agCloudLoad(); agBadge(); },700); } agRT=sb.channel("agenda_sync").on("postgres_changes",{event:"*",schema:"public",table:"agenda_eventos"},rec).on("postgres_changes",{event:"*",schema:"public",table:"agenda_convidados"},rec).subscribe(); }catch(e){} }
 
 (function(){
-  var pv=document.getElementById("agPrev"); if(pv) pv.addEventListener("click",function(){ agMes--; if(agMes<0){agMes=11;agAno--;} agSel=null; agEditId=null; agCloudLoad(); });
-  var nx=document.getElementById("agNext"); if(nx) nx.addEventListener("click",function(){ agMes++; if(agMes>11){agMes=0;agAno++;} agSel=null; agEditId=null; agCloudLoad(); });
-  var hj=document.getElementById("agHoje"); if(hj) hj.addEventListener("click",function(){ var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate()); agEditId=null; agCloudLoad(); });
-  var dias=document.getElementById("agDias"); if(dias) dias.addEventListener("click",function(e){ var c=e.target.closest("[data-agdia]"); if(c){ agSel=c.getAttribute("data-agdia"); agEditId=null; agRenderMes(); agRenderDia(); } });
+  function limpaVer(){ agSel=null; agEditId=null; agRespId=null; agConvSel=[]; }
+  var pv=document.getElementById("agPrev"); if(pv) pv.addEventListener("click",function(){ agMes--; if(agMes<0){agMes=11;agAno--;} limpaVer(); agCloudLoad(); });
+  var nx=document.getElementById("agNext"); if(nx) nx.addEventListener("click",function(){ agMes++; if(agMes>11){agMes=0;agAno++;} limpaVer(); agCloudLoad(); });
+  var hj=document.getElementById("agHoje"); if(hj) hj.addEventListener("click",function(){ var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate()); agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); });
+  var dias=document.getElementById("agDias"); if(dias) dias.addEventListener("click",function(e){ var c=e.target.closest("[data-agdia]"); if(c){ agSel=c.getAttribute("data-agdia"); agEditId=null; agRespId=null; agConvSel=[]; agRenderMes(); agRenderDia(); } });
   var pn=document.getElementById("agPainel"); if(pn){
     pn.addEventListener("click",function(e){
       var sv=e.target.closest("[data-agsalvar]"); if(sv){ agSalvar(sv, sv.getAttribute("data-agsalvar")||null); return; }
-      var ed=e.target.closest("[data-ageditar]"); if(ed){ agEditId=ed.getAttribute("data-ageditar"); agRenderDia(); return; }
+      var ed=e.target.closest("[data-ageditar]"); if(ed){
+        agEditId=ed.getAttribute("data-ageditar"); agRespId=null;
+        var _ev=agFindEv(agEditId); agConvSel=(_ev&&_ev.convidados||[]).map(function(c){ return c.pessoa_id; });
+        agRenderDia(); return;
+      }
       var ex=e.target.closest("[data-agexcluir]"); if(ex){ agExcluir(ex.getAttribute("data-agexcluir")); return; }
-      if(e.target.closest("[data-agcancelaredit]")){ agEditId=null; agRenderDia(); return; }
+      if(e.target.closest("[data-agcancelaredit]")){ agEditId=null; agConvSel=[]; agRenderDia(); return; }
+      var ac=e.target.closest("[data-agaceitar]"); if(ac){ agResponder(ac.getAttribute("data-agaceitar"),"confirmado"); return; }
+      var rc=e.target.closest("[data-agrecusar]"); if(rc){ agRespId=rc.getAttribute("data-agrecusar"); agRenderDia(); return; }
+      if(e.target.closest("[data-agrecusacancel]")){ agRespId=null; agRenderDia(); return; }
+      var rok=e.target.closest("[data-agrecusaok]");
+      if(rok){
+        var cx=rok.closest(".ag-recusa"), er=cx.querySelector(".ag-r-erro");
+        var rMsg=function(m){ er.textContent=m; er.style.display=""; };
+        var mot=(cx.querySelector(".ag-r-motivo").value||"").trim();
+        var nd=(cx.querySelector(".ag-r-data").value||"");
+        var nh=(cx.querySelector(".ag-r-hora").value||"");
+        if(!mot) return rMsg("Escreva o motivo — quem convidou precisa saber.");
+        if(!nd)  return rMsg("Sugira um novo dia pra remarcar.");
+        rok.disabled=true;
+        agResponder(rok.getAttribute("data-agrecusaok"),"recusado",mot,nd,nh||null,function(m){ rok.disabled=false; rMsg(m); });
+        return;
+      }
+      var rm=e.target.closest("[data-agremarcar]"); if(rm){ agRemarcar(rm.getAttribute("data-agremarcar"),rm.getAttribute("data-d"),rm.getAttribute("data-h")); return; }
+      var tc=e.target.closest("[data-agtiraconv]"); if(tc){ var _id=tc.getAttribute("data-agtiraconv"); agConvSel=agConvSel.filter(function(x){ return x!==_id; }); agConvChipsPinta(); return; }
+      if(e.target.closest("[data-agaddconv]")){
+        var fb=e.target.closest(".ag-f-conv"); if(!fb) return;
+        var ps=fb.querySelector(".ag-c-pessoa"), pid=ps?ps.value:"";
+        if(!pid) return;
+        if(agConvSel.indexOf(pid)<0) agConvSel.push(pid);
+        agConvChipsPinta(); return;
+      }
+      /* agSel NÃO se perde ao trocar de agenda: zerando o dia, a pessoa caía num
+         painel "Escolha um dia no calendário" e o formulário sumia. */
+      if(e.target.closest("[data-agvoltarmeu]")){ agVerAlvo=null; agVerSetor=null; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); return; }
+      var ir=e.target.closest("[data-agirconvite]");
+      if(ir){ var _d=ir.getAttribute("data-agirconvite"), _p=agParse(_d);
+        agAno=_p.getFullYear(); agMes=_p.getMonth(); agSel=_d; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); return; }
     });
-    // trocar "Repetir" mostra/esconde o "até" e atualiza a dica, sem re-renderizar o form
     pn.addEventListener("change",function(e){
-      var sel=e.target.closest(".ag-f-rep"); if(!sel) return;
-      var box=sel.closest(".ag-form"); if(!box) return;
-      var rep=sel.value, mostrar=(rep&&rep!=="nao");
-      var hint=box.querySelector(".ag-f-hint"); if(hint){ hint.textContent=agRepHint(rep); hint.style.display=mostrar?"":"none"; }
-      var aw=box.querySelector(".ag-f-ate-wrap"); if(aw){ aw.style.display=mostrar?"":"none"; }
+      // trocar "Repetir" mostra/esconde o "até" e atualiza a dica, sem re-renderizar o form
+      var sel=e.target.closest(".ag-f-rep");
+      if(sel){
+        var box=sel.closest(".ag-form"); if(!box) return;
+        var rep=sel.value, mostrar=(rep&&rep!=="nao");
+        var hint=box.querySelector(".ag-f-hint"); if(hint){ hint.textContent=agRepHint(rep); hint.style.display=mostrar?"":"none"; }
+        var aw=box.querySelector(".ag-f-ate-wrap"); if(aw){ aw.style.display=mostrar?"":"none"; }
+        return;
+      }
+      // escolheu o setor -> a lista de pessoas passa a ser só a daquele setor
+      var cs=e.target.closest(".ag-c-setor");
+      if(cs){
+        var fb=cs.closest(".ag-f-conv"), pp=fb?fb.querySelector(".ag-c-pessoa"):null; if(!pp) return;
+        pp.innerHTML='<option value="">Pessoa...</option>'+agDoSetor(cs.value).map(function(p){ return '<option value="'+agEsc(p.id)+'">'+agEsc(p.nome)+'</option>'; }).join('');
+        return;
+      }
+      var vs=e.target.closest(".ag-v-setor");
+      if(vs){ agVerSetor=vs.value||null; agVerAlvo=null; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); return; }
+      var vp=e.target.closest(".ag-v-pessoa");
+      if(vp){ agVerAlvo=vp.value||null; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); return; }
     });
   }
 })();
@@ -6062,11 +6394,15 @@ function clSegDa(d){ var x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); v
    visão de hoje, semana, KPIs, filtros e impressão. */
 function clDoPainel(){
   return (clPedidos||[])
-    .filter(function(p){ return p.status==="aprovado" || p.status==="conferido"; })
+    .filter(function(p){ return p.status==="aprovado" || p.status==="chegou" || p.status==="conferido"; })
     .map(function(p){
       var hi=clHoraCurta(p.hora);
-      return { id:"pn-"+p.id, vrId:"", loja:"", data:p.data||"", hi:hi,
+      /* idReal: o id sem o prefixo. A grade precisa do prefixo para nao colidir com
+         os agendamentos do VR, que tem id proprio; os botoes precisam do id de
+         verdade para mandar ao banco. */
+      return { id:"pn-"+p.id, idReal:p.id, vrId:"", loja:"", data:p.data||"", hi:hi,
                hf:clHM(clToMin(hi)+60), fornecedor:p.fornecedor||"",
+               documento:p.documento||"",
                situacao:p.status, pedido:p.pedido||"", origem:"painel" };
     });
 }
@@ -6286,6 +6622,55 @@ function clAtualizaBadge(){
   var t=document.getElementById("clTabQt");
   if(t){ if(n>0){ t.textContent=n; t.style.display=""; } else { t.style.display="none"; } }
 }
+/* O QUE O COLETOR JÁ SABE.
+   O VR guarda cada conferência do coletor com CNPJ, data e hora, e o robô traz isso
+   todo dia — 1.123 delas. A entrega marcada no portal e a conferência daquele mesmo
+   caminhão são a MESMA coisa, e até 29/08/2026 o sistema tinha as duas na mão sem
+   ligar uma na outra. O casamento é feito no banco (receb_coleta_das_entregas), por
+   CNPJ e dia.
+
+   ATENÇÃO ao que isto é e ao que não é: dá a HORA em que a carga foi coletada, e é
+   confiável. NÃO dá a duração — o coletor junta tudo e descarrega de uma vez quando é
+   encaixado, então em 4 de cada 5 conferências o primeiro e o último registro caem no
+   mesmo minuto. Para saber quanto tempo o caminhão ocupou a doca só existe o botão. */
+var clColeta={};
+function clColetaLoad(){
+  var sb=window.__SB; if(!sb) return;
+  sb.rpc("receb_coleta_das_entregas").then(function(r){
+    if(r&&r.error) return;                      // sem permissão: a linha só não mostra a hora
+    clColeta=(r&&r.data)||{};
+    try{ renderCentral(true); }catch(e){}
+  });
+}
+
+/* O selo da coleta, ou vazio. Vazio de propósito quando não achou: dizer
+   "não coletado" seria afirmar uma coisa que não se sabe — pode ser que o
+   conferente ainda não tenha encaixado o aparelho. */
+function clColetaSelo(p){
+  var c=clColeta && clColeta[p.id]; if(!c) return "";
+  /* O NUMERO QUE INTERESSA vem primeiro: quanto tempo o caminhao ficou na doca.
+     Ele so existe quando alguem apertou "Encostou" E o VR ja deu a conferencia por
+     finalizada — comeco de gente, fim de graca do sistema. */
+  if(c.minutos_doca!=null){
+    return '<span class="cl-coleta doca" title="'+pxEsc('Do "Encostou" ('+(c.encostou||"?")+') até o VR dar a conferência por finalizada ('+(c.fim||"?")+')')+'">'
+         + pxEsc(c.minutos_doca+" min na doca")+'</span>';
+  }
+  /* Encostou mas o VR ainda nao fechou a conferencia: mostro o relogio andando, em
+     vez de silencio. Silencio aqui parece que o clique nao pegou. */
+  if(c.encostou){
+    return '<span class="cl-coleta" title="Aguardando o VR dar a conferência por finalizada">'
+         + pxEsc("na doca desde "+c.encostou)+'</span>';
+  }
+  /* Ninguem apertou nada, mas o coletor registrou. Vale mostrar: e a hora de verdade
+     em que a carga foi conferida, sem ninguem ter feito nada. */
+  if(!c.inicio) return "";
+  var t="coletado "+String(c.inicio);
+  if(c.minutos) t+=" · "+c.minutos+" min";
+  var titulo=(c.itens?c.itens+" itens em "+c.bipagens+" envio(s) do coletor":"registro do coletor do VR")
+           + (c.quantas>1 ? " — atenção: esse fornecedor teve "+c.quantas+" conferências neste dia" : "");
+  return '<span class="cl-coleta'+(c.quantas>1?' varias':'')+'" title="'+pxEsc(titulo)+'">'+pxEsc(t)+'</span>';
+}
+
 function clPedidosLoad(){
   var sb=window.__SB; if(!sb||clPedidosCarregando) return;
   clPedidosCarregando=true;
@@ -6299,12 +6684,13 @@ function clPedidosLoad(){
   var hoje=clDataISO(new Date());
   sb.from("entregas_agendamento")
     .select("id,fornecedor,documento,contato,data,hora,pedido,descricao,status,criado_em,transportadora_cnpj")
-    .or("status.eq.pendente,and(status.in.(aprovado,conferido),data.gte."+clDataISO(new Date(Date.now()-30*86400000))+")")
+    .or("status.eq.pendente,and(status.in.(aprovado,chegou,conferido),data.gte."+clDataISO(new Date(Date.now()-30*86400000))+")")
     .order("data").order("hora")
     .then(function(r){
       clPedidosCarregando=false;
       if(r&&r.error) return;                    // sem permissão ou sem rede: não inventa lista
       clPedidos=(r&&r.data)||[];
+      clColetaLoad();          /* o que o coletor do VR ja registrou, sem ninguem clicar */
       clAtualizaBadge();
       caAplicar();                 /* os dois lados na mao: da pra decidir */
       clDetalheLoad();
@@ -6795,7 +7181,9 @@ function renderClPedidos(){
   var boxC=document.getElementById("clConfirmadas");
   if(!box && !boxC) return;
   var pend=clPedidos.filter(function(p){ return p.status==="pendente"; });
-  var apro=clPedidos.filter(function(p){ return p.status==="aprovado"; });
+  /* "chegou" entra junto com "aprovado": e o mesmo caminhao, um passo adiante.
+     Fora daqui ele sumiria da tela justamente no momento em que esta na doca. */
+  var apro=clPedidos.filter(function(p){ return p.status==="aprovado" || p.status==="chegou"; });
   var hC="";
 
   if(box && pend.length){
@@ -6840,7 +7228,7 @@ function renderClPedidos(){
       else if(vd.conf) selo='<div class="cl-ca cl-ca-nao">Já foi bipado, mas não marco: '+pxEsc(vd.motivo)+'</div>';
       hC+='<div class="cl-entc-lin"><span class="qd">'+clDataLonga(p.data)+' · '+clHoraCurta(p.hora)+'</span>'+
          '<span class="nm">'+pxEsc(p.fornecedor)+(p.pedido?' <span style="color:#8a97a8;font-weight:400;">· pedido '+pxEsc(p.pedido)+'</span>':'')+
-           clTranspSelo(p)+clDetalheLinha(p)+selo+'</span>'+
+           clTranspSelo(p)+clDetalheLinha(p)+clColetaSelo(p)+selo+'</span>'+
          (chegou && clPodeDecidir()
            /* DOIS BOTÕES, NÃO UM.
               Até aqui, caminhão que chegava errado deixava quem recebe com duas saídas
@@ -6849,11 +7237,24 @@ function renderClPedidos(){
               recebimento e agora tem onde ser dito. */
            /* Os dois dentro de UM invólucro: a linha é uma grade de três colunas, e
               dois elementos soltos jogariam o segundo para a linha de baixo. */
+           /* "CHEGOU" É O QUE FALTAVA PARA MEDIR A ENTREGA.
+              Até 29/08/2026 a loja tinha um clique só, "Conferido", e ele juntava
+              chegada, descarga e conferência num instante único. Com um momento só
+              não há duração: chegada_real, descarga_inicio e descarga_fim existiam na
+              tabela, a tela do portal já mostrava "Chegou" e "Tempo de descarga", e
+              NADA no sistema jamais os escreveu.
+              Dois cliques bastam (chegou / conferido) e é o máximo que uma doca com
+              caminhão esperando vai realmente fazer. Quem pular o "Chegou" e ir
+              direto no "Conferido" continua podendo: perde a duração daquela entrega,
+              e ficar sem o número é melhor que inventar um. */
            ? '<span class="cl-entc-bts">'+
+               (p.status==="chegou"
+                 ? '<span class="cl-chegou-ok" title="Chegada registrada">na doca desde '+pxEsc(clHoraCurta(p.hora))+'</span>'
+                 : '<button type="button" class="cl-ped-cheg" data-pcheg="'+pxEsc(p.id)+'">Chegou</button>')+
                '<button type="button" class="cl-ped-recd" data-precd="'+pxEsc(p.id)+'">Recusar entrega</button>'+
                '<button type="button" class="cl-ped-sim" data-pconf="'+pxEsc(p.id)+'">✓ Conferido</button>'+
              '</span>'
-           : '<span class="selo">confirmada</span>')+
+           : '<span class="selo">'+(p.status==="chegou"?"na doca":"confirmada")+'</span>')+
          '</div>';
     });
     if(apro.length>12) hC+='<p style="font-size:12.5px;color:#8a97a8;margin:4px 0 0;">e mais '+(apro.length-12)+'.</p>';
@@ -7063,7 +7464,10 @@ function clDecidir(id,status){
   var TXT={
     aprovado:{ t:"Aprovar ", m:"A janela fica reservada para este fornecedor e ninguém mais consegue agendar nesse horário.", ok:"Aprovar" },
     recusado:{ t:"Recusar ", m:"O horário volta a ficar livre para outro fornecedor.", ok:"Recusar" },
-    conferido:{ t:"Marcar como conferido: ", m:"Registra que este caminhão chegou e foi conferido de verdade — não é o relógio que decide.", ok:"Conferido" }
+    conferido:{ t:"Marcar como conferido: ", m:"Registra que este caminhão chegou e foi conferido de verdade — não é o relógio que decide.", ok:"Conferido" },
+    /* Sem pergunta longa: o caminhão está na portaria e quem clica tem pressa.
+       A confirmação existe só para o clique sem querer não virar um horário errado. */
+    chegou:{ t:"Registrar a chegada de ", m:"Marca a hora em que o caminhão encostou. É com ela e com a hora da conferência que a loja passa a saber quanto tempo cada entrega leva.", ok:"Chegou" }
   };
   var cfg=TXT[status]||TXT.recusado;
   uiConfirm({
@@ -7139,7 +7543,7 @@ function clRecusarEntrega(id, quem, quando){
 function clEnviarStatus(id, status, motivo, quem, auto, okMsg){
   var sb=window.__SB; if(!sb) return;
   var bts=document.querySelectorAll('[data-psim="'+id+'"],[data-pnao="'+id+'"],'+
-                                   '[data-pconf="'+id+'"],[data-precd="'+id+'"]');
+                                   '[data-pconf="'+id+'"],[data-precd="'+id+'"],[data-pcheg="'+id+'"]');
   for(var i=0;i<bts.length;i++) bts[i].disabled=true;
   sb.rpc("ent_definir_status",{p_id:id,p_status:status,p_motivo:motivo||null}).then(function(r){
     var d=(r&&r.data)||null;
@@ -10899,6 +11303,34 @@ function renderClKpis(){
       '<div class="mpk-v">'+livres+'</div>'+
       '<div class="mpk-sub">de '+jan+' janelas ('+CL_HINI+'h–'+CL_HFIM+'h)</div></div>';
 }
+/* O QUE VAI NO CANTO DIREITO DA LINHA DA GRADE.
+   Pedido do dono em 29/08/2026, apontando esta tela: "quando ele abrir, ele pega essa
+   tela, e nesse horário, quando aparecesse essa lista, ele apertaria em conferir".
+   Faz sentido — é aqui que quem recebe olha o dia inteiro, e não na lista de cima.
+
+   POR QUE MEDIR: a pergunta que isto responde não é burocrática. É "quanto tempo
+   geralmente demora", para decidir se precisa de um conferente a mais ou não.
+   Sem os dois momentos não existe esse número.
+
+   O HORÁRIO MARCADO NÃO PRENDE NINGUÉM. O caminhão da janela das 10h que encostou
+   09:30 é apertado na linha das 10h mesmo, e o que fica guardado é a hora de verdade
+   do clique, não a da janela. Chegar adiantado não é problema e não vira erro. */
+function clTlAcoes(a, st){
+  if(a.origem!=="painel" || !clPodeDecidir()) return '<div class="cl-st '+st.k+'">'+st.t+'</div>';
+  if(a.situacao==="aprovado"){
+    return '<div class="cl-tl-bts">'+
+             '<button type="button" class="cl-ped-cheg" data-pcheg="'+pxEsc(a.idReal)+'">Encostou</button>'+
+           '</div>';
+  }
+  if(a.situacao==="chegou"){
+    return '<div class="cl-tl-bts">'+
+             '<span class="cl-chegou-ok">na doca</span>'+
+             '<button type="button" class="cl-ped-sim" data-pconf="'+pxEsc(a.idReal)+'">✓ Conferido</button>'+
+           '</div>';
+  }
+  return '<div class="cl-st '+st.k+'">'+st.t+'</div>';
+}
+
 function renderClTimeline(){
   var el=document.getElementById("clTimeline"); if(!el) return;
   var itens=clItensDoDia();
@@ -10909,8 +11341,8 @@ function renderClTimeline(){
     if(arr.length){
       arr.forEach(function(a){ var st=clStatus(a); algum=true;
         h+='<div class="cl-tl-row"><div class="cl-tl-hora">'+a.hi+'–'+a.hf+'</div>'+
-           '<div><div class="cl-tl-forn">'+pxEsc(a.fornecedor)+'</div><div class="cl-tl-sub">'+pxEsc(a.loja)+(a.pedido?(" · "+pxEsc(a.pedido)):"")+'</div></div>'+
-           '<div class="cl-st '+st.k+'">'+st.t+'</div></div>'; });
+           '<div><div class="cl-tl-forn">'+pxEsc(a.fornecedor)+'</div><div class="cl-tl-sub">'+pxEsc(a.loja)+(a.pedido?(" · "+pxEsc(a.pedido)):"")+clColetaSelo({id:a.idReal})+'</div></div>'+
+           clTlAcoes(a, st)+'</div>'; });
     } else if(!temFiltro){
       h+='<div class="cl-tl-row cl-tl-livre"><div class="cl-tl-hora">'+clPad(hr)+':00</div><div class="cl-tl-forn">horário livre</div><div></div></div>';
     }
@@ -11034,6 +11466,7 @@ function clImprimir(){
     var n=e.target.closest("[data-pnao]"); if(n){ clDecidir(n.getAttribute("data-pnao"),"recusado"); return; }
     var nf=e.target.closest("[data-clnf]"); if(nf){ clVerNotas(nf.getAttribute("data-clnf")); return; }
     var cf=e.target.closest("[data-pconf]"); if(cf){ clDecidir(cf.getAttribute("data-pconf"),"conferido"); return; }
+    var ch=e.target.closest("[data-pcheg]"); if(ch){ clDecidir(ch.getAttribute("data-pcheg"),"chegou"); return; }
     var rd=e.target.closest("[data-precd]"); if(rd){ clDecidir(rd.getAttribute("data-precd"),"recusado_na_doca"); return; }
     /* Os de baixo sao SO INTERFACE — filtrar, buscar e abrir detalhe. Entram nesta
        mesma delegacao (e nao num onclick por linha) porque a lista se redesenha a
@@ -20769,12 +21202,62 @@ function frnPodeDecidir(){
   try{ return !!(window.__PERFIL && (window.__PERFIL.is_master || podePagina('fornecedores'))); }catch(e){ return false; }
 }
 
+/* A EXCEÇÃO É SÓ DO MASTER, e não de quem tem a página.
+   Liberar horário e conferir carga é trabalho da equipe; dispensar a nota fiscal é
+   abrir mão da trava que segura o caminhão errado na portaria. São ordens diferentes
+   de decisão, então são permissões diferentes. */
+function frnEhMaster(){
+  try{ return !!(window.__PERFIL && window.__PERFIL.is_master); }catch(e){ return false; }
+}
+
+/* Pede o motivo ANTES de mudar. Uma exceção sem motivo escrito, seis meses depois,
+   ninguém sabe se ainda vale — e ninguém se sente à vontade para desfazer. O servidor
+   também exige: tirar isto daqui não burla nada. */
+function frnSemNota(id, ligar){
+  var f=null;
+  for(var i=0;i<frnLista.length;i++){ if(frnLista[i].id===id){ f=frnLista[i]; break; } }
+  var nome=(f&&f.razao_social)||'este fornecedor';
+  uiPrompt({
+    titulo: ligar ? ('Liberar '+nome+' a agendar sem nota fiscal?')
+                  : ('Voltar a exigir nota fiscal de '+nome+'?'),
+    msg: ligar
+      ? 'Ele passa a conseguir marcar entrega sem enviar a nota. As outras conferências continuam valendo — pedido, quantidade e preço.'
+      : 'Ele volta a precisar da nota fiscal emitida para agendar, como todo mundo.',
+    icone:'📄',
+    inputType:'text',
+    placeholder: ligar ? 'Ex.: produtor local, emite a nota só na entrega' : 'Ex.: passou a emitir antes',
+    ok: ligar ? 'Liberar' : 'Voltar a exigir',
+    perigo: !!ligar
+  }).then(function(motivo){
+    // uiPrompt devolve null no cancelar e "" se a pessoa confirmar em branco.
+    // Os dois param aqui: o servidor recusaria motivo vazio de qualquer jeito, e
+    // uma viagem à nuvem para ouvir "escreva o motivo" é pior que dizer na hora.
+    if(motivo===null) return;
+    if(!String(motivo).trim()){
+      uiConfirm({titulo:'Falta o motivo',
+                 msg:'Escreva por que esse fornecedor é exceção. É o que explica a decisão para quem olhar depois.',
+                 ok:'Entendi',cancel:''});
+      return;
+    }
+    var sb=frnSB(); if(!sb) return;
+    sb.rpc('forn_definir_sem_nota',{p_fornecedor_id:id,p_pode:!!ligar,p_motivo:motivo}).then(function(r){
+      if(r.error || (r.data && r.data.ok===false)){
+        uiConfirm({titulo:'Não deu certo',
+                   msg:(r.error?r.error.message:(r.data&&r.data.erro))||'Tente de novo.',
+                   ok:'Entendi',cancel:''});
+        return;
+      }
+      frnCloudLoad();
+    });
+  });
+}
+
 function frnCloudLoad(){
   var sb=frnSB();
   if(!sb){ frnErro='Sem conexão com a nuvem.'; renderFornecedores(); return; }
   frnCarregando=true; frnErro=''; renderFornecedores();
   sb.from('receb_fornecedores')
-    .select('id,cnpj,razao_social,nome_curto,email,telefone,responsavel,situacao,motivo,criado_em,liberado_em')
+    .select('id,cnpj,razao_social,nome_curto,email,telefone,responsavel,situacao,motivo,criado_em,liberado_em,pode_sem_nota')
     .order('criado_em',{ascending:false})
     .then(function(r){
       frnCarregando=false;
@@ -20904,6 +21387,19 @@ function renderFornecedores(){
     if(f.responsavel) b+='<span>👤 '+frnEsc(f.responsavel)+'</span>';
     b+='</div>';
     if(f.motivo) b+='<div class="frn-motivo">Motivo: '+frnEsc(f.motivo)+'</div>';
+    /* A EXCEÇÃO APARECE SÓ EM QUEM ESTÁ LIBERADO. Em cadastro que ainda espera, ou
+       em quem perdeu o acesso, ela não quer dizer nada — e poluir o cartão de quem
+       está esperando decisão atrapalha a decisão que importa. */
+    if(f.situacao==='liberado'){
+      var sn=!!f.pode_sem_nota;
+      b+='<div class="frn-semnota'+(sn?' on':'')+'">'
+       +   '<span>'+(sn ? 'Pode agendar <b>sem nota fiscal</b>' : 'Precisa da nota fiscal para agendar')+'</span>'
+       +   (frnEhMaster()
+             ? '<button class="frn-bt mini" data-frnsn="'+frnEsc(f.id)+'" data-frnsnv="'+(sn?'0':'1')+'">'
+               + (sn ? 'Voltar a exigir' : 'Liberar sem nota') + '</button>'
+             : '')
+       + '</div>';
+    }
     var esp=frnContasDe(f.id);
     if(esp.length){
       b+='<div class="frn-contas"><b>'+esp.length+(esp.length>1?' pessoas esperando':' pessoa esperando')+' liberação</b>';
@@ -20969,6 +21465,7 @@ function renderFornecedores(){
       if(t=e.target.closest('[data-frnsim]')){ frnDecidir(t.getAttribute('data-frnsim'),'liberado'); return; }
       if(t=e.target.closest('[data-frnnao]')){ frnDecidir(t.getAttribute('data-frnnao'),'recusado'); return; }
       if(t=e.target.closest('[data-frnblo]')){ frnDecidir(t.getAttribute('data-frnblo'),'bloqueado'); return; }
+      if(t=e.target.closest('[data-frnsn]')){ frnSemNota(t.getAttribute('data-frnsn'), t.getAttribute('data-frnsnv')==='1'); return; }
       if(t=e.target.closest('[data-cntsim]')){ frnDecidirConta(t.getAttribute('data-cntsim'),'liberada'); return; }
       if(t=e.target.closest('[data-cntnao]')){ frnDecidirConta(t.getAttribute('data-cntnao'),'recusada'); return; }
     });
@@ -25044,7 +25541,13 @@ function pedEnviar(){
       try{ if(typeof despCloudLoad==="function") despCloudLoad(); }catch(e){}
       try{ if(typeof pixCobLoad==="function") pixCobLoad(); }catch(e){}
       /* Entregas NAO entra aqui: a pagina carrega sozinha no clique do menu. */
-      try{ if(typeof agCloudLoad==="function"){ agCloudLoad(); if(typeof agRealtime==="function") agRealtime(); } }catch(e){}
+      /* Agenda: no login so conta os convites que me esperam (bolinha do menu). A agenda
+         inteira so recarrega se a pagina JA estiver aberta (F5 com a aba da Agenda). */
+      try{ if(typeof agBadge==="function") agBadge();
+           if(typeof agRealtime==="function") agRealtime();
+           var _ap=document.getElementById("page-agenda");
+           if(_ap && _ap.classList.contains("ativo") && typeof agCloudLoad==="function"){ renderAgenda(); agCloudLoad(); }
+      }catch(e){}
       try{ SB.rpc("tocar_visto").then(function(){},function(){}); if(!window.__VISTO_HB){ window.__VISTO_HB=setInterval(function(){ try{ if(window.__SB) window.__SB.rpc("tocar_visto").then(function(){},function(){}); }catch(e){} }, 60000); } }catch(e){}
       try{ if(window.__syncPull) window.__syncPull(); }catch(e){}
       try{
