@@ -822,6 +822,47 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
                          display:inline-flex; align-items:center; justify-content:center; padding:0 5px;
                          align-self:flex-start; }
   .ag-cel.fora .ag-num { color:#c8cfd8; }
+  /* ==AGVISOES== o alternador Mês | Semana — mesmo desenho dos outros segmentados do painel */
+  .ag-visoes { display:inline-flex; border:1px solid #d9e2ec; border-radius:9px; overflow:hidden; background:#fff; }
+  .ag-visao { border:0; background:transparent; font:inherit; font-size:12.5px; font-weight:600; color:#5b6670;
+              padding:7px 14px; cursor:pointer; }
+  .ag-visao + .ag-visao { border-left:1px solid #d9e2ec; }
+  .ag-visao:hover { background:#f2f6f9; }
+  .ag-visao.ativa { background:#157a35; color:#fff; }
+
+  /* ==AGSEM== a grade da semana.
+     Uma caixa só rola (esta), e o cabeçalho e a faixa "sem hora" ficam grudados no topo
+     por dentro dela. Isso resolve de raiz o desalinhamento clássico: como a barra de
+     rolagem é da caixa inteira, ela encolhe as três fileiras juntas, e não só o corpo.
+     As três declaram a MESMA lista de colunas, vinda de duas variáveis — é o que vai
+     permitir mostrar menos dias no celular sem reescrever nada. */
+  .ag-sem { display:none; --ag-gut:58px; --ag-dias:7; --ag-h:44px; --ag-cab:44px;
+            height:max(320px, calc(100dvh - 268px)); overflow-y:auto; overscroll-behavior:contain;
+            border:1px solid #e4e9ef; border-radius:10px; background:#fff; }
+  .ag-sem.mostra { display:block; }
+  .ag-sem-cab, .ag-sem-tododia, .ag-sem-linha {
+      display:grid; grid-template-columns: var(--ag-gut) repeat(var(--ag-dias), minmax(0,1fr)); }
+  .ag-sem-cab { position:sticky; top:0; z-index:3; background:#fff; border-bottom:1px solid #e4e9ef; }
+  .ag-sem-tododia { position:sticky; top:var(--ag-cab); z-index:2; background:#fbfcfd; border-bottom:1px solid #e4e9ef; }
+  .ag-sem-dia { padding:5px 6px 6px; text-align:center; border-left:1px solid #eef1f4; min-height:var(--ag-cab);
+                box-sizing:border-box; }
+  .ag-sem-cab > .ag-sem-calha { border-left:0; }
+  .ag-sem-dow { font-size:10.5px; font-weight:800; letter-spacing:.05em; color:#8a97a8; text-transform:uppercase; }
+  .ag-sem-num { font-size:15px; font-weight:700; color:#46546a; display:inline-flex; align-items:center;
+                justify-content:center; min-width:24px; height:24px; border-radius:999px; margin-top:1px; }
+  /* hoje usa a MESMA linguagem do mês: o número num círculo verde */
+  .ag-sem-dia.hoje .ag-sem-num { background:#157a35; color:#fff; }
+  .ag-sem-calha { font-size:10.5px; color:#8a97a8; text-align:right; padding:2px 7px 0 0; box-sizing:border-box; }
+  .ag-sem-td-rot { font-size:10.5px; color:#8a97a8; text-align:right; padding:7px 7px 0 0; }
+  .ag-sem-td-cel { border-left:1px solid #eef1f4; min-height:30px; }
+  .ag-sem-linha { border-bottom:1px solid #f2f5f8; }
+  .ag-sem-linha:last-child { border-bottom:0; }
+  .ag-sem-cel { border-left:1px solid #eef1f4; height:var(--ag-h); }
+  .ag-sem-cel.hoje { background:#f6faf7; }
+  .ag-sem-hora { font-size:10.5px; color:#8a97a8; text-align:right; padding:0 7px 0 0;
+                 transform:translateY(-6px); }
+  .ag-sem-hora.topo { transform:none; padding-top:2px; }
+
   /* ==AGCRIAR== o botão e o menuzinho — cabem na linha que as setas já ocupam (34px),
      então não custam nenhuma altura da grade */
   .ag-criar-wrap { position:relative; display:inline-flex; }
@@ -1396,6 +1437,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <h2 id="agTitulo" style="margin:0;min-width:220px;text-align:center;font-size:18px;"></h2>
           <button class="cal-nav" id="agNext">›</button>
           <div class="ag-topdir">
+            <span class="ag-visoes" id="agVisoes">
+              <button type="button" class="ag-visao ativa" data-agvisao="mes">Mês</button>
+              <button type="button" class="ag-visao" data-agvisao="semana">Semana</button>
+            </span>
             <span id="agVerBar"></span>
             <span class="ag-criar-wrap">
               <button class="ag-criar" id="agCriar" type="button">＋ Criar</button>
@@ -1413,6 +1458,14 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
             <div>DOM</div><div>SEG</div><div>TER</div><div>QUA</div><div>QUI</div><div>SEX</div><div>SÁB</div>
           </div>
           <div class="cal-grid" id="agDias"></div>
+        </div>
+        <!-- ==AGSEM== a grade da semana. O cabeçalho e a faixa "sem hora" grudam no topo
+             DENTRO desta caixa, que é quem rola: assim as três fileiras dividem exatamente
+             as mesmas colunas e a barra de rolagem não desalinha nada. -->
+        <div class="ag-sem" id="agSem">
+          <div class="ag-sem-cab" id="agSemCab"></div>
+          <div class="ag-sem-tododia" id="agSemTodoDia"></div>
+          <div class="ag-sem-corpo" id="agSemCorpo"></div>
         </div>
       </div>
       <div class="ag-jan-bg" id="agJanBg">
@@ -5442,22 +5495,31 @@ function agRepHint(rep){
   if(rep==="mes") return "Vai repetir todo dia "+base.getDate()+" do mês.";
   return "";
 }
-// Em quais dias do mês (ano,mes) este evento aparece, considerando a recorrência.
-function agOcorre(ev,ano,mes){
-  var out=[], rep=agRepete(ev), base=ev.data, ult=new Date(ano,mes+1,0).getDate();
-  if(!rep){ if(base>=agK(ano,mes,1)&&base<=agK(ano,mes,ult)) out.push(base); return out; }
+/* ==AGOCORRE== EM QUE DIAS ESTE COMPROMISSO APARECE, DENTRO DE UM INTERVALO.
+   Antes esta função recebia (ano, mes) e varria "do dia 1 ao último do mês". A REGRA de
+   repetição nunca soube que estava num mês — o que era de mês era só a moldura. Agora a
+   moldura é um intervalo de datas, e é ESTA a única regra de recorrência do painel: o Mês
+   e a Semana chamam a mesma. Sem isso, uma semana como 31/08 a 06/09 perderia seis dias,
+   e — pior — em silêncio, porque dia sem compromisso é indistinguível de dia não carregado.
+   ini e fim são texto "AAAA-MM-DD", com fim incluído. */
+function agOcorreFaixa(ev, ini, fim){
+  var out=[], rep=agRepete(ev), base=ev.data;
+  if(!rep){ if(base>=ini && base<=fim) out.push(base); return out; }
   var bd=agParse(base), bDia=bd.getDate(), ate=ev.repete_ate||null;
-  for(var d=1; d<=ult; d++){
-    var key=agK(ano,mes,d);
-    if(key<base) continue;                 // antes do início da série
-    if(ate&&key>ate) continue;             // depois do fim ("repetir até")
-    var cur=new Date(ano,mes,d), dc=Math.round((cur-bd)/864e5), hit=false;
-    if(rep==="dia") hit=true;
-    else if(rep==="uteis"){ var w=cur.getDay(); hit=(w>=1&&w<=5); }
-    else if(rep==="semana") hit=(dc%7===0);
-    else if(rep==="quinzena") hit=(dc%14===0);
-    else if(rep==="mes") hit=(d===bDia);
-    if(hit) out.push(key);
+  var cur=agParse(ini>base?ini:base);      // não começa antes do início da série
+  var alvo=agParse(fim);
+  while(cur<=alvo){
+    var key=agK(cur.getFullYear(), cur.getMonth(), cur.getDate());
+    if(key>=ini && !(ate&&key>ate)){
+      var dc=Math.round((cur-bd)/864e5), hit=false;
+      if(rep==="dia") hit=true;
+      else if(rep==="uteis"){ var w=cur.getDay(); hit=(w>=1&&w<=5); }
+      else if(rep==="semana") hit=(dc%7===0);
+      else if(rep==="quinzena") hit=(dc%14===0);
+      else if(rep==="mes") hit=(cur.getDate()===bDia);
+      if(hit) out.push(key);
+    }
+    cur=new Date(cur.getFullYear(), cur.getMonth(), cur.getDate()+1);   // vira mês e ano sozinho
   }
   return out;
 }
@@ -5490,15 +5552,46 @@ function agSemColunaFim(e){
   var m=String((e&&e.message)||"")+" "+String((e&&e.details)||"");
   return /hora_fim/.test(m) && /(column|coluna|schema cache|does not exist|não existe)/i.test(m);
 }
+/* ==AGVISAO== MÊS OU SEMANA. Um estado só, num lugar só — o resto do módulo pergunta
+   a ele em vez de espalhar "if(semana)" por toda parte. O Mês continua sendo o padrão. */
+var agVisao="mes";
+var AG_SEM_DIAS=7;                 // quantos dias a semana mostra (o celular vai mexer aqui)
+var AG_SEM_DE=6, AG_SEM_ATE=22;    // faixa de horas desenhada: 06:00 às 22:00, com rolagem
+function agEhSemana(){ return agVisao==="semana"; }
+// O domingo da semana em que a data cai (a grade é DOM..SÁB, igual à do mês).
+function agDomingoDe(iso){
+  var d=agParse(iso);
+  d=new Date(d.getFullYear(), d.getMonth(), d.getDate()-d.getDay());
+  return agK(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function agSomaDias(iso, n){
+  var d=agParse(iso);
+  d=new Date(d.getFullYear(), d.getMonth(), d.getDate()+n);
+  return agK(d.getFullYear(), d.getMonth(), d.getDate());
+}
+// Os dias da semana que está na tela, sempre AG_SEM_DIAS, começando no domingo.
+function agDiasDaSemana(){
+  var ini=agDomingoDe(agSel||agHojeISO()), out=[];
+  for(var i=0;i<AG_SEM_DIAS;i++) out.push(agSomaDias(ini,i));
+  return out;
+}
+function agHojeISO(){ var h=new Date(); return agK(h.getFullYear(),h.getMonth(),h.getDate()); }
+
 /* ==AGFAIXA== QUAL PEDAÇO DO CALENDÁRIO A TELA PRECISA.
    A função do banco agenda_mes(p_ini, p_fim, ...) sempre trabalhou por FAIXA de datas —
    quem escolhia "um mês" era o navegador. Isolar essa escolha aqui é o que permite, mais
    pra frente, a visão Semana pedir outra faixa sem mexer em mais nada da carga. Hoje só
    existe a visão Mês, então devolve o mês inteiro: nada muda para o usuário. */
 function agFaixaAtual(){
+  if(agEhSemana()){
+    var dias=agDiasDaSemana();
+    return { ini:dias[0], fim:dias[dias.length-1] };
+  }
   var ult=new Date(agAno,agMes+1,0).getDate();
   return { ini:agK(agAno,agMes,1), fim:agK(agAno,agMes,ult) };
 }
+// Quem desenha, conforme a visão. Existe para o resto do módulo não precisar saber.
+function agDesenha(){ if(agEhSemana()) agRenderSemana(); else agRenderMes(); }
 
 /* ==AGCACHE== GUARDAR O QUE JÁ FOI LIDO.
    A Agenda era o único módulo pesado sem isto: cada clique em "Agenda" no menu refazia a
@@ -5526,43 +5619,45 @@ function agSemParte2(e){
   var c=String((e&&e.code)||""), m=String((e&&e.message)||"");
   return c==="PGRST202"||c==="42883"||(/agenda_mes|agenda_convidados/.test(m)&&/(does not exist|não existe|not find|schema cache)/i.test(m));
 }
-function agTerminar(seq,reqAno,reqMes,rows,erro,deFundo){
+function agTerminar(seq,faixa,rows,erro,deFundo){
   if(seq!==agReqSeq) return;                                   // resposta velha: já saiu uma carga mais nova
-  if(reqAno!==agAno||reqMes!==agMes){ agCloudLoad(deFundo); return; }  // mês mudou durante a carga → recarrega o certo
-  if(erro){ agErro=true; agRenderMes(); agRenderDia(deFundo); return; }// preserva o que já estava na tela + mostra aviso
+  var agora=agFaixaAtual();
+  // a tela andou durante a carga (trocou de mês, de semana ou de visão) → busca o certo
+  if(faixa.ini!==agora.ini||faixa.fim!==agora.fim){ agCloudLoad(deFundo); return; }
+  if(erro){ agErro=true; agDesenha(); agRenderDia(deFundo); return; }  // preserva o que estava + avisa
   agErro=false;
   var mapa={};
-  (rows||[]).forEach(function(ev){ agOcorre(ev,agAno,agMes).forEach(function(key){ (mapa[key]=mapa[key]||[]).push(ev); }); });
+  (rows||[]).forEach(function(ev){ agOcorreFaixa(ev,faixa.ini,faixa.fim).forEach(function(key){ (mapa[key]=mapa[key]||[]).push(ev); }); });
   Object.keys(mapa).forEach(function(k){ mapa[k].sort(function(a,b){ return (a.hora||"99")<(b.hora||"99")?-1:1; }); });
-  agEventos=mapa; agRenderMes(); agRenderDia(deFundo);
+  agEventos=mapa; agDesenha(); agRenderDia(deFundo);
 }
 function agCloudLoad(deFundo){
   var sb=agSB(), uid=agUid();
   if(!sb||!uid){ agRenderMes(); agRenderDia(deFundo); return; }
-  var seq=++agReqSeq, reqAno=agAno, reqMes=agMes;
+  var seq=++agReqSeq;
   var _f=agFaixaAtual(), ini=_f.ini, fim=_f.fim;
   var _q=agAlvoPedido(), alvo=_q.alvo, setor=_q.setor;
   // já li esta faixa, para esta pessoa, faz pouco tempo? então não pergunto de novo
   var chave=agChaveCache(ini,fim,alvo,setor), guardado=agCache[chave];
   if(guardado && (Date.now()-guardado.quando) < AG_VALE_MS){
-    agTerminar(seq,reqAno,reqMes,guardado.linhas,false,deFundo); return;
+    agTerminar(seq,_f,guardado.linhas,false,deFundo); return;
   }
-  if(agParte2===false && !alvo && !setor){ agCloudLoadPessoal(seq,reqAno,reqMes,ini,fim,deFundo); return; }
+  if(agParte2===false && !alvo && !setor){ agCloudLoadPessoal(seq,_f,ini,fim,deFundo); return; }
   /* uma pergunta só pro mês inteiro: o evento + quem foi convidado + como cada um
      respondeu. A função devolve apenas as colunas que a tela desenha. */
   sb.rpc("agenda_mes",{p_ini:ini,p_fim:fim,p_alvo:alvo||null,p_setor:setor||null}).then(function(r){
     if(r&&r.error){
-      if(agSemParte2(r.error)&&!alvo&&!setor){ agParte2=false; agCloudLoadPessoal(seq,reqAno,reqMes,ini,fim,deFundo); return; }
-      agTerminar(seq,reqAno,reqMes,null,true,deFundo); return;
+      if(agSemParte2(r.error)&&!alvo&&!setor){ agParte2=false; agCloudLoadPessoal(seq,_f,ini,fim,deFundo); return; }
+      agTerminar(seq,_f,null,true,deFundo); return;
     }
     agParte2=true;
     var linhas=(r&&r.data)||[];
     agCache[chave]={quando:Date.now(), linhas:linhas};   // só guarda leitura que deu certo
-    agTerminar(seq,reqAno,reqMes,linhas,false,deFundo);
-  },function(){ agTerminar(seq,reqAno,reqMes,null,true,deFundo); });
+    agTerminar(seq,_f,linhas,false,deFundo);
+  },function(){ agTerminar(seq,_f,null,true,deFundo); });
 }
 // Plano B: o painel novo com o banco AINDA no formato antigo (SQL dos convites não rodou).
-function agCloudLoadPessoal(seq,reqAno,reqMes,ini,fim,deFundo){
+function agCloudLoadPessoal(seq,_f,ini,fim,deFundo){
   var sb=agSB(), uid=agUid();
   var AG_COLS="id,data,hora,titulo,descricao,repete,repete_ate";
   var q1=sb.from("agenda_eventos").select(AG_COLS).eq("para_id",uid).gte("data",ini).lte("data",fim);
@@ -5572,11 +5667,11 @@ function agCloudLoadPessoal(seq,reqAno,reqMes,ini,fim,deFundo){
     q2.then(function(r){ return r; }, function(){ return {data:[]}; })
   ]).then(function(res){
     var r1=res[0]||{}, r2=res[1]||{};
-    if(r1.error){ agTerminar(seq,reqAno,reqMes,null,true,deFundo); return; }
+    if(r1.error){ agTerminar(seq,_f,null,true,deFundo); return; }
     var rows=[], vistos={};
     (r1.data||[]).concat(r2.data||[]).forEach(function(ev){ if(ev&&!vistos[ev.id]){ vistos[ev.id]=1; ev.sou_dono=true; ev.convidados=[]; rows.push(ev); } });
-    agTerminar(seq,reqAno,reqMes,rows,false,deFundo);
-  },function(){ agTerminar(seq,reqAno,reqMes,null,true,deFundo); });
+    agTerminar(seq,_f,rows,false,deFundo);
+  },function(){ agTerminar(seq,_f,null,true,deFundo); });
 }
 // Bolinha no menu: quantos convites estão esperando resposta minha — e a data
 // do mais próximo, que é o que permite LEVAR a pessoa até ele.
@@ -5618,6 +5713,58 @@ function agRenderMes(){
     var mais=evs.length>3?('<div class="ag-mais" data-agtodos="'+key+'">+'+(evs.length-3)+' mais</div>'):'';
     return '<div class="ag-cel'+(agEhHoje(agAno,agMes,c.dia)?' hoje':'')+(agSel===key?' sel':'')+'" data-agdia="'+key+'"><span class="ag-num">'+c.dia+'</span>'+chips+mais+'</div>';
   }).join('');
+}
+
+/* ==AGSEMDESENHO== A GRADE DA SEMANA — nesta etapa só a estrutura.
+   Os compromissos ainda NÃO são posicionados: o objetivo é validar intervalo, recorrência,
+   carga, cache, alternador, navegação e geometria antes de desenhar bloco nenhum. */
+var AG_DOW_CURTO=["DOM","SEG","TER","QUA","QUI","SEX","SÁB"];
+function agTituloSemana(dias){
+  var a=dias[0].split("-"), b=dias[dias.length-1].split("-");
+  var mA=MESES[+a[1]-1].slice(0,3).toLowerCase(), mB=MESES[+b[1]-1].slice(0,3).toLowerCase();
+  if(a[0]===b[0] && a[1]===b[1]) return +a[2]+" a "+(+b[2])+" de "+MESES[+a[1]-1]+" "+a[0];      // mesma quinzena de um mês só
+  if(a[0]===b[0]) return +a[2]+" "+mA+" – "+(+b[2])+" "+mB+" "+a[0];                             // vira o mês
+  return +a[2]+" "+mA+" "+a[0]+" – "+(+b[2])+" "+mB+" "+b[0];                                    // vira o ano
+}
+function agRenderSemana(){
+  var dias=agDiasDaSemana(), hoje=agHojeISO();
+  var tit=document.getElementById("agTitulo"); if(tit) tit.textContent=agTituloSemana(dias);
+  var cab=document.getElementById("agSemCab");
+  if(cab) cab.innerHTML='<div class="ag-sem-dia ag-sem-calha"></div>'+dias.map(function(k){
+    var p=k.split("-"), dw=agParse(k).getDay();
+    return '<div class="ag-sem-dia'+(k===hoje?" hoje":"")+(agSel===k?" sel":"")+'" data-agdia="'+k+'">'+
+           '<div class="ag-sem-dow">'+AG_DOW_CURTO[dw]+'</div>'+
+           '<div class="ag-sem-num">'+(+p[2])+'</div></div>';
+  }).join("");
+  var td=document.getElementById("agSemTodoDia");
+  if(td) td.innerHTML='<div class="ag-sem-td-rot">Sem hora</div>'+dias.map(function(k){
+    return '<div class="ag-sem-td-cel" data-agdia="'+k+'"></div>';
+  }).join("");
+  var corpo=document.getElementById("agSemCorpo");
+  if(corpo){
+    var linhas="";
+    for(var h=AG_SEM_DE; h<=AG_SEM_ATE; h++){
+      var hh=("0"+h).slice(-2)+":00";
+      // a etiqueta marca a LINHA de cima da faixa, então ela sobe 6px; na primeira faixa
+      // isso a jogaria pra debaixo do cabeçalho e o dia pareceria começar às 07:00
+      linhas+='<div class="ag-sem-linha"><div class="ag-sem-hora'+(h===AG_SEM_DE?" topo":"")+'">'+hh+'</div>'+
+        dias.map(function(k){ return '<div class="ag-sem-cel'+(k===hoje?" hoje":"")+'" data-agdia="'+k+'"></div>'; }).join("")+
+        '</div>';
+    }
+    corpo.innerHTML=linhas;
+  }
+}
+// Mostra a grade certa e marca o botão certo. Um lugar só.
+function agTrocaVisao(qual){
+  agVisao=(qual==="semana")?"semana":"mes";
+  if(!agSel) agSel=agHojeISO();
+  var cal=document.querySelector(".ag-cal"), sem=document.getElementById("agSem");
+  if(cal) cal.style.display=agEhSemana()?"none":"";
+  if(sem) sem.classList.toggle("mostra", agEhSemana());
+  var bs=document.querySelectorAll("[data-agvisao]");
+  for(var i=0;i<bs.length;i++) bs[i].classList.toggle("ativa", bs[i].getAttribute("data-agvisao")===agVisao);
+  agAbertoId=null; agVerTodos=false; agEditId=null; agRespId=null; agConvSel=[];
+  agCloudLoad();          // o cache decide se isso vira pergunta ao banco ou não
 }
 
 /* ---------------- painel do dia ---------------- */
@@ -5975,7 +6122,7 @@ function agRenderDia(deFundo){
      formulário). Abrindo pelo Criar, quem fecha é o × da janela. */
   p.innerHTML='<div class="ag-painel-tit">'+agFmtDataBr(agSel)+'</div>'+meio;
 }
-function renderAgenda(){ if(!agSel){ var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate()); } agPessoasLoad(); agRenderMes(); agRenderDia(); }
+function renderAgenda(){ if(!agSel){ var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate()); } agPessoasLoad(); agDesenha(); agRenderDia(); }
 
 /* ---------------- gravar ---------------- */
 // Só o que mudou: convida quem entrou na lista, desconvida quem saiu.
@@ -6136,9 +6283,32 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
 
 (function(){
   function limpaVer(){ agSel=null; agEditId=null; agRespId=null; agConvSel=[]; agAbertoId=null; agVerTodos=false; }
-  var pv=document.getElementById("agPrev"); if(pv) pv.addEventListener("click",function(){ agMes--; if(agMes<0){agMes=11;agAno--;} limpaVer(); agCloudLoad(); });
-  var nx=document.getElementById("agNext"); if(nx) nx.addEventListener("click",function(){ agMes++; if(agMes>11){agMes=0;agAno++;} limpaVer(); agCloudLoad(); });
-  var hj=document.getElementById("agHoje"); if(hj) hj.addEventListener("click",function(){ var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate()); agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); });
+  /* ==AGNAV== as setas e o "Hoje" fazem coisas diferentes em cada visão. No mês, andam de
+     mês (exatamente como sempre). Na semana, andam 7 dias — e agAno/agMes acompanham o dia
+     escolhido, para o resto do módulo continuar coerente. */
+  function agAnda(passo){
+    if(agEhSemana()){
+      agSel=agSomaDias(agDiasDaSemana()[0], passo*AG_SEM_DIAS);
+      var d=agParse(agSel); agAno=d.getFullYear(); agMes=d.getMonth();
+      agAbertoId=null; agVerTodos=false; agEditId=null; agRespId=null; agConvSel=[];
+    } else {
+      agMes+=passo;
+      if(agMes<0){ agMes=11; agAno--; } else if(agMes>11){ agMes=0; agAno++; }
+      limpaVer();
+    }
+    agCloudLoad();
+  }
+  var pv=document.getElementById("agPrev"); if(pv) pv.addEventListener("click",function(){ agAnda(-1); });
+  var nx=document.getElementById("agNext"); if(nx) nx.addEventListener("click",function(){ agAnda(1); });
+  var hj=document.getElementById("agHoje"); if(hj) hj.addEventListener("click",function(){
+    var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate());
+    agAbertoId=null; agVerTodos=false; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad();
+  });
+  var vw=document.getElementById("agVisoes"); if(vw) vw.addEventListener("click",function(e){
+    var b=e.target.closest("[data-agvisao]"); if(!b) return;
+    if(b.getAttribute("data-agvisao")===agVisao) return;
+    agTrocaVisao(b.getAttribute("data-agvisao"));
+  });
   var dias=document.getElementById("agDias"); if(dias) dias.addEventListener("click",function(e){
     var chip=e.target.closest("[data-agabrir]");
     var todos=e.target.closest("[data-agtodos]");
@@ -6170,6 +6340,13 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
     if(e.key!=="Escape") return;
     if(crm&&crm.classList.contains("abre")){ crm.classList.remove("abre"); return; }
     if(agJanAberta) agJanFecha();
+  });
+
+  /* clicar num dia da semana escolhe o dia (os blocos vêm na etapa seguinte) */
+  var sem=document.getElementById("agSem"); if(sem) sem.addEventListener("click",function(e){
+    var c=e.target.closest("[data-agdia]"); if(!c) return;
+    agSel=c.getAttribute("data-agdia"); agEditId=null; agRespId=null; agConvSel=[];
+    agRenderSemana();
   });
 
   var pn=document.getElementById("agPainel"); if(pn){

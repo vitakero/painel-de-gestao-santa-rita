@@ -128,7 +128,7 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /sb\.rpc\("agenda_pessoas"\)/.test(H) && /from\("perfis"\)\.select\("\*"\)[\s\S]{0,80}agenda/.test(H) === false, "true");
   // o dono roda o SQL na mão: enquanto não rodar, a agenda pessoal tem que continuar de pé
   eq("33) sem o SQL novo, a agenda pessoal continua funcionando",
-     /function agCloudLoadPessoal\(seq,reqAno,reqMes,ini,fim,deFundo\)/.test(H), "true");
+     /function agCloudLoadPessoal\(seq,_f,ini,fim,deFundo\)/.test(H), "true");
   eq("34) e o painel sabe diferenciar 'falta o SQL' de 'caiu a internet'",
      /function agSemParte2\(e\)/.test(H), "true");
   eq("35) olhando a agenda de outro, não aparece formulário de marcar",
@@ -398,6 +398,85 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /agVerSetor=vs\.value\|\|null; agVerAlvo=null; agEditId=null; agRespId=null; agConvSel=\[\]; agInvalidar\(\);/.test(H), "true");
   eq("109f) salvar, excluir, responder, remarcar e tarefa feita invalidam",
      (H.match(/agInvalidar\(\); agCloudLoad\(\)/g) || []).length >= 5, "true");
+}
+
+
+// ------------------------------------------------------ ETAPA B: UMA regra de recorrência
+{
+  // O defeito que a inspeção apontou: a expansão trabalhava por MÊS, então uma faixa que
+  // atravessasse a virada (30/08 a 05/09) vinha pela metade. Agora existe UMA regra, por
+  // intervalo, que o Mês e a Semana usam do mesmo jeito.
+  eq("110) a regra de recorrência trabalha por intervalo",
+     /function agOcorreFaixa\(ev, ini, fim\)\{/.test(H), "true");
+  eq("110b) e não sobrou nenhuma regra por mês",
+     /function agOcorre\(ev *, *ano/.test(H), "false");
+  eq("110c) nem uma regra separada só para a Semana (era o risco de duas verdades)",
+     /function agOcorreSemana\(/.test(H) || /function agOcorreMes\(/.test(H), "false");
+  eq("110d) a expansão da carga chama a regra única com a faixa pedida",
+     /agOcorreFaixa\(ev,faixa\.ini,faixa\.fim\)/.test(H), "true");
+  eq("110e) a regra respeita a data-limite da repetição",
+     /if\(key>=ini && !\(ate&&key>ate\)\)\{/.test(H), "true");
+  eq("110f) 'todo mês' cai no mesmo dia do mês, e pula quando o dia não existe",
+     /else if\(rep==="mes"\) hit=\(cur\.getDate\(\)===bDia\);/.test(H), "true");
+  eq("110g) 'dias úteis' é de segunda a sexta",
+     /else if\(rep==="uteis"\)\{ var w=cur\.getDay\(\); hit=\(w>=1&&w<=5\); \}/.test(H), "true");
+  // a resposta chegando fora de hora não pode pintar a tela de outra faixa
+  eq("110h) a resposta atrasada é comparada com a faixa pedida, não com o mês",
+     /function agTerminar\(seq,faixa,rows,erro,deFundo\)\{/.test(H), "true");
+}
+
+// ------------------------------------------------------------- ETAPA C: alternador Mês|Semana
+{
+  eq("111) existe o estado da visão", /var agVisao="mes";/.test(H), "true");
+  eq("111b) e um lugar só que troca de visão", /function agTrocaVisao\(qual\)\{/.test(H), "true");
+  eq("111c) trocar de visão passa pelo cache (não pergunta ao banco à toa)",
+     /agCloudLoad\(\); *\n?\s*\}\s*\n\s*\/\* -+ painel do dia/.test(H) || /o cache decide se isso vira pergunta ao banco/.test(H), "true");
+  eq("111d) os dois botões existem no topo",
+     /data-agvisao="mes">Mês<\/button>/.test(H) && /data-agvisao="semana">Semana<\/button>/.test(H), "true");
+  // SEGURANÇA: a faixa é uma só, e é ela que manda na carga e no cache
+  eq("112) a faixa muda conforme a visão",
+     /function agFaixaAtual\(\)\{\s*\n\s*if\(agEhSemana\(\)\)\{\s*\n\s*var dias=agDiasDaSemana\(\);/.test(H), "true");
+  eq("112b) a semana é sempre de domingo a sábado", /function agDomingoDe\(iso\)\{/.test(H), "true");
+  eq("112c) e sempre 7 dias", /var AG_SEM_DIAS=7;/.test(H), "true");
+  eq("112d) a seta anda uma semana inteira na visão Semana",
+     /agSel=agSomaDias\(agDiasDaSemana\(\)\[0\], passo\*AG_SEM_DIAS\);/.test(H), "true");
+  eq("112e) e continua andando de mês na visão Mês",
+     /\} else \{\s*\n\s*agMes\+=passo;\s*\n\s*if\(agMes<0\)\{ agMes=11; agAno--; \}/.test(H), "true");
+  eq("112f) quem desenha decide pela visão, num lugar só",
+     /function agDesenha\(\)\{ if\(agEhSemana\(\)\) agRenderSemana\(\); else agRenderMes\(\); \}/.test(H), "true");
+}
+
+// ------------------------------------------------------------------ ETAPA D: a grade da Semana
+{
+  eq("113) a grade da Semana existe, ao lado da do Mês (não no lugar dela)",
+     /<div class="ag-sem" id="agSem">/.test(H) && /class="ag-cal"/.test(H), "true");
+  eq("113b) com cabeçalho, faixa de 'sem hora' e corpo",
+     /id="agSemCab"/.test(H) && /id="agSemTodoDia"/.test(H) && /id="agSemCorpo"/.test(H), "true");
+  eq("113c) as três fileiras dividem as MESMAS colunas (calha + 7 dias)",
+     /grid-template-columns: var\(--ag-gut\) repeat\(var\(--ag-dias\), minmax\(0,1fr\)\)/.test(H), "true");
+  eq("113d) o dia começa às 6 e termina às 22", /var AG_SEM_DE=6, AG_SEM_ATE=22;/.test(H), "true");
+  // quem rola é a caixa inteira: é isso que impede o cabeçalho de sair do lugar
+  eq("113e) quem rola é a caixa toda", /\.ag-sem \{[^}]*overflow-y:auto/.test(H), "true");
+  eq("113f) o cabeçalho fica grudado no topo",
+     /\.ag-sem-cab \{ position:sticky; top:0;/.test(H), "true");
+  eq("113g) e a faixa 'sem hora' logo abaixo dele",
+     /\.ag-sem-tododia \{ position:sticky; top:var\(--ag-cab\);/.test(H), "true");
+  // a etiqueta da primeira faixa sobe 6px como as outras e some debaixo do cabeçalho:
+  // o dia parecia começar às 07:00
+  eq("113h) a primeira hora do dia aparece escrita",
+     /\.ag-sem-hora\.topo \{ transform:none; padding-top:2px; \}/.test(H), "true");
+  eq("113h2) e nenhuma faixa fica sem etiqueta",
+     /\(h>AG_SEM_DE\?hh:""\)/.test(H), "false");
+  eq("113i) hoje na Semana usa o MESMO verde do Mês",
+     /\.ag-sem-dia\.hoje \.ag-sem-num \{ background:#157a35; color:#fff; \}/.test(H), "true");
+}
+
+// ------------------------------- O MÊS APROVADO NÃO PODE MUDAR (some com esta trava por sua conta e risco)
+{
+  eq("114) a Semana nasce escondida e só aparece quando escolhida",
+     /\.ag-sem \{ display:none;/.test(H) && /\.ag-sem\.mostra \{ display:block; \}/.test(H), "true");
+  eq("114b) e o CSS da Semana nunca toca nas células do Mês",
+     /\.ag-sem[^\n]*\.ag-cel/.test(H), "false");
 }
 
 console.log("\n" + (falhou ? "FALHOU: " + falhou + " de " + (ok + falhou) : "TUDO OK: " + ok + " testes") + "\n");
