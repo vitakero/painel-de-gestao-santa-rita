@@ -128,7 +128,7 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /sb\.rpc\("agenda_pessoas"\)/.test(H) && /from\("perfis"\)\.select\("\*"\)[\s\S]{0,80}agenda/.test(H) === false, "true");
   // o dono roda o SQL na mão: enquanto não rodar, a agenda pessoal tem que continuar de pé
   eq("33) sem o SQL novo, a agenda pessoal continua funcionando",
-     /function agCloudLoadPessoal\(seq,reqAno,reqMes,ini,fim\)/.test(H), "true");
+     /function agCloudLoadPessoal\(seq,reqAno,reqMes,ini,fim,deFundo\)/.test(H), "true");
   eq("34) e o painel sabe diferenciar 'falta o SQL' de 'caiu a internet'",
      /function agSemParte2\(e\)/.test(H), "true");
   eq("35) olhando a agenda de outro, não aparece formulário de marcar",
@@ -170,8 +170,13 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
   // o aviso ia pro cantinho do formulário e o recarregamento apagava ele em seguida
   eq("46) e o aviso vai numa janela, que o redesenho não apaga",
      /titulo:"O convite não foi enviado"/.test(H), "true");
-  eq("47) nada redesenha por baixo de quem está digitando",
-     /if\(agMexendoNoPainel\(\)\)\{ agRedesenhoPreso=true; return; \}/.test(H), "true");
+  // "deFundo" = o redesenho veio sozinho (realtime, contagem de convites). Só esses
+  // esperam a pessoa sair do campo — o clique DELA tem que desenhar na hora, senão
+  // clicar num compromisso com o cursor no formulário não abre nada.
+  eq("47) o que chega de fundo não redesenha por baixo de quem digita",
+     /if\(deFundo && agMexendoNoPainel\(\)\)\{ agRedesenhoPreso=true; return; \}/.test(H), "true");
+  eq("47b) mas o clique da pessoa desenha na hora",
+     /agJanAbre\(tipo\)\{[\s\S]{0,400}agRenderDia\(\);/.test(H), "true");
   eq("48) e o desenho preso tem DUAS saídas (focusout e clique)",
      /pn\.addEventListener\("focusout",agSoltaDesenho\);\s*\n\s*document\.addEventListener\("click",agSoltaDesenho\);/.test(H), "true");
   eq("49) dá pra mudar o DIA sem apagar e refazer", /class="ag-f-dia"/.test(H), "true");
@@ -264,6 +269,48 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
   eq("78c) e a permissão volta depois do drop",
      /grant execute on function public\.agenda_mes\(date,date,uuid,text\) to authenticated;/.test(HF), "true");
   eq("79) abrir a lista mostra tudo; só digitar filtra", /agHoraPinta\(caixa, null\);/.test(H), "true");
+}
+
+// ------------------------------------------------------------ o mês na tela toda (pedido do dono, 31/08)
+{
+  // Ele mostrou o Google Agenda: "o mês fica na tela todinha, não preciso scrollar".
+  // Medido no Chrome: em volta da grade há 285px fixos + 30 dos vãos = 315. Por isso a
+  // linha passou a ser (altura da janela − 318) ÷ 6, com piso de 72px.
+  eq("87) a linha do mês se ajusta à janela",
+     /#agDias\.cal-grid \{ grid-auto-rows: max\(72px, calc\(\(100dvh - 318px\) \/ 6\)\); \}/.test(H), "true");
+  eq("88) e a grade ocupa a largura inteira", /\.ag-cal \{ width:100%; \}/.test(H), "true");
+  eq("89) o painel de 340px na lateral não existe mais", /class="ag-painel"/.test(H), "false");
+  // o 1px que TODA página do painel tinha: o rodapé mede 35, não 34
+  eq("90) o rodapé passou a ser descontado certo",
+     /height:calc\(100dvh - 57px - 35px\)/.test(H), "true");
+  eq("91) tem o botão Criar", /id="agCriar"/.test(H), "true");
+  eq("92) com Evento e Tarefa, e sem 'agendamento de horários'",
+     /data-agnovo="evento"/.test(H) && /data-agnovo="tarefa"/.test(H) && /Agendamento de hor/.test(H) === false, "true");
+  eq("93) o formulário mora numa janela", /id="agJanBg"/.test(H) && /function agJanAbre\(tipo\)/.test(H), "true");
+  eq("94) que fecha no X, no Esc e no fundo", /id="agJanX"/.test(H) && /if\(e\.key!=="Escape"\) return;/.test(H), "true");
+  eq("95) a barra do master subiu pra linha do mês", /id="agVerBar"/.test(H), "true");
+}
+
+// ------------------------------------------------------------ tarefa
+{
+  eq("96) tarefa tem formulário próprio e curto", /function agFormTarefaHtml\(\)/.test(H), "true");
+  eq("97) sem convidados e sem resposta de convite",
+     /\(tar\?'':\(agConvHtml\(ev\)\+ \(agVendoOutro\(\)\?'':agRespostaHtml\(ev\)\)\)\)/.test(H), "true");
+  eq("98) dá pra marcar como feita", /function agFeita\(id, btn\)/.test(H), "true");
+  eq("99) e ela aparece diferente no mês", /\.ag-chip\.tarefa \{/.test(H) && /\.ag-chip\.tarefa\.feita \{/.test(H), "true");
+  const TA = fs.readFileSync(path.join(RAIZ, "sql/agenda_tarefas.sql"), "utf8");
+  eq("100) o banco separa tarefa de compromisso",
+     /add column if not exists tipo      text not null default 'evento'/.test(TA), "true");
+  eq("101) tarefa não repete nem tem hora de terminar (o banco cobra)",
+     /check \(tipo <> 'tarefa' or \(hora_fim is null and \(repete is null or repete = 'nao'\)\)\)/.test(TA), "true");
+  eq("102) só tarefa pode estar feita",
+     /check \(feita_em is null or tipo = 'tarefa'\)/.test(TA), "true");
+  eq("103) a função é apagada antes (colunas novas) e a permissão volta",
+     /drop function if exists public\.agenda_mes\(date,date,uuid,text\);/.test(TA)
+     && /grant execute on function public\.agenda_mes\(date,date,uuid,text\) to authenticated;/.test(TA), "true");
+  // sem o SQL rodado, criar tarefa não pode virar compromisso calado
+  eq("104) sem o SQL, a tarefa avisa em vez de virar compromisso",
+     /function agSemColunaTarefa\(e\)/.test(H) && /A Tarefa precisa de um ajuste no banco/.test(H), "true");
 }
 
 // ------------------------------------------------------------ a barra invertida some na geração

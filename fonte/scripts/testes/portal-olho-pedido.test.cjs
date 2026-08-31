@@ -79,8 +79,12 @@ console.log("\n=== Portal — o olho do pedido ===\n");
   // se perdia. O número, a emissão e a previsão já vinham na lista; faltava guardá-los.
   eq("16) guarda a ficha do pedido quando a lista chega",
      (HTML.match(/function guardarPedidos\(l\)/g) || []).length, 1);
-  eq("17) guarda nos DOIS lugares que carregam pedidos (página e assistente)",
-     (HTML.match(/guardarPedidos\(/g) || []).length, 3);   // 1 definição + 2 chamadas
+  // 1 definição + 3 chamadas. A terceira é guardarPedidos(ent), ao lado de guardarPedidos(l):
+  // a lista de ENTREGAS também traz ficha de pedido, e sem guardá-la o assistente reabria sem
+  // número nem previsão. Cobro os dois lugares pelo NOME, não pela contagem — contagem quebra
+  // toda vez que alguém acrescenta uma chamada legítima, e foi o que aconteceu em 31/08/2026.
+  eq("17) guarda a ficha vinda da PÁGINA de pedidos", /guardarPedidos\(l\); guardarPedidos\(ent\);/.test(HTML), "true");
+  eq("17b) e a vinda do ASSISTENTE de agendamento", /guardarPedidos\(wz\.pedidosLista\)/.test(HTML), "true");
   ["Pedido \"+p.numero", "Emissão", "Previsão de entrega", "Itens a entregar"].forEach(function (t, i) {
     eq((18 + i) + ") o cabeçalho mostra \"" + t + "\"", HTML.indexOf(t) >= 0, "true");
   });

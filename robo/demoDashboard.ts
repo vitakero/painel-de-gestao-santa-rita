@@ -157,8 +157,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   /* A altura da barra lateral descontava só o cabeçalho, e esquecia o RODAPÉ (34px). Resultado:
      57 + 773 + 34 = 864 numa janela de 830 — TODA página nascia com 34px de rolagem, mesmo quando
      o conteúdo cabia inteiro. Achado em 14/08/2026 medindo a tela do cartaz. Agora desconta os
-     dois; o rodapé tem 34px fixos (conferido de 760 a 1512 de largura, o texto não quebra). */
-  .sidebar { width:210px; flex:none; padding:0; position:sticky; top:57px; height:calc(100dvh - 57px - 34px); display:flex; flex-direction:column; overflow:hidden; }
+     dois. CORREÇÃO 31/08/2026: o rodapé mede 35px, não 34 — medido no Chrome em 1024, 1440 e
+     1920 de largura. Faltando 1px, TODA página do painel nascia com 1px de rolagem, mesmo com
+     o conteúdo cabendo. Agora fecha certo. */
+  .sidebar { width:210px; flex:none; padding:0; position:sticky; top:57px; height:calc(100dvh - 57px - 35px); display:flex; flex-direction:column; overflow:hidden; }
   .nav-scroll { flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:0 14px 22px; scrollbar-width:thin; scrollbar-color:#cdd5df transparent; }
   .nav-scroll::-webkit-scrollbar { width:11px; }
   .nav-scroll::-webkit-scrollbar-track { background:transparent; }
@@ -783,17 +785,54 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .esc-add-cancel { border:1px solid #d9e2ec; background:#fff; color:#5b6670; border-radius:7px; padding:7px 12px; font-size:13px; cursor:pointer; }
   .esc td.nome .esc-del { color:#cdd6df; font-weight:700; margin-left:4px; }
   .esc td.nome .esc-del:hover { color:#c0392b; }
-  .ag-wrap { display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap; }
-  .ag-cal { flex:1; min-width:300px; }
-  .ag-painel { width:340px; flex:none; }
-  @media (max-width:860px){ .ag-painel { width:100%; } }
-  .ag-cel { min-height:92px; border:1px solid #eef1f4; border-radius:8px; padding:4px 5px; cursor:pointer; background:#fff; overflow:hidden; display:flex; flex-direction:column; }
+  /* ==AGTELA== O MÊS OCUPA A TELA (pedido do dono, 31/08/2026).
+     Antes: a grade dividia espaço com um painel de 340px na direita — cada dia ficava com
+     102px, o nome do compromisso quebrava em duas linhas e a página rolava.
+     Medido no Chrome: em volta da grade há 285px fixos (cabeçalho 57 + margens do main
+     22/60 + card 18/18 + linha do mês 34+16 + cabeçalho dos dias 25) e mais 30px dos vãos
+     entre as 6 linhas = 315. Com 3px de folga, 318. Logo a linha pode ter
+     (altura da janela − 318) ÷ 6 e o mês INTEIRO cabe sem rolar.
+     Piso de 72px: menos que isso não cabe o número do dia e 3 compromissos, e aí é melhor
+     rolar do que ficar ilegível. */
+  .ag-cal { width:100%; }
+  #agDias.cal-grid { grid-auto-rows: max(72px, calc((100dvh - 318px) / 6)); }
+  .ag-topdir { margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .ag-cel { min-height:0; border:1px solid #eef1f4; border-radius:8px; padding:4px 5px; cursor:pointer; background:#fff; overflow:hidden; display:flex; flex-direction:column; }
   .ag-cel:hover { background:#f6faf7; }
   .ag-cel.fora { background:#fafbfc; cursor:default; }
   .ag-cel.hoje { border-color:#157a35; box-shadow:0 0 0 1px #157a35 inset; }
   .ag-cel.sel { background:#eaf5ee; border-color:#157a35; }
   .ag-num { font-size:12px; font-weight:700; color:#46546a; }
   .ag-cel.fora .ag-num { color:#c8cfd8; }
+  /* ==AGCRIAR== o botão e o menuzinho — cabem na linha que as setas já ocupam (34px),
+     então não custam nenhuma altura da grade */
+  .ag-criar-wrap { position:relative; display:inline-flex; }
+  .ag-criar { border:0; background:#157a35; color:#fff; border-radius:8px; padding:8px 15px;
+              font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  .ag-criar:hover { filter:brightness(1.07); }
+  /* abre encostado à DIREITA: o botão fica no canto da tela e o menu vazava pra fora */
+  .ag-criar-menu { display:none; position:absolute; z-index:60; top:calc(100% + 6px); right:0; min-width:206px;
+                   background:#fff; border:1px solid #e2e8ee; border-radius:11px; padding:5px;
+                   box-shadow:0 12px 30px rgba(16,24,40,.18); }
+  .ag-criar-menu.abre { display:block; }
+  .ag-criar-menu button { display:block; width:100%; text-align:left; border:0; background:transparent;
+                          border-radius:8px; padding:8px 10px; cursor:pointer; font:inherit; color:#1d2733; }
+  .ag-criar-menu button:hover { background:#eaf5ee; }
+  .ag-criar-menu b { display:block; font-size:13.5px; font-weight:600; }
+  .ag-criar-menu i { display:block; font-style:normal; font-size:11.5px; color:#8a97a8; margin-top:1px; }
+  /* ==AGJAN== a janela que substituiu o painel da direita */
+  .ag-jan-bg { display:none; position:fixed; inset:0; background:rgba(20,28,38,.45); z-index:9998;
+               align-items:flex-start; justify-content:center; padding:56px 20px 20px; overflow-y:auto; }
+  .ag-jan-bg.abre { display:flex; }
+  .ag-jan { position:relative; background:#fff; border-radius:14px; width:100%; max-width:430px;
+            box-shadow:0 20px 50px rgba(16,24,40,.28); padding:16px 16px 18px; }
+  .ag-jan-x { position:absolute; top:8px; right:9px; border:0; background:transparent; color:#8a97a8;
+              font-size:22px; line-height:1; cursor:pointer; padding:2px 7px; border-radius:7px; }
+  .ag-jan-x:hover { background:#eef1f4; color:#c0392b; }
+  #agFaixa:not(:empty) { margin-bottom:12px; }
+  .ag-vertopo { display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .ag-vertopo select { padding:6px 8px; border:1px solid #cfd8e3; border-radius:8px; font-size:12.5px;
+                       font-family:inherit; background:#fff; color:#1d2733; max-width:140px; }
   .ag-volta { margin-bottom:8px; }
   /* Com a lista fora do painel, o calendário virou o único lugar onde o compromisso
      aparece — e numa linha só cabia a hora, o nome sumia. Agora vai em duas linhas. */
@@ -887,6 +926,14 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
                background:#fdf3e3; border:1px solid #f3dcae; border-radius:9px; padding:8px 10px; margin-bottom:11px; }
   .ag-pendbar .ag-link { color:#8a5a00; }
   .ag-chip.pend { background:#fdf3e3; color:#8a5a00; }
+  /* ==AGTAREFA== tarefa não é reunião: caixinha na frente, cor própria, e riscada quando feita */
+  .ag-chip.tarefa { background:#efe9fb; color:#4b3b86; }
+  .ag-chip.tarefa.feita { background:#eef1f4; color:#8a97a8; text-decoration:line-through; }
+  .ag-ev.tarefa .ag-ev-hora { color:#4b3b86; background:#efe9fb; }
+  .ag-ev.tarefa.feita .ag-ev-tit { text-decoration:line-through; color:#8a97a8; }
+  .ag-feita { border:1px solid #cfc3ef; background:#f6f2fe; color:#4b3b86; border-radius:8px;
+              padding:7px 13px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  .ag-feita.desmarca { border-color:#d9e2ec; background:#fff; color:#5b6670; font-weight:500; }
   .ag-chip i { font-style:normal; opacity:.75; }
   .esc-domcol { font-weight:700; color:#0c5a26; }
   .px-venc-vencido { color:#c0392b; font-weight:700; }
@@ -1325,21 +1372,35 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     </section>
 
     <section id="page-agenda" class="page">
-      <div class="card">
+      <div class="card ag-card">
         <div class="cal-top">
           <button class="cal-nav" id="agPrev">‹</button>
           <h2 id="agTitulo" style="margin:0;min-width:220px;text-align:center;font-size:18px;"></h2>
           <button class="cal-nav" id="agNext">›</button>
-          <button class="btn-s" id="agHoje" style="margin-left:auto;">Hoje</button>
-        </div>
-        <div class="ag-wrap">
-          <div class="ag-cal">
-            <div class="cal-grid cal-head">
-              <div>DOM</div><div>SEG</div><div>TER</div><div>QUA</div><div>QUI</div><div>SEX</div><div>SÁB</div>
-            </div>
-            <div class="cal-grid" id="agDias"></div>
+          <div class="ag-topdir">
+            <span id="agVerBar"></span>
+            <span class="ag-criar-wrap">
+              <button class="ag-criar" id="agCriar" type="button">＋ Criar</button>
+              <span class="ag-criar-menu" id="agCriarMenu">
+                <button type="button" data-agnovo="evento"><b>Evento</b><i>reunião, visita, entrega</i></button>
+                <button type="button" data-agnovo="tarefa"><b>Tarefa</b><i>uma coisa pra fazer</i></button>
+              </span>
+            </span>
+            <button class="btn-s" id="agHoje">Hoje</button>
           </div>
-          <div class="ag-painel" id="agPainel"></div>
+        </div>
+        <div id="agFaixa"></div>
+        <div class="ag-cal">
+          <div class="cal-grid cal-head">
+            <div>DOM</div><div>SEG</div><div>TER</div><div>QUA</div><div>QUI</div><div>SEX</div><div>SÁB</div>
+          </div>
+          <div class="cal-grid" id="agDias"></div>
+        </div>
+      </div>
+      <div class="ag-jan-bg" id="agJanBg">
+        <div class="ag-jan" role="dialog" aria-modal="true">
+          <button class="ag-jan-x" id="agJanX" type="button" title="Fechar">&times;</button>
+          <div id="agPainel"></div>
         </div>
       </div>
     </section>
@@ -5309,6 +5370,9 @@ let agRespId=null;  // qual evento está com a caixinha de recusa aberta
 let agPend={n:0,data:null}; // convites esperando MINHA resposta (nº + o mais próximo)
 let agRedesenhoPreso=false;  // chegou coisa nova enquanto a pessoa digitava? desenha depois
 let agTemFim=true;          // o banco já tem a coluna da hora de terminar? (descobre sozinho)
+let agTemTarefa=true;       // e a coluna que separa tarefa de compromisso?
+let agTipoNovo="evento";    // o que o "Criar" vai abrir: evento ou tarefa
+let agJanAberta=false;      // a janela está aberta?
 let agAbertoId=null;        // compromisso aberto pelo clique no calendário (null = formulário)
 let agVerTodos=false;       // clicou no "+N mais": mostra a lista daquele dia, só desta vez
 const AG_DOW_LONGO=["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
@@ -5408,39 +5472,45 @@ function agSemColunaFim(e){
   var m=String((e&&e.message)||"")+" "+String((e&&e.details)||"");
   return /hora_fim/.test(m) && /(column|coluna|schema cache|does not exist|não existe)/i.test(m);
 }
+function agSemColunaTarefa(e){
+  var m=String((e&&e.message)||"")+" "+String((e&&e.details)||"");
+  // sem barra invertida aqui (some na geração): procuro os nomes das colunas direto
+  var col=(m.indexOf("feita_em")>=0)||/[^a-z_]tipo[^a-z_]/.test(" "+m+" ");
+  return col && /(column|coluna|schema cache|does not exist|não existe)/i.test(m);
+}
 function agSemParte2(e){
   var c=String((e&&e.code)||""), m=String((e&&e.message)||"");
   return c==="PGRST202"||c==="42883"||(/agenda_mes|agenda_convidados/.test(m)&&/(does not exist|não existe|not find|schema cache)/i.test(m));
 }
-function agTerminar(seq,reqAno,reqMes,rows,erro){
+function agTerminar(seq,reqAno,reqMes,rows,erro,deFundo){
   if(seq!==agReqSeq) return;                                   // resposta velha: já saiu uma carga mais nova
-  if(reqAno!==agAno||reqMes!==agMes){ agCloudLoad(); return; }  // mês mudou durante a carga → recarrega o certo
-  if(erro){ agErro=true; agRenderMes(); agRenderDia(); return; }// preserva o que já estava na tela + mostra aviso
+  if(reqAno!==agAno||reqMes!==agMes){ agCloudLoad(deFundo); return; }  // mês mudou durante a carga → recarrega o certo
+  if(erro){ agErro=true; agRenderMes(); agRenderDia(deFundo); return; }// preserva o que já estava na tela + mostra aviso
   agErro=false;
   var mapa={};
   (rows||[]).forEach(function(ev){ agOcorre(ev,agAno,agMes).forEach(function(key){ (mapa[key]=mapa[key]||[]).push(ev); }); });
   Object.keys(mapa).forEach(function(k){ mapa[k].sort(function(a,b){ return (a.hora||"99")<(b.hora||"99")?-1:1; }); });
-  agEventos=mapa; agRenderMes(); agRenderDia();
+  agEventos=mapa; agRenderMes(); agRenderDia(deFundo);
 }
-function agCloudLoad(){
+function agCloudLoad(deFundo){
   var sb=agSB(), uid=agUid();
-  if(!sb||!uid){ agRenderMes(); agRenderDia(); return; }
+  if(!sb||!uid){ agRenderMes(); agRenderDia(deFundo); return; }
   var seq=++agReqSeq, reqAno=agAno, reqMes=agMes;
   var ini=agK(reqAno,reqMes,1), fim=agK(reqAno,reqMes,new Date(reqAno,reqMes+1,0).getDate());
   var _q=agAlvoPedido(), alvo=_q.alvo, setor=_q.setor;
-  if(agParte2===false && !alvo && !setor){ agCloudLoadPessoal(seq,reqAno,reqMes,ini,fim); return; }
+  if(agParte2===false && !alvo && !setor){ agCloudLoadPessoal(seq,reqAno,reqMes,ini,fim,deFundo); return; }
   /* uma pergunta só pro mês inteiro: o evento + quem foi convidado + como cada um
      respondeu. A função devolve apenas as colunas que a tela desenha. */
   sb.rpc("agenda_mes",{p_ini:ini,p_fim:fim,p_alvo:alvo||null,p_setor:setor||null}).then(function(r){
     if(r&&r.error){
-      if(agSemParte2(r.error)&&!alvo&&!setor){ agParte2=false; agCloudLoadPessoal(seq,reqAno,reqMes,ini,fim); return; }
-      agTerminar(seq,reqAno,reqMes,null,true); return;
+      if(agSemParte2(r.error)&&!alvo&&!setor){ agParte2=false; agCloudLoadPessoal(seq,reqAno,reqMes,ini,fim,deFundo); return; }
+      agTerminar(seq,reqAno,reqMes,null,true,deFundo); return;
     }
-    agParte2=true; agTerminar(seq,reqAno,reqMes,(r&&r.data)||[],false);
-  },function(){ agTerminar(seq,reqAno,reqMes,null,true); });
+    agParte2=true; agTerminar(seq,reqAno,reqMes,(r&&r.data)||[],false,deFundo);
+  },function(){ agTerminar(seq,reqAno,reqMes,null,true,deFundo); });
 }
 // Plano B: o painel novo com o banco AINDA no formato antigo (SQL dos convites não rodou).
-function agCloudLoadPessoal(seq,reqAno,reqMes,ini,fim){
+function agCloudLoadPessoal(seq,reqAno,reqMes,ini,fim,deFundo){
   var sb=agSB(), uid=agUid();
   var AG_COLS="id,data,hora,titulo,descricao,repete,repete_ate";
   var q1=sb.from("agenda_eventos").select(AG_COLS).eq("para_id",uid).gte("data",ini).lte("data",fim);
@@ -5450,11 +5520,11 @@ function agCloudLoadPessoal(seq,reqAno,reqMes,ini,fim){
     q2.then(function(r){ return r; }, function(){ return {data:[]}; })
   ]).then(function(res){
     var r1=res[0]||{}, r2=res[1]||{};
-    if(r1.error){ agTerminar(seq,reqAno,reqMes,null,true); return; }
+    if(r1.error){ agTerminar(seq,reqAno,reqMes,null,true,deFundo); return; }
     var rows=[], vistos={};
     (r1.data||[]).concat(r2.data||[]).forEach(function(ev){ if(ev&&!vistos[ev.id]){ vistos[ev.id]=1; ev.sou_dono=true; ev.convidados=[]; rows.push(ev); } });
-    agTerminar(seq,reqAno,reqMes,rows,false);
-  },function(){ agTerminar(seq,reqAno,reqMes,null,true); });
+    agTerminar(seq,reqAno,reqMes,rows,false,deFundo);
+  },function(){ agTerminar(seq,reqAno,reqMes,null,true,deFundo); });
 }
 // Bolinha no menu: quantos convites estão esperando resposta minha — e a data
 // do mais próximo, que é o que permite LEVAR a pessoa até ele.
@@ -5465,7 +5535,7 @@ function agBadge(){
     var d=(r&&!r.error)?r.data:null;
     agPend=(d&&typeof d==="object")?{n:+d.n||0,data:d.data||null}:{n:0,data:null};
     if(el){ el.textContent=agPend.n>99?"99+":String(agPend.n); el.style.display=agPend.n?"":"none"; }
-    agRenderDia();
+    agRenderDia(true);
   },function(){ agPend={n:0,data:null}; if(el) el.style.display="none"; });
 }
 // A faixa que leva até o convite. Sem ela a bolinha avisa e a pessoa fica procurando:
@@ -5488,7 +5558,10 @@ function agRenderMes(){
     var chips=evs.slice(0,3).map(function(ev){
       var esp=(ev.meu_status==="aguardando")?'⏳ ':'';
       var quem=(agVerSetor&&ev.dono_nome)?('<i>'+agEsc(String(ev.dono_nome).split(" ")[0])+'</i> '):'';
-      return '<div class="ag-chip'+(ev.meu_status==="aguardando"?" pend":"")+'" data-agabrir="'+ev.id+'" title="'+agEsc(ev.titulo)+'">'+esp+(agRepete(ev)?'🔁 ':'')+quem+(ev.hora?('<b>'+agFmtHora(ev.hora)+'</b> '):'')+agEsc(ev.titulo)+'</div>';
+      var tar=agEhTarefa(ev), feita=!!ev.feita_em;
+      return '<div class="ag-chip'+(ev.meu_status==="aguardando"?" pend":"")+(tar?" tarefa":"")+(tar&&feita?" feita":"")+
+        '" data-agabrir="'+ev.id+'" title="'+agEsc(ev.titulo)+'">'+esp+(agRepete(ev)?'🔁 ':'')+quem+
+        (tar?(feita?'☑ ':'☐ '):'')+(ev.hora?('<b>'+agFmtHora(ev.hora)+'</b> '):'')+agEsc(ev.titulo)+'</div>';
     }).join('');
     var mais=evs.length>3?('<div class="ag-mais" data-agtodos="'+key+'">+'+(evs.length-3)+' mais</div>'):'';
     return '<div class="ag-cel'+(agEhHoje(agAno,agMes,c.dia)?' hoje':'')+(agSel===key?' sel':'')+'" data-agdia="'+key+'"><span class="ag-num">'+c.dia+'</span>'+chips+mais+'</div>';
@@ -5534,17 +5607,20 @@ function agRespostaHtml(ev){
   }
   return meu+'<div class="ag-ev-acoes"><button type="button" class="ag-mini" data-agrecusar="'+ev.id+'">Mudar minha resposta</button></div>';
 }
+function agEhTarefa(ev){ return !!(ev&&ev.tipo==="tarefa"); }
 function agEvHtml(ev){
-  var rep=agRepLabel(ev), meu=!!ev.sou_dono;
-  var acoes=(meu&&!agVendoOutro())?('<div class="ag-ev-acoes"><button type="button" class="ag-mini" data-ageditar="'+ev.id+'">Editar</button>'+
+  var rep=agRepLabel(ev), meu=!!ev.sou_dono, tar=agEhTarefa(ev), feita=!!(ev&&ev.feita_em);
+  var acoes=(meu&&!agVendoOutro())?('<div class="ag-ev-acoes">'+
+    (tar?('<button type="button" class="ag-feita'+(feita?' desmarca':'')+'" data-agfeita="'+ev.id+'">'+(feita?'Desmarcar':'Marcar como feita')+'</button>'):'')+
+    '<button type="button" class="ag-mini" data-ageditar="'+ev.id+'">Editar</button>'+
     '<button type="button" class="ag-mini danger" data-agexcluir="'+ev.id+'">Excluir</button></div>'):'';
-  return '<div class="ag-ev'+(ev.meu_status==="aguardando"?" pend":"")+'"><div class="ag-ev-top">'+
-    (ev.hora?'<span class="ag-ev-hora">'+agFmtHora(ev.hora)+(ev.hora_fim?' – '+agFmtHora(ev.hora_fim):'')+'</span>':'<span class="ag-ev-hora dia">dia todo</span>')+
-    '<span class="ag-ev-tit">'+agEsc(ev.titulo)+'</span>'+
+  return '<div class="ag-ev'+(ev.meu_status==="aguardando"?" pend":"")+(tar?" tarefa":"")+(feita?" feita":"")+'"><div class="ag-ev-top">'+
+    (ev.hora?'<span class="ag-ev-hora">'+agFmtHora(ev.hora)+(ev.hora_fim?' – '+agFmtHora(ev.hora_fim):'')+'</span>':(tar?'':'<span class="ag-ev-hora dia">dia todo</span>'))+
+    '<span class="ag-ev-tit">'+(tar?(feita?'☑ ':'☐ '):'')+agEsc(ev.titulo)+'</span>'+
     (rep?'<span class="ag-ev-rep">🔁 '+rep+'</span>':'')+'</div>'+
     ((!meu&&ev.dono_nome)?'<div class="ag-ev-dono">marcado por '+agEsc(ev.dono_nome)+'</div>':'')+
     (ev.descricao?'<div class="ag-ev-desc">'+agEsc(ev.descricao)+'</div>':'')+
-    agConvHtml(ev)+ (agVendoOutro()?'':agRespostaHtml(ev)) + acoes+'</div>';
+    (tar?'':(agConvHtml(ev)+ (agVendoOutro()?'':agRespostaHtml(ev)))) + acoes+'</div>';
 }
 /* --- escolher quem convidar: primeiro o setor, depois a pessoa daquele setor --- */
 function agConvidarHtml(){
@@ -5711,18 +5787,39 @@ function agHoraDefine(caixa, v){
   }
   if(fim.value && fim.value<=v) agHoraDefine(cxFim, agSoma(v,60));
 }
+// evento ou tarefa? Editando, é o que a linha já é; criando, é o que veio do menu "Criar".
+function agFormTipo(){
+  var ev=agEditId?agFindEv(agEditId):null;
+  if(ev) return (ev.tipo==="tarefa")?"tarefa":"evento";
+  return agTipoNovo==="tarefa"?"tarefa":"evento";
+}
+/* A TAREFA é curta de propósito: é uma coisa a fazer, não uma reunião. Sem hora de
+   terminar, sem repetir e sem convidados — quem precisa disso está marcando um evento. */
+function agFormTarefaHtml(){
+  var ev = agEditId ? agFindEv(agEditId) : null;
+  return '<div class="ag-form" data-tipo="tarefa"><div class="ag-form-tit">'+(ev?'Editar tarefa':'Nova tarefa')+'</div>'+
+    '<input type="text" class="ag-f-tit" maxlength="120" placeholder="O que precisa ser feito?" value="'+(ev?agEsc(ev.titulo):'')+'">'+
+    '<div class="ag-f-row"><span class="ag-f-lbl">Dia:</span><input type="date" class="ag-f-dia" value="'+agEsc((ev&&ev.data)||agSel||'')+'"></div>'+
+    '<div class="ag-f-row ag-f-horas"><span class="ag-f-lbl ag-f-lbl-cima">Hora (opcional):</span>'+
+      agHoraHtml("ag-f-hora",(ev&&ev.hora)||"","Sem hora")+'</div>'+
+    '<textarea class="ag-f-desc" rows="2" maxlength="500" placeholder="Anotação (opcional)">'+(ev?agEsc(ev.descricao||''):'')+'</textarea>'+
+    '<div class="ag-f-erro" style="display:none;color:#c0392b;font-size:12.5px;margin-top:2px;"></div>'+
+    '<div style="display:flex;gap:8px;align-items:center;"><button type="button" class="ag-salvar" data-agsalvar="'+(ev?ev.id:'')+'">'+(ev?'Salvar':'Criar tarefa')+'</button>'+
+    (ev?'<button type="button" class="ag-mini" data-agcancelaredit>Cancelar</button>':'')+'</div></div>';
+}
 function agFormHtml(){
+  if(agFormTipo()==="tarefa") return agFormTarefaHtml();
   var ev = agEditId ? agFindEv(agEditId) : null;
   var rep = ev&&ev.repete?ev.repete:"nao";
   var ate = ev&&ev.repete_ate?ev.repete_ate:"";
   function opt(v,txt){ return '<option value="'+v+'"'+(rep===v?' selected':'')+'>'+txt+'</option>'; }
   var mostrarRep=(rep&&rep!=="nao");
-  return '<div class="ag-form"><div class="ag-form-tit">'+(ev?'Editar compromisso':'Novo compromisso')+'</div>'+
+  return '<div class="ag-form" data-tipo="evento"><div class="ag-form-tit">'+(ev?'Editar compromisso':'Novo compromisso')+'</div>'+
     (ev&&agRepete(ev)?'<div class="ag-f-serie">🔁 Este compromisso se repete — mudar o dia, salvar ou excluir vale para <b>todas</b> as vezes.</div>':'')+
     '<input type="text" class="ag-f-tit" maxlength="120" placeholder="O que você vai fazer?" value="'+(ev?agEsc(ev.titulo):'')+'">'+
     /* Mudar o DIA só existia recusando um convite. Sem isto, quem marcasse no dia errado
        tinha que apagar e refazer — perdendo os convidados junto. */
-    (ev?('<div class="ag-f-row"><span class="ag-f-lbl">Dia:</span><input type="date" class="ag-f-dia" value="'+agEsc(ev.data||agSel||'')+'"></div>'):'')+
+    '<div class="ag-f-row"><span class="ag-f-lbl">Dia:</span><input type="date" class="ag-f-dia" value="'+agEsc((ev&&ev.data)||agSel||'')+'"></div>'+
     /* Dois campos de hora não cabem na mesma linha do rótulo: o painel do dia tem 340px
    e o segundo campo saía pra fora. Então o rótulo fica em cima e os dois embaixo. */
     '<div class="ag-f-row ag-f-horas"><span class="ag-f-lbl ag-f-lbl-cima">Hora (opcional):</span>'+
@@ -5740,22 +5837,50 @@ function agFormHtml(){
     '<div style="display:flex;gap:8px;align-items:center;"><button type="button" class="ag-salvar" data-agsalvar="'+(ev?ev.id:'')+'">'+(ev?'Salvar':'Adicionar')+'</button>'+
     (ev?'<button type="button" class="ag-mini" data-agcancelaredit>Cancelar</button>':'')+'</div></div>';
 }
-/* --- barra do master: de quem é a agenda que estou vendo --- */
+/* --- barra do master: de quem é a agenda que estou vendo ---
+   Mora na LINHA DO MÊS, ao lado das setas: ela vale pro mês inteiro, não pro dia, e ali
+   não custa nenhuma altura da grade (a linha já tem 34px por causa das setas). */
 function agVerBarHtml(){
   if(!agMaster()||agParte2===false) return "";
   if(!agPessoas) return "";
   var sets=agSetores();
   var pes=agVerSetor?agDoSetor(agVerSetor):[];
-  var qual="";
-  if(agVerAlvo){ var p=agPessoa(agVerAlvo); qual=p?('Vendo a agenda de <b>'+agEsc(p.nome)+'</b>'):''; }
-  else if(agVerSetor){ qual='Vendo o setor <b>'+agEsc(agVerSetor)+'</b> inteiro'; }
-  return '<div class="ag-verbar"><div class="ag-f-row" style="margin-bottom:6px;"><span class="ag-f-lbl">Ver agenda de:</span>'+
+  return '<span class="ag-vertopo"><span class="ag-f-lbl">Ver:</span>'+
     '<select class="ag-v-setor"><option value="">Minha agenda</option>'+
       sets.map(function(s){ return '<option value="'+agEsc(s)+'"'+(agVerSetor===s?' selected':'')+'>'+agEsc(s)+'</option>'; }).join('')+'</select>'+
     (agVerSetor?('<select class="ag-v-pessoa"><option value="">Setor inteiro</option>'+
       pes.map(function(p){ return '<option value="'+agEsc(p.id)+'"'+(agVerAlvo===p.id?' selected':'')+'>'+agEsc(p.nome)+'</option>'; }).join('')+'</select>'):'')+
-    '</div>'+(qual?('<div class="ag-vendo">'+qual+' — <button type="button" class="ag-link" data-agvoltarmeu>voltar pra minha agenda</button></div>'):'')+'</div>';
+    (agVendoOutro()?('<button type="button" class="ag-link" data-agvoltarmeu>voltar pra minha</button>'):'')+
+    '</span>';
 }
+/* ==AGJAN== A janela que substituiu o painel da direita. O miolo dela é o MESMO #agPainel
+   de antes — por isso o formulário, o seletor de hora, o salvar, os convidados e os
+   ouvintes de clique continuam iguais: só mudou de lugar na tela. */
+function agJanela(){ return document.getElementById("agJanBg"); }
+function agJanAbre(tipo){
+  if(tipo) agTipoNovo=tipo;
+  if(!agSel){ var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate()); }
+  agJanAberta=true;
+  var j=agJanela(); if(j) j.classList.add("abre");
+  agRenderDia();
+  // o cursor já no título: quem abriu quer escrever
+  setTimeout(function(){ var t=document.querySelector("#agPainel .ag-f-tit"); if(t) t.focus(); },40);
+}
+function agJanFecha(){
+  agJanAberta=false; agAbertoId=null; agVerTodos=false; agEditId=null; agRespId=null; agConvSel=[];
+  var j=agJanela(); if(j) j.classList.remove("abre");
+  agRenderMes();
+}
+// A faixa de cima (avisos e a barra do master) fica FORA da janela: ela vale pro mês.
+function agRenderFaixa(){
+  var vb=document.getElementById("agVerBar"); if(vb) vb.innerHTML=agVerBarHtml();
+  var fx=document.getElementById("agFaixa"); if(!fx) return;
+  var aviso=agErro?'<div class="ag-aviso">Não deu pra carregar a agenda agora. Verifique a conexão e toque em "Hoje".</div>':'';
+  fx.innerHTML=aviso+agPendHtml();
+  var cr=document.getElementById("agCriar"); if(cr) cr.style.display=agVendoOutro()?"none":"";
+  var mt=document.querySelector('[data-agnovo="tarefa"]'); if(mt) mt.style.display=agTemTarefa?"":"none";
+}
+
 // A contagem de convites e o realtime chegam a qualquer momento. Redesenhar o painel
 // nessa hora APAGA o que a pessoa está escrevendo no formulário. Então: se o cursor
 // está num campo aqui dentro, guarda o pedido e desenha quando ela sair.
@@ -5764,13 +5889,16 @@ function agMexendoNoPainel(){
   var p=document.getElementById("agPainel");
   return !!(p && p.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
 }
-function agRenderDia(){
+/* deFundo = o redesenho veio SOZINHO (realtime, contagem de convites). Só esses esperam
+   a pessoa sair do campo. Redesenho pedido por um clique dela tem que acontecer na hora —
+   senão clicar num compromisso com o cursor no formulário não abria nada. */
+function agRenderDia(deFundo){
+  agRenderFaixa();
   var p=document.getElementById("agPainel"); if(!p) return;
-  if(agMexendoNoPainel()){ agRedesenhoPreso=true; return; }
+  if(deFundo && agMexendoNoPainel()){ agRedesenhoPreso=true; return; }
   agRedesenhoPreso=false;
-  var aviso=agErro?'<div class="ag-aviso">Não deu pra carregar a agenda agora. Verifique a conexão e toque em "Hoje".</div>':'';
-  var barra=agVerBarHtml()+agPendHtml();
-  if(!agSel){ p.innerHTML=barra+aviso+'<div class="ag-vazio">Escolha um dia no calendário para ver e marcar seus compromissos.</div>'; return; }
+  if(!agJanAberta){ p.innerHTML=""; return; }   // janela fechada: o mês é a tela inteira
+  if(!agSel){ p.innerHTML='<div class="ag-vazio">Escolha um dia no calendário.</div>'; return; }
   var evs=agEventos[agSel]||[];
   var soOlhando=agVendoOutro()
     ? ('<div class="ag-f-hint">Você está só olhando. Para marcar alguma coisa com '+(agVerSetor&&!agVerAlvo?'este setor':'esta pessoa')+', volte pra sua agenda e mande o convite.</div>')
@@ -5791,7 +5919,9 @@ function agRenderDia(){
   } else {
     meio = soOlhando;
   }
-  p.innerHTML=barra+aviso+'<div class="ag-painel-tit">'+agFmtDataBr(agSel)+'</div>'+meio;
+  /* O "‹ voltar" só faz sentido quando há pra onde voltar (do compromisso aberto para o
+     formulário). Abrindo pelo Criar, quem fecha é o × da janela. */
+  p.innerHTML='<div class="ag-painel-tit">'+agFmtDataBr(agSel)+'</div>'+meio;
 }
 function renderAgenda(){ if(!agSel){ var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate()); } agPessoasLoad(); agRenderMes(); agRenderDia(); }
 
@@ -5837,7 +5967,9 @@ function agSalvar(btn,id){
   var sb=agSB(); if(!sb||!agUid()) return eMsg("Entre no painel pra salvar.");
   btn.disabled=true;
   var evAntes=id?agFindEv(id):null;
-  var payload={ titulo:titulo, hora:hora||null, hora_fim:(hora&&fim)?fim:null, descricao:desc||null };
+  var ehTarefa=(box.getAttribute("data-tipo")==="tarefa");
+  var payload={ titulo:titulo, hora:hora||null, hora_fim:(ehTarefa||!hora||!fim)?null:fim, descricao:desc||null };
+  if(agTemTarefa) payload.tipo=ehTarefa?"tarefa":"evento";
   var q;
   if(id){
     payload.repete=(rep&&rep!=="nao")?rep:null;                 // update permite ligar/desligar a repetição
@@ -5849,6 +5981,14 @@ function agSalvar(btn,id){
     q=sb.from("agenda_eventos").insert(Object.assign({data:agSel},payload)).select();
   }
   q.then(function(r){
+    if(r&&r.error&&agSemColunaTarefa(r.error)){
+      /* O SQL das tarefas ainda não rodou. Aqui NÃO dá pra "salvar assim mesmo": gravar
+         uma tarefa como se fosse compromisso seria criar a coisa errada calada. */
+      agTemTarefa=false; btn.disabled=false; agRenderFaixa();
+      eMsg(ehTarefa ? "A Tarefa precisa de um ajuste no banco que ainda não foi feito. Avise o Victor."
+                    : "Não deu pra salvar. Tente de novo.");
+      return;
+    }
     if(r&&r.error&&agSemColunaFim(r.error)&&payload.hora_fim!==undefined){
       // o SQL da hora de terminar ainda não rodou: grava sem ela e esconde o campo
       agTemFim=false; delete payload.hora_fim;
@@ -5869,7 +6009,7 @@ function agSalvar(btn,id){
     }
     if(!evId||agParte2===false){ btn.disabled=false; agEditId=null; agConvSel=[]; agCloudLoad(); return; }
     agSyncConvidados(sb,evId,evAntes?evAntes.convidados:[]).then(function(){
-      btn.disabled=false; agEditId=null; agConvSel=[]; agAbertoId=null; agVerTodos=false; agCloudLoad(); agBadge();
+      btn.disabled=false; agJanFecha(); agCloudLoad(); agBadge();
     },function(e){
       /* O compromisso ficou salvo, só o convite falhou. O recado NÃO pode ir pro
          cantinho vermelho do formulário: o agCloudLoad redesenha o painel logo em
@@ -5894,7 +6034,7 @@ function agExcluir(id){
     sb.from("agenda_eventos").delete().eq("id",id).select().then(function(r){
       if(r&&r.error) return uiConfirm({titulo:"Não deu pra excluir",msg:"O banco recusou: "+(r.error.message||"tente de novo."),ok:"OK",cancel:""});
       if(r&&r.data&&r.data.length===0) return uiConfirm({titulo:"Não deu pra excluir",msg:"Este compromisso não é seu.",ok:"OK",cancel:""});
-      agEditId=null; agConvSel=[]; agAbertoId=null; agVerTodos=false; agCloudLoad(); agBadge();
+      agJanFecha(); agCloudLoad(); agBadge();
     },function(){ uiConfirm({titulo:"Falha de conexão",msg:"Não deu pra excluir agora. Tente de novo.",ok:"OK",cancel:""}); });
   });
 }
@@ -5920,7 +6060,20 @@ function agRemarcar(id,d,h){
     },function(){ uiConfirm({titulo:"Falha de conexão",msg:"Não deu pra remarcar agora. Tente de novo.",ok:"OK",cancel:""}); });
   });
 }
-function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; function rec(){ clearTimeout(deb); deb=setTimeout(function(){ agCloudLoad(); agBadge(); },700); } agRT=sb.channel("agenda_sync").on("postgres_changes",{event:"*",schema:"public",table:"agenda_eventos"},rec).on("postgres_changes",{event:"*",schema:"public",table:"agenda_convidados"},rec).subscribe(); }catch(e){} }
+// Marcar/desmarcar tarefa: é um campo só, e a RLS já garante que é a sua.
+function agFeita(id, btn){
+  var ev=agFindEv(id); if(!ev) return;
+  var sb=agSB(); if(!sb) return;
+  btn.disabled=true;
+  var quando = ev.feita_em ? null : new Date().toISOString();
+  sb.from("agenda_eventos").update({feita_em:quando}).eq("id",id).select().then(function(r){
+    btn.disabled=false;
+    if(r&&r.error) return uiConfirm({titulo:"Não deu pra marcar",msg:"O banco recusou: "+(r.error.message||"tente de novo."),ok:"OK",cancel:""});
+    if(r&&r.data&&r.data.length===0) return uiConfirm({titulo:"Não deu pra marcar",msg:"Esta tarefa não é sua.",ok:"OK",cancel:""});
+    agCloudLoad();
+  },function(){ btn.disabled=false; uiConfirm({titulo:"Falha de conexão",msg:"Tente de novo.",ok:"OK",cancel:""}); });
+}
+function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; function rec(){ clearTimeout(deb); deb=setTimeout(function(){ agCloudLoad(true); agBadge(); },700); } agRT=sb.channel("agenda_sync").on("postgres_changes",{event:"*",schema:"public",table:"agenda_eventos"},rec).on("postgres_changes",{event:"*",schema:"public",table:"agenda_convidados"},rec).subscribe(); }catch(e){} }
 
 (function(){
   function limpaVer(){ agSel=null; agEditId=null; agRespId=null; agConvSel=[]; agAbertoId=null; agVerTodos=false; }
@@ -5934,8 +6087,32 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
     agSel=c.getAttribute("data-agdia"); agEditId=null; agRespId=null; agConvSel=[];
     agAbertoId = chip ? chip.getAttribute("data-agabrir") : null;   // clicou no compromisso -> abre ele
     agVerTodos = !!todos;                                          // clicou no "+N mais" -> lista daquele dia
-    agRenderMes(); agRenderDia();
+    if(agVendoOutro() && !chip && !todos){ agRenderMes(); agRenderDia(); return; }  // só olhando: não abre formulário
+    if(!chip && !todos) agTipoNovo="evento";   // clicou no dia vazio -> evento novo naquele dia
+    agRenderMes(); agJanAbre();
   });
+  /* ==AGCRIAR== o menuzinho do "Criar" */
+  var cr=document.getElementById("agCriar"), crm=document.getElementById("agCriarMenu");
+  if(cr&&crm){
+    cr.addEventListener("click",function(e){ e.stopPropagation(); crm.classList.toggle("abre"); });
+    crm.addEventListener("click",function(e){
+      var b=e.target.closest("[data-agnovo]"); if(!b) return;
+      crm.classList.remove("abre");
+      agAbertoId=null; agVerTodos=false; agEditId=null; agConvSel=[];
+      agJanAbre(b.getAttribute("data-agnovo"));
+    });
+    document.addEventListener("click",function(e){ if(!e.target.closest(".ag-criar-wrap")) crm.classList.remove("abre"); });
+  }
+  /* ==AGJAN== fechar a janela: o ×, o Esc e o clique no fundo escuro */
+  var jx=document.getElementById("agJanX"); if(jx) jx.addEventListener("click",agJanFecha);
+  var jbg=document.getElementById("agJanBg");
+  if(jbg) jbg.addEventListener("mousedown",function(e){ if(e.target===jbg) agJanFecha(); });
+  document.addEventListener("keydown",function(e){
+    if(e.key!=="Escape") return;
+    if(crm&&crm.classList.contains("abre")){ crm.classList.remove("abre"); return; }
+    if(agJanAberta) agJanFecha();
+  });
+
   var pn=document.getElementById("agPainel"); if(pn){
     /* Saiu do campo e tinha desenho preso? Agora pode. Duas saídas de propósito: o
        focusout resolve o caso normal, e o clique em qualquer lugar cobre o navegador
@@ -5997,6 +6174,7 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
       /* agSel NÃO se perde ao trocar de agenda: zerando o dia, a pessoa caía num
          painel "Escolha um dia no calendário" e o formulário sumia. */
       if(e.target.closest("[data-agvoltarmeu]")){ agVerAlvo=null; agVerSetor=null; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); return; }
+      var fe=e.target.closest("[data-agfeita]"); if(fe){ agFeita(fe.getAttribute("data-agfeita"), fe); return; }
       var ir=e.target.closest("[data-agirconvite]");
       if(ir){ var _d=ir.getAttribute("data-agirconvite"), _p=agParse(_d);
         agAno=_p.getFullYear(); agMes=_p.getMonth(); agSel=_d; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); return; }
@@ -6064,6 +6242,24 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
       if(vp){ agVerAlvo=vp.value||null; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); return; }
     });
   }
+  /* A barra do master e a faixa de convites saíram do painel e foram pro topo da página:
+     os mesmos ouvintes precisam valer lá também. */
+  var fx=document.getElementById("agFaixa"), vb=document.getElementById("agVerBar");
+  [fx,vb].forEach(function(el){
+    if(!el) return;
+    el.addEventListener("click",function(e){
+      if(e.target.closest("[data-agvoltarmeu]")){ agVerAlvo=null; agVerSetor=null; agJanFecha(); agCloudLoad(); return; }
+      var ir=e.target.closest("[data-agirconvite]");
+      if(ir){ var _d=ir.getAttribute("data-agirconvite"), _p=agParse(_d);
+        agAno=_p.getFullYear(); agMes=_p.getMonth(); agSel=_d; agCloudLoad(); return; }
+    });
+    el.addEventListener("change",function(e){
+      var vs=e.target.closest(".ag-v-setor");
+      if(vs){ agVerSetor=vs.value||null; agVerAlvo=null; agJanFecha(); agCloudLoad(); return; }
+      var vp=e.target.closest(".ag-v-pessoa");
+      if(vp){ agVerAlvo=vp.value||null; agJanFecha(); agCloudLoad(); return; }
+    });
+  });
   // clicar em qualquer outro lugar fecha a lista de horários
   document.addEventListener("mousedown",function(e){
     if(e.target.closest(".ag-hora")) return;

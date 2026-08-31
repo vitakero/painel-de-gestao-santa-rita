@@ -69,7 +69,16 @@ console.log("\n=== A fila de pedidos de fornecedor ===\n");
   eq("9) que conta só o que está pendente",
      /return p\.status==="pendente"; \}\)\.length;/.test(H), "true");
   eq("10) some quando não há nada esperando", /\{ b\.style\.display="none"; \}/.test(H), "true");
-  eq("11) e se atualiza quando a lista chega", /clPedidos=\(r&&r\.data\)\|\|\[\];\s*\n\s*clAtualizaBadge\(\);/.test(H), "true");
+  // COBRA O COMPORTAMENTO, NAO A POSICAO. Esta linha exigia que clAtualizaBadge() viesse
+  // COLADA em clPedidos=... — e ja reprovou duas vezes por motivo nenhum, quando entraram
+  // clColetaLoad() e caAplicar() no meio. O que importa e que, quando a lista chega, o badge
+  // seja atualizado no MESMO trecho; nao em que ordem exata isso acontece.
+  eq("11) e se atualiza quando a lista chega", (function(){
+       var i = H.indexOf("clPedidos=(r&&r.data)||[];");
+       if (i < 0) return "false";
+       // dentro das 12 linhas seguintes (o corpo daquele retorno), o badge tem que ser chamado
+       return H.slice(i, i + 900).indexOf("clAtualizaBadge();") > 0 ? "true" : "false";
+     })(), "true");
 }
 
 // ------------------------------------------------------------ a fila saiu de cima
