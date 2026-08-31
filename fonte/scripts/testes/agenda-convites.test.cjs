@@ -137,5 +137,26 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /agConvHtml\(ev\)\+ \(agVendoOutro\(\)\?'':agRespostaHtml\(ev\)\)/.test(H), "true");
 }
 
+// ------------------------------------------------------------ o lançamento de 31/08: convidar é só do master
+{
+  // O dono quis lançar JÁ a agenda pessoal e segurar a reunião entre setores.
+  // O que NÃO pode acontecer: sumir junto a resposta ao convite — senão o master
+  // convida alguém e a pessoa não tem como aceitar.
+  eq("37) o interruptor existe e está ligado",
+     /var AG_CONVITE_SO_MASTER = true;/.test(H), "true");
+  eq("38) e é UMA linha pra liberar depois",
+     /function agPodeConvidar\(\)\{ return AG_CONVITE_SO_MASTER \? agMaster\(\) : true; \}/.test(H), "true");
+  eq("39) quem não é master não vê a telinha de convidar",
+     /function agConvidarHtml\(\)\{\s*\n\s*if\(!agPodeConvidar\(\)\) return "";/.test(H), "true");
+  eq("40) mas continua podendo ACEITAR o que o master mandou",
+     /agRespostaHtml[\s\S]{0,1400}data-agaceitar/.test(H), "true");
+  eq("41) e RECUSAR com motivo",
+     /agRespostaHtml[\s\S]{0,900}data-agrecusaok/.test(H), "true");
+  eq("42) a resposta ao convite NÃO passa pelo interruptor",
+     /agRespostaHtml\(ev\)\{[\s\S]{0,120}agPodeConvidar/.test(H), "false");
+  eq("43) quem não convida nem é master não baixa a lista de gente",
+     /if\(!agPodeConvidar\(\) && !agMaster\(\)\) return;/.test(H), "true");
+}
+
 console.log("\n" + (falhou ? "FALHOU: " + falhou + " de " + (ok + falhou) : "TUDO OK: " + ok + " testes") + "\n");
 process.exit(falhou ? 1 : 0);

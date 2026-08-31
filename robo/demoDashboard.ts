@@ -5278,9 +5278,17 @@ let agConvSel=[];   // convidados escolhidos no formulário (ids)
 let agRespId=null;  // qual evento está com a caixinha de recusa aberta
 let agPend={n:0,data:null}; // convites esperando MINHA resposta (nº + o mais próximo)
 const AG_DOW_LONGO=["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
+/* CONVIDAR OUTRO SETOR: por enquanto SÓ o master.
+   Pedido do dono em 31/08/2026 — ele quis lançar JÁ a agenda pessoal, pro pessoal
+   começar a anotar as pendências, e deixar a reunião entre setores pra depois.
+   Nada foi removido: o banco, o aceite e a recusa continuam de pé, só a telinha de
+   convidar não aparece pra quem não é master. LIBERAR PRA TODO MUNDO = trocar este
+   true por false. Só isso. */
+var AG_CONVITE_SO_MASTER = true;
 function agSB(){ return window.__SB||null; }
 function agUid(){ return (window.__PERFIL&&window.__PERFIL.id)||null; }
 function agMaster(){ return !!(window.__PERFIL&&window.__PERFIL.is_master); }
+function agPodeConvidar(){ return AG_CONVITE_SO_MASTER ? agMaster() : true; }
 // "estou olhando a agenda de outra pessoa?" — escolher a mim mesmo na lista
 // do setor continua sendo a MINHA agenda (o formulário não some).
 function agVendoOutro(){ return agVerAlvo?(agVerAlvo!==agUid()):!!agVerSetor; }
@@ -5341,6 +5349,9 @@ function agFindEv(id){ var e=null; (agEventos[agSel]||[]).forEach(function(x){ i
 
 /* ---------------- gente pra convidar (setor + nome) ---------------- */
 function agPessoasLoad(){
+  // a lista de gente só serve pra convidar e pra barra do master: quem não usa
+  // nenhum dos dois não baixa nada (uma pergunta a menos por abertura de tela)
+  if(!agPodeConvidar() && !agMaster()) return;
   var sb=agSB(); if(!sb||agPessoas) return;
   sb.rpc("agenda_pessoas").then(function(r){
     agPessoas=(r&&!r.error&&r.data)?r.data:[];   // sem a Parte 2 no banco: some o convite, o resto funciona
@@ -5495,6 +5506,7 @@ function agEvHtml(ev){
 }
 /* --- escolher quem convidar: primeiro o setor, depois a pessoa daquele setor --- */
 function agConvidarHtml(){
+  if(!agPodeConvidar()) return "";     // enquanto convidar for só do master
   if(agParte2===false) return "";
   if(!agPessoas) return '<div class="ag-f-hint">Carregando a lista de pessoas...</div>';
   var sets=agSetores();
