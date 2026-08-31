@@ -181,6 +181,34 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .nav-item.ativo .nav-badge { box-shadow:0 0 0 2px #157a35; }
   .nav-item.ativo .soon { background:#ffffff33; color:#fff; }
   main { flex:1 1 auto; min-width:0; max-width:1340px; margin:0 auto; padding:22px 32px 60px; }
+
+  /* ==GAVETA== O MENU NO CELULAR.
+     No computador nada disto existe: o botão fica escondido, o fundo escuro fica escondido
+     e a barra lateral continua exatamente como está (210px, grudada). Abaixo do ponto de
+     corte a MESMA barra passa a deslizar por cima da tela. Não existe uma segunda lista de
+     menu em lugar nenhum — é o mesmo <nav>, com as mesmas permissões. */
+  .btn-gaveta { display:none; }
+  .gaveta-fundo { display:none; }
+  @media (max-width:760px){
+    .btn-gaveta { display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px;
+                  margin-left:-10px; flex:none; border:0; background:transparent; color:#1a2233;
+                  border-radius:11px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+    .btn-gaveta:hover { background:#f1f4f8; }
+    .btn-gaveta:active { background:#e7ecf3; }
+    /* a barra sai do fluxo: fechada, ela não ocupa NADA da largura */
+    .sidebar { position:fixed; left:0; top:57px; bottom:0; height:auto; width:min(284px, 86vw);
+               z-index:60; background:#fff; border-right:1px solid #e8ecf1;
+               box-shadow:2px 0 18px rgba(16,24,40,.13);
+               transform:translateX(-101%); transition:transform .22s ease; }
+    body.gaveta-aberta .sidebar { transform:translateX(0); }
+    body.gaveta-aberta .gaveta-fundo { display:block; position:fixed; left:0; right:0; top:57px; bottom:0;
+               background:rgba(16,24,40,.36); z-index:55; }
+    /* com a gaveta aberta, o que está atrás não rola junto */
+    body.gaveta-aberta { overflow:hidden; }
+    /* margens de celular: 32px de cada lado numa tela de 390 era um quarto da tela */
+    main { padding:14px 12px 40px; max-width:none; }
+  }
+  @media (prefers-reduced-motion: reduce){ .sidebar { transition:none; } }
   .page { display:none; }
   .page.ativo { display:grid; grid-template-columns:minmax(0,1fr); gap:22px; }
   .page.ativo > * { min-width:0; }
@@ -1220,6 +1248,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 <script>try{var _pgc=localStorage.getItem("ui_pagina_atual");if(_pgc&&_pgc!=="vendas"&&/^[a-z0-9_-]+$/.test(_pgc)){var _esc3=document.documentElement.classList.contains("tema-escuro");var _tx=_esc3?"#dde3ea":"#33404f",_ic=_esc3?"#8f98a5":"#8a97a8",_tw=_esc3?"#f3f4f6":"#fff";var _stc=document.createElement("style");_stc.textContent="#page-vendas.ativo{display:none!important}#page-"+_pgc+"{display:grid!important}"+".nav-item[data-page='vendas'].ativo{background:none!important;color:"+_tx+"!important;font-weight:500!important}.nav-item[data-page='vendas'].ativo .ico{color:"+_ic+"!important}.nav-item[data-page='"+_pgc+"']{background:#157a35!important;color:"+_tw+"!important;font-weight:600!important}.nav-item[data-page='"+_pgc+"'] .ico{color:"+_tw+"!important}";(document.head||document.documentElement).appendChild(_stc);window.__pgcss=_stc;}}catch(e){}</script>
   <header>
     <div class="hwrap">
+      <button id="btnGaveta" class="btn-gaveta" type="button" aria-label="Abrir o menu"
+              aria-expanded="false" aria-controls="navPrincipal">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+      </button>
       <div class="logo">
         <img src="${simboloDataUri}" alt="Painel Santa Rita">
       </div>
@@ -1266,7 +1298,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   })();
   </script>
   <div class="layout">
-  <nav class="sidebar">
+  <div class="gaveta-fundo" id="gavetaFundo"></div>
+  <nav class="sidebar" id="navPrincipal">
     <div class="titulo">Navegação</div>
     <div class="nav-scroll">
     <button class="nav-item ativo" data-page="vendas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Vendas</button>
@@ -23478,6 +23511,33 @@ function czImprimir(){
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">'+css+'</head><body>'+pages+'<scr'+'ipt>(function(){function fit(){var cs=document.querySelectorAll(\".cell,.ctzLin\");for(var i=0;i<cs.length;i++){var c=cs[i],z=1;c.style.zoom=\"\";for(var t=0;t<6;t++){var caixa=c.clientHeight,dentro=c.scrollHeight;if(dentro<=caixa+1)break;z=z*((caixa-1)/dentro);if(z<0.55){z=0.55;c.style.zoom=z;break;}c.style.zoom=z;}}}function larg(){var ls=document.querySelectorAll(\".nm,.mc,.gr,.ft,.lnm,.lmc,.lgr,.lft\");for(var i=0;i<ls.length;i++){var e=ls[i],pai=e.parentNode;if(!pai||!pai.clientWidth)continue;var cp=getComputedStyle(pai),espaco=pai.clientWidth-(parseFloat(cp.paddingLeft)||0)-(parseFloat(cp.paddingRight)||0);if(!(espaco>0))continue;for(var t=0;t<6;t++){var usa=Math.max(e.scrollWidth,e.offsetWidth);if(usa<=espaco+1)break;var k=parseFloat(getComputedStyle(e).getPropertyValue(\"--k\"))||1;k=k*((espaco-1)/usa);if(k<0.2){k=0.2;e.style.setProperty(\"--k\",String(k));break;}e.style.setProperty(\"--k\",String(k));}}}function go(){try{larg();fit();}catch(e){}setTimeout(function(){window.print();},350);}function prontas(cb){var ims=[].slice.call(document.images),falta=ims.length,fim=false;function fecha(){if(!fim){fim=true;cb();}}if(!falta){fecha();return;}function um(){if(--falta<=0)fecha();}for(var i=0;i<ims.length;i++){var im=ims[i];if(im.complete&&im.naturalWidth)um();else{im.addEventListener(\"load\",um);im.addEventListener(\"error\",um);}}setTimeout(fecha,5000);}function esperar(){prontas(go);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(esperar);}else{setTimeout(esperar,900);}})();</scr'+'ipt></body></html>');
   w.document.close();
 }
+
+/* ==GAVETA== abrir e fechar o menu no celular.
+   Só apresentação: não monta lista, não lê permissão, não decide o que aparece. Quem faz
+   isso continua sendo o mesmo código de sempre, na mesma <nav>. */
+(function(){
+  var bt=document.getElementById("btnGaveta"),
+      fundo=document.getElementById("gavetaFundo"),
+      nav=document.getElementById("navPrincipal");
+  if(!bt||!fundo||!nav) return;
+  function aberta(){ return document.body.classList.contains("gaveta-aberta"); }
+  function mostra(v){
+    document.body.classList.toggle("gaveta-aberta", !!v);
+    bt.setAttribute("aria-expanded", v?"true":"false");
+    bt.setAttribute("aria-label", v?"Fechar o menu":"Abrir o menu");
+  }
+  bt.addEventListener("click", function(e){ e.stopPropagation(); mostra(!aberta()); });
+  fundo.addEventListener("click", function(){ mostra(false); });
+  /* escolheu uma página: fecha. Página bloqueada NÃO fecha — senão o aviso aparece
+     sozinho no meio da tela e a pessoa não entende de onde veio. */
+  nav.addEventListener("click", function(e){
+    var b=e.target.closest(".nav-item");
+    if(b && !b.classList.contains("nav-locked")) mostra(false);
+  });
+  document.addEventListener("keydown", function(e){ if(e.key==="Escape" && aberta()) mostra(false); });
+  /* girar o celular ou abrir no computador com a gaveta aberta deixaria a tela travada */
+  window.addEventListener("resize", function(){ if(window.innerWidth>760 && aberta()) mostra(false); });
+})();
 
 document.querySelectorAll(".nav-item").forEach(btn=>{
   btn.addEventListener("click", ()=>{
