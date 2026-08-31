@@ -794,22 +794,33 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
      (altura da janela − 318) ÷ 6 e o mês INTEIRO cabe sem rolar.
      Piso de 72px: menos que isso não cabe o número do dia e 3 compromissos, e aí é melhor
      rolar do que ficar ilegível. */
-  /* A altura da linha é o que sobra da janela; a LARGURA do dia não pode sair correndo
-     atrás dela, senão o quadrado vira um retângulo deitado. Então a coluna vale no
-     máximo 1,45 vez a altura, e o que sobrar de largura fica de margem — a grade
-     centraliza. (O dono, vendo a primeira versão: "os quadrados estão um pouco puxados
-     para o lado".) O cabeçalho DOM..SÁB usa a MESMA conta, senão os nomes dos dias
-     desalinham das casinhas. */
+  /* A altura da linha é o que sobra da janela. Já a largura passou por duas tentativas:
+     primeiro deixei o dia esticar até o fim do card e o dono disse que "os quadrados
+     ficaram puxados para o lado"; depois limitei a largura à altura e sobrou faixa
+     branca nas laterais, que ele também não quis. A saída é a do Google Agenda: as
+     casas COLADAS, separadas por um fio, sem cantos arredondados e sem vão entre elas.
+     Assim a casa ocupa a largura toda e não parece esticada — o que incomodava não era
+     o tamanho, era a caixinha arredondada solta no meio do branco. */
   .ag-cal { width:100%; --ag-lin: max(72px, calc((100dvh - 318px) / 6)); }
-  .ag-cal .cal-grid { grid-template-columns: repeat(7, minmax(0, calc(var(--ag-lin) * 1.45))); justify-content:center; }
-  #agDias.cal-grid { grid-auto-rows: var(--ag-lin); }
+  .ag-cal .cal-grid { grid-template-columns: repeat(7, 1fr); gap:0; }
+  .ag-cal .cal-head > div { text-align:left; padding-left:8px; }
+  #agDias.cal-grid { grid-auto-rows: var(--ag-lin); border:1px solid #e4e9ef; border-radius:10px; overflow:hidden; }
   .ag-topdir { margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-  .ag-cel { min-height:0; border:1px solid #eef1f4; border-radius:8px; padding:4px 5px; cursor:pointer; background:#fff; overflow:hidden; display:flex; flex-direction:column; }
+  /* casas coladas: o fio é a borda de baixo e da direita de cada uma (a de fora vem do
+     próprio #agDias), e a última coluna/linha não desenha a sua pra não dobrar */
+  .ag-cel { min-height:0; border:0; border-right:1px solid #eef1f4; border-bottom:1px solid #eef1f4;
+            border-radius:0; padding:5px 7px; cursor:pointer; background:#fff; overflow:hidden;
+            display:flex; flex-direction:column; }
+  .ag-cel:nth-child(7n) { border-right:0; }
+  .ag-cel:nth-last-child(-n+7) { border-bottom:0; }
   .ag-cel:hover { background:#f6faf7; }
   .ag-cel.fora { background:#fafbfc; cursor:default; }
-  .ag-cel.hoje { border-color:#157a35; box-shadow:0 0 0 1px #157a35 inset; }
-  .ag-cel.sel { background:#eaf5ee; border-color:#157a35; }
+  /* hoje é o NÚMERO num círculo verde, como no Google — não a casa inteira contornada */
+  .ag-cel.sel { background:#eaf5ee; box-shadow:0 0 0 2px #157a35 inset; }
   .ag-num { font-size:12px; font-weight:700; color:#46546a; }
+  .ag-cel.hoje .ag-num { background:#157a35; color:#fff; border-radius:999px; min-width:21px; height:21px;
+                         display:inline-flex; align-items:center; justify-content:center; padding:0 5px;
+                         align-self:flex-start; }
   .ag-cel.fora .ag-num { color:#c8cfd8; }
   /* ==AGCRIAR== o botão e o menuzinho — cabem na linha que as setas já ocupam (34px),
      então não custam nenhuma altura da grade */

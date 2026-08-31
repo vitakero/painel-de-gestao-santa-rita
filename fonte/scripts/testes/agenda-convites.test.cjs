@@ -278,10 +278,14 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
   // linha passou a ser (altura da janela − 318) ÷ 6, com piso de 72px.
   eq("87) a linha do mês se ajusta à janela",
      /--ag-lin: max\(72px, calc\(\(100dvh - 318px\) \/ 6\)\)/.test(H)
-     && /#agDias\.cal-grid \{ grid-auto-rows: var\(--ag-lin\); \}/.test(H), "true");
-  // e o dia não vira um retângulo deitado: no máximo 1,55 vez mais largo que alto
-  eq("87b) a largura do dia acompanha a altura",
-     /repeat\(7, minmax\(0, calc\(var\(--ag-lin\) \* 1\.45\)\)\)/.test(H), "true");
+     && /#agDias\.cal-grid \{ grid-auto-rows: var\(--ag-lin\);/.test(H), "true");
+  // desenho do Google: casas coladas, separadas por um fio, sem vão e sem canto redondo
+  eq("87b) as casas do mês são coladas, como no Google",
+     /\.ag-cal \.cal-grid \{ grid-template-columns: repeat\(7, 1fr\); gap:0; \}/.test(H), "true");
+  eq("87c) separadas por um fio, sem canto arredondado",
+     /\.ag-cel \{ min-height:0; border:0; border-right:1px solid #eef1f4; border-bottom:1px solid #eef1f4;/.test(H), "true");
+  eq("87d) e o fio não dobra na última coluna nem na última linha",
+     /\.ag-cel:nth-child\(7n\) \{ border-right:0; \}/.test(H) && /\.ag-cel:nth-last-child\(-n\+7\) \{ border-bottom:0; \}/.test(H), "true");
   eq("88) e a grade ocupa a largura inteira", /\.ag-cal \{ width:100%;/.test(H), "true");
   eq("89) o painel de 340px na lateral não existe mais", /class="ag-painel"/.test(H), "false");
   // o 1px que TODA página do painel tinha: o rodapé mede 35, não 34
