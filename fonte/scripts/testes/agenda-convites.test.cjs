@@ -158,5 +158,53 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /if\(!agPodeConvidar\(\) && !agMaster\(\)\) return;/.test(H), "true");
 }
 
+// ------------------------------------------------------------ o que a revisão adversarial pegou (31/08)
+{
+  // Uma revisão de 128 agentes leu este módulo antes de virar produção. Cada bloco
+  // abaixo é um achado que sobreviveu a três céticos tentando derrubá-lo — e que eu
+  // confirmei lendo o código (dois deles eu provei no banco de verdade).
+  eq("44) o convite que falha NÃO passa por sucesso",
+     /if\(r\.error\) throw new Error\(r\.error\.message\|\|"o banco recusou"\);/.test(H), "true");
+  eq("45) nem quando o banco devolve zero linhas",
+     /if\(r\.data && r\.data\.length===0\) throw new Error\("sem permissão"\);/.test(H), "true");
+  // o aviso ia pro cantinho do formulário e o recarregamento apagava ele em seguida
+  eq("46) e o aviso vai numa janela, que o redesenho não apaga",
+     /titulo:"O convite não foi enviado"/.test(H), "true");
+  eq("47) nada redesenha por baixo de quem está digitando",
+     /if\(agMexendoNoPainel\(\)\)\{ agRedesenhoPreso=true; return; \}/.test(H), "true");
+  eq("48) e o desenho preso tem DUAS saídas (focusout e clique)",
+     /pn\.addEventListener\("focusout",agSoltaDesenho\);\s*\n\s*document\.addEventListener\("click",agSoltaDesenho\);/.test(H), "true");
+  eq("49) dá pra mudar o DIA sem apagar e refazer", /class="ag-f-dia"/.test(H), "true");
+  eq("50) e o calendário acompanha o dia novo",
+     /if\(dia&&evAntes&&dia!==evAntes\.data\)\{ *\/\/ o compromisso mudou de dia/.test(H), "true");
+  eq("51) excluir série avisa que apaga TODAS as vezes",
+     /Excluir apaga TODAS as vezes, inclusive as que já passaram/.test(H), "true");
+  eq("52) excluir avisa quando o banco recusa", /titulo:"Não deu pra excluir"/.test(H), "true");
+  eq("53) remarcar também", /titulo:"Não deu pra remarcar"/.test(H), "true");
+  eq("54) e o Aceitar trava enquanto pensa e avisa se falhar",
+     /ac\.disabled=true; ac\.textContent="Aceitando\.\.\.";/.test(H) && /titulo:"Não deu pra aceitar"/.test(H), "true");
+}
+
+// ------------------------------------------------------------ as portas que o SQL de tranca fecha
+{
+  const T = fs.readFileSync(path.join(RAIZ, "sql/agenda_trancar.sql"), "utf8");
+  eq("55) a lista de gente exige ser da CASA",
+     /where public\.eh_da_casa\(\)\s*\n\s*and public\.pode_pagina\('agenda'\)/.test(T), "true");
+  eq("56) e parou de vazar e-mail",
+     /coalesce\(nullif\(btrim\(p\.nome\),''\), 'Sem nome'\)/.test(T) && /p\.email/.test(T) === false, "true");
+  eq("57) convidar exige ser da casa e ter a página",
+     /create policy agenda_conv_ins[\s\S]{0,300}public\.eh_da_casa\(\)[\s\S]{0,80}public\.pode_pagina\('agenda'\)/.test(T), "true");
+  eq("58) e só dá pra convidar gente da loja, aprovada",
+     /exists \(select 1 from public\.perfis alvo[\s\S]{0,200}alvo\.id = pessoa_id/.test(T), "true");
+  eq("59) 'dono' virou só 'de quem é', sem o criado_por",
+     /where e\.id = p_evento and e\.para_id = auth\.uid\(\)\);/.test(T), "true");
+  eq("60) e a resposta do convite é só do convidado",
+     /create policy agenda_conv_upd[\s\S]{0,200}using *\( tenant_id = public\.current_tenant\(\) and pessoa_id = auth\.uid\(\) \)/.test(T), "true");
+  // o arquivo original não pode ficar parecendo seguro sozinho
+  const C = fs.readFileSync(path.join(RAIZ, "sql/agenda_convites.sql"), "utf8");
+  eq("61) o SQL original avisa que sozinho deixa porta aberta",
+     /RODE TAMBÉM sql\/agenda_trancar\.sql/.test(C), "true");
+}
+
 console.log("\n" + (falhou ? "FALHOU: " + falhou + " de " + (ok + falhou) : "TUDO OK: " + ok + " testes") + "\n");
 process.exit(falhou ? 1 : 0);

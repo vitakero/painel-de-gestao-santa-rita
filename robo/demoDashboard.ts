@@ -5277,6 +5277,7 @@ let agVerSetor=null;// master vendo um SETOR inteiro
 let agConvSel=[];   // convidados escolhidos no formulário (ids)
 let agRespId=null;  // qual evento está com a caixinha de recusa aberta
 let agPend={n:0,data:null}; // convites esperando MINHA resposta (nº + o mais próximo)
+let agRedesenhoPreso=false;  // chegou coisa nova enquanto a pessoa digitava? desenha depois
 const AG_DOW_LONGO=["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
 /* CONVIDAR OUTRO SETOR: por enquanto SÓ o master.
    Pedido do dono em 31/08/2026 — ele quis lançar JÁ a agenda pessoal, pro pessoal
@@ -5535,8 +5536,11 @@ function agFormHtml(){
   function opt(v,txt){ return '<option value="'+v+'"'+(rep===v?' selected':'')+'>'+txt+'</option>'; }
   var mostrarRep=(rep&&rep!=="nao");
   return '<div class="ag-form"><div class="ag-form-tit">'+(ev?'Editar compromisso':'Novo compromisso')+'</div>'+
-    (ev&&agRepete(ev)?'<div class="ag-f-serie">🔁 Este compromisso se repete — salvar ou excluir vale para todas as vezes.</div>':'')+
+    (ev&&agRepete(ev)?'<div class="ag-f-serie">🔁 Este compromisso se repete — mudar o dia, salvar ou excluir vale para <b>todas</b> as vezes.</div>':'')+
     '<input type="text" class="ag-f-tit" maxlength="120" placeholder="O que você vai fazer?" value="'+(ev?agEsc(ev.titulo):'')+'">'+
+    /* Mudar o DIA só existia recusando um convite. Sem isto, quem marcasse no dia errado
+       tinha que apagar e refazer — perdendo os convidados junto. */
+    (ev?('<div class="ag-f-row"><span class="ag-f-lbl">Dia:</span><input type="date" class="ag-f-dia" value="'+agEsc(ev.data||agSel||'')+'"></div>'):'')+
     '<div class="ag-f-row"><span class="ag-f-lbl">Hora (opcional):</span><input type="time" class="ag-f-hora" value="'+(ev&&ev.hora?agFmtHora(ev.hora):'')+'"></div>'+
     '<div class="ag-f-row"><span class="ag-f-lbl">Repetir:</span><select class="ag-f-rep">'+
       opt("nao","Não repete")+opt("dia","Todo dia")+opt("uteis","Toda segunda a sexta")+opt("semana","Toda semana")+opt("quinzena","A cada 15 dias")+opt("mes","Todo mês")+
@@ -5565,8 +5569,18 @@ function agVerBarHtml(){
       pes.map(function(p){ return '<option value="'+agEsc(p.id)+'"'+(agVerAlvo===p.id?' selected':'')+'>'+agEsc(p.nome)+'</option>'; }).join('')+'</select>'):'')+
     '</div>'+(qual?('<div class="ag-vendo">'+qual+' — <button type="button" class="ag-link" data-agvoltarmeu>voltar pra minha agenda</button></div>'):'')+'</div>';
 }
+// A contagem de convites e o realtime chegam a qualquer momento. Redesenhar o painel
+// nessa hora APAGA o que a pessoa está escrevendo no formulário. Então: se o cursor
+// está num campo aqui dentro, guarda o pedido e desenha quando ela sair.
+function agMexendoNoPainel(){
+  var a=document.activeElement; if(!a) return false;
+  var p=document.getElementById("agPainel");
+  return !!(p && p.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
+}
 function agRenderDia(){
   var p=document.getElementById("agPainel"); if(!p) return;
+  if(agMexendoNoPainel()){ agRedesenhoPreso=true; return; }
+  agRedesenhoPreso=false;
   var aviso=agErro?'<div class="ag-aviso">Não deu pra carregar a agenda agora. Verifique a conexão e toque em "Hoje".</div>':'';
   var barra=agVerBarHtml()+agPendHtml();
   if(!agSel){ p.innerHTML=barra+aviso+'<div class="ag-vazio">Escolha um dia no calendário para ver e marcar seus compromissos.</div>'; return; }
@@ -5588,20 +5602,34 @@ function agSyncConvidados(sb,evId,antesArr){
   var rem=antes.filter(function(id){ return agConvSel.indexOf(id)<0; });
   var ps=[];
   if(add.length) ps.push(sb.from("agenda_convidados").insert(add.map(function(id){ return {evento_id:evId,pessoa_id:id}; })).select());
-  if(rem.length) ps.push(sb.from("agenda_convidados").delete().eq("evento_id",evId).in("pessoa_id",rem));
-  return ps.length?Promise.all(ps):Promise.resolve([]);
+  if(rem.length) ps.push(sb.from("agenda_convidados").delete().eq("evento_id",evId).in("pessoa_id",rem).select());
+  if(!ps.length) return Promise.resolve([]);
+  /* O Supabase NÃO rejeita a promessa quando o banco recusa: ele RESOLVE, com um
+     {error} dentro. Como aqui só existia o ramo de rejeição, convite barrado passava
+     por sucesso e a tela dizia "salvo" — o aviso de erro era código morto. */
+  return Promise.all(ps).then(function(res){
+    for(var i=0;i<res.length;i++){
+      var r=res[i]||{};
+      if(r.error) throw new Error(r.error.message||"o banco recusou");
+      if(r.data && r.data.length===0) throw new Error("sem permissão");
+    }
+    return res;
+  });
 }
 function agSalvar(btn,id){
   var box=btn.closest(".ag-form"); if(!box) return;
   var titulo=(box.querySelector(".ag-f-tit").value||"").trim();
   var hora=(box.querySelector(".ag-f-hora").value||"");
   var desc=(box.querySelector(".ag-f-desc").value||"").trim();
+  var diaEl=box.querySelector(".ag-f-dia"), dia=diaEl?(diaEl.value||""):"";
   var repSel=box.querySelector(".ag-f-rep"), rep=repSel?repSel.value:"nao";
   var ateEl=box.querySelector(".ag-f-ate"), ate=ateEl?(ateEl.value||""):"";
   var erro=box.querySelector(".ag-f-erro");
   function eMsg(m){ if(erro){ erro.textContent=m; erro.style.display=""; } }
   if(!titulo) return eMsg("Escreva o que você vai fazer.");
-  if(rep&&rep!=="nao"&&ate&&agSel&&ate<agSel) return eMsg('"Repetir até" não pode ser antes do dia do compromisso.');
+  if(diaEl&&!dia) return eMsg("Escolha o dia do compromisso.");
+  var diaBase=dia||agSel;
+  if(rep&&rep!=="nao"&&ate&&diaBase&&ate<diaBase) return eMsg('"Repetir até" não pode ser antes do dia do compromisso.');
   var sb=agSB(); if(!sb||!agUid()) return eMsg("Entre no painel pra salvar.");
   btn.disabled=true;
   var evAntes=id?agFindEv(id):null;
@@ -5610,6 +5638,7 @@ function agSalvar(btn,id){
   if(id){
     payload.repete=(rep&&rep!=="nao")?rep:null;                 // update permite ligar/desligar a repetição
     payload.repete_ate=(rep&&rep!=="nao"&&ate)?ate:null;
+    if(dia&&evAntes&&dia!==evAntes.data) payload.data=dia;      // trocou o dia -> o banco devolve os convidados pra "Aguardando"
     q=sb.from("agenda_eventos").update(payload).eq("id",id).select();
   } else {
     if(rep&&rep!=="nao"){ payload.repete=rep; if(ate) payload.repete_ate=ate; } // insert de "não repete" não toca nas colunas novas
@@ -5619,19 +5648,38 @@ function agSalvar(btn,id){
     if(r&&r.error){ btn.disabled=false; eMsg("Não deu pra salvar. Tente de novo."); return; }
     if(r&&r.data&&r.data.length===0){ btn.disabled=false; eMsg("Não foi possível salvar (sem permissão)."); return; }  // 0 linhas = RLS barrou
     var evId=id||((r&&r.data&&r.data[0])?r.data[0].id:null);
+    if(dia&&evAntes&&dia!==evAntes.data){                       // o compromisso mudou de dia: leva a tela junto
+      var _d=agParse(dia); agAno=_d.getFullYear(); agMes=_d.getMonth(); agSel=dia;
+    }
     if(!evId||agParte2===false){ btn.disabled=false; agEditId=null; agConvSel=[]; agCloudLoad(); return; }
     agSyncConvidados(sb,evId,evAntes?evAntes.convidados:[]).then(function(){
       btn.disabled=false; agEditId=null; agConvSel=[]; agCloudLoad(); agBadge();
-    },function(){
-      // o compromisso ficou salvo; só o convite falhou — falar a verdade em vez de sumir
-      btn.disabled=false; agCloudLoad(); eMsg("O compromisso foi salvo, mas não deu pra enviar o convite. Tente de novo pelo Editar.");
+    },function(e){
+      /* O compromisso ficou salvo, só o convite falhou. O recado NÃO pode ir pro
+         cantinho vermelho do formulário: o agCloudLoad redesenha o painel logo em
+         seguida e apaga o recado — foi o que a bancada pegou. Vai numa janela, que
+         sobrevive ao redesenho e ninguém deixa de ver. */
+      btn.disabled=false; agEditId=null; agConvSel=[];
+      uiConfirm({titulo:"O convite não foi enviado",
+                 msg:"O compromisso foi salvo, mas o convite não chegou a ninguém ("+((e&&e.message)||"falha")+"). Abra o compromisso em Editar e convide de novo.",
+                 ok:"Entendi", cancel:""}).then(function(){ agCloudLoad(); agBadge(); });
     });
   },function(){ btn.disabled=false; eMsg("Falha de conexão. Tente de novo."); });
 }
 function agExcluir(id){
-  uiConfirm({titulo:"Excluir compromisso?",msg:"Tem certeza que quer excluir este compromisso? Quem foi convidado deixa de ver.",ok:"Excluir",cancel:"Cancelar"}).then(function(ok){
+  // Compromisso que se repete é UMA linha só no banco: excluir apaga TODAS as vezes,
+  // inclusive as que já passaram. O aviso antigo não dizia isso.
+  var _ev=agFindEv(id), _rep=_ev&&agRepLabel(_ev);
+  var _msg=_rep
+    ? ('Este compromisso se repete '+_rep+'. Excluir apaga TODAS as vezes, inclusive as que já passaram. Quem foi convidado deixa de ver.')
+    : 'Tem certeza que quer excluir este compromisso? Quem foi convidado deixa de ver.';
+  uiConfirm({titulo:_rep?"Excluir todas as vezes?":"Excluir compromisso?",msg:_msg,ok:"Excluir",cancel:"Cancelar"}).then(function(ok){
     if(!ok) return; var sb=agSB(); if(!sb) return;
-    sb.from("agenda_eventos").delete().eq("id",id).select().then(function(r){ if(!(r&&r.error)){ agEditId=null; agConvSel=[]; agCloudLoad(); agBadge(); } });
+    sb.from("agenda_eventos").delete().eq("id",id).select().then(function(r){
+      if(r&&r.error) return uiConfirm({titulo:"Não deu pra excluir",msg:"O banco recusou: "+(r.error.message||"tente de novo."),ok:"OK",cancel:""});
+      if(r&&r.data&&r.data.length===0) return uiConfirm({titulo:"Não deu pra excluir",msg:"Este compromisso não é seu.",ok:"OK",cancel:""});
+      agEditId=null; agConvSel=[]; agCloudLoad(); agBadge();
+    },function(){ uiConfirm({titulo:"Falha de conexão",msg:"Não deu pra excluir agora. Tente de novo.",ok:"OK",cancel:""}); });
   });
 }
 function agResponder(id,status,motivo,sugD,sugH,onErro){
@@ -5647,12 +5695,13 @@ function agRemarcar(id,d,h){
   uiConfirm({titulo:"Remarcar?",msg:"O compromisso passa para "+agFmtDataBr(d)+(h?(" às "+agFmtHora(h)):"")+". Todos os convidados voltam a ter que confirmar.",ok:"Remarcar",cancel:"Cancelar"}).then(function(ok){
     if(!ok) return; var sb=agSB(); if(!sb) return;
     sb.from("agenda_eventos").update({data:d,hora:h||null}).eq("id",id).select().then(function(r){
-      if(r&&r.error) return;
+      if(r&&r.error) return uiConfirm({titulo:"Não deu pra remarcar",msg:"O banco recusou: "+(r.error.message||"tente de novo."),ok:"OK",cancel:""});
+      if(r&&r.data&&r.data.length===0) return uiConfirm({titulo:"Não deu pra remarcar",msg:"Este compromisso não é seu.",ok:"OK",cancel:""});
       // a nova data quase sempre cai em OUTRO mês: o calendário vai junto,
       // senão o compromisso "some" (o painel mostra um dia que a grade não desenha)
       var nd=agParse(d); agAno=nd.getFullYear(); agMes=nd.getMonth();
       agSel=d; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); agBadge();
-    });
+    },function(){ uiConfirm({titulo:"Falha de conexão",msg:"Não deu pra remarcar agora. Tente de novo.",ok:"OK",cancel:""}); });
   });
 }
 function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; function rec(){ clearTimeout(deb); deb=setTimeout(function(){ agCloudLoad(); agBadge(); },700); } agRT=sb.channel("agenda_sync").on("postgres_changes",{event:"*",schema:"public",table:"agenda_eventos"},rec).on("postgres_changes",{event:"*",schema:"public",table:"agenda_convidados"},rec).subscribe(); }catch(e){} }
@@ -5664,6 +5713,15 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
   var hj=document.getElementById("agHoje"); if(hj) hj.addEventListener("click",function(){ var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate()); agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); });
   var dias=document.getElementById("agDias"); if(dias) dias.addEventListener("click",function(e){ var c=e.target.closest("[data-agdia]"); if(c){ agSel=c.getAttribute("data-agdia"); agEditId=null; agRespId=null; agConvSel=[]; agRenderMes(); agRenderDia(); } });
   var pn=document.getElementById("agPainel"); if(pn){
+    /* Saiu do campo e tinha desenho preso? Agora pode. Duas saídas de propósito: o
+       focusout resolve o caso normal, e o clique em qualquer lugar cobre o navegador
+       que não dispara focusout (aba em segundo plano, por exemplo) — sem ficar
+       perguntando de tempos em tempos, que é o que a régua do consumo proíbe. */
+    function agSoltaDesenho(){
+      setTimeout(function(){ if(agRedesenhoPreso && !agMexendoNoPainel()) agRenderDia(); },160);
+    }
+    pn.addEventListener("focusout",agSoltaDesenho);
+    document.addEventListener("click",agSoltaDesenho);
     pn.addEventListener("click",function(e){
       var sv=e.target.closest("[data-agsalvar]"); if(sv){ agSalvar(sv, sv.getAttribute("data-agsalvar")||null); return; }
       var ed=e.target.closest("[data-ageditar]"); if(ed){
@@ -5673,7 +5731,12 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
       }
       var ex=e.target.closest("[data-agexcluir]"); if(ex){ agExcluir(ex.getAttribute("data-agexcluir")); return; }
       if(e.target.closest("[data-agcancelaredit]")){ agEditId=null; agConvSel=[]; agRenderDia(); return; }
-      var ac=e.target.closest("[data-agaceitar]"); if(ac){ agResponder(ac.getAttribute("data-agaceitar"),"confirmado"); return; }
+      var ac=e.target.closest("[data-agaceitar]");
+      if(ac){ ac.disabled=true; ac.textContent="Aceitando...";
+        agResponder(ac.getAttribute("data-agaceitar"),"confirmado",null,null,null,function(m){
+          ac.disabled=false; ac.textContent="Aceitar";
+          uiConfirm({titulo:"Não deu pra aceitar",msg:m,ok:"OK",cancel:""});
+        }); return; }
       var rc=e.target.closest("[data-agrecusar]"); if(rc){ agRespId=rc.getAttribute("data-agrecusar"); agRenderDia(); return; }
       if(e.target.closest("[data-agrecusacancel]")){ agRespId=null; agRenderDia(); return; }
       var rok=e.target.closest("[data-agrecusaok]");
