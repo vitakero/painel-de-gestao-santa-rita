@@ -787,15 +787,22 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .ag-cal { flex:1; min-width:300px; }
   .ag-painel { width:340px; flex:none; }
   @media (max-width:860px){ .ag-painel { width:100%; } }
-  .ag-cel { min-height:76px; border:1px solid #eef1f4; border-radius:8px; padding:4px 5px; cursor:pointer; background:#fff; overflow:hidden; display:flex; flex-direction:column; }
+  .ag-cel { min-height:92px; border:1px solid #eef1f4; border-radius:8px; padding:4px 5px; cursor:pointer; background:#fff; overflow:hidden; display:flex; flex-direction:column; }
   .ag-cel:hover { background:#f6faf7; }
   .ag-cel.fora { background:#fafbfc; cursor:default; }
   .ag-cel.hoje { border-color:#157a35; box-shadow:0 0 0 1px #157a35 inset; }
   .ag-cel.sel { background:#eaf5ee; border-color:#157a35; }
   .ag-num { font-size:12px; font-weight:700; color:#46546a; }
   .ag-cel.fora .ag-num { color:#c8cfd8; }
-  .ag-chip { font-size:10.5px; background:#e6f0fb; color:#1b4f86; border-radius:4px; padding:1px 4px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .ag-mais { font-size:10px; color:#8a97a8; margin-top:1px; }
+  .ag-volta { margin-bottom:8px; }
+  /* Com a lista fora do painel, o calendário virou o único lugar onde o compromisso
+     aparece — e numa linha só cabia a hora, o nome sumia. Agora vai em duas linhas. */
+  .ag-chip { cursor:pointer; font-size:10.5px; line-height:1.28; background:#e6f0fb; color:#1b4f86;
+             border-radius:4px; padding:2px 4px; margin-top:2px; overflow:hidden;
+             display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; word-break:break-word; }
+  .ag-mais { font-size:10px; color:#8a97a8; margin-top:1px; cursor:pointer; }
+  .ag-mais:hover { color:#157a35; text-decoration:underline; }
+  .ag-chip:hover { filter:brightness(.94); }
   .ag-painel-tit { font-size:15px; font-weight:700; color:#0c5a26; margin-bottom:10px; text-transform:capitalize; }
   .ag-lista { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
   .ag-ev { border:1px solid #eef1f4; border-radius:9px; padding:9px 11px; background:#fff; }
@@ -853,6 +860,29 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .ag-verbar .ag-f-row { flex-wrap:wrap; }
   .ag-vendo { font-size:12px; color:#5b6670; }
   .ag-link { border:0; background:transparent; color:#157a35; font:inherit; font-size:12px; font-weight:600; text-decoration:underline; cursor:pointer; padding:0; }
+  /* ==AGHORA== seletor de hora estilo Google Agenda (15 em 15, e dá pra digitar) */
+  .ag-hora { position:relative; display:inline-block; }
+  .ag-hora-cx { display:inline-flex; align-items:center; gap:5px; border:1px solid #cfd8e3; border-radius:8px; background:#fff; padding:0 4px 0 8px; }
+  .ag-hora-cx:focus-within { border-color:#157a35; box-shadow:0 0 0 2px rgba(21,122,53,.16); }
+  .ag-hora-ico { color:#8a97a8; display:flex; }
+  .ag-hora input.ag-hora-txt { width:78px; border:0; outline:0; background:transparent; font:inherit; font-size:13px; padding:7px 0; margin:0; font-variant-numeric:tabular-nums; }
+  .ag-hora-x { border:0; background:transparent; color:#8a97a8; font-size:15px; line-height:1; cursor:pointer; padding:3px 4px; border-radius:5px; }
+  .ag-hora-x:hover { color:#c0392b; background:#eef1f4; }
+  .ag-f-ate-hora { font-size:12px; color:#5b6670; }
+  .ag-f-horas { flex-wrap:wrap; gap:6px; }
+  .ag-f-lbl-cima { flex-basis:100%; margin-bottom:1px; }
+  /* a lista do FIM abre encostada à direita, senão vaza pra fora do painel */
+  .ag-hora[data-fim="1"] .ag-hora-lista { left:auto; right:0; }
+  .ag-hora-lista { display:none; position:absolute; z-index:30; top:calc(100% + 4px); left:0; min-width:150px; max-height:206px; overflow-y:auto;
+                   background:#fff; border:1px solid #cfd8e3; border-radius:10px; box-shadow:0 10px 26px rgba(16,24,40,.16); padding:4px; }
+  .ag-hora-lista.abre { display:block; }
+  .ag-hora-op { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 9px; border-radius:6px; font-size:13px; cursor:pointer; color:#26313a; font-variant-numeric:tabular-nums; }
+  .ag-hora-op i { font-style:normal; font-size:11px; color:#8a97a8; }
+  .ag-hora-op:hover, .ag-hora-op.foco { background:#eaf5ee; }
+  .ag-hora-op.marcado { color:#157a35; font-weight:700; }
+  .ag-hora-op.livre { color:#157a35; font-weight:600; }
+  .ag-hora-sep { display:block; height:1px; background:#eef1f4; margin:4px 2px; }
+  .ag-hora-nada { display:block; padding:8px 9px; font-size:12.5px; color:#8a97a8; }
   .ag-pendbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:12.5px; color:#8a5a00;
                background:#fdf3e3; border:1px solid #f3dcae; border-radius:9px; padding:8px 10px; margin-bottom:11px; }
   .ag-pendbar .ag-link { color:#8a5a00; }
@@ -5278,6 +5308,9 @@ let agConvSel=[];   // convidados escolhidos no formulário (ids)
 let agRespId=null;  // qual evento está com a caixinha de recusa aberta
 let agPend={n:0,data:null}; // convites esperando MINHA resposta (nº + o mais próximo)
 let agRedesenhoPreso=false;  // chegou coisa nova enquanto a pessoa digitava? desenha depois
+let agTemFim=true;          // o banco já tem a coluna da hora de terminar? (descobre sozinho)
+let agAbertoId=null;        // compromisso aberto pelo clique no calendário (null = formulário)
+let agVerTodos=false;       // clicou no "+N mais": mostra a lista daquele dia, só desta vez
 const AG_DOW_LONGO=["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
 /* CONVIDAR OUTRO SETOR: por enquanto SÓ o master.
    Pedido do dono em 31/08/2026 — ele quis lançar JÁ a agenda pessoal, pro pessoal
@@ -5367,6 +5400,14 @@ function agPessoa(id){ var n=null; (agPessoas||[]).forEach(function(p){ if(p.id=
 /* ---------------- carregar o mês ---------------- */
 // "a Parte 2 ainda não foi pro banco" é diferente de "a internet caiu": só o
 // primeiro caso justifica voltar pro jeito antigo (agenda pessoal, sem convite).
+/* O painel pode ir pro ar ANTES de o dono rodar o SQL da hora de terminar. Nesse
+   intervalo, mandar hora_fim faria o banco recusar e ele não conseguiria salvar NADA.
+   Então: na primeira recusa por causa dessa coluna, o campo some da tela e o painel
+   volta a trabalhar como antes, sozinho, sem ninguém perceber. */
+function agSemColunaFim(e){
+  var m=String((e&&e.message)||"")+" "+String((e&&e.details)||"");
+  return /hora_fim/.test(m) && /(column|coluna|schema cache|does not exist|não existe)/i.test(m);
+}
 function agSemParte2(e){
   var c=String((e&&e.code)||""), m=String((e&&e.message)||"");
   return c==="PGRST202"||c==="42883"||(/agenda_mes|agenda_convidados/.test(m)&&/(does not exist|não existe|not find|schema cache)/i.test(m));
@@ -5447,9 +5488,9 @@ function agRenderMes(){
     var chips=evs.slice(0,3).map(function(ev){
       var esp=(ev.meu_status==="aguardando")?'⏳ ':'';
       var quem=(agVerSetor&&ev.dono_nome)?('<i>'+agEsc(String(ev.dono_nome).split(" ")[0])+'</i> '):'';
-      return '<div class="ag-chip'+(ev.meu_status==="aguardando"?" pend":"")+'">'+esp+(agRepete(ev)?'🔁 ':'')+quem+(ev.hora?('<b>'+agFmtHora(ev.hora)+'</b> '):'')+agEsc(ev.titulo)+'</div>';
+      return '<div class="ag-chip'+(ev.meu_status==="aguardando"?" pend":"")+'" data-agabrir="'+ev.id+'" title="'+agEsc(ev.titulo)+'">'+esp+(agRepete(ev)?'🔁 ':'')+quem+(ev.hora?('<b>'+agFmtHora(ev.hora)+'</b> '):'')+agEsc(ev.titulo)+'</div>';
     }).join('');
-    var mais=evs.length>3?('<div class="ag-mais">+'+(evs.length-3)+' mais</div>'):'';
+    var mais=evs.length>3?('<div class="ag-mais" data-agtodos="'+key+'">+'+(evs.length-3)+' mais</div>'):'';
     return '<div class="ag-cel'+(agEhHoje(agAno,agMes,c.dia)?' hoje':'')+(agSel===key?' sel':'')+'" data-agdia="'+key+'"><span class="ag-num">'+c.dia+'</span>'+chips+mais+'</div>';
   }).join('');
 }
@@ -5480,7 +5521,7 @@ function agRespostaHtml(ev){
       '<div class="ag-f-lbl">Por que não dá? (obrigatório)</div>'+
       '<textarea class="ag-r-motivo" rows="2" maxlength="300" placeholder="Ex.: já tenho o fechamento do caixa nesse horário"></textarea>'+
       '<div class="ag-f-row"><span class="ag-f-lbl">Sugerir novo dia:</span><input type="date" class="ag-r-data" value="'+agEsc(agSel||'')+'"></div>'+
-      '<div class="ag-f-row"><span class="ag-f-lbl">Nova hora (opcional):</span><input type="time" class="ag-r-hora" value="'+agEsc(agFmtHora(ev.hora))+'"></div>'+
+      '<div class="ag-f-row"><span class="ag-f-lbl">Nova hora (opcional):</span>'+agHoraHtml("ag-r-hora",ev.hora||"","Sem hora")+'</div>'+
       '<div class="ag-r-erro" style="display:none;color:#c0392b;font-size:12.5px;margin:2px 0 6px;"></div>'+
       '<div style="display:flex;gap:8px;"><button type="button" class="ag-salvar" data-agrecusaok="'+ev.id+'">Enviar recusa</button>'+
       '<button type="button" class="ag-mini" data-agrecusacancel>Voltar</button></div></div>';
@@ -5498,7 +5539,7 @@ function agEvHtml(ev){
   var acoes=(meu&&!agVendoOutro())?('<div class="ag-ev-acoes"><button type="button" class="ag-mini" data-ageditar="'+ev.id+'">Editar</button>'+
     '<button type="button" class="ag-mini danger" data-agexcluir="'+ev.id+'">Excluir</button></div>'):'';
   return '<div class="ag-ev'+(ev.meu_status==="aguardando"?" pend":"")+'"><div class="ag-ev-top">'+
-    (ev.hora?'<span class="ag-ev-hora">'+agFmtHora(ev.hora)+'</span>':'<span class="ag-ev-hora dia">dia todo</span>')+
+    (ev.hora?'<span class="ag-ev-hora">'+agFmtHora(ev.hora)+(ev.hora_fim?' – '+agFmtHora(ev.hora_fim):'')+'</span>':'<span class="ag-ev-hora dia">dia todo</span>')+
     '<span class="ag-ev-tit">'+agEsc(ev.titulo)+'</span>'+
     (rep?'<span class="ag-ev-rep">🔁 '+rep+'</span>':'')+'</div>'+
     ((!meu&&ev.dono_nome)?'<div class="ag-ev-dono">marcado por '+agEsc(ev.dono_nome)+'</div>':'')+
@@ -5529,6 +5570,147 @@ function agConvChipsHtml(){
   }).join('');
 }
 function agConvChipsPinta(){ var c=document.getElementById("agCChips"); if(c) c.innerHTML=agConvChipsHtml(); }
+/* ============ SELETOR DE HORA (no lugar do seletor do navegador) ============
+   O dono mostrou o Google Agenda e pediu a mesma mecânica: lista de 15 em 15
+   minutos, e se quiser outro horário clica no campo, apaga e digita.
+   O <input type="time"> do Chrome abria aquela listinha azul de duas colunas
+   começando na meia-noite — ruim no computador e pior no celular.
+
+   Guardo o valor num campo escondido com a MESMA classe de antes (ag-f-hora /
+   ag-r-hora), então quem lê a hora na hora de salvar não mudou uma linha. */
+var AG_PASSO = 15;                      // de quanto em quanto minuto a lista anda
+var AG_HORA_DE = 5, AG_HORA_ATE = 23;   // a loja abre cedo; some a madrugada
+function agHoras(){
+  var fora=[], h, m;
+  for(h=AG_HORA_DE; h<=AG_HORA_ATE; h++)
+    for(m=0; m<60; m+=AG_PASSO) fora.push(("0"+h).slice(-2)+":"+("0"+m).slice(-2));
+  return fora;
+}
+// "8" -> 08:00 · "815" -> 08:15 · "143" -> 14:30 · "1445" -> 14:45 · "8h" -> 08:00
+function agHoraEntende(txt){
+  /* Aqui vai [^0-9], e não a abreviação de "nao-digito" com barra invertida: este
+     bloco vive dentro de um texto de template, e ali a barra invertida some na
+     geração. O filtro chegava quebrado no navegador, o ":" de "09:00" passava, e a
+     hora virava "09:aN" na tela. Nenhuma barra invertida neste bloco — tem teste. */
+  var d=String(txt==null?"":txt).replace(/[^0-9]/g,""); if(!d) return null;
+  var h, m=0;
+  if(d.length<=2) h=+d;
+  else if(d.length===3){
+    var dois=+d.slice(0,2);
+    if(dois>=10 && dois<=23){ h=dois; m=(+d.slice(2))*10; }   // 143 -> 14:30
+    else { h=+d.slice(0,1); m=+d.slice(1); }                  // 815 -> 08:15
+  } else { h=+d.slice(0,2); m=+d.slice(2,4); }
+  if(h>23||m>59) return null;
+  return ("0"+h).slice(-2)+":"+("0"+m).slice(-2);
+}
+// Digitar 8 tem que mostrar as 08:xx — por isso 1 ou 2 dígitos filtram pela HORA,
+// e não pelo começo do texto (senão "8" não casava com "08:00").
+function agHoraFiltra(txt){
+  var todos=agHoras(), d=String(txt==null?"":txt).replace(/[^0-9]/g,"");
+  if(!d) return todos;
+  if(d.length<=2){
+    var h=+d; if(h>23) return [];
+    var hh=("0"+h).slice(-2);
+    return todos.filter(function(t){ return t.slice(0,2)===hh; });
+  }
+  var alvo=agHoraEntende(d); if(!alvo) return [];
+  return todos.filter(function(t){ return t===alvo; });
+}
+// Quanto tempo vai de uma hora até a outra, escrito como gente fala.
+function agDuracao(ini, fim){
+  var a=ini.split(":"), b=fim.split(":");
+  var min=(+b[0]*60 + +b[1]) - (+a[0]*60 + +a[1]);
+  if(min<=0) return "";
+  var h=Math.floor(min/60), m=min%60;
+  if(!h) return m+" min";
+  if(!m) return h+" h";
+  return h+" h "+m+" min";
+}
+// O fim tem que ser DEPOIS do início — não adianta oferecer 07:00 pra um compromisso
+// que começa às 14:00. E mostrar a duração do lado evita a conta de cabeça.
+function agHoraInicioDe(caixa){
+  var linha=caixa.closest(".ag-f-row")||caixa.parentNode;
+  var ini=linha?linha.querySelector(".ag-f-hora"):null;
+  return ini?ini.value:"";
+}
+function agHoraHtml(cls, valor, vazio, ehFim){
+  var v=valor?agFmtHora(valor):"";
+  return '<span class="ag-hora"'+(ehFim?' data-fim="1"':'')+'>'+
+    '<input type="hidden" class="'+cls+'" value="'+agEsc(v)+'">'+
+    '<span class="ag-hora-cx">'+
+      '<span class="ag-hora-ico"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>'+
+      '<input type="text" class="ag-hora-txt" inputmode="numeric" autocomplete="off" placeholder="'+agEsc(vazio||"Sem hora")+'" value="'+agEsc(v)+'">'+
+      '<button type="button" class="ag-hora-x" title="Tirar a hora"'+(v?'':' style="display:none;"')+'>&times;</button>'+
+    '</span>'+
+    '<span class="ag-hora-lista"></span></span>';
+}
+/* filtro=null significa "mostra a lista inteira". É o caso de ABRIR: se filtrasse pelo
+   que já está escrito, clicar num campo que marca 09:00 mostraria só o 09:00 — e a
+   pessoa abriu justamente pra ver as outras opções. Só filtra quando ela DIGITA. */
+function agHoraPinta(caixa, filtro){
+  var txt=caixa.querySelector(".ag-hora-txt"), lista=caixa.querySelector(".ag-hora-lista");
+  var atual=caixa.querySelector("input[type=hidden]").value;
+  var ehFim=caixa.getAttribute("data-fim")==="1", ini=ehFim?agHoraInicioDe(caixa):"";
+  var busca=(filtro==null)?"":filtro;
+  var achou=agHoraFiltra(busca), exato=agHoraEntende(busca);
+  if(ehFim&&ini){
+    achou=achou.filter(function(t){ return t>ini; });
+    if(exato&&exato<=ini) exato=null;
+  }
+  var vazioTxt=ehFim?'Sem hora de terminar':'Sem hora <i>dia todo</i>';
+  var html='<span class="ag-hora-op'+(atual?"":" marcado")+'" data-h="">'+vazioTxt+'</span><span class="ag-hora-sep"></span>';
+  if(exato && achou.indexOf(exato)<0) html+='<span class="ag-hora-op livre" data-h="'+exato+'">'+exato+' <i>usar este</i></span>';
+  if(!achou.length && !exato) html+='<span class="ag-hora-nada">'+(ehFim&&ini?'Escolha um horário depois das '+ini+'.':'Nenhum horário com esses números.')+'</span>';
+  html+=achou.map(function(t){
+    var dur=(ehFim&&ini)?agDuracao(ini,t):"";
+    return '<span class="ag-hora-op'+(t===atual?" marcado":"")+'" data-h="'+t+'">'+t+(dur?' <i>'+dur+'</i>':'')+'</span>';
+  }).join("");
+  lista.innerHTML=html;
+}
+function agHoraAbre(caixa){
+  agHoraPinta(caixa, null);
+  var lista=caixa.querySelector(".ag-hora-lista");
+  lista.classList.add("abre");
+  /* Abrir em 05:00 obriga a rolar meia lista até o horário de trabalho — é o mesmo
+     defeito do seletor do navegador, que abria na meia-noite. Então: cai no horário
+     já escolhido; se não tem nenhum, cai nas 08:00. O scrollTop só "pega" depois que
+     o navegador desenha a lista, por isso o requestAnimationFrame. */
+  var poe=function(){
+    /* dois cuidados aqui: (1) o "Sem hora" também tem data-h (vazio), então ele
+       ganhava a disputa e a lista ficava no topo; (2) offsetTop do item JÁ é medido
+       dentro da lista (ela é position:absolute), então não se desconta nada dela. */
+    var alvo=lista.querySelector('.ag-hora-op.marcado[data-h]:not([data-h=""])')||lista.querySelector('[data-h="08:00"]');
+    if(alvo) lista.scrollTop=Math.max(0, alvo.offsetTop-52);
+  };
+  if(window.requestAnimationFrame) requestAnimationFrame(poe); else setTimeout(poe,0);
+}
+function agSoma(hora, minutos){
+  var p=hora.split(":"), t=(+p[0]*60 + +p[1]) + minutos;
+  if(t>=24*60) t=23*60+45;
+  return ("0"+Math.floor(t/60)).slice(-2)+":"+("0"+(t%60)).slice(-2);
+}
+function agHoraDefine(caixa, v){
+  var antes=caixa.querySelector("input[type=hidden]").value;
+  caixa.querySelector("input[type=hidden]").value=v||"";
+  caixa.querySelector(".ag-hora-txt").value=v||"";
+  caixa.querySelector(".ag-hora-x").style.display=v?"":"none";
+  if(caixa.getAttribute("data-fim")==="1") return;
+  /* Mexeu no INÍCIO: o fim anda junto, como no Google Agenda.
+     - não tinha fim  -> sugere uma hora depois;
+     - já tinha       -> mantém a MESMA duração (quem marcou 30 min continua com 30);
+     - tirou a hora   -> o fim sai junto, senão sobra um "às 09:00" sem começo. */
+  var linha=caixa.closest(".ag-f-row"); if(!linha) return;
+  var cxFim=linha.querySelector('.ag-hora[data-fim="1"]'); if(!cxFim) return;
+  var fim=cxFim.querySelector("input[type=hidden]");
+  if(!v){ agHoraDefine(cxFim,""); return; }
+  if(!fim.value){ agHoraDefine(cxFim, agSoma(v,60)); return; }
+  if(antes){
+    var p1=antes.split(":"), p2=fim.value.split(":");
+    var dur=(+p2[0]*60 + +p2[1]) - (+p1[0]*60 + +p1[1]);
+    if(dur>0) agHoraDefine(cxFim, agSoma(v,dur));
+  }
+  if(fim.value && fim.value<=v) agHoraDefine(cxFim, agSoma(v,60));
+}
 function agFormHtml(){
   var ev = agEditId ? agFindEv(agEditId) : null;
   var rep = ev&&ev.repete?ev.repete:"nao";
@@ -5541,7 +5723,12 @@ function agFormHtml(){
     /* Mudar o DIA só existia recusando um convite. Sem isto, quem marcasse no dia errado
        tinha que apagar e refazer — perdendo os convidados junto. */
     (ev?('<div class="ag-f-row"><span class="ag-f-lbl">Dia:</span><input type="date" class="ag-f-dia" value="'+agEsc(ev.data||agSel||'')+'"></div>'):'')+
-    '<div class="ag-f-row"><span class="ag-f-lbl">Hora (opcional):</span><input type="time" class="ag-f-hora" value="'+(ev&&ev.hora?agFmtHora(ev.hora):'')+'"></div>'+
+    /* Dois campos de hora não cabem na mesma linha do rótulo: o painel do dia tem 340px
+   e o segundo campo saía pra fora. Então o rótulo fica em cima e os dois embaixo. */
+    '<div class="ag-f-row ag-f-horas"><span class="ag-f-lbl ag-f-lbl-cima">Hora (opcional):</span>'+
+      agHoraHtml("ag-f-hora",(ev&&ev.hora)||"","Sem hora")+
+      (agTemFim?('<span class="ag-f-ate-hora">às</span>'+
+        agHoraHtml("ag-f-fim",(ev&&ev.hora_fim)||"","Sem fim",true)):'')+'</div>'+
     '<div class="ag-f-row"><span class="ag-f-lbl">Repetir:</span><select class="ag-f-rep">'+
       opt("nao","Não repete")+opt("dia","Todo dia")+opt("uteis","Toda segunda a sexta")+opt("semana","Toda semana")+opt("quinzena","A cada 15 dias")+opt("mes","Todo mês")+
     '</select></div>'+
@@ -5585,12 +5772,26 @@ function agRenderDia(){
   var barra=agVerBarHtml()+agPendHtml();
   if(!agSel){ p.innerHTML=barra+aviso+'<div class="ag-vazio">Escolha um dia no calendário para ver e marcar seus compromissos.</div>'; return; }
   var evs=agEventos[agSel]||[];
-  var vazio=agVendoOutro()?'Nada marcado neste dia.':'Nada marcado neste dia ainda.';
-  var lista=evs.length?evs.map(agEvHtml).join(''):'<div class="ag-vazio">'+vazio+'</div>';
-  var form=agVendoOutro()
+  var soOlhando=agVendoOutro()
     ? ('<div class="ag-f-hint">Você está só olhando. Para marcar alguma coisa com '+(agVerSetor&&!agVerAlvo?'este setor':'esta pessoa')+', volte pra sua agenda e mande o convite.</div>')
     : agFormHtml();
-  p.innerHTML=barra+aviso+'<div class="ag-painel-tit">'+agFmtDataBr(agSel)+'</div><div class="ag-lista">'+lista+'</div>'+form;
+  /* A lista dos compromissos do dia SAIU daqui (pedido do dono, 31/08): ela repetia o
+     que o calendário já mostra e empurrava o formulário pra baixo. Agora o compromisso
+     abre quando se clica nele no calendário — e enquanto nenhum está aberto, o painel
+     é só "Novo compromisso", que é o que a pessoa vem fazer na maioria das vezes. */
+  var meio;
+  if(agAbertoId){
+    var aberto=agFindEv(agAbertoId);
+    meio = aberto
+      ? ('<div class="ag-volta"><button type="button" class="ag-link" data-agfechar>‹ voltar</button></div>'+agEvHtml(aberto))
+      : ('<div class="ag-vazio">Este compromisso não está mais aqui.</div><div class="ag-volta"><button type="button" class="ag-link" data-agfechar>‹ voltar</button></div>');
+  } else if(agVerTodos && evs.length){
+    meio = '<div class="ag-volta"><button type="button" class="ag-link" data-agfechar>‹ voltar</button></div>'+
+           '<div class="ag-lista">'+evs.map(agEvHtml).join('')+'</div>';
+  } else {
+    meio = soOlhando;
+  }
+  p.innerHTML=barra+aviso+'<div class="ag-painel-tit">'+agFmtDataBr(agSel)+'</div>'+meio;
 }
 function renderAgenda(){ if(!agSel){ var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate()); } agPessoasLoad(); agRenderMes(); agRenderDia(); }
 
@@ -5620,6 +5821,7 @@ function agSalvar(btn,id){
   var box=btn.closest(".ag-form"); if(!box) return;
   var titulo=(box.querySelector(".ag-f-tit").value||"").trim();
   var hora=(box.querySelector(".ag-f-hora").value||"");
+  var fimEl=box.querySelector(".ag-f-fim"), fim=fimEl?(fimEl.value||""):"";
   var desc=(box.querySelector(".ag-f-desc").value||"").trim();
   var diaEl=box.querySelector(".ag-f-dia"), dia=diaEl?(diaEl.value||""):"";
   var repSel=box.querySelector(".ag-f-rep"), rep=repSel?repSel.value:"nao";
@@ -5628,12 +5830,14 @@ function agSalvar(btn,id){
   function eMsg(m){ if(erro){ erro.textContent=m; erro.style.display=""; } }
   if(!titulo) return eMsg("Escreva o que você vai fazer.");
   if(diaEl&&!dia) return eMsg("Escolha o dia do compromisso.");
+  if(fim&&!hora) return eMsg("Você pôs a hora de terminar sem a de começar.");
+  if(fim&&hora&&fim<=hora) return eMsg("A hora de terminar tem que ser depois das "+hora+".");
   var diaBase=dia||agSel;
   if(rep&&rep!=="nao"&&ate&&diaBase&&ate<diaBase) return eMsg('"Repetir até" não pode ser antes do dia do compromisso.');
   var sb=agSB(); if(!sb||!agUid()) return eMsg("Entre no painel pra salvar.");
   btn.disabled=true;
   var evAntes=id?agFindEv(id):null;
-  var payload={ titulo:titulo, hora:hora||null, descricao:desc||null };
+  var payload={ titulo:titulo, hora:hora||null, hora_fim:(hora&&fim)?fim:null, descricao:desc||null };
   var q;
   if(id){
     payload.repete=(rep&&rep!=="nao")?rep:null;                 // update permite ligar/desligar a repetição
@@ -5645,6 +5849,18 @@ function agSalvar(btn,id){
     q=sb.from("agenda_eventos").insert(Object.assign({data:agSel},payload)).select();
   }
   q.then(function(r){
+    if(r&&r.error&&agSemColunaFim(r.error)&&payload.hora_fim!==undefined){
+      // o SQL da hora de terminar ainda não rodou: grava sem ela e esconde o campo
+      agTemFim=false; delete payload.hora_fim;
+      var q2 = id ? sb.from("agenda_eventos").update(payload).eq("id",id).select()
+                  : sb.from("agenda_eventos").insert(Object.assign({data:agSel},payload)).select();
+      q2.then(function(r2){
+        btn.disabled=false; agEditId=null; agConvSel=[]; agAbertoId=null; agVerTodos=false;
+        if(r2&&r2.error){ eMsg("Não deu pra salvar. Tente de novo."); return; }
+        agCloudLoad();
+      },function(){ btn.disabled=false; eMsg("Falha de conexão. Tente de novo."); });
+      return;
+    }
     if(r&&r.error){ btn.disabled=false; eMsg("Não deu pra salvar. Tente de novo."); return; }
     if(r&&r.data&&r.data.length===0){ btn.disabled=false; eMsg("Não foi possível salvar (sem permissão)."); return; }  // 0 linhas = RLS barrou
     var evId=id||((r&&r.data&&r.data[0])?r.data[0].id:null);
@@ -5653,7 +5869,7 @@ function agSalvar(btn,id){
     }
     if(!evId||agParte2===false){ btn.disabled=false; agEditId=null; agConvSel=[]; agCloudLoad(); return; }
     agSyncConvidados(sb,evId,evAntes?evAntes.convidados:[]).then(function(){
-      btn.disabled=false; agEditId=null; agConvSel=[]; agCloudLoad(); agBadge();
+      btn.disabled=false; agEditId=null; agConvSel=[]; agAbertoId=null; agVerTodos=false; agCloudLoad(); agBadge();
     },function(e){
       /* O compromisso ficou salvo, só o convite falhou. O recado NÃO pode ir pro
          cantinho vermelho do formulário: o agCloudLoad redesenha o painel logo em
@@ -5678,7 +5894,7 @@ function agExcluir(id){
     sb.from("agenda_eventos").delete().eq("id",id).select().then(function(r){
       if(r&&r.error) return uiConfirm({titulo:"Não deu pra excluir",msg:"O banco recusou: "+(r.error.message||"tente de novo."),ok:"OK",cancel:""});
       if(r&&r.data&&r.data.length===0) return uiConfirm({titulo:"Não deu pra excluir",msg:"Este compromisso não é seu.",ok:"OK",cancel:""});
-      agEditId=null; agConvSel=[]; agCloudLoad(); agBadge();
+      agEditId=null; agConvSel=[]; agAbertoId=null; agVerTodos=false; agCloudLoad(); agBadge();
     },function(){ uiConfirm({titulo:"Falha de conexão",msg:"Não deu pra excluir agora. Tente de novo.",ok:"OK",cancel:""}); });
   });
 }
@@ -5707,11 +5923,19 @@ function agRemarcar(id,d,h){
 function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; function rec(){ clearTimeout(deb); deb=setTimeout(function(){ agCloudLoad(); agBadge(); },700); } agRT=sb.channel("agenda_sync").on("postgres_changes",{event:"*",schema:"public",table:"agenda_eventos"},rec).on("postgres_changes",{event:"*",schema:"public",table:"agenda_convidados"},rec).subscribe(); }catch(e){} }
 
 (function(){
-  function limpaVer(){ agSel=null; agEditId=null; agRespId=null; agConvSel=[]; }
+  function limpaVer(){ agSel=null; agEditId=null; agRespId=null; agConvSel=[]; agAbertoId=null; agVerTodos=false; }
   var pv=document.getElementById("agPrev"); if(pv) pv.addEventListener("click",function(){ agMes--; if(agMes<0){agMes=11;agAno--;} limpaVer(); agCloudLoad(); });
   var nx=document.getElementById("agNext"); if(nx) nx.addEventListener("click",function(){ agMes++; if(agMes>11){agMes=0;agAno++;} limpaVer(); agCloudLoad(); });
   var hj=document.getElementById("agHoje"); if(hj) hj.addEventListener("click",function(){ var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate()); agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); });
-  var dias=document.getElementById("agDias"); if(dias) dias.addEventListener("click",function(e){ var c=e.target.closest("[data-agdia]"); if(c){ agSel=c.getAttribute("data-agdia"); agEditId=null; agRespId=null; agConvSel=[]; agRenderMes(); agRenderDia(); } });
+  var dias=document.getElementById("agDias"); if(dias) dias.addEventListener("click",function(e){
+    var chip=e.target.closest("[data-agabrir]");
+    var todos=e.target.closest("[data-agtodos]");
+    var c=e.target.closest("[data-agdia]"); if(!c) return;
+    agSel=c.getAttribute("data-agdia"); agEditId=null; agRespId=null; agConvSel=[];
+    agAbertoId = chip ? chip.getAttribute("data-agabrir") : null;   // clicou no compromisso -> abre ele
+    agVerTodos = !!todos;                                          // clicou no "+N mais" -> lista daquele dia
+    agRenderMes(); agRenderDia();
+  });
   var pn=document.getElementById("agPainel"); if(pn){
     /* Saiu do campo e tinha desenho preso? Agora pode. Duas saídas de propósito: o
        focusout resolve o caso normal, e o clique em qualquer lugar cobre o navegador
@@ -5722,15 +5946,24 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
     }
     pn.addEventListener("focusout",agSoltaDesenho);
     document.addEventListener("click",agSoltaDesenho);
+    /* ==AGHORA== o seletor de hora, no mesmo ouvinte do painel (o conteúdo é
+       redesenhado o tempo todo, então não dá pra amarrar em cada campo) */
     pn.addEventListener("click",function(e){
+      var cxAbrir=e.target.closest(".ag-hora");
+      if(cxAbrir){
+        var x=e.target.closest(".ag-hora-x");
+        if(x){ agHoraDefine(cxAbrir,""); cxAbrir.querySelector(".ag-hora-lista").classList.remove("abre"); return; }
+        if(e.target.closest(".ag-hora-txt")){ agHoraAbre(cxAbrir); return; }
+      }
       var sv=e.target.closest("[data-agsalvar]"); if(sv){ agSalvar(sv, sv.getAttribute("data-agsalvar")||null); return; }
       var ed=e.target.closest("[data-ageditar]"); if(ed){
-        agEditId=ed.getAttribute("data-ageditar"); agRespId=null;
+        agEditId=ed.getAttribute("data-ageditar"); agRespId=null; agAbertoId=null; agVerTodos=false;
         var _ev=agFindEv(agEditId); agConvSel=(_ev&&_ev.convidados||[]).map(function(c){ return c.pessoa_id; });
         agRenderDia(); return;
       }
       var ex=e.target.closest("[data-agexcluir]"); if(ex){ agExcluir(ex.getAttribute("data-agexcluir")); return; }
       if(e.target.closest("[data-agcancelaredit]")){ agEditId=null; agConvSel=[]; agRenderDia(); return; }
+      if(e.target.closest("[data-agfechar]")){ agAbertoId=null; agVerTodos=false; agEditId=null; agConvSel=[]; agRenderDia(); return; }
       var ac=e.target.closest("[data-agaceitar]");
       if(ac){ ac.disabled=true; ac.textContent="Aceitando...";
         agResponder(ac.getAttribute("data-agaceitar"),"confirmado",null,null,null,function(m){
@@ -5768,6 +6001,46 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
       if(ir){ var _d=ir.getAttribute("data-agirconvite"), _p=agParse(_d);
         agAno=_p.getFullYear(); agMes=_p.getMonth(); agSel=_d; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); return; }
     });
+    // escolher na lista (mousedown pra chegar antes do blur do campo)
+    pn.addEventListener("mousedown",function(e){
+      var op=e.target.closest(".ag-hora-op"); if(!op) return;
+      var cx=op.closest(".ag-hora"); e.preventDefault();
+      agHoraDefine(cx, op.getAttribute("data-h"));
+      cx.querySelector(".ag-hora-lista").classList.remove("abre");
+    });
+    pn.addEventListener("input",function(e){
+      var t=e.target.closest(".ag-hora-txt"); if(!t) return;
+      var cx=t.closest(".ag-hora");
+      cx.querySelector(".ag-hora-lista").classList.add("abre");
+      agHoraPinta(cx, t.value);
+    });
+    pn.addEventListener("keydown",function(e){
+      var t=e.target.closest(".ag-hora-txt"); if(!t) return;
+      var cx=t.closest(".ag-hora"), lista=cx.querySelector(".ag-hora-lista");
+      var ops=[].slice.call(lista.querySelectorAll(".ag-hora-op"));
+      var atual=lista.querySelector(".ag-hora-op.foco"), i=ops.indexOf(atual);
+      if(e.key==="ArrowDown"||e.key==="ArrowUp"){
+        e.preventDefault();
+        if(!lista.classList.contains("abre")){ agHoraAbre(cx); return; }
+        i=Math.max(0,Math.min(ops.length-1, i+(e.key==="ArrowDown"?1:-1)));
+        ops.forEach(function(o){ o.classList.remove("foco"); });
+        if(ops[i]){ ops[i].classList.add("foco"); ops[i].scrollIntoView({block:"nearest"}); }
+      } else if(e.key==="Enter"){
+        e.preventDefault();
+        agHoraDefine(cx, atual?atual.getAttribute("data-h"):(agHoraEntende(t.value)||""));
+        lista.classList.remove("abre"); t.blur();
+      } else if(e.key==="Escape"){ lista.classList.remove("abre"); t.blur(); }
+    });
+    // saiu do campo: aproveita o que dá pra entender do que foi digitado
+    pn.addEventListener("focusout",function(e){
+      var t=e.target.closest(".ag-hora-txt"); if(!t) return;
+      var cx=t.closest(".ag-hora");
+      setTimeout(function(){
+        cx.querySelector(".ag-hora-lista").classList.remove("abre");
+        if(t.value.trim()==="") { agHoraDefine(cx,""); return; }
+        agHoraDefine(cx, agHoraEntende(t.value) || cx.querySelector("input[type=hidden]").value);
+      },140);
+    });
     pn.addEventListener("change",function(e){
       // trocar "Repetir" mostra/esconde o "até" e atualiza a dica, sem re-renderizar o form
       var sel=e.target.closest(".ag-f-rep");
@@ -5791,6 +6064,12 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
       if(vp){ agVerAlvo=vp.value||null; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); return; }
     });
   }
+  // clicar em qualquer outro lugar fecha a lista de horários
+  document.addEventListener("mousedown",function(e){
+    if(e.target.closest(".ag-hora")) return;
+    var abertas=document.querySelectorAll(".ag-hora-lista.abre");
+    for(var i=0;i<abertas.length;i++) abertas[i].classList.remove("abre");
+  });
 })();
 // =============== FIM AGENDA ===============
 let escAno = HOJE.getFullYear(), escMes = HOJE.getMonth();

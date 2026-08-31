@@ -215,5 +215,68 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /RODE TAMBÉM sql\/agenda_trancar\.sql/.test(C), "true");
 }
 
+// ------------------------------------------------------------ o painel do dia (pedido do dono, 31/08)
+{
+  // Ele olhou a tela e disse: a lista de compromissos em cima "fica ruim, melhor deixar
+  // só no calendário". A lista repetia o que a grade já mostra e empurrava o formulário
+  // pra baixo. Tirar sem mais nada deixaria a pessoa sem Editar/Excluir — por isso o
+  // compromisso passou a ABRIR pelo clique no calendário.
+  eq("65) o compromisso do calendário é clicável", /data-agabrir="'\+ev\.id\+'"/.test(H), "true");
+  eq("66) clicar nele abre o compromisso no painel",
+     /agAbertoId = chip \? chip\.getAttribute\("data-agabrir"\) : null;/.test(H), "true");
+  eq("67) e existe o caminho de volta pro formulário", /data-agfechar>‹ voltar/.test(H), "true");
+  eq("68) sem nada aberto, o painel é só o formulário",
+     /\} else \{\s*\n\s*meio = soOlhando;/.test(H), "true");
+  eq("69) o '+N mais' ainda dá pra ver o dia inteiro, sob demanda",
+     /data-agtodos="'\+key\+'"/.test(H) && /agVerTodos = !!todos;/.test(H), "true");
+  eq("70) trocar de dia fecha o que estava aberto",
+     /agAbertoId = chip \? /.test(H) && /function limpaVer\(\)\{ agSel=null;[\s\S]{0,120}agAbertoId=null; agVerTodos=false; \}/.test(H), "true");
+}
+
+// ------------------------------------------------------------ hora de começar e de terminar
+{
+  // o nome da classe é montado em tempo de execução ('class="'+cls+'"'), então o que
+  // aparece no arquivo é a CHAMADA — procurar por class="ag-f-fim" nunca acharia nada
+  eq("71) o compromisso tem hora de terminar", /agHoraHtml\("ag-f-fim",\(ev&&ev\.hora_fim\)/.test(H), "true");
+  eq("72) o fim só oferece horário depois do começo",
+     /achou=achou\.filter\(function\(t\)\{ return t>ini; \}\);/.test(H), "true");
+  eq("73) com a duração escrita do lado", /function agDuracao\(ini, fim\)/.test(H), "true");
+  eq("74) escolher o começo sugere o fim uma hora depois",
+     /if\(!fim\.value\)\{ agHoraDefine\(cxFim, agSoma\(v,60\)\); return; \}/.test(H), "true");
+  eq("75) mexer no começo mantém a duração", /if\(dur>0\) agHoraDefine\(cxFim, agSoma\(v,dur\)\);/.test(H), "true");
+  eq("76) terminar antes de começar é barrado na tela",
+     /A hora de terminar tem que ser depois das/.test(H), "true");
+  // o painel pode ir pro ar antes de o dono rodar o SQL: nesse intervalo, mandar a
+  // coluna nova faria o banco recusar e ele não salvaria NADA
+  eq("76b) sem o SQL rodado, o painel salva assim mesmo",
+     /function agSemColunaFim\(e\)/.test(H) && /agTemFim=false; delete payload\.hora_fim;/.test(H), "true");
+  eq("76c) e esconde o campo em vez de prometer o que não dá",
+     /\(agTemFim\?\('<span class="ag-f-ate-hora">às<\/span>'\+/.test(H), "true");
+  const HF = fs.readFileSync(path.join(RAIZ, "sql/agenda_hora_fim.sql"), "utf8");
+  eq("77) e barrado no banco também", /check \(hora_fim is null or \(hora is not null and hora_fim > hora\)\)/.test(HF), "true");
+  eq("78) mudar a duração devolve os convidados pra Aguardando",
+     /or new\.hora_fim is distinct from old\.hora_fim then/.test(HF), "true");
+  eq("79) abrir a lista mostra tudo; só digitar filtra", /agHoraPinta\(caixa, null\);/.test(H), "true");
+}
+
+// ------------------------------------------------------------ a barra invertida some na geração
+{
+  // O módulo da Agenda mora DENTRO de um texto de template no gerador. Ali a barra
+  // invertida é comida: /\D/ escrito na fonte chega ao navegador como /D/. Foi assim
+  // que o filtro de horário deixou o ":" passar e "09:00" virou "09:aN" na tela.
+  // Regra: nada de barra invertida nesse bloco — para dígito, [^0-9].
+  const FONTE = fs.readFileSync(path.join(RAIZ, "scripts/demoDashboard.ts"), "utf8");
+  const ini = FONTE.indexOf("// ================= AGENDA (compromissos por dia");
+  const fim = FONTE.indexOf("// =============== FIM AGENDA ===============");
+  const bloco = FONTE.slice(ini, fim);
+  const comBarra = bloco.split("\n").map((l, i) => [i + 1, l])
+    .filter(([, l]) => l.indexOf("\\") >= 0 && l.indexOf("//") !== 0);
+  eq("62) nenhuma barra invertida no bloco da Agenda",
+     comBarra.length ? comBarra.map(([n]) => "linha " + n).join(", ") : "nenhuma", "nenhuma");
+  eq("63) e o filtro de dígitos chegou inteiro no navegador",
+     /replace\(\/\[\^0-9\]\/g,""\); if\(!d\) return null;/.test(H), "true");
+  eq("64) sem sobrar regex quebrada", /replace\(\/D\/g/.test(H), "false");
+}
+
 console.log("\n" + (falhou ? "FALHOU: " + falhou + " de " + (ok + falhou) : "TUDO OK: " + ok + " testes") + "\n");
 process.exit(falhou ? 1 : 0);
