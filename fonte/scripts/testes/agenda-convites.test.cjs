@@ -438,8 +438,9 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /function agFaixaAtual\(\)\{\s*\n\s*if\(agEhSemana\(\)\)\{\s*\n\s*var dias=agDiasDaSemana\(\);/.test(H), "true");
   eq("112b) a semana é sempre de domingo a sábado", /function agDomingoDe\(iso\)\{/.test(H), "true");
   eq("112c) e sempre 7 dias", /var AG_SEM_DIAS=7;/.test(H), "true");
-  eq("112d) a seta anda uma semana inteira na visão Semana",
-     /agSel=agSomaDias\(agDiasDaSemana\(\)\[0\], passo\*AG_SEM_DIAS\);/.test(H), "true");
+  // G2: a seta passou a andar o tamanho da JANELA (3, 5 ou 7), não "uma semana"
+  eq("112d) a seta anda a janela inteira na visão Semana",
+     /agSemIni=agSomaDias\(agDiasDaSemana\(\)\[0\], passo\*agDiasVisiveis\(\)\);/.test(H), "true");
   eq("112e) e continua andando de mês na visão Mês",
      /\} else \{\s*\n\s*agMes\+=passo;\s*\n\s*if\(agMes<0\)\{ agMes=11; agAno--; \}/.test(H), "true");
   eq("112f) quem desenha decide pela visão, num lugar só",
@@ -527,8 +528,9 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /if\(!ev\.hora\) return;/.test(H), "true");
   eq("119b) e vai pra faixa Sem hora",
      /var sh=\(agEventos\[k\]\|\|\[\]\)\.filter\(function\(ev\)\{ return !ev\.hora; \}\);/.test(H), "true");
-  eq("119c) mostrando 2 e resumindo o resto, pra faixa não comer a tela",
-     /var mais=sh\.length>2\?\('<div class="ag-mais" data-agtodos="'\+k\+'"/.test(H), "true");
+  // G2: são 2 no computador e 1 no celular — o corte virou variável
+  eq("119c) mostrando poucos e resumindo o resto, pra faixa não comer a tela",
+     /var mais=sh\.length>quantos\?\('<div class="ag-mais" data-agtodos="'\+k\+'"/.test(H), "true");
 
   // TAREFA: sem cor nova, o mesmo sistema do mês
   eq("120) o bloco reaproveita as cores do mês (evento, pendente, tarefa, tarefa feita)",
@@ -540,8 +542,8 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /\.ag-bl\.tarefa\.feita \.ag-bl-tit \{ text-decoration:line-through; \}/.test(H), "true");
   eq("120c) e com a caixinha ☐ / ☑ do mês",
      /\(tar\?\(feita\?"☑ ":"☐ "\):""\)/.test(H), "true");
-  eq("120c2) 3 ao mesmo tempo deixam a coluna estreita: corta com reticências, não parte palavra",
-     /var estreito=o\.cols>=3;/.test(H) &&
+  eq("120c2) coluna estreita (3 no computador, 2 no celular): corta com reticências, não parte palavra",
+     /var estreito=o\.cols>=3 \|\| \(agEhCelular\(\) && o\.cols>=2\);/.test(H) &&
      /\.ag-bl\.estreito \.ag-bl-hora, \.ag-bl\.estreito \.ag-bl-tit \{\s*\n\s*white-space:nowrap; overflow:hidden; text-overflow:ellipsis; \}/.test(H), "true");
   eq("120d) bloco curto mostra só o essencial",
      /var curto=alt<34;/.test(H) && /\.ag-bl\.curto \{ display:flex;/.test(H), "true");
@@ -635,8 +637,8 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /\.ag-sem-col, \.ag-sem-bl-calha \{ position:relative; \}/.test(H), "true");
   eq("127b) só o bloco alto mostra o intervalo inteiro",
      /\(\(!curto && !estreito && alt>=44\) \? faixa : agFmtHora\(ev\.hora\)\)/.test(H), "true");
-  eq("127b2) com 4 na mesma hora nem o horário cabe: fica só o título",
-     /var apertado=o\.cols>=4;/.test(H) && /var hora=apertado \? "" :/.test(H), "true");
+  eq("127b2) no aperto (4 no computador, 2 no celular) nem o horário cabe: fica só o título",
+     /var apertado=o\.cols>=4 \|\| \(agEhCelular\(\) && o\.cols>=2\);/.test(H) && /var hora=apertado \? "" :/.test(H), "true");
   eq("127c) e a informação secundária só entra quando sobra espaço",
      /alt>=76&&agVerSetor&&ev\.dono_nome/.test(H), "true");
   eq("127d) o balãozinho tem o título inteiro e o horário",
@@ -680,6 +682,104 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /#agDias\.cal-grid \{ grid-auto-rows: var\(--ag-lin\); border:1px solid #e4e9ef; border-radius:10px; overflow:hidden; \}/.test(H), "true");
   eq("133c) e a altura elástica dele também",
      /--ag-lin: max\(72px, calc\(\(100dvh - 318px\) \/ 6\)\)/.test(H), "true");
+}
+
+
+// ------------------------------------ ETAPA G2: a mesma Semana, com menos dias no celular
+{
+  // UMA REGRA SÓ decide o tamanho — nada de "if mobile" espalhado
+  eq("134) a faixa de larguras é uma tabela só",
+     /var AG_SEM_FAIXAS=\[\{ate:480, dias:3\}, \{ate:720, dias:5\}\];/.test(H), "true");
+  eq("134a2) a largura vem do clientWidth, a MESMA régua da media query",
+     /function agLargura\(\)\{[\s\S]{0,200}return d\.clientWidth;/.test(H), "true");
+  eq("134a3) e NÃO do innerWidth, que cresce junto com o estouro da página",
+     /function agLargura\(\)\{ return \(typeof window!=="undefined" && window\.innerWidth\)/.test(H), "false");
+  eq("134b) e uma função só responde quantos dias cabem",
+     /function agDiasVisiveis\(\)\{[\s\S]{0,240}return 7;\s*\n\}/.test(H), "true");
+  eq("134c) o corte de celular é o MESMO da gaveta do painel",
+     /var AG_CELULAR_ATE=760;/.test(H) && /@media \(max-width:760px\)\{/.test(H), "true");
+  eq("134d) e não existe 'if mobile' espalhado pelo módulo",
+     /if\s*\(\s*(mobile|isMobile|ehMobile)\b/.test(H), "false");
+  // o CSS aprende com o JS: uma verdade só
+  eq("135) quem escreve o número de colunas no CSS é o JS",
+     /caixa\.style\.setProperty\("--ag-dias", String\(dias\.length\)\);/.test(H), "true");
+  eq("135b) e não há media query mexendo no número de dias",
+     /@media[^{]*\{[^}]*--ag-dias/.test(H), "false");
+
+  // A JANELA: ancorada, e ela vai atrás do dia escolhido só quando ele sai
+  eq("136) com 7 dias continua domingo a sábado",
+     /if\(n>=7\)\{ agSemIni=null; return agDomingoDe\(hoje\); \}/.test(H), "true");
+  eq("136b) com 3 ou 5 ela guarda onde começou",
+     /if\(!agSemIni\) agSemIni=hoje;/.test(H), "true");
+  eq("136c) e só reancora quando o dia escolhido sai de dentro dela",
+     /if\(d<0 \|\| d>=n\) agSemIni=hoje;/.test(H), "true");
+  eq("136d) os dias na tela saem dessa janela",
+     /var n=agDiasVisiveis\(\), ini=agJanelaIni\(\), out=\[\];/.test(H), "true");
+
+  // NAVEGAÇÃO: a seta anda o tamanho da janela
+  eq("137) a seta anda exatamente o número de dias visíveis",
+     /agSemIni=agSomaDias\(agDiasDaSemana\(\)\[0\], passo\*agDiasVisiveis\(\)\);/.test(H), "true");
+  eq("137b) e o Hoje faz a janela nascer de novo em hoje",
+     /agSemRolar=true; agSemIni=null;/.test(H), "true");
+
+  // TROCAR DE TAMANHO
+  eq("138) mudar a largura só reage quando a QUANTIDADE de dias muda",
+     /var n=agDiasVisiveis\(\);\s*\n\s*if\(n===agDiasAnt\) return;/.test(H), "true");
+  eq("138b) e recarrega pelo caminho normal, que passa pelo cache",
+     /if\(pg && pg\.classList\.contains\("ativo"\)\) agCloudLoad\(\);/.test(H), "true");
+
+  // BLOCOS: no celular 2 já é aperto
+  eq("139) no celular, 2 ao mesmo tempo já contam como estreito",
+     /var estreito=o\.cols>=3 \|\| \(agEhCelular\(\) && o\.cols>=2\);/.test(H), "true");
+  eq("139b) e como apertado — aí fica só o título",
+     /var apertado=o\.cols>=4 \|\| \(agEhCelular\(\) && o\.cols>=2\);/.test(H), "true");
+  eq("139c) o algoritmo de sobreposição NÃO mudou",
+     /while\(i<colunas\.length && colunas\[i\]>o\.ini\) i\+\+;/.test(H), "true");
+  eq("139d) nem a escala de 44px por hora",
+     /var AG_SEM_PXH=44;/.test(H), "true");
+
+  // SEM HORA e MÊS: menos itens no celular
+  eq("140) faixa Sem hora mostra 1 no celular e 2 no computador",
+     /var quantos=agEhCelular\(\)\?1:2;/.test(H), "true");
+  eq("140b) e o resumo conta a partir daí",
+     /var mais=sh\.length>quantos\?/.test(H), "true");
+  eq("141) o Mês mostra 1 no celular e 3 no computador",
+     /var cabem=agEhCelular\(\)\?1:3;/.test(H), "true");
+  eq("141b) com o resumo certo", /var mais=evs\.length>cabem\?/.test(H), "true");
+
+  // CABEÇALHO no celular
+  eq("142) o cabeçalho quebra em duas linhas",
+     /\.cal-top \{ flex-wrap:wrap; gap:8px 8px; margin-bottom:12px; \}/.test(H), "true");
+  eq("142b) sem largura mínima de computador",
+     /\.ag-topdir \{ margin-left:0; width:100%; justify-content:space-between; gap:8px; flex-wrap:wrap; \}/.test(H), "true");
+  eq("142b2) o filtro do master desce pra linha própria, sem espremer os controles",
+     /#agVerBar \{ order:99; width:100%; \}/.test(H), "true");
+  eq("142c) o '＋ Criar' vira só '＋'", /\.ag-criar-tx \{ display:none; \}/.test(H), "true");
+  eq("142d) mas continua dizendo o que faz",
+     /aria-label="Criar compromisso">＋<span class="ag-criar-tx"> Criar<\/span>/.test(H), "true");
+  eq("142e) e abre o mesmo menu Evento\/Tarefa",
+     /data-agnovo="evento"[\s\S]{0,200}data-agnovo="tarefa"/.test(H), "true");
+  eq("143) alvos de dedo nas setas", /\.cal-nav \{ width:44px; height:44px; font-size:22px; \}/.test(H), "true");
+  eq("143b) e no Hoje e no Criar",
+     /#agHoje, \.ag-criar \{ min-height:42px; \}/.test(H), "true");
+  eq("143c) usando o id do Hoje — \.ag-hoje também existe em Manutenções",
+     /\.ag-hoje, \.ag-criar \{ min-height/.test(H), "false");
+  eq("144) a calha encolhe pra devolver largura aos dias",
+     /\.ag-sem \{ --ag-gut:44px;/.test(H), "true");
+  eq("144b) e a faixa Sem hora encolhe quando o dia não tem nada",
+     /\.ag-sem-td-cel \{ min-height:0; \}/.test(H) && /\.ag-sem-tododia \{ min-height:22px; \}/.test(H), "true");
+}
+
+// ------------------------------------- O COMPUTADOR CONTINUA CONGELADO (G2 não arranha)
+{
+  eq("145) todo o mobile da Agenda vive dentro da media query",
+     /\n  \.ag-sem \{ --ag-gut:44px|\n  \.cal-top \{ flex-wrap:wrap|\n  \.ag-criar-tx \{ display:none/.test(H), "false");
+  eq("145b) o Mês aprovado continua o mesmo",
+     /#agDias\.cal-grid \{ grid-auto-rows: var\(--ag-lin\); border:1px solid #e4e9ef; border-radius:10px; overflow:hidden; \}/.test(H), "true");
+  eq("145c) com a altura elástica do computador",
+     /\.ag-cal \{ width:100%; --ag-lin: max\(72px, calc\(\(100dvh - 318px\) \/ 6\)\); \}/.test(H), "true");
+  eq("145d) e a calha do computador continua 58px",
+     /\.ag-sem \{ display:none; --ag-gut:58px; --ag-dias:7;/.test(H), "true");
 }
 
 console.log("\n" + (falhou ? "FALHOU: " + falhou + " de " + (ok + falhou) : "TUDO OK: " + ok + " testes") + "\n");

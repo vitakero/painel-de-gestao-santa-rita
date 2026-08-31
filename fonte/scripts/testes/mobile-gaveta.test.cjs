@@ -114,12 +114,14 @@ const MQ = (H.match(/@media \(max-width:760px\)\{[\s\S]*?\n  \}/) || [""])[0];
      /#agDias\.cal-grid \{ grid-auto-rows: var\(--ag-lin\); border:1px solid #e4e9ef; border-radius:10px; overflow:hidden; \}/.test(H), "true");
   eq("14b) com a altura elástica de sempre",
      /--ag-lin: max\(72px, calc\(\(100dvh - 318px\) \/ 6\)\)/.test(H), "true");
-  eq("15) a Semana continua com 7 dias — G2 NÃO foi feita",
-     /var AG_SEM_DIAS=7;/.test(H), "true");
+  // Atualizado quando a G2 entrou: a Semana passou a mostrar 3/5/7 dias conforme a tela.
+  // O que a GAVETA precisa garantir continua o mesmo — ela não decide nada disso.
+  eq("15) quem decide quantos dias a Semana mostra é a Agenda, não a gaveta",
+     /function agDiasVisiveis\(\)/.test(H), "true");
   eq("15b) e a escala de 44px por hora está intacta",
      /var AG_SEM_PXH=44;/.test(H) && /--ag-h:44px/.test(H), "true");
-  eq("15c) nenhuma regra de 3\/5\/7 dias foi criada",
-     /--ag-dias: *3|AG_SEM_DIAS *= *3|AG_SEM_DIAS *= *5/.test(H), "false");
+  eq("15c) no computador continua a semana inteira",
+     /\.ag-sem \{ display:none; --ag-gut:58px; --ag-dias:7;/.test(H), "true");
   eq("15d) e a gaveta não escreve nada dentro da Agenda",
      /@media \(max-width:760px\)\{[\s\S]*?\n  \}/.test(H) && /\.ag-cel|\.ag-sem-cel|#agDias/.test(MQ), "false");
 }

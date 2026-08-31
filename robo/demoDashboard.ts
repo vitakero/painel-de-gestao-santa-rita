@@ -209,6 +209,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     main { padding:14px 12px 40px; max-width:none; }
   }
   @media (prefers-reduced-motion: reduce){ .sidebar { transition:none; } }
+
   .page { display:none; }
   .page.ativo { display:grid; grid-template-columns:minmax(0,1fr); gap:22px; }
   .page.ativo > * { min-width:0; }
@@ -943,6 +944,48 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .ag-sem-td-cel .ag-chip { -webkit-line-clamp:1; margin-top:2px; }
   .ag-sem-td-cel .ag-mais { margin-left:3px; }
 
+  /* ==AGRESP== A AGENDA NO CELULAR.
+     Nada aqui redesenha o computador: tudo está dentro da media query, e acima de 760px
+     nenhuma destas regras existe. Quantos DIAS aparecem é decidido no JavaScript
+     (agDiasVisiveis) — aqui só sobra o que é aparência. */
+  @media (max-width:760px){
+    /* o cabeçalho em duas linhas: ‹ título ›  /  [Mês|Semana] ... Hoje */
+    /* o cartão da Agenda também aperta a margem: 40px de moldura numa tela de 390
+       são 10% da largura que os dias precisam */
+    .ag-card { padding:12px; }
+    .cal-top { flex-wrap:wrap; gap:8px 8px; margin-bottom:12px; }
+    .cal-top > #agTitulo { flex:1 1 0; min-width:0; text-align:center; font-size:16px; }
+    .ag-topdir { margin-left:0; width:100%; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+    /* o filtro "Ver:" (só master) desce pra linha própria, senão o ＋ e o Hoje sobram
+       espremidos numa terceira linha e o cabeçalho come 240px de uma tela de 844 */
+    #agVerBar { order:99; width:100%; }
+    #agVerBar select { width:100%; }
+    /* alvos de dedo: a área cresce sem o desenho ficar pesado */
+    .cal-nav { width:44px; height:44px; font-size:22px; }
+    #agHoje, .ag-criar { min-height:42px; }   /* pelo id: .ag-hoje também existe em Manutenções */
+    .ag-visao { min-height:40px; padding:0 15px; }
+    .ag-criar-tx { display:none; }             /* "＋ Criar" vira só "＋" */
+    .ag-criar { padding:8px 14px; font-size:17px; line-height:1; }
+    #agVerBar select { max-width:100%; }
+    /* a semana: calha mais magra devolve largura pros dias */
+    .ag-sem { --ag-gut:44px; height:max(300px, calc(100dvh - 236px)); }
+    .ag-sem-calha, .ag-sem-hora, .ag-sem-td-rot { font-size:9.5px; padding-right:5px; }
+    .ag-agora-rot { font-size:9px; right:5px; }
+    .ag-sem-dow { font-size:9.5px; }
+    .ag-sem-num { font-size:14px; }
+    /* faixa "Sem hora": encolhe quando o dia não tem nada, mas as 7 colunas continuam
+       na mesma fileira do grid, então elas nunca se desalinham entre si */
+    .ag-sem-td-cel { min-height:0; }
+    .ag-sem-tododia { min-height:22px; }
+    .ag-sem-td-cel .ag-chip { font-size:10px; }
+    /* o mês: com a largura que a gaveta devolveu, a célula já cabe */
+    .ag-cal { --ag-lin: max(58px, calc((100dvh - 262px) / 6)); }
+    .ag-cel { padding:3px 4px; }
+    .ag-cel .ag-num { font-size:11.5px; }
+    .ag-cal .cal-head > div { padding-left:4px; font-size:10px; }
+  }
+
+
   /* ==AGCRIAR== o botão e o menuzinho — cabem na linha que as setas já ocupam (34px),
      então não custam nenhuma altura da grade */
   .ag-criar-wrap { position:relative; display:inline-flex; }
@@ -1528,7 +1571,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
             </span>
             <span id="agVerBar"></span>
             <span class="ag-criar-wrap">
-              <button class="ag-criar" id="agCriar" type="button">＋ Criar</button>
+              <button class="ag-criar" id="agCriar" type="button" aria-label="Criar compromisso">＋<span class="ag-criar-tx"> Criar</span></button>
               <span class="ag-criar-menu" id="agCriarMenu">
                 <button type="button" data-agnovo="evento"><b>Evento</b><i>reunião, visita, entrega</i></button>
                 <button type="button" data-agnovo="tarefa"><b>Tarefa</b><i>uma coisa pra fazer</i></button>
@@ -5652,7 +5695,29 @@ function agSemColunaFim(e){
 /* ==AGVISAO== MÊS OU SEMANA. Um estado só, num lugar só — o resto do módulo pergunta
    a ele em vez de espalhar "if(semana)" por toda parte. O Mês continua sendo o padrão. */
 var agVisao="mes";
-var AG_SEM_DIAS=7;                 // quantos dias a semana mostra (o celular vai mexer aqui)
+/* ==AGRESP== QUANTOS DIAS CABEM. UMA REGRA SÓ.
+   Não existe "Agenda do celular": é a MESMA visão Semana mostrando menos dias quando a
+   tela é estreita. Toda decisão de tamanho sai daqui — não há "if mobile" espalhado pelo
+   módulo. Quem manda é o JavaScript, e ele é que escreve --ag-dias no CSS, pra não haver
+   duas verdades (uma na media query e outra aqui) que possam se desencontrar. */
+var AG_SEM_FAIXAS=[{ate:480, dias:3}, {ate:720, dias:5}];   // acima disso: a semana inteira
+var AG_CELULAR_ATE=760;                                     // o mesmo corte da gaveta do painel
+/* A largura tem que ser a MESMA que o CSS enxerga (clientWidth), não window.innerWidth.
+   Descoberto numa foto: quando a página estoura de lado, o innerWidth cresce junto com o
+   estouro — aí a regra devolvia 5 dias numa tela de 390, o que estourava mais ainda.
+   Realimentação. clientWidth é a janela de verdade, a mesma régua da media query. */
+function agLargura(){
+  var d=(typeof document!=="undefined") && document.documentElement;
+  if(d && d.clientWidth) return d.clientWidth;
+  return (typeof window!=="undefined" && window.innerWidth) ? window.innerWidth : 1280;
+}
+function agDiasVisiveis(){
+  var w=agLargura();
+  for(var i=0;i<AG_SEM_FAIXAS.length;i++) if(w<=AG_SEM_FAIXAS[i].ate) return AG_SEM_FAIXAS[i].dias;
+  return 7;
+}
+function agEhCelular(){ return agLargura()<=AG_CELULAR_ATE; }
+var AG_SEM_DIAS=7;                 // o padrão; quem responde de verdade é agDiasVisiveis()
 /* ==AGSEMESCALA== A ESCALA, NUM LUGAR SÓ.
    Tudo o que vira pixel na semana sai daqui. Espalhar conta pelo desenho é como o bloco
    de 30 min acaba com altura diferente do de 1 h dividido por dois.
@@ -5681,10 +5746,25 @@ function agSomaDias(iso, n){
   d=new Date(d.getFullYear(), d.getMonth(), d.getDate()+n);
   return agK(d.getFullYear(), d.getMonth(), d.getDate());
 }
-// Os dias da semana que está na tela, sempre AG_SEM_DIAS, começando no domingo.
+/* ==AGJANELA== ONDE A JANELA DE DIAS COMEÇA.
+   Com 7 dias é domingo a sábado, exatamente como sempre foi.
+   Com 3 ou 5 dias, começar no domingo mostraria DOM/SEG/TER mesmo quando a pessoa abriu
+   numa quinta. Então a janela fica ANCORADA e só se move quando precisa: ela guarda onde
+   começou e só reancora se o dia escolhido sair de dentro dela. Assim tocar num
+   compromisso da 3ª coluna não faz a tela inteira pular. */
+var agSemIni=null;
+function agJanelaIni(){
+  var n=agDiasVisiveis(), hoje=agSel||agHojeISO();
+  if(n>=7){ agSemIni=null; return agDomingoDe(hoje); }
+  if(!agSemIni) agSemIni=hoje;
+  var d=Math.round((agParse(hoje)-agParse(agSemIni))/864e5);
+  if(d<0 || d>=n) agSemIni=hoje;          // o dia escolhido saiu da janela: ela vai atrás dele
+  return agSemIni;
+}
+// Os dias que estão na tela, começando onde a janela manda.
 function agDiasDaSemana(){
-  var ini=agDomingoDe(agSel||agHojeISO()), out=[];
-  for(var i=0;i<AG_SEM_DIAS;i++) out.push(agSomaDias(ini,i));
+  var n=agDiasVisiveis(), ini=agJanelaIni(), out=[];
+  for(var i=0;i<n;i++) out.push(agSomaDias(ini,i));
   return out;
 }
 function agHojeISO(){ var h=new Date(); return agK(h.getFullYear(),h.getMonth(),h.getDate()); }
@@ -5823,7 +5903,8 @@ function agRenderMes(){
   grid.innerHTML=celulasDoMes(agAno,agMes).map(function(c){
     if(c.fora) return '<div class="ag-cel fora"><span class="ag-num">'+c.dia+'</span></div>';
     var key=agK(agAno,agMes,c.dia), evs=agEventos[key]||[];
-    var chips=evs.slice(0,3).map(function(ev){
+    var cabem=agEhCelular()?1:3;        // célula de ~50px no celular não comporta três
+    var chips=evs.slice(0,cabem).map(function(ev){
       var esp=(ev.meu_status==="aguardando")?'⏳ ':'';
       var quem=(agVerSetor&&ev.dono_nome)?('<i>'+agEsc(String(ev.dono_nome).split(" ")[0])+'</i> '):'';
       var tar=agEhTarefa(ev), feita=!!ev.feita_em;
@@ -5831,7 +5912,7 @@ function agRenderMes(){
         '" data-agabrir="'+ev.id+'" title="'+agEsc(ev.titulo)+'">'+esp+(agRepete(ev)?'🔁 ':'')+quem+
         (tar?(feita?'☑ ':'☐ '):'')+(ev.hora?('<b>'+agFmtHora(ev.hora)+'</b> '):'')+agEsc(ev.titulo)+'</div>';
     }).join('');
-    var mais=evs.length>3?('<div class="ag-mais" data-agtodos="'+key+'">+'+(evs.length-3)+' mais</div>'):'';
+    var mais=evs.length>cabem?('<div class="ag-mais" data-agtodos="'+key+'">+'+(evs.length-cabem)+' mais</div>'):'';
     return '<div class="ag-cel'+(agEhHoje(agAno,agMes,c.dia)?' hoje':'')+(agSel===key?' sel':'')+'" data-agdia="'+key+'"><span class="ag-num">'+c.dia+'</span>'+chips+mais+'</div>';
   }).join('');
 }
@@ -5904,11 +5985,13 @@ function agBlocoHtml(o){
   /* 3 ou mais ao mesmo tempo deixam a coluna com ~36px. Aí o texto quebrava no MEIO da
      palavra ("Reunia / o de diretori / a") e não se lia nada. Bloco estreito: fonte menor,
      uma linha por vez e reticências. O nome inteiro continua no balãozinho do mouse. */
-  var estreito=o.cols>=3;
+  /* no celular a coluna do dia tem ~99px; com 2 ao mesmo tempo sobram ~47px, e aí já é
+     aperto — o que no computador só acontece com 3. Mesma regra, limiar diferente. */
+  var estreito=o.cols>=3 || (agEhCelular() && o.cols>=2);
   /* com 4 na mesma hora sobram ~27px de coluna: aí nem "09:00" cabe, e a foto mostrou
      "09:…", que não informa nada. Nesse aperto fica só o TÍTULO — a altura do bloco já
      diz a hora, e o balãozinho tem tudo. */
-  var apertado=o.cols>=4;
+  var apertado=o.cols>=4 || (agEhCelular() && o.cols>=2);
   var faixa=agFmtHora(ev.hora)+(ev.hora_fim?(" – "+agFmtHora(ev.hora_fim)):"");
   /* HIERARQUIA: o TÍTULO vem primeiro — é o que a pessoa procura. O horário vem embaixo,
      mais leve, porque a própria posição do bloco na régua já diz a hora. Só o bloco alto
@@ -5966,6 +6049,9 @@ function agSemRolaAlvo(dias){
 }
 function agRenderSemana(){
   var dias=agDiasDaSemana(), hoje=agHojeISO();
+  // o CSS aprende com o JS quantas colunas desenhar — nunca o contrário
+  var caixa=document.getElementById("agSem");
+  if(caixa) caixa.style.setProperty("--ag-dias", String(dias.length));
   var tit=document.getElementById("agTitulo"); if(tit) tit.textContent=agTituloSemana(dias);
   var cab=document.getElementById("agSemCab");
   if(cab) cab.innerHTML='<div class="ag-sem-dia ag-sem-calha"></div>'+dias.map(function(k){
@@ -5981,13 +6067,14 @@ function agRenderSemana(){
   if(td) td.innerHTML='<div class="ag-sem-td-rot">Sem hora'+
       '<button type="button" class="ag-sem-antes" id="agSemAntes" style="display:none" data-agantes></button></div>'+dias.map(function(k){
     var sh=(agEventos[k]||[]).filter(function(ev){ return !ev.hora; });
-    var chips=sh.slice(0,2).map(function(ev){
+    var quantos=agEhCelular()?1:2;      // no celular a altura é o recurso mais escasso
+    var chips=sh.slice(0,quantos).map(function(ev){
       var tar=agEhTarefa(ev), feita=!!ev.feita_em;
       return '<div class="ag-chip'+(ev.meu_status==="aguardando"?" pend":"")+(tar?" tarefa":"")+(tar&&feita?" feita":"")+
         '" data-agabrir="'+ev.id+'" data-agdia="'+k+'" title="'+agEsc(ev.titulo)+'">'+
         (ev.meu_status==="aguardando"?'⏳ ':'')+(tar?(feita?'☑ ':'☐ '):'')+agEsc(ev.titulo)+'</div>';
     }).join("");
-    var mais=sh.length>2?('<div class="ag-mais" data-agtodos="'+k+'" data-agdia="'+k+'">+'+(sh.length-2)+' mais</div>'):'';
+    var mais=sh.length>quantos?('<div class="ag-mais" data-agtodos="'+k+'" data-agdia="'+k+'">+'+(sh.length-quantos)+' mais</div>'):'';
     return '<div class="ag-sem-td-cel'+(k===hoje?" hoje":"")+'" data-agdia="'+k+'">'+chips+mais+'</div>';
   }).join("");
   var corpo=document.getElementById("agSemCorpo");
@@ -6592,7 +6679,9 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
   function agAnda(passo){
     if(agEhSemana()){
       agSemRolar=true;                       // semana nova: reposiciona a rolagem
-      agSel=agSomaDias(agDiasDaSemana()[0], passo*AG_SEM_DIAS);
+      // a seta anda exatamente o tamanho da janela: 3 dias anda 3, 5 anda 5, 7 anda 7
+      agSemIni=agSomaDias(agDiasDaSemana()[0], passo*agDiasVisiveis());
+      agSel=agSemIni;
       var d=agParse(agSel); agAno=d.getFullYear(); agMes=d.getMonth();
       agAbertoId=null; agVerTodos=false; agEditId=null; agRespId=null; agConvSel=[];
     } else {
@@ -6606,8 +6695,18 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
   var nx=document.getElementById("agNext"); if(nx) nx.addEventListener("click",function(){ agAnda(1); });
   var hj=document.getElementById("agHoje"); if(hj) hj.addEventListener("click",function(){
     var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate());
-    agSemRolar=true;
+    agSemRolar=true; agSemIni=null;          // a janela volta a nascer em hoje
     agAbertoId=null; agVerTodos=false; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad();
+  });
+  /* ==AGRESP== girar o celular ou mudar a janela troca 3<->5<->7. Só reage quando a
+     QUANTIDADE muda de verdade — e o cache decide se isso vira pergunta ao banco. */
+  var agDiasAnt=agDiasVisiveis();
+  window.addEventListener("resize", function(){
+    var n=agDiasVisiveis();
+    if(n===agDiasAnt) return;
+    agDiasAnt=n; agSemIni=null; agSemRolar=true;
+    var pg=document.getElementById("page-agenda");
+    if(pg && pg.classList.contains("ativo")) agCloudLoad();
   });
   var vw=document.getElementById("agVisoes"); if(vw) vw.addEventListener("click",function(e){
     var b=e.target.closest("[data-agvisao]"); if(!b) return;
