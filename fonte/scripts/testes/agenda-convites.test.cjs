@@ -194,8 +194,17 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /coalesce\(nullif\(btrim\(p\.nome\),''\), 'Sem nome'\)/.test(T) && /p\.email/.test(T) === false, "true");
   eq("57) convidar exige ser da casa e ter a página",
      /create policy agenda_conv_ins[\s\S]{0,300}public\.eh_da_casa\(\)[\s\S]{0,80}public\.pode_pagina\('agenda'\)/.test(T), "true");
-  eq("58) e só dá pra convidar gente da loja, aprovada",
-     /exists \(select 1 from public\.perfis alvo[\s\S]{0,200}alvo\.id = pessoa_id/.test(T), "true");
+  // A checagem "o convidado é da loja" NÃO pode morar dentro da regra: lá ela roda com
+  // a permissão de quem chama, e o funcionário comum não enxerga a ficha dos outros —
+  // foi assim que a tranca reprovou convite legítimo. Tem que ser função "por dentro".
+  const T2 = fs.readFileSync(path.join(RAIZ, "sql/agenda_trancar_c2.sql"), "utf8");
+  eq("58) só dá pra convidar gente da loja — e a checagem é 'por dentro'",
+     /function public\.agenda_convidavel\(p_pessoa uuid\)[\s\S]{0,200}security definer/.test(T2), "true");
+  eq("58b) e a regra chama a função, sem consultar perfis dentro dela",
+     /create policy agenda_conv_ins[\s\S]{0,400}public\.agenda_convidavel\(pessoa_id\)/.test(T2)
+     && /create policy agenda_conv_ins[\s\S]{0,400}from public\.perfis/.test(T2) === false, "true");
+  eq("58c) e a tranca antiga avisa que sozinha quebra o convite",
+     /RODE TAMBÉM sql\/agenda_trancar_c2\.sql/.test(T), "true");
   eq("59) 'dono' virou só 'de quem é', sem o criado_por",
      /where e\.id = p_evento and e\.para_id = auth\.uid\(\)\);/.test(T), "true");
   eq("60) e a resposta do convite é só do convidado",
