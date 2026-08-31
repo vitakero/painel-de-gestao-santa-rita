@@ -863,6 +863,40 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
                  transform:translateY(-6px); }
   .ag-sem-hora.topo { transform:none; padding-top:2px; }
 
+  /* ==AGSEMBLOCO== OS COMPROMISSOS NA GRADE.
+     A camada dos blocos fica POR CIMA das linhas de hora, com as mesmas colunas. As linhas
+     são só a régua; o que se clica é o bloco. Por isso a camada não recebe clique
+     (pointer-events:none) e só o bloco recebe: clicar no vazio da grade não faz nada. */
+  .ag-sem-corpo { position:relative; }
+  .ag-sem-blocos { position:absolute; left:0; right:0; top:0; bottom:0; pointer-events:none;
+      display:grid; grid-template-columns: var(--ag-gut) repeat(var(--ag-dias), minmax(0,1fr)); }
+  .ag-sem-col { position:relative; }
+  .ag-bl { position:absolute; box-sizing:border-box; pointer-events:auto; cursor:pointer;
+           overflow:hidden; border-radius:5px; padding:1px 5px 1px 4px; font-size:10.5px;
+           line-height:1.24; border-left:3px solid; background:#e6f0fb; color:#1b4f86;
+           border-left-color:#1b4f86; }
+  .ag-bl:hover { filter:brightness(.95); }
+  .ag-bl-hora { font-weight:700; display:block; }
+  .ag-bl-tit { display:block; word-break:break-word; }
+  .ag-bl-quem { display:block; opacity:.75; }
+  /* bloco curto (30 min ou menos): hora e título na MESMA linha, senão não cabe nada */
+  .ag-bl.curto { display:flex; gap:4px; align-items:baseline; white-space:nowrap; padding-top:0; }
+  .ag-bl.curto .ag-bl-hora, .ag-bl.curto .ag-bl-tit { display:inline; }
+  .ag-bl.curto .ag-bl-tit { overflow:hidden; text-overflow:ellipsis; }
+  /* coluna estreita (3+ ao mesmo tempo): corta com reticências em vez de partir palavra */
+  .ag-bl.estreito { font-size:9.5px; padding:1px 3px 1px 3px; border-left-width:2px; }
+  .ag-bl.estreito .ag-bl-hora, .ag-bl.estreito .ag-bl-tit {
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* as MESMAS cores do mês — nada de semântica nova */
+  .ag-bl.pend { background:#fdf3e3; color:#8a5a00; border-left-color:#8a5a00; }
+  .ag-bl.tarefa { background:#efe9fb; color:#4b3b86; border-left-color:#4b3b86; }
+  .ag-bl.tarefa.feita { background:#eef1f4; color:#8a97a8; border-left-color:#c3ccd6; }
+  .ag-bl.tarefa.feita .ag-bl-tit { text-decoration:line-through; }
+  /* a faixa "Sem hora" reaproveita o chip do mês, numa linha só */
+  .ag-sem-td-cel { padding:2px 3px 3px; }
+  .ag-sem-td-cel .ag-chip { -webkit-line-clamp:1; margin-top:2px; }
+  .ag-sem-td-cel .ag-mais { margin-left:3px; }
+
   /* ==AGCRIAR== o botão e o menuzinho — cabem na linha que as setas já ocupam (34px),
      então não custam nenhuma altura da grade */
   .ag-criar-wrap { position:relative; display:inline-flex; }
@@ -5523,7 +5557,19 @@ function agOcorreFaixa(ev, ini, fim){
   }
   return out;
 }
-function agFindEv(id){ var e=null; (agEventos[agSel]||[]).forEach(function(x){ if(x.id===id) e=x; }); return e; }
+/* ==AGACHAEV== ACHAR O COMPROMISSO SEM DEPENDER DO DIA ABERTO.
+   Antes eu só procurava no dia selecionado. Na semana o clique vem de um bloco que pode
+   estar em OUTRO dia da mesma tela — e o compromisso "não existia". Procuro primeiro no
+   dia aberto (é o caso comum e o mais barato) e, se não achar, em tudo que já foi lido. */
+function agFindEv(id){
+  var e=null;
+  (agEventos[agSel]||[]).forEach(function(x){ if(x.id===id) e=x; });
+  if(e) return e;
+  Object.keys(agEventos).forEach(function(k){
+    (agEventos[k]||[]).forEach(function(x){ if(!e && x.id===id) e=x; });
+  });
+  return e;
+}
 
 /* ---------------- gente pra convidar (setor + nome) ---------------- */
 function agPessoasLoad(){
@@ -5556,7 +5602,22 @@ function agSemColunaFim(e){
    a ele em vez de espalhar "if(semana)" por toda parte. O Mês continua sendo o padrão. */
 var agVisao="mes";
 var AG_SEM_DIAS=7;                 // quantos dias a semana mostra (o celular vai mexer aqui)
-var AG_SEM_DE=6, AG_SEM_ATE=22;    // faixa de horas desenhada: 06:00 às 22:00, com rolagem
+/* ==AGSEMESCALA== A ESCALA, NUM LUGAR SÓ.
+   Tudo o que vira pixel na semana sai daqui. Espalhar conta pelo desenho é como o bloco
+   de 30 min acaba com altura diferente do de 1 h dividido por dois.
+   A faixa vai de 00:00 a 23:00 de propósito: o seletor de hora aceita o dia inteiro, e um
+   compromisso às 05:00 ou às 23:30 NÃO pode sumir da tela. O que resolve o "não quero abrir
+   olhando pras 5 da manhã" é a ROLAGEM INICIAL (agSemRolaAlvo), não cortar o dia. */
+var AG_SEM_DE=0, AG_SEM_ATE=23;    // o dia inteiro; a rolagem é que começa no horário útil
+var AG_SEM_PXH=44;                 // 1 hora = 44px. É o mesmo número do --ag-h do CSS (há teste)
+var AG_SEM_PADRAO_MIN=30;          // sem hora de terminar: vale 30 minutos
+var AG_SEM_MIN_PX=20;              // altura mínima pra caber uma linha de texto legível
+var AG_SEM_ROLA_H=7;               // semana que não é a de hoje abre perto das 07:00
+var agSemRolar=true;               // pedir rolagem inicial na próxima pintura da semana
+// minutos desde a meia-noite. Sem regex de propósito: barra invertida some na geração.
+function agMinutos(hhmm){ var p=String(hhmm||"").split(":"); return (+p[0]||0)*60 + (+p[1]||0); }
+// A ÚNICA conversão de minuto para pixel do módulo.
+function agPx(minutos){ return minutos * (AG_SEM_PXH/60); }
 function agEhSemana(){ return agVisao==="semana"; }
 // O domingo da semana em que a data cai (a grade é DOM..SÁB, igual à do mês).
 function agDomingoDe(iso){
@@ -5633,7 +5694,7 @@ function agTerminar(seq,faixa,rows,erro,deFundo){
 }
 function agCloudLoad(deFundo){
   var sb=agSB(), uid=agUid();
-  if(!sb||!uid){ agRenderMes(); agRenderDia(deFundo); return; }
+  if(!sb||!uid){ agDesenha(); agRenderDia(deFundo); return; }
   var seq=++agReqSeq;
   var _f=agFaixaAtual(), ini=_f.ini, fim=_f.fim;
   var _q=agAlvoPedido(), alvo=_q.alvo, setor=_q.setor;
@@ -5726,6 +5787,81 @@ function agTituloSemana(dias){
   if(a[0]===b[0]) return +a[2]+" "+mA+" – "+(+b[2])+" "+mB+" "+a[0];                             // vira o mês
   return +a[2]+" "+mA+" "+a[0]+" – "+(+b[2])+" "+mB+" "+b[0];                                    // vira o ano
 }
+/* ==AGSEMOCOR== UMA OCORRÊNCIA NÃO É O EVENTO.
+   Uma série que repete é UMA linha no banco que aparece em vários dias. Se eu guardasse a
+   posição dentro do objeto do evento, a ocorrência de quarta sobrescreveria a de segunda e
+   as duas apareceriam no mesmo lugar. Por isso a posição mora num objeto SÓ DE DESENHO,
+   que apenas APONTA para o evento. O objeto do evento nunca é tocado. */
+function agOcorrencias(dia){
+  var out=[];
+  (agEventos[dia]||[]).forEach(function(ev){
+    if(!ev.hora) return;                              // sem hora vai pra faixa de cima
+    var ini=agMinutos(ev.hora);
+    var fim=ev.hora_fim?agMinutos(ev.hora_fim):(ini+AG_SEM_PADRAO_MIN);
+    if(fim<=ini) fim=ini+AG_SEM_PADRAO_MIN;           // fim antes do começo: trata como padrão
+    out.push({ ev:ev, dia:dia, ini:ini, fim:fim, col:0, cols:1 });
+  });
+  return out;
+}
+/* ==AGSEMLADO== DOIS COMPROMISSOS NA MESMA HORA FICAM LADO A LADO.
+   Quem termina exatamente quando o outro começa (08–09 e 09–10) NÃO se cruza: podem usar
+   a mesma coluna. Só quem se sobrepõe de verdade é que divide a largura. */
+function agEmpilha(ocs){
+  ocs.sort(function(a,b){
+    if(a.ini!==b.ini) return a.ini-b.ini;                        // 1) por hora de início
+    var da=a.fim-a.ini, db=b.fim-b.ini;
+    if(da!==db) return db-da;                                    // 2) empate: o mais longo primeiro
+    return String(a.ev.id)<String(b.ev.id)?-1:1;                 // 3) empate total: id, pra não dançar
+  });
+  var grupo=[], fimGrupo=null;
+  function fecha(){
+    if(!grupo.length) return;
+    var colunas=[];                                              // 5) distribui em colunas internas
+    grupo.forEach(function(o){
+      var i=0;
+      while(i<colunas.length && colunas[i]>o.ini) i++;           // cabe na 1a coluna já livre
+      if(i===colunas.length) colunas.push(0);
+      colunas[i]=o.fim; o.col=i;
+    });
+    grupo.forEach(function(o){ o.cols=colunas.length; });         // 6) largura dividida no grupo
+    grupo=[]; fimGrupo=null;
+  }
+  ocs.forEach(function(o){
+    if(grupo.length && fimGrupo!==null && o.ini>=fimGrupo) fecha();   // 4) grupo = quem se cruza
+    grupo.push(o);
+    fimGrupo=(fimGrupo===null)?o.fim:Math.max(fimGrupo,o.fim);
+  });
+  fecha();
+  return ocs;
+}
+// O bloco: posição = hora de início, altura = duração. Nada de conta nova aqui dentro.
+function agBlocoHtml(o){
+  var ev=o.ev, tar=agEhTarefa(ev), feita=!!ev.feita_em, pend=(ev.meu_status==="aguardando");
+  var alt=Math.max(AG_SEM_MIN_PX, agPx(o.fim-o.ini));
+  var topo=agPx(o.ini - AG_SEM_DE*60);
+  var larg=100/o.cols, esq=o.col*larg;
+  var curto=alt<34;                                   // 30 min ou menos: só o essencial numa linha
+  /* 3 ou mais ao mesmo tempo deixam a coluna com ~36px. Aí o texto quebrava no MEIO da
+     palavra ("Reunia / o de diretori / a") e não se lia nada. Bloco estreito: fonte menor,
+     uma linha por vez e reticências. O nome inteiro continua no balãozinho do mouse. */
+  var estreito=o.cols>=3;
+  var hora=agFmtHora(ev.hora)+(ev.hora_fim?("–"+agFmtHora(ev.hora_fim)):"");
+  var marca=(pend?"⏳ ":"")+(tar?(feita?"☑ ":"☐ "):"")+((!curto&&!estreito&&agRepete(ev))?"🔁 ":"");
+  var quem=(!curto&&!estreito&&agVerSetor&&ev.dono_nome)?('<span class="ag-bl-quem">'+agEsc(String(ev.dono_nome).split(" ")[0])+'</span>'):'';
+  return '<div class="ag-bl'+(pend?" pend":"")+(tar?" tarefa":"")+(tar&&feita?" feita":"")+(curto?" curto":"")+(estreito?" estreito":"")+
+    '" style="top:'+topo+'px;height:'+alt+'px;left:calc('+esq+'% + 2px);width:calc('+larg+'% - 5px);"'+
+    ' data-agabrir="'+ev.id+'" data-agdia="'+o.dia+'" title="'+agEsc(hora+" "+ev.titulo)+'">'+
+    '<span class="ag-bl-hora">'+agEsc(marca)+agFmtHora(ev.hora)+'</span>'+
+    '<span class="ag-bl-tit">'+agEsc(ev.titulo)+'</span>'+quem+'</div>';
+}
+/* Onde a semana abre a rolagem. Não corto o dia — só escolho por onde começar a olhar. */
+function agSemRolaAlvo(dias){
+  if(dias.indexOf(agHojeISO())>=0){
+    var h=new Date();
+    return Math.max(0, h.getHours()*60 + h.getMinutes() - 60);   // uma hora de contexto acima
+  }
+  return AG_SEM_ROLA_H*60;
+}
 function agRenderSemana(){
   var dias=agDiasDaSemana(), hoje=agHojeISO();
   var tit=document.getElementById("agTitulo"); if(tit) tit.textContent=agTituloSemana(dias);
@@ -5736,9 +5872,20 @@ function agRenderSemana(){
            '<div class="ag-sem-dow">'+AG_DOW_CURTO[dw]+'</div>'+
            '<div class="ag-sem-num">'+(+p[2])+'</div></div>';
   }).join("");
+  /* A FAIXA "SEM HORA": compromisso e tarefa que não têm horário. Não invento 06:00 pra
+     eles — quem não marcou hora não quis marcar hora. Mostra 2 e resume o resto, senão a
+     faixa come metade da tela. O "+N mais" abre a lista do dia, igual à do mês. */
   var td=document.getElementById("agSemTodoDia");
   if(td) td.innerHTML='<div class="ag-sem-td-rot">Sem hora</div>'+dias.map(function(k){
-    return '<div class="ag-sem-td-cel" data-agdia="'+k+'"></div>';
+    var sh=(agEventos[k]||[]).filter(function(ev){ return !ev.hora; });
+    var chips=sh.slice(0,2).map(function(ev){
+      var tar=agEhTarefa(ev), feita=!!ev.feita_em;
+      return '<div class="ag-chip'+(ev.meu_status==="aguardando"?" pend":"")+(tar?" tarefa":"")+(tar&&feita?" feita":"")+
+        '" data-agabrir="'+ev.id+'" data-agdia="'+k+'" title="'+agEsc(ev.titulo)+'">'+
+        (ev.meu_status==="aguardando"?'⏳ ':'')+(tar?(feita?'☑ ':'☐ '):'')+agEsc(ev.titulo)+'</div>';
+    }).join("");
+    var mais=sh.length>2?('<div class="ag-mais" data-agtodos="'+k+'" data-agdia="'+k+'">+'+(sh.length-2)+' mais</div>'):'';
+    return '<div class="ag-sem-td-cel" data-agdia="'+k+'">'+chips+mais+'</div>';
   }).join("");
   var corpo=document.getElementById("agSemCorpo");
   if(corpo){
@@ -5747,16 +5894,29 @@ function agRenderSemana(){
       var hh=("0"+h).slice(-2)+":00";
       // a etiqueta marca a LINHA de cima da faixa, então ela sobe 6px; na primeira faixa
       // isso a jogaria pra debaixo do cabeçalho e o dia pareceria começar às 07:00
+      // a célula de hora NÃO leva data: clicar no vazio da grade não cria nada (fora do escopo)
       linhas+='<div class="ag-sem-linha"><div class="ag-sem-hora'+(h===AG_SEM_DE?" topo":"")+'">'+hh+'</div>'+
-        dias.map(function(k){ return '<div class="ag-sem-cel'+(k===hoje?" hoje":"")+'" data-agdia="'+k+'"></div>'; }).join("")+
+        dias.map(function(k){ return '<div class="ag-sem-cel'+(k===hoje?" hoje":"")+'"></div>'; }).join("")+
         '</div>';
     }
-    corpo.innerHTML=linhas;
+    /* OS BLOCOS ficam numa camada por cima das linhas, uma coluna por dia. As linhas são só
+       o fundo (a régua de horas); quem carrega o compromisso é esta camada. */
+    var blocos='<div class="ag-sem-blocos"><div class="ag-sem-bl-calha"></div>'+dias.map(function(k){
+      return '<div class="ag-sem-col">'+agEmpilha(agOcorrencias(k)).map(agBlocoHtml).join("")+'</div>';
+    }).join("")+'</div>';
+    corpo.innerHTML='<div class="ag-sem-linhas">'+linhas+'</div>'+blocos;
+  }
+  // rolagem inicial: só quando a semana MUDOU, senão eu atropelaria a rolagem do usuário
+  if(agSemRolar){
+    agSemRolar=false;
+    var cx=document.getElementById("agSem");
+    if(cx) cx.scrollTop=Math.max(0, agPx(agSemRolaAlvo(dias) - AG_SEM_DE*60));
   }
 }
 // Mostra a grade certa e marca o botão certo. Um lugar só.
 function agTrocaVisao(qual){
   agVisao=(qual==="semana")?"semana":"mes";
+  agSemRolar=true;                           // entrando na semana, começa no horário útil
   if(!agSel) agSel=agHojeISO();
   var cal=document.querySelector(".ag-cal"), sem=document.getElementById("agSem");
   if(cal) cal.style.display=agEhSemana()?"none":"";
@@ -6068,7 +6228,7 @@ function agJanAbre(tipo){
 function agJanFecha(){
   agJanAberta=false; agAbertoId=null; agVerTodos=false; agEditId=null; agRespId=null; agConvSel=[];
   var j=agJanela(); if(j) j.classList.remove("abre");
-  agRenderMes();
+  agDesenha();
 }
 // A faixa de cima (avisos e a barra do master) fica FORA da janela: ela vale pro mês.
 function agRenderFaixa(){
@@ -6288,6 +6448,7 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
      escolhido, para o resto do módulo continuar coerente. */
   function agAnda(passo){
     if(agEhSemana()){
+      agSemRolar=true;                       // semana nova: reposiciona a rolagem
       agSel=agSomaDias(agDiasDaSemana()[0], passo*AG_SEM_DIAS);
       var d=agParse(agSel); agAno=d.getFullYear(); agMes=d.getMonth();
       agAbertoId=null; agVerTodos=false; agEditId=null; agRespId=null; agConvSel=[];
@@ -6302,12 +6463,27 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
   var nx=document.getElementById("agNext"); if(nx) nx.addEventListener("click",function(){ agAnda(1); });
   var hj=document.getElementById("agHoje"); if(hj) hj.addEventListener("click",function(){
     var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate());
+    agSemRolar=true;
     agAbertoId=null; agVerTodos=false; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad();
   });
   var vw=document.getElementById("agVisoes"); if(vw) vw.addEventListener("click",function(e){
     var b=e.target.closest("[data-agvisao]"); if(!b) return;
     if(b.getAttribute("data-agvisao")===agVisao) return;
     agTrocaVisao(b.getAttribute("data-agvisao"));
+  });
+  /* ==AGSEMCLIQUE== O CLIQUE NA SEMANA usa a MESMA janela do mês. Não existe modal semanal.
+     O bloco carrega o PRÓPRIO dia (data-agdia): clicar numa ocorrência de quinta com
+     segunda selecionada leva o agSel pra quinta, e não pro dia que estava aberto. */
+  var sem=document.getElementById("agSem"); if(sem) sem.addEventListener("click",function(e){
+    var chip=e.target.closest("[data-agabrir]");
+    var todos=e.target.closest("[data-agtodos]");
+    var c=e.target.closest("[data-agdia]"); if(!c) return;
+    agSel=c.getAttribute("data-agdia"); agEditId=null; agRespId=null; agConvSel=[];
+    agAbertoId = chip ? chip.getAttribute("data-agabrir") : null;
+    agVerTodos = !!todos;
+    if(agVendoOutro() && !chip && !todos){ agDesenha(); agRenderDia(); return; }
+    if(!chip && !todos) agTipoNovo="evento";
+    agDesenha(); agJanAbre();
   });
   var dias=document.getElementById("agDias"); if(dias) dias.addEventListener("click",function(e){
     var chip=e.target.closest("[data-agabrir]");
@@ -6316,9 +6492,9 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
     agSel=c.getAttribute("data-agdia"); agEditId=null; agRespId=null; agConvSel=[];
     agAbertoId = chip ? chip.getAttribute("data-agabrir") : null;   // clicou no compromisso -> abre ele
     agVerTodos = !!todos;                                          // clicou no "+N mais" -> lista daquele dia
-    if(agVendoOutro() && !chip && !todos){ agRenderMes(); agRenderDia(); return; }  // só olhando: não abre formulário
+    if(agVendoOutro() && !chip && !todos){ agDesenha(); agRenderDia(); return; }  // só olhando: não abre formulário
     if(!chip && !todos) agTipoNovo="evento";   // clicou no dia vazio -> evento novo naquele dia
-    agRenderMes(); agJanAbre();
+    agDesenha(); agJanAbre();
   });
   /* ==AGCRIAR== o menuzinho do "Criar" */
   var cr=document.getElementById("agCriar"), crm=document.getElementById("agCriarMenu");

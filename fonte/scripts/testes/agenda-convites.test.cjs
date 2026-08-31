@@ -454,7 +454,9 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /id="agSemCab"/.test(H) && /id="agSemTodoDia"/.test(H) && /id="agSemCorpo"/.test(H), "true");
   eq("113c) as três fileiras dividem as MESMAS colunas (calha + 7 dias)",
      /grid-template-columns: var\(--ag-gut\) repeat\(var\(--ag-dias\), minmax\(0,1fr\)\)/.test(H), "true");
-  eq("113d) o dia começa às 6 e termina às 22", /var AG_SEM_DE=6, AG_SEM_ATE=22;/.test(H), "true");
+  // ETAPA E: a grade passou a cobrir o dia inteiro. Cortar em 06–22 sumia com o
+  // recebimento das 04:30 e o fechamento das 23:00, que o seletor de hora aceita.
+  eq("113d) a grade cobre o dia inteiro", /var AG_SEM_DE=0, AG_SEM_ATE=23;/.test(H), "true");
   // quem rola é a caixa inteira: é isso que impede o cabeçalho de sair do lugar
   eq("113e) quem rola é a caixa toda", /\.ag-sem \{[^}]*overflow-y:auto/.test(H), "true");
   eq("113f) o cabeçalho fica grudado no topo",
@@ -477,6 +479,110 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /\.ag-sem \{ display:none;/.test(H) && /\.ag-sem\.mostra \{ display:block; \}/.test(H), "true");
   eq("114b) e o CSS da Semana nunca toca nas células do Mês",
      /\.ag-sem[^\n]*\.ag-cel/.test(H), "false");
+}
+
+
+// ------------------------------------------------ ETAPA E: os compromissos desenhados na semana
+{
+  // ESCALA ÚNICA. Espalhar conta pelo desenho é como o bloco de 30 min sai com altura
+  // diferente do de 1 h dividido por dois.
+  eq("115) existe uma escala só, e uma conversão só de minuto pra pixel",
+     /var AG_SEM_PXH=44;/.test(H) && /function agPx\(minutos\)\{ return minutos \* \(AG_SEM_PXH\/60\); \}/.test(H), "true");
+  eq("115b) o CSS usa o MESMO número da escala (senão a régua e os blocos brigam)",
+     /--ag-h:44px/.test(H), "true");
+  eq("115c) e a posição sai da mesma conta",
+     /var topo=agPx\(o\.ini - AG_SEM_DE\*60\);/.test(H), "true");
+  eq("115d) a altura também, com um piso pra caber texto",
+     /var alt=Math\.max\(AG_SEM_MIN_PX, agPx\(o\.fim-o\.ini\)\);/.test(H), "true");
+
+  // DURAÇÃO: sem hora de terminar vale 30 min — e continua parecendo compromisso com hora
+  eq("116) sem hora de fim, a duração padrão é 30 minutos",
+     /var AG_SEM_PADRAO_MIN=30;/.test(H) &&
+     /var fim=ev\.hora_fim\?agMinutos\(ev\.hora_fim\):\(ini\+AG_SEM_PADRAO_MIN\);/.test(H), "true");
+  eq("116b) hora de fim antes do começo não vira bloco negativo",
+     /if\(fim<=ini\) fim=ini\+AG_SEM_PADRAO_MIN;/.test(H), "true");
+
+  // RECORRÊNCIA: a posição NÃO pode morar no objeto do evento
+  eq("117) a ocorrência é um objeto de desenho separado, que só aponta pro evento",
+     /out\.push\(\{ ev:ev, dia:dia, ini:ini, fim:fim, col:0, cols:1 \}\);/.test(H), "true");
+  eq("117b) e nada é gravado de volta no evento",
+     /ev\.(top|col|cols|ini|fim)\s*=/.test(H), "false");
+
+  // SOBREPOSIÇÃO: as 6 etapas aprovadas na inspeção
+  eq("118) ordena por início; empate, o mais longo; empate total, id",
+     /if\(a\.ini!==b\.ini\) return a\.ini-b\.ini;/.test(H) &&
+     /if\(da!==db\) return db-da;/.test(H) &&
+     /return String\(a\.ev\.id\)<String\(b\.ev\.id\)\?-1:1;/.test(H), "true");
+  eq("118b) agrupa quem se cruza — quem começa quando o outro acaba NÃO se cruza",
+     /if\(grupo\.length && fimGrupo!==null && o\.ini>=fimGrupo\) fecha\(\);/.test(H), "true");
+  eq("118c) distribui em colunas internas, na primeira que já está livre",
+     /while\(i<colunas\.length && colunas\[i\]>o\.ini\) i\+\+;/.test(H), "true");
+  eq("118d) e divide a largura entre as colunas do grupo",
+     /grupo\.forEach\(function\(o\)\{ o\.cols=colunas\.length; \}\);/.test(H), "true");
+  eq("118e) com uma folga entre os blocos vizinhos",
+     /width:calc\('\+larg\+'% - 5px\)/.test(H), "true");
+
+  // SEM HORA: não inventar 06:00 pra quem não marcou hora
+  eq("119) quem não tem hora fica fora da grade",
+     /if\(!ev\.hora\) return;/.test(H), "true");
+  eq("119b) e vai pra faixa Sem hora",
+     /var sh=\(agEventos\[k\]\|\|\[\]\)\.filter\(function\(ev\)\{ return !ev\.hora; \}\);/.test(H), "true");
+  eq("119c) mostrando 2 e resumindo o resto, pra faixa não comer a tela",
+     /var mais=sh\.length>2\?\('<div class="ag-mais" data-agtodos="'\+k\+'"/.test(H), "true");
+
+  // TAREFA: sem cor nova, o mesmo sistema do mês
+  eq("120) o bloco reaproveita as cores do mês (evento, pendente, tarefa, tarefa feita)",
+     /\.ag-bl \{[\s\S]{0,400}background:#e6f0fb; color:#1b4f86;/.test(H) &&
+     /\.ag-bl\.pend \{ background:#fdf3e3; color:#8a5a00;/.test(H) &&
+     /\.ag-bl\.tarefa \{ background:#efe9fb; color:#4b3b86;/.test(H) &&
+     /\.ag-bl\.tarefa\.feita \{ background:#eef1f4; color:#8a97a8;/.test(H), "true");
+  eq("120b) tarefa feita continua riscada",
+     /\.ag-bl\.tarefa\.feita \.ag-bl-tit \{ text-decoration:line-through; \}/.test(H), "true");
+  eq("120c) e com a caixinha ☐ / ☑ do mês",
+     /\(tar\?\(feita\?"☑ ":"☐ "\):""\)/.test(H), "true");
+  eq("120c2) 3 ao mesmo tempo deixam a coluna estreita: corta com reticências, não parte palavra",
+     /var estreito=o\.cols>=3;/.test(H) &&
+     /\.ag-bl\.estreito \.ag-bl-hora, \.ag-bl\.estreito \.ag-bl-tit \{\s*\n\s*white-space:nowrap; overflow:hidden; text-overflow:ellipsis; \}/.test(H), "true");
+  eq("120d) bloco curto mostra só o essencial",
+     /var curto=alt<34;/.test(H) && /\.ag-bl\.curto \{ display:flex;/.test(H), "true");
+
+  // CLIQUE: a mesma janela, e o dia da OCORRÊNCIA
+  eq("121) o bloco carrega o próprio dia",
+     /data-agabrir="'\+ev\.id\+'" data-agdia="'\+o\.dia\+'"/.test(H), "true");
+  eq("121b) e o clique da semana leva o dia selecionado pra ele",
+     /var sem=document\.getElementById\("agSem"\); if\(sem\) sem\.addEventListener\("click"/.test(H), "true");
+  eq("121c) sem inventar janela semanal — é a mesma agJanAbre",
+     /agDesenha\(\); agJanAbre\(\);[\s\S]{0,60}\}\);\s*\n\s*var dias=document\.getElementById\("agDias"\)/.test(H), "true");
+  eq("121d) achar o compromisso não depende mais do dia aberto",
+     /function agFindEv\(id\)\{[\s\S]{0,400}Object\.keys\(agEventos\)\.forEach/.test(H), "true");
+  eq("121e) clicar no vazio da grade não cria nada (a célula de hora não leva data)",
+     /return '<div class="ag-sem-cel'\+\(k===hoje\?" hoje":""\)\+'"><\/div>';/.test(H), "true");
+  eq("121f) quem redesenha depois do clique respeita a visão",
+     /agRenderMes\(\); agJanAbre\(\)/.test(H), "false");
+
+  // FORA DO HORÁRIO COMERCIAL: não sumir com ninguém
+  eq("122) nenhum compromisso é cortado: a rolagem é que começa no horário útil",
+     /function agSemRolaAlvo\(dias\)\{/.test(H) && /var AG_SEM_ROLA_H=7;/.test(H), "true");
+  eq("122b) e a rolagem só se reposiciona quando a semana muda",
+     /if\(agSemRolar\)\{\s*\n\s*agSemRolar=false;/.test(H), "true");
+
+  // CONSUMO: desenhar é local
+  eq("123) desenhar a semana não fala com o banco",
+     /function agRenderSemana\(\)\{[\s\S]*?\n\}/.test(H) &&
+     /function agRenderSemana\(\)\{[\s\S]*?\n\}/.exec(H)[0].indexOf("sb.rpc") === -1, "true");
+  eq("123b) nem montar as ocorrências ou calcular a sobreposição",
+     /function agOcorrencias\(dia\)\{[\s\S]*?\n\}/.exec(H)[0].indexOf("rpc") === -1 &&
+     /function agEmpilha\(ocs\)\{[\s\S]*?\n\}/.exec(H)[0].indexOf("rpc") === -1, "true");
+}
+
+// ------------------------------- O MÊS APROVADO CONTINUA INTOCADO (Etapa E não pode arranhar)
+{
+  eq("124) nenhuma regra da Etapa E toca nas células do mês",
+     /\.ag-bl[^\n]*\.ag-cel|\.ag-sem-blocos[^\n]*#agDias/.test(H), "false");
+  eq("124b) o CSS do mês continua o aprovado",
+     /#agDias\.cal-grid \{ grid-auto-rows: var\(--ag-lin\); border:1px solid #e4e9ef; border-radius:10px; overflow:hidden; \}/.test(H), "true");
+  eq("124c) e a camada de blocos vive dentro da semana, não solta na página",
+     /\.ag-sem-blocos \{ position:absolute;/.test(H), "true");
 }
 
 console.log("\n" + (falhou ? "FALHOU: " + falhou + " de " + (ok + falhou) : "TUDO OK: " + ok + " testes") + "\n");
