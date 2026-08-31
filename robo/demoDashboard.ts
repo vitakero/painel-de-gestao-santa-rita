@@ -5490,6 +5490,32 @@ function agSemColunaFim(e){
   var m=String((e&&e.message)||"")+" "+String((e&&e.details)||"");
   return /hora_fim/.test(m) && /(column|coluna|schema cache|does not exist|não existe)/i.test(m);
 }
+/* ==AGFAIXA== QUAL PEDAÇO DO CALENDÁRIO A TELA PRECISA.
+   A função do banco agenda_mes(p_ini, p_fim, ...) sempre trabalhou por FAIXA de datas —
+   quem escolhia "um mês" era o navegador. Isolar essa escolha aqui é o que permite, mais
+   pra frente, a visão Semana pedir outra faixa sem mexer em mais nada da carga. Hoje só
+   existe a visão Mês, então devolve o mês inteiro: nada muda para o usuário. */
+function agFaixaAtual(){
+  var ult=new Date(agAno,agMes+1,0).getDate();
+  return { ini:agK(agAno,agMes,1), fim:agK(agAno,agMes,ult) };
+}
+
+/* ==AGCACHE== GUARDAR O QUE JÁ FOI LIDO.
+   A Agenda era o único módulo pesado sem isto: cada clique em "Agenda" no menu refazia a
+   leitura do mês inteiro. Segue o mesmo formato dos irmãos (clConfQuando na Central,
+   vsQuando na Venda por setor, entQuando nas Entregas) — 3 minutos, que é o da Central,
+   o irmão cujo dado muda com mais frequência.
+   A CHAVE INCLUI DE QUEM É A AGENDA de propósito: é requisito de segurança. Sem isso, o
+   master trocaria de pessoa e continuaria vendo o dado da anterior. */
+var AG_VALE_MS = 3*60*1000;
+var agCache = {};
+function agChaveCache(ini, fim, alvo, setor){
+  return ini + ".." + fim + " | " + (alvo || "eu") + " | " + (setor || "-");
+}
+// Qualquer coisa que mude o dado joga o guardado fora. Corretude antes de economia:
+// prefere-se reler do que mostrar dado velho.
+function agInvalidar(){ agCache = {}; }
+
 function agSemColunaTarefa(e){
   var m=String((e&&e.message)||"")+" "+String((e&&e.details)||"");
   // sem barra invertida aqui (some na geração): procuro os nomes das colunas direto
@@ -5514,8 +5540,13 @@ function agCloudLoad(deFundo){
   var sb=agSB(), uid=agUid();
   if(!sb||!uid){ agRenderMes(); agRenderDia(deFundo); return; }
   var seq=++agReqSeq, reqAno=agAno, reqMes=agMes;
-  var ini=agK(reqAno,reqMes,1), fim=agK(reqAno,reqMes,new Date(reqAno,reqMes+1,0).getDate());
+  var _f=agFaixaAtual(), ini=_f.ini, fim=_f.fim;
   var _q=agAlvoPedido(), alvo=_q.alvo, setor=_q.setor;
+  // já li esta faixa, para esta pessoa, faz pouco tempo? então não pergunto de novo
+  var chave=agChaveCache(ini,fim,alvo,setor), guardado=agCache[chave];
+  if(guardado && (Date.now()-guardado.quando) < AG_VALE_MS){
+    agTerminar(seq,reqAno,reqMes,guardado.linhas,false,deFundo); return;
+  }
   if(agParte2===false && !alvo && !setor){ agCloudLoadPessoal(seq,reqAno,reqMes,ini,fim,deFundo); return; }
   /* uma pergunta só pro mês inteiro: o evento + quem foi convidado + como cada um
      respondeu. A função devolve apenas as colunas que a tela desenha. */
@@ -5524,7 +5555,10 @@ function agCloudLoad(deFundo){
       if(agSemParte2(r.error)&&!alvo&&!setor){ agParte2=false; agCloudLoadPessoal(seq,reqAno,reqMes,ini,fim,deFundo); return; }
       agTerminar(seq,reqAno,reqMes,null,true,deFundo); return;
     }
-    agParte2=true; agTerminar(seq,reqAno,reqMes,(r&&r.data)||[],false,deFundo);
+    agParte2=true;
+    var linhas=(r&&r.data)||[];
+    agCache[chave]={quando:Date.now(), linhas:linhas};   // só guarda leitura que deu certo
+    agTerminar(seq,reqAno,reqMes,linhas,false,deFundo);
   },function(){ agTerminar(seq,reqAno,reqMes,null,true,deFundo); });
 }
 // Plano B: o painel novo com o banco AINDA no formato antigo (SQL dos convites não rodou).
@@ -5996,7 +6030,11 @@ function agSalvar(btn,id){
     q=sb.from("agenda_eventos").update(payload).eq("id",id).select();
   } else {
     if(rep&&rep!=="nao"){ payload.repete=rep; if(ate) payload.repete_ate=ate; } // insert de "não repete" não toca nas colunas novas
-    q=sb.from("agenda_eventos").insert(Object.assign({data:agSel},payload)).select();
+    /* ==AGDIA== O DIA VEM DO FORMULÁRIO, não do calendário. Até 31/08 o campo "Dia" era
+       lido e validado aqui em cima e depois JOGADO FORA: gravava-se sempre em agSel, o dia
+       que estava selecionado atrás da janela. Quem abrisse "Criar", trocasse o dia e
+       salvasse, via o compromisso cair no dia errado, sem aviso nenhum. */
+    q=sb.from("agenda_eventos").insert(Object.assign({data:diaBase},payload)).select();
   }
   q.then(function(r){
     if(r&&r.error&&agSemColunaTarefa(r.error)){
@@ -6011,23 +6049,26 @@ function agSalvar(btn,id){
       // o SQL da hora de terminar ainda não rodou: grava sem ela e esconde o campo
       agTemFim=false; delete payload.hora_fim;
       var q2 = id ? sb.from("agenda_eventos").update(payload).eq("id",id).select()
-                  : sb.from("agenda_eventos").insert(Object.assign({data:agSel},payload)).select();
+                  : sb.from("agenda_eventos").insert(Object.assign({data:diaBase},payload)).select();
       q2.then(function(r2){
         btn.disabled=false; agEditId=null; agConvSel=[]; agAbertoId=null; agVerTodos=false;
         if(r2&&r2.error){ eMsg("Não deu pra salvar. Tente de novo."); return; }
-        agCloudLoad();
+        agInvalidar(); agCloudLoad();
       },function(){ btn.disabled=false; eMsg("Falha de conexão. Tente de novo."); });
       return;
     }
     if(r&&r.error){ btn.disabled=false; eMsg("Não deu pra salvar. Tente de novo."); return; }
     if(r&&r.data&&r.data.length===0){ btn.disabled=false; eMsg("Não foi possível salvar (sem permissão)."); return; }  // 0 linhas = RLS barrou
     var evId=id||((r&&r.data&&r.data[0])?r.data[0].id:null);
-    if(dia&&evAntes&&dia!==evAntes.data){                       // o compromisso mudou de dia: leva a tela junto
-      var _d=agParse(dia); agAno=_d.getFullYear(); agMes=_d.getMonth(); agSel=dia;
+    /* mudou de dia (editando) ou nasceu em outro dia (criando): a tela vai junto, senão o
+       compromisso é gravado certo e some da vista de quem acabou de salvar */
+    var _destino = id ? ((dia&&evAntes&&dia!==evAntes.data)?dia:"") : ((diaBase&&diaBase!==agSel)?diaBase:"");
+    if(_destino){
+      var _d=agParse(_destino); agAno=_d.getFullYear(); agMes=_d.getMonth(); agSel=_destino;
     }
-    if(!evId||agParte2===false){ btn.disabled=false; agEditId=null; agConvSel=[]; agCloudLoad(); return; }
+    if(!evId||agParte2===false){ btn.disabled=false; agEditId=null; agConvSel=[]; agInvalidar(); agCloudLoad(); return; }
     agSyncConvidados(sb,evId,evAntes?evAntes.convidados:[]).then(function(){
-      btn.disabled=false; agJanFecha(); agCloudLoad(); agBadge();
+      btn.disabled=false; agJanFecha(); agInvalidar(); agCloudLoad(); agBadge();
     },function(e){
       /* O compromisso ficou salvo, só o convite falhou. O recado NÃO pode ir pro
          cantinho vermelho do formulário: o agCloudLoad redesenha o painel logo em
@@ -6036,7 +6077,7 @@ function agSalvar(btn,id){
       btn.disabled=false; agEditId=null; agConvSel=[];
       uiConfirm({titulo:"O convite não foi enviado",
                  msg:"O compromisso foi salvo, mas o convite não chegou a ninguém ("+((e&&e.message)||"falha")+"). Abra o compromisso em Editar e convide de novo.",
-                 ok:"Entendi", cancel:""}).then(function(){ agCloudLoad(); agBadge(); });
+                 ok:"Entendi", cancel:""}).then(function(){ agInvalidar(); agCloudLoad(); agBadge(); });
     });
   },function(){ btn.disabled=false; eMsg("Falha de conexão. Tente de novo."); });
 }
@@ -6052,7 +6093,7 @@ function agExcluir(id){
     sb.from("agenda_eventos").delete().eq("id",id).select().then(function(r){
       if(r&&r.error) return uiConfirm({titulo:"Não deu pra excluir",msg:"O banco recusou: "+(r.error.message||"tente de novo."),ok:"OK",cancel:""});
       if(r&&r.data&&r.data.length===0) return uiConfirm({titulo:"Não deu pra excluir",msg:"Este compromisso não é seu.",ok:"OK",cancel:""});
-      agJanFecha(); agCloudLoad(); agBadge();
+      agJanFecha(); agInvalidar(); agCloudLoad(); agBadge();
     },function(){ uiConfirm({titulo:"Falha de conexão",msg:"Não deu pra excluir agora. Tente de novo.",ok:"OK",cancel:""}); });
   });
 }
@@ -6060,7 +6101,7 @@ function agResponder(id,status,motivo,sugD,sugH,onErro){
   var sb=agSB(); if(!sb) return;
   sb.rpc("agenda_responder",{p_evento:id,p_status:status,p_motivo:motivo||null,p_sug_data:sugD||null,p_sug_hora:sugH||null}).then(function(r){
     if(r&&r.error){ if(onErro) onErro(r.error.message||"Não deu pra responder."); return; }
-    agRespId=null; agCloudLoad(); agBadge();
+    agRespId=null; agInvalidar(); agCloudLoad(); agBadge();
   },function(){ if(onErro) onErro("Falha de conexão. Tente de novo."); });
 }
 // Quem convidou aceita a data sugerida: o gatilho do banco devolve TODO MUNDO
@@ -6074,7 +6115,7 @@ function agRemarcar(id,d,h){
       // a nova data quase sempre cai em OUTRO mês: o calendário vai junto,
       // senão o compromisso "some" (o painel mostra um dia que a grade não desenha)
       var nd=agParse(d); agAno=nd.getFullYear(); agMes=nd.getMonth();
-      agSel=d; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); agBadge();
+      agSel=d; agEditId=null; agRespId=null; agConvSel=[]; agInvalidar(); agCloudLoad(); agBadge();
     },function(){ uiConfirm({titulo:"Falha de conexão",msg:"Não deu pra remarcar agora. Tente de novo.",ok:"OK",cancel:""}); });
   });
 }
@@ -6088,10 +6129,10 @@ function agFeita(id, btn){
     btn.disabled=false;
     if(r&&r.error) return uiConfirm({titulo:"Não deu pra marcar",msg:"O banco recusou: "+(r.error.message||"tente de novo."),ok:"OK",cancel:""});
     if(r&&r.data&&r.data.length===0) return uiConfirm({titulo:"Não deu pra marcar",msg:"Esta tarefa não é sua.",ok:"OK",cancel:""});
-    agCloudLoad();
+    agInvalidar(); agCloudLoad();
   },function(){ btn.disabled=false; uiConfirm({titulo:"Falha de conexão",msg:"Tente de novo.",ok:"OK",cancel:""}); });
 }
-function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; function rec(){ clearTimeout(deb); deb=setTimeout(function(){ agCloudLoad(true); agBadge(); },700); } agRT=sb.channel("agenda_sync").on("postgres_changes",{event:"*",schema:"public",table:"agenda_eventos"},rec).on("postgres_changes",{event:"*",schema:"public",table:"agenda_convidados"},rec).subscribe(); }catch(e){} }
+function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; function rec(){ clearTimeout(deb); deb=setTimeout(function(){ agInvalidar(); agCloudLoad(true); agBadge(); },700); } agRT=sb.channel("agenda_sync").on("postgres_changes",{event:"*",schema:"public",table:"agenda_eventos"},rec).on("postgres_changes",{event:"*",schema:"public",table:"agenda_convidados"},rec).subscribe(); }catch(e){} }
 
 (function(){
   function limpaVer(){ agSel=null; agEditId=null; agRespId=null; agConvSel=[]; agAbertoId=null; agVerTodos=false; }
@@ -6191,7 +6232,7 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
       }
       /* agSel NÃO se perde ao trocar de agenda: zerando o dia, a pessoa caía num
          painel "Escolha um dia no calendário" e o formulário sumia. */
-      if(e.target.closest("[data-agvoltarmeu]")){ agVerAlvo=null; agVerSetor=null; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); return; }
+      if(e.target.closest("[data-agvoltarmeu]")){ agVerAlvo=null; agVerSetor=null; agEditId=null; agRespId=null; agConvSel=[]; agInvalidar(); agCloudLoad(); return; }
       var fe=e.target.closest("[data-agfeita]"); if(fe){ agFeita(fe.getAttribute("data-agfeita"), fe); return; }
       var ir=e.target.closest("[data-agirconvite]");
       if(ir){ var _d=ir.getAttribute("data-agirconvite"), _p=agParse(_d);
@@ -6255,9 +6296,9 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
         return;
       }
       var vs=e.target.closest(".ag-v-setor");
-      if(vs){ agVerSetor=vs.value||null; agVerAlvo=null; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); return; }
+      if(vs){ agVerSetor=vs.value||null; agVerAlvo=null; agEditId=null; agRespId=null; agConvSel=[]; agInvalidar(); agCloudLoad(); return; }
       var vp=e.target.closest(".ag-v-pessoa");
-      if(vp){ agVerAlvo=vp.value||null; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); return; }
+      if(vp){ agVerAlvo=vp.value||null; agEditId=null; agRespId=null; agConvSel=[]; agInvalidar(); agCloudLoad(); return; }
     });
   }
   /* A barra do master e a faixa de convites saíram do painel e foram pro topo da página:
@@ -6266,16 +6307,16 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
   [fx,vb].forEach(function(el){
     if(!el) return;
     el.addEventListener("click",function(e){
-      if(e.target.closest("[data-agvoltarmeu]")){ agVerAlvo=null; agVerSetor=null; agJanFecha(); agCloudLoad(); return; }
+      if(e.target.closest("[data-agvoltarmeu]")){ agVerAlvo=null; agVerSetor=null; agJanFecha(); agInvalidar(); agCloudLoad(); return; }
       var ir=e.target.closest("[data-agirconvite]");
       if(ir){ var _d=ir.getAttribute("data-agirconvite"), _p=agParse(_d);
         agAno=_p.getFullYear(); agMes=_p.getMonth(); agSel=_d; agCloudLoad(); return; }
     });
     el.addEventListener("change",function(e){
       var vs=e.target.closest(".ag-v-setor");
-      if(vs){ agVerSetor=vs.value||null; agVerAlvo=null; agJanFecha(); agCloudLoad(); return; }
+      if(vs){ agVerSetor=vs.value||null; agVerAlvo=null; agJanFecha(); agInvalidar(); agCloudLoad(); return; }
       var vp=e.target.closest(".ag-v-pessoa");
-      if(vp){ agVerAlvo=vp.value||null; agJanFecha(); agCloudLoad(); return; }
+      if(vp){ agVerAlvo=vp.value||null; agJanFecha(); agInvalidar(); agCloudLoad(); return; }
     });
   });
   // clicar em qualquer outro lugar fecha a lista de horários

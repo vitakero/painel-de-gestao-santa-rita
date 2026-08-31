@@ -180,8 +180,10 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
   eq("48) e o desenho preso tem DUAS saídas (focusout e clique)",
      /pn\.addEventListener\("focusout",agSoltaDesenho\);\s*\n\s*document\.addEventListener\("click",agSoltaDesenho\);/.test(H), "true");
   eq("49) dá pra mudar o DIA sem apagar e refazer", /class="ag-f-dia"/.test(H), "true");
+  // (a checagem antiga olhava só a EDIÇÃO; desde a Etapa 0 a mesma linha cobre também a
+  //  CRIAÇÃO em outro dia — ver 105e)
   eq("50) e o calendário acompanha o dia novo",
-     /if\(dia&&evAntes&&dia!==evAntes\.data\)\{ *\/\/ o compromisso mudou de dia/.test(H), "true");
+     /var _destino = id \? \(\(dia&&evAntes&&dia!==evAntes\.data\)\?dia:""\)/.test(H), "true");
   eq("51) excluir série avisa que apaga TODAS as vezes",
      /Excluir apaga TODAS as vezes, inclusive as que já passaram/.test(H), "true");
   eq("52) excluir avisa quando o banco recusa", /titulo:"Não deu pra excluir"/.test(H), "true");
@@ -338,6 +340,64 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
   eq("63) e o filtro de dígitos chegou inteiro no navegador",
      /replace\(\/\[\^0-9\]\/g,""\); if\(!d\) return null;/.test(H), "true");
   eq("64) sem sobrar regex quebrada", /replace\(\/D\/g/.test(H), "false");
+}
+
+// ------------------------------------------------------------ ETAPA 0: o campo "Dia" na criação
+{
+  // 31/08/2026, achado na inspeção: ao CRIAR, o campo "Dia" era lido, validado e jogado
+  // fora — o insert gravava sempre em agSel, o dia que estava aberto atrás da janela.
+  // Quem trocasse o dia via o compromisso cair no dia errado, sem aviso. É erro de DADO.
+  eq("105) criar grava no dia do FORMULÁRIO, não no dia aberto",
+     /insert\(Object\.assign\(\{data:diaBase\},payload\)\)/.test(H), "true");
+  eq("105b) inclusive no caminho de reserva (quando falta a coluna nova)",
+     (H.match(/insert\(Object\.assign\(\{data:diaBase\},payload\)\)/g) || []).length, 2);
+  eq("105c) e não sobrou nenhum insert usando o dia aberto",
+     /insert\(Object\.assign\(\{data:agSel\}/.test(H), "false");
+  eq("105d) diaBase cai no dia aberto quando o formulário não tem campo de dia",
+     /var diaBase=dia\|\|agSel;/.test(H), "true");
+  // gravar certo e sumir da vista seria o mesmo susto de antes
+  eq("105e) criado em outro dia, o calendário vai junto",
+     /var _destino = id \? \(\(dia&&evAntes&&dia!==evAntes\.data\)\?dia:""\) : \(\(diaBase&&diaBase!==agSel\)\?diaBase:""\);/.test(H), "true");
+}
+
+// ------------------------------------------------------------ ETAPA A: carga por faixa + cache
+{
+  // A função do banco sempre trabalhou por FAIXA (p_ini, p_fim) — quem escolhia "mês" era
+  // o navegador. Isolar a escolha numa função é o que deixa a visão Semana pedir outra
+  // faixa depois sem mexer em mais nada da carga.
+  eq("106) a faixa a carregar virou uma função só", /function agFaixaAtual\(\)/.test(H), "true");
+  eq("106b) e a carga usa ela, em vez de montar o mês na mão",
+     /var _f=agFaixaAtual\(\), ini=_f\.ini, fim=_f\.fim;/.test(H), "true");
+  eq("106c) sem inventar RPC nova — continua a agenda_mes de sempre",
+     /sb\.rpc\("agenda_mes",\{p_ini:ini,p_fim:fim,p_alvo:alvo\|\|null,p_setor:setor\|\|null\}\)/.test(H), "true");
+
+  // A Agenda era o único módulo pesado sem guardar o que já leu (os irmãos têm
+  // clConfQuando, vsQuando, entQuando). 3 minutos = o mesmo da Central.
+  eq("107) existe cache, com prazo curto", /var AG_VALE_MS = 3\*60\*1000;/.test(H), "true");
+  eq("107b) e ele é consultado antes de perguntar ao banco",
+     /if\(guardado && \(Date\.now\(\)-guardado\.quando\) < AG_VALE_MS\)\{/.test(H), "true");
+  eq("107c) só guarda leitura que deu certo",
+     /agCache\[chave\]=\{quando:Date\.now\(\), linhas:linhas\};/.test(H), "true");
+
+  // SEGURANÇA: a chave tem que dizer DE QUEM é a agenda, senão o master troca de pessoa
+  // e continua vendo o dado da anterior.
+  eq("108) a chave do cache inclui a faixa, a pessoa e o setor",
+     /function agChaveCache\(ini, fim, alvo, setor\)\{\s*\n\s*return ini \+ "\.\." \+ fim \+ " \| " \+ \(alvo \|\| "eu"\) \+ " \| " \+ \(setor \|\| "-"\);/.test(H), "true");
+  eq("108b) e a carga monta a chave com o alvo REAL do pedido",
+     /var chave=agChaveCache\(ini,fim,alvo,setor\), guardado=agCache\[chave\];/.test(H), "true");
+
+  // Corretude antes de economia: qualquer coisa que mude o dado joga o guardado fora.
+  eq("109) existe a invalidação", /function agInvalidar\(\)\{ agCache = \{\}; \}/.test(H), "true");
+  const pontos = (H.match(/agInvalidar\(\)/g) || []).length;
+  eq("109b) e ela é chamada em todo ponto que muda dado (>=14)", pontos >= 14, "true");
+  eq("109c) o realtime invalida antes de recarregar",
+     /agInvalidar\(\); agCloudLoad\(true\); agBadge\(\);/.test(H), "true");
+  eq("109d) trocar de pessoa invalida",
+     /agVerAlvo=vp\.value\|\|null; agEditId=null; agRespId=null; agConvSel=\[\]; agInvalidar\(\);/.test(H), "true");
+  eq("109e) trocar de setor invalida",
+     /agVerSetor=vs\.value\|\|null; agVerAlvo=null; agEditId=null; agRespId=null; agConvSel=\[\]; agInvalidar\(\);/.test(H), "true");
+  eq("109f) salvar, excluir, responder, remarcar e tarefa feita invalidam",
+     (H.match(/agInvalidar\(\); agCloudLoad\(\)/g) || []).length >= 5, "true");
 }
 
 console.log("\n" + (falhou ? "FALHOU: " + falhou + " de " + (ok + falhou) : "TUDO OK: " + ok + " testes") + "\n");
