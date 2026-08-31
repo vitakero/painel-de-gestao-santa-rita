@@ -256,6 +256,13 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
   eq("77) e barrado no banco também", /check \(hora_fim is null or \(hora is not null and hora_fim > hora\)\)/.test(HF), "true");
   eq("78) mudar a duração devolve os convidados pra Aguardando",
      /or new\.hora_fim is distinct from old\.hora_fim then/.test(HF), "true");
+  // 31/08: o dono rodou o SQL e levou "cannot change return type of existing function".
+  // O create-or-replace não muda a lista de colunas que a função devolve: tem que
+  // apagar antes — e devolver a permissão depois, que some junto com o drop.
+  eq("78b) a função é apagada antes de mudar as colunas que devolve",
+     /drop function if exists public\.agenda_mes\(date,date,uuid,text\);[\s\S]{0,120}create or replace function public\.agenda_mes/.test(HF), "true");
+  eq("78c) e a permissão volta depois do drop",
+     /grant execute on function public\.agenda_mes\(date,date,uuid,text\) to authenticated;/.test(HF), "true");
   eq("79) abrir a lista mostra tudo; só digitar filtra", /agHoraPinta\(caixa, null\);/.test(H), "true");
 }
 
