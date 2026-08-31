@@ -585,5 +585,102 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /\.ag-sem-blocos \{ position:absolute;/.test(H), "true");
 }
 
+
+// -------------------------------------------------- ETAPA F: acabamento da visão Semana
+{
+  // LINHA DO HORÁRIO ATUAL — mesma escala dos blocos, e relógio local (nunca o banco)
+  eq("125) a linha do agora usa a MESMA conta dos compromissos",
+     /var y=agPx\(agAgoraMin\(\) - AG_SEM_DE\*60\);/.test(H), "true");
+  eq("125b) e não existe uma segunda fórmula de posição",
+     (H.match(/agPx\(/g) || []).length >= 5 &&
+     /Math\.round\(\(?[a-z]+\s*\/\s*60\s*\)?\s*\*\s*(44|AG_SEM_PXH)/.test(H) === false, "true");
+  eq("125c) ela só é desenhada quando a semana contém hoje",
+     /var temHoje=dias\.indexOf\(hoje\)>=0;/.test(H) &&
+     /\(\(k===hoje\)\?'<div class="ag-agora" id="agAgora"><\/div>':''\)/.test(H), "true");
+  eq("125d) o rótulo da hora vai na calha, do lado da linha",
+     /\(temHoje\?'<div class="ag-agora-rot" id="agAgoraRot"><\/div>':''\)/.test(H), "true");
+  eq("125e) anda de minuto em minuto, sem falar com o banco",
+     /agAgoraT=setInterval\(agAgoraPinta, 60000\);/.test(H), "true");
+  eq("125f) e o que ela mexe é só o topo dos dois elementos",
+     /function agAgoraPinta\(\)\{[\s\S]*?\n\}/.exec(H)[0].indexOf("rpc") === -1, "true");
+  eq("125f2) e some com a etiqueta da hora que ela cobre (a foto pegou '19:00' atrás de '19:33')",
+     /if\(tr\.height && tr\.top < cx\.bottom && cx\.top < tr\.bottom\) labs\[i\]\.style\.visibility="hidden";/.test(H), "true");
+  eq("125f3) comparando o TEXTO, não a célula (que tem a altura da fileira inteira)",
+     /rg\.selectNodeContents\(labs\[i\]\);/.test(H), "true");
+  eq("125g) usa o verde de HOJE, não uma cor nova",
+     /\.ag-agora \{[^}]*border-top:2px solid #157a35;/.test(H), "true");
+
+  // ROLAGEM INICIAL
+  eq("126) a semana de hoje abre 1h30 antes do agora (não grudado no topo)",
+     /return Math\.max\(0, agAgoraMin\(\) - 90\);/.test(H), "true");
+  eq("126b) as outras semanas abrem no começo do expediente",
+     /var AG_SEM_ROLA_H=7;/.test(H) && /return AG_SEM_ROLA_H\*60;/.test(H), "true");
+  // e o que ficou acima não fica escondido em silêncio
+  eq("126c) existe um aviso do que ficou mais cedo",
+     /function agAntesPinta\(\)\{/.test(H) && /b\.textContent="↑ "\+n\+" antes";/.test(H), "true");
+  eq("126d) ele conta olhando a MESMA escala",
+     /if\(agPx\(agSemOcs\[i\]\.fim - AG_SEM_DE\*60\) <= topo\)\{/.test(H), "true");
+  eq("126e) clicar nele leva até o primeiro, com um respiro",
+     /sem\.scrollTop=Math\.max\(0, agPx\(m - AG_SEM_DE\*60 - 15\)\);/.test(H), "true");
+  eq("126f) e ele não consulta nada — é leitura de tela",
+     /function agAntesPinta\(\)\{[\s\S]*?\n\}/.exec(H)[0].indexOf("rpc") === -1, "true");
+
+  // HIERARQUIA DO TEXTO: título primeiro
+  eq("127) dentro do bloco o TÍTULO vem antes do horário",
+     /'<span class="ag-bl-tit">'\+agEsc\(marca\+ev\.titulo\)\+'<\/span>'\+\s*\n\s*\(hora\?\('<span class="ag-bl-hora">'/.test(H), "true");
+  eq("127a2) e pesa mais que o horário (a foto pegou o contrário)",
+     /\.ag-bl-tit \{ display:block; font-weight:700;/.test(H) &&
+     /\.ag-bl-hora \{ display:block; font-weight:500; opacity:\.8; \}/.test(H), "true");
+  eq("127a3) o rótulo do horário atual se apoia na calha, senão vai parar no fim da grade",
+     /\.ag-sem-col, \.ag-sem-bl-calha \{ position:relative; \}/.test(H), "true");
+  eq("127b) só o bloco alto mostra o intervalo inteiro",
+     /\(\(!curto && !estreito && alt>=44\) \? faixa : agFmtHora\(ev\.hora\)\)/.test(H), "true");
+  eq("127b2) com 4 na mesma hora nem o horário cabe: fica só o título",
+     /var apertado=o\.cols>=4;/.test(H) && /var hora=apertado \? "" :/.test(H), "true");
+  eq("127c) e a informação secundária só entra quando sobra espaço",
+     /alt>=76&&agVerSetor&&ev\.dono_nome/.test(H), "true");
+  eq("127d) o balãozinho tem o título inteiro e o horário",
+     /title="'\+agEsc\(ev\.titulo\+" · "\+faixa\)\+'"/.test(H), "true");
+
+  // COLUNA DE HOJE
+  eq("128) a coluna de hoje tem um fundo levíssimo",
+     /\.ag-sem-cel\.hoje \{ background:#f6faf7; \}/.test(H), "true");
+  eq("128b) e a faixa Sem hora acompanha, pra coluna não ficar partida",
+     /\.ag-sem-td-cel\.hoje \{ background:#f6faf7; \}/.test(H), "true");
+
+  // CARREGANDO e ERRO
+  eq("129) trocar de semana apaga a grade um pouco, em vez de parecer travada",
+     /\.ag-sem\.carregando \.ag-sem-corpo, \.ag-sem\.carregando \.ag-sem-tododia \{ opacity:\.42; \}/.test(H), "true");
+  eq("129b) e SÓ a semana faz isso — o mês aprovado não muda",
+     /\.ag-cal\.carregando|\.ag-cal[^\n]*opacity:\.42/.test(H), "false");
+  eq("129c) o apagado só sai quando a resposta certa chega",
+     /agSemCarregando\(false\);   \/\/ só aqui/.test(H), "true");
+  eq("130) o erro é em português, sem termo técnico",
+     /Não deu pra carregar a agenda agora\. Verifique a conexão/.test(H), "true");
+  eq("130b) e não mostra nome de função nem código do banco",
+     /ag-aviso">[^<]*(agenda_mes|Supabase|Postgres|PGRST|42501)/.test(H), "false");
+
+  // COERÊNCIA entre as visões (defeito que a Semana criou)
+  eq("131) escolhendo um dia de outro mês na Semana, o Mês abre nesse mês",
+     /if\(!agEhSemana\(\)\)\{ var _d=agParse\(agSel\); agAno=_d\.getFullYear\(\); agMes=_d\.getMonth\(\); \}/.test(H), "true");
+
+  // ACESSIBILIDADE BÁSICA
+  eq("132) o bloco mostra que é clicável", /\.ag-bl \{[^}]*cursor:pointer;/.test(H), "true");
+  eq("132b) tarefa feita não depende só da cor: fica riscada e com a caixinha marcada",
+     /\.ag-bl\.tarefa\.feita \.ag-bl-tit \{ text-decoration:line-through; \}/.test(H) &&
+     /\(tar\?\(feita\?"☑ ":"☐ "\):""\)/.test(H), "true");
+  eq("132c) e o hover é discreto", /\.ag-bl:hover \{ filter:brightness\(\.95\); \}/.test(H), "true");
+}
+
+// ---------------------------------- O MÊS APROVADO CONTINUA INTOCADO (Etapa F não arranha)
+{
+  eq("133) nenhuma regra nova toca nas células ou na grade do mês",
+     /\.ag-agora[^\n]*\.ag-cel|\.ag-sem-antes[^\n]*#agDias|\.ag-bl[^\n]*\.ag-cal/.test(H), "false");
+  eq("133b) o CSS do mês continua o aprovado",
+     /#agDias\.cal-grid \{ grid-auto-rows: var\(--ag-lin\); border:1px solid #e4e9ef; border-radius:10px; overflow:hidden; \}/.test(H), "true");
+  eq("133c) e a altura elástica dele também",
+     /--ag-lin: max\(72px, calc\(\(100dvh - 318px\) \/ 6\)\)/.test(H), "true");
+}
+
 console.log("\n" + (falhou ? "FALHOU: " + falhou + " de " + (ok + falhou) : "TUDO OK: " + ok + " testes") + "\n");
 process.exit(falhou ? 1 : 0);

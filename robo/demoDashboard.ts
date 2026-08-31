@@ -870,15 +870,16 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .ag-sem-corpo { position:relative; }
   .ag-sem-blocos { position:absolute; left:0; right:0; top:0; bottom:0; pointer-events:none;
       display:grid; grid-template-columns: var(--ag-gut) repeat(var(--ag-dias), minmax(0,1fr)); }
-  .ag-sem-col { position:relative; }
+  .ag-sem-col, .ag-sem-bl-calha { position:relative; }
   .ag-bl { position:absolute; box-sizing:border-box; pointer-events:auto; cursor:pointer;
            overflow:hidden; border-radius:5px; padding:1px 5px 1px 4px; font-size:10.5px;
            line-height:1.24; border-left:3px solid; background:#e6f0fb; color:#1b4f86;
            border-left-color:#1b4f86; }
   .ag-bl:hover { filter:brightness(.95); }
-  .ag-bl-hora { font-weight:700; display:block; }
-  .ag-bl-tit { display:block; word-break:break-word; }
-  .ag-bl-quem { display:block; opacity:.75; }
+  /* o TÍTULO pesa mais que a hora: é o que a pessoa procura na tela */
+  .ag-bl-tit { display:block; font-weight:700; word-break:break-word; }
+  .ag-bl-hora { display:block; font-weight:500; opacity:.8; }
+  .ag-bl-quem { display:block; opacity:.7; font-weight:500; }
   /* bloco curto (30 min ou menos): hora e título na MESMA linha, senão não cabe nada */
   .ag-bl.curto { display:flex; gap:4px; align-items:baseline; white-space:nowrap; padding-top:0; }
   .ag-bl.curto .ag-bl-hora, .ag-bl.curto .ag-bl-tit { display:inline; }
@@ -887,6 +888,23 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .ag-bl.estreito { font-size:9.5px; padding:1px 3px 1px 3px; border-left-width:2px; }
   .ag-bl.estreito .ag-bl-hora, .ag-bl.estreito .ag-bl-tit {
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  /* ==AGAGORACSS== a linha do horário atual — verde, que é a cor de "hoje" no painel */
+  .ag-agora { position:absolute; left:-1px; right:0; height:0; border-top:2px solid #157a35;
+              pointer-events:none; z-index:2; }
+  .ag-agora::before { content:""; position:absolute; left:-4px; top:-5px; width:8px; height:8px;
+              border-radius:50%; background:#157a35; }
+  .ag-agora-rot { position:absolute; right:7px; transform:translateY(-50%); font-size:10px;
+              font-weight:700; color:#157a35; background:#fff; padding:0 2px; border-radius:3px; }
+  /* o avisinho de que tem compromisso mais cedo, na calha do "Sem hora" */
+  .ag-sem-antes { display:block; margin:3px 0 0 auto; border:1px solid #cfe3d6; background:#f2f8f4;
+              color:#157a35; border-radius:999px; padding:1px 4px; font:inherit; font-size:9px;
+              font-weight:700; cursor:pointer; line-height:1.55; white-space:nowrap; }
+  .ag-sem-antes:hover { background:#e6f2ea; }
+  /* a coluna de hoje segue marcada também na faixa de cima, pra coluna não ficar partida */
+  .ag-sem-td-cel.hoje { background:#f6faf7; }
+  /* trocar de semana: em vez de a tela parecer travada, ela apaga um pouco enquanto carrega */
+  .ag-sem.carregando .ag-sem-corpo, .ag-sem.carregando .ag-sem-tododia { opacity:.42; }
   /* as MESMAS cores do mês — nada de semântica nova */
   .ag-bl.pend { background:#fdf3e3; color:#8a5a00; border-left-color:#8a5a00; }
   .ag-bl.tarefa { background:#efe9fb; color:#4b3b86; border-left-color:#4b3b86; }
@@ -5680,11 +5698,17 @@ function agSemParte2(e){
   var c=String((e&&e.code)||""), m=String((e&&e.message)||"");
   return c==="PGRST202"||c==="42883"||(/agenda_mes|agenda_convidados/.test(m)&&/(does not exist|não existe|not find|schema cache)/i.test(m));
 }
+// Só a semana apaga: o mês aprovado não muda de aparência por causa disto.
+function agSemCarregando(v){
+  var el=document.getElementById("agSem");
+  if(el) el.classList.toggle("carregando", !!v);
+}
 function agTerminar(seq,faixa,rows,erro,deFundo){
   if(seq!==agReqSeq) return;                                   // resposta velha: já saiu uma carga mais nova
   var agora=agFaixaAtual();
   // a tela andou durante a carga (trocou de mês, de semana ou de visão) → busca o certo
   if(faixa.ini!==agora.ini||faixa.fim!==agora.fim){ agCloudLoad(deFundo); return; }
+  agSemCarregando(false);   // só aqui: a resposta é a certa e vai pintar agora
   if(erro){ agErro=true; agDesenha(); agRenderDia(deFundo); return; }  // preserva o que estava + avisa
   agErro=false;
   var mapa={};
@@ -5703,6 +5727,9 @@ function agCloudLoad(deFundo){
   if(guardado && (Date.now()-guardado.quando) < AG_VALE_MS){
     agTerminar(seq,_f,guardado.linhas,false,deFundo); return;
   }
+  // vai perguntar de verdade e a pessoa está olhando: apaga a grade um pouco em vez de
+  // deixar a tela parecendo travada com a semana anterior
+  if(!deFundo) agSemCarregando(true);
   if(agParte2===false && !alvo && !setor){ agCloudLoadPessoal(seq,_f,ini,fim,deFundo); return; }
   /* uma pergunta só pro mês inteiro: o evento + quem foi convidado + como cada um
      respondeu. A função devolve apenas as colunas que a tela desenha. */
@@ -5845,20 +5872,62 @@ function agBlocoHtml(o){
      palavra ("Reunia / o de diretori / a") e não se lia nada. Bloco estreito: fonte menor,
      uma linha por vez e reticências. O nome inteiro continua no balãozinho do mouse. */
   var estreito=o.cols>=3;
-  var hora=agFmtHora(ev.hora)+(ev.hora_fim?("–"+agFmtHora(ev.hora_fim)):"");
+  /* com 4 na mesma hora sobram ~27px de coluna: aí nem "09:00" cabe, e a foto mostrou
+     "09:…", que não informa nada. Nesse aperto fica só o TÍTULO — a altura do bloco já
+     diz a hora, e o balãozinho tem tudo. */
+  var apertado=o.cols>=4;
+  var faixa=agFmtHora(ev.hora)+(ev.hora_fim?(" – "+agFmtHora(ev.hora_fim)):"");
+  /* HIERARQUIA: o TÍTULO vem primeiro — é o que a pessoa procura. O horário vem embaixo,
+     mais leve, porque a própria posição do bloco na régua já diz a hora. Só o bloco alto
+     mostra o intervalo inteiro; nos curtos ele roubaria o lugar do nome. */
+  var hora=apertado ? "" : ((!curto && !estreito && alt>=44) ? faixa : agFmtHora(ev.hora));
   var marca=(pend?"⏳ ":"")+(tar?(feita?"☑ ":"☐ "):"")+((!curto&&!estreito&&agRepete(ev))?"🔁 ":"");
-  var quem=(!curto&&!estreito&&agVerSetor&&ev.dono_nome)?('<span class="ag-bl-quem">'+agEsc(String(ev.dono_nome).split(" ")[0])+'</span>'):'';
+  var quem=(!curto&&!estreito&&alt>=76&&agVerSetor&&ev.dono_nome)?('<span class="ag-bl-quem">'+agEsc(String(ev.dono_nome).split(" ")[0])+'</span>'):'';
   return '<div class="ag-bl'+(pend?" pend":"")+(tar?" tarefa":"")+(tar&&feita?" feita":"")+(curto?" curto":"")+(estreito?" estreito":"")+
     '" style="top:'+topo+'px;height:'+alt+'px;left:calc('+esq+'% + 2px);width:calc('+larg+'% - 5px);"'+
-    ' data-agabrir="'+ev.id+'" data-agdia="'+o.dia+'" title="'+agEsc(hora+" "+ev.titulo)+'">'+
-    '<span class="ag-bl-hora">'+agEsc(marca)+agFmtHora(ev.hora)+'</span>'+
-    '<span class="ag-bl-tit">'+agEsc(ev.titulo)+'</span>'+quem+'</div>';
+    ' data-agabrir="'+ev.id+'" data-agdia="'+o.dia+'" title="'+agEsc(ev.titulo+" · "+faixa)+'">'+
+    '<span class="ag-bl-tit">'+agEsc(marca+ev.titulo)+'</span>'+
+    (hora?('<span class="ag-bl-hora">'+agEsc(hora)+'</span>'):'')+quem+'</div>';
+}
+/* ==AGAGORA== A LINHA DO HORÁRIO ATUAL.
+   Só aparece no dia de HOJE, e só quando a semana na tela contém hoje. A posição sai da
+   MESMA agPx() dos compromissos — não existe segunda fórmula. É relógio da interface:
+   anda sozinha de minuto em minuto e NUNCA fala com o banco. */
+var agAgoraT=null;
+function agAgoraMin(){ var h=new Date(); return h.getHours()*60 + h.getMinutes(); }
+function agAgoraTexto(){
+  var m=agAgoraMin();
+  return ("0"+Math.floor(m/60)).slice(-2)+":"+("0"+(m%60)).slice(-2);
+}
+function agAgoraPinta(){
+  var linha=document.getElementById("agAgora"), rot=document.getElementById("agAgoraRot");
+  if(!linha) return;
+  var y=agPx(agAgoraMin() - AG_SEM_DE*60);      // a MESMA conta dos blocos
+  linha.style.top=y+"px";
+  if(rot){ rot.style.top=y+"px"; rot.textContent=agAgoraTexto(); }
+  /* a etiqueta da hora cheia ficava espiando por trás da etiqueta do agora ("19:00"
+     atrás de "19:33"). Some com a que a linha cobre — e só com ela.
+     Comparo o TEXTO, não a célula: a célula da hora tem a altura da fileira inteira (44px),
+     e foi por isso que a primeira tentativa escondeu a etiqueta errada. */
+  if(!rot) return;
+  var labs=document.querySelectorAll("#agSemCorpo .ag-sem-hora");
+  var cx=rot.getBoundingClientRect(), rg=document.createRange();
+  for(var i=0;i<labs.length;i++){
+    labs[i].style.visibility="";
+    rg.selectNodeContents(labs[i]);
+    var tr=rg.getBoundingClientRect();
+    if(tr.height && tr.top < cx.bottom && cx.top < tr.bottom) labs[i].style.visibility="hidden";
+  }
+}
+function agAgoraLiga(){
+  if(agAgoraT) return;
+  agAgoraT=setInterval(agAgoraPinta, 60000);    // um minuto; zero consulta
 }
 /* Onde a semana abre a rolagem. Não corto o dia — só escolho por onde começar a olhar. */
 function agSemRolaAlvo(dias){
   if(dias.indexOf(agHojeISO())>=0){
-    var h=new Date();
-    return Math.max(0, h.getHours()*60 + h.getMinutes() - 60);   // uma hora de contexto acima
+    // hora e meia de contexto acima: o "agora" não fica grudado no topo
+    return Math.max(0, agAgoraMin() - 90);
   }
   return AG_SEM_ROLA_H*60;
 }
@@ -5876,7 +5945,8 @@ function agRenderSemana(){
      eles — quem não marcou hora não quis marcar hora. Mostra 2 e resume o resto, senão a
      faixa come metade da tela. O "+N mais" abre a lista do dia, igual à do mês. */
   var td=document.getElementById("agSemTodoDia");
-  if(td) td.innerHTML='<div class="ag-sem-td-rot">Sem hora</div>'+dias.map(function(k){
+  if(td) td.innerHTML='<div class="ag-sem-td-rot">Sem hora'+
+      '<button type="button" class="ag-sem-antes" id="agSemAntes" style="display:none" data-agantes></button></div>'+dias.map(function(k){
     var sh=(agEventos[k]||[]).filter(function(ev){ return !ev.hora; });
     var chips=sh.slice(0,2).map(function(ev){
       var tar=agEhTarefa(ev), feita=!!ev.feita_em;
@@ -5885,7 +5955,7 @@ function agRenderSemana(){
         (ev.meu_status==="aguardando"?'⏳ ':'')+(tar?(feita?'☑ ':'☐ '):'')+agEsc(ev.titulo)+'</div>';
     }).join("");
     var mais=sh.length>2?('<div class="ag-mais" data-agtodos="'+k+'" data-agdia="'+k+'">+'+(sh.length-2)+' mais</div>'):'';
-    return '<div class="ag-sem-td-cel" data-agdia="'+k+'">'+chips+mais+'</div>';
+    return '<div class="ag-sem-td-cel'+(k===hoje?" hoje":"")+'" data-agdia="'+k+'">'+chips+mais+'</div>';
   }).join("");
   var corpo=document.getElementById("agSemCorpo");
   if(corpo){
@@ -5901,10 +5971,18 @@ function agRenderSemana(){
     }
     /* OS BLOCOS ficam numa camada por cima das linhas, uma coluna por dia. As linhas são só
        o fundo (a régua de horas); quem carrega o compromisso é esta camada. */
-    var blocos='<div class="ag-sem-blocos"><div class="ag-sem-bl-calha"></div>'+dias.map(function(k){
-      return '<div class="ag-sem-col">'+agEmpilha(agOcorrencias(k)).map(agBlocoHtml).join("")+'</div>';
-    }).join("")+'</div>';
+    var temHoje=dias.indexOf(hoje)>=0;
+    agSemOcs=[];                                   // guarda o que existe na semana, pro aviso "↑ antes"
+    var blocos='<div class="ag-sem-blocos">'+
+      '<div class="ag-sem-bl-calha">'+(temHoje?'<div class="ag-agora-rot" id="agAgoraRot"></div>':'')+'</div>'+
+      dias.map(function(k){
+        var ocs=agEmpilha(agOcorrencias(k));
+        ocs.forEach(function(o){ agSemOcs.push({ini:o.ini, fim:o.fim}); });
+        return '<div class="ag-sem-col">'+ocs.map(agBlocoHtml).join("")+
+               ((k===hoje)?'<div class="ag-agora" id="agAgora"></div>':'')+'</div>';
+      }).join("")+'</div>';
     corpo.innerHTML='<div class="ag-sem-linhas">'+linhas+'</div>'+blocos;
+    if(temHoje){ agAgoraPinta(); agAgoraLiga(); }
   }
   // rolagem inicial: só quando a semana MUDOU, senão eu atropelaria a rolagem do usuário
   if(agSemRolar){
@@ -5912,12 +5990,44 @@ function agRenderSemana(){
     var cx=document.getElementById("agSem");
     if(cx) cx.scrollTop=Math.max(0, agPx(agSemRolaAlvo(dias) - AG_SEM_DE*60));
   }
+  agAntesLiga(); agAntesPinta();
+}
+/* ==AGANTES== "TEM COISA MAIS CEDO".
+   A semana abre no horário útil, então um recebimento das 04:30 fica acima da primeira
+   olhada. Ele NÃO some (a grade cobre o dia inteiro) — mas quem não rola não descobre que
+   existe. Este avisinho fica na calha do "Sem hora", que já é fixa, conta quantos ficaram
+   pra cima e leva até o primeiro. É só leitura de DOM: zero consulta. */
+var agSemOcs=[];
+function agAntesPinta(){
+  var b=document.getElementById("agSemAntes"), cx=document.getElementById("agSem");
+  if(!b||!cx) return;
+  var topo=cx.scrollTop, n=0, primeiro=null;
+  for(var i=0;i<agSemOcs.length;i++){
+    if(agPx(agSemOcs[i].fim - AG_SEM_DE*60) <= topo){
+      n++;
+      if(primeiro===null || agSemOcs[i].ini<primeiro) primeiro=agSemOcs[i].ini;
+    }
+  }
+  if(!n){ b.style.display="none"; return; }
+  b.style.display="";
+  b.textContent="↑ "+n+" antes";
+  b.title=n+(n>1?" compromissos mais cedo":" compromisso mais cedo")+" — clique para ver";
+  b.setAttribute("data-agantes", String(primeiro===null?0:primeiro));
+}
+function agAntesLiga(){
+  var cx=document.getElementById("agSem");
+  if(!cx || cx.getAttribute("data-agrola")) return;
+  cx.setAttribute("data-agrola","1");
+  cx.addEventListener("scroll", agAntesPinta);
 }
 // Mostra a grade certa e marca o botão certo. Um lugar só.
 function agTrocaVisao(qual){
   agVisao=(qual==="semana")?"semana":"mes";
   agSemRolar=true;                           // entrando na semana, começa no horário útil
   if(!agSel) agSel=agHojeISO();
+  /* Na Semana dá pra escolher um dia do mês SEGUINTE (a semana atravessa a virada). Sem
+     isto, apertar "Mês" voltava pro mês antigo e o dia escolhido nem aparecia na tela. */
+  if(!agEhSemana()){ var _d=agParse(agSel); agAno=_d.getFullYear(); agMes=_d.getMonth(); }
   var cal=document.querySelector(".ag-cal"), sem=document.getElementById("agSem");
   if(cal) cal.style.display=agEhSemana()?"none":"";
   if(sem) sem.classList.toggle("mostra", agEhSemana());
@@ -6475,6 +6585,12 @@ function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; f
      O bloco carrega o PRÓPRIO dia (data-agdia): clicar numa ocorrência de quinta com
      segunda selecionada leva o agSel pra quinta, e não pro dia que estava aberto. */
   var sem=document.getElementById("agSem"); if(sem) sem.addEventListener("click",function(e){
+    var antes=e.target.closest("[data-agantes]");
+    if(antes){ // leva até o primeiro compromisso que ficou acima, com 15 min de contexto
+      var m=+antes.getAttribute("data-agantes")||0;
+      sem.scrollTop=Math.max(0, agPx(m - AG_SEM_DE*60 - 15));
+      return;
+    }
     var chip=e.target.closest("[data-agabrir]");
     var todos=e.target.closest("[data-agtodos]");
     var c=e.target.closest("[data-agdia]"); if(!c) return;
