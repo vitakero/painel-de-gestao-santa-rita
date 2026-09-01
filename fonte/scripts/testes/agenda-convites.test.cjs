@@ -151,8 +151,10 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
   // H: o Aceitar saiu do meio do texto e virou o botão principal do rodapé
   eq("40) mas continua podendo ACEITAR o que o master mandou",
      /if\(ev\.meu_status && !meu && !olhando\)\{[\s\S]{0,400}data-agaceitar/.test(H), "true");
+  /* janela ampliada na I3: entrou um comentário explicando por que o campo de data
+     deixou de vir preenchido com o dia aberto. O que o teste cobra não mudou. */
   eq("41) e RECUSAR com motivo",
-     /agRespostaHtml[\s\S]{0,900}data-agrecusaok/.test(H), "true");
+     /agRespostaHtml[\s\S]{0,1800}data-agrecusaok/.test(H), "true");
   eq("42) a resposta ao convite NÃO passa pelo interruptor",
      /agRespostaHtml\(ev\)\{[\s\S]{0,120}agPodeConvidar/.test(H), "false");
   eq("43) quem não convida nem é master não baixa a lista de gente",
@@ -215,8 +217,16 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /RODE TAMBÉM sql\/agenda_trancar_c2\.sql/.test(T), "true");
   eq("59) 'dono' virou só 'de quem é', sem o criado_por",
      /where e\.id = p_evento and e\.para_id = auth\.uid\(\)\);/.test(T), "true");
-  eq("60) e a resposta do convite é só do convidado",
-     /create policy agenda_conv_upd[\s\S]{0,200}using *\( tenant_id = public\.current_tenant\(\) and pessoa_id = auth\.uid\(\) \)/.test(T), "true");
+  /* 60) ATUALIZADO na I3 (01/09). A versão anterior deste teste fixava o texto LITERAL
+     da regra do agenda_trancar.sql — que era só "pessoa_id = auth.uid()". Essa regra
+     estava certa para o que a etapa de 31/08 queria (ninguém responde pelo outro), mas
+     deixava a porta do PATCH direto aberta para quem tinha PERDIDO o acesso. A I3
+     endureceu a regra em sql/agenda_i3_resposta.sql. O teste não some: passa a cobrar
+     que a parte antiga continue de pé E que os guardas novos estejam lá. */
+  eq("60) a resposta do convite continua sendo só do convidado",
+     /create policy agenda_conv_upd[\s\S]{0,400}pessoa_id = auth\.uid\(\)/.test(T), "true");
+  eq("60b) e o agenda_trancar.sql continua sendo o arquivo que tirou o dono/master de lá",
+     /A resposta do convite é do CONVIDADO/.test(T), "true");
   // o arquivo original não pode ficar parecendo seguro sozinho
   const C = fs.readFileSync(path.join(RAIZ, "sql/agenda_convites.sql"), "utf8");
   eq("61) o SQL original avisa que sozinho deixa porta aberta",
@@ -950,6 +960,266 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /deb=setTimeout\(function\(\)\{ agInvalidar\(\); agCloudLoad\(true\); agBadge\(\); \},700\);/.test(RT), "true");
   eq("160c) e recarrega DE FUNDO — sem piscar nem apagar o que está sendo digitado",
      /agCloudLoad\(true\)/.test(RT), "true");
+}
+
+/* ============================================================================
+   I2 — A CONSULTA E A BOLINHA (01/09/2026)
+   Dois defeitos que ninguém via na tela, só no fio:
+     · a bolinha respondia "min(greatest(data, hoje))" — que é HOJE, não a próxima
+       volta da série. Semanal de 02/08 mandava a pessoa pro dia 01/09, um dia sem
+       compromisso nenhum;
+     · agenda_mes trazia série morta em 2024 em TODA carga de outubro/2026, pra
+       sempre — quem descartava era o navegador, DEPOIS de baixar.
+   Provado com login de gente em scripts/conferir-agenda-proxima.mjs (24 checagens),
+   scripts/conferir-agenda-i2-seguranca.mjs (30) e conferir-agenda-bolinha-x-tela.mjs
+   (13, que confere o banco contra a conta do NAVEGADOR publicado).
+   Estes testes aqui são o cadeado: se alguém reescrever o SQL sem entender, quebram. */
+{
+  const I2 = fs.readFileSync(path.join(RAIZ, "sql", "agenda_i2_consulta.sql"), "utf8");
+  const BOL = I2.slice(I2.indexOf("create or replace function public.agenda_convites_pendentes"),
+                       I2.indexOf("create or replace function public.agenda_mes"));
+  const MES = I2.slice(I2.indexOf("create or replace function public.agenda_mes"),
+                       I2.indexOf("-- 3) As permissões"));
+
+  eq("161) a bolinha não responde mais com greatest(data, hoje)",
+     /min\(\s*greatest\(\s*e\.data\s*,\s*current_date\s*\)\s*\)/.test(BOL), "false");
+  eq("161b) ela responde com a próxima volta calculada",
+     /min\(quando\)/.test(BOL), "true");
+  eq("162) as cinco regras de repetição estão na conta",
+     ["'dia'", "'uteis'", "'semana','quinzena'", "'mes'"].every(r => BOL.indexOf(r) > 0), "true");
+  eq("162b) semana e quinzena contam A PARTIR DA ORIGEM, não de hoje",
+     /p\.data \+ \(case when current_date <= p\.data then 0/.test(BOL), "true");
+  eq("162c) e o passo da quinzena é 14",
+     /when p\.repete = 'quinzena' then 14 else 7 end as passo/.test(BOL), "true");
+  eq("163) a regra mensal DESCARTA o mês que não tem aquele dia (nada de 31/02)",
+     /where extract\(day from t\.cand\)::int = extract\(day from p\.data\)::int/.test(BOL), "true");
+  eq("163b) e procura mês a mês em vez de somar 30 dias",
+     /generate_series\(0, 14\)/.test(BOL), "true");
+  eq("164) o fim da série é comparado com a VOLTA, não com hoje",
+     /repete_ate is null or quando <= repete_ate/.test(BOL), "true");
+  eq("164b) — e não com current_date, que deixaria passar série viva sem volta nenhuma",
+     /repete_ate\s*>=\s*current_date/.test(BOL), "false");
+  eq("164c) volta que não existe (série avulsa já passada) não conta",
+     /where quando is not null/.test(BOL), "true");
+
+  eq("165) agenda_mes ganhou o filtro que faltava",
+     /and \(e\.repete_ate is null or e\.repete_ate >= p_ini\)/.test(MES), "true");
+  eq("165b) e ele fica DENTRO do ramo das séries antigas, não solto no where",
+     /e\.data < p_ini\s*\n[\s\S]{0,400}?and \(e\.repete_ate is null or e\.repete_ate >= p_ini\)\) \)/.test(MES), "true");
+  eq("166) agenda_mes continua devolvendo as 15 colunas de sempre",
+     ["id uuid", "hora_fim time", "tipo text", "feita_em timestamptz",
+      "dono_nome text", "sou_dono boolean", "meu_status text", "convidados jsonb"]
+       .every(c => MES.indexOf(c) > 0), "true");
+  eq("166b) e a trava de ver agenda alheia continua de pé",
+     /Só o master pode ver a agenda de outra pessoa/.test(MES), "true");
+  eq("166c) a pessoa continua vencendo o setor",
+     /if v_alvo is not null then v_setor := null; end if;/.test(MES), "true");
+
+  eq("167) o arquivo não derruba função nenhuma (DROP leva os grants junto)",
+     /\bdrop\s+function\b/i.test(I2), "false");
+  eq("167b) são exatamente duas funções, nem uma a mais",
+     (I2.match(/create or replace function/g) || []).length, 2);
+  eq("167c) e nenhuma delas é a agenda_responder, o gatilho ou o auto-convite",
+     /agenda_responder|create (or replace )?trigger|agenda_auto_convite/i.test(I2), "false");
+  eq("168) as duas continuam security definer com o caminho travado",
+     (I2.match(/security definer set search_path = public/g) || []).length, 2);
+  eq("169) as permissões foram reaplicadas para quem está logado",
+     (I2.match(/grant execute on function public\.(agenda_convites_pendentes|agenda_mes)/g) || []).length, 2);
+  eq("169b) e tiradas do público",
+     (I2.match(/revoke all on function/g) || []).length, 2);
+  eq("170) não mexe em regra de acesso, gatilho nem publicação",
+     /create policy|alter policy|drop policy|enable row level security|alter publication/i.test(I2), "false");
+}
+
+/* ============================================================================
+   I3 — REGRAS DE RESPOSTA (01/09/2026)
+   Três defeitos provados com login de gente antes de mexer:
+     · a recusa aceitava data no passado (01/01/2020 gravou);
+     · aceitava a MESMA data do compromisso — e o formulário JÁ NASCIA preenchido
+       com ela, então o caminho normal do usuário produzia uma remarcação que não
+       remarcava. O dono ficava com um "Sugeriu <mesmo dia>" que o botão não resolvia,
+       porque o gatilho agenda_remarcou só reseta se dia ou hora MUDAM;
+     · quem perdeu o acesso continuava respondendo — inclusive com a ficha APAGADA.
+   E o achado que decidiu onde cada regra mora: existem DUAS PORTAS (a função, que é
+   SECURITY DEFINER e pula as regras de acesso, e o PATCH direto, que passa por elas).
+   O gatilho é o único ponto por onde as duas passam — provado pelo respondido_em.
+   Bancada: scripts/conferir-agenda-i3.mjs (login de gente, as duas portas). */
+{
+  const I3 = fs.readFileSync(path.join(RAIZ, "sql", "agenda_i3_resposta.sql"), "utf8");
+  const corpo = n => {
+    const i = I3.indexOf("create or replace function public." + n);
+    if (i < 0) return "";
+    const a = I3.indexOf("$$", i), b = I3.indexOf("$$", a + 2);
+    return I3.slice(a, b);
+  };
+  const REGRA = corpo("agenda_conv_regra");
+  const RESP  = corpo("agenda_responder");
+  const CONV  = corpo("agenda_convidavel");
+  const PESS  = corpo("agenda_pessoas");
+  const POL   = I3.slice(I3.indexOf("create policy agenda_conv_upd"));
+
+  // ---- as regras de data, no gatilho (o ponto por onde as DUAS portas passam)
+  /* 171/171b ATUALIZADOS no conserto do fuso: a comparação deixou de ser com
+     current_date (o dia do SERVIDOR, que está em UTC) e passou a ser com o dia da
+     LOJA. O que o teste cobra — que existe a regra e que o sinal é o certo — não
+     mudou. Ver o bloco ==I3FUSO== mais abaixo. */
+  eq("171) o gatilho barra data sugerida no passado",
+     /new\.sug_data < public\.agenda_hoje\(\)/.test(REGRA), "true");
+  eq("171b) e o sinal é < , não <= nem >",
+     /sug_data <= public\.agenda_hoje|sug_data > public\.agenda_hoje|sug_data >= public\.agenda_hoje/.test(REGRA), "false");
+  eq("172) o gatilho barra sugerir o mesmo dia E a mesma hora",
+     /e\.data = new\.sug_data/.test(REGRA) && /e\.hora is not distinct from new\.sug_hora/.test(REGRA), "true");
+  eq("172b) a hora é comparada de um jeito que aguenta campo vazio",
+     /is not distinct from new\.sug_hora/.test(REGRA), "true");
+  eq("172c) — e NÃO com igual simples, que deixaria passar os dois vazios",
+     /e\.hora = new\.sug_hora/.test(REGRA), "false");
+  eq("173) as duas regras só valem quando a resposta está sendo dada ou mexida",
+     /if v_respondendo then/.test(REGRA), "true");
+  eq("173b) e 'respondendo' olha status, sug_data e sug_hora",
+     /new\.status   is distinct from old\.status/.test(REGRA)
+     && /new\.sug_data is distinct from old\.sug_data/.test(REGRA)
+     && /new\.sug_hora is distinct from old\.sug_hora/.test(REGRA), "true");
+  eq("173c) no INSERT ele não tenta ler o OLD (que não existe)",
+     /if tg_op = 'INSERT' then\s*\n\s*v_respondendo := true;/.test(REGRA), "true");
+  eq("174) o que já era cobrado continua: motivo e nova data",
+     /Escreva o motivo da recusa/.test(REGRA) && /Sugira uma nova data ao recusar/.test(REGRA), "true");
+  eq("174b) e o aceite continua limpando a recusa antiga",
+     /new\.motivo := null; new\.sug_data := null; new\.sug_hora := null;/.test(REGRA), "true");
+  eq("174c) o carimbo de respondido_em continua igual",
+     /new\.respondido_em := now\(\)/.test(REGRA), "true");
+  eq("174d) e ninguém troca de dono do convite",
+     /Não dá pra mudar de quem é o convite/.test(REGRA), "true");
+
+  // ---- porta 1: a função
+  eq("175) a função exige os TRÊS guardas",
+     /public\.eh_da_casa\(\)/.test(RESP) && /public\.pode_pagina\('agenda'\)/.test(RESP)
+     && /public\.agenda_convidavel\(v_me\)/.test(RESP), "true");
+  eq("175b) e o recado é em português, não um código do banco",
+     /Seu acesso à Agenda foi retirado/.test(RESP), "true");
+  eq("175c) a checagem vem ANTES de escrever qualquer coisa",
+     RESP.indexOf("eh_da_casa") < RESP.indexOf("update public.agenda_convidados"), "true");
+  eq("175d) e continua gravando só o convite de quem chamou",
+     /where evento_id = p_evento and pessoa_id = v_me;/.test(RESP), "true");
+
+  // ---- porta 2: a regra de escrita direta
+  eq("176) a regra de UPDATE ganhou os mesmos três guardas",
+     /public\.eh_da_casa\(\)/.test(POL) && /public\.pode_pagina\('agenda'\)/.test(POL)
+     && /public\.agenda_convidavel\(auth\.uid\(\)\)/.test(POL), "true");
+  eq("176b) nos DOIS lados: alcançar a linha e poder gravar nela",
+     (POL.match(/public\.eh_da_casa\(\)/g) || []).length, 2);
+  eq("176c) e o convidado continua sendo o único a mexer no dele",
+     (POL.match(/pessoa_id = auth\.uid\(\)/g) || []).length, 2);
+
+  // ---- quem pode ser convidado
+  eq("177) agenda_convidavel passou a exigir a página Agenda",
+     /like '%,agenda,%'/.test(CONV), "true");
+  eq("177b) e continua exigindo pessoa válida da empresa",
+     /coalesce\(p\.aprovado,false\) or coalesce\(p\.is_master,false\)/.test(CONV), "true");
+  eq("177c) o master passa direto, mesmo com a lista vazia",
+     /coalesce\(p\.is_master,false\)\s*\n\s*or \(','/.test(CONV), "true");
+  eq("177d) ela olha a pessoa recebida, NUNCA auth.uid()",
+     /p\.id = p_pessoa/.test(CONV) && !/auth\.uid\(\)/.test(CONV), "true");
+  /* A armadilha: pode_pagina('agenda') pergunta pelo auth.uid(), quem está CHAMANDO.
+     Usá-la aqui responderia sobre a pessoa errada — e daria certo por acaso quase
+     sempre, porque quem convida costuma ter a página. */
+  eq("177e) e NÃO chama pode_pagina, que perguntaria pela pessoa errada",
+     /pode_pagina/.test(CONV), "false");
+  eq("177f) continua security definer com o caminho travado",
+     /security definer set search_path = public/.test(I3.slice(I3.indexOf("agenda_convidavel"), I3.indexOf("agenda_convidavel") + 400)), "true");
+
+  /* ==I3EQV== As duas funções têm que entender "tem a página Agenda" da MESMA forma.
+     Se uma mudar e a outra não, a lista passa a oferecer gente que o banco recusa (ou
+     o contrário) e ninguém percebe. O teste compara o miolo da conta letra por letra;
+     a prova de comportamento está em conferir-agenda-i3.mjs, com 10 formatos de perfil. */
+  const PP = fs.readFileSync(path.join(RAIZ, "sql", "permissoes_padrao.sql"), "utf8");
+  const limpa = t => (t.match(/regexp_replace\(coalesce\(p\.paginas::text, ?''\), ?'\[\]\[\{\}" \]', ?'', ?'g'\)/) || [""])[0];
+  eq("178) agenda_convidavel limpa a lista de páginas igual a pode_pagina",
+     limpa(CONV) !== "" && limpa(CONV) === limpa(PP), "true");
+  eq("178b) e monta a comparação com vírgula dos dois lados, igual",
+     /\(',' \|\| regexp_replace/.test(CONV) && /\|\| ','\)/.test(CONV), "true");
+
+  // ---- a lista de convidar
+  eq("179) a lista de convidar usa a MESMA função da regra de convidar",
+     /public\.agenda_convidavel\(p\.id\)/.test(PESS), "true");
+  eq("179b) e não tem mais a regra escrita à parte, que podia divergir",
+     /coalesce\(p\.aprovado,false\) or coalesce\(p\.is_master,false\)/.test(PESS), "false");
+  eq("179c) quem chama continua precisando ser da casa e ter a página",
+     /public\.eh_da_casa\(\)/.test(PESS) && /public\.pode_pagina\('agenda'\)/.test(PESS), "true");
+
+  /* ==I3FUSO== A VIRADA DO DIA. Achado depois da I3 pronta, e era bloqueador.
+     A regra usava current_date. Medi o banco de fora: o carimbo now() volta com
+     "+00:00", ou seja a sessão está em UTC — e o Postgres define current_date como a
+     data de now() no fuso da sessão. Resultado: das 21:00 às 23:59:59 do relógio da
+     loja o servidor já virou o dia e a loja não, então escolher HOJE seria recusado
+     com "essa data já passou". Todo dia, sempre no fim do expediente.
+     O conserto é local à Agenda: agenda_hoje() pergunta o dia civil da loja por
+     extenso. Nada de mexer no fuso do banco inteiro. */
+  const HOJEF = corpo("agenda_hoje");
+  eq("186) existe uma função que diz que dia é hoje PARA A LOJA",
+     HOJEF.length > 10, "true");
+  eq("186b) e ela nomeia o fuso por extenso, sem depender da sessão do banco",
+     /now\(\) at time zone 'America\/Fortaleza'/.test(HOJEF), "true");
+  eq("186c) devolvendo uma data, não um instante",
+     /\)::date/.test(HOJEF), "true");
+  eq("187) a regra da data passada usa o dia da LOJA",
+     /new\.sug_data < public\.agenda_hoje\(\)/.test(REGRA), "true");
+  eq("187b) e NÃO current_date, que é o dia do servidor (UTC)",
+     /new\.sug_data < current_date/.test(REGRA), "false");
+  /* Nenhum CORPO DE FUNÇÃO pode voltar a usar current_date. O resto do arquivo pode:
+     os comentários explicam por que não se usa, e a conferência do fim COMPARA
+     current_date com o dia da loja de propósito — é ela que mostra a diferença. */
+  const corposI3 = ["agenda_hoje","agenda_convidavel","agenda_pessoas",
+                    "agenda_conv_regra","agenda_responder"].map(corpo).join("\n");
+  eq("187c) nenhum corpo de função usa current_date",
+     corposI3.split("\n").filter(l => l.indexOf("current_date") >= 0 && !l.trim().startsWith("--")).length, 0);
+  eq("187d) e a conferência do fim compara os dois, pra diferença aparecer",
+     /a Agenda está certa\?/.test(I3) && /o servidor e a loja concordam agora\?/.test(I3), "true");
+  eq("188) o fuso não é mexido no banco inteiro, só na regra da Agenda",
+     /set time ?zone|alter database .* set timezone/i.test(I3), "false");
+
+  // ---- higiene do arquivo
+  eq("180) nenhuma função é derrubada (DROP leva os grants junto)",
+     /\bdrop\s+function\b/i.test(I3), "false");
+  eq("180b) são exatamente cinco funções (a quinta é a do fuso)",
+     (I3.match(/create or replace function/g) || []).length, 5);
+  eq("180c) e uma policy só",
+     (I3.match(/^create policy/gm) || []).length, 1);
+  eq("180d) as cinco continuam security definer com caminho travado",
+     (I3.match(/security definer set search_path = public/g) || []).length, 5);
+  eq("181) não toca em agenda_mes, na bolinha, no Realtime nem na publicação",
+     /function public\.agenda_mes|function public\.agenda_convites_pendentes|alter publication/i.test(I3), "false");
+  eq("181b) nem nas regras de agenda_eventos (ficou pra auditoria própria)",
+     /policy agenda_(sel|ins|upd|del) on public\.agenda_eventos/.test(I3), "false");
+  eq("182) os grants foram reaplicados para quem está logado",
+     (I3.match(/grant execute on function/g) || []).length, 4);
+  /* O catálogo mostrou anon=X em todas as funções da Agenda, e eu confirmei de fora
+     que quem não logou consegue CHAMAR agenda_responder (ela roda e barra por dentro).
+     Ou seja: permissão de execute não é tranca. O arquivo tem que dizer isso. */
+  eq("182b) e o arquivo registra que permissão de EXECUTE não é a tranca",
+     /permissão de EXECUTE não é a tranca|anon=X\/postgres/.test(I3), "true");
+
+  // ---- o formulário entra no mesmo passo
+  const REC = (H.match(/function agRespostaHtml\(ev\)\{[\s\S]*?\n\}/) || [""])[0];
+  eq("183) o campo de data ganhou piso em hoje",
+     /class="ag-r-data" value="" min="/.test(REC), "true");
+  eq("183b) e NÃO nasce mais preenchido com o dia aberto",
+     /class="ag-r-data" value="'\+agEsc\(agSel/.test(REC), "false");
+  const CLIQUE = (H.match(/var rok=e\.target\.closest\("\[data-agrecusaok\]"\);[\s\S]{0,3000}?\n      \}/) || [""])[0];
+  eq("184) a tela avisa antes de enviar: dia que já passou",
+     /if\(nd < agHojeISO\(\)\) return rMsg\(/.test(CLIQUE), "true");
+  eq("184b) e mesmo dia com a mesma hora",
+     /if\(nd===rdia && \(nh\|\|""\)===rhr\)/.test(CLIQUE), "true");
+  /* Numa série, ev.data é o COMEÇO da série — quase nunca a volta que a pessoa clicou.
+     Por isso a tela compara com agSel, a ocorrência aberta. O servidor não tem como
+     saber qual volta foi clicada: ninguém manda essa informação pra ele. */
+  eq("184c) e compara com a OCORRÊNCIA ABERTA, não com o começo da série",
+     /var rdia=agSel\|\|\(rev&&rev\.data\)\|\|"";/.test(CLIQUE), "true");
+  eq("184d) as duas validações que já existiam continuam",
+     /if\(!mot\) return rMsg/.test(CLIQUE) && /if\(!nd\)  return rMsg/.test(CLIQUE), "true");
+  eq("184e) e o envio continua sendo o mesmo RPC, sem consulta nova",
+     /agResponder\(rid,"recusado",mot,nd,nh\|\|null,/.test(CLIQUE), "true");
+  eq("185) o contrato dos campos que agSalvar/agResponder leem continua de pé",
+     /class="ag-r-motivo"/.test(REC) && /class="ag-r-data"/.test(REC) && /ag-r-hora/.test(REC), "true");
 }
 
 console.log("\n" + (falhou ? "FALHOU: " + falhou + " de " + (ok + falhou) : "TUDO OK: " + ok + " testes") + "\n");

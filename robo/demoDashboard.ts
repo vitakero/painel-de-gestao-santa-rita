@@ -6238,7 +6238,14 @@ function agRespostaHtml(ev){
     return '<div class="ag-recusa">'+
       '<div class="ag-f-lbl">Por que não dá? (obrigatório)</div>'+
       '<textarea class="ag-r-motivo" rows="2" maxlength="300" placeholder="Ex.: já tenho o fechamento do caixa nesse horário"></textarea>'+
-      '<div class="ag-f-row"><span class="ag-f-lbl">Sugerir novo dia:</span><input type="date" class="ag-r-data" value="'+agEsc(agSel||'')+'"></div>'+
+      /* ==I3FORM== O campo nasce VAZIO e com piso em hoje.
+         Antes ele vinha preenchido com agSel — o dia que está aberto. Num compromisso
+         avulso isso é a PRÓPRIA data do compromisso: quem clicasse "Enviar recusa" sem
+         mexer estava sugerindo o mesmo dia e a mesma hora, ou seja, remarcando pra onde
+         já estava. E o dono ficava com um "Sugeriu <mesmo dia>" que o botão "Remarcar"
+         não resolvia, porque nada mudava. Agora a pessoa ESCOLHE, e o navegador nem
+         oferece dia passado. */
+      '<div class="ag-f-row"><span class="ag-f-lbl">Sugerir novo dia:</span><input type="date" class="ag-r-data" value="" min="'+agEsc(agHojeISO())+'"></div>'+
       '<div class="ag-f-row"><span class="ag-f-lbl">Nova hora (opcional):</span>'+agHoraHtml("ag-r-hora",ev.hora||"","Sem hora")+'</div>'+
       '<div class="ag-r-erro" style="display:none;color:#c0392b;font-size:12.5px;margin:2px 0 6px;"></div>'+
       '<div style="display:flex;gap:8px;"><button type="button" class="ag-salvar" data-agrecusaok="'+ev.id+'">Enviar recusa</button>'+
@@ -7046,13 +7053,28 @@ function agRealtime(){
       if(rok){
         var cx=rok.closest(".ag-recusa"), er=cx.querySelector(".ag-r-erro");
         var rMsg=function(m){ er.textContent=m; er.style.display=""; };
+        var rid=rok.getAttribute("data-agrecusaok");
         var mot=(cx.querySelector(".ag-r-motivo").value||"").trim();
         var nd=(cx.querySelector(".ag-r-data").value||"");
         var nh=(cx.querySelector(".ag-r-hora").value||"");
         if(!mot) return rMsg("Escreva o motivo — quem convidou precisa saber.");
         if(!nd)  return rMsg("Sugira um novo dia pra remarcar.");
+        /* ==I3FORM== As duas regras novas, as mesmas que o banco cobra. Aqui existem
+           pra pessoa saber ANTES de enviar — a tranca de verdade é a do banco, e ela
+           continua valendo mesmo que alguém desligue isto.
+           A comparação é contra a OCORRÊNCIA ABERTA (agSel), não contra ev.data: num
+           compromisso que se repete, ev.data é o começo da série — um dia que já
+           passou e que quase nunca é a volta que a pessoa está olhando. O servidor não
+           tem como saber qual volta foi clicada (ninguém manda isso pra ele), então é
+           aqui que a conferência fica precisa. */
+        if(nd < agHojeISO()) return rMsg("Esse dia já passou. Escolha de hoje em diante.");
+        var rev=agFindEv(rid);
+        var rdia=agSel||(rev&&rev.data)||"";
+        var rhr=(rev&&rev.hora)?agFmtHora(rev.hora):"";
+        if(nd===rdia && (nh||"")===rhr)
+          return rMsg("Esse é o mesmo dia e a mesma hora que já estão marcados. Mude o dia ou a hora.");
         rok.disabled=true;
-        agResponder(rok.getAttribute("data-agrecusaok"),"recusado",mot,nd,nh||null,function(m){ rok.disabled=false; rMsg(m); });
+        agResponder(rid,"recusado",mot,nd,nh||null,function(m){ rok.disabled=false; rMsg(m); });
         return;
       }
       var rm=e.target.closest("[data-agremarcar]"); if(rm){ agRemarcar(rm.getAttribute("data-agremarcar"),rm.getAttribute("data-d"),rm.getAttribute("data-h")); return; }
