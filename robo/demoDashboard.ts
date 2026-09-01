@@ -1124,6 +1124,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .ag-conv-li.retirado .ag-conv-nome { font-weight:500; }
   .ag-st.ret { color:#5b6670; background:#eef1f4; }
   .ag-conv-sumiu { font-size:11px; color:#7b8792; font-style:italic; }
+  /* ==I5SERIE== o aviso de que a recusa vale pra série inteira. Mesmo tom do aviso de
+     recusa que já existe (.ag-conv-rec), pra não inventar uma cor nova no módulo. */
+  .ag-r-serie { font-size:12px; color:#8a5a00; background:#fdf3e3; border:1px solid #f0e0bd;
+                border-radius:7px; padding:7px 9px; margin:0 0 8px; line-height:1.45; }
   .ag-conv-x { border:0; background:none; color:#a5341f; font-size:11.5px; font-weight:600;
                cursor:pointer; padding:1px 5px; border-radius:5px; }
   .ag-conv-x:hover { background:#fbe9e5; }
@@ -6286,7 +6290,13 @@ function agConvHtml(ev){
 function agRespostaHtml(ev){
   if(!ev.meu_status||ev.sou_dono) return "";
   if(agRespId===ev.id){
+    /* ==I5SERIE== O aviso fica ACIMA do motivo, antes de a pessoa escrever — não no
+       fim, junto do botão, quando ela já decidiu. Só aparece quando repete; no avulso a
+       caixa continua exatamente como estava. */
+    var serie=agRepLabel(ev);
     return '<div class="ag-recusa">'+
+      (serie?('<div class="ag-r-serie">Este compromisso se repete '+agEsc(serie)+
+              '. <b>Esta ação recusará todas as ocorrências</b> — não só a deste dia.</div>'):'')+
       '<div class="ag-f-lbl">Por que não dá? (obrigatório)</div>'+
       '<textarea class="ag-r-motivo" rows="2" maxlength="300" placeholder="Ex.: já tenho o fechamento do caixa nesse horário"></textarea>'+
       /* ==I3FORM== O campo nasce VAZIO e com piso em hoje.
@@ -6299,7 +6309,7 @@ function agRespostaHtml(ev){
       '<div class="ag-f-row"><span class="ag-f-lbl">Sugerir novo dia:</span><input type="date" class="ag-r-data" value="" min="'+agEsc(agHojeISO())+'"></div>'+
       '<div class="ag-f-row"><span class="ag-f-lbl">Nova hora (opcional):</span>'+agHoraHtml("ag-r-hora",ev.hora||"","Sem hora")+'</div>'+
       '<div class="ag-r-erro" style="display:none;color:#c0392b;font-size:12.5px;margin:2px 0 6px;"></div>'+
-      '<div style="display:flex;gap:8px;"><button type="button" class="ag-salvar" data-agrecusaok="'+ev.id+'">Enviar recusa</button>'+
+      '<div style="display:flex;gap:8px;"><button type="button" class="ag-salvar" data-agrecusaok="'+ev.id+'">'+(serie?'Recusar a série toda':'Enviar recusa')+'</button>'+
       '<button type="button" class="ag-mini" data-agrecusacancel>Voltar</button></div></div>';
   }
   var meu='<div class="ag-meu">'+agStPill(ev.meu_status)+
@@ -6316,12 +6326,17 @@ function agEvAcoes(ev){
   var esq='', dir='';
   if(agRespId===ev.id){                                   // escrevendo a recusa
     dir='<button type="button" class="ag-mini" data-agrecusacancel>Voltar</button>'+
-        '<button type="button" class="ag-salvar" data-agrecusaok="'+ev.id+'">Enviar recusa</button>';
+        '<button type="button" class="ag-salvar" data-agrecusaok="'+ev.id+'">'+(agRepete(ev)?'Recusar a série toda':'Enviar recusa')+'</button>';
     return '<div class="ag-acoes">'+dir+'</div>';
   }
   if(ev.meu_status && !meu && !olhando){                  // fui convidado
+    /* ==I5SERIE== O botão diz o que a ação FAZ.
+       A série é uma linha só no banco: recusar recusa TODAS as vezes, não a do dia que
+       está aberto. O botão dizia "Recusar" e a pessoa achava que estava dispensando um
+       dia. Compromisso avulso continua igualzinho — só o recorrente muda de nome. */
+    var serie=!!agRepete(ev);
     dir = (ev.meu_status==="aguardando")
-      ? '<button type="button" class="ag-mini danger" data-agrecusar="'+ev.id+'">Recusar</button>'+
+      ? '<button type="button" class="ag-mini danger" data-agrecusar="'+ev.id+'">'+(serie?'Recusar série':'Recusar')+'</button>'+
         '<button type="button" class="ag-salvar" data-agaceitar="'+ev.id+'">Aceitar</button>'
       : '<button type="button" class="ag-mini" data-agrecusar="'+ev.id+'">Mudar minha resposta</button>';
   }

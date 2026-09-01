@@ -96,8 +96,35 @@ console.log("\n=== Backup da fonte ===\n");
   // Tirei no mesmo dia. Este teste existe pra não voltar por descuido.
   eq("10) o SQL não está na lista do repositório público",
      /const PASTAS = \[\s*\n\s*\["scripts", "\.cjs"\]/.test(DEP), "true");
+  /* 11) ATUALIZADO em 01/09/2026. A lista privada deixou de ser ["sql",".sql"] e passou a
+     dizer também PARA ONDE cada coisa vai no repositório privado, e se precisa entrar em
+     subpasta — as Edge Functions moram em supabase/functions/<nome>/index.ts, um nível
+     abaixo, e a varredura antiga só olhava o primeiro nível: elas não eram vistas.
+     O que o teste cobra não mudou: o SQL tem que estar na lista PRIVADA, nunca na pública. */
   eq("11) o SQL está na lista do repositório PRIVADO",
-     /const PASTAS_PRIVADAS = \[\s*\n\s*\["sql", "\.sql"\]/.test(DEP), "true");
+     /const PASTAS_PRIVADAS = \[[\s\S]{0,120}\{ de: "sql",\s+ext: "\.sql", para: "sql" \}/.test(DEP), "true");
+  eq("11b) as Edge Functions também, e com varredura em subpasta",
+     /\{ de: "supabase\/functions",[^}]*fundo: true \}/.test(DEP), "true");
+  eq("11c) e as bancadas conferir-*.mjs",
+     /\{ de: "scripts",\s+ext: "\.mjs", para: "bancadas", so: \/\^conferir-\/ \}/.test(DEP), "true");
+  eq("11d) a varredura entra em subpasta quando mandado",
+     /if \(fs\.statSync\(cheio\)\.isDirectory\(\)\) \{ if \(e\.fundo\) anda\(dentro\); continue; \}/.test(DEP), "true");
+
+  /* ==PROIBIDO== O .gitignore NÃO alcança este programa: ele usa a API do GitHub direto,
+     não o git. Quem confiasse só no .gitignore acharia que estava protegido e não estaria.
+     Por isso a lista de proibidos vive aqui dentro também, e é ELA que vale. */
+  eq("11e) existe uma lista de proibidos que vale para todo envio",
+     /const PROIBIDO = \[/.test(DEP) && /function proibido\(rel\)/.test(DEP), "true");
+  eq("11f) e a varredura barra o arquivo proibido antes de enfileirar",
+     /if \(proibido\(rel\)\) \{ bloqueados\.push\(rel\); continue; \}/.test(DEP), "true");
+  eq("11g) o .env e as cópias dele estão na lista de proibidos",
+     /\\.env\(\$\|\\.\)/.test(DEP) && /\\.bak\(\$\|-\)/.test(DEP), "true");
+  eq("11h) e chaves, certificados, dumps e backups também",
+     /pem\|key\|p12/.test(DEP) && /\^backups\\\//.test(DEP), "true");
+
+  /* Publicar sem cópia do banco, em silêncio, é pior do que não publicar. */
+  eq("11i) se o backup privado falhar, o programa PARA em vez de publicar calado",
+     /==BACKUPDURO==/.test(DEP) && /ERRO NO BACKUP PRIVADO — NADA FOI PUBLICADO/.test(DEP), "true");
   eq("12) e o privado só recebe se existir repositório configurado",
      /if \(REPO_FONTE\) \{/.test(DEP), "true");
   // backup que a pessoa PENSA que tem e não tem é pior que não ter nenhum

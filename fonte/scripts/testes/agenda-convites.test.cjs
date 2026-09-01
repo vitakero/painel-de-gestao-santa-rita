@@ -25,6 +25,22 @@ const H = fs.readFileSync(path.join(RAIZ, "output", "index.html"), "utf8");
 const SQL = fs.readFileSync(path.join(RAIZ, "sql", "agenda_convites.sql"), "utf8");
 const CORPO = SQL.slice(0, SQL.indexOf("-- CONFERÊNCIA"));   // sem o rodapé de conferência/rollback
 
+/* ==BLOCO== Recortar por CHAVES, não por distância em caracteres.
+   Três vezes hoje um teste destes quebrou só porque eu escrevi um comentário no meio do
+   código que ele media — a janela [\s\S]{0,400} estourava e o teste acusava regressão
+   que não existia. Medir o bloco inteiro não depende de quanto texto tem dentro. */
+function bloco(texto, marcador) {
+  const i = texto.indexOf(marcador);
+  if (i < 0) return "";
+  let n = 0; const j = texto.indexOf("{", i);
+  if (j < 0) return "";
+  for (let k = j; k < texto.length; k++) {
+    if (texto[k] === "{") n++;
+    else if (texto[k] === "}") { n--; if (!n) return texto.slice(i, k + 1); }
+  }
+  return "";
+}
+
 let ok = 0, falhou = 0;
 function eq(nome, obtido, esperado) {
   const bate = String(obtido) === String(esperado);
@@ -149,12 +165,27 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
   eq("39) quem não é master não vê a telinha de convidar",
      /function agConvidarHtml\(\)\{\s*\n\s*if\(!agPodeConvidar\(\)\) return "";/.test(H), "true");
   // H: o Aceitar saiu do meio do texto e virou o botão principal do rodapé
-  eq("40) mas continua podendo ACEITAR o que o master mandou",
-     /if\(ev\.meu_status && !meu && !olhando\)\{[\s\S]{0,400}data-agaceitar/.test(H), "true");
-  /* janela ampliada na I3: entrou um comentário explicando por que o campo de data
-     deixou de vir preenchido com o dia aberto. O que o teste cobra não mudou. */
-  eq("41) e RECUSAR com motivo",
-     /agRespostaHtml[\s\S]{0,1800}data-agrecusaok/.test(H), "true");
+  /* 40) ROBUSTO desde 01/09: media por distância em caracteres e quebrou quando a I5
+     acrescentou um comentário e uma linha dentro do mesmo bloco (o botão foi parar a 634
+     caracteres, a janela era 400). O recurso estava intacto. Agora mede o BLOCO. */
+  {
+    const convidado = bloco(H, "if(ev.meu_status && !meu && !olhando)");
+    eq("40) mas continua podendo ACEITAR o que o master mandou",
+       convidado.length > 0 && /data-agaceitar/.test(convidado), "true");
+    eq("40b) e o Recusar continua no mesmo bloco",
+       /data-agrecusar/.test(convidado), "true");
+    eq("40c) o Aceitar só aparece pra quem ainda não respondeu",
+       /ev\.meu_status==="aguardando"[\s\S]*?data-agaceitar/.test(convidado), "true");
+  }
+  /* 41) mesma história do 40: já precisei alargar a janela uma vez na I3. Passa a medir
+     o bloco da função, que não depende de quanto comentário tem dentro dela. */
+  {
+    const resposta = bloco(H, "function agRespostaHtml(ev)");
+    eq("41) e RECUSAR com motivo",
+       resposta.length > 0 && /data-agrecusaok/.test(resposta), "true");
+    eq("41b) com o campo do motivo junto",
+       /class="ag-r-motivo"/.test(resposta), "true");
+  }
   eq("42) a resposta ao convite NÃO passa pelo interruptor",
      /agRespostaHtml\(ev\)\{[\s\S]{0,120}agPodeConvidar/.test(H), "false");
   eq("43) quem não convida nem é master não baixa a lista de gente",
@@ -1220,6 +1251,90 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /agResponder\(rid,"recusado",mot,nd,nh\|\|null,/.test(CLIQUE), "true");
   eq("185) o contrato dos campos que agSalvar/agResponder leem continua de pé",
      /class="ag-r-motivo"/.test(REC) && /class="ag-r-data"/.test(REC) && /ag-r-hora/.test(REC), "true");
+}
+
+/* ============================================================================
+   I5 — COMPROMISSO QUE SE REPETE (01/09/2026)
+   Dois lados da mesma história: a série mudou debaixo dos pés do convidado.
+     I5.1 a série é UMA linha no banco — recusar recusa TODAS as vezes. O botão dizia
+          só "Recusar" e a pessoa achava que dispensava o dia que estava aberto.
+     I5.2 o gatilho que faz todo mundo reconfirmar olhava data, hora e hora_fim, e NÃO
+          olhava a repetição. O dono pegava um almoço avulso já confirmado, ligava
+          "toda semana", e as pessoas continuavam "Confirmado" para uma série que
+          nunca viram. Medido antes de mexer.
+   Bancada: scripts/conferir-agenda-i5.mjs (login de gente + o desenho do painel real). */
+{
+  const I5 = fs.readFileSync(path.join(RAIZ, "sql", "agenda_i5_serie.sql"), "utf8");
+  const REM = I5.slice(I5.indexOf("create or replace function public.agenda_remarcou"));
+
+  // ---- I5.2, o banco
+  eq("189) o gatilho passou a olhar a repetição",
+     /new\.repete     is distinct from old\.repete/.test(REM), "true");
+  eq("189b) e o 'repetir até' também",
+     /new\.repete_ate is distinct from old\.repete_ate/.test(REM), "true");
+  /* A regra é UMA só, ampliada — não uma segunda lógica em paralelo. Se alguém
+     escrever um if separado para a repetição, os dois caminhos divergem com o tempo. */
+  eq("189c) é a MESMA condição, ampliada — não um segundo if",
+     (REM.match(/^\s*if /gm) || []).length, 1);
+  eq("190) as três condições antigas continuam de pé",
+     /new\.data     is distinct from old\.data/.test(REM)
+     && /new\.hora     is distinct from old\.hora/.test(REM)
+     && /new\.hora_fim is distinct from old\.hora_fim/.test(REM), "true");
+  /* ==NEUTRO== Procurar o TEXTO da condição não basta: dá pra deixar a linha lá e
+     desligá-la com um "false and" na frente, e o teste não vê. Peguei isso numa mutação.
+     Então também cobro a FORMA: o if começa direto na condição da data, e as cinco
+     condições estão todas ligadas por "or" — nenhuma neutralizada. */
+  eq("190c) o if começa direto na condição, sem nada desligando",
+     /^  if new\.data     is distinct from old\.data$/m.test(REM), "true");
+  eq("190d) são cinco condições, todas ligadas por 'or'",
+     (REM.match(/is distinct from/g) || []).length, 5);
+  eq("190e) e nenhuma foi neutralizada com false/true no meio",
+     /\b(false|true)\s+and\b|\band\s+(false|true)\b/.test(REM), "false");
+  eq("190b) e o que ele faz continua sendo o mesmo",
+     /set status='aguardando', motivo=null, sug_data=null, sug_hora=null, respondido_em=null/.test(REM), "true");
+  /* A trava da I4: quem foi retirado não volta a "aguardando" quando o compromisso muda.
+     Sem isso, mexer na repetição ressuscitaria o histórico de quem já saiu. */
+  eq("191) a trava da I4 continua: retirado não ressuscita",
+     /and retirado_em is null;\s*--\s*==I4ATIVO==/.test(REM), "true");
+  eq("191b) e só mexe em quem já tinha respondido",
+     /and status <> 'aguardando'/.test(REM), "true");
+  eq("192) o arquivo mexe numa função só, sem derrubar nada",
+     (I5.match(/create or replace function/g) || []).length === 1 && !/\bdrop\b/i.test(I5), "true");
+  eq("192b) e não encosta em policy, tabela nem outra função",
+     /create policy|alter table|alter publication|agenda_responder|agenda_conv_regra/i.test(I5), "false");
+  eq("192c) continua security definer com o caminho travado",
+     /security definer set search_path = public/.test(I5), "true");
+  /* Título e anotação nunca derrubaram resposta, e não podem passar a derrubar:
+     mudar o texto do compromisso não é mudar o compromisso. */
+  eq("193) título e anotação continuam FORA da condição",
+     /new\.titulo|new\.descricao/.test(REM), "false");
+
+  // ---- I5.1, a tela
+  const ACOES = (H.match(/function agEvAcoes\(ev\)\{[\s\S]*?\n\}/) || [""])[0];
+  const RESP  = (H.match(/function agRespostaHtml\(ev\)\{[\s\S]*?\n\}/) || [""])[0];
+  eq("194) o botão diz 'Recusar série' quando repete",
+     /\(serie\?'Recusar série':'Recusar'\)/.test(ACOES), "true");
+  eq("194b) e continua só 'Recusar' no avulso — o mesmo botão, o mesmo lugar",
+     /:'Recusar'\)/.test(ACOES) && /data-agrecusar/.test(ACOES), "true");
+  eq("194c) quem decide é agRepete, que já existia — não uma regra nova",
+     /var serie=!!agRepete\(ev\);/.test(ACOES), "true");
+  eq("195) o formulário avisa que a recusa vale pra série inteira",
+     /recusará todas as ocorrências/.test(RESP), "true");
+  eq("195b) dizendo COMO se repete, com o rótulo que já existe",
+     /var serie=agRepLabel\(ev\);/.test(RESP), "true");
+  eq("195c) e só quando repete — no avulso a caixa fica igual",
+     /\(serie\?\('<div class="ag-r-serie">/.test(RESP), "true");
+  eq("196) o botão de enviar também avisa",
+     /Recusar a série toda/.test(H), "true");
+  eq("196b) nos DOIS lugares em que ele existe (rodapé e caixa)",
+     (H.match(/Recusar a série toda/g) || []).length, 2);
+  eq("197) o aviso tem estilo próprio, no tom do módulo",
+     /\.ag-r-serie \{[^}]*background:#fdf3e3/.test(H), "true");
+  /* O que agResponder lê não pode sumir — foi a regra da Etapa H e continua valendo. */
+  eq("198) os campos que agResponder lê continuam no formulário",
+     /class="ag-r-motivo"/.test(RESP) && /class="ag-r-data"/.test(RESP) && /ag-r-hora/.test(RESP), "true");
+  eq("198b) e a janela não foi redesenhada",
+     /class="ag-recusa"/.test(RESP) && /data-agrecusacancel/.test(RESP), "true");
 }
 
 console.log("\n" + (falhou ? "FALHOU: " + falhou + " de " + (ok + falhou) : "TUDO OK: " + ok + " testes") + "\n");

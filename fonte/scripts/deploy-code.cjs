@@ -83,24 +83,65 @@ const PASTAS = [
 // Para o SQL ter cópia, ele precisa de um repositório PRIVADO. Enquanto o Victor não
 // criar, o programa AVISA em vez de fingir que está tudo salvo — backup que a pessoa
 // pensa que tem e não tem é pior que não ter nenhum.
+// Cada entrada diz DE onde ler e PARA onde vai no repositório privado. O "fundo"
+// liga a varredura em subpastas — as Edge Functions moram em
+// supabase/functions/<nome>/index.ts, um nível abaixo, e a varredura antiga só olhava
+// o primeiro nível: elas simplesmente não eram vistas.
 const PASTAS_PRIVADAS = [
-  ["sql", ".sql"],                 // o banco: tabelas, funções, quem pode o quê
+  { de: "sql",                ext: ".sql", para: "sql" },
+  { de: "supabase/functions", ext: "",     para: "supabase/functions", fundo: true },
+  { de: "scripts",            ext: ".mjs", para: "bancadas", so: /^conferir-/ },
 ];
+
+// ============================================================
+// O QUE NUNCA SOBE — nem para o público, nem para o privado.
+//
+// Espelha o .gitignore endurecido em 01/09/2026. Está aqui DE NOVO de propósito: o
+// deploy não usa git, usa a API do GitHub direto, então o .gitignore não o alcança.
+// Quem confiasse só no .gitignore acharia que estava protegido e não estaria.
+// ============================================================
+const PROIBIDO = [
+  /(^|\/)\.env($|\.)/i,          // .env e qualquer cópia dele (o .env.example não entra em pasta varrida)
+  /\.bak($|-)/i, /\.old$/i, /\.orig$/i,
+  /^backup\//i, /^backups\//i, /(^|\/)\.previa\//i,
+  /\.(pem|key|p12|pfx|crt|cer|jks|keystore|ppk|htpasswd)$/i,
+  /(^|\/)id_rsa/i, /service-account/i, /credential/i, /secret/i,
+  /\.(dump|zip)$/i, /\.sql\.gz$/i, /\.tar\.gz$/i,
+];
+function proibido(rel) { return PROIBIDO.some((re) => re.test(rel)); }
 const REPO_FONTE = get("GITHUB_REPO_FONTE") || "";
 
+// Aceita as duas formas: ["pasta", ".ext"] (o jeito antigo, destino em fonte/) e
+// { de, ext, para, fundo, so } (o jeito novo, com destino e subpastas).
 function varrer(pastas) {
   const achados = [];
   const jaTem = new Set(FILES.map(([lp]) => lp));
-  for (const [pasta, ext] of pastas) {
-    const dir = path.join(__dirname, "..", pasta);
-    if (!fs.existsSync(dir)) continue;
-    for (const nome of fs.readdirSync(dir)) {
-      const rel = (pasta === "." ? nome : pasta + "/" + nome);
-      if (!fs.statSync(path.join(dir, nome)).isFile()) continue;
-      if (ext && !nome.endsWith(ext)) continue;
-      if (jaTem.has(rel)) continue;   // já sobe pro robô, não duplico
-      achados.push([rel, "fonte/" + rel]);
-    }
+  const bloqueados = [];
+
+  for (const bruto of pastas) {
+    const e = Array.isArray(bruto) ? { de: bruto[0], ext: bruto[1] } : bruto;
+    const base = path.join(__dirname, "..", e.de);
+    if (!fs.existsSync(base)) continue;
+
+    (function anda(sub) {
+      const dir = sub ? path.join(base, sub) : base;
+      for (const nome of fs.readdirSync(dir)) {
+        const dentro = sub ? sub + "/" + nome : nome;
+        const cheio = path.join(dir, nome);
+        const rel = (e.de === "." ? dentro : e.de + "/" + dentro);
+        if (fs.statSync(cheio).isDirectory()) { if (e.fundo) anda(dentro); continue; }
+        if (e.ext && !nome.endsWith(e.ext)) continue;
+        if (e.so && !e.so.test(nome)) continue;
+        // a tranca: um arquivo proibido nunca vira envio, venha de onde vier
+        if (proibido(rel)) { bloqueados.push(rel); continue; }
+        if (jaTem.has(rel)) continue;   // já sobe pro robô, não duplico
+        achados.push([rel, e.para ? (e.para + "/" + dentro) : ("fonte/" + rel)]);
+      }
+    })("");
+  }
+  if (bloqueados.length) {
+    console.log("  (" + bloqueados.length + " arquivo(s) BARRADOS por serem proibidos: " +
+                bloqueados.slice(0, 3).join(", ") + (bloqueados.length > 3 ? ", ..." : "") + ")");
   }
   return achados;
 }
@@ -200,7 +241,25 @@ let pulados = 0;
   // o banco só tem cópia se existir lugar fechado pra ele
   const privados = varrer(PASTAS_PRIVADAS);
   if (REPO_FONTE) {
-    const n = await enviarLote(privados, REPO_FONTE, "backup do banco (" + privados.length + " arquivos)");
+    // ==BACKUPDURO== Se o backup privado falhar, o programa PARA com erro. O dono pediu
+    // assim, e a razão é boa: publicar sem backup, calado, é o pior dos dois mundos —
+    // a versão sai no ar e ninguém fica sabendo que a cópia não existe.
+    // Isto NÃO afeta a loja: o robô roda publicar.cjs, e nunca chama este arquivo.
+    let n;
+    try {
+      n = await enviarLote(privados, REPO_FONTE, "backup do banco (" + privados.length + " arquivos)");
+    } catch (e) {
+      console.log("");
+      console.log("  ================================================================");
+      console.log("  ERRO NO BACKUP PRIVADO — NADA FOI PUBLICADO.");
+      console.log("  " + e.message);
+      console.log("");
+      console.log("  O envio do painel NAO seguiu de proposito: publicar sem copia do");
+      console.log("  banco, em silencio, e pior do que nao publicar.");
+      console.log("  Confira se o token alcanca " + OWNER + "/" + REPO_FONTE + " e rode de novo.");
+      console.log("  ================================================================");
+      process.exit(1);
+    }
     console.log("  banco: " + n.length + " arquivo(s) novos em " + OWNER + "/" + REPO_FONTE + " (privado)");
   } else {
     console.log("");
