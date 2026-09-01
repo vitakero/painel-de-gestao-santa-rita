@@ -916,5 +916,41 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /\n  \.ag-jan-bg \{ align-items:flex-end/.test(H), "false");
 }
 
+
+// ================ ETAPA I1: o aviso ao vivo, e o que ele NÃO pode assinar ================
+{
+  /* ==AGRTDEL== A TRAVA DESTE BLOCO.
+     Em 01/09/2026 eu liguei as tabelas da Agenda no tempo real e MEDI, com login de
+     gente, o que cada tipo de conta recebia. Criar e editar são filtrados pelo RLS: o
+     forasteiro (conta do Portal do Fornecedor) recebia ZERO.
+     A EXCLUSÃO não é filtrada — é limite conhecido do Supabase. O aviso de apagar chegava
+     ao forasteiro com o identificador da linha dentro. Pouca informação, mas informação
+     de dentro de casa. O dono mandou fechar.
+     Por isso a Agenda assina EVENTO POR EVENTO. Se alguém voltar a pôr event:"*" (que
+     inclui DELETE) ou assinar DELETE de propósito, o vazamento volta calado — e é isso
+     que estes testes existem pra impedir. */
+  const RT = (H.match(/function agRealtime\(\)\{[\s\S]*?\n\}/) || [""])[0];
+  eq("158) o ouvinte da Agenda existe", RT.length > 50, "true");
+  eq("158b) e NÃO usa event:\"*\" (que arrastaria o DELETE junto)",
+     /event:"\*"/.test(RT), "false");
+  eq("158c) nem assina DELETE de propósito",
+     /event:"DELETE"/.test(RT), "false");
+  eq("159) assina CRIAR nas duas tabelas",
+     /\{event:"INSERT",schema:"public",table:"agenda_eventos"\}/.test(RT) &&
+     /\{event:"INSERT",schema:"public",table:"agenda_convidados"\}/.test(RT), "true");
+  eq("159b) e EDITAR nas duas",
+     /\{event:"UPDATE",schema:"public",table:"agenda_eventos"\}/.test(RT) &&
+     /\{event:"UPDATE",schema:"public",table:"agenda_convidados"\}/.test(RT), "true");
+  eq("159c) são quatro assinaturas, nem uma a mais",
+     (RT.match(/postgres_changes/g) || []).length, 4);
+  // o preço da decisão não pode ser pago com relógio
+  eq("160) e ninguém compensou o DELETE com consulta de tempos em tempos",
+     /function agRealtime\(\)\{[\s\S]*?\n\}/.exec(H)[0].search(/setInterval/) === -1, "true");
+  eq("160b) o debounce de 700ms continua (não dispara em rajada)",
+     /deb=setTimeout\(function\(\)\{ agInvalidar\(\); agCloudLoad\(true\); agBadge\(\); \},700\);/.test(RT), "true");
+  eq("160c) e recarrega DE FUNDO — sem piscar nem apagar o que está sendo digitado",
+     /agCloudLoad\(true\)/.test(RT), "true");
+}
+
 console.log("\n" + (falhou ? "FALHOU: " + falhou + " de " + (ok + falhou) : "TUDO OK: " + ok + " testes") + "\n");
 process.exit(falhou ? 1 : 0);

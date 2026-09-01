@@ -6850,7 +6850,29 @@ function agFeita(id, btn){
     agInvalidar(); agCloudLoad();
   },function(){ btn.disabled=false; uiConfirm({titulo:"Falha de conexão",msg:"Tente de novo.",ok:"OK",cancel:""}); });
 }
-function agRealtime(){ var sb=agSB(); if(!sb||agRT) return; try{ var deb=null; function rec(){ clearTimeout(deb); deb=setTimeout(function(){ agInvalidar(); agCloudLoad(true); agBadge(); },700); } agRT=sb.channel("agenda_sync").on("postgres_changes",{event:"*",schema:"public",table:"agenda_eventos"},rec).on("postgres_changes",{event:"*",schema:"public",table:"agenda_convidados"},rec).subscribe(); }catch(e){} }
+/* ==AGRTDEL== POR QUE AQUI NÃO EXISTE "*" NEM DELETE.
+   Com event:"*" a Agenda assinava também a EXCLUSÃO — e medi em 01/09/2026 que o aviso
+   de exclusão do Supabase NÃO passa pelo filtro de acesso: ele chega a qualquer conta
+   logada, inclusive a de fornecedor do Portal, carregando o identificador da linha.
+   É pouca informação, mas é informação de dentro de casa saindo pra fora.
+   Então a Agenda assina só o que o filtro protege: CRIAR e EDITAR.
+   O PREÇO, assumido de propósito: quando alguém APAGA um compromisso, quem está com a
+   tela aberta continua vendo até a próxima carga normal (trocar de mês/semana, "Hoje",
+   reabrir a Agenda, ou passar o prazo do cache). NÃO existe relógio compensando isso —
+   trocar um vazamento por consulta de tempos em tempos seria pior. */
+function agRealtime(){
+  var sb=agSB(); if(!sb||agRT) return;
+  try{
+    var deb=null;
+    function rec(){ clearTimeout(deb); deb=setTimeout(function(){ agInvalidar(); agCloudLoad(true); agBadge(); },700); }
+    agRT=sb.channel("agenda_sync")
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"agenda_eventos"},rec)
+      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"agenda_eventos"},rec)
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"agenda_convidados"},rec)
+      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"agenda_convidados"},rec)
+      .subscribe();
+  }catch(e){}
+}
 
 (function(){
   function limpaVer(){ agSel=null; agEditId=null; agRespId=null; agConvSel=[]; agAbertoId=null; agVerTodos=false; }
