@@ -134,7 +134,7 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
   eq("35) olhando a agenda de outro, não aparece formulário de marcar",
      /agVendoOutro\(\)\s*\n?\s*\? \('<div class="ag-f-hint">Você está só olhando/.test(H), "true");
   eq("36) nem botão de aceitar pelos outros",
-     /agConvHtml\(ev\)\+ \(agVendoOutro\(\)\?'':agRespostaHtml\(ev\)\)/.test(H), "true");
+     /agConvHtml\(ev\)\+ \(agVendoOutro\(\)\?'':agRespostaHtml\(ev\)\+\(semAcoes\?'':agEvAcoes\(ev\)\)\)/.test(H), "true");
 }
 
 // ------------------------------------------------------------ o lançamento de 31/08: convidar é só do master
@@ -148,8 +148,9 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /function agPodeConvidar\(\)\{ return AG_CONVITE_SO_MASTER \? agMaster\(\) : true; \}/.test(H), "true");
   eq("39) quem não é master não vê a telinha de convidar",
      /function agConvidarHtml\(\)\{\s*\n\s*if\(!agPodeConvidar\(\)\) return "";/.test(H), "true");
+  // H: o Aceitar saiu do meio do texto e virou o botão principal do rodapé
   eq("40) mas continua podendo ACEITAR o que o master mandou",
-     /agRespostaHtml[\s\S]{0,1400}data-agaceitar/.test(H), "true");
+     /if\(ev\.meu_status && !meu && !olhando\)\{[\s\S]{0,400}data-agaceitar/.test(H), "true");
   eq("41) e RECUSAR com motivo",
      /agRespostaHtml[\s\S]{0,900}data-agrecusaok/.test(H), "true");
   eq("42) a resposta ao convite NÃO passa pelo interruptor",
@@ -176,7 +177,7 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
   eq("47) o que chega de fundo não redesenha por baixo de quem digita",
      /if\(deFundo && agMexendoNoPainel\(\)\)\{ agRedesenhoPreso=true; return; \}/.test(H), "true");
   eq("47b) mas o clique da pessoa desenha na hora",
-     /agJanAbre\(tipo\)\{[\s\S]{0,400}agRenderDia\(\);/.test(H), "true");
+     /agJanAbre\(tipo\)\{[\s\S]{0,700}agRenderDia\(\);/.test(H), "true");
   eq("48) e o desenho preso tem DUAS saídas (focusout e clique)",
      /pn\.addEventListener\("focusout",agSoltaDesenho\);\s*\n\s*document\.addEventListener\("click",agSoltaDesenho\);/.test(H), "true");
   eq("49) dá pra mudar o DIA sem apagar e refazer", /class="ag-f-dia"/.test(H), "true");
@@ -231,9 +232,11 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
   eq("65) o compromisso do calendário é clicável", /data-agabrir="'\+ev\.id\+'"/.test(H), "true");
   eq("66) clicar nele abre o compromisso no painel",
      /agAbertoId = chip \? chip\.getAttribute\("data-agabrir"\) : null;/.test(H), "true");
-  eq("67) e existe o caminho de volta pro formulário", /data-agfechar>‹ voltar/.test(H), "true");
+  /* H: o "‹ voltar" de um compromisso aberto levava pro formulário de criar OUTRO — quem
+     clicou em voltar queria fechar. Agora fechar é fechar, e o caminho é explícito. */
+  eq("67) e existe um jeito claro de sair", /data-agfecharjan/.test(H), "true");
   eq("68) sem nada aberto, o painel é só o formulário",
-     /\} else \{\s*\n\s*meio = soOlhando;/.test(H), "true");
+     /meio = soOlhando;   \/\/ agFormHtml\(\)/.test(H), "true");
   eq("69) o '+N mais' ainda dá pra ver o dia inteiro, sob demanda",
      /data-agtodos="'\+key\+'"/.test(H) && /agVerTodos = !!todos;/.test(H), "true");
   eq("70) trocar de dia fecha o que estava aberto",
@@ -257,8 +260,9 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
   // coluna nova faria o banco recusar e ele não salvaria NADA
   eq("76b) sem o SQL rodado, o painel salva assim mesmo",
      /function agSemColunaFim\(e\)/.test(H) && /agTemFim=false; delete payload\.hora_fim;/.test(H), "true");
+  // H: a hora de terminar virou uma seção própria — o gate do agTemFim continua
   eq("76c) e esconde o campo em vez de prometer o que não dá",
-     /\(agTemFim\?\('<span class="ag-f-ate-hora">às<\/span>'\+/.test(H), "true");
+     /\(agTemFim\?sec\("fim",/.test(H) && /\(agTemFim\?agSecBtn\("fim","＋ Fim"\):''\)/.test(H), "true");
   const HF = fs.readFileSync(path.join(RAIZ, "sql/agenda_hora_fim.sql"), "utf8");
   eq("77) e barrado no banco também", /check \(hora_fim is null or \(hora is not null and hora_fim > hora\)\)/.test(HF), "true");
   eq("78) mudar a duração devolve os convidados pra Aguardando",
@@ -305,7 +309,7 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
 {
   eq("96) tarefa tem formulário próprio e curto", /function agFormTarefaHtml\(\)/.test(H), "true");
   eq("97) sem convidados e sem resposta de convite",
-     /\(tar\?'':\(agConvHtml\(ev\)\+ \(agVendoOutro\(\)\?'':agRespostaHtml\(ev\)\)\)\)/.test(H), "true");
+     /\(tar\?'':\(agConvHtml\(ev\)\+ \(agVendoOutro\(\)\?'':agRespostaHtml\(ev\)/.test(H), "true");
   eq("98) dá pra marcar como feita", /function agFeita\(id, btn\)/.test(H), "true");
   eq("99) e ela aparece diferente no mês", /\.ag-chip\.tarefa \{/.test(H) && /\.ag-chip\.tarefa\.feita \{/.test(H), "true");
   const TA = fs.readFileSync(path.join(RAIZ, "sql/agenda_tarefas.sql"), "utf8");
@@ -780,6 +784,136 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /\.ag-cal \{ width:100%; --ag-lin: max\(72px, calc\(\(100dvh - 318px\) \/ 6\)\); \}/.test(H), "true");
   eq("145d) e a calha do computador continua 58px",
      /\.ag-sem \{ display:none; --ag-gut:58px; --ag-dias:7;/.test(H), "true");
+}
+
+
+// =================== ETAPA H: a janela de criar/ver/editar ===================
+{
+  // UMA JANELA, TRÊS ESTADOS — e um título só
+  eq("146) a janela tem um título de verdade, e o leitor de tela sabe qual é",
+     /aria-labelledby="agJanTit"/.test(H) && /<h2 class="ag-jan-tit" id="agJanTit">/.test(H), "true");
+  eq("146b) e sumiram os dois títulos empilhados da marcação",
+     /class="ag-painel-tit"|class="ag-form-tit"/.test(H), "false");
+  eq("146c) a data virou dado dentro do conteúdo, não segundo cabeçalho",
+     /<div class="ag-jan-dia">/.test(H), "true");
+  eq("146d) o × diz o que faz", /aria-label="Fechar a janela"/.test(H), "true");
+
+  // CAIXA DENTRO DE CAIXA: o formulário é a própria janela agora
+  eq("147) o formulário perdeu a moldura e o fundo próprios",
+     /\.ag-jan \.ag-form \{ display:flex; flex-direction:column; min-height:0; flex:1 1 auto;\s*\n\s*background:none; border:0; padding:0; margin:0; \}/.test(H), "true");
+  eq("147b) a janela virou título + corpo que rola + rodapé",
+     /\.ag-jan-corpo \{ flex:1 1 auto; min-height:0; overflow-y:auto;/.test(H) &&
+     /\.ag-jan-rodape \{ flex:none;/.test(H), "true");
+
+  /* ==AGSALVAR== A TRAVA MAIS IMPORTANTE DESTA ETAPA.
+     agSalvar() lê o VALOR de .ag-f-fim, .ag-f-rep, .ag-f-ate e .ag-f-desc. Se a seção
+     recolhida tirasse o campo do HTML em vez de escondê-lo, salvar quebraria calado:
+     hora de terminar sumindo, repetição virando "não repete", anotação apagada. */
+  eq("148) a seção recolhida ESCONDE o campo, não o remove",
+     /\.ag-secao \{ display:none; margin-top:9px; \}/.test(H) &&
+     /\.ag-secao\.abre \{ display:block; \}/.test(H), "true");
+  /* Teste apertado de propósito: procurar só o NOME da classe não serve — ele também
+     aparece dentro do próprio agSalvar (box.querySelector(".ag-f-desc")). Tem que ser a
+     classe SENDO ESCRITA no HTML, senão renomear o campo passa batido. */
+  // e conferido em CADA formulário: o evento e a tarefa escrevem os seus próprios campos
+  const FEV = (H.match(/function agFormHtml\(\)\{[\s\S]*?\n\}/)||[""])[0];
+  const FTA = (H.match(/function agFormTarefaHtml\(\)\{[\s\S]*?\n\}/)||[""])[0];
+  eq("148b) o formulário do EVENTO escreve todas as classes que agSalvar lê",
+     ["ag-f-tit","ag-f-dia","ag-f-rep","ag-f-ate","ag-f-desc","ag-f-erro"]
+       .filter(function(c){ return FEV.indexOf('class="'+c+'"')<0; }).join(",")||"todas", "todas");
+  eq("148b3) e o formulário da TAREFA escreve as dela",
+     ["ag-f-tit","ag-f-dia","ag-f-desc","ag-f-erro"]
+       .filter(function(c){ return FTA.indexOf('class="'+c+'"')<0; }).join(",")||"todas", "todas");
+  eq("148b2) e as duas horas continuam saindo do mesmo seletor de sempre",
+     /agHoraHtml\("ag-f-hora"/.test(H) && /agHoraHtml\("ag-f-fim"/.test(H), "true");
+  eq("148c) e o formulário continua marcando de que tipo ele é",
+     /<div class="ag-form" data-tipo="evento">/.test(H) && /<div class="ag-form" data-tipo="tarefa">/.test(H), "true");
+  eq("148d) agSalvar continua achando o formulário pelo mesmo caminho",
+     /var box=btn\.closest\("\.ag-form"\); if\(!box\) return;/.test(H), "true");
+
+  // PROGRESSIVE DISCLOSURE
+  eq("149) o que já tem dado nasce ABERTO",
+     /return \{ fim: !!\(ev&&ev\.hora_fim\), repetir: !!\(ev&&agRepete\(ev\)\),\s*\n\s*nota: !!\(ev&&ev\.descricao\), convidar: !!\(ev&&ev\.convidados&&ev\.convidados\.length\) \};/.test(H), "true");
+  eq("149b) abrir uma seção NÃO redesenha o formulário (senão apaga o que foi digitado)",
+     /if\(sec2\) sec2\.classList\.toggle\("abre", agSecs\[k\]\);/.test(H) &&
+     /agRenderDia\(\);\s*return;\s*\n\s*\}\s*\n\s*var sb2=e\.target\.closest\("\[data-agsec\]"\)/.test(H)===false, "true");
+  // esta faltava: uma mutação pôs agCloudLoad() no toggle e NENHUM teste reclamou
+  eq("149b2) e abrir/fechar seção não fala com o banco",
+     /var sb2=e\.target\.closest\("\[data-agsec\]"\);[\s\S]{0,900}?\n      \}/.test(H) &&
+     /var sb2=e\.target\.closest\("\[data-agsec\]"\);[\s\S]{0,900}?\n      \}/.exec(H)[0]
+       .search(/agCloudLoad|sb\.rpc|\.from\(|agInvalidar/) === -1, "true");
+  eq("149c) o botão da seção diz se está aberta",
+     /aria-expanded="'\+\(ab\?'true':'false'\)\+'"/.test(H), "true");
+  eq("149d) e o aviso da série NUNCA é escondido",
+     /\(ev&&agRepete\(ev\)\?'<div class="ag-f-serie">/.test(H), "true");
+
+  // TAREFA continua separada
+  eq("150) a tarefa não ganhou convidados, hora de fim nem repetição",
+     /function agFormTarefaHtml\(\)\{[\s\S]*?\n\}/.exec(H)[0].indexOf("ag-f-rep")===-1 &&
+     /function agFormTarefaHtml\(\)\{[\s\S]*?\n\}/.exec(H)[0].indexOf("ag-f-fim")===-1 &&
+     /function agFormTarefaHtml\(\)\{[\s\S]*?\n\}/.exec(H)[0].indexOf("agConvidarHtml")===-1, "true");
+
+  // CONVIDADOS: preservados, e sem a ambiguidade do "Adicionar"
+  eq("151) o botãozinho dos convidados virou 'Incluir'",
+     /data-agaddconv>Incluir<\/button>/.test(H), "true");
+  eq("151b) e não existe mais dois 'Adicionar' na mesma tela",
+     /data-agaddconv>Adicionar</.test(H), "false");
+  eq("151c) confirmado, aguardando, recusado, motivo e remarcar continuam iguais",
+     /data-agremarcar="'\+ev\.id\+'"/.test(H) && /Motivo: /.test(H) && /function agStPill\(st\)/.test(H), "true");
+
+  // HIERARQUIA DAS AÇÕES
+  eq("152) as ações moram num lugar só, com hierarquia",
+     /function agEvAcoes\(ev\)\{/.test(H), "true");
+  eq("152b) Excluir fica separado, à esquerda",
+     /'<span class="ag-acoes-esq">'\+esq\+'<\/span>'/.test(H) && /\.ag-acoes-esq \{ margin-right:auto; \}/.test(H), "true");
+  eq("152c) e Aceitar é o botão principal quando fui convidado",
+     /'<button type="button" class="ag-salvar" data-agaceitar="'\+ev\.id\+'">Aceitar<\/button>'/.test(H), "true");
+  eq("152d) 'fechar' quer dizer FECHAR — o ‹ voltar de um compromisso aberto sumiu",
+     /data-agfecharjan/.test(H) && /'<div class="ag-volta"><button type="button" class="ag-link" data-agfechar>‹ voltar<\/button><\/div>'\+agEvHtml\(aberto\)/.test(H)===false, "true");
+
+  // ESC EM CADEIA — o defeito que a inspeção encontrou
+  eq("153) o Esc da lista de horas NÃO sobe pra fechar a janela",
+     /e\.stopPropagation\(\); e\.preventDefault\(\);\s*\n\s*lista\.classList\.remove\("abre"\); t\.blur\(\);/.test(H), "true");
+
+  // FOCO
+  eq("154) o Tab não escapa da janela",
+     /if\(e\.key!=="Tab" \|\| !agJanAberta\) return;/.test(H) &&
+     /if\(e\.shiftKey && document\.activeElement===pri\)\{ e\.preventDefault\(\); ult\.focus\(\); \}/.test(H), "true");
+  eq("154b) e o cursor volta pra onde estava quando a janela fecha",
+     /if\(agQuemAbriu && agQuemAbriu\.focus && document\.contains\(agQuemAbriu\)\) agQuemAbriu\.focus\(\);/.test(H), "true");
+  eq("154c) abrindo, o cursor vai pro título",
+     /var t=document\.querySelector\("#agPainel \.ag-f-tit"\); if\(t\) t\.focus\(\);/.test(H), "true");
+  eq("155) os campos têm rótulo de verdade, não só placeholder",
+     /<label class="ag-f-lbl2" for="agFTit">/.test(H) && /<label class="ag-f-lbl2" for="agFDia">/.test(H), "true");
+
+  // MOBILE: folha de baixo
+  eq("156) no celular a janela vira folha de baixo",
+     /\.ag-jan-bg \{ align-items:flex-end; padding:0; \}/.test(H), "true");
+  eq("156b) largura toda, cantos só em cima, altura limitada",
+     /\.ag-jan \{ max-width:none; width:100%; border-radius:16px 16px 0 0;\s*\n\s*max-height:calc\(100dvh - 28px\)/.test(H), "true");
+  eq("156c) e o rodapé fica preso embaixo — a ação principal nunca some da tela",
+     /\.ag-jan-rodape \{ position:sticky; bottom:0;/.test(H), "true");
+  eq("156d) respeitando a borda de baixo do aparelho",
+     /padding-bottom:max\(12px, env\(safe-area-inset-bottom\)\)/.test(H), "true");
+  eq("156e) com alvos de dedo no × e nas ações",
+     /\.ag-jan-x \{ width:44px; height:44px;/.test(H) &&
+     /\.ag-acoes \.ag-salvar, \.ag-acoes \.ag-mini \{ min-height:44px;/.test(H), "true");
+  eq("156f) e na lista de horas", /\.ag-hora-op \{ min-height:40px;/.test(H), "true");
+  /* a folha de baixo trouxe um corpo com rolagem, e ele CORTAVA a lista de horas — a
+     foto mostrou duas linhas só. No celular ela sai do fluxo e é posicionada pelo JS. */
+  eq("156g) e a lista de horas não fica presa dentro do corpo que rola",
+     /function agHoraColoca\(caixa, lista\)\{/.test(H) && /lista\.style\.position="fixed";/.test(H), "true");
+  eq("156h) virando pra cima quando não cabe embaixo",
+     /else if\(r\.top-10>=h\)\{ lista\.style\.top=Math\.round\(r\.top-4-h\)\+"px"; \}/.test(H), "true");
+  eq("156i) e no computador ela continua exatamente como era",
+     /if\(!agEhCelular\(\)\)\{ lista\.style\.position=""; /.test(H), "true");
+
+  // DESKTOP continua compacto
+  eq("157) no computador a janela continua 430px e no topo",
+     /\.ag-jan \{ position:relative; background:#fff; border-radius:14px; width:100%; max-width:430px;/.test(H) &&
+     /\.ag-jan-bg \{ display:none; position:fixed; inset:0;[^}]*align-items:flex-start/.test(H), "true");
+  eq("157b) e a folha de baixo só existe dentro de media query",
+     /\n  \.ag-jan-bg \{ align-items:flex-end/.test(H), "false");
 }
 
 console.log("\n" + (falhou ? "FALHOU: " + falhou + " de " + (ok + falhou) : "TUDO OK: " + ok + " testes") + "\n");
