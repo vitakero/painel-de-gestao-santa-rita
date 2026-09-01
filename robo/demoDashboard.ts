@@ -5651,7 +5651,22 @@ const AG_DOW_LONGO=["domingo","segunda-feira","terça-feira","quarta-feira","qui
    Nada foi removido: o banco, o aceite e a recusa continuam de pé, só a telinha de
    convidar não aparece pra quem não é master. LIBERAR PRA TODO MUNDO = trocar este
    true por false. Só isso. */
-var AG_CONVITE_SO_MASTER = true;
+/* ==JCONVITE== LIBERADO EM 01/09/2026, depois da inspeção da Etapa J.
+   Ficou "true" desde 31/08 por pedido do dono: soltar a Agenda aos poucos.
+   Antes de virar a chave eu conferi a cadeia inteira, porque trocar uma bandeira sem
+   olhar o que ela destranca é como abrir uma porta sem saber o que tem atrás:
+     · agenda_pessoas()  -> quem CHAMA precisa ser da casa e ter a página; quem APARECE
+                            precisa ser aprovado e ter a página (agenda_convidavel);
+     · agenda_conv_ins   -> exige eh_da_casa + pode_pagina + ser DONO do compromisso
+                            (ou master) + o convidado ser convidável. Ou seja: o
+                            funcionário comum já podia convidar no BANCO desde 31/08 —
+                            só a tela não deixava;
+     · auto-convite      -> barrado no gatilho pelo DONO do compromisso (I4);
+     · ver agenda alheia -> agVerBarHtml devolve vazio para quem não é master, E o banco
+                            barra p_alvo/p_setor de quem não é master. Convidar alguém
+                            NUNCA deu acesso à agenda dessa pessoa, e continua não dando.
+   Por isso liberar é uma linha: as trancas que importam já estavam no banco, não aqui. */
+var AG_CONVITE_SO_MASTER = false;
 function agSB(){ return window.__SB||null; }
 function agUid(){ return (window.__PERFIL&&window.__PERFIL.id)||null; }
 function agMaster(){ return !!(window.__PERFIL&&window.__PERFIL.is_master); }

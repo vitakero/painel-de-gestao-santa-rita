@@ -158,12 +158,25 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
   // O dono quis lançar JÁ a agenda pessoal e segurar a reunião entre setores.
   // O que NÃO pode acontecer: sumir junto a resposta ao convite — senão o master
   // convida alguém e a pessoa não tem como aceitar.
-  eq("37) o interruptor existe e está ligado",
-     /var AG_CONVITE_SO_MASTER = true;/.test(H), "true");
+  /* 37) ATUALIZADO na Etapa J (01/09/2026): o interruptor foi DESLIGADO de propósito —
+     o funcionário comum passou a poder convidar. O teste não some: passa a cobrar que a
+     liberação seja consciente (o marcador ==JCONVITE== explica o que foi conferido antes)
+     e que o interruptor continue existindo, para dar pra fechar de novo numa linha. */
+  eq("37) o interruptor existe, e a Etapa J o desligou de propósito",
+     /var AG_CONVITE_SO_MASTER = false;/.test(H) && /==JCONVITE==/.test(H), "true");
   eq("38) e é UMA linha pra liberar depois",
      /function agPodeConvidar\(\)\{ return AG_CONVITE_SO_MASTER \? agMaster\(\) : true; \}/.test(H), "true");
-  eq("39) quem não é master não vê a telinha de convidar",
+  /* 39) o portão continua existindo e continua sendo o mesmo: quem manda é
+     agPodeConvidar(). Com o interruptor desligado ele libera todo mundo que tem a
+     página — mas a linha que decide não mudou de lugar. */
+  eq("39) a telinha de convidar continua atrás de agPodeConvidar()",
      /function agConvidarHtml\(\)\{\s*\n\s*if\(!agPodeConvidar\(\)\) return "";/.test(H), "true");
+  eq("39b) e a lista de gente só é baixada por quem vai usar",
+     /if\(!agPodeConvidar\(\) && !agMaster\(\)\) return;/.test(H), "true");
+  /* A tranca que importa nunca foi a bandeira: é o banco. Estes dois cobram que ela
+     continue de pé mesmo com o convite liberado. */
+  eq("39c) o seletor de agenda alheia continua SÓ do master",
+     /function agVerBarHtml\(\)\{\s*\n\s*if\(!agMaster\(\)\|\|agParte2===false\) return "";/.test(H), "true");
   // H: o Aceitar saiu do meio do texto e virou o botão principal do rodapé
   /* 40) ROBUSTO desde 01/09: media por distância em caracteres e quebrou quando a I5
      acrescentou um comentário e uma linha dentro do mesmo bloco (o botão foi parar a 634
