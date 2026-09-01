@@ -1117,6 +1117,16 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .ag-conv-li { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:3px; }
   .ag-conv-nome { font-size:12.5px; font-weight:600; color:#26313a; }
   .ag-conv-setor { font-size:11px; color:#7b8792; background:#eef1f4; border-radius:4px; padding:1px 6px; }
+  /* ==I4RETIRADO== a linha de quem foi retirado continua legível, só recua um passo:
+     ela é histórico, não participante. Sem tachado — nome de gente riscado fica
+     agressivo, e quem lê é o dono conferindo o que aconteceu. */
+  .ag-conv-li.retirado, .ag-conv-rec.retirado { opacity:.55; }
+  .ag-conv-li.retirado .ag-conv-nome { font-weight:500; }
+  .ag-st.ret { color:#5b6670; background:#eef1f4; }
+  .ag-conv-sumiu { font-size:11px; color:#7b8792; font-style:italic; }
+  .ag-conv-x { border:0; background:none; color:#a5341f; font-size:11.5px; font-weight:600;
+               cursor:pointer; padding:1px 5px; border-radius:5px; }
+  .ag-conv-x:hover { background:#fbe9e5; }
   .ag-conv-rec { font-size:11.5px; color:#a5341f; background:#fdf1ee; border:1px solid #f3d9d1; border-radius:7px; padding:6px 8px; margin:2px 0 6px; }
   .ag-conv-sug { margin-top:4px; color:#5b6670; display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
   .ag-meu { display:flex; align-items:center; gap:7px; margin-top:8px; flex-wrap:wrap; }
@@ -5735,6 +5745,20 @@ function agPessoasLoad(){
 }
 function agSetores(){ var vis={}, out=[]; (agPessoas||[]).forEach(function(p){ if(!vis[p.setor]){ vis[p.setor]=1; out.push(p.setor); } }); return out.sort(); }
 function agDoSetor(st){ return (agPessoas||[]).filter(function(p){ return p.setor===st; }); }
+/* ==I4AUTOCONVITE== o DONO do compromisso não aparece na lista de convidar.
+   Dono é o para_id (dono_id na resposta da consulta) — nunca "quem está mexendo": o
+   master editando o compromisso da Ana precisa continuar podendo convidar a si mesmo,
+   e o que ele não pode é convidar a Ana pro compromisso que já é dela. Num compromisso
+   NOVO o dono é quem está criando, porque o painel nunca marca compromisso pra outra
+   pessoa (o servidor põe para_id = auth.uid() por default).
+   Isto aqui é só a lista: a trava de verdade está no gatilho do banco. */
+function agDonoForm(){ var e=agEditId?agFindEv(agEditId):null; return (e&&e.dono_id)||agUid(); }
+function agSetoresConv(){
+  var d=agDonoForm(), vis={}, out=[];
+  (agPessoas||[]).forEach(function(p){ if(p.id!==d && !vis[p.setor]){ vis[p.setor]=1; out.push(p.setor); } });
+  return out.sort();
+}
+function agConvidaveisDo(st){ var d=agDonoForm(); return agDoSetor(st).filter(function(p){ return p.id!==d; }); }
 function agPessoa(id){ var n=null; (agPessoas||[]).forEach(function(p){ if(p.id===id) n=p; }); return n; }
 
 /* ---------------- carregar o mês ---------------- */
@@ -6219,17 +6243,44 @@ function agStPill(st){
   if(st==="recusado")   return '<span class="ag-st no">✕ Recusou</span>';
   return '<span class="ag-st wait">⏳ Aguardando</span>';
 }
+/* ==I4CONV== A LISTA DE CONVIDADOS — e por que "Retirar" mora AQUI.
+   O outro lugar possível seria a fileira de chips do formulário (agConvChipsHtml), e
+   ele NÃO serve: o chip é desenhado por agPessoa(id), que lê a lista de agenda_pessoas
+   — e essa lista não traz quem perdeu a página, quem foi desaprovado, nem quem teve o
+   perfil apagado. Para essa gente o chip vira string vazia e some da tela, que é
+   justamente o caso que a retirada precisa resolver. Esta lista aqui vem da consulta do
+   mês, mostra todo mundo, e por isso é a única que sempre tem o que retirar.
+
+   Quem vê convidado RETIRADO é decidido pelo SERVIDOR (agenda_mes só manda os retirados
+   para o dono e para o master). O filtro repetido aqui é cinto e suspensório, não a
+   tranca — a tranca está no banco. */
+function agEhDono(ev){ return !!(ev&&ev.sou_dono) || agMaster(); }
 function agConvHtml(ev){
   var cs=ev.convidados||[]; if(!cs.length) return "";
+  var podeRetirar=agEhDono(ev)&&!agVendoOutro();
   var linhas=cs.map(function(c){
-    return '<div class="ag-conv-li"><span class="ag-conv-nome">'+agEsc(c.nome)+'</span>'+
-           '<span class="ag-conv-setor">'+agEsc(c.setor)+'</span>'+agStPill(c.status)+'</div>'+
+    var ret=!!c.retirado;
+    if(ret && !agEhDono(ev)) return "";        // convidado comum vê os participantes de hoje
+    var nome=c.sumiu?'<span class="ag-conv-sumiu">Pessoa removida</span>'
+                    :'<span class="ag-conv-nome">'+agEsc(c.nome)+'</span>';
+    return '<div class="ag-conv-li'+(ret?' retirado':'')+'">'+nome+
+           '<span class="ag-conv-setor">'+agEsc(c.setor)+'</span>'+
+           (ret?'<span class="ag-st ret">Retirado</span>':agStPill(c.status))+
+           ((podeRetirar&&!ret)?('<button type="button" class="ag-conv-x" data-agretirar="'+ev.id+'" data-p="'+agEsc(c.pessoa_id)+'" data-n="'+agEsc(c.sumiu?"essa pessoa":c.nome)+'">Retirar</button>'):'')+
+           '</div>'+
+           /* Retirado não ganha o botão "Remarcar pra esta data": remarcar o compromisso
+              inteiro por causa da sugestão de quem já saiu não faz sentido nenhum. O
+              motivo continua visível, porque é o histórico que o dono quis guardar. */
+           /* a caixa do motivo e IRMA da linha, nao filha — entao ela precisa da classe
+              tambem, senao o retirado fica com a linha apagada e o motivo em vermelho
+              vivo, do mesmo tamanho de quem esta no compromisso. Pego pela previa. */
            (c.status==="recusado"?
-             '<div class="ag-conv-rec">Motivo: '+agEsc(c.motivo||'')+
+             '<div class="ag-conv-rec'+(ret?' retirado':'')+'">Motivo: '+agEsc(c.motivo||'')+
              (c.sug_data?('<div class="ag-conv-sug">Sugeriu <b>'+agFmtDataBr(c.sug_data)+'</b>'+(c.sug_hora?(' às <b>'+agFmtHora(c.sug_hora)+'</b>'):'')+
-               (ev.sou_dono?('<button type="button" class="ag-mini ok" data-agremarcar="'+ev.id+'" data-d="'+agEsc(c.sug_data)+'" data-h="'+agEsc(c.sug_hora||'')+'">Remarcar pra esta data</button>'):'')+
+               ((ev.sou_dono&&!ret)?('<button type="button" class="ag-mini ok" data-agremarcar="'+ev.id+'" data-d="'+agEsc(c.sug_data)+'" data-h="'+agEsc(c.sug_hora||'')+'">Remarcar pra esta data</button>'):'')+
              '</div>'):'')+'</div>':'');
   }).join('');
+  if(!linhas) return "";
   return '<div class="ag-conv"><div class="ag-conv-tit">Convidados</div>'+linhas+'</div>';
 }
 function agRespostaHtml(ev){
@@ -6304,7 +6355,7 @@ function agConvidarHtml(){
   if(!agPodeConvidar()) return "";     // enquanto convidar for só do master
   if(agParte2===false) return "";
   if(!agPessoas) return '<div class="ag-f-hint">Carregando a lista de pessoas...</div>';
-  var sets=agSetores();
+  var sets=agSetoresConv();          // ==I4AUTOCONVITE== sem o dono do compromisso
   if(!sets.length) return "";
   return '<div class="ag-f-conv"><div class="ag-f-lbl" style="margin-bottom:5px;">Convidar (opcional):</div>'+
     '<div class="ag-f-row"><select class="ag-c-setor"><option value="">Setor...</option>'+
@@ -6703,14 +6754,19 @@ function agRenderDia(deFundo){
 function renderAgenda(){ if(!agSel){ var h=new Date(); agAno=h.getFullYear(); agMes=h.getMonth(); agSel=agK(agAno,agMes,h.getDate()); } agPessoasLoad(); agDesenha(); agRenderDia(); }
 
 /* ---------------- gravar ---------------- */
-// Só o que mudou: convida quem entrou na lista, desconvida quem saiu.
+/* ==I4SYNC== SALVAR SÓ CONVIDA. RETIRAR VIROU BOTÃO.
+   Antes esta função também DESCONVIDAVA, com um DELETE direto: quem saísse da lista do
+   formulário tinha a linha apagada, e com ela a resposta, o motivo e a data que a pessoa
+   tinha sugerido. Não sobrava nada pra conferir depois. Agora retirar é uma ação
+   explícita (agenda_conv_retirar), e o banco nem aceita mais DELETE aqui.
+
+   O "antes" ignora quem já está retirado. Sem isso, a conta de "quem entrou" acharia que
+   precisa reconvidar todo mundo do histórico a cada vez que o compromisso fosse salvo. */
 function agSyncConvidados(sb,evId,antesArr){
-  var antes=(antesArr||[]).map(function(c){ return c.pessoa_id; });
+  var antes=(antesArr||[]).filter(function(c){ return !c.retirado; }).map(function(c){ return c.pessoa_id; });
   var add=agConvSel.filter(function(id){ return antes.indexOf(id)<0; });
-  var rem=antes.filter(function(id){ return agConvSel.indexOf(id)<0; });
   var ps=[];
   if(add.length) ps.push(sb.from("agenda_convidados").insert(add.map(function(id){ return {evento_id:evId,pessoa_id:id}; })).select());
-  if(rem.length) ps.push(sb.from("agenda_convidados").delete().eq("evento_id",evId).in("pessoa_id",rem).select());
   if(!ps.length) return Promise.resolve([]);
   /* O Supabase NÃO rejeita a promessa quando o banco recusa: ele RESOLVE, com um
      {error} dentro. Como aqui só existia o ramo de rejeição, convite barrado passava
@@ -6828,6 +6884,21 @@ function agResponder(id,status,motivo,sugD,sugH,onErro){
     if(r&&r.error){ if(onErro) onErro(r.error.message||"Não deu pra responder."); return; }
     agRespId=null; agInvalidar(); agCloudLoad(); agBadge();
   },function(){ if(onErro) onErro("Falha de conexão. Tente de novo."); });
+}
+/* ==I4RETIRAR== TIRAR ALGUÉM DO COMPROMISSO, sem apagar o que ela respondeu.
+   Vai por RPC porque o DELETE direto nesta tabela foi fechado no banco (policy e
+   permissão), justamente pra não sobrar uma porta capaz de apagar histórico. */
+function agRetirarConv(evId,pessoaId,nome){
+  uiConfirm({titulo:"Retirar do compromisso?",
+             msg:(nome?(nome+" "):"Essa pessoa ")+"deixa de ver este compromisso e não responde mais. "+
+                 "A resposta que ela já tinha dado fica guardada no histórico. Pra trazer de volta, é só convidar de novo.",
+             ok:"Retirar", cancel:"Cancelar"}).then(function(ok){
+    if(!ok) return; var sb=agSB(); if(!sb) return;
+    sb.rpc("agenda_conv_retirar",{p_evento:evId,p_pessoa:pessoaId}).then(function(r){
+      if(r&&r.error) return uiConfirm({titulo:"Não deu pra retirar",msg:"O banco recusou: "+(r.error.message||"tente de novo."),ok:"OK",cancel:""});
+      agInvalidar(); agCloudLoad(); agBadge();
+    },function(){ uiConfirm({titulo:"Falha de conexão",msg:"Não deu pra retirar agora. Tente de novo.",ok:"OK",cancel:""}); });
+  });
 }
 // Quem convidou aceita a data sugerida: o gatilho do banco devolve TODO MUNDO
 // pra "Aguardando", porque o dia mudou e ninguém confirmou esse novo dia ainda.
@@ -7018,7 +7089,10 @@ function agRealtime(){
       var ed=e.target.closest("[data-ageditar]"); if(ed){
         agSecs=null;      // as seções nascem do que o compromisso já tem
         agEditId=ed.getAttribute("data-ageditar"); agRespId=null; agAbertoId=null; agVerTodos=false;
-        var _ev=agFindEv(agEditId); agConvSel=(_ev&&_ev.convidados||[]).map(function(c){ return c.pessoa_id; });
+        /* ==I4SYNC== só os convites ATIVOS entram no formulário. O histórico de quem foi
+           retirado mora na lista de convidados do compromisso, não na fileira de chips. */
+        var _ev=agFindEv(agEditId);
+        agConvSel=(_ev&&_ev.convidados||[]).filter(function(c){ return !c.retirado; }).map(function(c){ return c.pessoa_id; });
         agRenderDia(); return;
       }
       var ex=e.target.closest("[data-agexcluir]"); if(ex){ agExcluir(ex.getAttribute("data-agexcluir")); return; }
@@ -7078,6 +7152,8 @@ function agRealtime(){
         return;
       }
       var rm=e.target.closest("[data-agremarcar]"); if(rm){ agRemarcar(rm.getAttribute("data-agremarcar"),rm.getAttribute("data-d"),rm.getAttribute("data-h")); return; }
+      var rt=e.target.closest("[data-agretirar]");
+      if(rt){ agRetirarConv(rt.getAttribute("data-agretirar"),rt.getAttribute("data-p"),rt.getAttribute("data-n")); return; }
       var tc=e.target.closest("[data-agtiraconv]"); if(tc){ var _id=tc.getAttribute("data-agtiraconv"); agConvSel=agConvSel.filter(function(x){ return x!==_id; }); agConvChipsPinta(); return; }
       if(e.target.closest("[data-agaddconv]")){
         var fb=e.target.closest(".ag-f-conv"); if(!fb) return;
@@ -7154,7 +7230,7 @@ function agRealtime(){
       var cs=e.target.closest(".ag-c-setor");
       if(cs){
         var fb=cs.closest(".ag-f-conv"), pp=fb?fb.querySelector(".ag-c-pessoa"):null; if(!pp) return;
-        pp.innerHTML='<option value="">Pessoa...</option>'+agDoSetor(cs.value).map(function(p){ return '<option value="'+agEsc(p.id)+'">'+agEsc(p.nome)+'</option>'; }).join('');
+        pp.innerHTML='<option value="">Pessoa...</option>'+agConvidaveisDo(cs.value).map(function(p){ return '<option value="'+agEsc(p.id)+'">'+agEsc(p.nome)+'</option>'; }).join('');
         return;
       }
       var vs=e.target.closest(".ag-v-setor");
