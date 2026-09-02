@@ -1203,6 +1203,30 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      nome ainda maior. O que nao pode voltar e o botao ser cortado pela borda. */
   eq("160c) e o botão não encolhe junto — ele mantém o tamanho ao lado deles",
      /\.ag-f-baixo \.ag-f-conv \[data-agaddconv\] \{ flex:0 0 auto; \}/.test(H), "true");
+  /* ==FIACAO== A trava que eu queria ter tido a noite inteira. Ela varre a Agenda e
+     compara os dois lados da fiacao:
+       · todo data-ag* DESENHADO na tela tem alguem que trata o clique;
+       · todo tratador tem algum botao que o desenhe.
+     O primeiro lado pega botao que nao faz nada — o pior defeito de todos, porque a
+     pessoa clica, nao acontece nada, e ela acha que errou. O segundo pega codigo morto,
+     que engana quem for ler depois.
+     Foi assim que achei o data-agfechar: sobrou de quando a janela fechava de outro
+     jeito, e ficou ali sem botao nenhum. */
+  {
+    const desenhados = new Set();
+    for (const m of H.matchAll(/data-(ag[a-z0-9]+)(?=[\s>='"])/gi)) desenhados.add(m[1].toLowerCase());
+    const tratados = new Set();
+    for (const m of H.matchAll(/\[data-(ag[a-z0-9]+)\]/gi)) tratados.add(m[1].toLowerCase());
+    for (const m of H.matchAll(/getAttribute\("data-(ag[a-z0-9]+)"\)/gi)) tratados.add(m[1].toLowerCase());
+    const semDono = [...desenhados].filter(x => !tratados.has(x)).sort();
+    const orfaos  = [...tratados].filter(x => !desenhados.has(x)).sort();
+    eq("199) nenhum botão da Agenda fica sem quem trate o clique",
+       semDono.join(", ") || "nenhum", "nenhum");
+    eq("199b) e nenhum tratador ficou sem botão que o desenhe",
+       orfaos.join(", ") || "nenhum", "nenhum");
+    eq("199c) (e a varredura achou coisa de verdade, não zero dos dois lados)",
+       desenhados.size >= 20 && tratados.size >= 20, "true");
+  }
   eq("157b) e a folha de baixo só existe dentro de media query",
      /\n  \.ag-jan-bg \{ align-items:flex-end/.test(H), "false");
 }

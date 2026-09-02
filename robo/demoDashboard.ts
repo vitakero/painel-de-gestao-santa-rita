@@ -7355,7 +7355,6 @@ function agRealtime(){
       var ex=e.target.closest("[data-agexcluir]"); if(ex){ agExcluir(ex.getAttribute("data-agexcluir")); return; }
       if(e.target.closest("[data-agcancelaredit]")){ agEditId=null; agConvSel=[]; agSecs=null; agRenderDia(); return; }
       if(e.target.closest("[data-agfecharjan]")){ agJanFecha(); return; }   // fechar quer dizer FECHAR
-      if(e.target.closest("[data-agfechar]")){ agAbertoId=null; agVerTodos=false; agEditId=null; agConvSel=[]; agSecs=null; agRenderDia(); return; }
       var ac=e.target.closest("[data-agaceitar]");
       if(ac){ ac.disabled=true; ac.textContent="Aceitando...";
         agResponder(ac.getAttribute("data-agaceitar"),"confirmado",null,null,null,function(m){
