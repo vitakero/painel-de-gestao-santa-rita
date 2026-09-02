@@ -3161,6 +3161,21 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-histA{display:flex;align-items:center;gap:8px;flex:none;}
         #page-cartaz .cz-histX{background:none;border:0;color:#b0bac6;font-size:14px;cursor:pointer;padding:6px 8px;border-radius:7px;line-height:1;}
         #page-cartaz .cz-histX:hover{background:#fdecea;color:#c0392b;}
+        /* MARCAR VARIAS E IMPRIMIR DE UMA VEZ (02/09/2026). A barra gruda no alto enquanto a
+           lista rola (top:57px = a altura do cabecalho do painel, que e sticky): quem marca a
+           ultima placa la embaixo nao precisa voltar ao topo pra achar o botao. */
+        #page-cartaz .cz-histBar{position:sticky;top:57px;z-index:3;display:flex;align-items:center;gap:10px;
+          flex-wrap:wrap;max-width:760px;margin:0 auto 10px;padding:8px 2px;background:#fff;border-bottom:1px solid #eef2f6;}
+        #page-cartaz .cz-histMarcar{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:#33404f;
+          font-weight:600;cursor:pointer;padding:5px 8px;border-radius:8px;}
+        #page-cartaz .cz-histMarcar:hover{background:#eef1f5;}
+        #page-cartaz .cz-histCont{flex:1;min-width:120px;font-size:12px;color:#6b7787;}
+        #page-cartaz .cz-histBar .cz-btn{padding:9px 16px;font-size:13px;}
+        /* O anel do foco e desenhado FORA da caixinha; sem essa folga de 4px ele sai cortado
+           pela borda da linha. Ver [[feedback_anel_do_foco]]. */
+        #page-cartaz .cz-histCk{flex:none;display:inline-flex;align-items:center;padding:4px;}
+        #page-cartaz input.cz-cx{width:17px;height:17px;flex:none;margin:0;accent-color:#157a35;cursor:pointer;}
+        #page-cartaz .cz-histI.mk{border-color:#a9d8ba;background:#f5fbf7;}
         #page-cartaz .cz-actions{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:18px;flex-wrap:wrap;}
         #page-cartaz .cz-btn{border:0;border-radius:11px;padding:11px 20px;font-size:14px;font-weight:800;cursor:pointer;}
         #page-cartaz .cz-btn.prim{background:linear-gradient(135deg,#23a847,#0c5a26);color:#fff;}
@@ -23528,6 +23543,92 @@ function czHistDatas(r){
   if(a) return 'a partir de '+a;
   return 'sem validade';
 }
+/* ===== IMPRIMIR VARIAS DE UMA VEZ (pedido de 02/09/2026) =====
+
+   Quem repoe as placas da loja reclamou do caminho: abrir a placa, confirmar, imprimir,
+   fechar, repetir — oito idas pra oito placas. Agora ela marca as que quer e manda tudo
+   junto. Estas contas sao o miolo disso, e continuam sem tocar em tela nem em nuvem.
+
+   A REGRA QUE MANDA AQUI: duas placas so cabem na mesma impressao quando dividem a MESMA
+   FOLHA. O tamanho do papel e o modelo deitado mudam a pagina inteira (grade, orientacao,
+   quantos cabem) e o navegador so aceita um desenho de pagina por impressao. Misturar
+   sairia com cartaz cortado — entao eu separo em tandas em vez de tentar. */
+
+/* A "chave da folha": o que precisa ser igual pra duas placas sairem na mesma impressao.
+   Oferta padrao e De/Por NAO entram nesta conta de proposito — as duas dividem a mesma
+   folha, quem muda e so o miolo do cartaz (o "DE:" riscado). Elas saem juntas numa boa. */
+function czLoteFolhaDe(r){
+  r = r || {};
+  if(String(r.modelo||"") === "deitado") return "deitado";
+  var tam = String(r.tamanho || "A4").toUpperCase();
+  /* A1/A2/A3 sao posteres: alem do tamanho, o JEITO de imprimir (emendar folhas A4 ou uma
+     folha unica grande) muda a pagina toda. */
+  if(tam==="A1" || tam==="A2" || tam==="A3") return tam + "|" + (r.impressao || "multi");
+  return tam;
+}
+
+/* Separa as marcadas em tandas, guardando a ordem em que aparecem na lista. */
+function czLoteTandas(regs){
+  var ordem = [], mapa = {}, i, k;
+  for(i=0; i<(regs||[]).length; i++){
+    k = czLoteFolhaDe(regs[i]);
+    if(!mapa[k]){ mapa[k] = { folha:k, regs:[] }; ordem.push(mapa[k]); }
+    mapa[k].regs.push(regs[i]);
+  }
+  return ordem;
+}
+
+/* QUANTAS FOLHAS DE PAPEL SAEM. E o numero que ela precisa ver ANTES de mandar imprimir:
+   marcar 8 placas A4 gasta 8 folhas, mas 8 placas A1 emendadas gastam 64. */
+function czLoteFolhas(folha, n){
+  n = Math.max(0, parseInt(n,10) || 0);
+  if(!n) return 0;
+  var porFolha = {A4:1, A5:2, A6:4, A7:8, deitado:2}[folha];
+  if(porFolha) return Math.ceil(n / porFolha);
+  var p = String(folha).split("|");
+  /* Poster: cada cartaz vira varias folhas A4 pra emendar — ou uma folha grande so. */
+  return n * ((p[1]==="unica") ? 1 : ({A1:8, A2:4, A3:2}[p[0]] || 1));
+}
+
+/* O nome da tanda em portugues, pro aviso de papeis diferentes. */
+function czLoteNome(folha){
+  if(folha === "deitado") return "Deitado (2 por folha)";
+  var p = String(folha).split("|");
+  if(p[1]) return p[0] + (p[1]==="unica" ? " (folha unica)" : " (emendando folhas A4)");
+  return p[0];
+}
+
+/* O CAMINHO DE VOLTA DE VARIAS PLACAS — e a parte que dava trabalho de verdade.
+   Reimprimir UMA era facil: eu emprestava as variaveis da tela (validade, limite,
+   cabecalho), imprimia e devolvia. Com VARIAS nao da: cada placa tem a validade dela, o
+   limite dela e a arte de topo dela, e essas tres coisas sao desenhadas a partir das
+   variaveis da tela — que valem uma de cada vez. Emprestando as da primeira, as outras
+   sete sairiam com a validade errada pra colar na gondola.
+   Solucao: cada item leva o retrato dele preso junto (_tema e _ft), e o desenhista do
+   cartaz (czInner/czInnerL) usa o do item quando ele existe. */
+function czLoteItens(regs, achaTema){
+  var out = [], i, r, it;
+  for(i=0; i<(regs||[]).length; i++){
+    r = regs[i] || {};
+    it = czHistParaItem(r);
+    it._tema = achaTema ? (achaTema(r) || null) : null;
+    it._ft = { valIni: r.validade_ini || "", val: r.validade_fim || "",
+               limite: String(r.limite_cliente == null ? 0 : r.limite_cliente) };
+    out.push(it);
+  }
+  return out;
+}
+
+/* Quais placas do lote perderam a arte do cabecalho. Sairiam com o selo OFERTA em texto,
+   diferente do que esta colado na gondola — entao ela e avisada ANTES, com os nomes. */
+function czLoteSemArte(regs, achaTema){
+  var out = [], i, r;
+  for(i=0; i<(regs||[]).length; i++){
+    r = regs[i] || {};
+    if(r.tema_nome && !(achaTema && achaTema(r))) out.push(czHistRotulo(r));
+  }
+  return out;
+}
 /* ==CZHIST-FIM== */
 
 /* O BLOCO QUE APARECE NO FIM DA PÁGINA.
@@ -23544,16 +23645,38 @@ function czHistBloco(){
       +'guardados nesta lista — assim, se uma placa rasgar ou molhar na gôndola, você imprime '
       +'só aquela, sem montar tudo de novo. Cada cartaz sai daqui sozinho quando a oferta vence.</p></div>';
   }
+  /* As duas contas da barra: quantas estao marcadas e quanto papel isso vai gastar. */
+  var marc = czHistMarcadas();
+  var tandas = czLoteTandas(marc), folhas = 0;
+  for(var g=0; g<tandas.length; g++) folhas += czLoteFolhas(tandas[g].folha, tandas[g].regs.length);
+  var todas = (marc.length > 0 && marc.length === czHist.length);
+
   var h = '<div class="cz-hist"><div class="cz-histT">Cartazes impressos</div>'
-    /* A frase diz TRÊS coisas, nesta ordem: o que é a lista, o que fazer quando uma placa
-       estraga, e que ela se limpa sozinha. A versão anterior começava com uma pergunta e
-       não dizia onde clicar. */
-    +'<p class="cz-histSub">Tudo que já foi impresso fica aqui. Clique em <b>Ver a placa</b> '
-    +'e imprima só aquela — sem montar a lista de novo. '
-    +'Cada cartaz sai daqui sozinho quando a oferta vence.</p><div class="cz-histL">';
+    /* A frase diz QUATRO coisas, nesta ordem: o que é a lista, como repor várias de uma
+       vez, como conferir e repor uma só, e que ela se limpa sozinha. */
+    +'<p class="cz-histSub">Tudo que já foi impresso fica aqui. Marque as caixinhas e '
+    +'imprima <b>várias de uma vez</b>, ou clique em <b>Ver a placa</b> pra conferir e '
+    +'imprimir só aquela. Cada cartaz sai daqui sozinho quando a oferta vence.</p>'
+    +'<div class="cz-histBar">'
+      +'<label class="cz-histMarcar"><input type="checkbox" class="cz-cx" data-czhisttodas'
+        +(todas?' checked':'')+'>Marcar todas</label>'
+      +'<span class="cz-histCont">'
+        +(marc.length
+            ? (marc.length+(marc.length>1?' placas marcadas':' placa marcada')
+               +' · '+folhas+(folhas>1?' folhas':' folha')+' de papel')
+            : 'Marque as placas que quiser repor e imprima todas de uma vez.')
+      +'</span>'
+      +(marc.length
+          ? ('<button class="cz-btn sec" data-czhistlimpar>Limpar</button>'
+             +'<button class="cz-btn prim" data-czhistlote>'
+             +(marc.length>1?('Imprimir as '+marc.length+' marcadas'):'Imprimir a marcada')+'</button>')
+          : '')
+    +'</div><div class="cz-histL">';
   for(var i=0;i<czHist.length;i++){
     var r = czHist[i];
-    h += '<div class="cz-histI">'
+    h += '<div class="cz-histI'+(czHistSel[r.id]?' mk':'')+'">'
+      +'<label class="cz-histCk"><input type="checkbox" class="cz-cx" data-czhistsel="'+czEsc(r.id)+'"'
+        +(czHistSel[r.id]?' checked':'')+' aria-label="Marcar '+czEsc(czHistRotulo(r))+'"></label>'
       +'<div class="cz-histC"><b>'+czEsc(czHistRotulo(r))+'</b>'
         +'<span>R$ '+czEsc(r.preco||"")+(r.preco_de?(' · de R$ '+czEsc(r.preco_de)):'')
         +' · '+czEsc(String(r.tamanho||""))
@@ -23568,6 +23691,15 @@ function czHistBloco(){
 
 var czHist = null;          // null = ainda não carregou; [] = carregou e está vazio
 var czHistCarregando = false;
+var czHistSel = {};         // id -> true: as placas marcadas pra sair na mesma impressão
+
+/* As marcadas, NA ORDEM DA LISTA — não na ordem em que ela foi clicando. É o que ela vê na
+   tela, e é a ordem em que as folhas saem da impressora. */
+function czHistMarcadas(){
+  var out = [], i, r;
+  for(i=0; i<(czHist||[]).length; i++){ r = czHist[i] || {}; if(czHistSel[r.id]) out.push(r); }
+  return out;
+}
 
 function czSB(){ try{ return window.__SB || null; }catch(e){ return null; } }
 
@@ -23600,6 +23732,11 @@ function czHistCloudLoad(){
              .order("criado_em", {ascending:false}).limit(60);
   }).then(function(r){
     czHist = (r && !r.error && r.data) ? r.data : (czHist || []);
+    /* A lista se limpa sozinha (oferta vencida) e o ✕ tira placa à mão. Marca de placa que
+       não existe mais faria a barra contar uma placa a mais do que a impressora vai dar. */
+    var viva = {}, i2;
+    for(i2=0; i2<czHist.length; i2++) if(czHistSel[czHist[i2].id]) viva[czHist[i2].id] = true;
+    czHistSel = viva;
     czHistCarregando = false; renderCartaz();
   }, function(){
     /* Tabela ainda não criada, sem internet, sem permissão: a página do cartaz continua
@@ -23749,6 +23886,86 @@ function czHistImprimirAgora(r, tema){
     renderCartaz();
   }
 }
+/* ===== IMPRIMIR AS MARCADAS ===== (as contas estao no ==CZHIST==, em czLote*)
+
+   Tres portoes antes de gastar papel, nesta ordem: papeis diferentes nao cabem na mesma
+   impressao; arte de cabecalho que sumiu muda o cartaz; e no fim ela confirma quantas
+   placas e quantas folhas vao sair. */
+function czHistImprimirLote(){
+  var marc = czHistMarcadas();
+  if(!marc.length) return;
+  var tandas = czLoteTandas(marc), t = tandas[0];
+
+  /* PAPEIS DIFERENTES: imprimo a primeira tanda e deixo o resto MARCADO — ela clica de
+     novo quando esta sair. Melhor que misturar (sai cortado) e melhor que so recusar. */
+  if(tandas.length > 1){
+    var resto = [];
+    for(var g=1; g<tandas.length; g++) resto.push(tandas[g].regs.length+' em '+czLoteNome(tandas[g].folha));
+    uiConfirm({titulo:'Tamanhos de papel diferentes',
+      msg:'Você marcou placas que não cabem na mesma folha, e a impressora só aceita um tamanho por vez.\\n\\n'
+         +'Vou imprimir agora as '+t.regs.length+' de '+czLoteNome(t.folha)+'.\\n\\n'
+         +'As outras ('+resto.join(', ')+') continuam marcadas — é só clicar em imprimir de novo quando estas saírem.',
+      ok:'Imprimir as de '+czLoteNome(t.folha), cancel:'Cancelar'})
+      .then(function(sim){ if(sim) czHistLoteArte(t); });
+    return;
+  }
+  czHistLoteArte(t);
+}
+
+/* A arte do topo tem que ser a MESMA que esta na gondola. Mesmo aviso do "Imprimir de
+   novo" de uma placa so, mas aqui listando quais do lote perderam a arte. */
+function czHistLoteArte(t){
+  var falta = czLoteSemArte(t.regs, czHistTema);
+  if(!falta.length){ czHistLoteConfere(t); return; }
+  uiConfirm({titulo:'Falta a arte do cabeçalho',
+    msg:(falta.length>1?'Estas placas foram impressas':'Esta placa foi impressa')+' com uma arte de cabeçalho '
+       +'que não está mais na lista:\\n\\n• '+falta.join('\\n• ')
+       +'\\n\\nSe imprimir assim, '+(falta.length>1?'elas saem':'ela sai')+' com o selo OFERTA em texto — '
+       +'diferente do que está na gôndola.',
+    ok:'Imprimir assim mesmo', cancel:'Cancelar'})
+    .then(function(sim){ if(sim) czHistLoteConfere(t); });
+}
+
+/* O ultimo portao: quantas placas e QUANTAS FOLHAS. Uma tanda de 8 placas A1 emendadas
+   sao 64 folhas — ninguem deve descobrir isso com a impressora ja rodando. */
+function czHistLoteConfere(t){
+  var n = t.regs.length, folhas = czLoteFolhas(t.folha, n);
+  uiConfirm({titulo:(n>1?('Imprimir '+n+' placas'):'Imprimir 1 placa'),
+    msg:'Vão sair '+n+(n>1?' placas':' placa')+' em '+folhas+(folhas>1?' folhas':' folha')+' de papel '
+       +czLoteNome(t.folha)+', cada uma com a validade e o cabeçalho do dia em que foi impressa.',
+    ok:'Imprimir', cancel:'Cancelar'})
+    .then(function(sim){ if(sim) czHistLoteSai(t); });
+}
+
+/* SAI O PAPEL. Emprestamos as variaveis da tela igual ao "Imprimir de novo" de uma placa
+   so — mas aqui SO o que e da FOLHA (modelo, tamanho, jeito de imprimir). O que e de cada
+   placa (validade, limite, arte do topo) vai preso no proprio item, pelo czLoteItens.
+   O czModelo vai como 'padrao' de proposito: quem decide se sai o "DE:" riscado e o
+   precoDe de cada item, entao padrao e De/Por saem juntos na mesma folha. */
+function czHistLoteSai(t){
+  var r0 = t.regs[0] || {}, deitado = (t.folha === 'deitado');
+  var bak = { modelo:czModelo, tamanho:czTamanho, impressao:czImpressao, tema:czTema,
+              ini:czValIni, fim:czValidade, limite:czLimite, prods:czProdutos, step:czStep };
+  var saiu = false;
+  try{
+    czModelo = deitado ? 'deitado' : 'padrao';
+    czTamanho = deitado ? (r0.tamanho || 'A5') : String(t.folha).split('|')[0];
+    czImpressao = r0.impressao || 'multi';
+    czProdutos = czLoteItens(t.regs, czHistTema);
+    saiu = (czImprimir() !== false);
+  }catch(e){
+  }finally{
+    czModelo=bak.modelo; czTamanho=bak.tamanho; czImpressao=bak.impressao; czTema=bak.tema;
+    czValIni=bak.ini; czValidade=bak.fim; czLimite=bak.limite; czProdutos=bak.prods;
+    czStep=bak.step;
+  }
+  /* Desmarco SO o que realmente foi pra impressora, e so quando a janela abriu. Se o
+     pop-up foi bloqueado, as marcas continuam la — senao ela teria que marcar tudo de
+     novo depois de liberar o pop-up. */
+  if(saiu){ for(var i=0;i<t.regs.length;i++) delete czHistSel[t.regs[i].id]; }
+  renderCartaz();
+}
+
 function czTemaUpload(inp){
   var f=inp.files&&inp.files[0]; if(!f) return;
   if(!f.type || f.type.indexOf('image/')!==0){ uiConfirm({titulo:'Arquivo inválido',msg:'Escolha uma imagem (JPG ou PNG).',ok:'OK',cancel:''}); return; }
@@ -23818,13 +24035,21 @@ function czParseTexto(txt){ var out=[]; var linhas=(txt||'').split('\\n'); for(v
 function czPreco(p){ p=(''+(p||'')).replace('.',','); var a=p.split(','); var r=(a[0]||'0').replace(/[^0-9]/g,'')||'0'; var c=(a[1]||'00'); c=(c+'00').slice(0,2); return {reais:r,cent:c}; }
 /* Uma conversão de data só, usada pelo rodapé do cartaz e pelas mensagens de erro. */
 function czDataBr(d){ var pt=String(d||'').split('-'); return (pt.length===3)?(pt[2]+'/'+pt[1]+'/'+pt[0]):String(d||''); }
-function czFooter(){
+/* O RODAPE (validade + limite por cliente).
+   Sem argumento ele le a tela, como sempre foi. Com argumento ele le o retrato daquela
+   placa — foi o que abriu caminho pra imprimir VARIAS de uma vez: no lote cada cartaz tem
+   a validade dele, e a tela so guarda uma. Ver ==CZLOTE== no historico. */
+function czFooter(o){
+  o = o || {};
+  var vi = (o.valIni !== undefined) ? o.valIni : czValIni;
+  var vf = (o.val    !== undefined) ? o.val    : czValidade;
+  var lm = (o.limite !== undefined) ? o.limite : czLimite;
   var v;
-  if(czValIni && czValidade){ v='OFERTA VÁLIDA DE '+czDataBr(czValIni)+' ATÉ '+czDataBr(czValidade)+' OU ENQUANTO DURAR O ESTOQUE'; }
-  else if(czValidade){ v='OFERTA VÁLIDA ATÉ '+czDataBr(czValidade)+' OU ENQUANTO DURAR O ESTOQUE'; }
-  else if(czValIni){ v='OFERTA VÁLIDA A PARTIR DE '+czDataBr(czValIni)+' OU ENQUANTO DURAR O ESTOQUE'; }
+  if(vi && vf){ v='OFERTA VÁLIDA DE '+czDataBr(vi)+' ATÉ '+czDataBr(vf)+' OU ENQUANTO DURAR O ESTOQUE'; }
+  else if(vf){ v='OFERTA VÁLIDA ATÉ '+czDataBr(vf)+' OU ENQUANTO DURAR O ESTOQUE'; }
+  else if(vi){ v='OFERTA VÁLIDA A PARTIR DE '+czDataBr(vi)+' OU ENQUANTO DURAR O ESTOQUE'; }
   else { v='OFERTA VÁLIDA ENQUANTO DURAR O ESTOQUE'; }
-  var n=parseInt(czLimite,10); var lim=(n>0)?('LIMITE '+n+' UNIDADE'+(n>1?'S':'')+' POR CLIENTE'):'';
+  var n=parseInt(lm,10); var lim=(n>0)?('LIMITE '+n+' UNIDADE'+(n>1?'S':'')+' POR CLIENTE'):'';
   return lim?(v+'  ·  '+lim):v;
 }
 function czInner(p){
@@ -23835,8 +24060,12 @@ function czInner(p){
   var nomeT=(p.nome||'').toUpperCase(), marcaT=(p.marca||'').toUpperCase();
   var grT=((p.tipo||'')+((p.tipo&&p.gram)?' ':'')+(p.gram||'')).toUpperCase();
   var nd=pp.reais.length+pp.cent.length;
-  var topo = czTema ? ('<div class="ctz-top ctz-topimg"><img class="ofimg" src="'+czTema.d+'" alt=""></div>')
-                    : ('<div class="ctz-top"><div class="of"'+kst(6.5,ofT.length)+'>'+czEsc(ofT)+'</div></div>');
+  /* _tema/_ft: o retrato que o item traz preso. Existe so no lote do historico (varias
+     placas na mesma impressao, cada uma com a arte e a validade dela). Quem monta cartaz
+     pela tela nao passa nada e continua lendo as variaveis da tela. */
+  var tema = (p && p._tema !== undefined) ? p._tema : czTema;
+  var topo = tema ? ('<div class="ctz-top ctz-topimg"><img class="ofimg" src="'+tema.d+'" alt=""></div>')
+                  : ('<div class="ctz-top"><div class="of"'+kst(6.5,ofT.length)+'>'+czEsc(ofT)+'</div></div>');
   return topo
    +'<div class="ctz-mid"><div class="nm"'+kst(7.2,nomeT.length)+'>'+czEsc(nomeT)+'</div>'
    +(marcaT?('<div class="mc"'+kst(10,marcaT.length)+'>'+czEsc(marcaT)+'</div>'):'')
@@ -23844,7 +24073,7 @@ function czInner(p){
    +'<div class="ctz-bot">'+dep
    +'<div class="pr"'+kst(5.2,nd)+'><span class="rs">R$</span><span class="in">'+czEsc(pp.reais)+'</span><span class="cm">,</span><span class="ce">'+czEsc(pp.cent)+'</span></div>'
    +'<img class="lg" src="'+(typeof LOGO_URI!=='undefined'?LOGO_URI:'')+'" alt="Supermercado Santa Rita">'
-   +(function(){ var ftT=czFooter(); return '<div class="ft"'+kst(54,ftT.length)+'>'+czEsc(ftT)+'</div>'; })()+'</div>';
+   +(function(){ var ftT=czFooter(p&&p._ft); return '<div class="ft"'+kst(54,ftT.length)+'>'+czEsc(ftT)+'</div>'; })()+'</div>';
 }
 
 var CZ_BR='url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%';
@@ -23875,14 +24104,15 @@ function czInnerL(p){
   var grT=((p.tipo||'')+((p.tipo&&p.gram)?' ':'')+(p.gram||'')).toUpperCase();
   var nd=pp.reais.length+pp.cent.length;
   var dep=(p.precoDe)?('<div class="ld"><span class="d1">DE:</span> <span class="d2">'+czEsc(p.precoDe)+'</span> <span class="d3">POR APENAS</span></div>'):'';
-  var topo=czTema?('<img class="ofimg" src="'+czTema.d+'" alt="">'):('<div class="lof"'+kst(4.8,ofT.length)+'>'+czEsc(ofT)+'</div>');
+  var temaL=(p && p._tema !== undefined) ? p._tema : czTema;   // ver o comentario no czInner
+  var topo=temaL?('<img class="ofimg" src="'+temaL.d+'" alt="">'):('<div class="lof"'+kst(4.8,ofT.length)+'>'+czEsc(ofT)+'</div>');
   return '<div class="ctzLin">'+topo
    +'<div class="lnm"'+kst(9.4,nomeT.length)+'>'+czEsc(nomeT)+'</div>'
    +(marcaT?('<div class="lmc"'+kst(9.5,marcaT.length)+'>'+czEsc(marcaT)+'</div>'):'')
    +(grT?('<div class="lgr"'+kst(19,grT.length)+'>'+czEsc(grT)+'</div>'):'')
    +dep
    +'<div class="lpr"'+kst(4.1,nd)+'><span class="lrs">R$</span><span class="lin">'+czEsc(pp.reais)+'</span><span class="lcm">,</span><span class="lce">'+czEsc(pp.cent)+'</span></div>'
-   +(function(){ var ftT=czFooter(); return '<div class="lft"'+kst(58,ftT.length)+'>'+czEsc(ftT)+'</div>'; })()
+   +(function(){ var ftT=czFooter(p&&p._ft); return '<div class="lft"'+kst(58,ftT.length)+'>'+czEsc(ftT)+'</div>'; })()
    +'</div>';
 }
 function renderCartaz(){
@@ -24014,6 +24244,8 @@ function czClick(e){
   if(t=e.target.closest('[data-cztemadel]')){ e.stopPropagation(); var di=parseInt(t.getAttribute('data-cztemadel'),10); var lt=czTemasGet(); var rem=lt.splice(di,1)[0]; czTemasSave(lt); if(czTema&&rem&&czTema.d===rem.d) czTema=null; renderCartaz(); return; }
   if(t=e.target.closest('[data-cztema]')){ var ti2=parseInt(t.getAttribute('data-cztema'),10); czTema=(ti2<0)?null:(czTemasTodos()[ti2]||null); renderCartaz(); return; }
   if(t=e.target.closest('[data-czmodel]')){ czModelo=t.getAttribute('data-czmodel'); renderCartaz(); return; }
+  if(e.target.closest('[data-czhistlote]')){ czHistImprimirLote(); return; }
+  if(e.target.closest('[data-czhistlimpar]')){ czHistSel={}; renderCartaz(); return; }
   if(t=e.target.closest('[data-czhistver]')){ czHistVer(t.getAttribute('data-czhistver')); return; }
   if(t=e.target.closest('[data-czhistdel]')){ czHistTirar(t.getAttribute('data-czhistdel')); return; }
   if(t=e.target.closest('[data-czsize]')){ czTamanho=t.getAttribute('data-czsize'); renderCartaz(); return; }
@@ -24049,6 +24281,18 @@ function czClick(e){
   }
 }
 function czChange(e){ var t=e.target;
+  /* AS CAIXINHAS DO HISTÓRICO ficam no change, não no click: o que vale é o estado do
+     campo depois do toque (teclado marca com a barra de espaço, sem clique nenhum). */
+  if(t.getAttribute && t.getAttribute('data-czhistsel')){
+    var _id=t.getAttribute('data-czhistsel');
+    if(t.checked) czHistSel[_id]=true; else delete czHistSel[_id];
+    renderCartaz(); return;
+  }
+  if(t.hasAttribute && t.hasAttribute('data-czhisttodas')){
+    czHistSel={};
+    if(t.checked) for(var _i=0;_i<(czHist||[]).length;_i++) czHistSel[czHist[_i].id]=true;
+    renderCartaz(); return;
+  }
   if(t.id==='czValidade'){
     // Fim antes do início: recusa e devolve o campo como estava.
     if(!czDatasOk(czValIni, t.value)){
@@ -24077,10 +24321,13 @@ function czImprimir(){
   if(czModelo==='deitado' && !czEhMaster()){
     czModelo='padrao'; renderCartaz();
     uiConfirm({titulo:'Esse modelo ainda não está liberado',msg:'O modelo "Deitado — 2 por folha" está em ajuste.\\n\\nUse "Oferta padrão" ou "De / Por" — voltei pro padrão pra você.',ok:'Entendi',cancel:''});
-    return;
+    return false;
   }
   var itens=[]; for(var i=0;i<czProdutos.length;i++){ var q=Math.max(1,parseInt(czProdutos[i].qtd,10)||1); for(var k=0;k<q;k++) itens.push(czProdutos[i]); }
-  if(!itens.length) return;
+  /* DIZ SE A JANELA DE IMPRESSAO ABRIU (true) ou se parei antes (false). Quem imprime pela
+     tela ignora; quem imprime o lote do historico usa pra so desmarcar as placas que
+     realmente foram pra impressora. */
+  if(!itens.length) return false;
   // ===== MODELO DEITADO: 2 por folha A4 =====
   if(czModelo==='deitado'){
     var pagesL='';
@@ -24095,10 +24342,10 @@ function czImprimir(){
      +'.cellL .ctzL{width:196mm;height:128mm;}'
      +CZLCSS
      +'@media screen{html{background:#3c4043;}body{zoom:.45;background:#3c4043;padding:30px 0;}.pg{background:#fff;width:794px;box-sizing:content-box;padding:30px 24px 44px;margin:0 auto 30px;box-shadow:0 8px 30px rgba(0,0,0,.45);}}</style>';
-    var wL=window.open('','_blank'); if(!wL){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return; }
+    var wL=window.open('','_blank'); if(!wL){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return false; }
     wL.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">'+cssL+'</head><body>'+pagesL+'<scr'+'ipt>(function(){function fit(){var cs=document.querySelectorAll(\".cell,.ctzLin\");for(var i=0;i<cs.length;i++){var c=cs[i],z=1;c.style.zoom=\"\";for(var t=0;t<6;t++){var caixa=c.clientHeight,dentro=c.scrollHeight;if(dentro<=caixa+1)break;z=z*((caixa-1)/dentro);if(z<0.55){z=0.55;c.style.zoom=z;break;}c.style.zoom=z;}}}function larg(){var ls=document.querySelectorAll(\".nm,.mc,.gr,.ft,.lnm,.lmc,.lgr,.lft\");for(var i=0;i<ls.length;i++){var e=ls[i],pai=e.parentNode;if(!pai||!pai.clientWidth)continue;var cp=getComputedStyle(pai),espaco=pai.clientWidth-(parseFloat(cp.paddingLeft)||0)-(parseFloat(cp.paddingRight)||0);if(!(espaco>0))continue;for(var t=0;t<6;t++){var usa=Math.max(e.scrollWidth,e.offsetWidth);if(usa<=espaco+1)break;var k=parseFloat(getComputedStyle(e).getPropertyValue(\"--k\"))||1;k=k*((espaco-1)/usa);if(k<0.2){k=0.2;e.style.setProperty(\"--k\",String(k));break;}e.style.setProperty(\"--k\",String(k));}}}function go(){try{larg();fit();}catch(e){}setTimeout(function(){window.print();},350);}function prontas(cb){var ims=[].slice.call(document.images),falta=ims.length,fim=false;function fecha(){if(!fim){fim=true;cb();}}if(!falta){fecha();return;}function um(){if(--falta<=0)fecha();}for(var i=0;i<ims.length;i++){var im=ims[i];if(im.complete&&im.naturalWidth)um();else{im.addEventListener(\"load\",um);im.addEventListener(\"error\",um);}}setTimeout(fecha,5000);}function esperar(){prontas(go);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(esperar);}else{setTimeout(esperar,900);}})();</scr'+'ipt></body></html>');
     wL.document.close();
-    return;
+    return true;
   }
   var CZPCSS='.poster{position:absolute;container-type:inline-size;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;overflow:hidden;font-family:"Bangers",cursive;box-sizing:border-box;}.poster .ctz-top,.poster .ctz-mid,.poster .ctz-bot{width:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;padding:0 4cqw;}.poster .ctz-top{padding-top:1.5cqw;}.poster .ctz-bot{padding-bottom:0.2cqw;}.poster .of{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;font-size:calc(var(--k,1)*31.4cqw);line-height:1;padding:.8cqw 5.6cqw;transform:rotate(-1.5deg);}.poster .nm{color:#111;font-size:calc(var(--k,1)*25.4cqw);line-height:.85;margin-top:1.2cqw;white-space:nowrap;}.poster .mc{color:#111;font-size:calc(var(--k,1)*17.4cqw);line-height:.9;white-space:nowrap;}.poster .gr{color:#111;font-size:calc(var(--k,1)*8.6cqw);margin-top:1cqw;border-bottom:.55cqw solid #111;padding:0 1.9cqw .55cqw;white-space:nowrap;}.poster .d{font-size:8.8cqw;margin:0.4cqw 0 0.2cqw;line-height:1;}.poster .d .d1{color:#111;}.poster .d .d2{color:#8a8a8a;text-decoration:line-through;}.poster .d .d3{color:#ef1b1b;}.poster .pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-top:0.4cqw;padding:2.1cqw 5.6cqw;transform:rotate(-1.5deg);}.poster .pr .rs{font-size:11.2cqw;align-self:flex-start;margin-top:1.1cqw;margin-right:.8cqw;}.poster .pr .in{font-size:calc(var(--k,1)*33.2cqw);}.poster .pr .cm{font-size:calc(var(--k,1)*22.2cqw);align-self:flex-end;margin:0 .4cqw 1.9cqw;}.poster .pr .ce{font-size:calc(var(--k,1)*22.2cqw);align-self:flex-start;margin-top:.8cqw;}.poster .ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:calc(var(--k,1)*2.4cqw);margin-top:0.3cqw;line-height:1;white-space:nowrap;}.poster .ctz-top.ctz-topimg{padding:0;}.poster .ofimg{width:100%;max-width:none;height:auto;aspect-ratio:20/7;max-height:35cqw;object-fit:cover;object-position:center;display:block;margin:0;border-radius:0;}.poster .lg{height:8cqw;width:auto;display:block;margin:0.3cqw auto 1.6cqw;}.poster .d ~ .lg{height:5.5cqw;margin:0.2cqw auto 1.1cqw;}';
   // ===== POSTERS A1/A2/A3 (multiplas folhas A4 pra emendar, ou folha unica) =====
@@ -24135,10 +24382,10 @@ function czImprimir(){
         }}
       }
     }
-    var wp=window.open('','_blank'); if(!wp){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return; }
+    var wp=window.open('','_blank'); if(!wp){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return false; }
     wp.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet"><style>'+pcss+'@media screen{html{background:#3c4043;}body{zoom:.3;background:#3c4043;padding:30px 0;}.tp,.pg{background:#fff;margin:0 auto 30px;box-shadow:0 8px 30px rgba(0,0,0,.45);}}</style></head><body>'+pgs+'<scr'+'ipt>(function(){function fit(){var cs=document.querySelectorAll(\".cell,.ctzLin\");for(var i=0;i<cs.length;i++){var c=cs[i],z=1;c.style.zoom=\"\";for(var t=0;t<6;t++){var caixa=c.clientHeight,dentro=c.scrollHeight;if(dentro<=caixa+1)break;z=z*((caixa-1)/dentro);if(z<0.55){z=0.55;c.style.zoom=z;break;}c.style.zoom=z;}}}function larg(){var ls=document.querySelectorAll(\".nm,.mc,.gr,.ft,.lnm,.lmc,.lgr,.lft\");for(var i=0;i<ls.length;i++){var e=ls[i],pai=e.parentNode;if(!pai||!pai.clientWidth)continue;var cp=getComputedStyle(pai),espaco=pai.clientWidth-(parseFloat(cp.paddingLeft)||0)-(parseFloat(cp.paddingRight)||0);if(!(espaco>0))continue;for(var t=0;t<6;t++){var usa=Math.max(e.scrollWidth,e.offsetWidth);if(usa<=espaco+1)break;var k=parseFloat(getComputedStyle(e).getPropertyValue(\"--k\"))||1;k=k*((espaco-1)/usa);if(k<0.2){k=0.2;e.style.setProperty(\"--k\",String(k));break;}e.style.setProperty(\"--k\",String(k));}}}function go(){try{larg();fit();}catch(e){}setTimeout(function(){window.print();},350);}function prontas(cb){var ims=[].slice.call(document.images),falta=ims.length,fim=false;function fecha(){if(!fim){fim=true;cb();}}if(!falta){fecha();return;}function um(){if(--falta<=0)fecha();}for(var i=0;i<ims.length;i++){var im=ims[i];if(im.complete&&im.naturalWidth)um();else{im.addEventListener(\"load\",um);im.addEventListener(\"error\",um);}}setTimeout(fecha,5000);}function esperar(){prontas(go);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(esperar);}else{setTimeout(esperar,900);}})();</scr'+'ipt></body></html>');
     wp.document.close();
-    return;
+    return true;
   }
   var CELLS={A5:{page:'A4',pgW:198,pgH:265,cols:1,rows:2,rot:1},
              A6:{page:'A4',pgW:198,pgH:265,cols:2,rows:2,rot:0},
@@ -24229,7 +24476,7 @@ function czImprimir(){
       }
       cpg+='<div class="pg">'+ccells+'</div>';
     }
-    var wc=window.open('','_blank'); if(!wc){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return; }
+    var wc=window.open('','_blank'); if(!wc){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return false; }
     /* NADA DE MEDIR NA HORA — o tamanho já está certo em milímetros no CSS.
        Cheguei a pôr um encaixar() que lia a célula e escrevia o tamanho em pixels. Deu
        errado e o Victor pegou na segunda tentativa: essa leitura acontece enquanto a
@@ -24242,7 +24489,7 @@ function czImprimir(){
        de produto comprido pode estourar. */
     wc.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet"><style>'+ccss+'</style></head><body>'+cpg+'<scr'+'ipt>(function(){function fit(){var cs=document.querySelectorAll(\".poster,.ctzLin\");for(var i=0;i<cs.length;i++){var c=cs[i],z=1;c.style.zoom=\"\";for(var t=0;t<6;t++){var caixa=c.clientHeight,dentro=c.scrollHeight;if(dentro<=caixa+1)break;z=z*((caixa-1)/dentro);if(z<0.55){z=0.55;c.style.zoom=z;break;}c.style.zoom=z;}}}function larg(){var ls=document.querySelectorAll(\".nm,.mc,.gr,.ft,.lnm,.lmc,.lgr,.lft\");for(var i=0;i<ls.length;i++){var e=ls[i],pai=e.parentNode;if(!pai||!pai.clientWidth)continue;var cp=getComputedStyle(pai),espaco=pai.clientWidth-(parseFloat(cp.paddingLeft)||0)-(parseFloat(cp.paddingRight)||0);if(!(espaco>0))continue;for(var t=0;t<6;t++){var usa=Math.max(e.scrollWidth,e.offsetWidth);if(usa<=espaco+1)break;var k=parseFloat(getComputedStyle(e).getPropertyValue(\"--k\"))||1;k=k*((espaco-1)/usa);if(k<0.2){k=0.2;e.style.setProperty(\"--k\",String(k));break;}e.style.setProperty(\"--k\",String(k));}}}function go(){try{larg();fit();}catch(e){}setTimeout(function(){window.print();},350);}function prontas(cb){var ims=[].slice.call(document.images),falta=ims.length,fim=false;function fecha(){if(!fim){fim=true;cb();}}if(!falta){fecha();return;}function um(){if(--falta<=0)fecha();}for(var i=0;i<ims.length;i++){var im=ims[i];if(im.complete&&im.naturalWidth)um();else{im.addEventListener(\"load\",um);im.addEventListener(\"error\",um);}}setTimeout(fecha,5000);}function esperar(){prontas(go);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(esperar);}else{setTimeout(esperar,900);}})();</scr'+'ipt></body></html>');
     wc.document.close();
-    return;
+    return true;
   }
   var cfg={A4:{per:1,cols:1,rows:1,of:228,nm:184,mc:126,gr:62,dp:72,rs:82,inn:240,ce:161,ft:18}};
   var c=cfg[czTamanho]||cfg.A4;
@@ -24276,9 +24523,10 @@ function czImprimir(){
    +'.pr .rs{font-size:'+c.rs+'px;align-self:flex-start;margin-top:8px;margin-right:6px;}.pr .in{font-size:calc(var(--k,1)*'+c.inn+'px);}.pr .cm{font-size:calc(var(--k,1)*'+c.ce+'px);align-self:flex-end;margin:0 3px 14px;}.pr .ce{font-size:calc(var(--k,1)*'+c.ce+'px);align-self:flex-start;margin-top:6px;}'
    +'.ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:calc(var(--k,1)*'+c.ft+'px);margin-top:0.4%;line-height:1;white-space:nowrap;}'
    +'@media screen{html{background:#3c4043;}body{zoom:.45;background:#3c4043;padding:30px 0;}.pg{background:#fff;width:794px;box-sizing:content-box;padding:30px 24px 44px;margin:0 auto 30px;box-shadow:0 8px 30px rgba(0,0,0,.45);}}</style>';
-  var w=window.open('','_blank'); if(!w){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return; }
+  var w=window.open('','_blank'); if(!w){ uiConfirm({titulo:'Pop-up bloqueado',msg:'Permita pop-ups (janelas) neste site para imprimir os cartazes.',ok:'OK',cancel:''}); return false; }
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cartazes Santa Rita</title><link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">'+css+'</head><body>'+pages+'<scr'+'ipt>(function(){function fit(){var cs=document.querySelectorAll(\".cell,.ctzLin\");for(var i=0;i<cs.length;i++){var c=cs[i],z=1;c.style.zoom=\"\";for(var t=0;t<6;t++){var caixa=c.clientHeight,dentro=c.scrollHeight;if(dentro<=caixa+1)break;z=z*((caixa-1)/dentro);if(z<0.55){z=0.55;c.style.zoom=z;break;}c.style.zoom=z;}}}function larg(){var ls=document.querySelectorAll(\".nm,.mc,.gr,.ft,.lnm,.lmc,.lgr,.lft\");for(var i=0;i<ls.length;i++){var e=ls[i],pai=e.parentNode;if(!pai||!pai.clientWidth)continue;var cp=getComputedStyle(pai),espaco=pai.clientWidth-(parseFloat(cp.paddingLeft)||0)-(parseFloat(cp.paddingRight)||0);if(!(espaco>0))continue;for(var t=0;t<6;t++){var usa=Math.max(e.scrollWidth,e.offsetWidth);if(usa<=espaco+1)break;var k=parseFloat(getComputedStyle(e).getPropertyValue(\"--k\"))||1;k=k*((espaco-1)/usa);if(k<0.2){k=0.2;e.style.setProperty(\"--k\",String(k));break;}e.style.setProperty(\"--k\",String(k));}}}function go(){try{larg();fit();}catch(e){}setTimeout(function(){window.print();},350);}function prontas(cb){var ims=[].slice.call(document.images),falta=ims.length,fim=false;function fecha(){if(!fim){fim=true;cb();}}if(!falta){fecha();return;}function um(){if(--falta<=0)fecha();}for(var i=0;i<ims.length;i++){var im=ims[i];if(im.complete&&im.naturalWidth)um();else{im.addEventListener(\"load\",um);im.addEventListener(\"error\",um);}}setTimeout(fecha,5000);}function esperar(){prontas(go);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(esperar);}else{setTimeout(esperar,900);}})();</scr'+'ipt></body></html>');
   w.document.close();
+  return true;
 }
 
 /* ==GAVETA== abrir e fechar o menu no celular.
