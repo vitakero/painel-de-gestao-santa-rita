@@ -6078,6 +6078,87 @@ function agBadge(){
     agRenderDia(true);
   },function(){ agPend={n:0,data:null}; if(el) el.style.display="none"; });
 }
+/* ==SINOAGENDA== O SINO PASSA A CARREGAR A AGENDA.
+   Pedido do dono em 02/09/2026, olhando o sino vazio: "quando tiver algum evento ou tarefa,
+   quando chegar, como uma notificação".
+
+   Três coisas entram, e só três — o sino é "o que precisa da minha atenção agora", não a
+   agenda inteira repetida:
+     1. CONVITE esperando resposta (em qualquer data — convite costuma ser pro futuro);
+     2. o que é HOJE — compromisso ou tarefa, tarefa já feita não entra;
+     3. TAREFA ATRASADA — o dia passou e ninguém marcou como feita. Só do dono: tarefa
+        alheia atrasada não é problema de quem está olhando.
+
+   Uma leitura só, a MESMA agenda_mes que a tela usa. Não inventei consulta nova: o que a
+   agenda_mes já devolve (meu_status, feitas, tipo) responde as três perguntas.
+   A janela é de 14 dias atrás até 60 à frente: atrás pelas tarefas atrasadas, à frente
+   pelos convites, que quase sempre são para depois de hoje. */
+var agAvisos = [];
+function agAvisosCarrega(){
+  var sb=agSB(), uid=agUid();
+  if(!sb||!uid){ agAvisos=[]; return; }
+  var hoje=agHojeISO(), de=agSomaDias(hoje,-14), ate=agSomaDias(hoje,60);
+  sb.rpc("agenda_mes",{p_ini:de,p_fim:ate}).then(function(r){
+    agAvisos=(r&&!r.error&&r.data)?agAvisosDe(r.data,hoje):[];
+    try{ if(typeof avisosPintar==="function") avisosPintar(); }catch(e){}
+  },function(){ agAvisos=[]; });
+}
+function agAvisosDe(rows, hoje){
+  var out=[], de=agSomaDias(hoje,-14), ate=agSomaDias(hoje,60);
+  (rows||[]).forEach(function(ev){
+    var dias=agOcorreFaixa(ev, de, ate), tar=agEhTarefa(ev);
+    /* 1) convite esperando — e o unico que manda: um compromisso que ainda espera resposta
+       nao entra tambem como "de hoje", senao a mesma coisa aparece duas vezes no sino. */
+    if(ev.meu_status==="aguardando"){
+      var prox=null;
+      for(var i=0;i<dias.length;i++){ if(dias[i]>=hoje){ prox=dias[i]; break; } }
+      var d1=prox||ev.data;
+      out.push({ tipo:"agenda-convite", id:ev.id, dia:d1, ordem:0,
+        titulo:"Convite esperando resposta",
+        texto:(ev.dono_nome?(String(ev.dono_nome).split(" ")[0]+" te convidou para "):"")+
+              '"'+(ev.titulo||"sem título")+'" — '+agFmtDataBr(d1)+(ev.hora?(" às "+agFmtHora(ev.hora)):"") });
+      return;
+    }
+    /* 2 e 3) o que e HOJE, e o que passou sem ninguem marcar.
+       As duas coisas saem numa LINHA SO quando valem para a mesma tarefa. Medido com a
+       "limpar a camara fria, todo dia, esquecida ha 3 dias": ela gerava dois avisos —
+       "Tarefa de hoje" e "Tarefa atrasada" — para a mesma coisa, e o sino de quem tem
+       tres tarefas diarias viraria seis linhas. Uma tarefa, um aviso.
+       Uma linha por TAREFA e nao por dia, tambem: sete dias esquecidos sao sete
+       ocorrencias, mas e um problema so. */
+    var ehHoje = dias.indexOf(hoje)>=0 && !(tar && agFeitaNoDia(ev,hoje));
+    var atras  = (tar && ev.sou_dono)
+      ? dias.filter(function(d){ return d<hoje && !agFeitaNoDia(ev,d); }) : [];
+    var quantas = atras.length ? (atras.length+(atras.length>1?" vezes":" vez")) : "";
+    if(ehHoje){
+      out.push({ tipo: atras.length ? "agenda-atrasada" : "agenda-hoje",
+        id:ev.id, dia:hoje, ordem: atras.length ? 0.5 : 1,
+        titulo:(tar?"Tarefa de hoje":"Compromisso de hoje"),
+        texto:(ev.titulo||"sem título")+
+              (ev.hora?(" — "+agFmtHora(ev.hora)+(ev.hora_fim?(" às "+agFmtHora(ev.hora_fim)):"")):" — dia todo")+
+              (atras.length?(" — e ficou atrasada "+quantas+" antes"):"") });
+    } else if(atras.length){
+      var ult=atras[atras.length-1];
+      out.push({ tipo:"agenda-atrasada", id:ev.id, dia:ult, ordem:2,
+        titulo:"Tarefa atrasada",
+        texto:'"'+(ev.titulo||"sem título")+'" era '+agFmtDataBr(ult)+
+              (atras.length>1?(" — e mais "+(atras.length-1)+(atras.length>2?" vezes":" vez")+" antes"):"") });
+    }
+  });
+  out.sort(function(a,b){ return (a.ordem-b.ordem) || (a.dia<b.dia?-1:(a.dia>b.dia?1:0)); });
+  return out;
+}
+/* leva a pessoa ate o compromisso: mes certo, dia certo, janela aberta nele.
+   Mesmo caminho do data-agirconvite, que ja fazia isso pela faixa de cima. */
+function agIrPara(id, dia){
+  try{
+    var b=document.querySelector('.nav-item[data-page="agenda"]'); if(b) b.click();
+    if(dia){ var p=agParse(dia); agAno=p.getFullYear(); agMes=p.getMonth(); agSel=dia; }
+    agEditId=null; agRespId=null; agConvSel=[]; agVerTodos=false;
+    agAbertoId=id||null; agJanAbre();
+    agInvalidar(); agCloudLoad();
+  }catch(e){}
+}
 // A faixa que leva até o convite. Sem ela a bolinha avisa e a pessoa fica procurando:
 // o compromisso pode estar em outro mês, e o calendário abre sempre no mês de hoje.
 function agPendHtml(){
@@ -11921,7 +12002,13 @@ function avisosDoPainel(){
      e das novidades do painel, e existe em todos os logins como parte da casa.
      O recibo saiu daqui: a autorização acontece na própria página de Recibos, com ele
      digitando a senha no computador de quem pediu.
-     Quando houver aviso para publicar, é esta lista que passa a devolvê-los. */
+     Quando houver aviso para publicar, é esta lista que passa a devolvê-los.
+
+     ==SINOAGENDA== Desde 02/09/2026 a Agenda alimenta o sino: convite esperando resposta,
+     o que é hoje, e tarefa atrasada. Quem monta a lista é o agAvisosDe(), do lado da
+     Agenda — aqui só se pergunta. Assim a regra de o que vira aviso mora junto com quem
+     entende de agenda, e não espalhada em dois lugares. */
+  try{ if(typeof agAvisos!=="undefined" && agAvisos && agAvisos.length) return agAvisos.slice(); }catch(e){}
   return [];
 }
 
@@ -11974,7 +12061,9 @@ function avisosDesenhar(){
     var a = lista[i];
     h += '<div class="av-it"><b>'+pxEsc(a.titulo)+'</b><span>'+pxEsc(a.texto)+'</span>'
       + '<div class="av-acoes">'
-      + (a.tipo==="recibo"
+      + (String(a.tipo||"").indexOf("agenda-")===0
+          ? '<button class="btn-p" data-av-ag="'+pxEsc(a.id)+'" data-av-agdia="'+pxEsc(a.dia||"")+'">Ver na Agenda</button>'
+          : a.tipo==="recibo"
           ? '<button class="btn-p" data-av-sim="'+pxEsc(a.id)+'">Autorizar</button>'
             +'<button class="btn-s" data-av-nao="'+pxEsc(a.id)+'">Recusar</button>'
           : '<button class="btn-p" data-av-imp="'+pxEsc(a.id)+'">Imprimir</button>')
@@ -11989,6 +12078,10 @@ function avisosDesenhar(){
     b.onclick=function(){ avisosFechar(); rcbAutDecidir(b.getAttribute("data-av-nao"), false); }; });
   [].slice.call(el.querySelectorAll("[data-av-imp]")).forEach(function(b){
     b.onclick=function(){ avisosFechar(); rcbAutImprimir(b.getAttribute("data-av-imp")); }; });
+  /* ==SINOAGENDA== fecha o sino e leva pro compromisso: mes certo, dia certo, aberto nele */
+  [].slice.call(el.querySelectorAll("[data-av-ag]")).forEach(function(b){
+    b.onclick=function(){ avisosFechar();
+      try{ if(typeof agIrPara==="function") agIrPara(b.getAttribute("data-av-ag"), b.getAttribute("data-av-agdia")); }catch(e){} }; });
 }
 
 /* ---- A NUVEM E AS AÇÕES DO PEDIDO DE AUTORIZAÇÃO ---- */
@@ -27358,6 +27451,9 @@ function pedEnviar(){
       /* Agenda: no login so conta os convites que me esperam (bolinha do menu). A agenda
          inteira so recarrega se a pagina JA estiver aberta (F5 com a aba da Agenda). */
       try{ if(typeof agBadge==="function") agBadge();
+           /* ==SINOAGENDA== o sino precisa da Agenda em TODO login, mesmo quem nunca abre
+              a aba: o aviso serve justamente pra pessoa que nao foi olhar. */
+           if(typeof agAvisosCarrega==="function") agAvisosCarrega();
            if(typeof agRealtime==="function") agRealtime();
            var _ap=document.getElementById("page-agenda");
            if(_ap && _ap.classList.contains("ativo") && typeof agCloudLoad==="function"){ renderAgenda(); agCloudLoad(); }

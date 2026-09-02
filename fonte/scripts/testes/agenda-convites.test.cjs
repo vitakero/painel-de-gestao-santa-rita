@@ -20,6 +20,7 @@
 //   node scripts/testes/agenda-convites.test.cjs
 const fs = require("fs");
 const path = require("path");
+const vm = require("node:vm");   // ==SINOAGENDA== rodar as funcoes do painel de verdade, nao reescrever a regra aqui
 const RAIZ = path.join(__dirname, "..", "..");
 const H = fs.readFileSync(path.join(RAIZ, "output", "index.html"), "utf8");
 const SQL = fs.readFileSync(path.join(RAIZ, "sql", "agenda_convites.sql"), "utf8");
@@ -416,7 +417,7 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      semana, as acoes e o detalhe), mais a propria definicao da funcao, mais a chamada
      dentro do agFeita que decide se e para marcar ou desmarcar. */
   eq("98c) os cinco lugares que desenham perguntam pelo dia",
-     (H.match(/agFeitaNoDia\(ev,/g) || []).length, 7);
+     (H.match(/agFeitaNoDia\(ev,/g) || []).length, 9);
   eq("98d) nenhum deles lê mais o feita_em da série",
      /feita=!!\(?ev(&&ev)?\.feita_em/.test(H), "false");
   eq("99) e ela aparece diferente no mês", /\.ag-chip\.tarefa \{/.test(H) && /\.ag-chip\.tarefa\.feita \{/.test(H), "true");
@@ -1227,6 +1228,49 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
     eq("199c) (e a varredura achou coisa de verdade, não zero dos dois lados)",
        desenhados.size >= 20 && tratados.size >= 20, "true");
   }
+  /* ==SINOAGENDA== O sino de Avisos passou a carregar a Agenda (02/09/2026, pedido do
+     dono olhando o sino vazio). Estas travas cobram as tres regras que decidem o que vira
+     aviso — e principalmente as EXCLUSOES, que sao o que separa um sino util de um sino
+     que ninguem abre porque vive cheio. */
+  {
+    const caixa = vm.createContext({});
+    vm.runInContext('var DOW_PT=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];\n' +
+      ["agAvisosDe","agOcorreFaixa","agRepete","agParse","agK","agSomaDias","agEhTarefa","agFeitaNoDia","agFmtDataBr","agFmtHora"]
+        .map(n => bloco(H, "function " + n + "(")).join("\n"), caixa);
+    const hoje = "2026-09-02";
+    const d = n => { const x = new Date(hoje + "T00:00:00"); x.setDate(x.getDate() + n); return x.toISOString().slice(0,10); };
+    caixa.linhas = [
+      { id:"1", titulo:"reuniao", data:d(5), hora:"14:00", tipo:"evento", meu_status:"aguardando", dono_nome:"JOSEILMA X", feitas:[], sou_dono:false },
+      { id:"2", titulo:"carro da Ambev", data:hoje, hora:"09:00", hora_fim:"10:00", tipo:"evento", meu_status:null, feitas:[], sou_dono:true },
+      { id:"3", titulo:"bandeja de isopor", data:hoje, hora:null, tipo:"tarefa", meu_status:null, feitas:[], sou_dono:true },
+      { id:"4", titulo:"JA FEITA hoje", data:hoje, hora:null, tipo:"tarefa", meu_status:null, feitas:[hoje], sou_dono:true },
+      { id:"5", titulo:"camara fria", data:d(-3), hora:null, tipo:"tarefa", repete:"dia", meu_status:null, feitas:[], sou_dono:true },
+      { id:"6", titulo:"ATRASADA DE OUTRO", data:d(-2), hora:null, tipo:"tarefa", meu_status:null, feitas:[], sou_dono:false },
+      { id:"7", titulo:"MES QUE VEM", data:d(30), hora:"08:00", tipo:"evento", meu_status:null, feitas:[], sou_dono:true },
+    ];
+    caixa.hoje = hoje;
+    const av = vm.runInContext("agAvisosDe(linhas,hoje)", caixa);
+    const txt = av.map(a => a.texto).join(" | ");
+    eq("200) o sino avisa convite, o que é hoje e tarefa atrasada", av.length, 4);
+    eq("200b) o convite vem primeiro — é o único que precisa de resposta", av[0] && av[0].tipo, "agenda-convite");
+    /* ==EXCLUSOES== cada uma destas ja apareceu no sino durante a construcao */
+    eq("200c) tarefa já marcada como feita hoje não avisa", /JA FEITA/.test(txt), "false");
+    eq("200d) tarefa atrasada de OUTRA pessoa não avisa", /ATRASADA DE OUTRO/.test(txt), "false");
+    eq("200e) compromisso de mês que vem não avisa", /MES QUE VEM/.test(txt), "false");
+    eq("200f) e o convite não aparece também como 'de hoje'",
+       av.filter(a => /reuniao/.test(a.texto)).length, 1);
+    /* ==UMATAREFAUMAVISO== a diaria esquecida gerava DUAS linhas, "de hoje" e "atrasada" */
+    eq("200g) tarefa que é de hoje E está atrasada vira UMA linha só",
+       av.filter(a => /camara fria/.test(a.texto)).length, 1);
+    eq("200h) e essa linha diz as duas coisas",
+       /camara fria.*atrasada 3 vezes antes/.test(txt), "true");
+  }
+  eq("200i) o sino pergunta à Agenda em vez de ter regra própria",
+     /if\(typeof agAvisos!=="undefined" && agAvisos && agAvisos\.length\) return agAvisos\.slice\(\);/.test(H), "true");
+  eq("200j) e carrega em TODO login, não só de quem abre a aba",
+     /if\(typeof agAvisosCarrega==="function"\) agAvisosCarrega\(\);/.test(H), "true");
+  eq("200k) cada aviso leva até o compromisso, no mês e no dia certos",
+     /data-av-ag="/.test(H) && /function agIrPara\(id, dia\)/.test(H), "true");
   eq("157b) e a folha de baixo só existe dentro de media query",
      /\n  \.ag-jan-bg \{ align-items:flex-end/.test(H), "false");
 }
