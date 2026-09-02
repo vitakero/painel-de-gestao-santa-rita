@@ -976,12 +976,31 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      2px pra fora e era cortado dos dois lados. A folga devolvida por margem negativa nao
      move nada de lugar — se alguem tirar uma das duas metades, a conta quebra. */
   eq("156l) o corpo tem folga lateral pro anel do foco caber",
-     /\.ag-jan-corpo \{[^}]*margin:0 -5px; padding:0 5px 4px;/.test(H), "true");
+     /\.ag-jan-corpo \{[^}]*margin:0 -8px; padding:0 8px 4px;/.test(H), "true");
   eq("156m) os campos de hora preenchem a coluna, como o Dia",
      /\.ag-f-cpo \.ag-hora \{ display:block; \}/.test(H) &&
      /\.ag-f-cpo \.ag-hora-cx \{ display:flex; width:100%; box-sizing:border-box; \}/.test(H), "true");
-  eq("156n) e o Termina fica com a largura de UMA coluna, alinhado embaixo do Dia",
-     /\.ag-secao\[data-sec="fim"\] \.ag-f-cpo \{ max-width:calc\(50% - 5px\); \}/.test(H), "true");
+  /* ==156N== Reescrito em 01/09/2026, no mesmo dia em que nasceu. A versao anterior
+     cobrava que o "Termina" ficasse numa faixa propria embaixo, com meia largura. O dono
+     olhou a tela e pediu o obvio: comeco e fim do mesmo compromisso na MESMA linha.
+     Agora o teste cobra o arranjo novo — e cobra os dois tamanhos de tela, porque em
+     375px as tres colunas nao cabem e o Termina tem que descer, nao espremer. */
+  eq("156n) o Termina e a TERCEIRA coluna da mesma linha, nao uma faixa embaixo",
+     /<div class="ag-f-dupla">'\+[\s\S]{0,600}?ag-f-cpo-dia[\s\S]{0,800}?agTemFim\?sec\("fim"[\s\S]{0,300}?'<\/div>'\+/.test(H), "true");
+  eq("156o) a secao do Fim vira coluna quando abre",
+     /\.ag-f-dupla \.ag-secao\.abre \{ flex:1 1 0; min-width:0; \}/.test(H), "true");
+  /* ==PISODODIA== o campo de data pede 125px medidos; dividir 378 em tres da 126, um
+     pixel de sobra. O piso de 140 e o que impede a data de ser espremida — se alguem
+     tirar, o "01/09/2026" fica na beirada de cortar. */
+  eq("156p) o campo Dia tem piso, senao a data fica a um pixel de cortar",
+     /\.ag-f-dupla \.ag-f-cpo-dia \{ min-width:140px; \}/.test(H), "true");
+  /* ==FIMNOCELULAR== base ZERO sempre "cabe", entao a linha nunca quebrava e o Termina
+     espremia para 22px e vazava da folha. Medido em 375px antes de consertar. */
+  eq("156q) no celular ele desce de linha em vez de espremer",
+     /\.ag-f-dupla \.ag-secao\.abre \{ flex:1 1 130px; max-width:calc\(50% - 5px\); margin-top:9px; \}/.test(H), "true");
+  eq("156r) e a lista de horas encosta no limite da tela em vez de vazar",
+     /var esq=Math\.round\(r\.left\), teto=document\.documentElement\.clientWidth-larg-8;/.test(H) &&
+     /lista\.style\.left=Math\.max\(8, Math\.min\(esq, teto\)\)\+"px";/.test(H), "true");
 
   // DESKTOP continua compacto
   eq("157) no computador a janela continua 430px e no topo",

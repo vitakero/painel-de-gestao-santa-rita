@@ -1023,10 +1023,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   /* ==AGFOCO== O corpo rola, e rolar em Y liga o corte em X junto — regra do CSS: se um
      eixo nao e "visible", o outro vira "auto". Medido em 01/09: overflow-x ficava "auto",
      o corpo tinha 398px e o campo do titulo tinha 398px tambem, entao o anel verde do foco
-     nascia 2px pra fora e era cortado dos DOIS lados. Cinco pixels de folga de cada lado,
+     nascia 2px pra fora e era cortado dos DOIS lados. Medido com o cursor dentro: o anel e outline 2px com afastamento 2px, ou seja 4px
+     pra fora de cada lado. Oito pixels de folga (o dobro, pra aguentar navegador de anel
+     mais grosso),
      devolvidos com margem negativa: nada muda de lugar, e o anel passa a caber. */
   .ag-jan-corpo { flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain;
-                  margin:0 -5px; padding:0 5px 4px; }
+                  margin:0 -8px; padding:0 8px 4px; }
   .ag-jan-dia { font-size:12.5px; color:#6b7787; margin-bottom:9px; text-transform:capitalize; }
   .ag-jan-rodape { flex:none; border-top:1px solid #eef1f4; margin:0 -16px; padding:10px 16px 14px;
                    background:#fff; }
@@ -1047,9 +1049,19 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .ag-f-cpo .ag-hora { display:block; }
   .ag-f-cpo .ag-hora-cx { display:flex; width:100%; box-sizing:border-box; }
   .ag-f-cpo .ag-hora input.ag-hora-txt { flex:1 1 auto; width:auto; min-width:0; }
-  /* o "Termina" mora sozinho numa secao, entao ganhava a largura toda do formulario e a
-     caixa encolhida ficava perdida no meio. Uma coluna, alinhado embaixo do "Dia". */
-  .ag-secao[data-sec="fim"] .ag-f-cpo { max-width:calc(50% - 5px); }
+  /* ==FIMDOLADO== A seção do "Fim" agora vive DENTRO da linha, como terceira coluna.
+     Fechada ela é display:none e não ocupa nada — a linha continua com duas colunas
+     iguais, exatamente como já estava. Aberta, vira mais uma coluna. */
+  .ag-f-dupla .ag-secao { margin-top:0; }
+  .ag-f-dupla .ag-secao.abre { flex:1 1 0; min-width:0; }
+  /* ==PISODODIA== Medido no navegador: o campo de data pede 125px para não cortar o
+     "01/09/2026" nem o ícone do calendário. Dividir 378px em três dá 126 — um pixel de
+     sobra, que é exatamente o erro que eu cometi hoje com o anel do foco. Então o Dia
+     ganha um PISO de 140 e o resto se acomoda em volta:
+       Termina fechado -> 194 / 194         (igual ao que já estava aprovado)
+       Termina aberto  -> 140 / 119 / 119
+     É piso, não largura fixa: assim a linha de duas colunas não muda de aparência. */
+  .ag-f-dupla .ag-f-cpo-dia { min-width:140px; }
   /* ==AGSEC== a seção fica no HTML SEMPRE (agSalvar lê o valor dela) — só some da vista */
   .ag-secao { display:none; margin-top:9px; }
   .ag-secao.abre { display:block; }
@@ -1081,6 +1093,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     .ag-hora-op { min-height:40px; display:flex; align-items:center; }   /* dedo, não mouse */
     .ag-f-dupla { flex-wrap:wrap; }
     .ag-f-cpo { flex:1 1 130px; }
+    /* ==FIMNOCELULAR== Três colunas não cabem em 375px de largura: medido, o Termina
+       espremeu para 22px e vazou para fora da folha. A causa é que a seção nascia com
+       base ZERO — e o que tem base zero sempre "cabe", então a linha nunca quebrava.
+       Aqui ela ganha a mesma base das outras colunas e desce para a linha de baixo,
+       com meia largura, alinhada embaixo do Dia. No computador continua do lado. */
+    .ag-f-dupla .ag-secao.abre { flex:1 1 130px; max-width:calc(50% - 5px); margin-top:9px; }
   }
   #agFaixa:not(:empty) { margin-bottom:12px; }
   .ag-vertopo { display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap; }
@@ -6531,8 +6549,12 @@ function agHoraColoca(caixa, lista){
   var r=caixa.getBoundingClientRect(), alt=document.documentElement.clientHeight;
   var h=Math.min(260, Math.max(120, alt-140));
   lista.style.position="fixed";
-  lista.style.width=Math.max(150, Math.round(r.width))+"px";
-  lista.style.left=Math.round(r.left)+"px";
+  var larg=Math.max(150, Math.round(r.width));
+  lista.style.width=larg+"px";
+  /* ==NAOVAZA== com três colunas, a do Termina fica na beirada direita, e uma lista de
+     150px nascendo ali passaria da tela. Encosta no limite em vez de vazar. */
+  var esq=Math.round(r.left), teto=document.documentElement.clientWidth-larg-8;
+  lista.style.left=Math.max(8, Math.min(esq, teto))+"px";
   /* o "Termina" tem right:0 no CSS pra nao vazar; com left e width fixos os dois brigam */
   lista.style.right="auto";
   var abaixo=alt-r.bottom-10;
@@ -6670,14 +6692,19 @@ function agFormHtml(){
       (ev&&agRepete(ev)?'<div class="ag-f-serie">🔁 Este compromisso se repete — mudar o dia, salvar ou excluir vale para <b>todas</b> as vezes.</div>':'')+
       '<label class="ag-f-lbl2" for="agFTit">O que você vai fazer?</label>'+
       '<input type="text" id="agFTit" class="ag-f-tit" maxlength="120" placeholder="Ex.: reunião com o fornecedor" value="'+(ev?agEsc(ev.titulo):'')+'">'+
+      /* ==FIMDOLADO== O "Termina" morava numa faixa PRÓPRIA embaixo, e ficava sozinho e
+         encolhido debaixo do "Dia" — começo e fim do mesmo compromisso, em linhas
+         diferentes. Agora ele é a TERCEIRA coluna desta mesma linha. Continua escondido
+         atrás do botão "＋ Fim" (é o mesmo sec("fim",...) de antes, só que mora aqui
+         dentro), então quem não marca hora de término não vê nada a mais. */
       '<div class="ag-f-dupla">'+
-        '<div class="ag-f-cpo"><label class="ag-f-lbl2" for="agFDia">Dia</label>'+
+        '<div class="ag-f-cpo ag-f-cpo-dia"><label class="ag-f-lbl2" for="agFDia">Dia</label>'+
           '<input type="date" id="agFDia" class="ag-f-dia" value="'+agEsc((ev&&ev.data)||agSel||'')+'"></div>'+
         '<div class="ag-f-cpo"><span class="ag-f-lbl2">Começa</span>'+
           agHoraHtml("ag-f-hora",(ev&&ev.hora)||"","Sem hora")+'</div>'+
-      '</div>'+
-      (agTemFim?sec("fim",'<div class="ag-f-cpo"><span class="ag-f-lbl2">Termina</span>'+
+        (agTemFim?sec("fim",'<div class="ag-f-cpo"><span class="ag-f-lbl2">Termina</span>'+
           agHoraHtml("ag-f-fim",(ev&&ev.hora_fim)||"","Sem fim",true)+'</div>'):'')+
+      '</div>'+
       sec("repetir",'<label class="ag-f-lbl2" for="agFRep">Repetir</label><select id="agFRep" class="ag-f-rep">'+
           opt("nao","Não repete")+opt("dia","Todo dia")+opt("uteis","Toda segunda a sexta")+opt("semana","Toda semana")+opt("quinzena","A cada 15 dias")+opt("mes","Todo mês")+
         '</select>'+
