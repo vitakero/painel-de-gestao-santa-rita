@@ -1007,7 +1007,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .ag-jan-bg { display:none; position:fixed; inset:0; background:rgba(20,28,38,.45); z-index:9998;
                align-items:flex-start; justify-content:center; padding:56px 20px 20px; overflow-y:auto; }
   .ag-jan-bg.abre { display:flex; }
-  .ag-jan { position:relative; background:#fff; border-radius:14px; width:100%; max-width:430px;
+  .ag-jan { position:relative; background:#fff; border-radius:14px; width:100%; max-width:540px;
             box-shadow:0 20px 50px rgba(16,24,40,.28); padding:16px 16px 18px; }
   .ag-jan-x { position:absolute; top:8px; right:9px; border:0; background:transparent; color:#8a97a8;
               font-size:22px; line-height:1; cursor:pointer; padding:2px 7px; border-radius:7px; }
@@ -1030,8 +1030,13 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .ag-jan-corpo { flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain;
                   margin:0 -8px; padding:0 8px 4px; }
   .ag-jan-dia { font-size:12.5px; color:#6b7787; margin-bottom:9px; text-transform:capitalize; }
+  /* ==BORDADEBAIXO== A janela tem border-radius:14px, mas o rodape e o ultimo filho, tem
+     fundo branco proprio e margem negativa que o joga ate a beirada — entao ele pintava
+     POR CIMA dos cantos arredondados e as duas pontas de baixo ficavam quadradas, enquanto
+     as de cima eram redondas. Arredondar o proprio rodape resolve sem mexer no
+     overflow da janela (o que arriscaria cortar a lista de horas de novo). */
   .ag-jan-rodape { flex:none; border-top:1px solid #eef1f4; margin:0 -16px; padding:10px 16px 14px;
-                   background:#fff; }
+                   background:#fff; border-radius:0 0 14px 14px; }
   .ag-acoes { display:flex; align-items:center; justify-content:flex-end; gap:8px; }
   .ag-acoes-esq { margin-right:auto; }
   /* o formulário agora é a própria janela: sem moldura, sem fundo próprio */
@@ -1040,6 +1045,40 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .ag-f-lbl2 { display:block; font-size:11.5px; font-weight:600; color:#6b7787; margin:0 0 4px; }
   .ag-jan .ag-f-tit { width:100%; box-sizing:border-box; margin-bottom:11px; }
   .ag-f-dupla { display:flex; gap:10px; margin-bottom:2px; }
+  /* ==REPETIRECONVIDAR== O Repetir toma so o que precisa (o select ja se dimensiona pela
+     opcao mais comprida) e o Convidar fica com o resto. O "Repetir ate" e a dica continuam
+     empilhados DENTRO da coluna do Repetir, entao ligar a repeticao nao empurra mais nada
+     pra baixo do Convidar. */
+  .ag-f-baixo { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start; margin-top:9px; }
+  .ag-f-baixo .ag-secao { margin-top:0; }
+  .ag-f-baixo .ag-secao[data-sec="repetir"] { flex:0 0 auto; }
+  .ag-f-baixo .ag-secao[data-sec="convidar"] { flex:1 1 260px; min-width:0; }
+  /* ==SEPARADOR== O tracejado em cima do "Convidar" separava uma FAIXA inteira do resto do
+     formulario. Agora que ele e uma coluna ao lado do Repetir, esse traco vira um risco
+     solto no meio da linha — separa da coisa errada. Sai daqui e continua valendo em
+     qualquer outro lugar onde a caixa apareca. */
+  .ag-f-baixo .ag-f-conv { margin-top:0; border-top:0; padding-top:0; }
+  /* ==CONVIDARNAOVAZA== Erro meu, achado pelo dono em 02/09/2026: eu dimensionei a coluna
+     do Convidar medindo o estado VAZIO. Com "Pessoa..." o seletor tem 91px; escolhido um
+     nome de gente de verdade ele vai ao teto de 132 (JOSEILMA ALVARES DE FARIA). Aí a
+     conta vira 99 + 132 + 58 + dois vaos = 305 numa coluna de 286, e o botao "Incluir"
+     saia 19px pra fora, cortado.
+     Duas coisas resolvem juntas: a fileira passa a poder QUEBRAR (o Incluir desce em vez
+     de vazar) e os dois seletores passam a dividir a largura da coluna em vez de terem
+     largura propria. Nome comprido agora ganha 139px, mais do que os 132 de antes.
+     Nao mexo no .ag-verbar nem em nenhum outro lugar: o alvo e so esta linha. */
+  /* ==INCLUIRNALINHA== O dono quis o "Incluir" de volta ao lado dos seletores, mas sem o
+     corte. Sao coisas que brigam: com a janela em 500 a coluna do Convidar tinha 286 e o
+     conteudo com nome comprido pedia 305. Para caber os tres na mesma linha a janela foi
+     para 540 — a coluna vira 326, e sobram 126px por seletor depois do botao e dos vaos.
+     A base de 90px e o ponto em que eles PARAM de encolher: abaixo disso a fileira quebra
+     e o Incluir desce, em vez de ser cortado pela borda como acontecia. Ou seja, a quebra
+     deixou de ser o comportamento normal e virou rede de seguranca — para tela estreita,
+     nome ainda maior, ou traducao que aumente o texto do botao. */
+  .ag-f-baixo .ag-f-conv .ag-f-row { flex-wrap:wrap; }
+  .ag-f-baixo .ag-f-conv select.ag-c-setor,
+  .ag-f-baixo .ag-f-conv select.ag-c-pessoa { flex:1 1 90px; min-width:0; max-width:none; }
+  .ag-f-baixo .ag-f-conv [data-agaddconv] { flex:0 0 auto; }
   .ag-f-cpo { flex:1 1 0; min-width:0; }
   .ag-f-cpo input[type=date] { width:100%; box-sizing:border-box; }
   /* ==AGCAMPO== O "Dia" preenchia a coluna inteira e o "Comeca" encolhia ate o conteudo:
@@ -1065,11 +1104,6 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   /* ==AGSEC== a seção fica no HTML SEMPRE (agSalvar lê o valor dela) — só some da vista */
   .ag-secao { display:none; margin-top:9px; }
   .ag-secao.abre { display:block; }
-  .ag-secbts { display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; }
-  .ag-secbt { border:1px dashed #cfd8e3; background:#fff; color:#5b6670; border-radius:999px;
-              padding:6px 12px; font:inherit; font-size:12px; cursor:pointer; min-height:32px; }
-  .ag-secbt:hover { border-color:#157a35; color:#157a35; background:#f5faf7; }
-  .ag-secbt.ativo { border-style:solid; border-color:#cfe3d6; background:#f2f8f4; color:#157a35; font-weight:600; }
   .ag-jan .ag-f-erro { color:#c0392b; font-size:12.5px; margin-bottom:8px; }
   .ag-jan .ag-ev { border:0; padding:0; background:none; }
 
@@ -1085,11 +1119,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
               max-height:calc(100dvh - 28px); padding:14px 14px 0; }
     .ag-jan-x { width:44px; height:44px; top:4px; right:4px; font-size:24px; }
     .ag-jan-tit { margin-right:48px; font-size:17px; }
-    .ag-jan-rodape { position:sticky; bottom:0; margin:0 -14px; padding:10px 14px;
+    /* no celular a janela e folha de baixo: encostada na borda do aparelho, ali os
+       cantos de baixo sao quadrados DE PROPOSITO (o .ag-jan usa 16px 16px 0 0) */
+    .ag-jan-rodape { border-radius:0; position:sticky; bottom:0; margin:0 -14px; padding:10px 14px;
                      padding-bottom:max(12px, env(safe-area-inset-bottom));
                      box-shadow:0 -6px 14px rgba(16,24,40,.06); }
     .ag-acoes .ag-salvar, .ag-acoes .ag-mini { min-height:44px; padding-left:16px; padding-right:16px; }
-    .ag-secbt { min-height:40px; padding:8px 14px; font-size:12.5px; }
     .ag-hora-op { min-height:40px; display:flex; align-items:center; }   /* dedo, não mouse */
     .ag-f-dupla { flex-wrap:wrap; }
     .ag-f-cpo { flex:1 1 130px; }
@@ -1134,7 +1169,14 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .ag-salvar { border:0; background:#157a35; color:#fff; border-radius:8px; padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer; }
   .ag-ev-rep { font-size:11px; color:#1b4f86; background:#e6f0fb; border-radius:5px; padding:1px 7px; }
   .ag-f-serie { font-size:11.5px; color:#1b4f86; background:#eaf2fb; border:1px solid #d3e3f5; border-radius:7px; padding:6px 9px; margin-bottom:9px; }
-  .ag-f-hint { font-size:11.5px; color:#5b6670; margin:-2px 0 8px 2px; }
+  /* ==DICASEMCIMA== A margem de cima era -2px: a dica SUBIA dois pixels pra colar no campo.
+     Medido em 02/09/2026 com o cursor dentro do "Repetir": o anel do foco desce 4px abaixo
+     do select (outline 2px + afastamento 2px), a dica comeca 2px ACIMA do fim dele, e o
+     resultado sao 6px de sobreposicao — o anel corta a linha "Vai repetir de segunda a
+     sexta" ao meio. Vale para toda dica que venha logo abaixo de um campo, e a do
+     "Convidar" tinha o mesmo problema com os seletores de Setor e Pessoa.
+     Seis pixels: o anel precisa de 4, e hoje eu ja errei uma vez deixando so 1 de sobra. */
+  .ag-f-hint { font-size:11.5px; color:#5b6670; margin:6px 0 8px 2px; }
   .ag-aviso { font-size:12px; color:#8a5a00; background:#fdf3e3; border:1px solid #f3dcae; border-radius:7px; padding:7px 9px; margin-bottom:10px; }
   .ag-form select.ag-f-rep { width:auto; margin-bottom:0; padding:6px 8px; border:1px solid #cfd8e3; border-radius:8px; font-size:13px; font-family:inherit; background:#fff; }
   .ag-f-ate-wrap input.ag-f-ate { width:auto; margin-bottom:0; }
@@ -1169,6 +1211,15 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .ag-meu { display:flex; align-items:center; gap:7px; margin-top:8px; flex-wrap:wrap; }
   .ag-meu-txt { font-size:11.5px; color:#5b6670; }
   .ag-mini.ok { color:#12692f; border-color:#bfe0c9; }
+  /* ==INCLUIRVERDE== Pedido do dono em 02/09/2026. Verde SIM, mas nao o verde cheio do
+     "Adicionar": esse e a acao principal da janela, e dois botoes solidos iguais fazem o
+     olho nao saber qual e o que salva. Este e verde de contorno, com fundo lavado — le
+     como acao, e continua abaixo do "Adicionar" na hierarquia.
+     As cores sao as que a casa ja usa (#12692f, #bfe0c9, #f2f8f4, #157a35), nao cor nova.
+     Miro no data-agaddconv porque a classe .ag-mini veste tambem o Cancelar, o Editar e o
+     Recusar — pintar a classe pintaria os quatro. */
+  .ag-mini[data-agaddconv] { color:#12692f; border-color:#bfe0c9; background:#f2f8f4; font-weight:600; }
+  .ag-mini[data-agaddconv]:hover { background:#e6f4ea; border-color:#157a35; }
   .ag-recusa { margin-top:9px; border:1px solid #f3d9d1; background:#fdf7f5; border-radius:9px; padding:9px 10px; }
   .ag-recusa textarea, .ag-recusa input { width:100%; box-sizing:border-box; border:1px solid #cfd8e3; border-radius:8px; padding:7px 9px; font-size:13px; font-family:inherit; margin-bottom:7px; }
   .ag-recusa .ag-f-row input { width:auto; margin-bottom:0; }
@@ -5939,6 +5990,15 @@ function agSemColunaTarefa(e){
   var col=(m.indexOf("feita_em")>=0)||/[^a-z_]tipo[^a-z_]/.test(" "+m+" ");
   return col && /(column|coluna|schema cache|does not exist|não existe)/i.test(m);
 }
+/* ==TAREFACOMFIM== Enquanto o sql/agenda_tarefa_hora_fim.sql nao rodar, o banco recusa
+   tarefa com hora de terminar — a regra agenda_tarefa_simples_chk, escrita em 31/08 para
+   manter a tarefa simples de proposito. Aqui NAO dou o jeitinho de salvar sem a hora de
+   fim (como faco quando a COLUNA nao existe): ali o campo nem aparece na tela, aqui a
+   pessoa digitou o horario e esperar que ele suma calado seria pior. Aviso e paro. */
+function agTarefaSemFim(e){
+  var m=String((e&&e.message)||"")+" "+String((e&&e.details)||"");
+  return m.indexOf("agenda_tarefa_simples_chk")>=0;
+}
 function agSemParte2(e){
   var c=String((e&&e.code)||""), m=String((e&&e.message)||"");
   return c==="PGRST202"||c==="42883"||(/agenda_mes|agenda_convidados/.test(m)&&/(does not exist|não existe|not find|schema cache)/i.test(m));
@@ -6039,7 +6099,7 @@ function agRenderMes(){
     var chips=evs.slice(0,cabem).map(function(ev){
       var esp=(ev.meu_status==="aguardando")?'⏳ ':'';
       var quem=(agVerSetor&&ev.dono_nome)?('<i>'+agEsc(String(ev.dono_nome).split(" ")[0])+'</i> '):'';
-      var tar=agEhTarefa(ev), feita=!!ev.feita_em;
+      var tar=agEhTarefa(ev), feita=agFeitaNoDia(ev,key);
       return '<div class="ag-chip'+(ev.meu_status==="aguardando"?" pend":"")+(tar?" tarefa":"")+(tar&&feita?" feita":"")+
         '" data-agabrir="'+ev.id+'" title="'+agEsc(ev.titulo)+'">'+esp+(agRepete(ev)?'🔁 ':'')+quem+
         (tar?(feita?'☑ ':'☐ '):'')+(ev.hora?('<b>'+agFmtHora(ev.hora)+'</b> '):'')+agEsc(ev.titulo)+'</div>';
@@ -6109,7 +6169,7 @@ function agEmpilha(ocs){
 }
 // O bloco: posição = hora de início, altura = duração. Nada de conta nova aqui dentro.
 function agBlocoHtml(o){
-  var ev=o.ev, tar=agEhTarefa(ev), feita=!!ev.feita_em, pend=(ev.meu_status==="aguardando");
+  var ev=o.ev, tar=agEhTarefa(ev), feita=agFeitaNoDia(ev,o.dia), pend=(ev.meu_status==="aguardando");
   var alt=Math.max(AG_SEM_MIN_PX, agPx(o.fim-o.ini));
   var topo=agPx(o.ini - AG_SEM_DE*60);
   var larg=100/o.cols, esq=o.col*larg;
@@ -6201,7 +6261,7 @@ function agRenderSemana(){
     var sh=(agEventos[k]||[]).filter(function(ev){ return !ev.hora; });
     var quantos=agEhCelular()?1:2;      // no celular a altura é o recurso mais escasso
     var chips=sh.slice(0,quantos).map(function(ev){
-      var tar=agEhTarefa(ev), feita=!!ev.feita_em;
+      var tar=agEhTarefa(ev), feita=agFeitaNoDia(ev,k);
       return '<div class="ag-chip'+(ev.meu_status==="aguardando"?" pend":"")+(tar?" tarefa":"")+(tar&&feita?" feita":"")+
         '" data-agabrir="'+ev.id+'" data-agdia="'+k+'" title="'+agEsc(ev.titulo)+'">'+
         (ev.meu_status==="aguardando"?'⏳ ':'')+(tar?(feita?'☑ ':'☐ '):'')+agEsc(ev.titulo)+'</div>';
@@ -6370,7 +6430,7 @@ function agRespostaHtml(ev){
    Principal (verde, à direita) · secundária (discreta, ao lado) · destrutiva (à esquerda,
    separada). Nunca mais de duas competindo. */
 function agEvAcoes(ev){
-  var meu=!!ev.sou_dono, tar=agEhTarefa(ev), feita=!!(ev&&ev.feita_em), olhando=agVendoOutro();
+  var meu=!!ev.sou_dono, tar=agEhTarefa(ev), feita=agFeitaNoDia(ev,agSel), olhando=agVendoOutro();
   var esq='', dir='';
   if(agRespId===ev.id){                                   // escrevendo a recusa
     dir='<button type="button" class="ag-mini" data-agrecusacancel>Voltar</button>'+
@@ -6391,18 +6451,41 @@ function agEvAcoes(ev){
   if(meu && !olhando){
     esq='<button type="button" class="ag-mini danger" data-agexcluir="'+ev.id+'">Excluir</button>';
     dir+='<button type="button" class="ag-mini" data-ageditar="'+ev.id+'">Editar</button>';
-    if(tar) dir+='<button type="button" class="ag-salvar'+(feita?' desmarca':'')+'" data-agfeita="'+ev.id+'">'+(feita?'Desmarcar':'Marcar como feita')+'</button>';
+    if(tar) dir+='<button type="button" class="ag-salvar'+(feita?' desmarca':'')+'" data-agfeita="'+ev.id+'" data-agdia="'+agEsc(agSel||ev.data||"")+'">'+(feita?'Desmarcar':'Marcar como feita')+'</button>';
   }
   if(!dir) dir='<button type="button" class="ag-mini" data-agfecharjan>Fechar</button>';
   return '<div class="ag-acoes">'+(esq?('<span class="ag-acoes-esq">'+esq+'</span>'):'')+dir+'</div>';
 }
 function agEhTarefa(ev){ return !!(ev&&ev.tipo==="tarefa"); }
+/* ==FEITAPOROCORRENCIA== "Feita" deixou de ser da SÉRIE e passou a ser do DIA.
+   Uma tarefa que repete é uma linha só no banco, e o feita_em também era um só: marcar a
+   segunda de hoje riscava todas as segundas do ano, inclusive as que ainda não chegaram.
+   Agora a consulta do mês devolve ev.feitas — a lista de dias dados por feitos — e quem
+   desenha pergunta pelo dia que está desenhando.
+   O dia vem de FORA, e não de dentro do ev, porque o mesmo objeto do compromisso aparece
+   em vários dias do mapa agEventos: ali o dia é a CHAVE, nunca uma propriedade dele.
+   Sem dia (janela de detalhe), cai no dia da própria tarefa — que é o certo para a que não
+   repete. O slice(0,10) é porque o banco pode devolver a data com hora colada. */
+function agFeitaNoDia(ev, dia){
+  if(!ev || !agEhTarefa(ev)) return false;
+  var l = ev.feitas;
+  if(!l || !l.length) return false;
+  var d = dia || ev.data;
+  for(var i=0;i<l.length;i++){ if(String(l[i]).slice(0,10)===d) return true; }
+  return false;
+}
+/* enquanto o sql/agenda_tarefa_repete.sql não rodar, a tabela não existe */
+function agSemTabelaFeita(e){
+  var m=String((e&&e.message)||"")+" "+String((e&&e.details)||"");
+  return m.indexOf("agenda_tarefa_feita")>=0 &&
+         /(does not exist|não existe|schema cache|relation)/i.test(m);
+}
 function agEvHtml(ev, semAcoes){
-  var rep=agRepLabel(ev), meu=!!ev.sou_dono, tar=agEhTarefa(ev), feita=!!(ev&&ev.feita_em);
+  var rep=agRepLabel(ev), meu=!!ev.sou_dono, tar=agEhTarefa(ev), feita=agFeitaNoDia(ev,agSel);
   /* Na lista do "+N mais" cada compromisso continua com os botões dele. Quando é UM
      compromisso aberto, as ações vão pro rodapé — por isso o semAcoes. */
   var acoes=(semAcoes||!meu||agVendoOutro())?'':('<div class="ag-ev-acoes">'+
-    (tar?('<button type="button" class="ag-feita'+(feita?' desmarca':'')+'" data-agfeita="'+ev.id+'">'+(feita?'Desmarcar':'Marcar como feita')+'</button>'):'')+
+    (tar?('<button type="button" class="ag-feita'+(feita?' desmarca':'')+'" data-agfeita="'+ev.id+'" data-agdia="'+agEsc(agSel||ev.data||"")+'">'+(feita?'Desmarcar':'Marcar como feita')+'</button>'):'')+
     '<button type="button" class="ag-mini" data-ageditar="'+ev.id+'">Editar</button>'+
     '<button type="button" class="ag-mini danger" data-agexcluir="'+ev.id+'">Excluir</button></div>');
   return '<div class="ag-ev'+(ev.meu_status==="aguardando"?" pend":"")+(tar?" tarefa":"")+(feita?" feita":"")+'"><div class="ag-ev-top">'+
@@ -6595,6 +6678,10 @@ function agHoraAbre(caixa){
 function agSoma(hora, minutos){
   var p=hora.split(":"), t=(+p[0]*60 + +p[1]) + minutos;
   if(t>=24*60) t=23*60+45;
+  /* ==NAOPASSADAMEIANOITE== O teto ja existia; o piso faltava, e passou a fazer falta
+     quando o "Termina" ganhou o direito de puxar o "Comeca" uma hora pra tras. Sem isto,
+     agSoma("00:30",-60) devolvia "-1:30" — hora que nao existe, que o banco recusaria. */
+  if(t<0) t=0;
   return ("0"+Math.floor(t/60)).slice(-2)+":"+("0"+(t%60)).slice(-2);
 }
 function agHoraDefine(caixa, v){
@@ -6602,13 +6689,30 @@ function agHoraDefine(caixa, v){
   caixa.querySelector("input[type=hidden]").value=v||"";
   caixa.querySelector(".ag-hora-txt").value=v||"";
   caixa.querySelector(".ag-hora-x").style.display=v?"":"none";
-  if(caixa.getAttribute("data-fim")==="1") return;
+  if(caixa.getAttribute("data-fim")==="1"){
+    /* ==FIMPUXACOMECO== O contrario da regra de baixo, e pelo mesmo motivo. Com o campo
+       sempre na tela, da pra escolher "termina 09:00" num compromisso sem hora de comeco
+       — e o banco recusa isso. Em vez de deixar a pessoa descobrir no erro ao salvar, o
+       comeco vem junto, uma hora antes. Mesmo mecanismo, sentido invertido: nao e uma
+       segunda logica. Quem ja pôs a hora de comeco nao e tocado. */
+    if(!v) return;
+    var fm=caixa.closest(".ag-form"); if(!fm) return;
+    var cxIni=fm.querySelector('.ag-f-dupla .ag-hora:not([data-fim])'); if(!cxIni) return;
+    var ini=cxIni.querySelector("input[type=hidden]");
+    if(!ini.value) agHoraDefine(cxIni, agSoma(v,-60));
+    return;
+  }
   /* Mexeu no INÍCIO: o fim anda junto, como no Google Agenda.
      - não tinha fim  -> sugere uma hora depois;
      - já tinha       -> mantém a MESMA duração (quem marcou 30 min continua com 30);
      - tirou a hora   -> o fim sai junto, senão sobra um "às 09:00" sem começo. */
-  var linha=caixa.closest(".ag-f-row"); if(!linha) return;
-  var cxFim=linha.querySelector('.ag-hora[data-fim="1"]'); if(!cxFim) return;
+  /* ==FIMSEGUEOCOMECO== Esta regra existia desde que o campo de fim nasceu, e NUNCA rodou:
+     ela procurava o campo dentro de ".ag-f-row", e este formulario nunca teve essa caixa —
+     usa ".ag-f-dupla". Medido no site no ar em 02/09/2026: pus o comeco as 07:45 e o fim
+     continuou vazio. Procurando pelo formulario inteiro ela finalmente funciona.
+     Junto com isso, a secao do "Termina" aparece e some acompanhando o comeco. */
+  var forma=caixa.closest(".ag-form"); if(!forma) return;
+  var cxFim=forma.querySelector('.ag-hora[data-fim="1"]'); if(!cxFim) return;
   var fim=cxFim.querySelector("input[type=hidden]");
   if(!v){ agHoraDefine(cxFim,""); return; }
   if(!fim.value){ agHoraDefine(cxFim, agSoma(v,60)); return; }
@@ -6630,22 +6734,51 @@ function agFormTipo(){
 function agFormTarefaHtml(){
   var ev = agEditId ? agFindEv(agEditId) : null;
   if(!agSecs) agSecs=agSecsDe(ev);
-  /* A TAREFA continua separada de propósito: sem convidados, sem hora de terminar e sem
-     repetição. Juntar com o evento encheria a tela de campo desligado. */
+  /* ==TAREFAREPETE== O mesmo seletor do compromisso, com as mesmas seis opções e o mesmo
+     "Repetir até". O opt() é local porque o do compromisso vive dentro do agFormHtml —
+     duplicar cinco linhas aqui é melhor do que puxar uma das duas funções para fora e
+     mexer nas duas telas de uma vez. */
+  var rep = ev&&ev.repete ? ev.repete : "nao";
+  var ate = ev&&ev.repete_ate ? ev.repete_ate : "";
+  function opt(v,txt){ return '<option value="'+v+'"'+(rep===v?' selected':'')+'>'+txt+'</option>'; }
+  /* ==TAREFACOMFIM== A tarefa continua separada de propósito: sem convidados e sem
+     repetição — juntar tudo encheria a tela de campo desligado. A hora de TERMINAR saiu
+     dessa lista em 02/09/2026, a pedido do dono, e a razão é boa: "comprar bandeja de
+     isopor às 14h" e "arrumar a gôndola das 14h às 16h" são as duas coisas que as pessoas
+     escrevem, e só a primeira cabia. O desenho da tela já sabia lidar com hora de fim em
+     qualquer linha (a altura do bloco na Semana e o texto "14:00 – 16:00" no Mês não
+     perguntam se é tarefa), então o que faltava era só o campo e deixar o agSalvar mandar
+     o valor em vez de zerá-lo. */
   return '<div class="ag-form" data-tipo="tarefa">'+
     '<div class="ag-jan-corpo">'+
       '<label class="ag-f-lbl2" for="agFTit">O que precisa ser feito?</label>'+
       '<input type="text" id="agFTit" class="ag-f-tit" maxlength="120" placeholder="Ex.: comprar bandeja de isopor" value="'+(ev?agEsc(ev.titulo):'')+'">'+
       '<div class="ag-f-dupla">'+
-        '<div class="ag-f-cpo"><label class="ag-f-lbl2" for="agFDia">Dia</label>'+
+        '<div class="ag-f-cpo ag-f-cpo-dia"><label class="ag-f-lbl2" for="agFDia">Dia</label>'+
           '<input type="date" id="agFDia" class="ag-f-dia" value="'+agEsc((ev&&ev.data)||agSel||'')+'"></div>'+
-        '<div class="ag-f-cpo"><span class="ag-f-lbl2">Hora (opcional)</span>'+
+        '<div class="ag-f-cpo"><span class="ag-f-lbl2">Começa</span>'+
           agHoraHtml("ag-f-hora",(ev&&ev.hora)||"","Sem hora")+'</div>'+
+        /* mesmos rótulos do compromisso: quem aprendeu num aprendeu no outro. O agTemFim
+           continua mandando — sem a coluna no banco, o campo não aparece em lugar nenhum. */
+        (agTemFim?'<div class="ag-f-cpo"><span class="ag-f-lbl2">Termina</span>'+
+          agHoraHtml("ag-f-fim",(ev&&ev.hora_fim)||"","Sem fim",true)+'</div>':'')+
+      '</div>'+
+      /* ==TAREFAREPETE== "conferir validade das gôndolas toda segunda" é tarefa, não
+         compromisso — o dono pediu em 02/09. Só foi possível depois de o "feita" virar
+         por DIA (sql/agenda_tarefa_repete.sql): antes, marcar a segunda de hoje riscava
+         todas as segundas do ano. */
+      '<div class="ag-secao abre" data-sec="repetir">'+
+        '<label class="ag-f-lbl2" for="agFRep">Repetir</label><select id="agFRep" class="ag-f-rep">'+
+          opt("nao","Não repete")+opt("dia","Todo dia")+opt("uteis","Toda segunda a sexta")+opt("semana","Toda semana")+opt("quinzena","A cada 15 dias")+opt("mes","Todo mês")+
+        '</select>'+
+        '<div class="ag-f-hint"'+((rep&&rep!=="nao")?'':' style="display:none;"')+'>'+agRepHint(rep)+'</div>'+
+        '<div class="ag-f-ate-wrap"'+((rep&&rep!=="nao")?'':' style="display:none;"')+'>'+
+          '<label class="ag-f-lbl2" for="agFAte">Repetir até (opcional)</label>'+
+          '<input type="date" id="agFAte" class="ag-f-ate" value="'+(ate?agEsc(ate):'')+'"></div>'+
       '</div>'+
       '<div class="ag-secao'+(agSecAberta("nota")?' abre':'')+'" data-sec="nota">'+
         '<label class="ag-f-lbl2" for="agFDesc">Anotação</label>'+
         '<textarea id="agFDesc" class="ag-f-desc" rows="2" maxlength="500" placeholder="Alguma observação sobre a tarefa">'+(ev?agEsc(ev.descricao||''):'')+'</textarea></div>'+
-      '<div class="ag-secbts">'+agSecBtn("nota","＋ Anotação")+'</div>'+
     '</div>'+
     '<div class="ag-jan-rodape">'+
       '<div class="ag-f-erro" style="display:none;"></div>'+
@@ -6666,16 +6799,30 @@ function agFormTarefaHtml(){
       esconde de ninguém. */
 var agSecs=null;
 function agSecsDe(ev){
-  return { fim: !!(ev&&ev.hora_fim), repetir: !!(ev&&agRepete(ev)),
-           nota: !!(ev&&ev.descricao), convidar: !!(ev&&ev.convidados&&ev.convidados.length) };
+  /* ==TUDOABERTO== Decisao do dono em 02/09/2026: "eu queria que aparecesse o bicho todo
+     completo, e preencher so o que fosse necessario". Ate aqui o formulario escondia
+     Repetir, Anotacao e Convidar atras de botoes "＋", e a pessoa tinha que descobrir o
+     que existia clicando. Ele nao gostou, e a razao e boa: num formulario de sete campos,
+     esconder tres deles economiza altura e custa descoberta — quem nunca clicou no "＋
+     Convidar" nao sabe que da pra convidar alguem.
+     Agora nasce tudo aberto e cada um preenche so o que precisa. Campo vazio nao vira
+     nada: o agSalvar so manda o que tem valor.
+     Se um dia alguma secao voltar a nascer fechada, e aqui — uma linha. O ev deixou de
+     ser consultado de proposito; fica no lugar porque quem chama passa o compromisso. */
+  return { fim: true, repetir: true, nota: true, convidar: true };
 }
-function agSecAberta(k){ return !!(agSecs&&agSecs[k]); }
-function agSecBtn(k,txt){
-  /* aberto, o botão perde o "＋": "＋ Fim" com o campo do Fim já na tela lia errado —
-     parecia que ia acrescentar um segundo. Aberto ele vira o interruptor de fechar. */
-  var ab=agSecAberta(k);
-  return '<button type="button" class="ag-secbt'+(ab?' ativo':'')+'" data-agsec="'+k+'"'+
-    ' aria-expanded="'+(ab?'true':'false')+'">'+(ab?('✓ '+txt.replace("＋ ","")):txt)+'</button>';
+function agSecAberta(k){
+  /* ==FIMSEMPRE== Decisao do dono em 02/09/2026, depois de eu recomendar o contrario:
+     o "Termina" fica na tela desde que o formulario abre, sem botao e sem esperar hora.
+     A minha objecao era que o banco recusa fim sem comeco
+     (check hora_fim is null or (hora is not null and hora_fim > hora)), entao o campo
+     poderia ser preenchido num estado que nao salva. Isso ficou fechado de dois jeitos:
+     o agSalvar ja avisava em portugues, e agora pôr uma hora de fim PUXA o comeco uma
+     hora pra tras — o estado invalido deixou de ser alcancavel.
+     Os outros tres (Repetir, Anotacao, Convidar) continuam por botao: esses acrescentam
+     linha de verdade, e a maioria dos compromissos nao usa nenhum deles. */
+  if(k==="fim") return true;
+  return !!(agSecs&&agSecs[k]);
 }
 function agFormHtml(){
   if(agFormTipo()==="tarefa") return agFormTarefaHtml();
@@ -6705,22 +6852,27 @@ function agFormHtml(){
         (agTemFim?sec("fim",'<div class="ag-f-cpo"><span class="ag-f-lbl2">Termina</span>'+
           agHoraHtml("ag-f-fim",(ev&&ev.hora_fim)||"","Sem fim",true)+'</div>'):'')+
       '</div>'+
-      sec("repetir",'<label class="ag-f-lbl2" for="agFRep">Repetir</label><select id="agFRep" class="ag-f-rep">'+
-          opt("nao","Não repete")+opt("dia","Todo dia")+opt("uteis","Toda segunda a sexta")+opt("semana","Toda semana")+opt("quinzena","A cada 15 dias")+opt("mes","Todo mês")+
-        '</select>'+
-        '<div class="ag-f-hint"'+((rep&&rep!=="nao")?'':' style="display:none;"')+'>'+agRepHint(rep)+'</div>'+
-        '<div class="ag-f-ate-wrap"'+((rep&&rep!=="nao")?'':' style="display:none;"')+'>'+
-          '<label class="ag-f-lbl2" for="agFAte">Repetir até (opcional)</label>'+
-          '<input type="date" id="agFAte" class="ag-f-ate" value="'+(ate?agEsc(ate):'')+'"></div>')+
+      /* ==REPETIRECONVIDAR== Pedido do dono em 02/09/2026: "colocar do lado de repetir esse
+         negocio de convidar, pra nao ficar formulario tao grande la embaixo e ficar esse
+         buraco no lado". Ele estava certo nas duas pontas — o Repetir usava 170px de 398 e
+         deixava 228 vazios, e o Convidar era outra faixa inteira mais abaixo.
+         Medido antes de mexer: o Repetir precisa de 153px (por causa de "Toda segunda a
+         sexta", a opcao mais comprida) e a linha do Convidar pede 283. Somando o vao, 446 —
+         e o formulario tinha 398. Faltavam 48. Por isso a janela foi de 430 para 500: com
+         468 uteis, sobram 303 para o Convidar. Nao dava pra encaixar so espremendo, porque
+         encolher o "Setor..." cortaria nome de setor ("Frente de Loja"). */
+      '<div class="ag-f-baixo">'+
+        sec("repetir",'<label class="ag-f-lbl2" for="agFRep">Repetir</label><select id="agFRep" class="ag-f-rep">'+
+            opt("nao","Não repete")+opt("dia","Todo dia")+opt("uteis","Toda segunda a sexta")+opt("semana","Toda semana")+opt("quinzena","A cada 15 dias")+opt("mes","Todo mês")+
+          '</select>'+
+          '<div class="ag-f-hint"'+((rep&&rep!=="nao")?'':' style="display:none;"')+'>'+agRepHint(rep)+'</div>'+
+          '<div class="ag-f-ate-wrap"'+((rep&&rep!=="nao")?'':' style="display:none;"')+'>'+
+            '<label class="ag-f-lbl2" for="agFAte">Repetir até (opcional)</label>'+
+            '<input type="date" id="agFAte" class="ag-f-ate" value="'+(ate?agEsc(ate):'')+'"></div>')+
+        (conv?sec("convidar",conv):'')+
+      '</div>'+
       sec("nota",'<label class="ag-f-lbl2" for="agFDesc">Anotação</label>'+
         '<textarea id="agFDesc" class="ag-f-desc" rows="2" maxlength="500" placeholder="Alguma observação sobre o compromisso">'+(ev?agEsc(ev.descricao||''):'')+'</textarea>')+
-      (conv?sec("convidar",conv):'')+
-      '<div class="ag-secbts">'+
-        (agTemFim?agSecBtn("fim","＋ Fim"):'')+
-        agSecBtn("repetir","＋ Repetir")+
-        agSecBtn("nota","＋ Anotação")+
-        (conv?agSecBtn("convidar","＋ Convidar"):'')+
-      '</div>'+
     '</div>'+
     '<div class="ag-jan-rodape">'+
       '<div class="ag-f-erro" style="display:none;"></div>'+
@@ -6891,7 +7043,10 @@ function agSalvar(btn,id){
   btn.disabled=true;
   var evAntes=id?agFindEv(id):null;
   var ehTarefa=(box.getAttribute("data-tipo")==="tarefa");
-  var payload={ titulo:titulo, hora:hora||null, hora_fim:(ehTarefa||!hora||!fim)?null:fim, descricao:desc||null };
+  /* ==TAREFACOMFIM== o "ehTarefa" saiu daqui: era ele que jogava fora a hora de terminar
+     de uma tarefa, mesmo com o campo preenchido. As duas outras condições ficam — fim sem
+     começo, ou fim vazio, continuam virando nulo, que é o que o banco aceita. */
+  var payload={ titulo:titulo, hora:hora||null, hora_fim:(!hora||!fim)?null:fim, descricao:desc||null };
   if(agTemTarefa) payload.tipo=ehTarefa?"tarefa":"evento";
   var q;
   if(id){
@@ -6914,6 +7069,11 @@ function agSalvar(btn,id){
       agTemTarefa=false; btn.disabled=false; agRenderFaixa();
       eMsg(ehTarefa ? "A Tarefa precisa de um ajuste no banco que ainda não foi feito. Avise o Victor."
                     : "Não deu pra salvar. Tente de novo.");
+      return;
+    }
+    if(r&&r.error&&agTarefaSemFim(r.error)){
+      btn.disabled=false;
+      eMsg("A hora de terminar em tarefas precisa de um ajuste no banco que ainda não foi feito. Avise o Victor.");
       return;
     }
     if(r&&r.error&&agSemColunaFim(r.error)&&payload.hora_fim!==undefined){
@@ -7006,13 +7166,20 @@ function agRemarcar(id,d,h){
   });
 }
 // Marcar/desmarcar tarefa: é um campo só, e a RLS já garante que é a sua.
-function agFeita(id, btn){
+function agFeita(id, dia, btn){
   var ev=agFindEv(id); if(!ev) return;
   var sb=agSB(); if(!sb) return;
+  /* ==FEITAPOROCORRENCIA== marcar é INSERIR a linha daquele dia, desmarcar é APAGAR ela.
+     Não existe update aqui: dois caminhos para o mesmo estado é como nascem as duas
+     definições de "feita" que esta etapa veio justamente resolver. */
+  dia = dia || agSel || ev.data;
   btn.disabled=true;
-  var quando = ev.feita_em ? null : new Date().toISOString();
-  sb.from("agenda_eventos").update({feita_em:quando}).eq("id",id).select().then(function(r){
+  var q = agFeitaNoDia(ev, dia)
+    ? sb.from("agenda_tarefa_feita").delete().eq("evento_id",id).eq("dia",dia).select()
+    : sb.from("agenda_tarefa_feita").insert({evento_id:id, dia:dia}).select();
+  q.then(function(r){
     btn.disabled=false;
+    if(r&&r.error&&agSemTabelaFeita(r.error)) return uiConfirm({titulo:"Não deu pra marcar",msg:"Marcar tarefa como feita precisa de um ajuste no banco que ainda não foi feito. Avise o Victor.",ok:"OK",cancel:""});
     if(r&&r.error) return uiConfirm({titulo:"Não deu pra marcar",msg:"O banco recusou: "+(r.error.message||"tente de novo."),ok:"OK",cancel:""});
     if(r&&r.data&&r.data.length===0) return uiConfirm({titulo:"Não deu pra marcar",msg:"Esta tarefa não é sua.",ok:"OK",cancel:""});
     agInvalidar(); agCloudLoad();
@@ -7189,22 +7356,6 @@ function agRealtime(){
       if(e.target.closest("[data-agcancelaredit]")){ agEditId=null; agConvSel=[]; agSecs=null; agRenderDia(); return; }
       if(e.target.closest("[data-agfecharjan]")){ agJanFecha(); return; }   // fechar quer dizer FECHAR
       if(e.target.closest("[data-agfechar]")){ agAbertoId=null; agVerTodos=false; agEditId=null; agConvSel=[]; agSecs=null; agRenderDia(); return; }
-      /* ==AGSEC== abrir/fechar uma seção NÃO redesenha o formulário: se redesenhasse,
-         apagaria o que já foi digitado. Só liga e desliga a classe. */
-      var sb2=e.target.closest("[data-agsec]");
-      if(sb2){
-        var k=sb2.getAttribute("data-agsec");
-        agSecs=agSecs||{}; agSecs[k]=!agSecs[k];
-        var cx2=sb2.closest(".ag-form");
-        var sec2=cx2?cx2.querySelector('.ag-secao[data-sec="'+k+'"]'):null;
-        if(sec2) sec2.classList.toggle("abre", agSecs[k]);
-        sb2.classList.toggle("ativo", agSecs[k]);
-        sb2.setAttribute("aria-expanded", agSecs[k]?"true":"false");
-        var _nome=sb2.textContent.replace("＋ ","").replace("✓ ","").trim();
-        sb2.textContent=(agSecs[k]?"✓ ":"＋ ")+_nome;
-        if(agSecs[k]&&sec2){ var f2=sec2.querySelector("input:not([type=hidden]),select,textarea,.ag-hora-txt"); if(f2) f2.focus(); }
-        return;
-      }
       var ac=e.target.closest("[data-agaceitar]");
       if(ac){ ac.disabled=true; ac.textContent="Aceitando...";
         agResponder(ac.getAttribute("data-agaceitar"),"confirmado",null,null,null,function(m){
@@ -7255,7 +7406,7 @@ function agRealtime(){
       /* agSel NÃO se perde ao trocar de agenda: zerando o dia, a pessoa caía num
          painel "Escolha um dia no calendário" e o formulário sumia. */
       if(e.target.closest("[data-agvoltarmeu]")){ agVerAlvo=null; agVerSetor=null; agEditId=null; agRespId=null; agConvSel=[]; agInvalidar(); agCloudLoad(); return; }
-      var fe=e.target.closest("[data-agfeita]"); if(fe){ agFeita(fe.getAttribute("data-agfeita"), fe); return; }
+      var fe=e.target.closest("[data-agfeita]"); if(fe){ agFeita(fe.getAttribute("data-agfeita"), fe.getAttribute("data-agdia"), fe); return; }
       var ir=e.target.closest("[data-agirconvite]");
       if(ir){ var _d=ir.getAttribute("data-agirconvite"), _p=agParse(_d);
         agAno=_p.getFullYear(); agMes=_p.getMonth(); agSel=_d; agEditId=null; agRespId=null; agConvSel=[]; agCloudLoad(); return; }

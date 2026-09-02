@@ -315,8 +315,43 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
   eq("76b) sem o SQL rodado, o painel salva assim mesmo",
      /function agSemColunaFim\(e\)/.test(H) && /agTemFim=false; delete payload\.hora_fim;/.test(H), "true");
   // H: a hora de terminar virou uma seção própria — o gate do agTemFim continua
+  /* ==76C== Atualizado em 02/09/2026. A protecao que este teste guarda continua a mesma:
+     sem a coluna no banco, o campo do fim NAO aparece — quem garante isso e o
+     "agTemFim?sec(...)". O que saiu foi o botao "＋ Fim", e por decisao do dono: o
+     Termina agora acompanha o Comeca ("se vai comecar as 07:45, tem que ter um fim"),
+     entao nao ha mais o que um botao ligue ou desligue. O teste passa a cobrar as duas
+     coisas: a protecao de pe, e o botao fora. */
   eq("76c) e esconde o campo em vez de prometer o que não dá",
-     /\(agTemFim\?sec\("fim",/.test(H) && /\(agTemFim\?agSecBtn\("fim","＋ Fim"\):''\)/.test(H), "true");
+     /\(agTemFim\?sec\("fim",/.test(H), "true");
+  eq("76d) o botão ＋ Fim saiu — o Termina não depende mais de clique",
+     /agSecBtn\("fim"/.test(H), "false");
+  /* ==FIMSEMPRE== Historia curta e util: as 00:27 de 02/09 o "Termina" passou a aparecer
+     JUNTO com a hora de comeco. As 00:40 o dono olhou e pediu que aparecesse desde que o
+     formulario abre. Eu tinha recomendado o contrario — o banco recusa fim sem comeco —
+     e ele decidiu assim mesmo. Entao a objecao virou trava, e e ela que estes dois
+     cobram: o campo esta sempre la, e o estado invalido nao e alcancavel. */
+  eq("76e) o Termina está na tela desde que o formulário abre",
+     /if\(k==="fim"\) return true;/.test(H), "true");
+  eq("76f) e pôr a hora de fim PUXA a de começo, senão o banco recusaria",
+     /if\(!ini\.value\) agHoraDefine\(cxIni, agSoma\(v,-60\)\);/.test(H), "true");
+  /* ==NAOPASSADAMEIANOITE== agSoma("00:30",-60) devolvia "-1:30" sem este piso — hora que
+     nao existe. So virou alcancavel quando o fim ganhou o direito de puxar o comeco. */
+  eq("76i) e a conta das horas não desce abaixo da meia-noite",
+     /if\(t<0\) t=0;/.test(H), "true");
+  eq("76j) o aviso de fim sem começo continua de pé, como segunda barreira",
+     /Você pôs a hora de terminar sem a de começar\./.test(H), "true");
+  /* ==REGRAMORTA== Esta regra existia desde que o campo de fim nasceu e NUNCA rodou: ela
+     procurava o campo dentro de ".ag-f-row", caixa que este formulario nao tem. Medido no
+     site no ar em 02/09: comeco 07:45 -> fim continuou vazio. Se alguem devolver o
+     ".ag-f-row", ela morre de novo em silencio. */
+  /* ==76G== Na primeira escrita este teste pegou a linha ERRADA: existe outro
+     caixa.closest(".ag-f-row") no painel, legitimo, com fallback pro parentNode. Mirar
+     em ".ag-f-row" solto acusava aquele. O que tem que sumir e a linha exata que estava
+     dentro do agHoraDefine — a que fazia "if(!linha) return" e matava a regra em silencio. */
+  eq("76g) e procura o campo no formulário, não numa caixa que não existe",
+     /var forma=caixa\.closest\("\.ag-form"\); if\(!forma\) return;/.test(H), "true");
+  eq("76h) e a busca que matava a regra não voltou",
+     /var linha=caixa\.closest\("\.ag-f-row"\); if\(!linha\) return;/.test(H), "false");
   const HF = fs.readFileSync(path.join(RAIZ, "sql/agenda_hora_fim.sql"), "utf8");
   eq("77) e barrado no banco também", /check \(hora_fim is null or \(hora is not null and hora_fim > hora\)\)/.test(HF), "true");
   eq("78) mudar a duração devolve os convidados pra Aguardando",
@@ -364,13 +399,78 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
   eq("96) tarefa tem formulário próprio e curto", /function agFormTarefaHtml\(\)/.test(H), "true");
   eq("97) sem convidados e sem resposta de convite",
      /\(tar\?'':\(agConvHtml\(ev\)\+ \(agVendoOutro\(\)\?'':agRespostaHtml\(ev\)/.test(H), "true");
-  eq("98) dá pra marcar como feita", /function agFeita\(id, btn\)/.test(H), "true");
+  /* ==FEITAPOROCORRENCIA== O "btn" ganhou um "dia" na frente, e isso NAO e detalhe: e a
+     assinatura que impede o defeito. Marcar sem dizer QUAL dia so podia significar "a
+     serie inteira" — que e exatamente o que riscava todas as segundas do ano. */
+  eq("98) dá pra marcar como feita, e sempre dizendo de que DIA",
+     /function agFeita\(id, dia, btn\)/.test(H), "true");
+  eq("98b) marcar é inserir a linha do dia, desmarcar é apagar — sem update",
+     /\.from\("agenda_tarefa_feita"\)\.insert\(\{evento_id:id, dia:dia\}\)/.test(H) &&
+     /\.from\("agenda_tarefa_feita"\)\.delete\(\)\.eq\("evento_id",id\)\.eq\("dia",dia\)/.test(H) &&
+     /\.from\("agenda_tarefa_feita"\)\.update\(/.test(H)===false, "true");
+  /* ==FEITAPOROCORRENCIA== quem desenha tem que perguntar pelo DIA. Se algum destes cinco
+     voltar a ler ev.feita_em, aquele lugar volta a riscar a serie inteira — e so aquele,
+     o que e pior de achar do que se voltassem todos. */
+  /* Sete e o numero certo, e vale escrever de onde ele vem para ninguem "consertar"
+     para cinco: os CINCO lugares que desenham (chip do mes, chip do sem-hora, bloco da
+     semana, as acoes e o detalhe), mais a propria definicao da funcao, mais a chamada
+     dentro do agFeita que decide se e para marcar ou desmarcar. */
+  eq("98c) os cinco lugares que desenham perguntam pelo dia",
+     (H.match(/agFeitaNoDia\(ev,/g) || []).length, 7);
+  eq("98d) nenhum deles lê mais o feita_em da série",
+     /feita=!!\(?ev(&&ev)?\.feita_em/.test(H), "false");
   eq("99) e ela aparece diferente no mês", /\.ag-chip\.tarefa \{/.test(H) && /\.ag-chip\.tarefa\.feita \{/.test(H), "true");
   const TA = fs.readFileSync(path.join(RAIZ, "sql/agenda_tarefas.sql"), "utf8");
   eq("100) o banco separa tarefa de compromisso",
      /add column if not exists tipo      text not null default 'evento'/.test(TA), "true");
-  eq("101) tarefa não repete nem tem hora de terminar (o banco cobra)",
+  /* ==101== Este teste guardava a trava agenda_tarefa_simples_chk, escrita em 31/08 para
+     manter a tarefa simples. Ela caiu em 02/09, em duas etapas e a pedido do dono: hora de
+     fim primeiro (sql/agenda_tarefa_hora_fim.sql), repetição depois
+     (sql/agenda_tarefa_repete.sql). O arquivo de 31/08 continua com o texto antigo, e tem
+     que continuar — é o histórico. O que o teste passa a cobrar é a verdade de HOJE, que
+     mora nos arquivos novos: a trava sai, e no lugar dela entra a marca por dia. */
+  eq("101) o arquivo de 31/08 continua contando a história dele",
      /check \(tipo <> 'tarefa' or \(hora_fim is null and \(repete is null or repete = 'nao'\)\)\)/.test(TA), "true");
+  {
+    const TR = fs.readFileSync(path.join(RAIZ, "sql/agenda_tarefa_repete.sql"), "utf8");
+    eq("101b) mas a trava foi retirada do banco",
+       /alter table public\.agenda_eventos drop constraint if exists agenda_tarefa_simples_chk;/.test(TR), "true");
+    eq("101c) e só depois de o \"feita\" virar por dia — a ordem importa",
+       TR.indexOf("create table if not exists public.agenda_tarefa_feita") <
+       TR.indexOf("drop constraint if exists agenda_tarefa_simples_chk"), "true");
+    /* ==MIGRACAO== o que ja estava marcado nao pode sumir na troca de lugar */
+    eq("101d) e o que já estava marcado como feito foi movido, não jogado fora",
+       /insert into public\.agenda_tarefa_feita \(evento_id, dia, feita_em, feita_por, tenant_id\)/.test(TR) &&
+       /where e\.tipo = 'tarefa' and e\.feita_em is not null/.test(TR), "true");
+    /* ==DEFINER== consulta dentro de policy roda com a permissao de QUEM CHAMA — foi isso
+       que derrubou o convite legitimo em 31/08. A checagem de dono mora numa funcao. */
+    eq("101e) a checagem de dono é função SECURITY DEFINER, não consulta solta na regra",
+       /create or replace function public\.agenda_tarefa_minha\(p_evento uuid\)[\s\S]{0,200}?security definer/.test(TR) &&
+       (TR.match(/public\.agenda_tarefa_minha\(evento_id\)/g) || []).length, 3);
+    eq("101f) e a tabela nova tem as três condições de sempre, nas três regras",
+       (TR.match(/public\.eh_da_casa\(\)/g) || []).length >= 3 &&
+       (TR.match(/public\.pode_pagina\('agenda'\)/g) || []).length >= 3, "true");
+    eq("101g) a consulta do mês devolve os dias feitos",
+       /feitas date\[\]/.test(TR) && /array_agg\(tf\.dia order by tf\.dia\)/.test(TR), "true");
+    /* ==I4INTEIRA== a agenda_mes foi recriada; se alguma trava da I4 tivesse caido no
+       caminho, a Agenda voltaria a responder para fornecedor e para quem perdeu a pagina. */
+    /* ==101H== Na primeira escrita eu conferia so os ROTULOS (I4GUARDA, I4EMAIL...).
+       A mutacao mostrou que isso nao vale nada: apaguei o comeco do bloco da guarda e o
+       teste passou, porque o rotulo aparece duas vezes no arquivo (abre e "FIM"). Rotulo
+       nao e trava. Agora cobro o CODIGO — as tres funcoes que fecham a Agenda para o
+       fornecedor e para quem perdeu a pagina, na ordem e com o "return" que a I4 escolheu
+       de proposito (com "raise", todo funcionario sem a pagina abriria o painel com erro
+       na cara). Se a agenda_mes for recriada sem isto, a porta reabre calada. */
+    eq("101h) a agenda_mes foi recriada com a GUARDA da I4, não só com o rótulo",
+       /if not \( public\.eh_da_casa\(\)\s*\n\s*and public\.pode_pagina\('agenda'\)\s*\n\s*and public\.agenda_convidavel\(v_me\) \) then\s*\n\s*return;\s*\n\s*end if;/.test(TR), "true");
+    eq("101i) e com as outras quatro decisões que ela carrega",
+       /case when dp\.id is null then 'Pessoa removida'/.test(TR) &&        // I4EMAIL
+       /\(e\.para_id = v_me\) as sou_dono/.test(TR) &&                     // I4DONO
+       /and c2\.retirado_em is null\) as meu_status/.test(TR) &&            // I4ATIVO
+       /'retirado',    \(c\.retirado_em is not null\)/.test(TR) &&         // I4SELO
+       /c\.retirado_em is null or e\.para_id = v_me or v_master/.test(TR),  // I4HISTORICO
+       "true");
+  }
   eq("102) só tarefa pode estar feita",
      /check \(feita_em is null or tipo = 'tarefa'\)/.test(TA), "true");
   eq("103) a função é apagada antes (colunas novas) e a permissão volta",
@@ -885,27 +985,64 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
   eq("148d) agSalvar continua achando o formulário pelo mesmo caminho",
      /var box=btn\.closest\("\.ag-form"\); if\(!box\) return;/.test(H), "true");
 
-  // PROGRESSIVE DISCLOSURE
-  eq("149) o que já tem dado nasce ABERTO",
-     /return \{ fim: !!\(ev&&ev\.hora_fim\), repetir: !!\(ev&&agRepete\(ev\)\),\s*\n\s*nota: !!\(ev&&ev\.descricao\), convidar: !!\(ev&&ev\.convidados&&ev\.convidados\.length\) \};/.test(H), "true");
-  eq("149b) abrir uma seção NÃO redesenha o formulário (senão apaga o que foi digitado)",
-     /if\(sec2\) sec2\.classList\.toggle\("abre", agSecs\[k\]\);/.test(H) &&
-     /agRenderDia\(\);\s*return;\s*\n\s*\}\s*\n\s*var sb2=e\.target\.closest\("\[data-agsec\]"\)/.test(H)===false, "true");
-  // esta faltava: uma mutação pôs agCloudLoad() no toggle e NENHUM teste reclamou
-  eq("149b2) e abrir/fechar seção não fala com o banco",
-     /var sb2=e\.target\.closest\("\[data-agsec\]"\);[\s\S]{0,900}?\n      \}/.test(H) &&
-     /var sb2=e\.target\.closest\("\[data-agsec\]"\);[\s\S]{0,900}?\n      \}/.exec(H)[0]
-       .search(/agCloudLoad|sb\.rpc|\.from\(|agInvalidar/) === -1, "true");
-  eq("149c) o botão da seção diz se está aberta",
-     /aria-expanded="'\+\(ab\?'true':'false'\)\+'"/.test(H), "true");
+  /* ==TUDOABERTO== Estes quatro guardavam o "progressive disclosure": Repetir, Anotacao e
+     Convidar ficavam atras de botoes "＋", e os testes cobravam que abrir uma secao nao
+     redesenhasse o formulario nem falasse com o banco.
+     Em 02/09/2026 o dono olhou a tela e disse: "nao gostei da funcionalidade desses
+     botoes, queria que aparecesse o bicho todo completo e preencher so o que fosse
+     necessario". O modelo inteiro saiu — botoes, tratador de clique, estilo e a funcao
+     agSecBtn. Nao apaguei os testes: eles passaram a cobrar o modelo NOVO, e sobretudo
+     que os restos do antigo nao voltem meio caminho (um botao sem tratador, ou um
+     tratador sem botao, seriam piores do que qualquer um dos dois modelos inteiros). */
+  eq("149) todas as seções do formulário nascem abertas",
+     /return \{ fim: true, repetir: true, nota: true, convidar: true \};/.test(H), "true");
+  eq("149b) e as quatro continuam sendo desenhadas",
+     /sec\("fim",/.test(H) && /sec\("repetir",/.test(H) && /sec\("nota",/.test(H) && /sec\("convidar",/.test(H), "true");
+  eq("149c) não sobrou botão de seção — nem no compromisso, nem na tarefa",
+     /ag-secbts|agSecBtn|data-agsec/.test(H), "false");
+  eq("149d) nem o estilo órfão dos botões",
+     /\.ag-secbt/.test(H), "false");
+  /* ==REDESENHO== O motivo original do 149b continua valendo mesmo sem botao: redesenhar o
+     formulario apaga o que a pessoa ja digitou. Hoje sobrou UM redesenho depois de abrir a
+     janela — o da lista de gente, que o proprio codigo justifica dizendo que chega em
+     milissegundos. Se aparecer outro, esta trava obriga quem escrever a olhar aqui. */
+  eq("149e) só a lista de gente redesenha o formulário depois de aberto",
+     (H.match(/agPessoas=\(r&&!r\.error&&r\.data\)\?r\.data:\[\];   \/\/[^\n]*\n    agRenderDia\(\);/g) || []).length, 1);
   eq("149d) e o aviso da série NUNCA é escondido",
      /\(ev&&agRepete\(ev\)\?'<div class="ag-f-serie">/.test(H), "true");
 
-  // TAREFA continua separada
-  eq("150) a tarefa não ganhou convidados, hora de fim nem repetição",
-     /function agFormTarefaHtml\(\)\{[\s\S]*?\n\}/.exec(H)[0].indexOf("ag-f-rep")===-1 &&
-     /function agFormTarefaHtml\(\)\{[\s\S]*?\n\}/.exec(H)[0].indexOf("ag-f-fim")===-1 &&
-     /function agFormTarefaHtml\(\)\{[\s\S]*?\n\}/.exec(H)[0].indexOf("agConvidarHtml")===-1, "true");
+  // TAREFA continua separada — menos a hora de terminar
+  /* ==TAREFACOMFIM== A tarefa nasceu simples de proposito em 31/08: sem convidados, sem
+     repeticao e sem hora de terminar. Em 02/09/2026 o dono pediu "o tempo de inicio e
+     final" tambem na tarefa, e a razao e boa — "arrumar a gondola das 14h as 16h" e uma
+     coisa que as pessoas escrevem e nao cabia. As outras DUAS ausencias continuam sendo
+     decisao, e e por isso que este teste nao foi apagado: ele agora prova que so a hora de
+     fim entrou, e que convidado e repeticao continuam de fora. */
+  {
+    const corpoTarefa = /function agFormTarefaHtml\(\)\{[\s\S]*?\n\}/.exec(H)[0];
+    /* ==TAREFAREPETE== Sobrou UMA ausência de propósito: convidado. Tarefa é coisa a
+       fazer, não reunião — quem precisa chamar gente marca compromisso. A repetição saiu
+       da lista em 02/09, junto com o "feita" virando por dia. */
+    eq("150) a tarefa continua sem convidados",
+       corpoTarefa.indexOf("agConvidarHtml")===-1, "true");
+    eq("150a) mas ganhou o mesmo seletor de repetição do compromisso",
+       corpoTarefa.indexOf("ag-f-rep")>=0 && corpoTarefa.indexOf("Toda segunda a sexta")>=0 &&
+       corpoTarefa.indexOf("ag-f-ate")>=0, "true");
+    eq("150b) mas ganhou a hora de terminar, com os mesmos rótulos do compromisso",
+       corpoTarefa.indexOf("ag-f-fim")>=0 && corpoTarefa.indexOf("Termina")>=0 && corpoTarefa.indexOf("Começa")>=0, "true");
+    eq("150c) e o agTemFim continua mandando nela também",
+       /\(agTemFim\?'<div class="ag-f-cpo"><span class="ag-f-lbl2">Termina<\/span>'\+/.test(corpoTarefa), "true");
+  }
+  /* ==TAREFACOMFIM== o agSalvar jogava fora a hora de fim de QUALQUER tarefa. Se o
+     "ehTarefa" voltar para esta linha, o campo fica na tela e o valor some no caminho —
+     defeito calado, o pior tipo. */
+  eq("150d) e o agSalvar não joga mais fora a hora de fim da tarefa",
+     /hora_fim:\(!hora\|\|!fim\)\?null:fim/.test(H) && /hora_fim:\(ehTarefa\|\|/.test(H)===false, "true");
+  /* ==TAREFACOMFIM== a trava agenda_tarefa_simples_chk recusa tarefa com hora de fim ate
+     o sql/agenda_tarefa_hora_fim.sql rodar. Quem esta na loja nao pode ver erro de banco. */
+  eq("150e) e se o banco recusar, a pessoa lê português, não Postgres",
+     /m\.indexOf\("agenda_tarefa_simples_chk"\)>=0/.test(H) &&
+     /A hora de terminar em tarefas precisa de um ajuste no banco/.test(H), "true");
 
   // CONVIDADOS: preservados, e sem a ambiguidade do "Adicionar"
   eq("151) o botãozinho dos convidados virou 'Incluir'",
@@ -946,7 +1083,13 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
   eq("156b) largura toda, cantos só em cima, altura limitada",
      /\.ag-jan \{ max-width:none; width:100%; border-radius:16px 16px 0 0;\s*\n\s*max-height:calc\(100dvh - 28px\)/.test(H), "true");
   eq("156c) e o rodapé fica preso embaixo — a ação principal nunca some da tela",
-     /\.ag-jan-rodape \{ position:sticky; bottom:0;/.test(H), "true");
+     /\.ag-jan-rodape \{ border-radius:0; position:sticky; bottom:0;/.test(H), "true");
+  /* ==BORDADEBAIXO== O rodape e o ultimo filho, tem fundo branco e margem negativa ate a
+     beirada: sem cantos proprios ele pinta POR CIMA do arredondado da janela e as duas
+     pontas de baixo ficam quadradas. No celular, ao contrario, tem que ser reto — a folha
+     encosta na borda do aparelho. */
+  eq("156s) no computador o rodapé arredonda os cantos de baixo da janela",
+     /background:#fff; border-radius:0 0 14px 14px; \}/.test(H), "true");
   eq("156d) respeitando a borda de baixo do aparelho",
      /padding-bottom:max\(12px, env\(safe-area-inset-bottom\)\)/.test(H), "true");
   eq("156e) com alvos de dedo no × e nas ações",
@@ -1003,9 +1146,63 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /lista\.style\.left=Math\.max\(8, Math\.min\(esq, teto\)\)\+"px";/.test(H), "true");
 
   // DESKTOP continua compacto
-  eq("157) no computador a janela continua 430px e no topo",
-     /\.ag-jan \{ position:relative; background:#fff; border-radius:14px; width:100%; max-width:430px;/.test(H) &&
+  /* ==157== A janela era 430px desde que nasceu. Passou para 500 em 02/09/2026, e por uma
+     conta, nao por gosto: o dono pediu o "Convidar" ao lado do "Repetir", e medindo deu
+     153px (o Repetir, por causa de "Toda segunda a sexta") + 283 (a linha do Convidar) +
+     o vao = 446, contra os 398 uteis que a janela de 430 oferecia. Faltavam 48px, e
+     encolher o "Setor..." cortaria nome de setor. Com 500 sobram 468 uteis.
+     O resto do teste continua igual — ela e centrada e ancorada no TOPO, nao no meio. */
+  eq("157) no computador a janela é 540px e fica no topo",
+     /\.ag-jan \{ position:relative; background:#fff; border-radius:14px; width:100%; max-width:540px;/.test(H) &&
      /\.ag-jan-bg \{ display:none; position:fixed; inset:0;[^}]*align-items:flex-start/.test(H), "true");
+  /* ==REPETIRECONVIDAR== O arranjo so existe se as duas secoes forem irmas dentro da
+     mesma caixa. Se alguem devolver o Convidar para fora dela, ele volta a ser uma faixa
+     inteira mais abaixo — e o formulario cresce de novo. */
+  eq("157c) o Repetir e o Convidar são irmãos na mesma linha",
+     /<div class="ag-f-baixo">'\+[\s\S]{0,900}?sec\("repetir"[\s\S]{0,900}?conv\?sec\("convidar",conv\):''\)\+\s*\n\s*'<\/div>'\+/.test(H), "true");
+  eq("157d) e a linha deixa o Repetir com o que ele precisa e o Convidar com o resto",
+     /\.ag-f-baixo \.ag-secao\[data-sec="repetir"\] \{ flex:0 0 auto; \}/.test(H) &&
+     /\.ag-f-baixo \.ag-secao\[data-sec="convidar"\] \{ flex:1 1 260px; min-width:0; \}/.test(H), "true");
+  /* ==SEPARADOR== o tracejado separava uma FAIXA do resto; virou risco solto no meio da
+     linha quando o Convidar virou coluna. */
+  eq("157e) e o tracejado solto do Convidar não voltou",
+     /\.ag-f-baixo \.ag-f-conv \{ margin-top:0; border-top:0; padding-top:0; \}/.test(H), "true");
+  /* ==DICASEMCIMA== O anel do foco desce 4px abaixo do campo (outline 2px + afastamento
+     2px). A dica logo abaixo tinha margem de cima NEGATIVA (-2px), entao o anel cortava a
+     linha "Vai repetir de segunda a sexta" ao meio — 6px de sobreposicao, medidos. A dica
+     do "Convidar" tinha o mesmo defeito com os seletores de Setor e Pessoa.
+     Este teste mede o VALOR, nao o texto: qualquer margem menor que 4 volta a cortar,
+     inclusive uma que alguem escreva diferente mas igualmente pequena. */
+  {
+    const mTopo = (H.match(/\.ag-f-hint \{[^}]*margin:(-?\d+)px/) || [])[1];
+    eq("158) a dica embaixo do campo tem espaço para o anel do foco",
+       mTopo !== undefined && Number(mTopo) >= 4, "true");
+    eq("158b) (quanto ela reserva hoje)", mTopo + "px", "6px");
+  }
+  /* ==INCLUIRVERDE== Pedido do dono. Verde de contorno, nao o verde cheio do "Adicionar":
+     dois botoes solidos iguais fazem o olho nao saber qual salva a janela. E mirado no
+     data-agaddconv porque a classe .ag-mini veste tambem Cancelar, Editar e Recusar. */
+  eq("159) o botão Incluir é verde",
+     /\.ag-mini\[data-agaddconv\] \{ color:#12692f; border-color:#bfe0c9; background:#f2f8f4; font-weight:600; \}/.test(H), "true");
+  eq("159b) e o Adicionar continua sendo o único verde cheio",
+     /\.ag-salvar \{ border:0; background:#157a35; color:#fff;/.test(H), "true");
+  /* ==CONVIDARNAOVAZA== Erro de dimensionamento meu: medi a coluna do Convidar com o
+     seletor VAZIO ("Pessoa...", 91px). Escolhida uma pessoa de verdade ele vai a 132
+     (JOSEILMA ALVARES DE FARIA) e a conta estoura a coluna em 19px — o "Incluir" saia
+     cortado pela borda. A fileira passou a poder quebrar e os seletores a dividir a
+     largura. Estas duas linhas sao o que impede o corte; sem qualquer uma delas ele volta. */
+  eq("160) a fileira do Convidar pode quebrar em vez de vazar",
+     /\.ag-f-baixo \.ag-f-conv \.ag-f-row \{ flex-wrap:wrap; \}/.test(H), "true");
+  eq("160b) e os seletores dividem a coluna em vez de ter largura própria",
+     /\.ag-f-baixo \.ag-f-conv select\.ag-c-setor,\s*\n\s*\.ag-f-baixo \.ag-f-conv select\.ag-c-pessoa \{ flex:1 1 90px; min-width:0; max-width:none; \}/.test(H), "true");
+  /* ==INCLUIRNALINHA== O dono quis o botao de volta AO LADO dos seletores. Para isso a
+     janela foi de 500 para 540 (coluna do Convidar de 286 para 326) e a base dos seletores
+     de 120 para 90 — a base e o ponto em que eles param de encolher. Com 326 sobram 126px
+     por seletor depois do botao e dos vaos, e os tres cabem numa linha so.
+     A quebra continua no CSS, mas deixou de ser o normal: virou rede para tela estreita ou
+     nome ainda maior. O que nao pode voltar e o botao ser cortado pela borda. */
+  eq("160c) e o botão não encolhe junto — ele mantém o tamanho ao lado deles",
+     /\.ag-f-baixo \.ag-f-conv \[data-agaddconv\] \{ flex:0 0 auto; \}/.test(H), "true");
   eq("157b) e a folha de baixo só existe dentro de media query",
      /\n  \.ag-jan-bg \{ align-items:flex-end/.test(H), "false");
 }
