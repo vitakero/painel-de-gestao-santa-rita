@@ -1020,8 +1020,13 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .ag-jan { display:flex; flex-direction:column; max-height:calc(100dvh - 96px); padding:14px 16px 0; }
   #agPainel { display:flex; flex-direction:column; min-height:0; flex:1 1 auto; }
   .ag-jan-tit { margin:0 34px 10px 0; font-size:16px; font-weight:700; color:#0c5a26; }
+  /* ==AGFOCO== O corpo rola, e rolar em Y liga o corte em X junto — regra do CSS: se um
+     eixo nao e "visible", o outro vira "auto". Medido em 01/09: overflow-x ficava "auto",
+     o corpo tinha 398px e o campo do titulo tinha 398px tambem, entao o anel verde do foco
+     nascia 2px pra fora e era cortado dos DOIS lados. Cinco pixels de folga de cada lado,
+     devolvidos com margem negativa: nada muda de lugar, e o anel passa a caber. */
   .ag-jan-corpo { flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain;
-                  padding-bottom:4px; }
+                  margin:0 -5px; padding:0 5px 4px; }
   .ag-jan-dia { font-size:12.5px; color:#6b7787; margin-bottom:9px; text-transform:capitalize; }
   .ag-jan-rodape { flex:none; border-top:1px solid #eef1f4; margin:0 -16px; padding:10px 16px 14px;
                    background:#fff; }
@@ -1035,6 +1040,16 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .ag-f-dupla { display:flex; gap:10px; margin-bottom:2px; }
   .ag-f-cpo { flex:1 1 0; min-width:0; }
   .ag-f-cpo input[type=date] { width:100%; box-sizing:border-box; }
+  /* ==AGCAMPO== O "Dia" preenchia a coluna inteira e o "Comeca" encolhia ate o conteudo:
+     medido, 194px contra 111px na MESMA coluna de 194 — 83px de vazio do lado. A causa e
+     que a caixa da hora e inline-flex, que so ocupa o que o conteudo pede. Agora ela
+     preenche a coluna, como o Dia. */
+  .ag-f-cpo .ag-hora { display:block; }
+  .ag-f-cpo .ag-hora-cx { display:flex; width:100%; box-sizing:border-box; }
+  .ag-f-cpo .ag-hora input.ag-hora-txt { flex:1 1 auto; width:auto; min-width:0; }
+  /* o "Termina" mora sozinho numa secao, entao ganhava a largura toda do formulario e a
+     caixa encolhida ficava perdida no meio. Uma coluna, alinhado embaixo do "Dia". */
+  .ag-secao[data-sec="fim"] .ag-f-cpo { max-width:calc(50% - 5px); }
   /* ==AGSEC== a seção fica no HTML SEMPRE (agSalvar lê o valor dela) — só some da vista */
   .ag-secao { display:none; margin-top:9px; }
   .ag-secao.abre { display:block; }
@@ -6506,13 +6521,20 @@ function agHoraPinta(caixa, filtro){
    absoluta, passou a ser CORTADA por ele: sobravam duas linhas visíveis. A foto pegou.
    Solução: no celular ela sai do fluxo (position:fixed) e é colocada pelo JS ao lado do
    campo, virando pra cima quando não cabe embaixo. A mecânica do seletor não mudou. */
+/* ==AGLISTAFORA== Ate 01/09 isto so valia no CELULAR: no computador a funcao saia na
+   primeira linha e a lista voltava a ser position:absolute — dentro do corpo que rola, que
+   RECORTA o que passa da borda. Resultado: clicar em "Comeca" abria uma lista de duas
+   linhas. E o mesmo corte do anel do foco, pela mesma causa.
+   A saida ja existia e ja estava provada no celular. Agora vale nos dois — a MESMA funcao,
+   sem o desvio, nao uma segunda logica. */
 function agHoraColoca(caixa, lista){
-  if(!agEhCelular()){ lista.style.position=""; lista.style.top=""; lista.style.left=""; lista.style.width=""; return; }
   var r=caixa.getBoundingClientRect(), alt=document.documentElement.clientHeight;
-  var h=Math.min(206, Math.max(120, alt-140));
+  var h=Math.min(260, Math.max(120, alt-140));
   lista.style.position="fixed";
   lista.style.width=Math.max(150, Math.round(r.width))+"px";
   lista.style.left=Math.round(r.left)+"px";
+  /* o "Termina" tem right:0 no CSS pra nao vazar; com left e width fixos os dois brigam */
+  lista.style.right="auto";
   var abaixo=alt-r.bottom-10;
   if(abaixo>=h){ lista.style.top=Math.round(r.bottom+4)+"px"; }
   else if(r.top-10>=h){ lista.style.top=Math.round(r.top-4-h)+"px"; }
@@ -6524,6 +6546,17 @@ function agHoraAbre(caixa){
   var lista=caixa.querySelector(".ag-hora-lista");
   lista.classList.add("abre");
   agHoraColoca(caixa, lista);
+  /* ==AGLISTASEGUE== position:fixed nao rola junto com o corpo da janela: sem isto a lista
+     ficaria pendurada no lugar de antes assim que a pessoa rolasse. Um ouvinte so, ligado
+     uma vez, na fase de captura (o corpo rola, nao a pagina). */
+  if(!window.__agHoraSegue){
+    window.__agHoraSegue=function(){
+      var ab=document.querySelector(".ag-hora-lista.abre");
+      if(ab && ab.closest) agHoraColoca(ab.closest(".ag-hora"), ab);
+    };
+    document.addEventListener("scroll", window.__agHoraSegue, true);
+    window.addEventListener("resize", window.__agHoraSegue);
+  }
   /* Abrir em 05:00 obriga a rolar meia lista até o horário de trabalho — é o mesmo
      defeito do seletor do navegador, que abria na meia-noite. Então: cai no horário
      já escolhido; se não tem nenhum, cai nas 08:00. O scrollTop só "pega" depois que

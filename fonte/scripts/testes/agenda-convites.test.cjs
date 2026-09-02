@@ -959,8 +959,29 @@ console.log("\n=== Agenda: compromisso entre setores ===\n");
      /function agHoraColoca\(caixa, lista\)\{/.test(H) && /lista\.style\.position="fixed";/.test(H), "true");
   eq("156h) virando pra cima quando não cabe embaixo",
      /else if\(r\.top-10>=h\)\{ lista\.style\.top=Math\.round\(r\.top-4-h\)\+"px"; \}/.test(H), "true");
-  eq("156i) e no computador ela continua exatamente como era",
-     /if\(!agEhCelular\(\)\)\{ lista\.style\.position=""; /.test(H), "true");
+  /* ==156I== Este teste guardava uma decisao que envelheceu, e por isso foi REESCRITO em
+     01/09/2026 em vez de apagado. Quando a folha de baixo chegou, o corte da lista foi
+     consertado SO no celular, e ficou registrado aqui que no computador "continua
+     exatamente como era". Mas o defeito era o mesmo nos dois — o corpo da janela rola, e
+     rolar recorta o que passa da borda. O dono abriu "Comeca" no computador e viu duas
+     linhas. Agora o teste cobra a decisao NOVA: nao existe mais desvio por aparelho. */
+  eq("156i) no computador a lista tambem sai da moldura — sem desvio por aparelho",
+     /if\(!agEhCelular\(\)\)\{ lista\.style\.position=""; /.test(H), "false");
+  eq("156j) e ela acompanha o campo quando o corpo rola",
+     /document\.addEventListener\("scroll", window\.__agHoraSegue, true\);/.test(H) &&
+     /var ab=document\.querySelector\("\.ag-hora-lista\.abre"\);/.test(H), "true");
+  eq("156k) a lista do Termina nao briga com o right:0 do CSS",
+     /lista\.style\.right="auto";/.test(H), "true");
+  /* ==ANELDOFOCO== o corpo tinha 398px e o campo do titulo tambem: o anel do foco nascia
+     2px pra fora e era cortado dos dois lados. A folga devolvida por margem negativa nao
+     move nada de lugar — se alguem tirar uma das duas metades, a conta quebra. */
+  eq("156l) o corpo tem folga lateral pro anel do foco caber",
+     /\.ag-jan-corpo \{[^}]*margin:0 -5px; padding:0 5px 4px;/.test(H), "true");
+  eq("156m) os campos de hora preenchem a coluna, como o Dia",
+     /\.ag-f-cpo \.ag-hora \{ display:block; \}/.test(H) &&
+     /\.ag-f-cpo \.ag-hora-cx \{ display:flex; width:100%; box-sizing:border-box; \}/.test(H), "true");
+  eq("156n) e o Termina fica com a largura de UMA coluna, alinhado embaixo do Dia",
+     /\.ag-secao\[data-sec="fim"\] \.ag-f-cpo \{ max-width:calc\(50% - 5px\); \}/.test(H), "true");
 
   // DESKTOP continua compacto
   eq("157) no computador a janela continua 430px e no topo",
