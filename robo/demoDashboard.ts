@@ -614,12 +614,14 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
      abre a ficha precisa ver que houve acerto com o vendedor sem ter que passar o mouse.
      Coluna em coluna (flex-direction:column) porque a etiqueta nao pode empurrar o chip
      da data pro lado e quebrar a tabela em telas estreitas. */
-  .px-data-cel { display:flex; flex-direction:column; align-items:flex-start; gap:3px; }
+  /* CENTRALIZADA como as outras colunas (pedido dele em 03/09/2026): o cabeçalho "Data da
+     cobrança" já era centralizado, então o conteúdo encostado à esquerda ficava puxado pro lado. */
+  .px-data-cel { display:flex; flex-direction:column; align-items:center; gap:3px; }
   /* O LAPIS FICA NA LINHA DA DATA, nao embaixo dela: embaixo, ele engordava TODAS as linhas
      da tabela — inclusive as que ninguem vai remarcar — e virava um botãozinho solto no meio
      do nada. Em cima, quando nao ha remarcacao a linha tem a altura de sempre. */
-  .px-data-top { display:flex; align-items:center; gap:7px; }
-  .px-remarc-lin { display:flex; align-items:center; flex-wrap:wrap; gap:5px; }
+  .px-data-top { display:flex; align-items:center; justify-content:center; gap:7px; }
+  .px-remarc-lin { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:5px; }
   .px-data-cel .px-motivo { margin-left:0; max-width:230px; }
   .px-data-cel .px-aut, .px-data-cel .px-rec { margin-left:0; }
   .px-remarc { display:inline-flex; align-items:center; padding:2px 8px; background:#eef4fb; color:#3a5b86; border:1px solid #d3e0f0; border-radius:6px; font-size:10.5px; font-weight:700; white-space:nowrap; }

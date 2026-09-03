@@ -50,17 +50,14 @@ const monta = () => '<!doctype html><html lang="pt-BR"><head><meta charset="utf-
   '.cena{background:#fff;border:1px solid #e3e8ee;border-radius:14px;margin:20px;padding:16px 4px 6px;}' +
   '.cena h3{margin:0 20px 4px;font-size:15px;color:#1a2233;}' +
   '.cena p{margin:0 20px 8px;font-size:13px;color:#6b7787;line-height:1.5;max-width:820px;}' +
-  '.antes .px-data-top{flex-wrap:wrap;}.antes .px-data-top .px-remarc{flex-basis:100%;margin-top:2px;}' + // como está hoje: empilhado
-  '.varB .px-remarc{order:2;}.varB .px-remarc-bt{order:3;}' + // variante: o lápis por último
+  '.antes .px-data-cel{align-items:flex-start;}.antes .px-data-top{justify-content:flex-start;}' + // como estava: encostado à esquerda
   '</style></head><body><div id="alvo"></div>' +
   '<script>' + STUBS + REAIS +
   'var TRES=' + JSON.stringify(TRES) + ', MISTO=' + JSON.stringify(MISTO) + ';' +
-  'var antes=pxAgendaHtml(TRES).replace(/era (\\d{2}\\/\\d{2}\\/\\d{4})/g,"remarcada — era $1");' +
   'document.getElementById("alvo").innerHTML=' +
-  '  \'<div class="cena antes"><h3>1. Como está hoje — a etiqueta embaixo</h3><p>Cada linha da tabela ocupa duas alturas.</p>\'+antes+\'</div>\'+' +
-  '  \'<div class="cena"><h3>2. Ao lado — o lápis no meio</h3><p>Uma altura só. O texto encurta para “era 01/09/2026”; o “remarcada”, o motivo e quem autorizou continuam ao passar o mouse.</p>\'+pxAgendaHtml(TRES)+\'</div>\'+' +
-  '  \'<div class="cena varB"><h3>3. Ao lado — o lápis por último</h3><p>Mesma coisa, com a data e a etiqueta juntas e o botão no fim.</p>\'+pxAgendaHtml(TRES)+\'</div>\'+' +
-  '  \'<div class="cena"><h3>4. Com um pedido novo aguardando (parcela 2)</h3><p>O pedido continua embaixo: ele traz os botões e o motivo escrito, e isso não cabe na mesma linha.</p>\'+pxAgendaHtml(MISTO)+\'</div>\';' +
+  '  \'<div class="cena antes"><h3>1. Como está no ar agora — puxada pro lado</h3><p>O cabeçalho “Data da cobrança” é centralizado, mas o conteúdo fica encostado à esquerda.</p>\'+pxAgendaHtml(TRES)+\'</div>\'+' +
+  '  \'<div class="cena"><h3>2. Centralizada — como as outras colunas</h3><p>Data, etiqueta e lápis no meio da coluna, alinhados com o cabeçalho.</p>\'+pxAgendaHtml(TRES)+\'</div>\'+' +
+  '  \'<div class="cena"><h3>3. Centralizada, com um pedido aguardando (parcela 2)</h3><p>A linha do pedido — botões e motivo — também vem centralizada.</p>\'+pxAgendaHtml(MISTO)+\'</div>\';' +
   '<\/script></body></html>';
 
 const dir = path.join(RAIZ, ".previa");
