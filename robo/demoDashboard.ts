@@ -14162,15 +14162,33 @@ function pxPFromRow(r){ var p={id:r.id,numero:r.numero,abertura:r.abertura||"",v
 // Colunas novas na nuvem (cnpj etc). Se o SQL ainda não rodou no Supabase, o upsert
 // falharia inteiro em silêncio — então, nesse caso, reenvia SEM as colunas novas.
 var PX_COLS_NOVAS=["cnpj","razao_social","contato","email","endereco","assinatura","remarcacoes"];
+/* O FALLBACK SALVA O RESTO, MAS ENGOLE A COLUNA QUE FALTA — e isso não pode passar em silêncio.
+   Aconteceu com ele em 03/09/2026, minutos depois de publicar: pediu a remarcação, o painel disse
+   "Enviado para autorização", a etiqueta amarela apareceu e SUMIU na recarga seguinte, e no master
+   não havia nada pra autorizar. O pedido nunca chegou à nuvem: a coluna remarcacoes não existia lá.
+   Dizer "registrado" pro que não foi guardado é o pior tipo de erro — o de quem confia na tela.
+   pxSemRemarc: null = ainda não sei, true = a nuvem não tem a coluna, false = tem. */
+var pxSemRemarc=null;
+function pxErroColuna(r,nome){ return !!(r && r.error && String(r.error.message||"").indexOf(nome)>=0); }
+function pxCheсarRemarc(sb){
+  if(pxSemRemarc!==null) return;
+  try{ sb.from("pontos_extras").select("remarcacoes").limit(1).then(function(r){
+    if(pxErroColuna(r,"remarcacoes")) pxSemRemarc=true;
+    else if(!(r&&r.error)) pxSemRemarc=false;
+  },function(){}); }catch(e){}
+}
 function pxUpsertSeguro(sb,rows){
   sb.from("pontos_extras").upsert(rows).then(function(r){
     if(r && r.error && /column|cnpj|razao_social|contato|email|endereco|assinatura|remarcacoes|schema/i.test(String(r.error.message||""))){
+      if(pxErroColuna(r,"remarcacoes")) pxSemRemarc=true;
       var enxutas=rows.map(function(row){ var c={}; for(var k in row){ if(PX_COLS_NOVAS.indexOf(k)<0) c[k]=row[k]; } return c; });
       sb.from("pontos_extras").upsert(enxutas).then(function(){},function(){});
       try{ console.warn("Pontos: nuvem sem as colunas novas (rode o SQL pix_cobrancas.sql no Supabase)."); }catch(e){}
     }
   },function(){});
 }
+// O QUE DIZER quando a nuvem não tem a coluna (uma linha de SQL resolve, e só o master faz isso).
+var PX_MSG_SEM_REMARC="O painel ainda não consegue GUARDAR remarcação de data: falta uma coluna no banco (remarcacoes). O pedido ficaria só neste computador e sumiria ao atualizar a página — por isso não deixo seguir.\\n\\nPeça ao responsável pelo painel para rodar o arquivo sql/pontos_remarcacao.sql no Supabase (SQL Editor → Run). Depois é só recarregar a página.";
 function pxUploadDataUrl(nome,dataUrl){
   var sb=pxSB(); if(!sb||!dataUrl||dataUrl.indexOf("data:")!==0) return Promise.resolve("");
   try{
@@ -14224,6 +14242,7 @@ function pxCloudLoad(){
     pontosG=[]; try{ localStorage.removeItem("pontos_gondola"); }catch(e){}
     return;
   }
+  pxCheсarRemarc(sb); // uma vez por sessão: a nuvem tem onde guardar remarcação?
   pxCarregando=true;
   sb.from("pontos_extras").select("*").then(function(r){
     pxCarregando=false;
@@ -14386,13 +14405,11 @@ function pxEdicaoDesalinha(pAntigo,dadosNovos){
    (os dois achados da revisão de 03/09/2026) */
 function pxPagoMes(p){
   const ym=pxAnoMesAtual();
-  const compKeys=Object.keys(p.comprovantes||{}).map(function(k){ return k.split("~e")[0]; }); // notas de bonif ficam em chaves compostas (parcela~eN)
-  function pagaK(k){
-    if(pxQuitado(p,k)) return true;
-    // bonificação: o anexo NUNCA quita o mês; quem quita é pxQuitado (autorização)
-    if(pxManBonif((p.manuais||{})[k])) return false;
-    return compKeys.indexOf(k)>=0;
-  }
+  // Quem diz se a parcela está paga é pxQuitado, e só ele: o comprovante já conta lá dentro, MENOS
+  // no "Marcar pago" ainda pendente e na bonificação (o anexo sozinho não quita — regra de 28/08/2026).
+  // Comprovante numa data que saiu do calendário (edição com "Mudar mesmo assim") não conta mais:
+  // é o mesmo aviso que a própria edição já dá.
+  function pagaK(k){ return pxQuitado(p,k); }
   const doMes=pxAgenda(p).map(function(d){ return pxDateKey(d); })
     .filter(function(k){ return k.indexOf(ym)===0 || pxVenc(p,k).indexOf(ym)===0; });
   return doMes.length>0 && doMes.every(pagaK);
@@ -14797,6 +14814,8 @@ function pixCobRetry(pid,key){
   const sb=pxSB(); const c=pixCobs[pixCobKey(pid,key)];
   if(!sb||!c||!c.id) return;
   const p=pontosG.find(function(x){ return x.id===pid; });
+  // pedido de remarcação aguardando: a mesma trava do pxGerarPix (senão o boleto renasce com a data velha)
+  if(p && pxRemarcPend(p,key)){ uiConfirm({ titulo:"Há um pedido de remarcação aguardando", msg:"Esta parcela tem um pedido de mudança de data esperando o master. Autorize ou recuse o pedido (na coluna Data da cobrança) antes de pedir o boleto de novo — senão ele sai com a data antiga.", ok:"Entendi", cancel:"" }); return; }
   const doc=String((p&&p.cnpj)||c.documento||"").replace(/\\D/g,"");
   if(doc.length!==11 && doc.length!==14){ uiConfirm({ titulo:"Falta o CNPJ do fornecedor", msg:"Edite o ponto (botão de lápis), preencha o campo CNPJ e salve. Depois clique em Tentar de novo.", ok:"Entendi", cancel:"" }); return; }
   const campos={ status:"pedido", erro_msg:null, documento:doc, criado_em:new Date().toISOString() };
@@ -15066,6 +15085,8 @@ function rmcErro(msg,campo){
 }
 function rmcAbrir(p,key){
   if(!window.__PERFIL){ uiConfirm({titulo:"Entre no painel",msg:"Faça login para remarcar a cobrança.",ok:"Entendi",cancel:""}); return; }
+  // sem a coluna na nuvem, remarcar seria teatro: aparece e some na recarga. Melhor não deixar começar.
+  if(pxSemRemarc===true){ uiConfirm({titulo:"Falta um passo no banco",msg:PX_MSG_SEM_REMARC,ok:"Entendi",cancel:""}); return; }
   var ehMaster=!!(window.__PERFIL&&window.__PERFIL.is_master);
   var m=document.getElementById("rmcModal");
   if(!m){
@@ -15091,7 +15112,7 @@ function rmcAbrir(p,key){
   var atual=pxVenc(p,key);
   var hj=pxDateKey(new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate()));
   var cData=document.getElementById("rmcData");
-  cData.value=atual; cData.min=hj; cData.classList.remove("campo-erro");
+  cData.value=atual; cData.min=(pxRemarcVale(p,key)&&key<hj)?key:hj; cData.classList.remove("campo-erro"); // remarcada com a original no passado: deixa escolher a original de volta (desfazer)
   var cMot=document.getElementById("rmcMotivo");
   cMot.value=""; cMot.classList.remove("campo-erro");
   rmcErro("");
@@ -15116,7 +15137,7 @@ function rmcConfirmar(){
   if(!pxParseData(nd)){ rmcErro("Essa data não existe. Confira o dia do mês (setembro, por exemplo, termina no dia 30).","rmcData"); return; }
   if(!mot){ rmcErro("Escreva por que a data mudou — é o que explica o acerto depois.","rmcMotivo"); return; }
   var hj=pxDateKey(new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate()));
-  if(nd<hj){ rmcErro("O banco não aceita boleto com vencimento no passado. Escolha de hoje pra frente.","rmcData"); return; }
+  if(nd<hj && nd!==kk){ rmcErro("O banco não aceita boleto com vencimento no passado. Escolha de hoje pra frente.","rmcData"); return; } // voltar pra data original (desfazer) pode, mesmo que ela já tenha passado
   if(nd===pxVenc(p,kk)){ rmcErro("Essa já é a data desta parcela.","rmcData"); return; }
   // AVISOS que não impedem, mas ele precisa ver antes de confirmar
   var avisos=[];
@@ -15131,6 +15152,14 @@ function rmcConfirmar(){
     if(!vai) return;
     // o realtime pode ter trocado pontosG durante o diálogo — sempre rebuscar pelo id
     var pA=pontosG.find(function(x){ return x.id===rmcCtx.pid; }); if(!pA) return;
+    /* RECONFERE NA HORA DE GRAVAR: a janela pode ficar aberta um tempão, e nesse meio outra
+       pessoa pode ter pago a parcela ou gerado o boleto dela (o poll de 8 s traz isso). As travas
+       do lápis valem no clique; aqui valem de novo. (verificação de 03/09/2026) */
+    if(pxQuitado(pA,kk) || pxCobViva((typeof pixCobDe==="function")?pixCobDe(pA,kk):null)){
+      document.getElementById("rmcModal").classList.remove("show"); renderPontosG(); pxReabrir(pA.id);
+      uiConfirm({titulo:"A parcela mudou",msg:"Enquanto a janela estava aberta, esta parcela foi paga ou ganhou boleto no banco. Confira a linha e, se for o caso, tente de novo.",ok:"Entendi",cancel:""});
+      return;
+    }
     var ehMaster=!!(window.__PERFIL&&window.__PERFIL.is_master);
     var quem=(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"";
     var agora=new Date().toISOString();
@@ -15147,6 +15176,10 @@ function rmcConfirmar(){
     }
     savePontosG(); renderPontosG(); pxReabrir(pA.id);
     document.getElementById("rmcModal").classList.remove("show");
+    if(pxSemRemarc===true){ // descoberto agora: não minta dizendo que registrou
+      uiConfirm({ titulo:"Não consegui guardar", msg:PX_MSG_SEM_REMARC, ok:"Entendi", cancel:"" });
+      return;
+    }
     uiConfirm({ titulo: ehMaster?(nd===kk?"Remarcação desfeita":"Cobrança remarcada"):"Enviado para autorização",
       msg: ehMaster
         ? (nd===kk ? ("A parcela voltou a vencer na data original, "+pxFmtData(kk)+".")
@@ -16379,6 +16412,8 @@ async function pixTravaClick(){
          pode ter pago a parcela ou gerado o boleto. Autorizar por cima disso é exatamente o que
          a trava existe pra impedir: boleto com uma data no bolso do fornecedor e outra na tela.
          (achado da revisão de 03/09/2026 — a trava só existia na criação do pedido) */
+      var hjA=pxDateKey(new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate()));
+      if(pd.data<hjA && pd.data!==kk){ uiConfirm({titulo:"A data pedida já passou",msg:"O pedido era pra "+pxFmtData(pd.data)+", que já ficou pra trás. Recuse no ✕ e peça uma data nova.",ok:"Entendi",cancel:""}); return; }
       if(pxQuitado(p,kk)){ uiConfirm({titulo:"Parcela já paga",msg:"Esta parcela foi quitada depois do pedido. Não há mais o que remarcar — recuse o pedido no ✕ pra limpar a linha.",ok:"Entendi",cancel:""}); return; }
       if(pxCobViva((typeof pixCobDe==="function")?pixCobDe(p,kk):null)){
         uiConfirm({titulo:"Cancele o boleto antes de autorizar",
@@ -16402,6 +16437,8 @@ async function pixTravaClick(){
           if(!ok) return;
           const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return;
           const pdA=pxRemarcPend(pA,kk); if(!pdA){ renderPontosG(); return; }
+          // reconfere depois dos diálogos: a parcela pode ter sido paga ou ganhado boleto nesse meio
+          if(pxQuitado(pA,kk) || pxCobViva((typeof pixCobDe==="function")?pixCobDe(pA,kk):null)){ renderPontosG(); pxReabrir(pA.id); uiConfirm({titulo:"A parcela mudou",msg:"Enquanto você autorizava, esta parcela foi paga ou ganhou boleto no banco. Confira a linha antes de autorizar.",ok:"Entendi",cancel:""}); return; }
           pxRemarcGravar(pA,kk,pdA.data,pdA.motivo||"",pdA.quem||"",pdA.quando||"",
             (window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"", new Date().toISOString());
           savePontosG(); renderPontosG(); pxReabrir(pA.id);
@@ -16422,7 +16459,7 @@ async function pixTravaClick(){
           const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return;
           const rA=pxRemarc(pA,kk); if(!rA||!rA.pend){ renderPontosG(); return; }
           if(rA.st==="autorizado"&&rA.data){ pA.remarcacoes[kk]=Object.assign({},rA,{pend:null}); }
-          else { delete pA.remarcacoes[kk]; } // nunca valeu nada: a parcela volta a ser só a data original
+          else { var hR=(rA.hist||[]); if(hR.length) pA.remarcacoes[kk]={hist:hR}; else delete pA.remarcacoes[kk]; } // nunca valeu nada: a parcela volta a ser só a data original (o rastro de remarcação já desfeita fica)
           savePontosG(); renderPontosG(); pxReabrir(pA.id);
         });
       });

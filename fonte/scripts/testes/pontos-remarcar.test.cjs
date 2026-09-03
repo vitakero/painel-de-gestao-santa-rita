@@ -46,7 +46,8 @@ const CODIGO =
   "return {pxAgenda,pxDateKey,pxParseData,pxRemarc,pxRemarcVale,pxRemarcPend,pxVenc,pxVencD,pxAtrasado,pxInadimplencia,pxPagoMes,pxRemarcGravar,pxCobViva};";
 
 const HOJE = new Date(2026, 8, 3); // 03/09/2026, o dia em que ele pediu
-const QUIT = function (p, k) { return !!(p.pagas || {})[k]; };
+// como o pxQuitado de verdade: comprovante anexado quita (fora manual/bonif pendentes — o teste de pagamento manual cobre isso)
+const QUIT = function (p, k) { return !!(p.pagas || {})[k] || !!(p.comprovantes || {})[k]; };
 const M = new Function(CODIGO)(HOJE, QUIT);
 const em = (d) => new Function(CODIGO)(d, QUIT); // as mesmas contas, num outro "hoje"
 
@@ -195,6 +196,26 @@ eq("   'Tentar de novo' manda a data que VALE, não a velha", /campos\.venciment
 eq("   a janela do boleto mostra a data que VAI pro banco", /const dt=venc\.split\("-"\);/.test(HTML), true);
 eq("   o aviso de boletos na mesma data ignora parcela paga", /k2!==kk && !pxQuitado\(p,k2\) && pxVenc\(p,k2\)===nd/.test(HTML), true);
 eq("   pedido aguardando aparece no aviso do menu", /if\(pxRemarcPend\(p,k\)\) pend\+\+;/.test(HTML), true);
+
+console.log("\n13) as travas valem na hora de GRAVAR, não só no clique (verificação de 03/09/2026)");
+eq("   remarcar e autorizar reconferem parcela paga/boleto vivo antes de gravar", (HTML.match(/titulo:"A parcela mudou"/g) || []).length, 2);
+eq("   'Tentar de novo' também barra pedido aguardando", (HTML.match(/Há um pedido de remarcação aguardando/g) || []).length >= 2, true);
+eq("   pedido cuja data já passou não se autoriza", /A data pedida já passou/.test(HTML), true);
+eq("   quem diz se a parcela está paga é pxQuitado, e só ele", /function pagaK\(k\)\{ return pxQuitado\(p,k\); \}/.test(HTML), true);
+eq("   recusar preserva o rastro de remarcação já desfeita", /if\(hR\.length\) pA\.remarcacoes\[kk\]=\{hist:hR\};/.test(HTML), true);
+eq("   desfazer pode voltar pra data original mesmo no passado", /if\(nd<hj && nd!==kk\)/.test(HTML), true);
+const pmp = ponto6(); pmp.comprovantes = { "2026-09-01": "data:..." };
+eq("   comprovante em parcela comum continua quitando o mês", M.pxPagoMes(pmp), true);
+
+console.log("\n14) sem a coluna na nuvem, o painel AVISA em vez de dizer 'registrado' (03/09/2026, no ar)");
+// ele pediu a remarcação, viu "Enviado para autorização", a etiqueta amarela sumiu na recarga
+// seguinte e no master não havia nada: o pedido nunca chegou à nuvem (coluna remarcacoes não existia).
+eq("   o painel pergunta à nuvem se a coluna existe", /function pxCheсarRemarc\(sb\)\{/.test(HTML), true);
+eq("   e pergunta ao carregar os pontos", /pxCheсarRemarc\(sb\); \/\/ uma vez por sessão/.test(HTML), true);
+eq("   o fallback do upsert levanta a bandeira", /if\(pxErroColuna\(r,"remarcacoes"\)\) pxSemRemarc=true;/.test(HTML), true);
+eq("   a janela nem abre sem lugar pra guardar", /if\(pxSemRemarc===true\)\{ uiConfirm\(\{titulo:"Falta um passo no banco"/.test(HTML), true);
+eq("   e se descobrir na hora de gravar, não diz que registrou", /titulo:"Não consegui guardar"/.test(HTML), true);
+eq("   a mensagem diz o que fazer", /rodar o arquivo sql\/pontos_remarcacao\.sql no Supabase/.test(HTML), true);
 
 console.log("\n" + ok + " OK, " + falhou + " falha(s).");
 process.exitCode = falhou ? 1 : 0;
