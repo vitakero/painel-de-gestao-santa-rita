@@ -6,6 +6,9 @@
 //   node scripts/previa-entregas.cjs            -> o mês como está hoje (dia 1 atrasado)
 //   CENA=so2   node scripts/previa-entregas.cjs -> dia 2 lançado, dia 1 ainda atrasado
 //   CENA=emdia node scripts/previa-entregas.cjs -> nada atrasado (controle)
+//   CENA=digitando node scripts/previa-entregas.cjs -> mês NOVO com o dia 2 todo digitado
+//        e nada gravado no servidor: é o caso em que o botão "Salvar o dia 2" tinha
+//        desaparecido (03/09/2026). A prova é o botão estar na tela.
 // Isto NUNCA vai pro ar.
 const fs = require("fs");
 const path = require("path");
@@ -82,6 +85,15 @@ const STUB = `<script>
         // CENA "emdia": os dois lançados, nada para trás (controle).
         if(CENA==="so2"){ poe(2,44); }
         if(CENA==="emdia"){ poe(1,40); poe(2,44); }
+        // CENA "digitando": o servidor está VAZIO (mês recém-aberto) e o dia 2 inteiro
+        // está no RASCUNHO, como fica na tela dela antes de salvar. Era aqui que o
+        // painel não oferecia botão nenhum.
+        if(CENA==="digitando"){
+          var ras={}; ras[mk]={};
+          EQ.forEach(function(p,i){ ras[mk][p.id]={}; ras[mk][p.id][2]=String(44+i*3); });
+          try{ localStorage.setItem("entregas_v2_rascunho", JSON.stringify(ras)); }catch(e){}
+          window.entRascunho = ras;
+        }
         window.entEquipe = EQ.slice();
         window.entDados  = {}; window.entDados[mk] = dados;
         window.entNomes  = {};

@@ -20872,6 +20872,12 @@ function entForaDoPadrao(a,m){
 // O mês está inteiro preenchido? Mesma regra que o servidor cobra no fechamento:
 // todo dia útil, para todo mundo que trabalhou no mês. Zero conta; branco não.
 // O que ainda falta preencher, por pessoa. É o que a tela mostra embaixo da grade.
+/* ==ENTCOB-INICIO==
+   QUEM É COBRADO e QUAIS DIAS ESTÃO PRONTOS. É a régua que decide se o botão
+   "Salvar o dia" aparece — e ela já travou o lançamento uma vez (virada de
+   setembro/2026), por isso virou módulo com marcador e teste próprio.
+   Só depende de: entDados, entRascunho, entEquipe, entDiasConf e a lista de feriados.
+   Nada de DOM aqui dentro. */
 // Dia que ainda não chegou: não dá pra ter entrega feita. Fica travado.
 function entDiaFuturo(a,m,d){
   var h=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate()).getTime();
@@ -20938,10 +20944,20 @@ function entFaltaPreencher(a,m){
 // com valor para TODO MUNDO que trabalhou no mês. Confirmar dia pela metade seria
 // congelar um número errado.
 function entDiasParaConfirmar(a,m){
-  // Cobra as MESMAS pessoas que o servidor cobra: quem teve lançamento no mês. Usar a
-  // lista de ativos travaria a confirmação toda vez que alguém fosse cadastrado e
-  // ainda não tivesse feito entrega nenhuma.
-  var nd=diasDoMes(a,m), ids=entCobrados(a,m), out=[];
+  // COBRA A GRADE INTEIRA (todo ativo desenhado), e não o espelho do servidor.
+  //   Por que não entCobrados(): ele lê só quem JÁ TEM lançamento no mês. Na virada do
+  //   mês isso é ninguém -> nenhum dia fica completo -> o botão "Salvar o dia" nunca
+  //   aparecia e o funcionário não tinha como mandar nada (03/09/2026, travou de
+  //   verdade).
+  //   Por que não é perigoso: salvar ENCERRA o dia. Cobrar menos gente do que a grade
+  //   mostra deixaria encerrar o dia 2 com dois entregadores em branco — e depois de
+  //   encerrado não entra mais número. Aqui é melhor pedir demais que de menos.
+  //   Por que não volta o deadlock de 07/08: aquele era no fechamento do MÊS, olhando
+  //   dias que já estavam confirmados. Aqui o dia por definição ainda NÃO está
+  //   confirmado, então o zero de quem acabou de ser cadastrado é digitável.
+  //   Servidor: entregas_confirmar_dia cobra um SUBCONJUNTO disto, então tudo que este
+  //   botão oferece o servidor aceita.
+  var nd=diasDoMes(a,m), ids=entCobradosGrade(a,m), out=[];
   if(!ids.length) return out;
   for(var d=1;d<=nd;d++){
     if(entFechado(a,m,d)) continue;
@@ -20960,7 +20976,9 @@ function entDiasParaGravar(a,m){ return entDiasParaConfirmar(a,m); }
 // Um dia que está sendo digitado agora: quem ainda falta nele.
 function entFaltamNoDia(a,m,d){
   var mk=entMesKey(a,m);
-  return entCobrados(a,m).filter(function(id){ return entGetRaw(a,m,id,d)===""; })
+  // A MESMA régua do botão (entDiasParaConfirmar): a faixa tem que citar exatamente
+  // quem está segurando o dia, senão ela diz "falta ninguém" e o botão não aparece.
+  return entCobradosGrade(a,m).filter(function(id){ return entGetRaw(a,m,id,d)===""; })
                          .map(function(id){ return entNomeDe(id,mk); });
 }
 function entMesCompleto(a,m){
@@ -20974,13 +20992,18 @@ function entMesCompleto(a,m){
   }
   return true;
 }
-// Quem é COBRADO num mês: entregador ATIVO que teve lançamento nele. Exatamente o que o
-// servidor exige. Inativo fica de fora porque o banco recusa lançamento novo pra ele —
-// exigir uma célula que não pode ser criada travaria o fechamento pra sempre.
+// Quem é COBRADO no FECHAMENTO DO MÊS: entregador ATIVO que teve lançamento nele.
+// Espelha exatamente o que o servidor exige, e é isso que evita o deadlock de 07/08
+// (quem entrou no meio do mês não deve zero nos dias que já passaram e já estão
+// confirmados — ele não teria como digitar esse zero, e o mês nunca fecharia).
+// NÃO usar isto para saber se um DIA pode ser salvo: num mês recém-aberto isto é vazio.
+// Para o dia, quem manda é entCobradosGrade().
 function entCobrados(a,m){
   var md=entDados[entMesKey(a,m)]||{};
   return Object.keys(md).filter(function(id){ var p=entPessoa(id); return !!(p&&p.ativo); });
 }
+/* ==ENTCOB-FIM== */
+
 /* ==ENTDOC-INICIO==
    DOCUMENTO OFICIAL DE FECHAMENTO — remuneração variável por entregas.
    Mesma família visual dos documentos de Pontos Extras: a barra pxDocBarraHtml, a folha
