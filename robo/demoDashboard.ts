@@ -609,6 +609,23 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .px-data-mes { font-size:12px; font-weight:600; color:#3b4756; text-transform:capitalize; }
   .px-data-sem { font-size:10px; font-weight:600; color:#9aa6b2; text-transform:uppercase; letter-spacing:.5px; }
   .px-agenda-tb tbody tr:first-child td { border-top:0; }
+  /* ---- VENCIMENTO REMARCADO (03/09/2026) ----
+     A data nova fica em cima, no lugar de sempre, e a antiga vira etiqueta embaixo: quem
+     abre a ficha precisa ver que houve acerto com o vendedor sem ter que passar o mouse.
+     Coluna em coluna (flex-direction:column) porque a etiqueta nao pode empurrar o chip
+     da data pro lado e quebrar a tabela em telas estreitas. */
+  .px-data-cel { display:flex; flex-direction:column; align-items:flex-start; gap:3px; }
+  /* O LAPIS FICA NA LINHA DA DATA, nao embaixo dela: embaixo, ele engordava TODAS as linhas
+     da tabela — inclusive as que ninguem vai remarcar — e virava um botãozinho solto no meio
+     do nada. Em cima, quando nao ha remarcacao a linha tem a altura de sempre. */
+  .px-data-top { display:flex; align-items:center; gap:7px; }
+  .px-remarc-lin { display:flex; align-items:center; flex-wrap:wrap; gap:5px; }
+  .px-data-cel .px-motivo { margin-left:0; max-width:230px; }
+  .px-data-cel .px-aut, .px-data-cel .px-rec { margin-left:0; }
+  .px-remarc { display:inline-flex; align-items:center; padding:2px 8px; background:#eef4fb; color:#3a5b86; border:1px solid #d3e0f0; border-radius:6px; font-size:10.5px; font-weight:700; white-space:nowrap; }
+  .px-remarc-pend { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; background:#fff4d6; color:#9a6b00; border:1px solid #f0d68a; border-radius:6px; font-size:10.5px; font-weight:700; white-space:nowrap; }
+  .px-remarc-bt { display:inline-flex; align-items:center; justify-content:center; padding:3px 6px; background:#fff; color:#8a96a3; border:1px solid #dbe2ea; border-radius:6px; cursor:pointer; line-height:0; }
+  .px-remarc-bt:hover { background:#f4f7fb; color:#157a35; border-color:#9ccfb1; }
   .px-comp-cell { white-space:nowrap; }
   .px-comp-add { padding:3px 12px; background:#157a35; color:#fff; border:0; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; }
   .px-comp-add:hover { background:#11652b; }
@@ -14138,16 +14155,16 @@ function pxSB(){ return window.__SB||null; }
 function podePagina(chave){ var p=window.__PERFIL; return !!(p && (p.is_master || (p.paginas||[]).indexOf(chave)>=0)); }
 function pxPodeVer(){ return podePagina("pontos"); }
 var pxCloudOK=false, pxCarregando=false, pxRT=null, pxPushT=null;
-function pxRowFromP(p){ return {id:p.id,numero:p.numero||0,abertura:p.abertura||"",vencimento:p.vencimento||"",mes_pag:p.mesPag||"",status:p.status||"",fornecedor:p.fornecedor||"",cnpj:p.cnpj||"",razao_social:p.razaoSocial||"",contato:p.contato||"",email:p.email||"",endereco:p.endereco||"",vendedor:p.vendedor||"",valor:+p.valor||0,pagamento:p.pagamento||"",contrato:p.contrato||"",venc_contrato:p.vencContrato||"",obs:p.obs||"",manuais:p.manuais||null,comprovantes:p.comprovantes||null,contrato_url:(p.contratoArquivo&&p.contratoArquivo.indexOf("data:")!==0)?p.contratoArquivo:"",contrato_nome:p.contratoNome||"",atualizado_em:new Date().toISOString()}; }
+function pxRowFromP(p){ return {id:p.id,numero:p.numero||0,abertura:p.abertura||"",vencimento:p.vencimento||"",mes_pag:p.mesPag||"",status:p.status||"",fornecedor:p.fornecedor||"",cnpj:p.cnpj||"",razao_social:p.razaoSocial||"",contato:p.contato||"",email:p.email||"",endereco:p.endereco||"",vendedor:p.vendedor||"",valor:+p.valor||0,pagamento:p.pagamento||"",contrato:p.contrato||"",venc_contrato:p.vencContrato||"",obs:p.obs||"",manuais:p.manuais||null,comprovantes:p.comprovantes||null,remarcacoes:p.remarcacoes||null,contrato_url:(p.contratoArquivo&&p.contratoArquivo.indexOf("data:")!==0)?p.contratoArquivo:"",contrato_nome:p.contratoNome||"",atualizado_em:new Date().toISOString()}; }
 /* A coluna "assinatura" NÃO vai no salvamento comum de propósito: no banco existe uma
    trava (trigger assin_trava) que recusa escrita direta nela. Só a função oficial assina. */
-function pxPFromRow(r){ var p={id:r.id,numero:r.numero,abertura:r.abertura||"",vencimento:r.vencimento||"",mesPag:r.mes_pag||"",status:r.status||"",fornecedor:r.fornecedor||"",cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",vendedor:r.vendedor||"",valor:+r.valor||0,pagamento:r.pagamento||"",contrato:r.contrato||"",vencContrato:r.venc_contrato||"",obs:r.obs||""}; if(r.manuais)p.manuais=r.manuais; if(r.comprovantes)p.comprovantes=r.comprovantes; if(r.contrato_url){p.contratoArquivo=r.contrato_url;p.contratoNome=r.contrato_nome||"";} if(r.assinatura)p.assinatura=r.assinatura; return p; }
+function pxPFromRow(r){ var p={id:r.id,numero:r.numero,abertura:r.abertura||"",vencimento:r.vencimento||"",mesPag:r.mes_pag||"",status:r.status||"",fornecedor:r.fornecedor||"",cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",vendedor:r.vendedor||"",valor:+r.valor||0,pagamento:r.pagamento||"",contrato:r.contrato||"",vencContrato:r.venc_contrato||"",obs:r.obs||""}; if(r.manuais)p.manuais=r.manuais; if(r.comprovantes)p.comprovantes=r.comprovantes; if(r.remarcacoes)p.remarcacoes=r.remarcacoes; if(r.contrato_url){p.contratoArquivo=r.contrato_url;p.contratoNome=r.contrato_nome||"";} if(r.assinatura)p.assinatura=r.assinatura; return p; }
 // Colunas novas na nuvem (cnpj etc). Se o SQL ainda não rodou no Supabase, o upsert
 // falharia inteiro em silêncio — então, nesse caso, reenvia SEM as colunas novas.
-var PX_COLS_NOVAS=["cnpj","razao_social","contato","email","endereco","assinatura"];
+var PX_COLS_NOVAS=["cnpj","razao_social","contato","email","endereco","assinatura","remarcacoes"];
 function pxUpsertSeguro(sb,rows){
   sb.from("pontos_extras").upsert(rows).then(function(r){
-    if(r && r.error && /column|cnpj|razao_social|contato|email|endereco|assinatura|schema/i.test(String(r.error.message||""))){
+    if(r && r.error && /column|cnpj|razao_social|contato|email|endereco|assinatura|remarcacoes|schema/i.test(String(r.error.message||""))){
       var enxutas=rows.map(function(row){ var c={}; for(var k in row){ if(PX_COLS_NOVAS.indexOf(k)<0) c[k]=row[k]; } return c; });
       sb.from("pontos_extras").upsert(enxutas).then(function(){},function(){});
       try{ console.warn("Pontos: nuvem sem as colunas novas (rode o SQL pix_cobrancas.sql no Supabase)."); }catch(e){}
@@ -14279,7 +14296,17 @@ let mapaEdit = false; // modo de edição de preços (só admin)
 
 function pxParseData(s){
   if(!s || !/^\\d{4}-\\d{2}-\\d{2}\$/.test(s)) return null;
-  const d=new Date(s+"T00:00:00"); return isNaN(d.getTime()) ? null : d;
+  const d=new Date(s+"T00:00:00");
+  if(isNaN(d.getTime())) return null;
+  /* 31 DE SETEMBRO NAO EXISTE — E O JAVASCRIPT NAO RECLAMA.
+     new Date("2026-09-31T00:00:00") devolve 01/10/2026 caladinho, sem erro nenhum. Ou seja:
+     dia impossivel entrava aqui e saia como OUTRO MES, com cara de data boa, e ia virar
+     calendario de cobranca e vencimento de boleto.
+     Foi o primeiro tropeco da conversa de 03/09/2026: ele passou "outubro 31/09". A trava de
+     cima (o formato) nunca pegou isso, porque 31/09 tem o formato certo — o que nao existe e
+     o DIA. Conferindo a volta, dia impossivel vira nada, e quem chamou trata como sem data. */
+  if(pxDateKey(d)!==s) return null;
+  return d;
 }
 function pxFmtData(s){
   if(!s) return "";
@@ -14345,32 +14372,94 @@ function pxEdicaoDesalinha(pAntigo,dadosNovos){
       if(pxQuitado(pAntigo,k)) return true;
       // bonificação em andamento (parcial/pendente) também não pode ficar órfã — tem mercadoria registrada
       var mk=(pAntigo.manuais||{})[k];
-      return pxManBonif(mk) && ((+mk.tot||0)>0 || mk.st==="pendente");
+      if(pxManBonif(mk) && ((+mk.tot||0)>0 || mk.st==="pendente")) return true;
+      // data remarcada (ou pedido de remarcação) também não pode ficar órfã: o acerto com o vendedor sumiria
+      return !!pxRemarcVale(pAntigo,k) || !!pxRemarcPend(pAntigo,k);
     });
   }catch(e){ return false; }
 }
+/* O MÊS SÓ ESTÁ PAGO QUANDO TODAS AS PARCELAS DELE ESTÃO. Antes havia uma parcela por mês, e
+   "alguma paga" era o mesmo que "todas pagas". Com remarcação, duas podem cair no mesmo mês
+   (setembro e outubro do ponto 6, as duas em 30/09): pagar uma não pode pintar o mês de PAGO.
+   E a parcela conta no mês da CHAVE também: a mensalidade de outubro, paga em 30/09, continua
+   sendo a de outubro — senão outubro inteiro ficaria "em aberto" com tudo quitado.
+   (os dois achados da revisão de 03/09/2026) */
 function pxPagoMes(p){
   const ym=pxAnoMesAtual();
-  return pxAgenda(p).some(d=>{ const k=pxDateKey(d); return k.indexOf(ym)===0 && pxQuitado(p,k); })
-    || Object.keys(p.comprovantes||{}).some(function(k){
-        const baseK=k.split("~e")[0]; // notas de bonif ficam em chaves compostas (parcela~eN)
-        if(baseK.indexOf(ym)!==0) return false;
-        const mk=(p.manuais||{})[baseK];
-        // bonificação: o anexo NUNCA quita o mês; quem quita é pxQuitado (autorização) no some() acima
-        return !pxManBonif(mk);
-      });
+  const compKeys=Object.keys(p.comprovantes||{}).map(function(k){ return k.split("~e")[0]; }); // notas de bonif ficam em chaves compostas (parcela~eN)
+  function pagaK(k){
+    if(pxQuitado(p,k)) return true;
+    // bonificação: o anexo NUNCA quita o mês; quem quita é pxQuitado (autorização)
+    if(pxManBonif((p.manuais||{})[k])) return false;
+    return compKeys.indexOf(k)>=0;
+  }
+  const doMes=pxAgenda(p).map(function(d){ return pxDateKey(d); })
+    .filter(function(k){ return k.indexOf(ym)===0 || pxVenc(p,k).indexOf(ym)===0; });
+  return doMes.length>0 && doMes.every(pagaK);
 }
+/* ==REMARCAR-INICIO==
+   VENCIMENTO REMARCADO — o vendedor pediu outra data pra pagar.
+
+   Pedido dele em 03/09/2026, com o ponto 6 (Riograndense / vendedor Rubinha) na tela: o
+   vendedor acertou vencimentos diferentes dos do calendário (a de agosto pra 15/09, as de
+   setembro e outubro pra 30/09).
+
+   POR QUE NAO BASTA EDITAR A DATA DE ABERTURA: o calendário daqui não guarda três datas,
+   guarda uma REGRA — "abriu dia 1º, cobra todo dia 1º até o fim do contrato". Mudar a
+   abertura pra dia 15 mexeria nas TRES de uma vez, e o próprio painel já avisa (em
+   pxEdicaoDesalinha) que parcela paga ficaria órfã: pagamento, comprovante e boleto ficam
+   pendurados na DATA da parcela, que é o nome dela.
+
+   ENTAO A DATA ORIGINAL CONTINUA SENDO O NOME DA PARCELA. A remarcação é só uma etiqueta em
+   cima: guarda a data nova e mostra "era 01/08". Nada se desprega — nem comprovante, nem
+   boleto já gerado, nem a assinatura do contrato (que confere fornecedor, prazo e valor).
+
+   Quem remarca é o financeiro, quem valida é o master — o mesmo desenho do "Marcar pago",
+   escolhido por ele em 03/09/2026. Enquanto o pedido está AGUARDANDO, a data que vale
+   continua a antiga: só a autorização move o vencimento, o boleto e o ATRASADO. */
+function pxRemarc(p,key){ var r=(p&&p.remarcacoes)?p.remarcacoes[key]:null; return (r&&typeof r==="object")?r:null; }
+// a remarcação que JA VALE (autorizada) — é ela, e só ela, que muda a data de cobrança
+// Só data de verdade vale (pxParseData): o que vier torto da nuvem não vira HTML nem vai pro Sicredi.
+// E "remarcar" de volta pra data original não é remarcação — é desfazer (ver pxRemarcGravar).
+function pxRemarcVale(p,key){ var r=pxRemarc(p,key); return (r&&r.st==="autorizado"&&r.data&&r.data!==key&&pxParseData(r.data))?r:null; }
+// o pedido que ainda espera o master (fica guardado à parte, pra recusar não apagar o que já valia)
+function pxRemarcPend(p,key){ var r=pxRemarc(p,key); return (r&&r.pend&&r.pend.data&&pxParseData(r.pend.data))?r.pend:null; }
+// A DATA QUE VALE pra esta parcela (a remarcada autorizada, ou a original).
+function pxVenc(p,key){ var r=pxRemarcVale(p,key); return r?r.data:key; }
+function pxVencD(p,key){ return pxParseData(pxVenc(p,key)) || pxParseData(key); }
+/* GRAVA A DATA QUE PASSA A VALER — o master remarcando, ou o master autorizando o pedido do
+   financeiro. Um lugar só, pra os dois caminhos gravarem a mesma coisa.
+   Voltar pra data ORIGINAL desfaz a remarcação em vez de gravar "remarcada — era 01/10" numa
+   parcela que vence 01/10: a etiqueta perderia o sentido e a edição do ponto ficaria travada à
+   toa (pxEdicaoDesalinha). O rastro fica em hist. */
+function pxRemarcGravar(p,key,nd,mot,quem,quando,autPor,agora){
+  p.remarcacoes=p.remarcacoes||{};
+  var r=Object.assign({}, pxRemarc(p,key)||{});
+  r.hist=(r.hist||[]).slice();
+  if(r.st==="autorizado"&&r.data) r.hist.push({data:r.data,motivo:r.motivo||"",quem:r.quem||"",quando:r.quando||"",autorizado_por:r.autorizado_por||""});
+  if(nd===key){
+    if(r.hist.length) p.remarcacoes[key]={hist:r.hist}; else delete p.remarcacoes[key];
+    return;
+  }
+  r.data=nd; r.motivo=String(mot||"").slice(0,140); r.quem=quem; r.quando=quando;
+  r.st="autorizado"; r.autorizado_por=autPor; r.autorizado_em=agora; r.pend=null;
+  p.remarcacoes[key]=r;
+}
+// cobrança que ainda está de pé no banco (ou a caminho dele, ou saindo dele): a data impressa nela manda
+function pxCobViva(c){ return !!(c&&(c.status==="gerado"||c.status==="pedido"||c.status==="gerando"||c.status==="cancelar")); }
+/* ==REMARCAR-FIM== */
 // ATRASADO = existe parcela vencida (data já passou) e ainda não quitada.
 function pxAtrasado(p){
   const hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
-  return pxAgenda(p).some(d=> d<hoje && !pxQuitado(p, pxDateKey(d)));
+  // pela data QUE VALE: parcela remarcada pra frente não é atraso — é acerto combinado
+  return pxAgenda(p).some(function(d){ var k=pxDateKey(d); return pxVencD(p,k)<hoje && !pxQuitado(p,k); });
 }
 // Detalhe da inadimplência: nº de parcelas vencidas/não pagas, valor devido e desde quando.
 function pxInadimplencia(p){
   const hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
   let n=0, desde=null, valor=0;
-  pxAgenda(p).forEach(function(d){
-    const k=pxDateKey(d);
+  pxAgenda(p).forEach(function(d0){
+    const k=pxDateKey(d0), d=pxVencD(p,k); // d = data que vale (pode ter sido remarcada)
     if(d<hoje && !pxQuitado(p,k)){
       n++;
       let v=(+p.valor||0);
@@ -14391,6 +14480,8 @@ function pxAtualizaBadge(){
     if(pxInadimplencia(p)) inad++;
     const man=p.manuais||{};
     Object.keys(man).forEach(function(k){ if(pxManSt(man[k])==="pendente") pend++; });
+    // pedido de remarcação aguardando o master também conta: senão ele nunca fica sabendo
+    Object.keys(p.remarcacoes||{}).forEach(function(k){ if(pxRemarcPend(p,k)) pend++; });
   });
   const tot=inad+pend;
   if(tot>0){ el.style.display=""; el.textContent=tot; el.title=inad+" inadimplente(s)"+(pend?" + "+pend+" aguardando autorização":""); }
@@ -14442,6 +14533,35 @@ function pxAgenda(p){
   }
   return datas;
 }
+/* A COLUNA DA DATA. Em cima o chip com a data que VALE e o lápis; embaixo, só quando existe,
+   a etiqueta do acerto. O lápis aparece pra quem mexe no módulo e só em parcela ainda aberta:
+   remarcar parcela já paga mudaria o histórico do que já foi pago. */
+function pxDataCelHtml(p,key,d,ref){
+  var icoLapis='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>';
+  var vale=pxRemarcVale(p,key), pend=pxRemarcPend(p,key);
+  var pode=(typeof pxPodeVer==="function") ? pxPodeVer() : true;
+  // com pedido aguardando o lápis sai de cena: primeiro se resolve o que já foi pedido
+  var lapis=(!pend && pode && !pxQuitado(p,key))
+    ? '<button type="button" class="px-remarc-bt" data-remarcar="'+ref+'" title="Remarcar o vencimento desta parcela">'+icoLapis+'</button>'
+    : '';
+  var abaixo="";
+  if(vale){
+    abaixo+='<div class="px-remarc-lin"><span class="px-remarc" title="'+pxEsc(vale.motivo||"")+' — remarcada por '+pxEsc(vale.quem||"")+
+        (vale.autorizado_por?(', autorizado por '+pxEsc(vale.autorizado_por)):'')+'">remarcada — era '+pxFmtData(key)+'</span></div>';
+  }
+  if(pend){
+    /* O MOTIVO FICA ESCRITO, nao escondido no passar-o-mouse: em celular nao existe passar o
+       mouse, e quem autoriza precisa saber POR QUE a data mudou (mesma queixa de 28/08/2026).
+       Em linha propria pra nao esticar a coluna da data e espremer as outras quatro. */
+    abaixo+='<div class="px-remarc-lin">'+
+       '<span class="px-remarc-pend" title="pedido por '+pxEsc(pend.quem||"")+'">pedido: '+pxEsc(pxFmtData(pend.data))+' · aguardando</span>'+
+       '<button type="button" class="px-aut" data-remarcaut="'+ref+'">Autorizar</button>'+
+       '<button type="button" class="px-rec" data-remarcrec="'+ref+'" title="Recusar a data nova (a de agora continua valendo)">✕</button>'+
+       '</div>'+
+       '<div class="px-remarc-lin"><span class="px-motivo" title="'+pxEsc(pend.motivo||"")+'">“'+pxEsc(pend.motivo||"(sem motivo)")+'”</span></div>';
+  }
+  return '<div class="px-data-cel"><div class="px-data-top">'+pxDataChip(d)+lapis+'</div>'+abaixo+'</div>';
+}
 function pxAgendaHtml(p){
   const ag=pxAgenda(p);
   if(!ag.length) return '<div class="px-agenda-vazia">Informe a abertura e o vencimento do contrato para ver o calendário de cobranças.</div>';
@@ -14452,9 +14572,10 @@ function pxAgendaHtml(p){
   const icoQr='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><line x1="14" y1="14.5" x2="14" y2="18"></line><line x1="17.5" y1="14" x2="17.5" y2="17.5"></line><line x1="21" y1="17.5" x2="21" y2="21"></line><line x1="14" y1="21" x2="17.5" y2="21"></line></svg>';
   const icoAlerta='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
   const icoBarras='<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px;margin-right:5px;"><rect x="2" y="4" width="2.4" height="16" rx="0.6"></rect><rect x="6" y="4" width="1.4" height="16" rx="0.6"></rect><rect x="9" y="4" width="3" height="16" rx="0.6"></rect><rect x="13.6" y="4" width="1.4" height="16" rx="0.6"></rect><rect x="16.5" y="4" width="1.1" height="16" rx="0.55"></rect><rect x="19.2" y="4" width="2.8" height="16" rx="0.6"></rect></svg>';
-  const linhas=ag.map((d,i)=>{
+  const linhas=ag.map((d0,i)=>{
+    const key=pxDateKey(d0);       // a data ORIGINAL é o nome da parcela — nunca muda
+    const d=pxVencD(p,key);        // a data QUE VALE (remarcada, se o master autorizou)
     const passou = d<hoje ? ' style="color:#9aa6b2;"' : '';
-    const key=pxDateKey(d);
     const ref=p.id+"|"+key;
     const c=comps[key];
     const ehBonifComp = /bonif/i.test(String(p.pagamento||"")); // bonificação anexa a NOTA fiscal manualmente
@@ -14530,9 +14651,13 @@ function pxAgendaHtml(p){
       : '<button type="button" class="px-pix-btn" data-pix="'+ref+'">'+(ehBoleto?'Gerar boleto':'Gerar Pix')+'</button>'+btMarcar;
     var bonifCols="";
     if(ehBonifComp){ var bc=bonifCampos(man); bonifCols='<td class="bonif-c">'+(bc.nota||'<span class="bonif-vazio">—</span>')+'</td><td class="bonif-c">'+(bc.desc||'<span class="bonif-vazio">—</span>')+'</td>'; }
-    return '<tr'+passou+'><td>'+(i+1)+'</td><td>'+pxDataChip(d)+'</td><td>'+brl(p.valor||0)+'</td><td class="px-pix-cell">'+pixCell+'</td>'+bonifCols+'<td class="px-comp-cell">'+cell+'</td></tr>';
+    return '<tr'+passou+'><td>'+(i+1)+'</td><td>'+pxDataCelHtml(p,key,d,ref)+'</td><td>'+brl(p.valor||0)+'</td><td class="px-pix-cell">'+pixCell+'</td>'+bonifCols+'<td class="px-comp-cell">'+cell+'</td></tr>';
   }).join("");
-  return '<div class="px-agenda"><div class="px-agenda-tit">Calendário de cobranças — '+ag.length+' parcela(s), todo dia '+ag[0].getDate()+'</div>'+
+  // "todo dia 1" deixa de ser a história inteira quando alguma data foi remarcada — então o
+  // cabeçalho diz quantas saíram da regra, senão ele mentiria com cara de verdade.
+  const nRem=ag.filter(function(x){ return !!pxRemarcVale(p,pxDateKey(x)); }).length;
+  const titRem=nRem?(' · '+nRem+(nRem===1?' remarcada':' remarcadas')):'';
+  return '<div class="px-agenda"><div class="px-agenda-tit">Calendário de cobranças — '+ag.length+' parcela(s), todo dia '+ag[0].getDate()+titRem+'</div>'+
     '<table class="px-agenda-tb"><thead><tr><th>#</th><th>Data da cobrança</th><th>Valor</th><th>Cobrança</th>'+(/bonif/i.test(String(p.pagamento||""))?'<th>Nº da nota</th><th>Mercadoria</th><th>Nota fiscal</th>':'<th>Comprovante</th>')+'</tr></thead><tbody>'+linhas+'</tbody></table></div>';
 }
 function pxDataUrlToBlob(durl){
@@ -14633,16 +14758,22 @@ function pxGerarPix(p,key){
   if(!sb || !window.__PERFIL){ uiConfirm({ titulo:"Entre no painel", msg:"Faça login para gerar a cobrança.", ok:"Entendi", cancel:"" }); return; }
   const jaTem=pixCobDe(p,key);
   if(jaTem){ if(jaTem.status==="gerado") pixVerCob(p,key); return; }
+  // PEDIDO DE REMARCAÇÃO AGUARDANDO: primeiro o master decide a data, depois sai o boleto —
+  // senão o boleto nasce com a data velha e a tela passa a mostrar a nova. (revisão de 03/09/2026)
+  if(pxRemarcPend(p,key)){ uiConfirm({ titulo:"Há um pedido de remarcação aguardando", msg:"Esta parcela tem um pedido de mudança de data esperando o master. Autorize ou recuse o pedido (na coluna Data da cobrança) antes de gerar o boleto — senão o boleto sai com uma data e a tela mostra outra.", ok:"Entendi", cancel:"" }); return; }
   if(!pxExigeContrato(p)) return; // sem contrato anexado, não gera cobrança
   const ehBoleto=/bolet/i.test(String(p.pagamento||""));
   const doc=String(p.cnpj||"").replace(/\\D/g,"");
   if(doc.length!==11 && doc.length!==14){ uiConfirm({ titulo:"Falta o CNPJ do fornecedor", msg:"A cobrança registrada no banco precisa do CPF/CNPJ do pagador. Edite o ponto (botão de lápis), preencha o campo CNPJ e salve. Depois clique em "+(ehBoleto?"Gerar boleto":"Gerar Pix")+" de novo.", ok:"Entendi", cancel:"" }); return; }
   const valor=Math.round((+p.valor||0)*100)/100;
   if(!(valor>0)){ uiConfirm({ titulo:"Valor inválido", msg:"O ponto está sem valor de mensalidade. Edite o ponto e preencha o valor.", ok:"Entendi", cancel:"" }); return; }
-  const dt=key.split("-");
+  /* A DATA QUE VAI PRO BANCO E A QUE VALE, nao a chave. Sem isto, remarcar mudava a tela e
+     o fornecedor recebia boleto com a data velha — duas datas pro mesmo acerto. */
+  const vk=pxVenc(p,key);
   const hj=pxDateKey(new Date());
-  const venc=(key<hj)?hj:key; // banco não aceita vencimento no passado
-  uiConfirm({ titulo:(ehBoleto?"Gerar boleto":"Gerar cobrança Pix"), msg:"Gerar a cobrança de "+brl(valor)+" para "+(p.fornecedor||"o fornecedor")+", com vencimento em "+dt[2]+"/"+dt[1]+"/"+dt[0]+"? Ela será registrada no Sicredi e "+(ehBoleto?"o boleto (com linha digitável e QR Pix)":"o QR Code")+" aparece aqui em instantes.", ok:(ehBoleto?"Gerar boleto":"Gerar cobrança"), cancel:"Cancelar" }).then(function(sim){
+  const venc=(vk<hj)?hj:vk; // banco não aceita vencimento no passado
+  const dt=venc.split("-"); // a janela mostra a data que VAI pro banco, não a da parcela
+  uiConfirm({ titulo:(ehBoleto?"Gerar boleto":"Gerar cobrança Pix"), msg:"Gerar a cobrança de "+brl(valor)+" para "+(p.fornecedor||"o fornecedor")+", com vencimento em "+dt[2]+"/"+dt[1]+"/"+dt[0]+"?"+(vk<hj?(" (A data da parcela, "+pxFmtData(vk)+", já passou: o banco só aceita de hoje em diante.)"):"")+" Ela será registrada no Sicredi e "+(ehBoleto?"o boleto (com linha digitável e QR Pix)":"o QR Code")+" aparece aqui em instantes.", ok:(ehBoleto?"Gerar boleto":"Gerar cobrança"), cancel:"Cancelar" }).then(function(sim){
     if(!sim) return;
     sb.from("pix_cobrancas").insert({ ponto_id:p.id, parcela_key:key, fornecedor:p.fornecedor||"", documento:doc, valor:valor, vencimento:venc, status:"pedido", pedido_por:window.__EMAIL||"" }).then(function(res){
       if(res.error){
@@ -14669,7 +14800,12 @@ function pixCobRetry(pid,key){
   const doc=String((p&&p.cnpj)||c.documento||"").replace(/\\D/g,"");
   if(doc.length!==11 && doc.length!==14){ uiConfirm({ titulo:"Falta o CNPJ do fornecedor", msg:"Edite o ponto (botão de lápis), preencha o campo CNPJ e salve. Depois clique em Tentar de novo.", ok:"Entendi", cancel:"" }); return; }
   const campos={ status:"pedido", erro_msg:null, documento:doc, criado_em:new Date().toISOString() };
-  if(p){ campos.fornecedor=p.fornecedor||c.fornecedor||""; campos.valor=Math.round((+p.valor||+c.valor||0)*100)/100; }
+  if(p){
+    campos.fornecedor=p.fornecedor||c.fornecedor||""; campos.valor=Math.round((+p.valor||+c.valor||0)*100)/100;
+    // a data também pode ter mudado (remarcada depois do erro): manda a que VALE, com a mesma conta do pxGerarPix
+    var vk=pxVenc(p,key), hj=pxDateKey(new Date());
+    campos.vencimento=(vk<hj)?hj:vk;
+  }
   sb.from("pix_cobrancas").update(campos).eq("id",c.id).eq("status","erro").then(function(){ pixCobLoad(); },function(){});
 }
 function pixCobCancel(pid,key){
@@ -14919,6 +15055,107 @@ function mpgConfirmar(){
     ok:"Ok",cancel:""});
 }
 /* ==MARCARPAGO-FIM== */
+/* ==REMARCAR-JANELA-INICIO==
+   REMARCAR O VENCIMENTO — mesmo molde do "Marcar como paga": escreve a data nova e o motivo,
+   e fica AGUARDANDO o master. Se quem clica já é o master, vale na hora (ele é quem autoriza;
+   pedir autorização pra si mesmo seria só um clique a mais). */
+var rmcCtx=null;
+function rmcErro(msg,campo){
+  var e=document.getElementById("rmcErro"); if(e) e.textContent=msg||"";
+  if(campo){ var c=document.getElementById(campo); if(c){ c.classList.add("campo-erro"); c.focus(); } }
+}
+function rmcAbrir(p,key){
+  if(!window.__PERFIL){ uiConfirm({titulo:"Entre no painel",msg:"Faça login para remarcar a cobrança.",ok:"Entendi",cancel:""}); return; }
+  var ehMaster=!!(window.__PERFIL&&window.__PERFIL.is_master);
+  var m=document.getElementById("rmcModal");
+  if(!m){
+    m=document.createElement("div"); m.id="rmcModal"; m.className="modal-bg";
+    m.innerHTML='<div class="modal-cx" style="max-width:400px;">'+
+      '<div class="modal-top"><div class="modal-ic" style="background:#e3f0e8;color:#157a35;">📅</div><div class="modal-tit">Remarcar a cobrança</div></div>'+
+      '<div class="pix-body"><div class="pix-sub" id="rmcSub"></div>'+
+      '<div class="pix-cc-lbl">Nova data de vencimento</div>'+
+      '<input type="date" id="rmcData" style="width:100%;box-sizing:border-box;border:1px solid #cdd6e0;border-radius:8px;padding:9px 10px;font-size:14px;color:#2a3340;">'+
+      '<div class="pix-cc-lbl">Por que a data mudou?</div>'+
+      '<input type="text" id="rmcMotivo" maxlength="140" placeholder="ex: acerto com o vendedor Rubinha" style="width:100%;box-sizing:border-box;border:1px solid #cdd6e0;border-radius:8px;padding:9px 10px;font-size:14px;color:#2a3340;">'+
+      '<div id="rmcErro" style="margin-top:6px;font-size:12px;color:#c0392b;"></div></div>'+
+      '<div class="modal-acts"><button type="button" class="btn-p" id="rmcOk" style="background:#157a35;color:#fff;border:0;">Remarcar</button><button type="button" class="btn-s" id="rmcFechar">Cancelar</button></div>'+
+      '</div>';
+    document.body.appendChild(m);
+    m.addEventListener("click",function(e){ if(e.target===m) m.classList.remove("show"); });
+    document.getElementById("rmcFechar").addEventListener("click",function(){ m.classList.remove("show"); });
+    document.getElementById("rmcOk").addEventListener("click",rmcConfirmar);
+    document.getElementById("rmcData").addEventListener("input",function(){ this.classList.remove("campo-erro"); rmcErro(""); });
+    document.getElementById("rmcMotivo").addEventListener("input",function(){ this.classList.remove("campo-erro"); rmcErro(""); });
+  }
+  rmcCtx={ pid:p.id, key:key };
+  var atual=pxVenc(p,key);
+  var hj=pxDateKey(new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate()));
+  var cData=document.getElementById("rmcData");
+  cData.value=atual; cData.min=hj; cData.classList.remove("campo-erro");
+  var cMot=document.getElementById("rmcMotivo");
+  cMot.value=""; cMot.classList.remove("campo-erro");
+  rmcErro("");
+  document.getElementById("rmcOk").textContent = ehMaster ? "Remarcar" : "Enviar para autorização";
+  document.getElementById("rmcSub").textContent =
+    "Parcela nº "+(pxAgenda(p).map(function(d){return pxDateKey(d);}).indexOf(key)+1)+" — "+brl(p.valor||0)+
+    ", hoje marcada pra "+pxFmtData(atual)+"."+
+    (ehMaster ? " A data nova passa a valer na hora." : " A data só muda quando o master autorizar.");
+  m.classList.add("show");
+  setTimeout(function(){ cData.focus(); },40);
+}
+function rmcConfirmar(){
+  if(!rmcCtx) return;
+  var nd=String(document.getElementById("rmcData").value||"").trim();
+  var mot=String(document.getElementById("rmcMotivo").value||"").trim();
+  var p=pontosG.find(function(x){ return x.id===rmcCtx.pid; });
+  if(!p){ document.getElementById("rmcModal").classList.remove("show"); return; }
+  var kk=rmcCtx.key;
+  /* DATA DE VERDADE. Foi daqui que a conversa começou: ele passou "31/09", que não existe —
+     setembro tem 30 dias. pxParseData recusa data impossível, então 31/09 para aqui em vez
+     de virar boleto torto no banco. */
+  if(!pxParseData(nd)){ rmcErro("Essa data não existe. Confira o dia do mês (setembro, por exemplo, termina no dia 30).","rmcData"); return; }
+  if(!mot){ rmcErro("Escreva por que a data mudou — é o que explica o acerto depois.","rmcMotivo"); return; }
+  var hj=pxDateKey(new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate()));
+  if(nd<hj){ rmcErro("O banco não aceita boleto com vencimento no passado. Escolha de hoje pra frente.","rmcData"); return; }
+  if(nd===pxVenc(p,kk)){ rmcErro("Essa já é a data desta parcela.","rmcData"); return; }
+  // AVISOS que não impedem, mas ele precisa ver antes de confirmar
+  var avisos=[];
+  var fimCt=p.vencimento;
+  if(pxParseData(fimCt) && nd>fimCt) avisos.push("A data nova ("+pxFmtData(nd)+") passa do fim do contrato ("+pxFmtData(fimCt)+").");
+  var junto=pxAgenda(p).map(function(d){ return pxDateKey(d); }).filter(function(k2){ return k2!==kk && !pxQuitado(p,k2) && pxVenc(p,k2)===nd; }); // parcela já paga não vai gerar boleto
+  if(junto.length) avisos.push("Já tem "+junto.length+" parcela vencendo em "+pxFmtData(nd)+" — vão sair "+(junto.length+1)+" boletos de "+brl(p.valor||0)+" com a mesma data.");
+  var seguir = avisos.length
+    ? uiConfirm({titulo:"Confira antes de remarcar", msg:avisos.join("\\n\\n")+"\\n\\nRemarcar assim mesmo?", ok:"Remarcar assim", cancel:"Voltar"})
+    : Promise.resolve(true);
+  seguir.then(function(vai){
+    if(!vai) return;
+    // o realtime pode ter trocado pontosG durante o diálogo — sempre rebuscar pelo id
+    var pA=pontosG.find(function(x){ return x.id===rmcCtx.pid; }); if(!pA) return;
+    var ehMaster=!!(window.__PERFIL&&window.__PERFIL.is_master);
+    var quem=(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"";
+    var agora=new Date().toISOString();
+    var antes=pxVenc(pA,kk);
+    if(ehMaster){
+      pxRemarcGravar(pA,kk,nd,mot,quem,agora,quem,agora); // o próprio master: vale na hora
+    } else {
+      /* O PEDIDO FICA GUARDADO A PARTE (r.pend), sem tocar no que já vale. Se o master
+         recusar, a data de agora continua de pé — recusar não pode apagar acerto antigo. */
+      pA.remarcacoes=pA.remarcacoes||{};
+      var r=Object.assign({}, pxRemarc(pA,kk)||{});
+      r.pend={ data:nd, motivo:mot.slice(0,140), quem:quem, quando:agora };
+      pA.remarcacoes[kk]=r;
+    }
+    savePontosG(); renderPontosG(); pxReabrir(pA.id);
+    document.getElementById("rmcModal").classList.remove("show");
+    uiConfirm({ titulo: ehMaster?(nd===kk?"Remarcação desfeita":"Cobrança remarcada"):"Enviado para autorização",
+      msg: ehMaster
+        ? (nd===kk ? ("A parcela voltou a vencer na data original, "+pxFmtData(kk)+".")
+                   : ("A parcela de "+pxFmtData(kk)+" agora vence em "+pxFmtData(nd)+". O boleto vai sair com essa data."))
+        : ("Pedido registrado, com o motivo. A data só muda quando o master autorizar — até lá a cobrança continua marcada pra "+pxFmtData(antes)+"."),
+      ok:"Ok", cancel:"" });
+  });
+}
+/* ==REMARCAR-JANELA-FIM== */
 function bonifAbrir(p,key){
   if(!pxSB() || !window.__PERFIL){ uiConfirm({ titulo:"Entre no painel", msg:"Faça login para registrar a bonificação.", ok:"Entendi", cancel:"" }); return; }
   if(!pxExigeContrato(p)) return; // sem contrato anexado, não registra bonificação
@@ -16118,6 +16355,79 @@ async function pixTravaClick(){
       seguir.then(function(ok){ if(ok) mpgAbrir(p, kk); });
       return;
     }
+    const rmc=e.target.closest("[data-remarcar]");
+    if(rmc){
+      const pr=rmc.dataset.remarcar.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(!p) return;
+      const kk=pr[1];
+      if(pxQuitado(p,kk)){ uiConfirm({titulo:"Parcela já paga",msg:"Esta parcela já está quitada. Remarcar a data dela mudaria o histórico do que já foi pago.",ok:"Entendi",cancel:""}); return; }
+      /* O BOLETO DE PE E O PERIGO AQUI. O boleto que está no banco tem a data VELHA impressa:
+         se a tela passar a mostrar outra, o fornecedor paga por um papel e a loja cobra por
+         outro. Então manda cancelar primeiro, com o caminho escrito. */
+      if(pxCobViva((typeof pixCobDe==="function")?pixCobDe(p,kk):null)){
+        uiConfirm({titulo:"Cancele o boleto antes",
+          msg:"Esta parcela já tem cobrança registrada no Sicredi, com a data ANTIGA impressa nela. Remarcar aqui não muda o boleto que o fornecedor tem.\\n\\nCancele a cobrança no ✕ da coluna Cobrança (ele aparece quando o boleto fica pronto), espere o cancelamento terminar, remarque a data e gere o boleto de novo.",
+          ok:"Entendi",cancel:""});
+        return;
+      }
+      rmcAbrir(p,kk); return;
+    }
+    const rmA=e.target.closest("[data-remarcaut]");
+    if(rmA){
+      const pr=rmA.dataset.remarcaut.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(!p) return;
+      const kk=pr[1]; const pd=pxRemarcPend(p,kk); if(!pd){ renderPontosG(); return; }
+      /* AS MESMAS TRAVAS DO LÁPIS, NA AUTORIZAÇÃO. Entre o pedido e o clique do master alguém
+         pode ter pago a parcela ou gerado o boleto. Autorizar por cima disso é exatamente o que
+         a trava existe pra impedir: boleto com uma data no bolso do fornecedor e outra na tela.
+         (achado da revisão de 03/09/2026 — a trava só existia na criação do pedido) */
+      if(pxQuitado(p,kk)){ uiConfirm({titulo:"Parcela já paga",msg:"Esta parcela foi quitada depois do pedido. Não há mais o que remarcar — recuse o pedido no ✕ pra limpar a linha.",ok:"Entendi",cancel:""}); return; }
+      if(pxCobViva((typeof pixCobDe==="function")?pixCobDe(p,kk):null)){
+        uiConfirm({titulo:"Cancele o boleto antes de autorizar",
+          msg:"Esta parcela tem cobrança registrada no Sicredi com a data ATUAL impressa nela. Se a data nova for autorizada agora, o fornecedor fica com um boleto de uma data e a tela mostra outra.\\n\\nCancele a cobrança no ✕ da coluna Cobrança, espere o cancelamento terminar e autorize depois.",
+          ok:"Entendi",cancel:""});
+        return;
+      }
+      // MOSTRA O MOTIVO ANTES: autorizar sem ler por que a data mudou é carimbar, não autorizar.
+      uiConfirm({titulo:"Autorizar a data nova?",
+        msg:"Parcela de "+pxFmtData(kk)+" — "+brl(p.valor||0)+".\\n\\nPassa a vencer em "+pxFmtData(pd.data)+"."
+            +"\\n\\nMotivo: "+String(pd.motivo||"(sem motivo)")
+            +"\\nPedido por: "+String(pd.quem||"—")
+            +(pd.quando?(" em "+new Date(pd.quando).toLocaleDateString("pt-BR")):""),
+        ok:"Autorizar", cancel:"Agora não"}).then(function(vai){
+        if(!vai) return;
+        /* A SENHA É A DO MASTER DE VERDADE: autorizarMaster confere no banco (senha_master_ok).
+           O pxExigeMaster era uma senha por navegador, guardada no localStorage, que qualquer um
+           criava na primeira vez — um funcionário com a página "pontos" se autorizava sozinho.
+           (achado da revisão de 03/09/2026) Quem já é master passa direto: o motivo foi mostrado acima. */
+        autorizarMaster("Autorizar a data nova desta parcela é ato do master: digite a senha dele.").then(function(ok){
+          if(!ok) return;
+          const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return;
+          const pdA=pxRemarcPend(pA,kk); if(!pdA){ renderPontosG(); return; }
+          pxRemarcGravar(pA,kk,pdA.data,pdA.motivo||"",pdA.quem||"",pdA.quando||"",
+            (window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"", new Date().toISOString());
+          savePontosG(); renderPontosG(); pxReabrir(pA.id);
+        });
+      });
+      return;
+    }
+    const rmR=e.target.closest("[data-remarcrec]");
+    if(rmR){
+      const pr=rmR.dataset.remarcrec.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(!p) return;
+      const kk=pr[1]; const pd=pxRemarcPend(p,kk); if(!pd){ renderPontosG(); return; }
+      uiConfirm({titulo:"Recusar a data nova?",
+        msg:"O pedido de mudar pra "+pxFmtData(pd.data)+" some, e a cobrança continua marcada pra "+pxFmtData(pxVenc(p,kk))+".",
+        ok:"Recusar", cancel:"Voltar"}).then(function(vai){
+        if(!vai) return;
+        autorizarMaster("Recusar a data nova desta parcela é ato do master: digite a senha dele.").then(function(ok){
+          if(!ok) return;
+          const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return;
+          const rA=pxRemarc(pA,kk); if(!rA||!rA.pend){ renderPontosG(); return; }
+          if(rA.st==="autorizado"&&rA.data){ pA.remarcacoes[kk]=Object.assign({},rA,{pend:null}); }
+          else { delete pA.remarcacoes[kk]; } // nunca valeu nada: a parcela volta a ser só a data original
+          savePontosG(); renderPontosG(); pxReabrir(pA.id);
+        });
+      });
+      return;
+    }
     const aut=e.target.closest("[data-autorizar]");
     if(aut){ const pr=aut.dataset.autorizar.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p){
       const kk=pr[1]; const manA=(p.manuais||{})[kk];
@@ -16126,7 +16436,7 @@ async function pixTravaClick(){
            anexo depois de marcar, a autorizacao para aqui: o que sustenta este pagamento e o
            papel, porque o banco nao viu nada. */
         if(!((p.comprovantes||{})[kk])){ uiConfirm({titulo:"Falta o comprovante",msg:"Para autorizar, o comprovante do pagamento precisa estar anexado na coluna Comprovante desta parcela. Se ele foi removido, peça para anexar de novo.",ok:"Entendi",cancel:""}); return; }
-        /* MOSTRA O MOTIVO ANTES DE AUTORIZAR. Para quem JA e master, pxExigeMaster passa
+        /* MOSTRA O MOTIVO ANTES DE AUTORIZAR. Para quem JA e master, autorizarMaster passa
            direto sem abrir janela nenhuma — entao, sem isto, o clique autorizava na hora e ele
            nunca chegava a ler por que a parcela estava sendo dada como paga. Foi o que ele
            reclamou em 28/08/2026. Autorizar sem ler o motivo nao e autorizar, e carimbar. */
@@ -16138,7 +16448,7 @@ async function pixTravaClick(){
               +"\\n\\nConfira o comprovante antes de autorizar — depois ele não pode mais ser apagado.",
           ok:"Autorizar", cancel:"Agora não"}).then(function(vai){
         if(!vai) return;
-        pxExigeMaster("Digite a senha master para AUTORIZAR este pagamento.").then(function(ok){
+        autorizarMaster("Autorizar este pagamento (feito por fora do banco) é ato do master: digite a senha dele.").then(function(ok){
           if(!ok) return;
           const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return;
           const mA=(pA.manuais||{})[kk]; if(!pxManManual(mA) || mA.st!=="pendente"){ renderPontosG(); return; }
@@ -16167,7 +16477,7 @@ async function pixTravaClick(){
           fr.man.st=(quitado || nt>=((+fr.p.valor||0)-0.005))?"autorizado":"parcial";
           savePontosG(); renderPontosG(); pxReabrir(fr.p.id);
         };
-        pxExigeMaster("Digite a senha master para AUTORIZAR esta bonificação.").then(function(ok){ if(!ok) return;
+        autorizarMaster("Autorizar esta bonificação é ato do master: digite a senha dele.").then(function(ok){ if(!ok) return;
           const fr0=pega(); if(!fr0){ uiConfirm({titulo:"Nada para autorizar",msg:"Este registro mudou ou já foi tratado em outra tela. A lista foi atualizada.",ok:"Ok",cancel:""}); renderPontosG(); return; }
           const novoTot=Math.round(((+fr0.man.tot||0)+(+fr0.man.pend.valor||0))*100)/100;
           const falta=Math.round(((+fr0.p.valor||0)-novoTot)*100)/100;
@@ -16182,7 +16492,7 @@ async function pixTravaClick(){
         });
         return;
       }
-      pxExigeMaster("Digite a senha master para AUTORIZAR este pagamento.").then(function(ok){ if(!ok) return; const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return; pA.manuais=pA.manuais||{};
+      autorizarMaster("Autorizar este pagamento (feito por fora do banco) é ato do master: digite a senha dele.").then(function(ok){ if(!ok) return; const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return; pA.manuais=pA.manuais||{};
         /* NAO APAGAR O MOTIVO. Ate 28/08/2026 esta linha era manuais[kk]="autorizado", o que
            trocava o registro inteiro por uma palavra — e o porque do pagamento sumia junto. */
         var mAnt=pA.manuais[kk];
@@ -16205,7 +16515,7 @@ async function pixTravaClick(){
     const desf=e.target.closest("[data-desfazerpago]");
     if(desf){ const pr=desf.dataset.desfazerpago.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p&&p.manuais){
       const kk=pr[1]; const ehBonD=pxManBonif(p.manuais[kk]);
-      pxExigeMaster("Digite a senha master para DESFAZER este "+(ehBonD?"registro de bonificação":"pagamento")+".").then(function(ok){ if(!ok) return; const pD=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pD||!pD.manuais) return; delete pD.manuais[kk]; if(ehBonD && pD.comprovantes){ Object.keys(pD.comprovantes).forEach(function(k){ if(k===kk || k.indexOf(kk+"~e")===0) delete pD.comprovantes[k]; }); } savePontosG(); renderPontosG(); pxReabrir(pD.id); }); // bonif: remove TODAS as notas junto, senão fica "Quitado" órfão
+      autorizarMaster("Desfazer este "+(ehBonD?"registro de bonificação":"pagamento")+" é ato do master: digite a senha dele.",true).then(function(ok){ if(!ok) return; const pD=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pD||!pD.manuais) return; delete pD.manuais[kk]; if(ehBonD && pD.comprovantes){ Object.keys(pD.comprovantes).forEach(function(k){ if(k===kk || k.indexOf(kk+"~e")===0) delete pD.comprovantes[k]; }); } savePontosG(); renderPontosG(); pxReabrir(pD.id); }); // bonif: remove TODAS as notas junto, senão fica "Quitado" órfão
     } return; }
     const cpbtn=e.target.closest("[data-compfile-btn]");
     if(cpbtn){ const inp=document.querySelector('[data-compfile="'+cpbtn.dataset.compfileBtn+'"]'); if(inp) inp.click(); return; }
@@ -16471,11 +16781,11 @@ function mapaHistHtml(p){
   const ag=pxAgenda(p);
   if(!ag.length) return "";
   const hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
-  let idx=ag.findIndex(d=>d>=hoje); if(idx<0) idx=ag.length;
+  let idx=ag.findIndex(function(x){ return pxVencD(p,pxDateKey(x))>=hoje; }); if(idx<0) idx=ag.length;
   const ini=Math.max(0,idx-2), fim=Math.min(ag.length,idx+2);
   let h='<div class="mdp-hist"><div class="h-tit">Cobranças · '+ag.length+' parcela'+(ag.length===1?'':'s')+'</div>';
   for(let i=ini;i<fim;i++){
-    const d=ag[i], k=pxDateKey(d), quit=pxQuitado(p,k), passada=d<hoje;
+    const k=pxDateKey(ag[i]), d=pxVencD(p,k), quit=pxQuitado(p,k), passada=d<hoje;
     const cor=quit?"#1b9e4b":(passada?"#c0392b":"#c3ccd6");
     const rot=quit?"Pago":(passada?"Em atraso":"A vencer");
     h+='<div class="h-lin"><span class="h-dot" style="background:'+cor+'"></span>'+d.toLocaleDateString("pt-BR")+' · '+rot+'<span class="h-val">'+(p.valor?brl(+p.valor):'')+'</span></div>';
