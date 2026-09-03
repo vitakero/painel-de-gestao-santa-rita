@@ -14561,11 +14561,16 @@ function pxDataCelHtml(p,key,d,ref){
   var lapis=(!pend && pode && !pxQuitado(p,key))
     ? '<button type="button" class="px-remarc-bt" data-remarcar="'+ref+'" title="Remarcar o vencimento desta parcela">'+icoLapis+'</button>'
     : '';
-  var abaixo="";
+  /* A ETIQUETA FICA AO LADO DA DATA, na mesma linha (pedido dele em 03/09/2026, vendo as três
+     parcelas remarcadas do ponto 6). Embaixo ela empilhava e esticava a linha da tabela; ao lado,
+     lê-se de uma vez: "30 Set — era 01/09". O pedido AGUARDANDO continua embaixo: ele traz botões
+     e o motivo escrito, e isso não cabe na mesma linha. */
+  var aoLado="";
   if(vale){
-    abaixo+='<div class="px-remarc-lin"><span class="px-remarc" title="'+pxEsc(vale.motivo||"")+' — remarcada por '+pxEsc(vale.quem||"")+
-        (vale.autorizado_por?(', autorizado por '+pxEsc(vale.autorizado_por)):'')+'">remarcada — era '+pxFmtData(key)+'</span></div>';
+    aoLado='<span class="px-remarc" title="remarcada — era '+pxFmtData(key)+'. '+pxEsc(vale.motivo||"")+' — remarcada por '+pxEsc(vale.quem||"")+
+        (vale.autorizado_por?(', autorizado por '+pxEsc(vale.autorizado_por)):'')+'">era '+pxFmtData(key)+'</span>';
   }
+  var abaixo="";
   if(pend){
     /* O MOTIVO FICA ESCRITO, nao escondido no passar-o-mouse: em celular nao existe passar o
        mouse, e quem autoriza precisa saber POR QUE a data mudou (mesma queixa de 28/08/2026).
@@ -14577,7 +14582,8 @@ function pxDataCelHtml(p,key,d,ref){
        '</div>'+
        '<div class="px-remarc-lin"><span class="px-motivo" title="'+pxEsc(pend.motivo||"")+'">“'+pxEsc(pend.motivo||"(sem motivo)")+'”</span></div>';
   }
-  return '<div class="px-data-cel"><div class="px-data-top">'+pxDataChip(d)+lapis+'</div>'+abaixo+'</div>';
+  // a data e a etiqueta juntas, o lápis no fim (escolha dele em 03/09/2026, vendo as duas versões)
+  return '<div class="px-data-cel"><div class="px-data-top">'+pxDataChip(d)+aoLado+lapis+'</div>'+abaixo+'</div>';
 }
 function pxAgendaHtml(p){
   const ag=pxAgenda(p);

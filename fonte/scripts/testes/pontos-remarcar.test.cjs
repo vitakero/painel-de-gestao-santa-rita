@@ -138,7 +138,11 @@ eq("   recusar não apaga o que já valia",
 
 console.log("\n8) a tela conta a verdade");
 eq("   'todo dia 1' deixa de ser a história inteira", /titRem=nRem\?\(' · '\+nRem\+\(nRem===1\?' remarcada':' remarcadas'\)\)/.test(HTML), true);
-eq("   a etiqueta diz qual era a data", /remarcada — era '\+pxFmtData\(key\)/.test(HTML), true);
+// A ETIQUETA FICA NA MESMA LINHA DA DATA, com o lápis no fim (escolha dele em 03/09/2026).
+// Se um dia ela voltar pra baixo, a linha da tabela dobra de altura outra vez.
+eq("   a etiqueta diz qual era a data", />era '\+pxFmtData\(key\)\+'<\/span>'/.test(HTML), true);
+eq("   e fica ao lado da data, com o lápis por último", /pxDataChip\(d\)\+aoLado\+lapis/.test(HTML), true);
+eq("   'remarcada', motivo e quem autorizou ficam no passar-o-mouse", /title="remarcada — era '\+pxFmtData\(key\)\+'\. '/.test(HTML), true);
 eq("   o pedido aguardando aparece escrito (e escapado)", /pedido: '\+pxEsc\(pxFmtData\(pend\.data\)\)\+' · aguardando/.test(HTML), true);
 eq("   a coluna nova viaja pra nuvem", /remarcacoes:p\.remarcacoes\|\|null/.test(HTML), true);
 eq("   e volta dela", /if\(r\.remarcacoes\)p\.remarcacoes=r\.remarcacoes;/.test(HTML), true);
