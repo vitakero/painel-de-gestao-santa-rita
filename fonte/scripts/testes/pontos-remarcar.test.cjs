@@ -111,9 +111,16 @@ eq("   funcionário: nasce AGUARDANDO, guardado à parte", /r\.pend=\{ data:nd, 
 eq("   master: vale na hora", /pxRemarcGravar\(pA,kk,nd,mot,quem,agora,quem,agora\); \/\/ o próprio master: vale na hora/.test(HTML), true);
 // A SENHA É A DO MASTER DE VERDADE (autorizarMaster confere no banco). O pxExigeMaster era uma
 // senha por navegador que qualquer um criava na 1ª vez — revisão de 03/09/2026.
-eq("   autorizar pede a senha REAL do master", /autorizarMaster\("Autorizar a data nova desta parcela é ato do master/.test(HTML), true);
+eq("   autorizar pede a senha REAL do master", /autorizarMaster\("Autorizar a data nova desta parcela\. Digite a senha do master para confirmar\.",true\)/.test(HTML), true);
 eq("   e mostra o motivo ANTES de autorizar", /Autorizar a data nova\?/.test(HTML), true);
-eq("   recusar também é ato de master", /autorizarMaster\("Recusar a data nova desta parcela é ato do master/.test(HTML), true);
+eq("   recusar também é ato de master", /autorizarMaster\("Recusar a data nova desta parcela\. Digite a senha do master para confirmar\.",true\)/.test(HTML), true);
+// PEDIDO DELE (03/09/2026): a senha é pedida MESMO PRA ELE, master — como nas outras ações
+// protegidas. O sempre=true é o que faz o autorizarMaster não passar direto pro master.
+eq("   e a senha é pedida até do próprio master (sempre=true)",
+   (HTML.match(/autorizarMaster\("(Autorizar|Recusar)[^"]*",true\)/g) || []).length, 5); // data nova, recusar, marcar pago (2 caminhos), bonificação
+eq("   inclusive pra desfazer um pagamento", /autorizarMaster\("Desfazer este "\+\(ehBonD\?"registro de bonificação":"pagamento"\)\+"\. Digite a senha do master para confirmar\.",true\)/.test(HTML), true);
+eq("   e nenhuma autorização dos pontos passa direto pro master",
+   (HTML.match(/autorizarMaster\("(Autorizar|Recusar)[^"]*"\)/g) || []).length, 0);
 eq("   nenhum caminho dos pontos usa mais a senha de navegador",
    (HTML.match(/pxExigeMaster\("Digite a senha master para (AUTORIZAR|RECUSAR|DESFAZER)/g) || []).length, 0);
 

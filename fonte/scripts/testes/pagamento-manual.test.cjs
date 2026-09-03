@@ -69,7 +69,7 @@ console.log("\n4) as travas que seguram o dinheiro");
 eq("   anexo NÃO quita sozinho (pula a autorização)",
    /if\(pxManManual\(man\) && man\.st!=="autorizado"\) return pixCobPaga\(p,key\);/.test(HTML), true);
 eq("   autorizar exige a senha master",
-   /autorizarMaster\("Autorizar este pagamento \(feito por fora do banco\) é ato do master/.test(HTML), true); // a senha REAL do master, conferida no banco (revisão de 03/09/2026)
+   /autorizarMaster\("Autorizar este pagamento, feito por fora do banco\. Digite a senha do master para confirmar\.",true\)/.test(HTML), true); // senha REAL, conferida no banco, e pedida até do master (pedido dele, 03/09/2026)
 eq("   e exige o comprovante anexado", /Para autorizar, o comprovante do pagamento precisa estar anexado/.test(HTML), true);
 eq("   só autoriza o que está pendente", /if\(!pxManManual\(mA\) \|\| mA\.st!=="pendente"\)/.test(HTML), true);
 eq("   guarda QUEM autorizou", /autorizado_por:\(window\.__PERFIL&&window\.__PERFIL\.nome\)/.test(HTML), true);

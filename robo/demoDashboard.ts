@@ -16164,7 +16164,9 @@ function autorizarMaster(motivo,sempre,devolverSenha){
   return new Promise(function(resolve){
     var perfil=window.__PERFIL||{};
     // sempre=true: pede a senha até do próprio master. Usado para ASSINAR contrato —
-    // assinatura tem que ser um ato consciente, não um clique perdido.
+    // assinatura tem que ser um ato consciente, não um clique perdido — e, por pedido dele em
+    // 03/09/2026, em TODAS as autorizações dos Pontos Extras (data nova, pagamento por fora,
+    // bonificação, desfazer): ele quer digitar a senha mesmo sendo master, como nas outras.
     if(perfil.is_master && !sempre){ resolve(true); return; }
     // devolverSenha=true: resolve com a SENHA digitada (string, também é "verdadeiro"),
     // porque algumas ações precisam reconferir a senha no banco. Quem não pede, recebe true.
@@ -16433,7 +16435,7 @@ async function pixTravaClick(){
            O pxExigeMaster era uma senha por navegador, guardada no localStorage, que qualquer um
            criava na primeira vez — um funcionário com a página "pontos" se autorizava sozinho.
            (achado da revisão de 03/09/2026) Quem já é master passa direto: o motivo foi mostrado acima. */
-        autorizarMaster("Autorizar a data nova desta parcela é ato do master: digite a senha dele.").then(function(ok){
+        autorizarMaster("Autorizar a data nova desta parcela. Digite a senha do master para confirmar.",true).then(function(ok){
           if(!ok) return;
           const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return;
           const pdA=pxRemarcPend(pA,kk); if(!pdA){ renderPontosG(); return; }
@@ -16454,7 +16456,7 @@ async function pixTravaClick(){
         msg:"O pedido de mudar pra "+pxFmtData(pd.data)+" some, e a cobrança continua marcada pra "+pxFmtData(pxVenc(p,kk))+".",
         ok:"Recusar", cancel:"Voltar"}).then(function(vai){
         if(!vai) return;
-        autorizarMaster("Recusar a data nova desta parcela é ato do master: digite a senha dele.").then(function(ok){
+        autorizarMaster("Recusar a data nova desta parcela. Digite a senha do master para confirmar.",true).then(function(ok){
           if(!ok) return;
           const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return;
           const rA=pxRemarc(pA,kk); if(!rA||!rA.pend){ renderPontosG(); return; }
@@ -16485,7 +16487,7 @@ async function pixTravaClick(){
               +"\\n\\nConfira o comprovante antes de autorizar — depois ele não pode mais ser apagado.",
           ok:"Autorizar", cancel:"Agora não"}).then(function(vai){
         if(!vai) return;
-        autorizarMaster("Autorizar este pagamento (feito por fora do banco) é ato do master: digite a senha dele.").then(function(ok){
+        autorizarMaster("Autorizar este pagamento, feito por fora do banco. Digite a senha do master para confirmar.",true).then(function(ok){
           if(!ok) return;
           const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return;
           const mA=(pA.manuais||{})[kk]; if(!pxManManual(mA) || mA.st!=="pendente"){ renderPontosG(); return; }
@@ -16514,7 +16516,7 @@ async function pixTravaClick(){
           fr.man.st=(quitado || nt>=((+fr.p.valor||0)-0.005))?"autorizado":"parcial";
           savePontosG(); renderPontosG(); pxReabrir(fr.p.id);
         };
-        autorizarMaster("Autorizar esta bonificação é ato do master: digite a senha dele.").then(function(ok){ if(!ok) return;
+        autorizarMaster("Autorizar esta bonificação. Digite a senha do master para confirmar.",true).then(function(ok){ if(!ok) return;
           const fr0=pega(); if(!fr0){ uiConfirm({titulo:"Nada para autorizar",msg:"Este registro mudou ou já foi tratado em outra tela. A lista foi atualizada.",ok:"Ok",cancel:""}); renderPontosG(); return; }
           const novoTot=Math.round(((+fr0.man.tot||0)+(+fr0.man.pend.valor||0))*100)/100;
           const falta=Math.round(((+fr0.p.valor||0)-novoTot)*100)/100;
@@ -16529,7 +16531,7 @@ async function pixTravaClick(){
         });
         return;
       }
-      autorizarMaster("Autorizar este pagamento (feito por fora do banco) é ato do master: digite a senha dele.").then(function(ok){ if(!ok) return; const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return; pA.manuais=pA.manuais||{};
+      autorizarMaster("Autorizar este pagamento, feito por fora do banco. Digite a senha do master para confirmar.",true).then(function(ok){ if(!ok) return; const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return; pA.manuais=pA.manuais||{};
         /* NAO APAGAR O MOTIVO. Ate 28/08/2026 esta linha era manuais[kk]="autorizado", o que
            trocava o registro inteiro por uma palavra — e o porque do pagamento sumia junto. */
         var mAnt=pA.manuais[kk];
@@ -16552,7 +16554,7 @@ async function pixTravaClick(){
     const desf=e.target.closest("[data-desfazerpago]");
     if(desf){ const pr=desf.dataset.desfazerpago.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p&&p.manuais){
       const kk=pr[1]; const ehBonD=pxManBonif(p.manuais[kk]);
-      autorizarMaster("Desfazer este "+(ehBonD?"registro de bonificação":"pagamento")+" é ato do master: digite a senha dele.",true).then(function(ok){ if(!ok) return; const pD=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pD||!pD.manuais) return; delete pD.manuais[kk]; if(ehBonD && pD.comprovantes){ Object.keys(pD.comprovantes).forEach(function(k){ if(k===kk || k.indexOf(kk+"~e")===0) delete pD.comprovantes[k]; }); } savePontosG(); renderPontosG(); pxReabrir(pD.id); }); // bonif: remove TODAS as notas junto, senão fica "Quitado" órfão
+      autorizarMaster("Desfazer este "+(ehBonD?"registro de bonificação":"pagamento")+". Digite a senha do master para confirmar.",true).then(function(ok){ if(!ok) return; const pD=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pD||!pD.manuais) return; delete pD.manuais[kk]; if(ehBonD && pD.comprovantes){ Object.keys(pD.comprovantes).forEach(function(k){ if(k===kk || k.indexOf(kk+"~e")===0) delete pD.comprovantes[k]; }); } savePontosG(); renderPontosG(); pxReabrir(pD.id); }); // bonif: remove TODAS as notas junto, senão fica "Quitado" órfão
     } return; }
     const cpbtn=e.target.closest("[data-compfile-btn]");
     if(cpbtn){ const inp=document.querySelector('[data-compfile="'+cpbtn.dataset.compfileBtn+'"]'); if(inp) inp.click(); return; }
