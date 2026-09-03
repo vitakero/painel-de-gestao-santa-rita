@@ -4351,6 +4351,13 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         table.ent-grade th.lanc{background:#e4f5ea;color:#0c5a26;position:relative;}
         table.ent-grade td.tdlanc{background:#f2fbf5;}
         table.ent-grade input.lanc{border-color:#8ec9a4;background:#fff;font-weight:800;color:#0c5a26;}
+        /* DIA QUE FICOU PARA TRÁS: já passou e ninguém lançou. Mesma construção da coluna
+           verde, em âmbar — é a cor que o painel inteiro usa pra "olhe aqui", e não
+           vermelha porque não é erro, é serviço atrasado. */
+        table.ent-grade th.atr{background:#fdf3dd;color:#7a5600;position:relative;}
+        table.ent-grade td.tdatr{background:#fffbef;}
+        table.ent-grade input.atr{border-color:#e0c477;background:#fff;}
+        .ent-hoje-tag.atr{color:#a06c00;}
         /* DIGITADO E AINDA NÃO SALVO. Vem depois de .fora e de .lanc de propósito: esta
            marca tem que vencer todas as outras, é a única que diz "isto vai se perder". */
         table.ent-grade input.nsv{border:2px dashed #d08700;background:#fff8e6;color:#7a5600;font-weight:800;padding:2px 1px;}
@@ -5719,6 +5726,7 @@ const LOGO_URI = ${JSON.stringify(logoDataUri)};
 const SIMBOLO_URI = ${JSON.stringify(simboloDataUri)};
 const CZ_BANNER_URI = ${JSON.stringify(cartazBannerUri)};
 const DOW_PT = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+const DIA_SEM_PT = ["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
 
 // ================= AGENDA (compromissos por dia — na nuvem) =================
 // Parte 1 = a agenda pessoal. Parte 2 (31/08/2026) = compromisso ENTRE SETORES:
@@ -19446,6 +19454,31 @@ function entcDiasSemLancamento(a,m,ehFechado,temLancamento,hoje){
   return out;
 }
 
+// O DIA DA VEZ: o último dia útil antes de hoje. É o serviço de HOJE — as entregas de
+// ontem são anotadas hoje de manhã. Fora do mês corrente não existe dia da vez.
+function entcDiaDaVez(a,m,ehFechado,hoje){
+  if(a!==hoje.getFullYear()||m!==hoje.getMonth()) return 0;
+  for(var d=hoje.getDate()-1; d>=1; d--){ if(!ehFechado(a,m,d)) return d; }
+  return 0;
+}
+
+// Dia ATRASADO: dia útil que já terminou, ainda NÃO está apurado, e que não é o dia da
+// vez. O dia da vez fica de fora de propósito — ele está no prazo, é o que se lança
+// agora, e a grade já o marca de verde. Atrasado é o que ficou PARA TRÁS: sem essa
+// distinção o dia esquecido tem exatamente a mesma cara de um dia que ainda vai ser
+// digitado hoje, e some da vista.
+function entcDiasAtrasados(a,m,ehFechado,estaApurado,hoje){
+  var nd=entcDiasMes(a,m), dv=entcDiaDaVez(a,m,ehFechado,hoje), out=[];
+  for(var d=1;d<=nd;d++){
+    if(ehFechado(a,m,d)) continue;
+    if(!entcJaPassou(a,m,d,hoje)) continue;
+    if(d===dv) continue;
+    if(estaApurado(d)) continue;
+    out.push(d);
+  }
+  return out;
+}
+
 function entcMediaOperacional(total,diasLancados){ return diasLancados>0 ? total/diasLancados : 0; }
 function entcPctAtingido(total,meta){ return meta>0 ? total/meta*100 : 0; }
 function entcFaltam(total,meta){ return Math.max(0, meta-total); }
@@ -19704,9 +19737,25 @@ function entRenderAvisos(ctx){
   var box=document.getElementById("entAvisos"); if(!box) return;
   var conf="";   // a v2 reconcilia pela fila; não existe mais esse conflito
   var av=[];
-  var n=ctx.semLancamento.length;
-  if(n===1) av.push({c:"aviso",txt:"Existe 1 dia útil sem lançamento: "+entLista(ctx.semLancamento)+". Ele fica de fora da média e da projeção."});
-  else if(n>1) av.push({c:"aviso",txt:"Existem "+n+" dias úteis sem lançamento: "+entLista(ctx.semLancamento)+". Eles ficam de fora da média e da projeção."});
+  // O ATRASO vem primeiro: é o único aviso daqui que pede uma ação hoje.
+  var atras=entDiasAtrasados(ctx.ano,ctx.mes);
+  if(atras.length){
+    var um1=atras.length===1;
+    av.push({c:"aviso",txt:(um1
+      ? "Falta lançar o dia "+atras[0]+" ("+DIA_SEM_PT[new Date(ctx.ano,ctx.mes,atras[0]).getDay()]+")"
+      : "Faltam lançar "+atras.length+" dias: "+entLista(atras))+
+      ". "+(um1?"Ele já passou":"Eles já passaram")+" e continua"+(um1?"":"m")+
+      " em branco — está"+(um1?"":"ão")+" em amarelo na grade. "+
+      (um1?"Esse dia fica":"Esses dias ficam")+" de fora da média e da projeção enquanto não for lançado."});
+  }
+  // Havendo atraso, esta segunda faixa não sai. Todo dia útil que já passou e está
+  // vazio ou é atrasado (e o aviso de cima já o listou) ou é o dia da VEZ — que a grade
+  // marca de verde e a faixa de baixo cobra. Repetir viraria duas tarjas amarelas
+  // seguidas dizendo quase a mesma coisa, e aí ninguém lê nenhuma das duas.
+  var sem=atras.length?[]:ctx.semLancamento;
+  var n=sem.length;
+  if(n===1) av.push({c:"aviso",txt:"Existe 1 dia útil sem lançamento: "+entLista(sem)+". Ele fica de fora da média e da projeção."});
+  else if(n>1) av.push({c:"aviso",txt:"Existem "+n+" dias úteis sem lançamento: "+entLista(sem)+". Eles ficam de fora da média e da projeção."});
   var f=entValoresEmDiaFechado(ctx.ano,ctx.mes);
   if(f.length) av.push({c:"erro",txt:"Há entrega lançada em dia fechado ("+entLista(f)+"). Domingo e feriado não contam — esses números não entram em conta nenhuma."});
   // FORA DO PADRÃO é assunto de GERENTE, não de quem digita.
@@ -20488,10 +20537,34 @@ function entDiaAberto(a,m,d){
 }
 // O dia que precisa ser lançado HOJE: o último dia útil antes de hoje. As entregas
 // de ontem são anotadas hoje de manhã.
-function entDiaParaLancar(a,m){
-  if(a!==HOJE.getFullYear()||m!==HOJE.getMonth()) return 0;
-  for(var d=HOJE.getDate()-1; d>=1; d--){ if(!entFechado(a,m,d)) return d; }
-  return 0;
+function entDiaParaLancar(a,m){ return entcDiaDaVez(a,m,entFechado,HOJE); }
+
+// Quem a GRADE cobra: entregador ATIVO que aparece desenhado no mês. NÃO é o mesmo que
+// entCobrados() — aquele espelha o que o SERVIDOR exige no fechamento (só quem já teve
+// lançamento no mês) e não pode mudar, porque mudar ele trava o fechamento. Este aqui
+// existe só para o AVISO na tela: num mês recém-aberto entCobrados() é vazio, e por
+// causa disso o painel dizia "lançamentos em dia" com o mês inteiro em branco.
+function entCobradosGrade(a,m){
+  return entIdsDoMes(a,m).filter(function(id){ var p=entPessoa(id); return !!(p&&p.ativo); });
+}
+
+// Dia APURADO = já encerrado, ou com TODO MUNDO da grade preenchido. O rascunho conta:
+// assim que ela digita o dia inteiro ele para de ser cobrado como atrasado e a faixa de
+// baixo assume ("pronto para salvar"). Sem ninguém na grade, nada está apurado.
+function entDiaApurado(a,m,d){
+  if(entDiaConfirmado(a,m,d)) return true;
+  var ids=entCobradosGrade(a,m);
+  if(!ids.length) return false;
+  for(var i=0;i<ids.length;i++){ if(entGetRaw(a,m,ids[i],d)==="") return false; }
+  return true;
+}
+
+// Os dias que ficaram para trás. Ver entcDiasAtrasados.
+// Sem NINGUÉM na grade não existe atraso: não há o que lançar. Sem esta linha o painel
+// cobrava o mês inteiro de uma loja que ainda não cadastrou entregador nenhum.
+function entDiasAtrasados(a,m){
+  if(!entCobradosGrade(a,m).length) return [];
+  return entcDiasAtrasados(a,m,entFechado,function(d){ return entDiaApurado(a,m,d); },HOJE);
 }
 function entFaltaPreencher(a,m){
   var nd=diasDoMes(a,m), mk=entMesKey(a,m);
@@ -21017,6 +21090,24 @@ function entRenderFinal(){
     return;
   }
   if(!falta.length){
+    // ATRASO ANTES DE "EM DIA". entFaltaPreencher() só cobra quem JÁ TEM lançamento no
+    // mês — que é o que o servidor exige no fechamento. Num mês recém-aberto isso é
+    // ninguém, e a faixa dizia "Lançamentos em dia" com o mês inteiro em branco.
+    var atras=entDiasAtrasados(entAno,entMes);
+    if(atras.length){
+      var umA=atras.length===1;
+      box.innerHTML='<div class="ent-final falta">'+entIco("atencao")+
+        '<div><div class="eyb">Lançamento atrasado</div>'+
+        '<b>'+(umA?'O dia '+atras[0]+' ainda não foi lançado.'
+                  :atras.length+' dias ainda não foram lançados.')+'</b>'+
+        '<div class="det">'+(umA?'Ele já passou':'Eles já passaram')+' e continua'+(umA?'':'m')+
+        ' em branco. '+(umA?'A coluna está':'As colunas estão')+' em amarelo na grade — preencha '+
+        (umA?'ela':'elas')+' para poder salvar o dia.</div>'+
+        '<div class="det">Quem não fez entrega no dia precisa de <b>0</b>. Célula vazia significa '+
+        '<i>não apurado</i> e segura o fechamento do mês.</div>'+
+        entChips(atras,umA?'Dia:':'Dias:')+'</div></div>';
+      return;
+    }
     // Em dia, mas o mês ainda não acabou: não há nada a fazer hoje.
     var nd2=diasDoMes(entAno,entMes), acabou=true;
     for(var d2=1;d2<=nd2;d2++){ if(entFechado(entAno,entMes,d2)) continue;
@@ -21025,7 +21116,9 @@ function entRenderFinal(){
     box.innerHTML= (acabou ? "" :
       '<div class="ent-final ok2">'+entIco("concluido")+
       '<div><div class="eyb">Apuração diária</div><b>Lançamentos em dia.</b><div class="det">'+
-      (dl?'O dia '+dl+' já foi lançado e conferido. ':'')+
+      // Só afirma que o dia foi lançado quando ele foi MESMO. Antes bastava existir um
+      // "dia da vez" pra faixa garantir que ele estava conferido, mesmo em branco.
+      (dl&&entDiaApurado(entAno,entMes,dl)?'O dia '+dl+' já foi lançado e conferido. ':'')+
       'A competência poderá ser encerrada após o lançamento do último dia útil.</div></div></div>');
     return;
   }
@@ -21067,13 +21160,20 @@ function entRenderMetas(mostrar){
 function entRenderGrade(){
   const nd=diasDoMes(entAno,entMes);
   const diaLanc=entDiaParaLancar(entAno,entMes);
+  // Dia que ficou para trás. Sem esta marca ele tem a MESMA cara de uma coluna qualquer
+  // ainda por preencher, e passa despercebido dia após dia.
+  const atrasado={}; entDiasAtrasados(entAno,entMes).forEach(function(d){ atrasado[d]=1; });
   let head='<tr><th class="nome">Entregador</th>';
   for(let d=1;d<=nd;d++){ const dow=new Date(entAno,entMes,d).getDay();
     const conf=entDiaConfirmado(entAno,entMes,d);
+    const atr=!conf&&!!atrasado[d];
     const cl=(dow===0?"dom":"")+(entDiaAberto(entAno,entMes,d)?"":" fut")+
-             (d===diaLanc&&!conf?" lanc":"");
-    const topo = (!conf&&d===diaLanc)?'<span class="ent-hoje-tag">lançar</span>':'';
-    head+='<th class="'+cl.trim()+'"'+(conf?' title="Dia '+d+' já salvo e encerrado"':'')+'>'+topo+d+
+             (d===diaLanc&&!conf?" lanc":"")+(atr?" atr":"");
+    const topo = (!conf&&d===diaLanc)?'<span class="ent-hoje-tag">lançar</span>'
+               : atr?'<span class="ent-hoje-tag atr">falta</span>':'';
+    const tt = conf?'Dia '+d+' já salvo e encerrado'
+             : atr?'Dia '+d+' já passou e ainda não foi lançado':'';
+    head+='<th class="'+cl.trim()+'"'+(tt?' title="'+tt+'"':'')+'>'+topo+d+
           '<br><span class="ent-dow">'+DOW_PT[dow].toUpperCase()+'</span></th>'; }
   head+='<th class="tot">Total</th></tr>';
   let body="";
@@ -21101,16 +21201,19 @@ function entRenderGrade(){
       const conf2=entDiaConfirmado(entAno,entMes,d);
       // Um class e um title só. Antes saíam dois de cada quando a célula era, ao mesmo
       // tempo, fora do padrão e de entregador inativo — e o navegador ignora o segundo.
+      const atr2=!conf2&&!!atrasado[d];
       const cls=[];
       if(fx) cls.push("fora");
       if(!conf2&&d===diaLanc) cls.push("lanc");
+      else if(atr2&&v==="") cls.push("atr");
       if(entTemRascunho(entAno,entMes,id,d)) cls.push("nsv");
       if(inativo) cls.push("inat");
       const dica = fx ? "Fora do padrão: "+fx.nome+" costuma fazer perto de "+fx.base+" por dia"
                 : inativo ? "Entregador inativo"
                 : conf2 ? ("Dia "+d+" já salvo e encerrado."+(travado?" Não pode mais ser alterado.":" Como administrador você ainda pode corrigir — a correção fica registrada."))
+                : atr2 ? ("Dia "+d+" já passou e ainda não foi lançado")
                 : "";
-      cels+='<td'+(!conf2&&d===diaLanc?' class="tdlanc"':'')+'>'+
+      cels+='<td'+(!conf2&&d===diaLanc?' class="tdlanc"':atr2?' class="tdatr"':'')+'>'+
             '<input type="text" inputmode="numeric" data-id="'+entEsc(id)+'" data-dia="'+d+'" value="'+v+'"'+
             (cls.length?' class="'+cls.join(" ")+'"':'')+
             ((travado||inativo)?' readonly':'')+
