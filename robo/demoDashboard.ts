@@ -289,7 +289,21 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     line-height:1.55; display:flex; gap:11px; align-items:flex-start; }
   .rv-aviso .rv-ico { font-size:17px; line-height:1.2; flex:none; }
   .rv-atraso { background:#fdf6e6; border:1px solid #f0e0bb; color:#6b5a2e; }
-  .rv-parado { background:#fdeceb; border:1px solid #f3c8c4; color:#8c2c22; }
+  /* PARADO NAO PODE PARECER RECADO. 03/09/2026: o aviso apareceu, o dono leu, e nao mexeu —
+     ele tinha cara de bilhete e nao de "a loja esta cega agora". Faixa vermelha cheia, letra
+     branca e uma pulsacao lenta na barra da esquerda. Nao pisca nem se move: piscar irrita e
+     a pessoa aprende a ignorar mais rapido ainda. */
+  .rv-parado { background:#8c2c22; border:1px solid #7a2119; color:#fff;
+    box-shadow:0 3px 14px rgba(140,44,34,.28); position:relative; overflow:hidden; }
+  .rv-parado::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:4px;
+    background:#ffd7d2; animation:rvPulso 2.4s ease-in-out infinite; }
+  @keyframes rvPulso { 0%,100%{opacity:.35} 50%{opacity:1} }
+  @media (prefers-reduced-motion: reduce){ .rv-parado::before{ animation:none; opacity:.8; } }
+  .rv-parado b { color:#fff; }
+  /* o conserto, dentro do proprio aviso — e a diferenca entre saber e poder resolver */
+  .rv-fazer { margin-top:8px; padding:9px 12px; border-radius:8px; font-size:13px; line-height:1.55;
+    background:rgba(255,255,255,.14); }
+  .rv-atraso .rv-fazer { background:rgba(107,90,46,.09); }
   .rv-aviso b { font-weight:700; }
   .vs-rank { width:100%; border-collapse:collapse; }
   .vs-rank td { padding:6px 8px; border-bottom:1px solid #eef2f7; vertical-align:middle; }
@@ -10042,6 +10056,21 @@ function rvTexto(min){
     corpo:"A última gravação foi "+q+". Os números desta tela são desse momento, "
       +"não de agora. Alguém precisa olhar o computador do robô." };
 }
+
+/* O MOTIVO E O CONSERTO, quando o robô conseguiu contar.
+   "Alguém precisa olhar o computador do robô" é verdade e não é instrução — foi o que o dono
+   leu em 03/09/2026 e, com razão, deixou pra depois: não dava pra saber por onde começar.
+   Quando o robô consegue falar com a nuvem antes de desistir, ele conta O QUE faltou e O QUE
+   fazer, e é isso que aparece aqui. Quando não consegue (a chave da nuvem sumiu junto), fica
+   só o texto de cima — que é melhor do que nada. */
+function rvComRelato(t, saude){
+  if(!t || !saude || saude.ok) return t;
+  var novo = { nivel:t.nivel, ico:t.ico, titulo:t.titulo, corpo:t.corpo };
+  if(saude.motivo)  novo.titulo = String(saude.motivo);
+  if(saude.detalhe) novo.corpo  = String(saude.detalhe);
+  if(saude.comando) novo.comando = String(saude.comando);
+  return novo;
+}
 /* ==ROBOVIGIA-FIM== */
 
 /* Le UMA linha da nuvem (o carimbo mais novo) e pinta o aviso. Custa ~60 bytes: e a
@@ -10052,13 +10081,15 @@ function rvSB(){ try{ return window.__SB||null; }catch(e){ return null; } }
    sem poder resolver. Quem mexe no robo e quem precisa saber. Sem master, nem consulta:
    economiza tambem a leitura. */
 function rvEhMaster(){ try{ return !!(window.__PERFIL && window.__PERFIL.is_master); }catch(e){ return false; } }
-function rvPintar(min){
+function rvPintar(min, saude){
   var el=document.getElementById("rvAviso"); if(!el) return;
   if(!rvEhMaster()){ el.innerHTML=""; return; }
-  var t=rvTexto(min);
+  var t=rvComRelato(rvTexto(min), saude);
   if(!t){ el.innerHTML=""; return; }
+  var cons = t.comando
+    ? '<div class="rv-fazer"><b>O que fazer:</b> '+pxEsc(t.comando)+'</div>' : '';
   el.innerHTML='<div class="rv-aviso rv-'+t.nivel+'"><span class="rv-ico">'+t.ico+'</span>'
-    +'<span><b>'+t.titulo+'</b> '+t.corpo+'</span></div>';
+    +'<span><b>'+pxEsc(t.titulo)+'</b> '+pxEsc(t.corpo)+cons+'</span></div>';
 }
 function rvConferir(){
   if(!rvEhMaster()) return;
@@ -10067,7 +10098,14 @@ function rvConferir(){
     sb.from("vendasetor_dia").select("atualizado_em").order("atualizado_em",{ascending:false}).limit(1)
       .then(function(r){
         if(!r||r.error||!r.data||!r.data.length) return;   /* sem acesso: nao inventa alarme */
-        rvPintar(rvIdadeMin(Date.now(), r.data[0].atualizado_em));
+        var min=rvIdadeMin(Date.now(), r.data[0].atualizado_em);
+        /* o relato do robô é um extra: se não vier, o aviso sai do mesmo jeito */
+        try{
+          sb.from("robo_saude").select("ok,motivo,detalhe,comando,quando").eq("id","robo").limit(1)
+            .then(function(r2){
+              rvPintar(min, (r2&&!r2.error&&r2.data&&r2.data[0]) ? r2.data[0] : null);
+            }, function(){ rvPintar(min, null); });
+        }catch(e){ rvPintar(min, null); }
       }, function(){});
   }catch(e){}
 }
