@@ -15,6 +15,10 @@ const FILES = [
   ["vercel.json", "vercel.json"],           // regra que decide quando o Vercel publica
   ["vercel.README.md", "vercel.README.md"], // a explicacao mora FORA do JSON: campo desconhecido no vercel.json derruba o deploy
   ["scripts/demoDashboard.ts", "robo/demoDashboard.ts"],
+  // O TEXTO do Regulamento Interno. O demoDashboard.ts LÊ este arquivo para construir a aba:
+  // sem ele na loja, a reconstrução do painel quebra e o painel para de ser atualizado.
+  // Por isso ele viaja com o código, e não como "asset" (a pasta assets/ não é enviada).
+  ["assets/regulamento-interno.json", "robo/regulamento-interno.json"],
   ["scripts/central/feed.client.js", "robo/central/feed.client.js"],   // tela da Central Operacional (arquivo isolado)
   ["scripts/central/sw.js", "robo/central/sw.js"],   // (2.5) service worker do PWA (backup de fonte)
   ["scripts/buildVrData.cjs", "robo/buildVrData.cjs"],

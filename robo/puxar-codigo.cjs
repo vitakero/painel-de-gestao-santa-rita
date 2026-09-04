@@ -27,6 +27,10 @@ const REPO = "painel-de-gestao-santa-rita";
 // sozinho (a rodada atual segue com o código antigo; a PRÓXIMA rodada já usa o novo).
 const FILES = [
   ["robo/demoDashboard.ts", "demoDashboard.ts", "vr-data.json"],
+  // O texto do Regulamento Interno. TEM que vir ANTES do build: o demoDashboard.ts le
+  // este arquivo e, sem ele, a reconstrucao do painel quebra. Vai para ../assets/ (fora
+  // de scripts/) porque e la que o build procura. Marcador = o CNPJ: sem acento e fixo.
+  ["robo/regulamento-interno.json", "../assets/regulamento-interno.json", "12.988.127/0001-40"],
   ["robo/central/feed.client.js", "central/feed.client.js", "CENTRAL OPERACIONAL"],   // tela da Central (subpasta)
   ["robo/central/sw.js", "central/sw.js", "CENTRAL PWA SW"],   // (2.5) service worker do PWA
   ["robo/buildVrData.cjs", "buildVrData.cjs", "vr-data.json"],

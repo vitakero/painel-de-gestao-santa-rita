@@ -1,0 +1,284 @@
+{
+  "versao": "20/04/2026",
+  "titulo": "Regulamento Interno",
+  "empresa": "G JOÃO DOS SANTOS INDÚSTRIA E COMERCIO LTDA",
+  "cnpj": "12.988.127/0001-40",
+  "endereco": "R. ANDRE SALES 531, PAULO XI – CAICÓ/RN",
+  "telefone": "(84) 3417-1677",
+  "vigencia": "01/05/2026",
+  "localData": "Caicó/RN, 20 de abril de 2026",
+  "introducao": [
+    "Este Regulamento busca apresentar aos novos colaboradores (e rememorar aos antigos) os procedimentos internos e externos de trabalho da empresa, de modo a proporcionar conhecimento de normas fundamentais de trabalho, inclusive por ser parte integrante do seu contrato individual de trabalho. Regulações criadas para melhorar a organização e o trabalho de todos, sempre com o intuito de manter ordem e o melhor padrão exigido pelas grandes empresas, o que é indispensável para o sucesso profissional e comercial de todos.",
+    "Recordamos e reafirmamos a necessidade do fiel cumprimento das disposições contidas nesse Regulamento, bem como todas as demais que vierem a ser criadas na empresa, bem como as disposições legais existentes, convenções, acordos, etc. O respeito aos regulamentos será necessário tanto pela empresa, através dos seus órgãos de gestão, como pelos colaboradores.",
+    "O trabalho em conjunto e o respeito as normas e recomendações da empresa, culminará no bem-estar de todos, assim como na perfeita harmonia das relações naturais decorrentes em um ambiente de trabalho.",
+    "Dessa forma, acreditamos (e esperamos) que o colaborador, seja qual a função que esteja exercendo na empresa, irá colaborar nos resultados comerciais, sociais e financeiros pretendidos, realizando um trabalho produtivo, cujo resultados será benéfico para todos."
+  ],
+  "capitulos": [
+    {
+      "n": "I",
+      "titulo": "Da Integração no Contrato Individual de Trabalho",
+      "itens": [
+        { "rot": "Art. 1º", "txt": "Ficam sujeitos a este Regulamento Interno todos os colaboradores do Empregador, sejam quais forem as categorias profissionais a que pertencerem." },
+        { "tipo": "par", "rot": "§ 1º", "txt": "A obrigatoriedade de cumprimento deste Regulamento Interno permanece por todo o tempo de duração do contrato de trabalho, sendo que o ingresso de qualquer colaborador somente é possível através da sua aceitação, não sendo possível alegar seu desconhecimento." },
+        { "tipo": "par", "rot": "§ 2º", "txt": "O presente Regulamento Interno entra em vigor em 01/05/2026 para aqueles empregados já pertencentes aos quadros funcionais do empregador e, para os demais, a partir da data da sua admissão." }
+      ]
+    },
+    {
+      "n": "II",
+      "titulo": "Da Admissão",
+      "itens": [
+        { "rot": "Art. 2º", "txt": "A admissão e a demissão dos empregados são atos privativos da administração da empresa." },
+        { "rot": "Art. 3º", "txt": "A admissão de empregado é condicionada à realização de exames, de seleção técnica e avaliação médica, com apresentação dos documentos exigidos, no prazo legal ou fixado pelo Empregador." },
+        { "rot": "Art. 4º", "txt": "A admissão só se efetivará por meio de formalização de Contrato de Experiência, que poderá ser prorrogado, observando-se o prazo máximo de 90 (noventa) dias, conforme previsto na Consolidação das Leis do Trabalho, podendo, após seu término, ser transformado em Contrato por Prazo Indeterminado." }
+      ]
+    },
+    {
+      "n": "III",
+      "titulo": "Dos Deveres, Obrigações e Responsabilidades do Empregado",
+      "itens": [
+        {
+          "rot": "Art. 5º",
+          "txt": "Todo empregado, além das disposições contratuais e legais, deve atender com rigor as seguintes disposições:",
+          "lista": [
+            { "rot": "a)", "txt": "cumprir os compromissos expressamente assumidos no contrato individual de trabalho, com zelo, espírito de colaboração, atenção e competência profissional;" },
+            { "rot": "b)", "txt": "acatar com presteza e consideração às ordens e instruções repassadas pelos superiores e chefes imediatos;" },
+            { "rot": "c)", "txt": "sugerir medidas para maior eficiência do serviço, comunicando imediatamente qualquer irregularidade que tiver conhecimento;" },
+            { "rot": "d)", "txt": "observar a máxima disciplina no local de trabalho; zelar pela organização, manutenção e limpeza no local de trabalho, bem como nas demais dependências da empresa;" },
+            { "rot": "e)", "txt": "zelar pela boa conservação das instalações, equipamentos, que lhe forem confiados, comunicando as anormalidades notadas; evitar desperdício de materiais, energia elétrica, água, ar-condicionado, máquinas, etc;" },
+            { "rot": "f)", "txt": "manter na vida privada e profissional conduta compatível com a dignidade do cargo ocupado e com a reputação do quadro de pessoal do Empregador;" },
+            { "rot": "g)", "txt": "zelar e atender por todas as normas da empresa;" },
+            { "rot": "h)", "txt": "prestar toda colaboração à Empresa e aos colegas, cultivando o espírito de comunhão e mútua fidelidade na realização do serviço em prol dos objetivos do Empregador;" },
+            { "rot": "i)", "txt": "informar ao setor de Recursos Humanos da empresa qualquer modificação em seus dados pessoais, tais como estado civil, contato, militar, aumento ou redução de pessoas na família, mudança de residência, etc;" },
+            { "rot": "j)", "txt": "trabalhar com a atenção necessária a fim de evitar danos e prejuízos materiais;" },
+            { "rot": "k)", "txt": "realizar a devolução dos fardamentos e equipamentos de trabalho (Telefone, Crachá, Veículos, entre outros) no ato do desligamento;" },
+            { "rot": "l)", "txt": "usar os equipamentos de segurança do trabalho e EPI’s, bem como os que forem determinados em virtude da legislação que regulamente sua atividade;" },
+            { "rot": "m)", "txt": "manter a confidencialidade das informações privada do Empregador;" },
+            { "rot": "n)", "txt": "manter atualizadas todas as ferramentas utilizadas do Empregador que correspondam ao devido colaborador;" },
+            { "rot": "o)", "txt": "participar das reuniões e treinamento disponibilizados pelo Empregador;" },
+            {
+              "rot": "p)",
+              "txt": "indenizar os prejuízos causados à Empresa por mau emprego, dolo ou culpa (negligência, imperícia, imprudência ou omissão), caracterizando-se a responsabilidade por:",
+              "sub": [
+                { "rot": "I –", "txt": "fraude de valores e/ou objetos confiados;" },
+                { "rot": "II –", "txt": "danos e estragos em qualquer bem da empresa que estiver sob sua guarda, uso ou sujeito à sua fiscalização;" },
+                { "rot": "III –", "txt": "erro de cálculo doloso contra a empresa." }
+              ],
+              "pars": [
+                { "rot": "§ 1º", "txt": "A responsabilidade administrativa não exime o colaborador da responsabilidade civil ou criminal." },
+                { "rot": "§ 2º", "txt": "As indenizações e reposições por prejuízos causados serão descontadas dos salários." }
+              ]
+            },
+            { "rot": "q)", "txt": "ter consideração com os demais trabalhadores, comportando-se de modo apropriado no local de trabalho, dentro dos padrões normais de cortesia e respeito ao próximo, como, por exemplo, não promover brincadeiras de mau gosto, algazarras, gritarias, fofocas, atropelos e uso de palavras de baixo calão;" },
+            { "rot": "r)", "txt": "usar o uniforme (camisa e calçado) quando fornecido e apresentar-se ao trabalho corretamente vestido, em condições normais de higiene (limpos e engomados);" },
+            { "rot": "s)", "txt": "incentivar e promover a responsabilidade e o cumprimento das normas estabelecidas neste Regulamento;" },
+            { "rot": "t)", "txt": "informar imediatamente a empresa sempre que tiver suspeita fundada ou conhecimento de algo que não esteja de acordo com os princípios mencionados neste Regulamento." }
+          ]
+        }
+      ]
+    },
+    {
+      "n": "IV",
+      "titulo": "Do horário de trabalho",
+      "itens": [
+        { "rot": "Art. 6º", "txt": "A jornada de trabalho é a de 44 (quarenta e quatro) horas semanais, as quais serão estabelecidas de acordo com as conveniências de cada setor da Empresa." },
+        { "tipo": "par", "rot": "§ 1º", "txt": "O horário de trabalho estabelecido deve ser cumprido rigorosamente por todos os empregados, podendo ser alterado pela Empresa sempre que se fizer necessário." },
+        { "tipo": "par", "rot": "§ 2º", "txt": "O horário de trabalho deve ser rigorosamente observado, cabendo ao colaborador, pessoalmente, assinalar o ponto eletrônico, no início e no término da jornada, assim como nos intervalos para refeição e repouso." },
+        { "tipo": "par", "rot": "§ 3º", "txt": "Os equívocos na marcação do ponto eletrônico deverão ter a solicitação de correção iniciada, dentro do prazo de 24 horas pelo próprio colaborador, ficando a solicitação da correção do equívoco pendente de aprovação pelo Setor de Recursos Humanos, que após a devida análise o valida." },
+        { "tipo": "par", "rot": "§ 4º", "txt": "A falta de marcação do ponto eletrônico poderá importar no não cômputo do tempo de trabalho, inclusive das horas extraordinárias." },
+        { "rot": "Art. 7º", "txt": "Os empregados deverão estar nos respectivos lugares à hora inicial do trabalho, não sendo permitidos atrasos, exceto se motivados por força maior." },
+        { "tipo": "par", "rot": "Parágrafo único", "txt": "Os empregados não poderão se ausentar do local de trabalho antes do término da jornada, salvo se previamente autorizados." },
+        { "rot": "Art. 8º", "txt": "O horário de trabalho poderá ser prorrogado independentemente de qualquer acordo, sempre que houver imperiosa necessidade de serviço ou motivo de força maior, ficando o empregado obrigado à prestação de serviços pelo excesso de tempo necessário, obedecidas as disposições legais vigentes." },
+        { "tipo": "par", "rot": "Parágrafo único", "txt": "A empresa trabalha com o sistema de Banco de Horas, com isso as horas excedentes serão reduzidas através de compensação de horas (folgas ou antecipação do horário de saída do trabalho, conforme conveniência da empresa)." },
+        { "rot": "Art. 9º", "txt": "O colaborador que se atrasar ao serviço, sair antes do término da jornada ou faltar por qualquer motivo, deve, obrigatoriamente, justificar o fato ao superior imediato, verbalmente ou por escrito, quando solicitado." },
+        { "tipo": "par", "rot": "§ 1º", "txt": "Cabe ao Empregador descontar os períodos relativos a atrasos, saídas antecipadas, faltas ao serviço e o consequente repouso semanal, excetuadas as faltas e ausências legais." },
+        { "tipo": "par", "rot": "§ 2º", "txt": "As faltas ilegais, não justificadas perante a correspondente chefia, acarretam a aplicação das penalidades previstas em Lei ou nesse Regulamento." }
+      ]
+    },
+    {
+      "n": "V",
+      "titulo": "Dos Atestados",
+      "itens": [
+        {
+          "rot": "Art. 10",
+          "txt": "Para fins de justificativa da ausência do empregado por motivo de doença, serão aceitos atestados médicos que observem a seguinte ordem preferencial:",
+          "lista": [
+            { "rot": "1º", "txt": "Médico da empresa ou de convênio;" },
+            { "rot": "2º", "txt": "Médico do SUS – Sistema Único de Saúde;" },
+            { "rot": "3º", "txt": "Médico do SESI ou SESC;" },
+            { "rot": "4º", "txt": "Médico de repartição federal, estadual ou municipal, incumbida de assuntos de higiene e saúde;" },
+            { "rot": "5º", "txt": "Médico do Sindicato a que pertença ou por profissional de livre escolha." }
+          ]
+        },
+        { "rot": "Art. 11", "txt": "Os atestados médicos deverão especificar o tempo concedido de dispensa, necessário para a completa recuperação do paciente; estabelecer o diagnóstico (CID), quando expressamente autorizado pelo paciente; registrar os dados de maneira legível e identificação completa do emitente, mediante assinatura e carimbo ou número de registro no Conselho Regional de Medicina." }
+      ]
+    },
+    {
+      "n": "VI",
+      "titulo": "Do Pagamento",
+      "itens": [
+        { "rot": "Art. 12", "txt": "O Empregador pagará a remuneração dos empregados até o 5º (quinto) dia útil do mês subsequente, em moeda corrente do país ou mediante depósito em conta corrente bancária aberta especialmente para esta finalidade." },
+        { "rot": "Art. 13", "txt": "Eventuais erros ou diferenças devem ser comunicadas ao setor de Recursos Humanos/Pessoal, no primeiro dia útil após o pagamento." },
+        { "rot": "Art. 14", "txt": "A remuneração é paga via conta bancária aos colaboradores." }
+      ]
+    },
+    {
+      "n": "VII",
+      "titulo": "Das Férias",
+      "itens": [
+        { "rot": "Art. 15", "txt": "As férias serão gozadas após o período aquisitivo, no prazo máximo de 12 (doze) meses, podendo ser em dois períodos, um dos quais não poderá ser inferior a 10 (dez) dias seguidos, fixados segundo a conveniência da Empresa, ressalvadas as exceções legais." },
+        { "rot": "Art. 16", "txt": "É facultado ao empregado converter 1/3 do período de férias a que tiver direito em abono pecuniário, devendo requerer a conversão, por escrito, até 15 (quinze) dias antes do término do período aquisitivo." },
+        { "rot": "Art. 17", "txt": "Cabe a Empresa fixar anualmente o período que seus colaboradores poderão gozar suas férias, ressalvadas as exceções previstas em lei." }
+      ]
+    },
+    {
+      "n": "VIII",
+      "titulo": "Das Disposições Exclusivas",
+      "itens": [
+        {
+          "rot": "Art. 18",
+          "txt": "Compete aos Gerentes, Supervisores, Encarregados de Setores e aos outros ocupantes de cargos de chefia:",
+          "lista": [
+            { "rot": "I)", "txt": "Zelar pela harmonia no serviço, bem como pelo espírito de cordialidade e colaboração com relação a seus subordinados e superiores;" },
+            { "rot": "II)", "txt": "Manter a boa ordem e segurança no serviço de sua responsabilidade;" },
+            { "rot": "III)", "txt": "Delegar e distribuir serviços, obedecendo à capacidade e habilidade de cada um;" },
+            { "rot": "IV)", "txt": "Não abusar ou se exceder em sua autoridade;" },
+            { "rot": "V)", "txt": "Cumprir fielmente e sob todos os aspectos o presente Regulamento." }
+          ]
+        },
+        { "rot": "Art. 19", "txt": "Todos os empregados que utilizarem internet, redes sociais, e-mail ou quaisquer outros meios de comunicação internos da empresa, são responsáveis pelo uso correto destes recursos, considerados ferramentas com o propósito de contribuir para o trabalho diário." },
+        { "rot": "Art. 20", "txt": "O uso de celulares é proibido durante a jornada de trabalho." },
+        { "tipo": "par", "rot": "§ 1º", "txt": "Em situações de urgência, como problemas de saúde de filhos ou familiares próximos, o empregado deve instruir os seus familiares de que o contato deve ser realizado mediante telefone da recepção da empresa (84.9.9129-7849) e/ou setor de recursos humanos (84 9.9181-0064), permitindo assim que a informação seja repassada ao empregado." },
+        { "tipo": "par", "rot": "§ 2º", "txt": "O uso não autorizado dos celulares poderá gerar advertência, suspensão e demissão." }
+      ]
+    },
+    {
+      "n": "IX",
+      "titulo": "Das Proibições",
+      "itens": [
+        {
+          "rot": "Art. 21",
+          "txt": "É expressamente proibido ao empregado:",
+          "lista": [
+            { "rot": "a)", "txt": "ocupar-se de qualquer atividade que possa prejudicar os interesses do serviço, bem como a utilização de equipamentos, computadores, telefones, etc;" },
+            { "rot": "b)", "txt": "promover algazarra, brincadeiras ou aderir a discussões, discursos políticos, religiosos etc., dirigir insultos, usar palavras ou gestos impróprios à moralidade e respeito;" },
+            { "rot": "c)", "txt": "usar apelido para chamar ou tratar com colegas de trabalhos ou clientes;" },
+            { "rot": "d)", "txt": "fumar nos recintos da empresa;" },
+            { "rot": "e)", "txt": "receber visitas ou introduzir pessoas estranhas no recinto da empresa, sem prévia autorização;" },
+            { "rot": "f)", "txt": "retirar do local de trabalho, sem prévia autorização, qualquer equipamento, objeto ou documento de propriedade do Empregador;" },
+            { "rot": "g)", "txt": "prestar serviço, fazer parte ou colaborar com qualquer espécie de entidade que seja concorrente da Empresa, sem autorização do Empregador;" },
+            { "rot": "h)", "txt": "espalhar ou incentivar a desobediência no trabalho;" },
+            { "rot": "i)", "txt": "realizar manifestação individual ou coletiva, pronunciando sua preferência política como cidadão, no horário de trabalho, vez que podem provocar desgastes e gerar impactos negativos no ambiente de trabalho;" },
+            { "rot": "j)", "txt": "exercer comércio interno, efetuar negócios, jogos ou atividades alheias ao serviço; em eventos promovidos pela empresa e seus fornecedores, bem como receber brindes ou valores de fornecedores;" },
+            { "rot": "k)", "txt": "divulgar, por qualquer meio, segredo, assunto ou fato de natureza privada do Empregador;" },
+            { "rot": "l)", "txt": "portar arma de qualquer natureza, bebidas alcoólicas, entorpecentes, bem como se apresentar ao trabalho embriagado ou sob o efeito de qualquer espécie de entorpecente, ainda que lícito;" },
+            { "rot": "m)", "txt": "dar ordens ou assumir atitudes de direção sem ter para isso a necessária autorização;" },
+            { "rot": "n)", "txt": "distrair-se no horário de serviço em conversações, leitura e ocupações não relacionadas ao serviço;" },
+            { "rot": "o)", "txt": "utilizar de aparelho de telefonia celular nas dependências da empresa, salvo em caso de o uso ser fundamental para as funções, devidamente autorizado pelo empregador;" },
+            { "rot": "p)", "txt": "utilizar de equipamentos eletrônicos de entretenimento ou usar pendrives nos computadores da empresa; entrar no recinto da empresa com aparelhos eletrônicos (computadores, notebooks, filmadoras, máquinas fotográficas, etc) de uso pessoal, sem autorização do empregador;" },
+            { "rot": "q)", "txt": "divulgar, informar ou dar conhecimento, por qualquer meio ou forma, acerca do salário e demais verbas recebidas da empresa;" },
+            { "rot": "r)", "txt": "fazer serviço para si ou para terceiros utilizado tempo, equipamentos, ferramentas ou materiais da empresa, sem autorização do Empregador;" },
+            { "rot": "s)", "txt": "é proibido se negar a fazer um trabalho que não é da sua responsabilidade, mesmo quando for muito necessário;" },
+            { "rot": "t)", "txt": "recusar-se a usar os equipamentos de proteção individual e coletiva (EPIs e EPCs);" },
+            { "rot": "u)", "txt": "não cumprir as obrigações contidas em ordens de serviços apresentadas pela empresa;" },
+            {
+              "rot": "v)",
+              "txt": "trabalhar com o uniforme descaracterizado e/ou descalço, ou ainda, com calçado que não ofereça segurança aos pés;",
+              "sub": [
+                { "rot": "a.", "txt": "As empregadas do sexo feminino devem usar sempre calçado preso ao pé e calça preta ou jeans;" },
+                { "rot": "b.", "txt": "Os empregados do sexo masculino devem usar calçado fechado, tênis ou bota, bem como calça preta ou jeans." }
+              ]
+            },
+            { "rot": "w)", "txt": "compartilhar senhas de acesso à rede e aos sistemas operacionais;" },
+            { "rot": "x)", "txt": "utilizar redes sociais pessoais (whatsapp, Instagram, Facebook, Skype, entre outros) em seu horário de trabalho;" },
+            { "rot": "y)", "txt": "atender, em seu posto de trabalho, parentes ou amigos próximos. Em situações como esta deve-se solicitar que outro colaborador realize o atendimento;" },
+            { "rot": "z)", "txt": "entrar na empresa por outro setor que não pela frente do estabelecimento comercial." }
+          ]
+        },
+        { "rot": "Art. 22", "txt": "É expressamente proibido aos empregados e será considerado como ato de violação de segredo profissional e ato de improbidade, tomar anotações ou cópias de detalhes técnicos e administrativos sobre qualquer assunto que se relacione com as atividades industriais e comerciais da empresa, para fins particulares, assim como permitir ou facilitar sua retirada das dependências da empresa." }
+      ]
+    },
+    {
+      "n": "X",
+      "titulo": "Das Relações Humanas",
+      "itens": [
+        { "rot": "Art. 23", "txt": "Todo empregado tem o direito de trabalhar em um ambiente livre de constrangimentos, contribuindo para um ambiente de trabalho agradável, cultivando o bom relacionamento e integração de todos os trabalhadores." },
+        { "rot": "Art. 24", "txt": "Todos os empregados, sem distinção, devem colaborar e trabalhar com sentido de equipe, forma mais eficaz à realização dos fins e objetivos da Empresa." },
+        { "rot": "Art. 25", "txt": "Harmonia, cordialidade, respeito e espírito de compreensão devem predominar nos contatos estabelecidos, independentemente de posição que colaborador ocupe. A empresa não tolerará atitudes de discriminação, seja por raça, sexo, cor, religião, idade, característica física, origem, orientação sexual, ou qualquer conduta que seja ilegal ou inapropriada." },
+        { "rot": "Art. 26", "txt": "A empresa não tolerará atitudes que demostrem o assédio moral, definido como o maltrato aplicado ao indivíduo, derivado de uma lógica perversa na relação de poder existente no local de trabalho. O assédio moral está relacionado à presença de ações e condutas por parte do detentor do poder, contra o bem-estar do trabalhador, manifestado por humilhações, xingamentos e perseguições, cuja repetição e permanência acabam por desencadear um processo de diminuição da sua autoestima." },
+        { "rot": "Art. 27", "txt": "A diretoria da Empresa, através do Setor de Recursos Humanos, deve procurar, sempre que solicitada, e desde que julgue conveniente, colaborar na solução de problemas e questões de ordem pessoal, familiar e moral dos empregados, com respeito e absoluto sigilo." }
+      ]
+    },
+    {
+      "n": "XI",
+      "titulo": "Uso de Câmeras de Segurança",
+      "itens": [
+        {
+          "rot": "Art. 28",
+          "txt": "Todos os colaboradores da Empresa estão cientes que:",
+          "lista": [
+            { "rot": "a)", "txt": "A empresa possui câmeras de segurança instaladas em áreas comuns e de circulação, como entradas, saídas, corredores e também em áreas internas de cada setor, para garantir o monitoramento adequado." },
+            { "rot": "b)", "txt": "As câmeras têm por finalidade garantir a segurança patrimonial e a integridade física de funcionários, visitantes e clientes, bem como monitorar o cumprimento das normas internas de segurança e comportamento." },
+            { "rot": "c)", "txt": "As imagens e sons capturados pelas câmeras serão armazenadas por um período de 30 dias, podendo ser utilizadas para investigação de incidentes, comprovação de situações de risco, violações de normas internas ou para fins legais." },
+            {
+              "rot": "d)",
+              "txt": "O acesso às gravações será restrito a funcionários autorizados, incluindo membros da diretoria, do setor jurídico e de recursos humanos, conforme a necessidade.",
+              "sub": [
+                { "rot": "a.", "txt": "Em caso de necessidade legal, as imagens poderão ser compartilhadas com autoridades competentes ou por determinação judicial." }
+              ]
+            },
+            { "rot": "e)", "txt": "As câmeras não serão instaladas em áreas onde se espera um nível razoável de privacidade, como banheiros, vestiários ou outras áreas de uso pessoal." },
+            { "rot": "f)", "txt": "Todos os funcionários estão cientes de que as áreas comuns da empresa estão sob monitoramento e aceitam as condições aqui descritas ao permanecerem nas dependências da empresa." }
+          ]
+        }
+      ]
+    },
+    {
+      "n": "XII",
+      "titulo": "Penalidades",
+      "itens": [
+        {
+          "rot": "Art. 29",
+          "txt": "Aos empregados infratores das normas deste Regulamento, aplicam-se as seguintes penalidades:",
+          "lista": [
+            { "rot": "a)", "txt": "advertência verbal;" },
+            { "rot": "b)", "txt": "advertência escrita;" },
+            { "rot": "c)", "txt": "suspensão; e" },
+            { "rot": "d)", "txt": "demissão." }
+          ]
+        },
+        { "tipo": "par", "rot": "§ 1º", "txt": "A advertência é o aviso ao infrator, no sentido de lhe dar conhecimento do ilícito que praticou, informando-lhe das consequências que poderão resultar, em caso de reincidência." },
+        { "tipo": "par", "rot": "§ 2º", "txt": "A suspensão normalmente ocorrerá depois da aplicação de uma ou mais advertências, nada impedindo que possa ser aplicada, de imediato, diante de uma falta considerada mais grave." },
+        { "rot": "Art. 30", "txt": "As penalidades serão aplicadas segundo a gravidade da infração, nos termos da legislação em vigor." }
+      ]
+    },
+    {
+      "n": "XIII",
+      "titulo": "Das Disposições Gerais",
+      "itens": [
+        {
+          "rot": "Art. 31",
+          "txt": "Os empregados devem manter comportamento que contribuía para o bom desenvolvimento do trabalho e da empresa, e que incentive o bem-estar da equipe, tal como:",
+          "lista": [
+            { "rot": "a)", "txt": "Bater o ponto de controle de jornada no horário de entrada e saída da empresa;" },
+            { "rot": "b)", "txt": "Evitar conversas paralelas no momento do trabalho;" },
+            { "rot": "c)", "txt": "Manter sempre atenção no trabalho desempenhado;" },
+            { "rot": "d)", "txt": "Manter o seu espaço de trabalho limpo e organizado;" },
+            { "rot": "e)", "txt": "Ter paciência no trato com colegas de trabalho e com clientes;" },
+            { "rot": "f)", "txt": "Tratar os colegas de trabalho e clientes com educação;" },
+            { "rot": "g)", "txt": "Evitar conversas sobre compras de clientes ou situações dentro do trabalho – mantendo uma postura ética;" },
+            { "rot": "h)", "txt": "Estar sempre com seu material de trabalho necessário para o desempenho de suas funções (ex. caneta, flanela, etc);" },
+            { "rot": "i)", "txt": "É desaconselhável o relacionamento amoroso entre colegas de trabalho." }
+          ]
+        },
+        { "rot": "Art. 32", "txt": "Ao empregado é garantido o direito de dar sugestão ou reclamação acerca de qualquer assunto pertinente ao serviço e à atividade da Empresa." },
+        { "rot": "Art. 33", "txt": "O acobertamento de falta praticada por qualquer empregado implica em falta idêntica, com suas consequências decorrentes." },
+        { "rot": "Art. 34", "txt": "Objetos e dinheiro que porventura forem encontrados dentro do recinto da empresa deverão ser entregues na Recepção e, se não forem procurados pelo dono dentro do prazo de 30 (trinta) dias, serão devolvidos à pessoa que os encontrou." },
+        { "rot": "Art. 35", "txt": "Os empregados devem observar o presente Regulamento, circulares, ordens de serviço, avisos, memorandos, comunicados e outras instruções expedidas pelo Empregador." },
+        { "rot": "Art. 36", "txt": "Este documento ficará a disposição de qualquer funcionário no setor de Recursos Humanos da empresa, bem como será enviado pela via digital quando solicitado." },
+        { "rot": "Art. 37", "txt": "O presente Regulamento faz parte integrante do Contrato de Trabalho, podendo ser substituído por outro, sempre que o empregador julgar conveniente ou em alterações da legislação trabalhista." },
+        { "rot": "Art. 38", "txt": "Os casos ocultação ou não previstos serão resolvidos pela empresa à luz da CLT e da legislação complementar pertinente." }
+      ]
+    }
+  ],
+  "ciencia": "Li e tenho consciência do Regulamento Interno e estou ciente das normas nele contidas."
+}
