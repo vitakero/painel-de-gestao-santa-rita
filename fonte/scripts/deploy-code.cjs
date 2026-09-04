@@ -19,6 +19,7 @@ const FILES = [
   // sem ele na loja, a reconstrução do painel quebra e o painel para de ser atualizado.
   // Por isso ele viaja com o código, e não como "asset" (a pasta assets/ não é enviada).
   ["assets/regulamento-interno.json", "robo/regulamento-interno.json"],
+  ["assets/regulamento-interno.pdf.b64", "robo/regulamento-interno.pdf.b64"],   // o PDF oficial (base64: o robô baixa TEXTO)
   ["scripts/central/feed.client.js", "robo/central/feed.client.js"],   // tela da Central Operacional (arquivo isolado)
   ["scripts/central/sw.js", "robo/central/sw.js"],   // (2.5) service worker do PWA (backup de fonte)
   ["scripts/buildVrData.cjs", "robo/buildVrData.cjs"],

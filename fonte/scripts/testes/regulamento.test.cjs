@@ -1,33 +1,33 @@
 // REGULAMENTO INTERNO — a bancada da aba de consulta.
 //
-// O QUE ESTA BANCADA GUARDA
-//   1. FIDELIDADE. O regulamento é documento com peso jurídico: uma palavra trocada na
-//      transcrição vira uma regra que a empresa não escreveu. Cada trecho do json é
-//      procurado, letra por letra, dentro do texto extraído do PDF oficial
-//      (scripts/testes/apoio/regulamento-pdf.txt). Uma divergência = teste vermelho.
-//   2. A BUSCA. Procurar "ferias" tem que achar "férias" — e o destaque amarelo não pode
-//      cortar o texto no lugar errado nem furar o escape de HTML.
-//   3. O PAPEL. O que se imprime é o documento INTEIRO, nunca o pedaço filtrado da tela.
-//   4. A PORTA ABERTA. O regulamento é a única aba que todo funcionário vê, mesmo sem
-//      nenhuma página liberada. Se alguém fechar isso sem querer, aqui fica vermelho.
+// A PROVA CENTRAL: o painel carrega DENTRO dele o PDF oficial (o arquivo que o escritório fez e
+// que o Victor mandou). Então o teste não precisa de cópia de apoio nenhuma: ele TIRA o PDF do
+// painel construído, lê o texto dele e cobra que cada linha da tela exista lá, igualzinha.
+// É isso que impede a tela e o papel de se desencontrarem — se alguém editar o
+// assets/regulamento-interno.json e não trocar o PDF (ou o contrário), aqui fica vermelho.
 //
-// Não duplica lógica: extrai o módulo do painel já gerado (output/index.html).
+// Guarda também:
+//   - a estrutura (13 capítulos, Art. 1º ao 38, sem buraco);
+//   - a busca (achar "férias" digitando "ferias", sem furar o escape de HTML);
+//   - o botão Imprimir abrindo o PDF ORIGINAL, sem tela minha no meio;
+//   - a porta aberta: todo funcionário vê a aba, mesmo sem nenhuma página liberada.
+//
 //   node scripts/testes/regulamento.test.cjs
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
+const cp = require("child_process");
+const crypto = require("crypto");
 
 const RAIZ = path.join(__dirname, "..", "..");
 const HTML = fs.readFileSync(path.join(RAIZ, "output", "index.html"), "utf8");
-const PDF  = fs.readFileSync(path.join(__dirname, "apoio", "regulamento-pdf.txt"), "utf8");
 
 const ini = HTML.indexOf("==REG-INICIO==");
 const fim = HTML.indexOf("==REG-FIM==");
 if (ini < 0 || fim < 0) { console.log("ERRO: não achei o módulo do regulamento no output/index.html (rode o build antes)."); process.exit(1); }
 const codigo = HTML.slice(HTML.indexOf("*/", ini) + 2, HTML.lastIndexOf("/*", fim));
-// a barra de documento vive noutro módulo; aqui só interessa o miolo do regulamento
-const STUB = 'var pxDocBarraHtml=function(){return {css:"",html:"<!--barra-->"};};\n';
-const M = new Function(STUB + codigo +
-  "\nreturn {REG_DOC,regEsc,regDobra,regMarca,regBate,regTextos,regItemHtml,regTotalArtigos,regDocHtml,"
+const M = new Function(codigo +
+  "\nreturn {REG_DOC,REG_PDF_B64,regEsc,regDobra,regMarca,regBate,regTextos,regItemHtml,regTotalArtigos,"
   + "setTermo:function(t){ regTermo=t; }};")();
 
 let ok = 0, falhou = 0;
@@ -39,16 +39,38 @@ function eq(nome, obtido, esperado) {
 function certo(nome, cond) { eq(nome, cond ? "sim" : "não", "sim"); }
 
 // ---------------------------------------------------------------------------
-// 1) FIDELIDADE AO PDF OFICIAL
-// O cabeçalho/rodapé se repete em toda página do PDF e parte frases no meio
-// (Art. 11 cai bem na virada). Tirar essa linha é o que deixa o texto contínuo.
+// 0) O PDF OFICIAL SAI INTEIRO DE DENTRO DO PAINEL
 // ---------------------------------------------------------------------------
-const RODAPE = /G JOÃO DOS SANTOS INDÚSTRIA E COMERCIO LTDA 12\.988\.127\/0001-40\s*R\. ANDRE SALES 531, PAULO XI – CAICÓ\/RN, TEL: \(84\) 3417-1677/g;
-const NOPDF = PDF.replace(RODAPE, " ").replace(/\s+/g, " ").trim();
-const norm = (s) => String(s).replace(/\s+/g, " ").trim();
+console.log("\n== 0. O PDF oficial viaja dentro do painel ==");
+const b64Asset = fs.readFileSync(path.join(RAIZ, "assets", "regulamento-interno.pdf.b64"), "utf8")
+  .split("-----BASE64-----")[1].replace(/\s+/g, "");
+certo("o painel leva o PDF embutido", !!M.REG_PDF_B64 && M.REG_PDF_B64.length > 100000);
+eq("é exatamente o arquivo de assets/ (nada se perdeu no build)",
+   crypto.createHash("sha256").update(Buffer.from(M.REG_PDF_B64, "base64")).digest("hex"),
+   crypto.createHash("sha256").update(Buffer.from(b64Asset, "base64")).digest("hex"));
+const pdfTmp = path.join(os.tmpdir(), "reg-teste-" + process.pid + ".pdf");
+fs.writeFileSync(pdfTmp, Buffer.from(M.REG_PDF_B64, "base64"));
+certo("abre como PDF de verdade", fs.readFileSync(pdfTmp).slice(0, 5).toString() === "%PDF-");
+const paginas = cp.execFileSync("pdftotext", ["-layout", pdfTmp, "-"], { encoding: "utf8", maxBuffer: 1 << 26 });
+eq("páginas do documento", paginas.split("\f").filter((p) => p.trim()).length, 17);
+certo("traz a folha de assinatura (as 120 linhas do papel)", /120\.\s*_/.test(paginas.replace(/\s+/g, " ")));
 
-console.log("\n== 1. Fidelidade: cada trecho existe, igualzinho, no PDF oficial ==");
+// ---------------------------------------------------------------------------
+// 1) A TELA NÃO PODE DESENCONTRAR DO PDF
+// O cabeçalho/rodapé se repete em toda página e parte frases na virada; tirar essa linha
+// é o que deixa comparar o TEXTO, e não a paginação.
+// ---------------------------------------------------------------------------
+console.log("\n== 1. Cada linha da tela existe, igualzinha, no PDF oficial ==");
 const D = M.REG_DOC;
+// O rodapé NÃO pode ser montado com o endereço da tela: a tela já traz "Paulo VI" corrigido e o
+// PDF ainda traz "Paulo XI", então o padrão não casaria e o rodapé ficaria no meio do texto —
+// partindo o Art. 11, que cai bem na virada de página. Aqui vale do nome da empresa até o
+// telefone, seja lá como o bairro esteja escrito.
+const esc = (t) => String(t).replace(/[.*+?^${}()|[\]\\\/-]/g, "\\$&");
+const RODAPE = new RegExp(esc(D.empresa) + "\\s+" + esc(D.cnpj) + "[\\s\\S]{0,90}?TEL: " + esc(D.telefone), "g");
+const norm = (s) => String(s).replace(/\s+/g, " ").trim();
+const NOPDF = norm(paginas).replace(RODAPE, " ").replace(/\s+/g, " ");
+const CRU = norm(paginas);
 let conferidos = 0; const fora = [];
 function confere(rot, txt) { conferidos++; if (NOPDF.indexOf(norm(txt)) < 0) fora.push(rot + ": " + String(txt).slice(0, 70)); }
 D.introducao.forEach((t, i) => confere("introdução " + (i + 1), t));
@@ -67,12 +89,17 @@ confere("frase de ciência", D.ciencia);
 fora.forEach((f) => console.log("        divergente -> " + f));
 eq("trechos divergentes do PDF", fora.length, 0);
 eq("trechos conferidos (se cair, alguém apagou texto)", conferidos, 153);
-// O cabeçalho/rodapé foi retirado do texto acima de propósito, então ele se confere
-// contra o PDF cru — é lá que a linha da empresa aparece inteira, em toda página.
-const CRU = PDF.replace(/\s+/g, " ").trim();
-["empresa", "cnpj", "endereco", "telefone"].forEach((k) =>
+["empresa", "cnpj", "telefone"].forEach((k) =>
   certo("o " + k + " da tela é o do PDF", CRU.indexOf(norm(D[k])) >= 0));
+// O BAIRRO: o PDF oficial escreve "PAULO XI"; o bairro de Caicó é Paulo VI (do Papa Paulo VI).
+// O Victor confirmou em 04/09/2026 que é erro de digitação do documento. Eu não altero documento
+// jurídico: na TELA vale o certo, e o PDF só muda quando o escritório reemitir. Esta prova
+// guarda os DOIS lados — pra ninguém "consertar" a tela de volta, nem esquecer que o papel
+// ainda está errado. Quando o PDF novo chegar, a segunda linha aqui é que vai avisar.
+certo("na tela o bairro sai certo (Paulo VI)", /PAULO VI\b/.test(D.endereco));
+certo("o PDF oficial AINDA traz Paulo XI — falta o escritório reemitir", /PAULO XI\b/.test(CRU));
 certo("a data do documento é a do PDF", CRU.indexOf(norm(D.localData)) >= 0);
+try { fs.unlinkSync(pdfTmp); } catch (e) {}
 
 console.log("\n== 1b. Estrutura: nada de capítulo ou artigo faltando ==");
 eq("capítulos", D.capitulos.length, 13);
@@ -91,15 +118,12 @@ certo("entra em vigor em 01/05/2026 (é o que o Art. 1º, § 2º diz)", D.vigenc
 console.log("\n== 2. Procurar sem acento e sem maiúscula ==");
 eq("'ferias' bate com 'férias'", M.regDobra("Férias").indexOf(M.regDobra("ferias")), 0);
 eq("'CELULAR' bate com 'celular'", M.regDobra("Uso de CELULAR").indexOf(M.regDobra("celular")), 7);
-certo("acha 'uniforme' no Art. 5º", M.regBate ? true : false);
 M.setTermo("uniforme");
-const art5 = D.capitulos[2].itens[0];
-certo("Art. 5º entra na busca por 'uniforme' (está na alínea r)", M.regBate(M.regTextos(art5)));
+certo("Art. 5º entra na busca por 'uniforme' (está na alínea r)", M.regBate(M.regTextos(D.capitulos[2].itens[0])));
 M.setTermo("pendrive");
-const art21 = D.capitulos[8].itens[0];
-certo("Art. 21 entra na busca por 'pendrive' (está na alínea p)", M.regBate(M.regTextos(art21)));
+certo("Art. 21 entra na busca por 'pendrive' (está na alínea p)", M.regBate(M.regTextos(D.capitulos[8].itens[0])));
 M.setTermo("bicicleta");
-certo("palavra que não existe no regulamento não traz o Art. 21", !M.regBate(M.regTextos(art21)));
+certo("palavra que não existe no regulamento não traz o Art. 21", !M.regBate(M.regTextos(D.capitulos[8].itens[0])));
 
 console.log("\n== 2b. O destaque amarelo (é ele que depende do tamanho não mudar) ==");
 ["Férias", "atenção", "ORGANIZAÇÃO", "não", "ç", "Introdução do regulamento"].forEach((t) =>
@@ -117,54 +141,47 @@ certo("termo com HTML dentro não vira tag na tela", M.regMarca("um <script> aqu
 M.setTermo("");
 
 // ---------------------------------------------------------------------------
-// 3) O PAPEL — imprime o documento inteiro, com ou sem busca na tela
+// 3) O BOTÃO IMPRIMIR
 // ---------------------------------------------------------------------------
-console.log("\n== 3. O que sai na impressora ==");
-M.setTermo("uniforme");                       // busca ligada na tela
-const papel = M.regDocHtml();
-let faltando = 0;
-D.capitulos.forEach((c) => c.itens.forEach((it) => { if (papel.indexOf(M.regEsc(it.txt)) < 0) faltando++; }));
-eq("com a busca ligada, o papel ainda traz TODOS os artigos", faltando, 0);
-certo("o papel não leva destaque amarelo", papel.indexOf("<mark>") < 0);
-certo("traz a frase de ciência do documento", papel.indexOf(M.regEsc(D.ciencia)) >= 0);
-certo("traz o local e a data do documento", papel.indexOf(M.regEsc(D.localData)) >= 0);
-// O rodapé repetido é <tfoot>, NÃO position:fixed. O fixed repete mas não desconta a
-// altura, e o texto saiu impresso POR CIMA dele em 4 das 10 folhas (medido em
-// scripts/previa-regulamento-papel.cjs). Se alguém voltar pro fixed, aqui fica vermelho.
-certo("o rodapé repetido é <tfoot> (reserva o espaço em toda folha)",
-      /<tfoot><tr><td class="rod">/.test(papel) && /tfoot\{display:table-footer-group/.test(papel));
-certo("nada de position:fixed no rodapé (já sobrepôs o texto)", !/\.rod\{position:fixed/.test(papel));
-certo("o rodapé traz a empresa e o CNPJ", papel.indexOf(M.regEsc(D.empresa)) >= 0 && papel.indexOf(D.cnpj) >= 0);
-certo("folha A4", papel.indexOf("@page{size:A4") >= 0);
-M.setTermo("");
+console.log("\n== 3. O botão Imprimir abre o PDF oficial, sem tela minha no meio ==");
+// É LINK, não botão com window.open: pop-up aberto por script é bloqueado em vários navegadores
+// (no celular, quase sempre). Se alguém trocar de volta, aqui fica vermelho.
+certo("o Imprimir é um link de verdade para o PDF",
+      /<a class="reg-bt" id="regImprimirBt" target="_blank" rel="noopener" href="\'\+regPdfEndereco\(\)/.test(codigo));
+// procura a CHAMADA (com parêntese) — o texto "window.open" ainda aparece no comentário que
+// explica justamente por que não se usa isso aqui
+certo("nada de abrir pop-up por script", !/window\.open\s*\(/.test(codigo));
+certo("por Blob (o Chrome recusa abrir aba em endereço data:)", /createObjectURL\(new Blob\(/.test(codigo));
+certo("tipo PDF", /type:"application\/pdf"/.test(codigo));
+certo("não remonta mais o documento em HTML", codigo.indexOf("regDocHtml") < 0);
+certo("não põe barra minha na frente do documento", codigo.indexOf("pxDocBarraHtml") < 0);
 
 // ---------------------------------------------------------------------------
-// 4) A PORTA ABERTA — todo funcionário enxerga a aba
+// 4) A PORTA ABERTA
 // ---------------------------------------------------------------------------
 console.log("\n== 4. Todo mundo vê o Regulamento ==");
 function pegarFuncao(nome) {
   const i = HTML.indexOf("function " + nome + "(");
   if (i < 0) return null;
-  let j = HTML.indexOf("{", i), d = 0, k = j;
+  let d = 0, k = HTML.indexOf("{", i);
   while (k < HTML.length) { if (HTML[k] === "{") d++; else if (HTML[k] === "}") { d--; if (!d) break; } k++; }
   return HTML.slice(i, k + 1);
 }
 const fonteAba = pegarFuncao("podeAba");
 certo("achei a regra de quem vê cada aba (podeAba)", !!fonteAba);
-const podeAba = new Function("ok", fonteAba + "\nreturn podeAba;")([]);   // alguém SEM nenhuma página liberada
+const podeAba = new Function("ok", fonteAba + "\nreturn podeAba;")([]);
 certo("funcionário sem nenhuma página liberada vê o Regulamento", podeAba("regulamento"));
 certo("...e continua sem ver as outras (a exceção é só do regulamento)", !podeAba("despesas") && !podeAba("pontos"));
-const comUma = new Function("ok", fonteAba + "\nreturn podeAba;")(["escala"]);
-certo("quem só tem Escala também vê o Regulamento", comUma("regulamento"));
+certo("quem só tem Escala também vê o Regulamento",
+      new Function("ok", fonteAba + "\nreturn podeAba;")(["escala"])("regulamento"));
 certo("o botão existe no menu", HTML.indexOf('data-page="regulamento"') >= 0);
 certo("a página existe", HTML.indexOf('id="page-regulamento"') >= 0);
 certo("abrir a aba desenha o regulamento", /dataset\.page==="regulamento"\)\s*regRender\(\)/.test(HTML));
 
 console.log("\n== 4b. Consulta não gasta nuvem (esta aba não fala com o Supabase) ==");
-const miolo = codigo;
-certo("não usa __SB", miolo.indexOf("__SB") < 0);
-certo("não chama rpc", miolo.indexOf(".rpc(") < 0);
-certo("não faz select/insert", miolo.indexOf(".select(") < 0 && miolo.indexOf(".insert(") < 0);
+certo("não usa __SB", codigo.indexOf("__SB") < 0);
+certo("não chama rpc", codigo.indexOf(".rpc(") < 0);
+certo("não faz select/insert", codigo.indexOf(".select(") < 0 && codigo.indexOf(".insert(") < 0);
 
 console.log("\n" + (falhou ? "FALHOU: " + falhou + " de " + (ok + falhou) : "TUDO CERTO: " + ok + " provas"));
 process.exit(falhou ? 1 : 0);
