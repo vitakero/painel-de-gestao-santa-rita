@@ -10027,6 +10027,14 @@ function rvIdadeMin(agoraMs, ultimoISO){
 /* O ciclo do robo e de ~20 min. 90 minutos sao quatro rodadas perdidas: tarde o
    bastante pra nao dar alarme falso, cedo o bastante pra achar no mesmo dia. */
 var RV_ATRASO=90, RV_PARADO=360;
+/* O BATIMENTO DO ROBO — sinal muito mais rapido que a idade do dado.
+   O robo carimba a hora dele a cada rodada, de 5 em 5 minutos. Se esse carimbo envelhece, ele
+   parou — e isso se sabe MUITO antes de o dado ficar velho. Testado em 05/09/2026: com o .env
+   renomeado, o robo morreu e a tela continuou dizendo "tudo certo", porque o unico sinal era a
+   idade do dado, que leva 90 minutos.
+   40 minutos = 8 rodadas perdidas. Tarde o bastante para nao gritar por uma rodada que atrasou,
+   cedo o bastante para achar no mesmo turno. */
+var RV_SEM_BATIMENTO=40;
 function rvNivel(min){
   if(min===null) return "sem";
   if(min<RV_ATRASO) return "ok";
@@ -10063,8 +10071,27 @@ function rvTexto(min){
    Quando o robô consegue falar com a nuvem antes de desistir, ele conta O QUE faltou e O QUE
    fazer, e é isso que aparece aqui. Quando não consegue (a chave da nuvem sumiu junto), fica
    só o texto de cima — que é melhor do que nada. */
+/* quantos minutos desde o ultimo carimbo do robo (null se nunca carimbou) */
+function rvIdadeBatimento(agoraMs, quandoISO){ return rvIdadeMin(agoraMs, quandoISO); }
+
 function rvComRelato(t, saude){
-  if(!saude || saude.ok) return t;
+  /* SEM BATIMENTO E TAO GRAVE QUANTO FALHA CONTADA. Se o robo nao carimba ha 40 minutos, ele
+     nao esta rodando — e pode ser justamente o caso em que ele nao CONSEGUE contar nada
+     (o .env sumiu inteiro, e a chave foi junto). */
+  if(saude && saude.ok){
+    var idade=rvIdadeBatimento(Date.now(), saude.quando);
+    if(idade!==null && idade>=RV_SEM_BATIMENTO){
+      return { nivel:"parado", ico:"🛑",
+        titulo:"O robô da loja parou de dar sinal.",
+        corpo:"A última vez que ele avisou que estava vivo foi "+rvQuanto(idade)+
+              ". O normal é a cada 5 minutos. Ele pode ter parado de um jeito que o impede até "
+              +"de contar o motivo — é o que acontece quando o arquivo de configuração some inteiro.",
+        comando:"No computador da loja, abra o Prompt de Comando e rode:  cd C:\\vr-robo  e depois  robo.bat  "
+              +"— a mensagem na tela diz o que faltou." };
+    }
+    return t;
+  }
+  if(!saude) return t;
   /* FALHA CONTADA VALE MAIS QUE DADO NOVO.
      O vigia media so a IDADE do dado — e uma falha que comeca agora deixa o dado fresco por
      mais uma hora e meia. Resultado: o robo se recusava a rodar e a tela dizia que estava tudo

@@ -168,11 +168,22 @@ async function avisar(ok, etapa, motivo, detalhe, comando) {
       const foi = await mandarEmail(estado);
       if (foi) { estado.avisado_em = new Date().toISOString(); estado.avisado_motivo = motivo; }
       else if (antes) { estado.avisado_em = antes.avisado_em; estado.avisado_motivo = antes.avisado_motivo; }
-      diz("[pecas] " + (foi ? "avisei por email." : "nao consegui mandar o email (fica so no painel)."));
+      if (foi) diz("[pecas] avisei por email.");
     } else if (antes) {
       estado.avisado_em = antes.avisado_em; estado.avisado_motivo = antes.avisado_motivo;
     }
-    await contarNuvem(estado);
+    /* A MENSAGEM SO PODE PROMETER O QUE ACONTECEU.
+       A primeira versao dizia "nao consegui mandar o email (fica so no painel)" — e quando o
+       .env some INTEIRO o painel tambem nao recebe nada, porque escrever nele usa a mesma
+       chave. Testado em 05/09/2026 renomeando o .env: a tela continuou dizendo "tudo certo"
+       com o robo morto. Agora a frase depende do que deu certo de verdade. */
+    const gravou = await contarNuvem(estado);
+    if (!ok && !gravou) {
+      diz("[pecas] NAO consegui avisar ninguem: sem o .env nao ha chave para falar com a nuvem.");
+      diz("        O painel so vai desconfiar quando o dado envelhecer. Avise alguem na mao.");
+    } else if (!ok) {
+      diz("[pecas] contei o problema para o painel.");
+    }
   } catch (e) { /* avisar nunca pode derrubar o robo */ }
 }
 

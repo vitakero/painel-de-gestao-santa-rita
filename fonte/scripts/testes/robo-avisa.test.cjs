@@ -61,7 +61,17 @@ eq("   e não pelo caminho fixo", /path\.join\(__dirname, "\.\.", "\.env"\)/.tes
 eq("   sabe quando está sob teste", /function ehTeste\(\)/.test(PECAS), true);
 eq("   e desiste antes de qualquer chamada", /if \(ehTeste\(\)\) return;/.test(PECAS), true);
 
-console.log("\n5) o e-mail não vira barulho");
+console.log("\n5) o PONTO CEGO: quando o robô não consegue nem avisar");
+// Testado de verdade em 05/09/2026, renomeando o .env da loja: o robô morreu, não conseguiu
+// mandar e-mail NEM gravar no painel (a chave mora no .env), e a tela continuou dizendo "tudo
+// certo". O único sinal que sobra é o carimbo de vida do robô ficando velho.
+eq("   a mensagem não promete painel quando não gravou", /NAO consegui avisar ninguem/.test(PECAS), true);
+eq("   e só diz 'contei' quando contou mesmo", /const gravou = await contarNuvem\(estado\);/.test(PECAS), true);
+eq("   o painel vigia o batimento do robô", /var RV_SEM_BATIMENTO=40;/.test(HTML), true);
+eq("   sem batimento vira 'parado', mesmo com estado ok", /O robô da loja parou de dar sinal\./.test(HTML), true);
+eq("   e diz o comando pra descobrir o motivo", /cd C:\\vr-robo  e depois  robo\.bat/.test(HTML), true);
+
+console.log("\n6) o e-mail não vira barulho");
 eq("   só manda em falha, nunca em sucesso", /sucesso não gera e-mail/.test(FUNC), true);
 eq("   espera 12h antes de repetir o mesmo motivo", /AVISO_ESPERA_MS = 12 \* 60 \* 60 \* 1000/.test(PECAS), true);
 eq("   mas manda na hora se o motivo MUDAR", /antes\.avisado_motivo !== motivo/.test(PECAS), true);
@@ -69,12 +79,13 @@ eq("   a chave do Resend fica no Supabase, não na loja", /Deno\.env\.get\("RESE
 eq("   e o robô chama a função, não o Resend", /functions\/v1\/aviso-robo/.test(PECAS), true);
 eq("   o e-mail leva o conserto junto", /O que fazer:/.test(FUNC), true);
 
-console.log("\n6) o aviso no painel diz o motivo E o conserto");
+console.log("\n7) o aviso no painel diz o motivo E o conserto");
 eq("   lê o relato do robô", /from\("robo_saude"\)/.test(HTML), true);
 eq("   troca o título pelo motivo real", /novo\.titulo = String\(saude\.motivo\)/.test(HTML), true);
 eq("   desenha o que fazer", /class="rv-fazer"/.test(HTML), true);
 eq("   e escapa o texto (veio de fora do painel)", /pxEsc\(t\.comando\)/.test(HTML), true);
-eq("   sucesso do robô não vira aviso", /if\(!saude \|\| saude\.ok\) return t;/.test(HTML), true);
+eq("   sucesso do robô não vira aviso", /if\(saude && saude\.ok\)\{/.test(HTML), true);
+eq("   e com batimento novo o aviso não aparece", /if\(idade!==null && idade>=RV_SEM_BATIMENTO\)\{/.test(HTML), true);
 // O TESTE DE 05/09 ACHOU ISTO: o vigia media só a IDADE do dado. Uma falha que começa agora
 // deixa o dado fresco por mais 90 minutos — o robô se recusava a rodar e a tela dizia que estava
 // tudo bem. Falha contada tem que valer na hora, seja qual for a idade do dado.
@@ -82,7 +93,7 @@ eq("   falha contada aparece mesmo com dado novo", /var base = t \|\| \{ nivel:"
 eq("   e sempre no nível mais grave", /var novo = \{ nivel:"parado", ico:"🛑"/.test(HTML), true);
 eq("   sem relato, o aviso antigo continua saindo", /rvPintar\(min, null\)/.test(HTML), true);
 
-console.log("\n7) parado deixou de parecer bilhete");
+console.log("\n8) parado deixou de parecer bilhete");
 eq("   faixa vermelha cheia", /\.rv-parado \{ background:#8c2c22/.test(HTML), true);
 eq("   com pulsação lenta na lateral", /animation:rvPulso/.test(HTML), true);
 eq("   que respeita quem pediu menos movimento", /prefers-reduced-motion: reduce\)\{ \.rv-parado::before\{ animation:none/.test(HTML), true);
@@ -91,7 +102,7 @@ const CSS_RV = (HTML.match(/\.rv-[a-z:-]+[^{]*\{[^}]*\}/g) || []).join(" ");
 eq("   e NÃO pisca (piscar treina a ignorar)", /blink/i.test(CSS_RV), false);
 eq("   a pulsação é lenta (2,4s), não nervosa", /rvPulso 2\.4s/.test(CSS_RV), true);
 
-console.log("\n8) quem vê");
+console.log("\n9) quem vê");
 eq("   o aviso continua sendo só do master", /if\(!rvEhMaster\(\)\)\{ el\.innerHTML=""; return; \}/.test(HTML), true);
 eq("   e a tabela também", /public\.sou_master\(\)/.test(SQL), true);
 eq("   uma linha só, não histórico", /check \(id = 'robo'\)/.test(SQL), true);
