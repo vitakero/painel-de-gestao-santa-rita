@@ -74,7 +74,12 @@ eq("   lê o relato do robô", /from\("robo_saude"\)/.test(HTML), true);
 eq("   troca o título pelo motivo real", /novo\.titulo = String\(saude\.motivo\)/.test(HTML), true);
 eq("   desenha o que fazer", /class="rv-fazer"/.test(HTML), true);
 eq("   e escapa o texto (veio de fora do painel)", /pxEsc\(t\.comando\)/.test(HTML), true);
-eq("   sucesso do robô não vira aviso", /if\(!t \|\| !saude \|\| saude\.ok\) return t;/.test(HTML), true);
+eq("   sucesso do robô não vira aviso", /if\(!saude \|\| saude\.ok\) return t;/.test(HTML), true);
+// O TESTE DE 05/09 ACHOU ISTO: o vigia media só a IDADE do dado. Uma falha que começa agora
+// deixa o dado fresco por mais 90 minutos — o robô se recusava a rodar e a tela dizia que estava
+// tudo bem. Falha contada tem que valer na hora, seja qual for a idade do dado.
+eq("   falha contada aparece mesmo com dado novo", /var base = t \|\| \{ nivel:"parado"/.test(HTML), true);
+eq("   e sempre no nível mais grave", /var novo = \{ nivel:"parado", ico:"🛑"/.test(HTML), true);
 eq("   sem relato, o aviso antigo continua saindo", /rvPintar\(min, null\)/.test(HTML), true);
 
 console.log("\n7) parado deixou de parecer bilhete");

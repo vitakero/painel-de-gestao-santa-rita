@@ -10064,8 +10064,19 @@ function rvTexto(min){
    fazer, e é isso que aparece aqui. Quando não consegue (a chave da nuvem sumiu junto), fica
    só o texto de cima — que é melhor do que nada. */
 function rvComRelato(t, saude){
-  if(!t || !saude || saude.ok) return t;
-  var novo = { nivel:t.nivel, ico:t.ico, titulo:t.titulo, corpo:t.corpo };
+  if(!saude || saude.ok) return t;
+  /* FALHA CONTADA VALE MAIS QUE DADO NOVO.
+     O vigia media so a IDADE do dado — e uma falha que comeca agora deixa o dado fresco por
+     mais uma hora e meia. Resultado: o robo se recusava a rodar e a tela dizia que estava tudo
+     bem, calada, ate o dado envelhecer. Descoberto testando em 05/09/2026: gravei uma falha e o
+     aviso nao apareceu, porque o dado tinha 3 minutos.
+     Quando o robo CONTA que parou, isso vale na hora, seja qual for a idade do dado — e a
+     diferenca entre saber no primeiro minuto ou no dia seguinte era o objetivo disto tudo. */
+  var base = t || { nivel:"parado", ico:"🛑",
+    titulo:"O robô da loja parou.",
+    corpo:"Ele se recusou a rodar agora. Os números da tela ainda são recentes, mas param de "
+      +"envelhecer bem a partir de agora." };
+  var novo = { nivel:"parado", ico:"🛑", titulo:base.titulo, corpo:base.corpo };
   if(saude.motivo)  novo.titulo = String(saude.motivo);
   if(saude.detalhe) novo.corpo  = String(saude.detalhe);
   if(saude.comando) novo.comando = String(saude.comando);
