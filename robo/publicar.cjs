@@ -2,9 +2,46 @@
 // Funciona no Windows e no Mac. Uso: node scripts/publicar.cjs
 const fs = require("fs");
 const path = require("path");
+const https = require("https");
 
 const env = fs.readFileSync(path.join(__dirname, "..", ".env"), "utf8");
 const get = (k) => { const m = env.match(new RegExp("^" + k + "=(.*)$", "m")); return m ? m[1].trim() : ""; };
+
+
+/* ==RONDAFIM-INICIO==
+   A ASSINATURA DA RONDA — carimba "terminei tudo", e nao "comecei".
+
+   Ate 05/09/2026 quem carimbava era o conferir-pecas, na PRIMEIRA etapa. Isso fazia o painel
+   ver um robo vivo mesmo quando ele quebrava na quinta tarefa: o carimbo do comeco ficava novo
+   e escondia a rodada incompleta. O dono comparou com o vigia que assina a folha quando CHEGA
+   em vez de quando termina a ronda — e e exatamente isso.
+
+   Aqui e a ultima etapa do robo.bat. Chegar neste ponto significa: pecas conferidas, VR lido,
+   nuvem gravada, painel montado. Quando a rodada morre no meio, o robo.bat aborta antes daqui,
+   o carimbo envelhece, e o painel acende sozinho em 40 minutos.
+
+   Publicar ou nao publicar nao muda nada: "nada mudou desde a ultima publicacao" tambem e
+   rodada terminada. O que importa e ter chegado ate aqui. */
+function assinarRonda() {
+  return new Promise((resolve) => {
+    const url = (get("SUPABASE_URL") || "").replace(/\/+$/, "");
+    const key = get("SUPABASE_SERVICE_KEY");
+    if (!url || !key) return resolve(false);
+    const body = JSON.stringify([{ id: "robo", quando: new Date().toISOString(), ok: true,
+      etapa: "rodada-completa", motivo: null, detalhe: null, comando: null }]);
+    const req = https.request({
+      host: url.replace(/^https?:\/\//, ""), path: "/rest/v1/robo_saude?on_conflict=id",
+      method: "POST",
+      headers: { apikey: key, Authorization: "Bearer " + key, "Content-Type": "application/json",
+                 "Content-Length": Buffer.byteLength(body),
+                 Prefer: "resolution=merge-duplicates,return=minimal" }
+    }, (r) => { r.on("data", () => {}); r.on("end", () => resolve(r.statusCode < 300)); });
+    req.on("error", () => resolve(false));
+    req.setTimeout(8000, () => { try { req.destroy(); } catch (e) {} resolve(false); });
+    req.write(body); req.end();
+  });
+}
+/* ==RONDAFIM-FIM== */
 
 const TOKEN = get("GITHUB_TOKEN");
 const OWNER = "vitakero";
@@ -22,6 +59,15 @@ const headers = {
 };
 
 (async () => {
+  /* ASSINA A RONDA LOGO NA ENTRADA DESTA ETAPA.
+     Chegar aqui ja significa que tudo antes deu certo: pecas conferidas, VR lido, nuvem
+     gravada, painel montado. As saidas abaixo (pausado, nada mudou, teto do dia, ritmo) sao
+     todas "rodada terminou, so nao precisou publicar" — por isso a assinatura vem ANTES delas,
+     senao uma rodada boa que nao publicou pareceria robo morto em 40 minutos.
+     Publicacao manual do Mac (FORCAR=1) nao assina: quem tem que estar vivo e o robo da loja,
+     e eu publicando daqui nao prova nada sobre ele. */
+  if (process.env.FORCAR !== "1") { await assinarRonda(); }
+
   // BOTAO DE PAUSA REMOTO: se existir o arquivo robo/PAUSADO no repo, o robo NAO publica.
   // (Publicacao manual do Mac ignora a pausa usando: FORCAR=1 node scripts/publicar.cjs)
   if (process.env.FORCAR !== "1") {

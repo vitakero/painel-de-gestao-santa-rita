@@ -13,6 +13,8 @@ const HTML  = fs.readFileSync(path.join(raiz, "output", "index.html"), "utf8");
 const PECAS = fs.readFileSync(path.join(raiz, "scripts", "conferir-pecas.cjs"), "utf8");
 const FUNC  = fs.readFileSync(path.join(raiz, "supabase", "functions", "aviso-robo", "index.ts"), "utf8");
 const SQL   = fs.readFileSync(path.join(raiz, "sql", "robo_saude.sql"), "utf8");
+const PUB   = fs.readFileSync(path.join(raiz, "scripts", "publicar.cjs"), "utf8");
+const BAT   = fs.readFileSync(path.join(raiz, "robo.bat"), "utf8");
 
 let ok = 0, falhou = 0;
 function eq(nome, obtido, esperado) {
@@ -39,7 +41,7 @@ console.log("\n2) o robô CONTA o que houve, em todos os caminhos de falha");
 eq("   avisa quando falta configuração", /Falta configuração no computador da loja/.test(PECAS), true);
 eq("   avisa quando falta peça", /Faltam peças no computador da loja/.test(PECAS), true);
 eq("   avisa quando o .env sumiu", /O arquivo de configuração sumiu do computador da loja/.test(PECAS), true);
-eq("   e conta também quando dá certo (é o que apaga o aviso)", /await avisar\(true, "conferir-pecas"/.test(PECAS), true);
+eq("   e NÃO carimba mais 'estou vivo' na chegada", /await avisar\(true, "conferir-pecas"/.test(PECAS), false);
 eq("   toda falha vem com um conserto escrito", (PECAS.match(/await avisar\(false/g) || []).length, 3);
 
 console.log("\n3) a armadilha: avisar quando falta justo o endereço da nuvem");
@@ -107,6 +109,37 @@ eq("   o aviso continua sendo só do master", /if\(!rvEhMaster\(\)\)\{ el\.inner
 eq("   e a tabela também", /public\.sou_master\(\)/.test(SQL), true);
 eq("   uma linha só, não histórico", /check \(id = 'robo'\)/.test(SQL), true);
 eq("   tem como desfazer escrito", /drop table if exists public\.robo_saude/.test(SQL), true);
+
+console.log("\n10) o vigia assina no FIM da ronda, nunca na chegada");
+// 05/09/2026, o dono: um vigia que assina a folha quando CHEGA não prova ronda nenhuma.
+// Até aqui quem carimbava "estou vivo" era a PRIMEIRA etapa (conferir-pecas). Um robô que
+// quebrasse na quinta tarefa ficava com carimbo novo — e o painel, que só sabe olhar a idade
+// do carimbo, não tinha como desconfiar. Agora quem assina é a ÚLTIMA etapa.
+eq("   quem assina é o publicar (última etapa do robô)", /==RONDAFIM-INICIO==/.test(PUB), true);
+eq("   e assina dizendo que TERMINOU", /etapa: "rodada-completa"/.test(PUB), true);
+eq("   grava na mesma linha que o painel lê", /robo_saude\?on_conflict=id/.test(PUB), true);
+eq("   sem a chave, desiste calado (não derruba a publicação)", /if \(!url \|\| !key\) return resolve\(false\)/.test(PUB), true);
+eq("   e nunca trava esperando a nuvem", /req\.setTimeout\(8000/.test(PUB), true);
+
+// A ASSINATURA VEM ANTES DE TODAS AS SAÍDAS DE SUCESSO. Pausado, "nada mudou", teto do dia e
+// ritmo são todos "a ronda terminou, só não precisou publicar". Se a assinatura ficasse depois
+// de qualquer uma delas, uma rodada boa que não publicou apagaria o carimbo e o painel acusaria
+// robô morto em 40 minutos — alarme falso, que é o jeito mais rápido de ensinar a ignorar.
+const iAssina = PUB.indexOf("await assinarRonda()");
+eq("   assina antes de checar a pausa", iAssina >= 0 && iAssina < PUB.indexOf("contents/robo/PAUSADO"), true);
+eq("   antes de 'nada mudou'", iAssina < PUB.indexOf("Nada mudou desde a ultima"), true);
+eq("   antes do teto do dia", iAssina < PUB.indexOf("Teto do dia"), true);
+
+// PUBLICAÇÃO MANUAL DO MAC NÃO ASSINA: quem precisa estar vivo é o computador da LOJA. Eu
+// publicando daqui com FORCAR=1 não prova nada sobre ele — assinaria por ele e esconderia
+// exatamente a parada que este aviso existe para mostrar.
+eq("   publicação manual do Mac não assina pelo robô", /if \(process\.env\.FORCAR !== "1"\) \{ await assinarRonda\(\); \}/.test(PUB), true);
+
+// E a ronda só CHEGA no publicar se as etapas que travam deram certo — o .bat aborta antes.
+eq("   o .bat para se faltar peça", /conferir-pecas\.cjs\r?\nif errorlevel 1 goto pecas/.test(BAT), true);
+eq("   para se o VR não for lido", /buildVrData\.cjs\r?\nif errorlevel 1 goto erro/.test(BAT), true);
+eq("   para se o painel não for montado", /demoDashboard\.ts\r?\nif errorlevel 1 goto erro/.test(BAT), true);
+eq("   e o publicar é mesmo a última etapa", BAT.lastIndexOf("node scripts") === BAT.indexOf("node scripts\\publicar.cjs"), true);
 
 console.log("\n" + ok + " ok, " + falhou + " falha(s).");
 process.exit(falhou ? 1 : 0);

@@ -265,9 +265,11 @@ async function main() {
 
   diz("[pecas] tudo no lugar" + (consertou ? " (depois do conserto)" : "")
       + ": " + PACOTES.length + " pacotes, " + CONFIG_OBRIGATORIA.length + " configuracoes.");
-  /* O SUCESSO TAMBEM E CONTADO: e o que apaga o aviso do painel sozinho quando o problema e
-     resolvido. Sem isto, o aviso ficaria pendurado ate alguem limpar na mao. */
-  await avisar(true, "conferir-pecas", null, null, null);
+  /* NAO ASSINA MAIS AQUI. Ate 05/09/2026 esta linha carimbava "estou vivo" na PRIMEIRA etapa —
+     e um robo que quebrasse na quinta tarefa continuava parecendo vivo, porque o carimbo do
+     comeco estava novo. Quem assina agora e o publicar.cjs, a ULTIMA etapa: assinatura passou a
+     significar "terminei a ronda", nao "cheguei". O aviso de falha continua sendo apagado, so
+     que pelo fim da rodada — que e quando o problema realmente acabou. */
   return 0;
 }
 
