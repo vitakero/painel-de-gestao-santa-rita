@@ -85,7 +85,7 @@ const SB_URL_RESERVA = "https://uabhsmculsfwzcrhyhch.supabase.co";
 function contarNuvem(estado) {
   return new Promise((resolve) => {
     let env = "";
-    try { env = fs.readFileSync(path.join(__dirname, "..", ".env"), "utf8"); } catch (e) { return resolve(false); }
+    try { env = fs.readFileSync(path.join(RAIZ, ".env"), "utf8"); } catch (e) { return resolve(false); }
     const pega = (k) => { const m = env.match(new RegExp("^" + k + "=(.*)$", "m")); return m ? m[1].trim() : ""; };
     const url = (pega("SUPABASE_URL") || SB_URL_RESERVA).replace(/\/+$/, "");
     const key = pega("SUPABASE_SERVICE_KEY");
@@ -108,7 +108,7 @@ function contarNuvem(estado) {
 function lerEstado() {
   return new Promise((resolve) => {
     let env = "";
-    try { env = fs.readFileSync(path.join(__dirname, "..", ".env"), "utf8"); } catch (e) { return resolve(null); }
+    try { env = fs.readFileSync(path.join(RAIZ, ".env"), "utf8"); } catch (e) { return resolve(null); }
     const pega = (k) => { const m = env.match(new RegExp("^" + k + "=(.*)$", "m")); return m ? m[1].trim() : ""; };
     const url = (pega("SUPABASE_URL") || SB_URL_RESERVA).replace(/\/+$/, "");
     const key = pega("SUPABASE_SERVICE_KEY");
@@ -133,7 +133,7 @@ function precisaAvisar(antes, motivo) {
 function mandarEmail(estado) {
   return new Promise((resolve) => {
     let env = "";
-    try { env = fs.readFileSync(path.join(__dirname, "..", ".env"), "utf8"); } catch (e) { return resolve(false); }
+    try { env = fs.readFileSync(path.join(RAIZ, ".env"), "utf8"); } catch (e) { return resolve(false); }
     const pega = (k) => { const m = env.match(new RegExp("^" + k + "=(.*)$", "m")); return m ? m[1].trim() : ""; };
     const url = (pega("SUPABASE_URL") || SB_URL_RESERVA).replace(/\/+$/, "");
     const key = pega("SUPABASE_SERVICE_KEY");
@@ -150,7 +150,17 @@ function mandarEmail(estado) {
   });
 }
 
+/* A BANCADA NAO PODE FALAR COM A NUVEM. Este script e rodado de verdade pelo teste, com
+   PECAS_RAIZ apontando pra uma pasta de mentira e cenarios de falha de proposito. Na primeira
+   versao deste bloco eu lia o .env pelo caminho fixo em vez de pela RAIZ: o teste rodou, meu
+   codigo pegou a chave DE VERDADE e mandou DOIS e-mails de robo parado para o dono, sem a loja
+   ter nada. Corrigir a raiz ja resolve; esta trava existe porque uma protecao so nunca basta
+   quando o custo do erro e "avisar a pessoa por nada" — que e como se ensina alguem a ignorar
+   aviso. */
+function ehTeste() { return !!process.env.PECAS_RAIZ; }
+
 async function avisar(ok, etapa, motivo, detalhe, comando) {
+  if (ehTeste()) return;
   try {
     const antes = await lerEstado();
     const estado = { ok: ok, etapa: etapa, motivo: motivo, detalhe: detalhe, comando: comando };

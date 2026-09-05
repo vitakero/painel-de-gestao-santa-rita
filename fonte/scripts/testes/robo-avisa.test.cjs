@@ -51,7 +51,17 @@ eq("   e ele é usado quando o .env não tem", /pega\("SUPABASE_URL"\) \|\| SB_U
 eq("   a CHAVE não tem cópia no código", /SERVICE_KEY\s*=\s*"[A-Za-z0-9]/.test(PECAS), false);
 eq("   sem a chave, ele desiste em silêncio (não trava o robô)", /if \(!key\) return resolve\(false\)/.test(PECAS), true);
 
-console.log("\n4) o e-mail não vira barulho");
+console.log("\n4) A BANCADA NÃO PODE MANDAR E-MAIL DE VERDADE");
+// Aconteceu em 05/09/2026: o teste roda o script com PECAS_RAIZ numa pasta de mentira, mas o
+// código de aviso lia o .env pelo caminho fixo — pegou a chave real e mandou DOIS e-mails de
+// "robô parado" para o dono, sem a loja ter nada. Duas travas, porque avisar por nada é o que
+// ensina a pessoa a ignorar aviso de verdade.
+eq("   lê o .env pela MESMA raiz do resto do script", /path\.join\(RAIZ, "\.env"\)/.test(PECAS), true);
+eq("   e não pelo caminho fixo", /path\.join\(__dirname, "\.\.", "\.env"\)/.test(PECAS), false);
+eq("   sabe quando está sob teste", /function ehTeste\(\)/.test(PECAS), true);
+eq("   e desiste antes de qualquer chamada", /if \(ehTeste\(\)\) return;/.test(PECAS), true);
+
+console.log("\n5) o e-mail não vira barulho");
 eq("   só manda em falha, nunca em sucesso", /sucesso não gera e-mail/.test(FUNC), true);
 eq("   espera 12h antes de repetir o mesmo motivo", /AVISO_ESPERA_MS = 12 \* 60 \* 60 \* 1000/.test(PECAS), true);
 eq("   mas manda na hora se o motivo MUDAR", /antes\.avisado_motivo !== motivo/.test(PECAS), true);
@@ -59,7 +69,7 @@ eq("   a chave do Resend fica no Supabase, não na loja", /Deno\.env\.get\("RESE
 eq("   e o robô chama a função, não o Resend", /functions\/v1\/aviso-robo/.test(PECAS), true);
 eq("   o e-mail leva o conserto junto", /O que fazer:/.test(FUNC), true);
 
-console.log("\n5) o aviso no painel diz o motivo E o conserto");
+console.log("\n6) o aviso no painel diz o motivo E o conserto");
 eq("   lê o relato do robô", /from\("robo_saude"\)/.test(HTML), true);
 eq("   troca o título pelo motivo real", /novo\.titulo = String\(saude\.motivo\)/.test(HTML), true);
 eq("   desenha o que fazer", /class="rv-fazer"/.test(HTML), true);
@@ -67,7 +77,7 @@ eq("   e escapa o texto (veio de fora do painel)", /pxEsc\(t\.comando\)/.test(HT
 eq("   sucesso do robô não vira aviso", /if\(!t \|\| !saude \|\| saude\.ok\) return t;/.test(HTML), true);
 eq("   sem relato, o aviso antigo continua saindo", /rvPintar\(min, null\)/.test(HTML), true);
 
-console.log("\n6) parado deixou de parecer bilhete");
+console.log("\n7) parado deixou de parecer bilhete");
 eq("   faixa vermelha cheia", /\.rv-parado \{ background:#8c2c22/.test(HTML), true);
 eq("   com pulsação lenta na lateral", /animation:rvPulso/.test(HTML), true);
 eq("   que respeita quem pediu menos movimento", /prefers-reduced-motion: reduce\)\{ \.rv-parado::before\{ animation:none/.test(HTML), true);
@@ -76,7 +86,7 @@ const CSS_RV = (HTML.match(/\.rv-[a-z:-]+[^{]*\{[^}]*\}/g) || []).join(" ");
 eq("   e NÃO pisca (piscar treina a ignorar)", /blink/i.test(CSS_RV), false);
 eq("   a pulsação é lenta (2,4s), não nervosa", /rvPulso 2\.4s/.test(CSS_RV), true);
 
-console.log("\n7) quem vê");
+console.log("\n8) quem vê");
 eq("   o aviso continua sendo só do master", /if\(!rvEhMaster\(\)\)\{ el\.innerHTML=""; return; \}/.test(HTML), true);
 eq("   e a tabela também", /public\.sou_master\(\)/.test(SQL), true);
 eq("   uma linha só, não histórico", /check \(id = 'robo'\)/.test(SQL), true);
