@@ -14,6 +14,7 @@ const PECAS = fs.readFileSync(path.join(raiz, "scripts", "conferir-pecas.cjs"), 
 const FUNC  = fs.readFileSync(path.join(raiz, "supabase", "functions", "aviso-robo", "index.ts"), "utf8");
 const SQL   = fs.readFileSync(path.join(raiz, "sql", "robo_saude.sql"), "utf8");
 const PUB   = fs.readFileSync(path.join(raiz, "scripts", "publicar.cjs"), "utf8");
+const FONTE = fs.readFileSync(path.join(raiz, "scripts", "demoDashboard.ts"), "utf8");
 const BAT   = fs.readFileSync(path.join(raiz, "robo.bat"), "utf8");
 
 let ok = 0, falhou = 0;
@@ -27,7 +28,10 @@ function eq(nome, obtido, esperado) {
 const ini = HTML.indexOf("==ROBOVIGIA-INICIO=="), fim = HTML.indexOf("==ROBOVIGIA-FIM==");
 if (ini < 0 || fim < 0) { console.log("ERRO: não achei o vigia no painel (rode o build antes)."); process.exit(1); }
 const M = new Function(HTML.slice(HTML.indexOf("*/", ini) + 2, HTML.lastIndexOf("/*", fim))
-  + "\nreturn {rvNivel,rvQuanto,rvTexto};")();
+  + "\nreturn {rvNivel,rvQuanto,rvTexto,rvIdadeBatimento,rvComRelato,RV_SEM_BATIMENTO};")();
+
+// atalho: uma data ISO de N minutos atrás, para RODAR a regra em vez de só ler o código dela
+const atras = (min) => new Date(Date.now() - min * 60000).toISOString();
 
 console.log("1) o vigia continua medindo certo");
 eq("   90 min ainda é 'ok'", M.rvNivel(89), "ok");
@@ -71,7 +75,9 @@ eq("   a mensagem não promete painel quando não gravou", /NAO consegui avisar 
 eq("   e só diz 'contei' quando contou mesmo", /const gravou = await contarNuvem\(estado\);/.test(PECAS), true);
 eq("   o painel vigia o batimento do robô", /var RV_SEM_BATIMENTO=40;/.test(HTML), true);
 eq("   sem batimento vira 'parado', mesmo com estado ok", /O robô da loja parou de dar sinal\./.test(HTML), true);
-eq("   e diz o comando pra descobrir o motivo", /cd C:\\vr-robo  e depois  robo\.bat/.test(HTML), true);
+// A BARRA VEM EM DOBRO NO ARQUIVO, de proposito. Ver a secao 11: escrita simples, ela virava
+// caractere invisivel na tela. Esta prova olha o arquivo; quem olha o RESULTADO e a secao 11.
+eq("   e diz o comando pra descobrir o motivo", /cd C:\\\\vr-robo  e depois  robo\.bat/.test(HTML), true);
 
 console.log("\n6) o e-mail não vira barulho");
 eq("   só manda em falha, nunca em sucesso", /sucesso não gera e-mail/.test(FUNC), true);
@@ -140,6 +146,48 @@ eq("   o .bat para se faltar peça", /conferir-pecas\.cjs\r?\nif errorlevel 1 go
 eq("   para se o VR não for lido", /buildVrData\.cjs\r?\nif errorlevel 1 goto erro/.test(BAT), true);
 eq("   para se o painel não for montado", /demoDashboard\.ts\r?\nif errorlevel 1 goto erro/.test(BAT), true);
 eq("   e o publicar é mesmo a última etapa", BAT.lastIndexOf("node scripts") === BAT.indexOf("node scripts\\publicar.cjs"), true);
+
+console.log("\n11) A REGRA DOS 40 MINUTOS, RODADA DE VERDADE");
+// Até aqui esta regra só era conferida por TEXTO — eu procurava "RV_SEM_BATIMENTO=40" dentro do
+// painel e dava por certo. Procurar a linha não é executá-la: o número podia estar lá e a conta
+// em volta estar errada, e nenhuma prova quebraria. Aqui a função é chamada com horários de
+// verdade, do jeito que o painel chama. O "dado fresco" é de propósito — é o caso que enganava
+// o vigia antigo: dado novo na tela e robô morto por trás.
+const FRESCO = M.rvTexto(2);   // 2 minutos de dado: sozinho, não gera aviso nenhum
+eq("   dado fresco sozinho não acusa nada", FRESCO, null);
+
+eq("   39 minutos ainda é silêncio", M.rvComRelato(FRESCO, { ok: true, quando: atras(39) }), null);
+const q40 = M.rvComRelato(FRESCO, { ok: true, quando: atras(41) });
+eq("   40 minutos acende", q40 && q40.nivel, "parado");
+eq("   e diz que ele parou de DAR SINAL", q40 && q40.titulo, "O robô da loja parou de dar sinal.");
+eq("   com o comando pronto pra colar", /cd C:\\vr-robo/.test(q40 && q40.comando), true);
+// ISTO FOI UM DEFEITO DE VERDADE, achado em 05/09/2026 por esta prova. A barra de "C:\vr-robo"
+// mora dentro do texto gigante que gera o painel, e ali "\v" nao e barra+v: e o codigo invisivel
+// de tabulacao vertical. O painel mandava colar "cd C:" + um caractere que ninguem ve + "r-robo"
+// — um comando que NAO funciona, no unico aviso cujo trabalho e dar um comando que funcione.
+// Todas as provas por texto passavam, porque no ARQUIVO a barra esta la; so quebra quando o
+// navegador LE a linha. E por isso que esta secao roda a funcao em vez de procurar a linha.
+eq("   e sem nenhum caractere invisivel dentro", /[\x00-\x1f]/.test(q40 && q40.comando), false);
+eq("   e a fonte escapa a barra em dobro", /cd C:\\\\\\\\vr-robo/.test(FONTE), true);
+eq("   e conta há quanto tempo", /há 41 minutos/.test(q40 && q40.corpo), true);
+
+// SEM CARIMBO NÃO É ALARME. Painel que inventa alarme por falta de dado é painel que ensina
+// a ignorar alarme.
+eq("   carimbo vazio não inventa alarme", M.rvComRelato(FRESCO, { ok: true, quando: null }), null);
+eq("   sem relato nenhum, devolve o que veio", M.rvComRelato(FRESCO, null), FRESCO);
+
+// O OUTRO CAMINHO: o robô CONSEGUIU contar que quebrou. Aí o aviso mostra o motivo dele,
+// na hora, sem esperar os 40 minutos — mesmo com o dado da tela novinho.
+const contou = M.rvComRelato(FRESCO, { ok: false, quando: atras(1),
+  motivo: "Falta configuração no computador da loja.", detalhe: "sumiu SUPABASE_URL",
+  comando: "abra o .env" });
+eq("   falha contada acende na hora, com dado novo", contou && contou.nivel, "parado");
+eq("   e o título vira o motivo real", contou && contou.titulo, "Falta configuração no computador da loja.");
+
+// O CASO DE 03/09 INTEIRO: robô 34 horas parado, dado velho junto.
+const velho = M.rvComRelato(M.rvTexto(34 * 60), { ok: true, quando: atras(34 * 60) });
+eq("   34 horas paradas continuam acendendo", velho && velho.nivel, "parado");
+eq("   e falam em horas, não em 2040 minutos", /há 34 horas/.test(velho && velho.corpo), true);
 
 console.log("\n" + ok + " ok, " + falhou + " falha(s).");
 process.exit(falhou ? 1 : 0);

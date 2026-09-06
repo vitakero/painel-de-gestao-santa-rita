@@ -10086,7 +10086,7 @@ function rvComRelato(t, saude){
         corpo:"A última vez que ele avisou que estava vivo foi "+rvQuanto(idade)+
               ". O normal é a cada 5 minutos. Ele pode ter parado de um jeito que o impede até "
               +"de contar o motivo — é o que acontece quando o arquivo de configuração some inteiro.",
-        comando:"No computador da loja, abra o Prompt de Comando e rode:  cd C:\\vr-robo  e depois  robo.bat  "
+        comando:"No computador da loja, abra o Prompt de Comando e rode:  cd C:\\\\vr-robo  e depois  robo.bat  "
               +"— a mensagem na tela diz o que faltou." };
     }
     return t;
