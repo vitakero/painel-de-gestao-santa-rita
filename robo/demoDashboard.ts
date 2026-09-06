@@ -10074,7 +10074,74 @@ function rvTexto(min){
 /* quantos minutos desde o ultimo carimbo do robo (null se nunca carimbou) */
 function rvIdadeBatimento(agoraMs, quandoISO){ return rvIdadeMin(agoraMs, quandoISO); }
 
-function rvComRelato(t, saude){
+/* ==SINCVIGIA== AS TAREFAS QUE NAO DERRUBAM A RONDA.
+   Cinco tarefas do robo (agendamentos, conferencia dos carros, pedidos, notas da Receita,
+   codigos dos fornecedores) nao tem freio: se falharem, o robo segue e assina "terminei" trinta
+   segundos depois. Elas passaram a carimbar a hora em que CONSEGUIRAM terminar, e aqui a gente
+   mede o silencio de cada uma contra a folga DELA.
+   Folga por tarefa, e nao uma regua unica: as que varrem o VR inteiro demoram, e um numero so
+   daria alarme falso nas pesadas ou demora nas leves. */
+function rvSincParadas(lista, agoraMs, idadeRobo){
+  var fora=[], i, s, idade, folga, desconto;
+  if(!lista || !lista.length) return fora;
+  /* DESCONTA O SILENCIO DO PROPRIO ROBO. Quando o robo inteiro para, as cinco param junto — e
+     como a folga delas (25 e 40 min) e menor que os 40 minutos do batimento, a faixa AMBAR
+     acenderia primeiro dizendo "o resto do painel continua atualizando normalmente", que seria
+     mentira, e ainda esconderia o vermelho por 15 minutos. Uma tarefa so esta parada se ficou
+     muda enquanto o robo CONTINUOU rodando. */
+  desconto = (typeof idadeRobo === "number" && idadeRobo > 0) ? idadeRobo : 0;
+  for(i=0;i<lista.length;i++){
+    s=lista[i]; if(!s) continue;
+    idade = rvIdadeMin(agoraMs, s.quando);
+    /* FALHA CONTADA VALE NA HORA, sem esperar a folga — mesma regra do robo inteiro: quando a
+       tarefa conseguiu falar, esperar mais so atrasa a noticia. */
+    if(s.ok===false){ fora.push({ id:s.id, nome:s.nome||s.id, idade:idade, contou:true,
+      motivo:s.motivo||null, detalhe:s.detalhe||null, comando:s.comando||null }); continue; }
+    if(idade===null) continue;   /* sem carimbo nenhum: nao inventa alarme */
+    folga = (+s.folga_min>0) ? +s.folga_min : 25;
+    if((idade-desconto)>=folga) fora.push({ id:s.id, nome:s.nome||s.id, idade:idade, contou:false,
+      motivo:s.motivo||null, detalhe:s.detalhe||null, comando:s.comando||null });
+  }
+  /* quem contou primeiro, depois o silencio mais longo */
+  fora.sort(function(a,b){
+    if(a.contou!==b.contou) return a.contou?-1:1;
+    return (b.idade||0)-(a.idade||0);
+  });
+  return fora;
+}
+function rvMaiuscula(s){ s=String(s||""); return s.charAt(0).toUpperCase()+s.slice(1); }
+function rvTextoSinc(paradas){
+  if(!paradas || !paradas.length) return null;
+  var p=paradas[0], n=paradas.length, corpo="", nomes=[], i;
+  if(n===1){
+    if(p.detalhe) corpo += String(p.detalhe)+" ";
+    if(p.idade!==null) corpo += "A última vez que ela conseguiu foi "+rvQuanto(p.idade)+". ";
+    corpo += "O resto do painel continua atualizando normalmente.";
+    /* SEM ARTIGO NA FRASE. "A pedidos de compra parou" e "A notas da Receita parou" saiam
+       errado em 4 dos 5 nomes — genero e numero mudam de tarefa pra tarefa. Com dois pontos a
+       frase fica certa em todas. */
+    return { nivel:"atraso", ico:"⚠️",
+      titulo: p.motivo ? String(p.motivo) : (rvMaiuscula(p.nome)+": parou de atualizar."),
+      corpo: corpo, comando: p.comando ? String(p.comando) : null };
+  }
+  for(i=0;i<n;i++) nomes.push(paradas[i].nome);
+  return { nivel:"atraso", ico:"⚠️",
+    titulo: n+" tarefas do robô pararam de atualizar.",
+    corpo: "São elas: "+nomes.join(", ")+". O resto do painel continua atualizando normalmente.",
+    comando: p.comando ? String(p.comando) : null };
+}
+
+/* O ROBO INTEIRO GANHA DA TAREFA. rvComRelato decide primeiro o que ja decidia; a faixa âmbar
+   das tarefas so entra quando NADA mais grave apareceu. Se entrasse antes, "uma tarefa parou"
+   apareceria na tela enquanto o robo inteiro estivesse morto — o menos grave escondendo o mais
+   grave, que e a inversao que este modulo existe pra evitar. */
+function rvComRelato(t, saude, sincs){
+  var r = rvSoRobo(t, saude);
+  if(r) return r;
+  var idadeRobo = saude ? rvIdadeBatimento(Date.now(), saude.quando) : null;
+  return rvTextoSinc(rvSincParadas(sincs, Date.now(), idadeRobo));
+}
+function rvSoRobo(t, saude){
   /* SEM BATIMENTO E TAO GRAVE QUANTO FALHA CONTADA. Se o robo nao carimba ha 40 minutos, ele
      nao esta rodando — e pode ser justamente o caso em que ele nao CONSEGUE contar nada
      (o .env sumiu inteiro, e a chave foi junto). */
@@ -10119,10 +10186,25 @@ function rvSB(){ try{ return window.__SB||null; }catch(e){ return null; } }
    sem poder resolver. Quem mexe no robo e quem precisa saber. Sem master, nem consulta:
    economiza tambem a leitura. */
 function rvEhMaster(){ try{ return !!(window.__PERFIL && window.__PERFIL.is_master); }catch(e){ return false; } }
-function rvPintar(min, saude){
+/* AS DUAS LEITURAS CHEGAM EM TEMPOS DIFERENTES, e cada uma repinta com o que a outra ja
+   tinha trazido. Sem esta memoria, a segunda a chegar apagaria o aviso da primeira. */
+var rvSincsCache=null, rvMinCache=null, rvSaudeCache=null, rvSaudeLido=0;
+/* O VERMELHO NAO PODE SER DECIDIDO COM LEITURA VELHA. A hora do carimbo e absoluta, entao uma
+   leitura de 10 minutos atras faz o batimento PARECER 10 minutos mais velho do que e — e o
+   painel acenderia "o robo parou" cedo demais. Este repintar existe pra atualizar a parte AMBAR
+   quando a leitura das tarefas chega; se o retrato do robo ja envelheceu, ele passa null, que
+   cai no caminho "nao inventa alarme". A leitura irma chega logo em seguida e repinta certo. */
+function rvRepintar(){
+  var fresco = (Date.now()-rvSaudeLido) < 120000;
+  rvPintar(rvMinCache, fresco ? rvSaudeCache : null);
+}
+function rvPintar(min, saude, sincs){
+  rvMinCache=min;
+  if(saude!==rvSaudeCache || saude){ rvSaudeCache=saude; if(saude) rvSaudeLido=Date.now(); }
+  if(sincs!==undefined) rvSincsCache=sincs;
   var el=document.getElementById("rvAviso"); if(!el) return;
   if(!rvEhMaster()){ el.innerHTML=""; return; }
-  var t=rvComRelato(rvTexto(min), saude);
+  var t=rvComRelato(rvTexto(min), saude, rvSincsCache);
   if(!t){ el.innerHTML=""; return; }
   var cons = t.comando
     ? '<div class="rv-fazer"><b>O que fazer:</b> '+pxEsc(t.comando)+'</div>' : '';
@@ -10132,6 +10214,15 @@ function rvPintar(min, saude){
 function rvConferir(){
   if(!rvEhMaster()) return;
   var sb=rvSB(); if(!sb) return;
+  /* CONSULTA IRMA, DE PROPOSITO. A consulta de baixo desiste cedo quando vendasetor_dia nao
+     responde ("sem acesso: nao inventa alarme"), e uma leitura pendurada dentro dela morreria
+     junto — justamente no caso em que mais se quer o aviso. São 5 linhas de ~80 bytes. */
+  try{
+    sb.from("robo_sincronias").select("id,nome,quando,ok,motivo,detalhe,comando,folga_min").limit(20)
+      .then(function(rs){
+        if(rs && !rs.error && rs.data){ rvSincsCache=rs.data; rvRepintar(); }
+      }, function(){});
+  }catch(e){}
   try{
     sb.from("vendasetor_dia").select("atualizado_em").order("atualizado_em",{ascending:false}).limit(1)
       .then(function(r){

@@ -12,6 +12,52 @@ const fs = require("fs"), path = require("path"), https = require("https"), { Cl
 function env(){ for(const p of [path.join(__dirname,"..",".env"),".env","../.env"]){ try{ return fs.readFileSync(p,"utf8"); }catch(e){} } return ""; }
 const E = env(), g = k => { const m = E.match(new RegExp("^"+k+"=(.*)$","m")); return m ? m[1].trim() : ""; };
 const SB_HOST = "uabhsmculsfwzcrhyhch.supabase.co", SB_KEY = g("SUPABASE_SERVICE_KEY");
+const PONTO_ID = "conferencia";
+
+/* ==PONTOSINC-INICIO== — O CARTAO DE PONTO DESTA TAREFA.
+   06/09/2026. Esta tarefa nao tem freio no robo.bat: se ela falhar, o robo segue e assina
+   "terminei a ronda" trinta segundos depois. Era assim que ela podia morrer e ficar morta sem
+   ninguem saber — a tela continuava mostrando o dado de ontem com cara de normal.
+
+   Agora ela carimba a hora em que CONSEGUIU terminar. O painel compara esse carimbo com o
+   relogio e reclama quando ele envelhece (public.robo_sincronias, coluna folga_min).
+
+   POR QUE MEDIR SILENCIO E NAO ERRO: erro so e contado por quem ainda esta vivo pra falar.
+   Esta tarefa engole excecao de proposito, pode travar esperando a rede, e pode sair como
+   sucesso sem ter feito nada. Carimbo velho pega os tres; reclamacao nao pega nenhum.
+
+   TRES DEFESAS, copiadas do assinarRonda() do publicar.cjs — carimbar NUNCA pode derrubar a
+   rodada, senao a protecao vira o defeito:
+     1. sem chave, desiste calado;
+     2. relogio de 8s, para nao pendurar a rodada esperando a nuvem;
+     3. nenhum caminho lanca erro pra fora — sempre resolve.
+   E PONTO_TESTE=1 desliga tudo: em 05/09 uma bancada rodou um script de verdade e mandou dois
+   e-mails de "robo parado" pro dono sem a loja ter nada. */
+function baterPonto(ok, motivo, detalhe, comando) {
+  return new Promise((resolve) => {
+    if (process.env.PONTO_TESTE === "1") return resolve(false);
+    if (!SB_KEY) return resolve(false);
+    /* "quando" SO NO SUCESSO. A coluna quer dizer "a ultima vez que ela CONSEGUIU"; carimbar a
+       hora na falha apagaria essa informacao e faria a tela dizer "a ultima vez que ela
+       conseguiu foi ha 0 minutos" dentro da mesma faixa que anuncia a falha. PostgREST nao toca
+       em coluna que nao vem no corpo, e o default now() cobre a primeira gravacao. */
+    const linha = { id: PONTO_ID, ok: !!ok,
+      motivo: motivo || null, detalhe: detalhe || null, comando: comando || null };
+    if (ok) linha.quando = new Date().toISOString();
+    const corpo = JSON.stringify([linha]);
+    const p = https.request({
+      host: SB_HOST, path: "/rest/v1/robo_sincronias?on_conflict=id", method: "POST",
+      headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY,
+                 "Content-Type": "application/json", "Content-Length": Buffer.byteLength(corpo),
+                 Prefer: "resolution=merge-duplicates,return=minimal" }
+    }, (res) => { res.on("data", () => {}); res.on("end", () => resolve(res.statusCode < 300)); });
+    p.on("error", () => resolve(false));
+    p.setTimeout(8000, () => { try { p.destroy(); } catch (e) {} resolve(false); });
+    p.write(corpo); p.end();
+  });
+}
+/* ==PONTOSINC-FIM== */
+
 
 // Quantos dias para trás sincronizar (o dia de hoje muda o tempo todo; os anteriores
 // já estão fechados, mas revarremos alguns por causa de nota finalizada depois).
@@ -37,7 +83,10 @@ function req(method, pathq, body){
       res.on("end", () => res.statusCode < 300 ? ok(b ? JSON.parse(b || "[]") : [])
                                                : err(new Error(res.statusCode+" "+b.slice(0,200))));
     });
-    r.on("error", err); if (dados) r.write(dados); r.end();
+    r.on("error", err);
+    /* RELOGIO — ver o mesmo comentario em vr-sync-agendamento.cjs. */
+    r.setTimeout(20000, () => { try { r.destroy(); } catch (e) {} err(new Error("a nuvem nao respondeu em 20s")); });
+    if (dados) r.write(dados); r.end();
   });
 }
 const upsert = rows => req("POST", "/rest/v1/central_conferencias?on_conflict=id", rows);
@@ -247,7 +296,10 @@ function situacao(r, minutosDesdeUltima){
 (async () => {
   if (!SB_KEY) { console.log("!! Falta SUPABASE_SERVICE_KEY no .env"); return; }
   const c = new Client({ host: g("PG_HOST"), port: +g("PG_PORT"), database: g("PG_DATABASE"),
-                         user: g("PG_USER"), password: g("PG_PASSWORD"), ssl: false, statement_timeout: 120000 });
+                         user: g("PG_USER"), password: g("PG_PASSWORD"), ssl: false, statement_timeout: 120000,
+                         /* era o unico dos cinco sem teto pra CONECTAR: se o VR aceitasse o TCP e
+                            nao respondesse, pendurava a rodada ate o timeout do sistema. */
+                         connectionTimeoutMillis: 20000 });
   await c.connect();
   const r = await c.query(SQL, [String(DIAS)]);
   await c.end();
@@ -277,8 +329,22 @@ function situacao(r, minutosDesdeUltima){
     };
   });
 
-  if (!linhas.length) { console.log("Nada para enviar."); return; }
+  /* SETE DIAS SEM NENHUMA CONFERENCIA NAO ACONTECE NESTA LOJA. Medido em 933 conferencias: ela
+     recebe de 16 a 33 carros por dia. Zero na janela inteira nao e "semana fraca", e o sintoma
+     de estar lendo a tabela errada — que ja aconteceu aqui (a Central lia
+     pedidoagendamentorecebimento, com 3 linhas, em vez de notaentradacoletor, com 168 mil).
+     Por isso aqui zero e falha CONTADA, e nao sucesso silencioso. */
+  if (!linhas.length) {
+    console.log("Nada para enviar.");
+    await baterPonto(false, "A leitura das conferências do coletor no VR voltou vazia.",
+      "Nenhuma conferência nos últimos " + DIAS + " dias. A loja recebe de 16 a 33 carros por dia, então zero na janela inteira quase sempre quer dizer que a leitura parou de achar os dados.",
+      "Confira no VR se a tabela notaentradacoletor ainda responde. No computador da loja:  cd C:\\vr-robo  e depois  node scripts\\vr-sync-conferencia.cjs");
+    return;
+  }
   for (let i = 0; i < linhas.length; i += 200) await upsert(linhas.slice(i, i + 200));
+  /* DEPOIS DO LACO INTEIRO, nunca dentro: a gravacao vai em lotes de 200, e um lote que falha no
+     meio deixa os anteriores gravados. "Chegou aqui" e a unica coisa que significa terminou. */
+  await baterPonto(true, null, linhas.length + " conferencia(s) dos ultimos " + DIAS + " dia(s).", null);
 
   const c1 = linhas.filter(l => l.situacao === "conferindo").length;
   const c2 = linhas.filter(l => l.situacao === "aguardando").length;

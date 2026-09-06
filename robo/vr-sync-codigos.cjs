@@ -33,6 +33,52 @@ function env() {
 }
 const E = env(), g = (k) => { const m = E.match(new RegExp("^" + k + "=(.*)$", "m")); return m ? m[1].trim() : ""; };
 const SB_HOST = "uabhsmculsfwzcrhyhch.supabase.co", SB_KEY = g("SUPABASE_SERVICE_KEY");
+const PONTO_ID = "codigos";
+
+/* ==PONTOSINC-INICIO== — O CARTAO DE PONTO DESTA TAREFA.
+   06/09/2026. Esta tarefa nao tem freio no robo.bat: se ela falhar, o robo segue e assina
+   "terminei a ronda" trinta segundos depois. Era assim que ela podia morrer e ficar morta sem
+   ninguem saber — a tela continuava mostrando o dado de ontem com cara de normal.
+
+   Agora ela carimba a hora em que CONSEGUIU terminar. O painel compara esse carimbo com o
+   relogio e reclama quando ele envelhece (public.robo_sincronias, coluna folga_min).
+
+   POR QUE MEDIR SILENCIO E NAO ERRO: erro so e contado por quem ainda esta vivo pra falar.
+   Esta tarefa engole excecao de proposito, pode travar esperando a rede, e pode sair como
+   sucesso sem ter feito nada. Carimbo velho pega os tres; reclamacao nao pega nenhum.
+
+   TRES DEFESAS, copiadas do assinarRonda() do publicar.cjs — carimbar NUNCA pode derrubar a
+   rodada, senao a protecao vira o defeito:
+     1. sem chave, desiste calado;
+     2. relogio de 8s, para nao pendurar a rodada esperando a nuvem;
+     3. nenhum caminho lanca erro pra fora — sempre resolve.
+   E PONTO_TESTE=1 desliga tudo: em 05/09 uma bancada rodou um script de verdade e mandou dois
+   e-mails de "robo parado" pro dono sem a loja ter nada. */
+function baterPonto(ok, motivo, detalhe, comando) {
+  return new Promise((resolve) => {
+    if (process.env.PONTO_TESTE === "1") return resolve(false);
+    if (!SB_KEY) return resolve(false);
+    /* "quando" SO NO SUCESSO. A coluna quer dizer "a ultima vez que ela CONSEGUIU"; carimbar a
+       hora na falha apagaria essa informacao e faria a tela dizer "a ultima vez que ela
+       conseguiu foi ha 0 minutos" dentro da mesma faixa que anuncia a falha. PostgREST nao toca
+       em coluna que nao vem no corpo, e o default now() cobre a primeira gravacao. */
+    const linha = { id: PONTO_ID, ok: !!ok,
+      motivo: motivo || null, detalhe: detalhe || null, comando: comando || null };
+    if (ok) linha.quando = new Date().toISOString();
+    const corpo = JSON.stringify([linha]);
+    const p = https.request({
+      host: SB_HOST, path: "/rest/v1/robo_sincronias?on_conflict=id", method: "POST",
+      headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY,
+                 "Content-Type": "application/json", "Content-Length": Buffer.byteLength(corpo),
+                 Prefer: "resolution=merge-duplicates,return=minimal" }
+    }, (res) => { res.on("data", () => {}); res.on("end", () => resolve(res.statusCode < 300)); });
+    p.on("error", () => resolve(false));
+    p.setTimeout(8000, () => { try { p.destroy(); } catch (e) {} resolve(false); });
+    p.write(corpo); p.end();
+  });
+}
+/* ==PONTOSINC-FIM== */
+
 
 function req(metodo, caminho, corpo, prefer) {
   return new Promise((res, rej) => {
@@ -45,7 +91,12 @@ function req(metodo, caminho, corpo, prefer) {
       resp.on("end", () => resp.statusCode < 300 ? res(b ? JSON.parse(b) : null)
         : rej(new Error("HTTP " + resp.statusCode + " " + b.slice(0, 200))));
     });
-    r.on("error", rej); if (d) r.write(d); r.end();
+    r.on("error", rej);
+    /* RELOGIO. Sem teto, uma conexao meio-aberta com a nuvem nao da erro e nao termina: pendura
+       esta tarefa e a rodada inteira atras dela. As outras tres ganharam isto hoje; estas duas
+       ficaram de fora e a revisao pegou. */
+    r.setTimeout(20000, () => { try { r.destroy(); } catch (e) {} rej(new Error("a nuvem nao respondeu em 20s")); });
+    if (d) r.write(d); r.end();
   });
 }
 
@@ -74,7 +125,13 @@ process.on("unhandledRejection", (e) => { morte.push("rejeicao: " + ((e && e.mes
     if (!g("PG_HOST")) throw new Error("Falta o .env do VR (rode na pasta do robo)");
 
     c = new Client({ host: g("PG_HOST"), port: +g("PG_PORT"), database: g("PG_DATABASE"),
-      user: g("PG_USER"), password: g("PG_PASSWORD"), ssl: false, connectionTimeoutMillis: 20000 });
+      user: g("PG_USER"), password: g("PG_PASSWORD"), ssl: false, connectionTimeoutMillis: 20000,
+      /* TETO POR CONSULTA, do lado do CLIENTE. O "set statement_timeout" que este script usa e do
+         lado do servidor: ele corta consulta lenta, mas nao adianta quando a resposta simplesmente
+         nunca chega (socket meio-aberto). Aqui e seguro porque este script fecha o cliente SEMPRE
+         (o try/catch do c.end() la embaixo) — no agendamento a mesma linha pendurava o processo,
+         porque o pg rejeita a promessa sem fechar o socket. */
+      query_timeout: 240000 });
     c.on("error", (e) => conta.erros.push("conexao: " + e.message));
     await c.connect();
     try { await c.query("set statement_timeout = 240000"); } catch (e) {}
@@ -143,6 +200,8 @@ process.on("unhandledRejection", (e) => { morte.push("rejeicao: " + ((e && e.mes
     }
     console.log("Gravadas na nuvem: " + conta.gravados +
                 " | sem CNPJ: " + conta.sem_cnpj + " | sem codigo: " + conta.sem_codigo);
+    /* Chegar aqui = .env lido, VR conectado, consulta respondida e TODOS os pedacos gravados. */
+    conta.terminou = true;
   } catch (e) {
     conta.erros.push(e.message);
     console.log("ERRO: " + e.message);
@@ -159,4 +218,23 @@ process.on("unhandledRejection", (e) => { morte.push("rejeicao: " + ((e && e.mes
       detalhe: Object.assign({}, conta, { mortes: morte }),
     }], "return=minimal");
   } catch (e) { console.log("(nao consegui avisar a nuvem: " + e.message + ")"); }
+
+  /* AQUI ZERO E SUSPEITO, ao contrario das notas. Esta tarefa le as ~31 mil equivalencias
+     INTEIRAS toda vez; ela nunca tem "nada a fazer". Zero lidas quer dizer VR devolvendo tabela
+     vazia — permissao trocada, base errada, produtofornecedor renomeada — e hoje isso saia como
+     sucesso. Por isso o carimbo exige ter lido alguma coisa. */
+  /* TRES DESFECHOS, e so um deles e falha CARIMBADA:
+       terminou e leu   -> sucesso;
+       terminou e vazio -> falha estrutural (o VR respondeu, e respondeu nada). Ela le as ~31 mil
+                           equivalencias INTEIRAS toda vez; zero quer dizer tabela renomeada,
+                           permissao trocada ou base errada — nao e soluco, e nao melhora sozinho;
+       nao terminou     -> CALADO. Rede e VR tropecam; o silencio soma e a folga decide. */
+  const codOk = !!conta.terminou && conta.lidos > 0;
+  if (codOk) {
+    await baterPonto(true, null, conta.lidos + " lida(s), " + conta.gravados + " gravada(s).", null);
+  } else if (conta.terminou) {
+    await baterPonto(false, "A leitura dos códigos dos fornecedores voltou vazia.",
+      "O VR respondeu, mas não devolveu nenhuma equivalência de código — e esta tarefa lê as mais de 30 mil por inteiro toda vez.",
+      "Confira no VR se a tabela produtofornecedor ainda responde. No computador da loja:  cd C:\\vr-robo  e depois  node scripts\\vr-sync-codigos.cjs");
+  }
 })();

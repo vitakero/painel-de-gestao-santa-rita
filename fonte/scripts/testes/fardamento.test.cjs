@@ -14,8 +14,25 @@ const HTML = fs.readFileSync(path.join(__dirname, "..", "..", "output", "index.h
 const ini = HTML.indexOf("==FARDCALC-INICIO==");
 const fim = HTML.indexOf("==FARDCALC-FIM==");
 if (ini < 0 || fim < 0) {
-  console.log("ERRO: não achei o miolo de cálculo do fardamento no output/index.html.");
-  process.exit(1);
+  /* MÓDULO NA GAVETA, NÃO DEFEITO. Decidido com o dono em 06/09/2026: o Fardamento não é
+     prioridade agora e ele vai montar a tela mais na frente. Enquanto isso o módulo fica
+     guardado em rascunhos/fardamento/ (modulo.js, pagina.html, janelas.css) — está pronto e
+     testado, só não entrou no painel.
+
+     ESTA PROVA NÃO PODE FICAR VERMELHA PARA SEMPRE. Bancada com um vermelho permanente ensina
+     a olhar o vermelho e seguir em frente — que é exatamente como o robô ficou 34 horas parado
+     com o aviso na tela. Então ela sai de campo dizendo por quê, e volta sozinha no dia em que
+     o módulo entrar.
+
+     ⚠️ QUANDO FOR MONTAR: o módulo tem que entrar na RECEITA (scripts/demoDashboard.ts), não no
+     arquivo pronto. O scripts/aplicar-fardamento.cjs costura no output/index.html, e o robô
+     refaz o painel a partir da receita a cada 5 minutos — foi assim que o módulo foi apagado em
+     04/09/2026. Enquanto ele for aplicado no arquivo pronto, vai sumir toda vez. */
+  console.log("PULADO: o módulo Fardamento ainda não entrou no painel (está em rascunhos/fardamento/).");
+  console.log("        Decidido em 06/09/2026: fica para mais na frente. Esta prova volta sozinha");
+  console.log("        quando o bloco ==FARDCALC-*== aparecer no painel gerado.");
+  console.log("        Ao montar: entrar pela RECEITA (demoDashboard.ts), senão o robô apaga.");
+  process.exit(0);
 }
 const codigo = HTML.slice(HTML.indexOf("*/", ini) + 2, HTML.lastIndexOf("/*", fim));
 const M = new Function(codigo + "\nreturn {fardTem,fardNum,fardDias,fardMesesDe,fardPrevisto,fardConsumo," +

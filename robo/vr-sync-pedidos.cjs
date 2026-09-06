@@ -35,6 +35,52 @@ function env() {
 }
 const E = env(), g = (k) => { const m = E.match(new RegExp("^" + k + "=(.*)$", "m")); return m ? m[1].trim() : ""; };
 const SB_HOST = "uabhsmculsfwzcrhyhch.supabase.co", SB_KEY = g("SUPABASE_SERVICE_KEY");
+const PONTO_ID = "pedidos";
+
+/* ==PONTOSINC-INICIO== — O CARTAO DE PONTO DESTA TAREFA.
+   06/09/2026. Esta tarefa nao tem freio no robo.bat: se ela falhar, o robo segue e assina
+   "terminei a ronda" trinta segundos depois. Era assim que ela podia morrer e ficar morta sem
+   ninguem saber — a tela continuava mostrando o dado de ontem com cara de normal.
+
+   Agora ela carimba a hora em que CONSEGUIU terminar. O painel compara esse carimbo com o
+   relogio e reclama quando ele envelhece (public.robo_sincronias, coluna folga_min).
+
+   POR QUE MEDIR SILENCIO E NAO ERRO: erro so e contado por quem ainda esta vivo pra falar.
+   Esta tarefa engole excecao de proposito, pode travar esperando a rede, e pode sair como
+   sucesso sem ter feito nada. Carimbo velho pega os tres; reclamacao nao pega nenhum.
+
+   TRES DEFESAS, copiadas do assinarRonda() do publicar.cjs — carimbar NUNCA pode derrubar a
+   rodada, senao a protecao vira o defeito:
+     1. sem chave, desiste calado;
+     2. relogio de 8s, para nao pendurar a rodada esperando a nuvem;
+     3. nenhum caminho lanca erro pra fora — sempre resolve.
+   E PONTO_TESTE=1 desliga tudo: em 05/09 uma bancada rodou um script de verdade e mandou dois
+   e-mails de "robo parado" pro dono sem a loja ter nada. */
+function baterPonto(ok, motivo, detalhe, comando) {
+  return new Promise((resolve) => {
+    if (process.env.PONTO_TESTE === "1") return resolve(false);
+    if (!SB_KEY) return resolve(false);
+    /* "quando" SO NO SUCESSO. A coluna quer dizer "a ultima vez que ela CONSEGUIU"; carimbar a
+       hora na falha apagaria essa informacao e faria a tela dizer "a ultima vez que ela
+       conseguiu foi ha 0 minutos" dentro da mesma faixa que anuncia a falha. PostgREST nao toca
+       em coluna que nao vem no corpo, e o default now() cobre a primeira gravacao. */
+    const linha = { id: PONTO_ID, ok: !!ok,
+      motivo: motivo || null, detalhe: detalhe || null, comando: comando || null };
+    if (ok) linha.quando = new Date().toISOString();
+    const corpo = JSON.stringify([linha]);
+    const p = https.request({
+      host: SB_HOST, path: "/rest/v1/robo_sincronias?on_conflict=id", method: "POST",
+      headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY,
+                 "Content-Type": "application/json", "Content-Length": Buffer.byteLength(corpo),
+                 Prefer: "resolution=merge-duplicates,return=minimal" }
+    }, (res) => { res.on("data", () => {}); res.on("end", () => resolve(res.statusCode < 300)); });
+    p.on("error", () => resolve(false));
+    p.setTimeout(8000, () => { try { p.destroy(); } catch (e) {} resolve(false); });
+    p.write(corpo); p.end();
+  });
+}
+/* ==PONTOSINC-FIM== */
+
 
 const DIAS_ATRAS = 30, DIAS_FRENTE = 60, LOJA = 1, FINALIZADO = 2;
 
@@ -50,7 +96,10 @@ function req(method, pathq, body, prefer) {
         ? res(d ? JSON.parse(d) : null)
         : rej(new Error("HTTP " + resp.statusCode + " " + d.slice(0, 300))));
     });
-    r.on("error", rej); if (data) r.write(data); r.end();
+    r.on("error", rej);
+    /* RELOGIO — ver o mesmo comentario em vr-sync-agendamento.cjs. */
+    r.setTimeout(20000, () => { try { r.destroy(); } catch (e) {} rej(new Error("a nuvem nao respondeu em 20s")); });
+    if (data) r.write(data); r.end();
   });
 }
 
@@ -122,13 +171,22 @@ const Q_ITENS = `
   const c = new Client({
     host: g("PG_HOST"), port: +g("PG_PORT"), database: g("PG_DATABASE"),
     user: g("PG_USER"), password: g("PG_PASSWORD"), connectionTimeoutMillis: 20000,
+    /* era o unico dos cinco sem teto POR CONSULTA: tinha teto pra conectar, mas uma consulta
+       lenta no VR (o Dominio entupindo o banco, por exemplo) pendurava a rodada pra sempre. */
+    query_timeout: 240000,
   });
   try { await c.connect(); }
   catch (e) { console.log("NAO CONSEGUI CONECTAR NO VR: " + e.message); process.exit(1); }
 
   const peds = (await c.query(Q_PEDIDOS, [LOJA, FINALIZADO, DIAS_ATRAS, DIAS_FRENTE])).rows;
   console.log("VR: " + peds.length + " pedido(s) com saldo na janela de -" + DIAS_ATRAS + "/+" + DIAS_FRENTE + " dias.");
-  if (!peds.length) { await c.end(); return; }
+  if (!peds.length) {
+    /* Zero pedido com saldo e possivel e nao e alarme — mas e anormal (a ordem de grandeza aqui
+       e de centenas). Carimba sucesso com a contagem no detalhe. */
+    await c.end();
+    await baterPonto(true, null, "0 pedido(s) com saldo na janela de -" + DIAS_ATRAS + "/+" + DIAS_FRENTE + " dias.", null);
+    return;
+  }
 
   // ---- de quem é cada pedido, no NOSSO cadastro ----
   // Sem esse casamento por CNPJ o pedido fica órfão: forn_pedidos filtra por
@@ -481,5 +539,6 @@ const Q_ITENS = `
     console.log("cadastro no portal. Ficam guardados e passam a aparecer sozinhos");
     console.log("quando o fornecedor se cadastrar com o mesmo CNPJ.");
   }
+  await baterPonto(true, null, peds.length + " pedido(s) com saldo sincronizado(s).", null);
   console.log("\nPRONTO.");
 })().catch((e) => { console.log("ERRO: " + e.message); process.exit(1); });
