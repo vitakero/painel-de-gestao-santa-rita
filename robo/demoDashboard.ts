@@ -1571,6 +1571,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="layout"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></span> Layout da loja</button>
     <button class="nav-item" data-page="organograma"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="5" rx="1"/><rect x="2" y="17" width="6" height="5" rx="1"/><rect x="16" y="17" width="6" height="5" rx="1"/><path d="M12 7v6"/><path d="M5 17v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/></svg></span> Organograma</button>
     <button class="nav-item" data-page="fluxograma"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg></span> Fluxograma</button>
+    <button class="nav-item" data-page="operacional"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span> Rotina</button>
     <button class="nav-item" data-page="regulamento"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg></span> Regulamento</button>
     <button class="nav-item" data-page="perdas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Perdas/Quebras</button>
     <button class="nav-item" data-page="acougue"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h11a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3z"/><path d="M15 8h4a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4"/><path d="M3 19h13"/></svg></span> Perdas açougue</button>
@@ -4944,6 +4945,52 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div class="cop-sub">Cadastre uma vez (mão de obra, energia, gás, limpeza...) e use em qualquer receita — a ficha técnica puxa daqui.</div>
         <div id="copFormWrap"></div>
         <div id="copLista"></div>
+      </div>
+    </section>
+    <section id="page-operacional" class="page">
+      <style>
+        /* ==ROTCSS== FEITA PRO CELULAR, no dedo. Quem marca esta em pe no acougue, de luva, com
+           o celular numa mao. Alvo grande, texto grande, uma coluna. No computador ela so fica
+           mais larga — nao muda de forma, pra pessoa nao ter que reaprender. */
+        #page-operacional .rot-cab{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;}
+        #page-operacional .rot-cab h2{margin:0 0 4px;font-size:20px;color:#0c5a26;}
+        #page-operacional .rot-cab p{margin:0;font-size:13px;color:#6b7787;}
+        #page-operacional .rot-conta{margin-left:auto;font-size:13px;font-weight:700;color:#157a35;background:#eaf7ee;border-radius:999px;padding:5px 14px;}
+        #page-operacional .rot-conta.falta{color:#8a5a12;background:#fbf1de;}
+        #page-operacional .rot-lista{margin-top:18px;display:flex;flex-direction:column;gap:10px;}
+        #page-operacional .rot-it{border:1px solid #dfe5ec;border-radius:13px;padding:14px 16px;background:#ffffff;}
+        #page-operacional .rot-it.ok{border-color:#bfe3ca;background:#f4fbf6;}
+        #page-operacional .rot-tit{font-size:15.5px;font-weight:600;color:#1d2733;line-height:1.35;}
+        #page-operacional .rot-desc{font-size:13px;color:#6b7787;line-height:1.55;margin-top:5px;}
+        #page-operacional .rot-pe{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap;}
+        /* ALVO DE 44px: e o minimo que um dedo acerta sem errar. Botao menor que isso faz a
+           pessoa errar, e errar duas vezes por dia mata a rotina em duas semanas. */
+        #page-operacional .rot-bt{height:44px;padding:0 20px;border:0;border-radius:10px;background:#157a35;color:#ffffff;font-size:14.5px;font-weight:600;cursor:pointer;}
+        #page-operacional .rot-bt:hover{background:#12692e;}
+        #page-operacional .rot-bt[disabled]{opacity:.55;cursor:default;}
+        #page-operacional .rot-feito{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;color:#157a35;font-weight:600;}
+        #page-operacional .rot-quem{font-size:12.5px;color:#6b7787;}
+        /* o anel do foco e desenhado FORA do campo: 4px de folga, senao ele encosta e some. */
+        #page-operacional .rot-num-cx{padding:4px;margin:-4px;}
+        #page-operacional .rot-num{height:44px;width:130px;border:1px solid #d7dee7;border-radius:10px;padding:0 12px;font-size:15px;box-sizing:border-box;}
+        #page-operacional .rot-erro{font-size:12.5px;color:#b3261e;margin-top:8px;}
+        #page-operacional .rot-setor{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8a97a8;margin:22px 0 -2px;}
+        #page-operacional .rot-vazio{color:#6b7787;font-size:14px;line-height:1.6;}
+        @media (max-width:640px){
+          #page-operacional .rot-conta{margin-left:0;}
+          #page-operacional .rot-bt{width:100%;}
+          #page-operacional .rot-num{width:100%;}
+        }
+      </style>
+      <div class="card">
+        <div class="rot-cab">
+          <div>
+            <h2 id="rotTitulo">Rotina do dia</h2>
+            <p id="rotSub">Marque conforme for fazendo, não no fim do dia.</p>
+          </div>
+          <div class="rot-conta" id="rotConta">--</div>
+        </div>
+        <div class="rot-lista" id="rotLista"><p class="rot-vazio">Carregando...</p></div>
       </div>
     </section>
     <section id="page-regulamento" class="page">
@@ -9998,6 +10045,187 @@ function flvVizinhos(lista, comp){
 /* ==FLVCALC-FIM== */
 
 
+
+/* ==ROTINA-INICIO== — A ROTINA DE LOJA. A conta pura; quem toca em tela e nuvem fica abaixo.
+
+   POR QUE EXISTE (08/09/2026). O dono queria saber que as coisas do dia foram feitas sem estar
+   100% na operacao, e tinha travado sozinho tres vezes na mesma pedra: "sempre acho que nao esta
+   ficando bom ou que esta muito grande". Checklist de loja inteira da 200 perguntas, ninguem
+   responde 200 perguntas por dia, e a lista passa a ser marcada toda como "sim" no fim do
+   expediente — mentindo pro dono, que e pior que nao existir.
+
+   Por isso: UM setor, OITO itens, uma vez por dia. E so entra na lista o que precisa de olho,
+   mao ou nariz — o que o computador confere sozinho (venda em quilos, camara fria vencida,
+   afericao da balanca) ficou de fora de proposito.
+
+   As tabelas ja existiam desde 22/07/2026 e nunca tinham sido usadas (public.rotinas estava
+   vazia). Este modulo e a tela; o miolo do banco nao foi tocado. */
+
+/* ITEM QUE PEDE NUMERO. Marcar "conferi a temperatura" e de graca — da pra marcar sem levantar
+   da cadeira. Digitar 2 nao e. Nao e desconfianca: e que o numero deixa rastro, e no dia em que
+   der 8 voce tem a hora e tem quem mediu. Temperatura e o unico item que o painel nao consegue
+   conferir de jeito nenhum. */
+function rotPedeNumero(titulo){ return /temperatura/i.test(String(titulo == null ? "" : titulo)); }
+
+/* CAMPO EM BRANCO NAO E ZERO. Em JS, +"" da 0 — e ja custou caro aqui: no FLV, desperdicio
+   vazio virava zero, "meta atingida" e premio liberado. Aqui o vazio devolve null (recusa), e
+   o zero e um numero legitimo, que num acougue quer dizer alguma coisa. */
+function rotNumero(txt){
+  var s = String(txt == null ? "" : txt).replace(",", ".").trim();
+  if(s === "") return null;
+  if(!/^-?[0-9]+(\.[0-9]+)?$/.test(s)) return null;
+  var n = parseFloat(s);
+  if(!isFinite(n)) return null;
+  if(n < -40 || n > 60) return null;    /* fora disso e dedo errado, nao temperatura */
+  return n;
+}
+
+function rotResumo(lista){
+  var t = 0, f = 0, i;
+  var L = lista || [];
+  for(i = 0; i < L.length; i++){ if(!L[i]) continue; t++; if(L[i].estado_hoje === "concluido") f++; }
+  return { total: t, feitos: f, falta: t - f,
+    texto: t === 0 ? "nada cadastrado" : (f === t ? "tudo feito hoje" : (f + " de " + t + " feitos hoje")) };
+}
+
+function rotHora(iso){
+  if(!iso) return "";
+  var d = new Date(iso);
+  if(isNaN(d.getTime())) return "";
+  return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+}
+
+/* O RODAPE DE CADA ITEM FEITO. Quem marcou e a que horas — e o rastro que hoje nao existe.
+   Os oito marcados as 18h47 de uma vez contam a historia sozinhos. */
+function rotRodape(it){
+  if(!it || it.estado_hoje !== "concluido") return "";
+  var quem = it.ultima_usuario ? String(it.ultima_usuario) : "alguem";
+  var h = rotHora(it.ultima_em);
+  return quem + (h ? (", " + h) : "");
+}
+/* ==ROTINA-FIM== */
+
+var ROT_LISTA = [], ROT_OCUPADO = {};
+function rotSB(){ try{ return window.__SB || null; }catch(e){ return null; } }
+function rotEhMaster(){ try{ return !!(window.__PERFIL && window.__PERFIL.is_master); }catch(e){ return false; } }
+function rotMeuSetor(){ try{ return (window.__PERFIL && window.__PERFIL.setor) || null; }catch(e){ return null; } }
+function rotUUID(){
+  try{ if(window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID(); }catch(e){}
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c){
+    var r = Math.random() * 16 | 0; return (c === "x" ? r : ((r & 3) | 8)).toString(16); });
+}
+
+function rotCarregar(){
+  var sb = rotSB(); if(!sb) return;
+  /* O MASTER VE TUDO; quem e do setor ve so o dele. Nao ha seletor de setor de proposito: o
+     acougueiro nao tem o que fazer com a lista da padaria, e escolher setor todo dia e um passo
+     a mais numa rotina que precisa caber em dois minutos. */
+  var setor = rotEhMaster() ? null : rotMeuSetor();
+  sb.rpc("listar_rotinas", { p_setor: setor, p_incluir_inativas: false }).then(function(r){
+    if(!r || r.error){ rotVazio("Nao consegui carregar a rotina agora."); return; }
+    ROT_LISTA = r.data || [];
+    rotDesenhar();
+  }, function(){ rotVazio("Nao consegui carregar a rotina agora."); });
+}
+
+function rotVazio(msg){
+  var el = document.getElementById("rotLista"); if(!el) return;
+  el.innerHTML = '<p class="rot-vazio">' + pxEsc(msg) + "</p>";
+  var c = document.getElementById("rotConta"); if(c) c.textContent = "--";
+}
+
+function rotDesenhar(){
+  var el = document.getElementById("rotLista"); if(!el) return;
+  var res = rotResumo(ROT_LISTA);
+  var c = document.getElementById("rotConta");
+  if(c){ c.textContent = res.texto; c.className = "rot-conta" + (res.falta > 0 ? " falta" : ""); }
+  var t = document.getElementById("rotTitulo");
+  if(t) t.textContent = rotEhMaster() ? "Rotina do dia" : ("Rotina do dia " + (rotMeuSetor() ? ("| " + rotMeuSetor()) : ""));
+
+  if(!ROT_LISTA.length){
+    rotVazio(rotEhMaster()
+      ? "Nenhuma rotina cadastrada ainda."
+      : "Não há rotina cadastrada para o seu setor. Fale com a diretoria.");
+    return;
+  }
+  var h = "", setorAtual = null, i;
+  for(i = 0; i < ROT_LISTA.length; i++){
+    var it = ROT_LISTA[i]; if(!it) continue;
+    if(rotEhMaster() && it.setor !== setorAtual){
+      setorAtual = it.setor;
+      h += '<div class="rot-setor">' + pxEsc(setorAtual || "sem setor") + "</div>";
+    }
+    var feito = it.estado_hoje === "concluido";
+    h += '<div class="rot-it' + (feito ? " ok" : "") + '" data-rot="' + pxEsc(it.id) + '">';
+    h += '<div class="rot-tit">' + pxEsc(it.titulo) + "</div>";
+    if(it.descricao) h += '<div class="rot-desc">' + pxEsc(it.descricao) + "</div>";
+    h += '<div class="rot-pe">';
+    if(feito){
+      h += '<span class="rot-feito">feito</span><span class="rot-quem">' + pxEsc(rotRodape(it)) + "</span>";
+    } else {
+      if(rotPedeNumero(it.titulo)){
+        h += '<span class="rot-num-cx"><input class="rot-num" type="text" inputmode="decimal" '
+           + 'placeholder="graus" data-num="' + pxEsc(it.id) + '"></span>';
+      }
+      h += '<button class="rot-bt" data-feito="' + pxEsc(it.id) + '">Marcar feito</button>';
+    }
+    h += "</div>";
+    h += '<div class="rot-erro" data-erro="' + pxEsc(it.id) + '" style="display:none"></div>';
+    h += "</div>";
+  }
+  el.innerHTML = h;
+}
+
+/* MARCAR E DUAS CHAMADAS: a primeira abre a execucao do dia (compartilhada, uma por rotina),
+   a segunda conclui. O request_id torna as duas idempotentes — dois toques no mesmo botao nao
+   viram duas execucoes. */
+function rotMarcar(id){
+  if(ROT_OCUPADO[id]) return;
+  var sb = rotSB(); if(!sb) return;
+  var erro = document.querySelector('[data-erro="' + id + '"]');
+  var campo = document.querySelector('[data-num="' + id + '"]');
+  var it = null, i;
+  for(i = 0; i < ROT_LISTA.length; i++){ if(ROT_LISTA[i] && ROT_LISTA[i].id === id) it = ROT_LISTA[i]; }
+  var obs = null;
+  if(it && rotPedeNumero(it.titulo)){
+    var n = rotNumero(campo ? campo.value : "");
+    if(n === null){
+      if(erro){ erro.textContent = "Escreva a temperatura que você mediu, em graus."; erro.style.display = "block"; }
+      if(campo) campo.focus();
+      return;
+    }
+    obs = n + " graus";
+  }
+  if(erro) erro.style.display = "none";
+  ROT_OCUPADO[id] = true;
+  var bt = document.querySelector('[data-feito="' + id + '"]');
+  if(bt){ bt.disabled = true; bt.textContent = "Marcando..."; }
+  var req1 = rotUUID(), req2 = rotUUID();
+  sb.rpc("registrar_execucao", { p_request_id: req1, p_rotina_id: id, p_status: "em_andamento" })
+    .then(function(r1){
+      if(!r1 || r1.error || !r1.data) throw new Error("abrir");
+      return sb.rpc("registrar_execucao", { p_request_id: req2, p_rotina_id: id,
+        p_status: "concluido", p_execucao_id: r1.data, p_observacao: obs });
+    })
+    .then(function(r2){
+      if(!r2 || r2.error) throw new Error("concluir");
+      ROT_OCUPADO[id] = false;
+      rotCarregar();
+    })
+    .catch(function(){
+      ROT_OCUPADO[id] = false;
+      if(bt){ bt.disabled = false; bt.textContent = "Marcar feito"; }
+      /* A MENSAGEM SO PODE PROMETER O QUE ACONTECEU. Dizer "marcado" e recarregar mostrando
+         pendente e o jeito mais rapido de a pessoa perder a confianca na tela. */
+      if(erro){ erro.textContent = "Não consegui marcar agora. Tente de novo."; erro.style.display = "block"; }
+    });
+}
+
+document.addEventListener("click", function(ev){
+  var b = ev.target && ev.target.closest ? ev.target.closest("[data-feito]") : null;
+  if(!b) return;
+  rotMarcar(b.getAttribute("data-feito"));
+});
 
 /* ==ROBOVIGIA-INICIO== O ROBO ESTA VIVO? (testado em scripts/testes/robo-vigia.test.cjs)
 
@@ -25562,6 +25790,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="epi") renderEPI();
     if(btn.dataset.page==="fardamento") renderFardamento();
     if(btn.dataset.page==="regulamento") regRender();
+    if(btn.dataset.page==="operacional"){ try{ rotCarregar(); }catch(e){} }
     if(btn.dataset.page==="acessos") renderAcessos();
     if(btn.dataset.page==="escala") voltarSetores();
     if(btn.dataset.page==="entregas"){ renderEntregas(); entCloudLoad(); entFilaProcessar(true); }
