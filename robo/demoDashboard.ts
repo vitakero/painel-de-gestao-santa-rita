@@ -10046,6 +10046,53 @@ function flvVizinhos(lista, comp){
 
 
 
+/* ==CODIAG-INICIO== TEMPORARIO — TIRAR DEPOIS DE DESCOBRIR O MOTIVO.
+   10/09/2026. A Central Operacional monta o proprio botao quando encontra o caminho livre. Ela
+   aparece para o master e NAO aparece para o login de teste do dono, que tem a permissao no
+   banco. Eu eliminei daqui: cache (janela anonima), o codigo (reproduzi funcionando com um
+   nao-master), a permissao (conferida no banco), o interruptor (ligado e legivel), a colisao de
+   id (desfeita) e o endereco (os dois servem o mesmo arquivo).
+   Sobrou o que so se ve de dentro daquela janela. Esta caixa faz as MESMAS perguntas que a
+   Central faz, e escreve a resposta na tela. Ela so aparece quando a Central NAO montou. */
+setTimeout(function(){
+  try{
+    if(document.querySelector('.nav-item[data-page="operacional"]')) return;
+    var p = window.__PERFIL || null;
+    var pgs = (p && p.paginas) || [];
+    var cx = document.createElement('div');
+    cx.id = 'coDiag';
+    cx.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:99999;max-width:430px;'
+      + 'background:#1d2733;color:#fff;font:13px/1.6 system-ui,sans-serif;padding:14px 16px;'
+      + 'border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.35)';
+    function linha(rotulo, ok){ return (ok ? '&#10003; ' : '&#10007; ') + rotulo + '<br>'; }
+    var h = '<b>Por que a Central Operacional nao apareceu</b><br>'
+          + '<span style="opacity:.65">aviso temporario, so para diagnostico</span><br><br>';
+    h += linha('o menu esta na tela', !!document.querySelector('nav.sidebar'));
+    h += linha('a area principal existe', !!document.querySelector('main'));
+    h += linha('a ligacao com a nuvem existe', !!window.__SB);
+    h += linha('o perfil foi carregado', !!p);
+    h += linha('e master', !!(p && p.is_master));
+    h += linha('tem a permissao operacional', pgs.indexOf('operacional') >= 0);
+    h += linha('a porta esta livre', !document.getElementById('page-operacional'));
+    h += '<br><span style="opacity:.75">permissoes carregadas: '
+       + (pgs.length ? pgs.join(', ') : '(nenhuma)') + '</span>';
+    cx.innerHTML = h;
+    document.body.appendChild(cx);
+    /* pergunta o interruptor exatamente como a Central pergunta */
+    try{
+      window.__SB.from('feature_flags').select('habilitado').eq('chave','central_feed').maybeSingle()
+        .then(function(r){
+          var t;
+          if(r && r.error){ t = 'ERRO ao ler: ' + r.error.message; }
+          else if(r && r.data){ t = 'respondeu habilitado=' + r.data.habilitado; }
+          else { t = 'respondeu VAZIO — nao consegui ler a linha'; }
+          cx.innerHTML += '<br><br><b>interruptor central_feed</b><br>' + t;
+        }, function(e){ cx.innerHTML += '<br><br><b>interruptor central_feed</b><br>falhou: ' + e; });
+    }catch(e){ cx.innerHTML += '<br><br>nao consegui nem perguntar o interruptor'; }
+  }catch(e){}
+}, 6000);
+/* ==CODIAG-FIM== */
+
 /* ==ROTINA-INICIO== — A ROTINA DE LOJA. A conta pura; quem toca em tela e nuvem fica abaixo.
 
    POR QUE EXISTE (08/09/2026). O dono queria saber que as coisas do dia foram feitas sem estar
