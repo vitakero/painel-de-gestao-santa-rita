@@ -3531,6 +3531,20 @@
       });
     }
 
+    /* ==CONAV-INICIO== Onde o botao da Central entra no menu.
+       Os botoes de verdade do Painel moram dentro de <div class="nav-scroll">, que e a lista
+       que rola. Este arquivo fazia nav.appendChild(), e isso jogava o botao PARA FORA da lista:
+       ele ficava preso no rodape do menu, colado na borda esquerda e mais largo que os outros,
+       porque a margem lateral pertence ao .nav-scroll. Queixa do dono em 11/09/2026.
+       Agora ele entra na lista, como ultimo item, e rola junto com o resto.
+       O "ou o proprio nav" nao e enfeite: se um dia a lista deixar de existir, o botao ainda
+       aparece — e melhor ele sair do lugar do que sumir do menu. */
+    function coOndeEntra(nav) {
+      if (!nav) return null;
+      try { return nav.querySelector(".nav-scroll") || nav; } catch (e) { return nav; }
+    }
+    /* ==CONAV-FIM== */
+
     function montarUI() {
       var nav = document.querySelector("nav.sidebar");
       var main = document.querySelector("main");
@@ -3543,7 +3557,7 @@
       elNav.setAttribute("data-page", "operacional");
       elNav.innerHTML =
         '<span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg></span> Central Operacional';
-      nav.appendChild(elNav);
+      coOndeEntra(nav).appendChild(elNav);
 
       // página (dois painéis)
       elPage = document.createElement("section");
