@@ -15,7 +15,11 @@ const ini = HTML.indexOf("==CONAV-INICIO==");
 const fim = HTML.indexOf("==CONAV-FIM==");
 if (ini < 0 || fim < 0) { console.log("ERRO: não achei o bloco ==CONAV-*== no output/index.html (rode o build antes)."); process.exit(1); }
 const codigo = HTML.slice(HTML.indexOf("*/", ini) + 2, HTML.lastIndexOf("/*", fim));
-const coOndeEntra = new Function(codigo + "\nreturn coOndeEntra;")();
+function carregar(doc, win) {
+  return new Function("document", "window", codigo +
+    "\nreturn {coOndeEntra:coOndeEntra, coCriarBotaoMenu:coCriarBotaoMenu, coAvisarTrancada:coAvisarTrancada, montarBotaoTrancado:montarBotaoTrancado};")(doc, win);
+}
+const coOndeEntra = carregar({}, {}).coOndeEntra;
 
 let ok = 0, falhou = 0;
 function eq(nome, obtido, esperado) {
@@ -57,6 +61,74 @@ eq("cai na própria barra", coOndeEntra(quebrada).nome, "barra");
 console.log("\n== A lista pode estar mais fundo na barra ==");
 const fundo = no("barra", "sidebar", [no("caixa", "wrap", [no("lista", "nav-scroll", [])])]);
 eq("acha a lista mesmo aninhada", coOndeEntra(fundo).nome, "lista");
+
+/* ---- um document e um window de mentira, para o botao trancado ---- */
+function bancada(opc) {
+  opc = opc || {};
+  const lista = { nome: "lista", classe: "nav-scroll", filhos: [], querySelector: () => null,
+                  appendChild(x) { this.filhos.push(x); } };
+  const barra = { nome: "barra", classe: "sidebar",
+                  querySelector: sel => (sel === ".nav-scroll" ? lista : null) };
+  const doc = {
+    createElement: () => ({ tipo: "", className: "", innerHTML: "", atributos: {}, cliques: [],
+      setAttribute(k, v) { this.atributos[k] = v; },
+      set type(v) { this.tipo = v; }, get type() { return this.tipo; },
+      addEventListener(_, f) { this.cliques.push(f); } }),
+    querySelector: sel => {
+      if (sel === "nav.sidebar") return opc.semBarra ? null : barra;
+      if (sel.indexOf("operacional") >= 0) return opc.jaTemBotao ? { nome: "botao que ja estava la" } : null;
+      return null;
+    },
+  };
+  const avisos = [];
+  const win = {};
+  if (opc.uiConfirm !== false) win.uiConfirm = o => { if (opc.uiConfirmQuebra) throw new Error("quebrou"); avisos.push(o); };
+  win.alert = t => avisos.push({ alerta: t });
+  return { doc, win, lista, avisos, M: carregar(doc, win) };
+}
+
+console.log("\n== Sem a permissão, o botão NÃO some: fica cinza com o cadeado ==");
+let b = bancada();
+eq("o botão foi criado", b.M.montarBotaoTrancado(), true);
+eq("  entrou na lista que rola", b.lista.filhos.length, 1);
+const trancado = b.lista.filhos[0];
+eq("  nasce com o cadeado", /\bnav-locked\b/.test(trancado.className), true);
+eq("  continua sendo um item de menu", /\bnav-item\b/.test(trancado.className), true);
+eq("  aponta para a página certa", trancado.atributos["data-page"], "operacional");
+eq("  e escreve o nome", /Central Operacional/.test(trancado.innerHTML), true);
+
+console.log("\n== Com a permissão, o mesmo botão nasce SEM cadeado ==");
+b = bancada();
+eq("sem nav-locked", /nav-locked/.test(b.M.coCriarBotaoMenu(false).className), false);
+eq("  e com nav-item", /\bnav-item\b/.test(b.M.coCriarBotaoMenu(false).className), true);
+
+console.log("\n== Nunca dois botões ==");
+b = bancada({ jaTemBotao: true });
+eq("já existe um: não cria outro", b.M.montarBotaoTrancado(), false);
+eq("  e a lista continua vazia", b.lista.filhos.length, 0);
+
+console.log("\n== Sem a barra de menu, não estoura ==");
+b = bancada({ semBarra: true });
+eq("desiste em silêncio", b.M.montarBotaoTrancado(), false);
+
+console.log("\n== Clicar no cadeado dá o MESMO aviso das outras abas ==");
+b = bancada();
+b.M.montarBotaoTrancado();
+b.lista.filhos[0].cliques[0]();
+eq("apareceu um aviso", b.avisos.length, 1);
+eq("  com o título do Painel, acentuado igual ao dele", b.avisos[0].titulo, "Página bloqueada");
+eq("  falando em pedir ao administrador", /administrador/.test(b.avisos[0].msg || ""), true);
+eq("  sem botão de cancelar", b.avisos[0].cancel, "");
+
+console.log("\n== O clique nunca pode virar um nada ==");
+b = bancada({ uiConfirm: false });
+b.M.montarBotaoTrancado();
+b.lista.filhos[0].cliques[0]();
+eq("sem uiConfirm, cai no alerta do navegador", /administrador/.test((b.avisos[0] || {}).alerta || ""), true);
+b = bancada({ uiConfirmQuebra: true });
+b.M.montarBotaoTrancado();
+b.lista.filhos[0].cliques[0]();
+eq("se uiConfirm estourar, também cai no alerta", /administrador/.test((b.avisos[0] || {}).alerta || ""), true);
 
 console.log("\n" + ok + " provas passaram, " + falhou + " falharam.");
 process.exit(falhou ? 1 : 0);

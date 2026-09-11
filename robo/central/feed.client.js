@@ -3543,6 +3543,44 @@
       if (!nav) return null;
       try { return nav.querySelector(".nav-scroll") || nav; } catch (e) { return nav; }
     }
+
+    /* O botao do menu, num lugar so. `trancado` = a pessoa NAO tem a permissao: ele aparece
+       cinza com o cadeado, igual a Metas, Acessos e Configuracoes, em vez de SUMIR do menu.
+       Sumir era o comportamento ate 11/09/2026 e o dono pediu para mudar: uma tela que existe
+       e que ele pode liberar precisa aparecer na lista, senao ninguem sabe que ela existe. */
+    function coCriarBotaoMenu(trancado) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "nav-item" + (trancado ? " nav-locked" : "");
+      b.setAttribute("data-page", "operacional");
+      b.innerHTML = '<span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg></span> Central Operacional';
+      return b;
+    }
+    /* O aviso e o MESMO que o Painel da nas outras abas trancadas. O botao criado aqui nasce
+       depois que o Painel amarrou os cliques dele, entao o aviso nao vem de graca: e chamado
+       na mao. Se um dia uiConfirm nao existir, cai no alerta do navegador — o clique nunca
+       pode virar um nada. */
+    function coAvisarTrancada() {
+      var t = "Você não tem acesso a esta página. Peça ao administrador para liberar no seu cadastro.";
+      try {
+        if (typeof window.uiConfirm === "function") {
+          window.uiConfirm({ titulo: "Página bloqueada", msg: t, ok: "OK", cancel: "" });
+          return true;
+        }
+      } catch (e) { }
+      try { window.alert(t); } catch (e) { }
+      return false;
+    }
+    /* So o botao, sem a tela: nao monta nada da Central para quem nao pode ver. */
+    function montarBotaoTrancado() {
+      var nav = document.querySelector("nav.sidebar");
+      if (!nav) return false;
+      if (document.querySelector('.nav-item[data-page="operacional"]')) return false;
+      var b = coCriarBotaoMenu(true);
+      b.addEventListener("click", function () { coAvisarTrancada(); });
+      coOndeEntra(nav).appendChild(b);
+      return true;
+    }
     /* ==CONAV-FIM== */
 
     function montarUI() {
@@ -3552,11 +3590,7 @@
       injetarCss();
 
       // item de menu (dinâmico; só existe quando liberado)
-      elNav = document.createElement("button");
-      elNav.className = "nav-item";
-      elNav.setAttribute("data-page", "operacional");
-      elNav.innerHTML =
-        '<span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg></span> Central Operacional';
+      elNav = coCriarBotaoMenu(false);
       coOndeEntra(nav).appendChild(elNav);
 
       // página (dois painéis)
@@ -5091,7 +5125,9 @@
       try { pwaBootstrap(); } catch (e) { }   // (2.5) PWA: instalação, independe de ver a Central
       SB().from("feature_flags").select("habilitado").eq("chave", FLAG).maybeSingle().then(function (r) {
         var on = !!(r && r.data && r.data.habilitado);
-        if (on && podeVer()) { try { montarUI(); montado = true; carregarFlagTranscricao(); } catch (e) { } }
+        if (!on) return;   // recurso desligado para a loja inteira: nem botao, nem cadeado
+        if (podeVer()) { try { montarUI(); montado = true; carregarFlagTranscricao(); } catch (e) { } }
+        else { try { montarBotaoTrancado(); } catch (e) { } }
       }, function () { });
     }
     // Flag da transcrição (Sprint 1.8): só mostra o estado de transcrição quando ligada
