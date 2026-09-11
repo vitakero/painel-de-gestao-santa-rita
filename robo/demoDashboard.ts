@@ -29110,7 +29110,32 @@ function renderAcessos(){
   if(!SB){ if(_acsTries++<15){ el.innerHTML='<p style="color:#8a97a8">Carregando...</p>'; setTimeout(renderAcessos,350); } else { el.innerHTML='<p style="color:#8a97a8">Login não está ativo. Recarregue a página (Ctrl+Shift+R).</p>'; } return; }
   _acsTries=0;
   el.innerHTML='<p style="color:#8a97a8">Carregando...</p>';
-  var pages=[]; document.querySelectorAll('.nav-item[data-page]').forEach(function(b){ var pg=b.dataset.page; if(pg!=="acessos"){ pages.push({key:pg,label:b.textContent.trim()}); } });
+  // ==ACSLISTA-INICIO== A lista de caixinhas vem dos botoes do menu. Duas armadilhas moram aqui.
+  //
+  // 1. O NOME NAO PODE LEVAR A BOLINHA JUNTO. textContent pega o numero do aviso colado no
+  //    rotulo e a tela escrevia "Agenda0", "Pontos extras19", "Manutencoes2". Visto em 11/09/2026.
+  // 2. A CENTRAL OPERACIONAL NAO ESTA NO MENU NA HORA EM QUE A PAGINA ABRE. Ela monta o proprio
+  //    botao depois de perguntar o interruptor ao banco, entao quem abrisse os Acessos rapido
+  //    demais nao encontrava a caixinha dela e NAO CONSEGUIA dar essa permissao a ninguem. Nao
+  //    dava erro: a caixinha simplesmente nao existia. Por isso ela entra na marra, na posicao
+  //    dela, esteja o botao montado ou nao.
+  function acsRotulo(b){
+    var c=b.cloneNode(true);
+    var lixo=c.querySelectorAll('.nav-badge,.co-badge');
+    for(var i=0;i<lixo.length;i++){ lixo[i].parentNode.removeChild(lixo[i]); }
+    // \\s DOBRADO de proposito: este arquivo inteiro e um texto, e a barra simples
+    // sumiria no caminho — /\\s+/ viraria /s+/ e o painel apagaria todo "s" dos nomes.
+    return c.textContent.replace(/\\s+/g,' ').trim();
+  }
+  var pages=[]; document.querySelectorAll('.nav-item[data-page]').forEach(function(b){ var pg=b.dataset.page; if(pg!=="acessos"){ pages.push({key:pg,label:acsRotulo(b)}); } });
+  // A Central Operacional, ao lado da Logistica, monte ela o botao ou nao.
+  (function(){
+    var ja=-1; pages.forEach(function(p,k){ if(p.key==="operacional") ja=k; });
+    var item=(ja>=0)?pages.splice(ja,1)[0]:{key:"operacional",label:"Central Operacional"};
+    var i=-1; pages.forEach(function(p,k){ if(p.key==="central") i=k; });
+    if(i>=0) pages.splice(i+1,0,item); else pages.push(item);
+  })();
+  // ==ACSLISTA-FIM==
   // Acesso reduzido: só a grade de lançamento e o cadastro de entregadores.
   // Não vê ritmo, projeção, ranking, gráficos nem dinheiro.
   (function(){ var i=-1; pages.forEach(function(p,k){ if(p.key==="entregas") i=k; });
