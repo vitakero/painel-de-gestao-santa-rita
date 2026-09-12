@@ -1582,6 +1582,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="pedidos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span> Pedidos<span class="nav-badge" id="pedNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="central"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Central Logística<span class="nav-badge" id="clNavBadge" style="display:none;" title="pedidos de fornecedor aguardando resposta"></span></button>
     <button class="nav-item" data-page="fornecedores"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 11h.01M15 11h.01"/></svg></span> Fornecedores</button>
+    <button class="nav-item" data-page="projecao"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span> Projeção de compras</button>
     <button class="nav-item" data-page="cargos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4V10H4zM10 20h4V4h-4zM16 20h4v-7h-4z"/></svg></span> Cargos e Salários</button>
     <button class="nav-item" data-page="jornada"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span> Banco de Horas</button>
     <button class="nav-item" data-page="manutencoes"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.3-.6-.6-2.3 2.6-2.6z"/></svg></span> Manutenções<span class="nav-badge" id="manNavBadge" style="display:none;"></span></button>
@@ -4991,6 +4992,14 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <div class="rot-conta" id="rotConta">--</div>
         </div>
         <div class="rot-lista" id="rotLista"><p class="rot-vazio">Carregando...</p></div>
+      </div>
+    </section>
+    <section id="page-projecao" class="page">
+      <!-- ==PROJCOMPRAS== Projeção de compras: por enquanto só o lugar no menu (12/09/2026).
+           Sem tabela, sem consulta, sem conta — o que a tela vai mostrar ainda não foi decidido. -->
+      <div class="card">
+        <h2 style="margin:0 0 6px;font-size:20px;color:#0c5a26;">Projeção de compras</h2>
+        <p style="margin:0;font-size:14px;color:#6b7787;line-height:1.6;">Esta tela está em construção.</p>
       </div>
     </section>
     <section id="page-regulamento" class="page">

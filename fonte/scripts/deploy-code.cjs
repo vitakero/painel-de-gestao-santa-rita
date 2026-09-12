@@ -96,6 +96,9 @@ const PASTAS_PRIVADAS = [
   { de: "sql",                ext: ".sql", para: "sql" },
   { de: "supabase/functions", ext: "",     para: "supabase/functions", fundo: true },
   { de: "scripts",            ext: ".mjs", para: "bancadas", so: /^conferir-/ },
+  // As páginas de explicação (estrutura do depósito, etc). Vão para o PRIVADO de propósito:
+  // são material interno de reunião, não precisam ficar alcançáveis pelo endereço do site.
+  { de: "docs",               ext: ".html", para: "docs" },
 ];
 
 // ============================================================
