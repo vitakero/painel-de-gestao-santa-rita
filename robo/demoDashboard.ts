@@ -2972,6 +2972,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <button class="man-btn prim" id="manAddEq" type="button">＋ Equipamento</button>
         </div>
         <div class="kpis" id="manKpis" style="grid-template-columns:repeat(6,minmax(0,1fr));margin-bottom:22px;"></div>
+        <div id="manFilaAviso" style="display:none;align-items:center;gap:12px;flex-wrap:wrap;background:#fdf3d9;border:1px solid #f0d58a;color:#7a5c00;border-radius:10px;padding:10px 14px;margin:0 0 16px;font-size:13px;line-height:1.4;"></div>
         <div id="manFormWrap"></div>
         <div id="manLista"></div>
       </div>
@@ -23436,7 +23437,14 @@ function lixRestaurar(reg){
     regs.forEach(function(rg){ try{ delete manPendDelR[rg.id]; }catch(e){} });
     if(eq && !manData.equipamentos.some(function(x){return x.id===eq.id;})){ manData.equipamentos.push(eq); }
     regs.forEach(function(rg){ if(!manData.registros.some(function(x){return x.id===rg.id;})) manData.registros.push(rg); });
-    manSave(); manCloudUpsertEq(eq); regs.forEach(function(rg){ var sb=manSB(); if(sb) sb.from("manutencao_registros").upsert(manRegToRow(rg)).then(function(){},function(){}); });
+    manSave(); manCloudUpsertEq(eq,null); regs.forEach(function(rg){ manFilaPor("regs",rg); }); manFilaEnviar(true);
+    if(typeof renderManut==="function"){ try{ renderManut(); }catch(e){} }
+  } else if(reg.feature==="man_reg"){
+    var rgv=p.reg||p;
+    if(!rgv || !manData.equipamentos.some(function(x){return x.id===rgv.idEq;})){ uiConfirm({titulo:"Equipamento não existe mais",msg:"O equipamento deste serviço foi removido. Restaure o equipamento primeiro (ele também está na Lixeira).",ok:"OK",cancel:""}); return; }
+    try{ delete manPendDelR[rgv.id]; }catch(e){}
+    if(!manData.registros.some(function(x){return x.id===rgv.id;})) manData.registros.push(rgv);
+    manSave(); manFilaPor("regs",rgv); manFilaEnviar(true);
     if(typeof renderManut==="function"){ try{ renderManut(); }catch(e){} }
   } else if(reg.feature==="cargo"){
     if(!cgDados.some(function(x){return x.id===p.id;})){ cgDados.push(p); cgSave(); }
@@ -23660,7 +23668,16 @@ var MAN_SERVICOS=["Conferência / aferição","Limpeza","Higienização","Inspe�
 var MAN_SETORES=["Frente de caixa","Açougue","Padaria","Hortifruti","Frios e Laticínios","Mercearia","Recebimento","Depósito/Estoque","Câmara fria","Cozinha/Rotisseria","Salão de vendas","Administrativo","Estacionamento"];
 function manCmpEq(a,b){ var la=(a.local||"").trim(), lb=(b.local||"").trim(); if(la!==lb) return la.localeCompare(lb,"pt",{numeric:true,sensitivity:"base"}); return (a.nome||"").localeCompare(b.nome||"","pt",{numeric:true,sensitivity:"base"}); }
 function manTipoCor(t){ var i=MAN_TIPOS.indexOf(t); return cores[(i<0?0:i)%cores.length]; }
-function manLoad(){ try{ var s=localStorage.getItem("manutencoes"); if(s){ var o=JSON.parse(s); if(o&&o.equipamentos&&o.registros) return o; } }catch(e){} return {equipamentos:[],registros:[]}; }
+// Os 4 equipamentos de demonstração (empresa e telefone inventados) que a tela plantava em aparelho novo.
+// A plantação saiu em 14/09/2026; aqui eles são varridos do que ficou guardado nos aparelhos antigos.
+var MAN_DEMO_FONES=["(84) 99999-1234","(84) 98888-5678"], MAN_DEMO_NOMES=["Ar-condicionado Frente de Caixa","Câmara Fria do Açougue","Balcão Refrigerado de Frios","Gerador"];
+function manSemDemo(o){
+  var fora={};
+  o.equipamentos=o.equipamentos.filter(function(e){ var demo=MAN_DEMO_NOMES.indexOf(e.nome)>=0 && (MAN_DEMO_FONES.indexOf(e.telefone)>=0 || e.responsavel==="Equipe interna") && /^e[a-z0-9]+$/.test(e.id||"") && !e.manualArquivo; if(demo) fora[e.id]=1; return !demo; });
+  o.registros=o.registros.filter(function(r){ return !fora[r.idEq]; });
+  return o;
+}
+function manLoad(){ try{ var s=localStorage.getItem("manutencoes"); if(s){ var o=JSON.parse(s); if(o&&o.equipamentos&&o.registros) return manSemDemo(o); } }catch(e){} return {equipamentos:[],registros:[]}; }
 var manData=manLoad();
 function manSave(){ try{ localStorage.setItem("manutencoes", JSON.stringify(manData)); return true; }catch(e){ return false; } }
 function manUid(p){ return (p||"m")+Date.now().toString(36)+Math.floor(Math.random()*1000); }
@@ -23708,7 +23725,7 @@ function manCloudLoad(){
   manCarregando=true;
   Promise.all([sb.from("manutencao_equipamentos").select("*"),sb.from("manutencao_registros").select("*")]).then(function(rs){
     manCarregando=false;
-    if(rs[0].error||rs[1].error) return; // sem login ou tabelas ainda nao criadas -> segue no modo local
+    if(rs[0].error||rs[1].error){ manFilaErro=manErroTexto(rs[0].error||rs[1].error); manAvisoFila(); return; } // sem login ou tabelas ainda nao criadas -> segue no modo local
     manCloudOK=true;
     var temNuvem=(rs[0].data.length||rs[1].data.length);
     var temLocal=(manData.equipamentos.length||manData.registros.length);
@@ -23719,11 +23736,12 @@ function manCloudLoad(){
     var regs=rs[1].data.map(manRegFromRow).filter(function(r){ return !manPendDelR[r.id] && !manPendDel[r.idEq]; });
     var _now=Date.now();
     for(var _k in manPendAdd){ if(manPendAdd[_k].exp<_now){ delete manPendAdd[_k]; continue; } if(!eqs.some(function(e){return e.id===_k;})){ eqs.push(manPendAdd[_k].eq); (manPendAdd[_k].regs||[]).forEach(function(rg){ if(!regs.some(function(x){return x.id===rg.id;})) regs.push(rg); }); } }
-    manData={equipamentos:eqs,registros:regs};
+    manData=manFilaJuntar(eqs,regs);
     manSave(); try{ localStorage.setItem("man_migrado","1"); }catch(e){}
     var pg=document.getElementById("page-manutencoes");
     if(pg && pg.classList.contains("ativo")) renderManut(); else manAtualizaBadge();
     manRealtime();
+    if(manFilaQtd()) manFilaEnviar(false);
   }).catch(function(){ manCarregando=false; });
 }
 function manRealtime(){
@@ -23772,9 +23790,99 @@ function manCloudMigrar(){
 }
 var manPendDel={}, manPendDelR={}, manPendAdd={}; // apagados/restaurados recentes (id -> expira em) pra estabilizar o sync
 function manPrunePend(o){ var now=Date.now(); for(var k in o){ if(o[k]<now) delete o[k]; } }
-function manCloudUpsertEq(e){ var sb=manSB(); if(!sb||!e) return; sb.from("manutencao_equipamentos").upsert(manEqToRow(e)).then(function(){},function(){}); }
-function manCloudDelEq(id){ var sb=manSB(); if(!sb) return; manPendDel[id]=Date.now()+20000; sb.from("manutencao_registros").delete().eq("id_eq",id).then(function(){ sb.from("manutencao_equipamentos").delete().eq("id",id).then(function(){},function(){}); },function(){}); }
-function manCloudDelReg(id){ var sb=manSB(); if(!sb) return; manPendDelR[id]=Date.now()+20000; sb.from("manutencao_registros").delete().eq("id",id).then(function(){},function(){}); try{ sb.storage.from("manutencoes").remove([id+"_a.jpg",id+"_d.jpg"]).then(function(){},function(){}); }catch(e){} }
+/* ==MANFILA-INICIO== FILA DE ENVIO DA MANUTENÇÃO (testado em scripts/testes/manutencao-fila.test.cjs)
+   Todo equipamento e serviço salvo entra primeiro nesta fila (guardada no aparelho) e só sai
+   dela quando a nuvem responde SEM erro. Enquanto está na fila: continua na tela mesmo que a
+   nuvem recarregue por cima, o painel tenta de novo sozinho, e a tela mostra o aviso amarelo.
+   Existe porque até 14/09/2026 o erro da nuvem era engolido: a tela mostrava "salvo" e o
+   serviço sumia na recarga seguinte — e quem salvava antes da lista carregar nunca subia nada. */
+var manFilaMem=null, manEnviando=false, manEnviarDeNovo=false, manFilaErro="";
+function manFilaLer(){
+  if(manFilaMem) return manFilaMem;
+  try{ var o=JSON.parse(localStorage.getItem("man_fila")||"null"); if(o&&o.eqs&&o.regs){ manFilaMem=o; return o; } }catch(e){}
+  manFilaMem={eqs:{},regs:{}}; return manFilaMem;
+}
+function manFilaGravar(){ try{ localStorage.setItem("man_fila",JSON.stringify(manFilaLer())); return true; }catch(e){ return false; } }
+function manFilaPor(tipo,obj){ if(!obj||!obj.id) return; manFilaLer()[tipo][obj.id]=JSON.parse(JSON.stringify(obj)); manFilaGravar(); }
+function manFilaQtd(){ var f=manFilaLer(); return Object.keys(f.eqs).length+Object.keys(f.regs).length; }
+function manFilaTirarEq(id){ var f=manFilaLer(); delete f.eqs[id]; Object.keys(f.regs).forEach(function(k){ if(f.regs[k].idEq===id) delete f.regs[k]; }); manFilaGravar(); }
+function manFilaTirarReg(id){ delete manFilaLer().regs[id]; manFilaGravar(); }
+// junta o que veio da nuvem com o que ainda está na fila: nada da fila some da tela
+function manFilaJuntar(eqs,regs){
+  var f=manFilaLer();
+  Object.keys(f.eqs).forEach(function(id){ var e=JSON.parse(JSON.stringify(f.eqs[id])), i=-1; eqs.forEach(function(x,j){ if(x.id===id) i=j; }); if(i<0) eqs.push(e); else eqs[i]=e; });
+  Object.keys(f.regs).forEach(function(id){ if(!regs.some(function(x){return x.id===id;})) regs.push(JSON.parse(JSON.stringify(f.regs[id]))); });
+  return {equipamentos:eqs,registros:regs};
+}
+function manErroTexto(e){
+  var m=String((e&&(e.message||e.details||e.hint))||e||"erro desconhecido");
+  if(/row-level security|permission denied|42501/i.test(m)) return "este login não tem permissão na página Manutenções.";
+  if(/does not exist|PGRST204|schema cache/i.test(m)) return "falta uma coluna no banco ("+m+").";
+  if(/failed to fetch|network|load failed/i.test(m)) return "sem internet no momento.";
+  return m;
+}
+// supabase-js não rejeita a promessa quando a nuvem recusa: o erro vem DENTRO da resposta
+function manFilaEnviarUm(sb,tipo,obj){
+  if(tipo==="eqs") return sb.from("manutencao_equipamentos").upsert(manEqToRow(obj)).then(function(r){ if(r&&r.error) throw r.error; return null; });
+  return Promise.all([manFotoUpload(obj.id,"a",obj.fotoA),manFotoUpload(obj.id,"d",obj.fotoD)]).then(function(us){
+    if((obj.fotoA&&!us[0])||(obj.fotoD&&!us[1])) throw {message:"a foto não subiu"};
+    var row=manRegToRow(obj); row.foto_antes=us[0]||""; row.foto_depois=us[1]||"";
+    return sb.from("manutencao_registros").upsert(row).then(function(r){ if(r&&r.error) throw r.error; return {fotoA:row.foto_antes,fotoD:row.foto_depois}; });
+  });
+}
+function manFilaEnviar(doUsuario){
+  var sb=manSB();
+  if(!sb||!manCloudOK){ manAvisoFila(); if(sb&&!manCarregando) manCloudLoad(); return Promise.resolve(false); }
+  if(manEnviando){ manEnviarDeNovo=true; return Promise.resolve(false); }
+  var f=manFilaLer(), itens=[];
+  Object.keys(f.eqs).forEach(function(id){ itens.push(["eqs",f.eqs[id]]); });   // equipamento antes do serviço
+  Object.keys(f.regs).forEach(function(id){ itens.push(["regs",f.regs[id]]); });
+  if(!itens.length){ manFilaErro=""; manAvisoFila(); return Promise.resolve(true); }
+  manEnviando=true;
+  var erro="", p=Promise.resolve();
+  itens.forEach(function(it){
+    p=p.then(function(){
+      return manFilaEnviarUm(sb,it[0],it[1]).then(function(res){
+        var lista=manFilaLer()[it[0]], agora=lista[it[1].id];
+        // só tira se ninguém editou o item enquanto ele subia
+        if(agora && JSON.stringify(agora)===JSON.stringify(it[1])){ delete lista[it[1].id]; manFilaGravar(); }
+        if(res){ var rg=manData.registros.find(function(x){return x.id===it[1].id;}); if(rg){ rg.fotoA=res.fotoA; rg.fotoD=res.fotoD; } }
+      },function(e){ if(!erro) erro=manErroTexto(e); });
+    });
+  });
+  return p.then(function(){
+    manEnviando=false; manFilaErro=erro; manSave(); manAvisoFila();
+    if(erro && doUsuario) uiConfirm({titulo:"Não chegou na nuvem",msg:"Ficou guardado neste aparelho e o painel vai tentar de novo sozinho. Não limpe os dados do navegador enquanto o aviso amarelo estiver na tela. Motivo: "+erro,ok:"OK",cancel:""});
+    if(manEnviarDeNovo){ manEnviarDeNovo=false; return manFilaEnviar(doUsuario); }
+    return !erro;
+  });
+}
+function manAvisoFila(){
+  if(typeof document==="undefined") return;
+  var el=document.getElementById("manFilaAviso"); if(!el) return;
+  var n=manFilaQtd();
+  if(!n){ el.style.display="none"; el.innerHTML=""; return; }
+  el.style.display="flex";
+  el.innerHTML='<span style="flex:1;min-width:200px;"><b>'+n+(n===1?' lançamento ainda não chegou':' lançamentos ainda não chegaram')+' na nuvem.</b> '+(n===1?'Está guardado':'Estão guardados')+' neste aparelho e o painel tenta de novo sozinho.'+(manFilaErro?' Motivo: '+manEsc(manFilaErro):'')+'</span><button type="button" id="manFilaTentar" class="man-btn">Tentar agora</button>';
+}
+function manCloudUpsertEq(e,doUsuario){ if(!e) return; manFilaPor("eqs",e); if(doUsuario!==null) manFilaEnviar(!!doUsuario); }
+function manAvisoApagar(e){ uiConfirm({titulo:"Não deu pra apagar na nuvem",msg:"O item voltou para a lista. Motivo: "+manErroTexto(e),ok:"OK",cancel:""}); }
+function manCloudDelEq(id){
+  manFilaTirarEq(id); manAvisoFila();
+  var sb=manSB(); if(!sb) return; manPendDel[id]=Date.now()+20000;
+  sb.from("manutencao_registros").delete().eq("id_eq",id).then(function(r){
+    if(r&&r.error) throw r.error;
+    return sb.from("manutencao_equipamentos").delete().eq("id",id).then(function(r2){ if(r2&&r2.error) throw r2.error; });
+  }).catch(function(e){ delete manPendDel[id]; manAvisoApagar(e); manCloudLoad(); });
+}
+// as fotos do serviço ficam no depósito: o serviço apagado vai pra Lixeira e pode voltar
+function manCloudDelReg(id){
+  manFilaTirarReg(id); manAvisoFila();
+  var sb=manSB(); if(!sb) return; manPendDelR[id]=Date.now()+20000;
+  sb.from("manutencao_registros").delete().eq("id",id).then(function(r){ if(r&&r.error) throw r.error; })
+    .catch(function(e){ delete manPendDelR[id]; manAvisoApagar(e); manCloudLoad(); });
+}
+/* ==MANFILA-FIM== */
 function manEsc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
 function manIso(d){ return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2); }
 var manForm=null, manEqEdit=null, manServEq="", manAbertos={}, manManualAberto={}, manFiltroTipo="", manFiltroSetor="", manAgendaEq="", manFotoAntes="", manFotoDepois="", manNotaArq="", manNotaNome="", manSvFormId="", manSvModo="serv";
@@ -23794,26 +23902,6 @@ function manFotoComprimir(file,cb){
   rd.readAsDataURL(file);
 }
 
-(function manSeed(){
-  try{ if(localStorage.getItem("manutencoes_demo_v1")==="1") return; }catch(e){}
-  if(manData.equipamentos.length){ try{ localStorage.setItem("manutencoes_demo_v1","1"); }catch(e){} return; }
-  function dA(n){ return manIso(new Date(HOJE.getTime()-n*86400000)); }
-  var e1=manUid("e"),e2=manUid("e"),e3=manUid("e"),e4=manUid("e");
-  manData.equipamentos=[
-    {id:e1,nome:"Ar-condicionado Frente de Caixa",tipo:"Ar-condicionado",local:"Frente de loja",intervalo:90,responsavel:"Refrigeração Caicó",telefone:"(84) 99999-1234",execucao:"externa"},
-    {id:e2,nome:"Câmara Fria do Açougue",tipo:"Câmara fria",local:"Açougue",intervalo:60,responsavel:"Refrigeração Caicó",telefone:"(84) 99999-1234",execucao:"externa"},
-    {id:e3,nome:"Balcão Refrigerado de Frios",tipo:"Balcão refrigerado",local:"Frios/Laticínios",intervalo:30,responsavel:"Equipe interna",telefone:"",execucao:"interna"},
-    {id:e4,nome:"Gerador",tipo:"Gerador",local:"Área externa",intervalo:180,responsavel:"Energia Service",telefone:"(84) 98888-5678",execucao:"externa"}
-  ];
-  manData.registros=[
-    {id:manUid("r"),idEq:e1,data:dA(100),tipo:"Manutenção preventiva",responsavel:"Refrigeração Caicó",custo:350,obs:"Limpeza de filtros e recarga de gás"},
-    {id:manUid("r"),idEq:e2,data:dA(20),tipo:"Higienização",responsavel:"Equipe interna",custo:0,obs:""},
-    {id:manUid("r"),idEq:e3,data:dA(40),tipo:"Limpeza",responsavel:"Equipe interna",custo:0,obs:""},
-    {id:manUid("r"),idEq:e4,data:dA(30),tipo:"Manutenção preventiva",responsavel:"Energia Service",custo:480,obs:"Troca de óleo"}
-  ];
-  manSave();
-  try{ localStorage.setItem("manutencoes_demo_v1","1"); }catch(e){}
-})();
 
 function manUltimo(idEq){ var regs=manData.registros.filter(function(r){return r.idEq===idEq;}).sort(function(a,b){return a.data<b.data?1:(a.data>b.data?-1:0);}); return regs[0]||null; }
 function manDiasDesde(iso){ return Math.floor((new Date(manIso(HOJE)+"T00:00:00") - new Date(iso+"T00:00:00"))/86400000); }
@@ -24063,7 +24151,7 @@ function manEqSaveFromForm(){
     }
   }
   manEqManualArq=""; manEqManualNome=""; manEqFormId="";
-  manSave(); criados.forEach(function(c){ manCloudUpsertEq(c); }); manForm=null; manEqEdit=null; renderManut();
+  manSave(); criados.forEach(function(c){ manCloudUpsertEq(c,null); }); manForm=null; manEqEdit=null; renderManut(); manFilaEnviar(true);
 }
 function manNum(v){ var n=parseFloat(((v==null?"":v)+"").replace(",",".")); return isNaN(n)?NaN:n; }
 function manPesoUn(){
@@ -24111,16 +24199,11 @@ function manSvSaveFromForm(){
   var rid=manSvFormId||manUid("r");
   manData.registros.push({id:rid,idEq:idEq,data:data,tipo:tipo,responsavel:resp,custo:custo,obs:obs,fotoA:manFotoAntes,fotoD:manFotoDepois,notaArquivo:manNotaArq,notaNome:manNotaNome,execucao:execucao,telefone:telefone,modo:"serv",resultado:"",pesoRef:pesoRef,pesoMed:pesoMed});
   var eqd=manData.equipamentos.find(function(x){return x.id===idEq;}); if(eqd){ eqd.agenda=null; if(intervalo>0){ eqd.intervalo=intervalo; } }
-  (function(fa,fd){
-    var sb=manSB(); if(!sb||!manCloudOK) return;
-    Promise.all([manFotoUpload(rid,"a",fa),manFotoUpload(rid,"d",fd)]).then(function(us){
-      var reg=manData.registros.find(function(x){return x.id===rid;}); if(!reg) return;
-      if(us[0]) reg.fotoA=us[0]; if(us[1]) reg.fotoD=us[1];
-      sb.from("manutencao_registros").insert(manRegToRow(reg)).then(function(){ manCloudUpsertEq(eqd); manSave(); },function(){});
-    });
-  })(manFotoAntes,manFotoDepois);
+  if(eqd) manCloudUpsertEq(eqd,null);
+  manFilaPor("regs",manData.registros.find(function(x){return x.id===rid;}));
   var salvou=manSave(); manFotoAntes=""; manFotoDepois=""; manNotaArq=""; manNotaNome=""; manSvFormId=""; manForm=null; manAbertos[idEq]=true; renderManut();
-  if(!salvou && !manCloudOK) uiConfirm({titulo:"Memória do navegador cheia",msg:"O registro apareceu na tela, mas não coube na memória do navegador (muitas fotos guardadas). Apague registros antigos com foto para liberar espaço.",ok:"OK",cancel:""});
+  manFilaEnviar(true);
+  if(!salvou && !manSB()) uiConfirm({titulo:"Memória do navegador cheia",msg:"O registro apareceu na tela, mas não coube na memória do navegador (muitas fotos guardadas). Apague registros antigos com foto para liberar espaço.",ok:"OK",cancel:""});
 }
 function manAgSaveFromForm(){
   var eqa=manData.equipamentos.find(function(x){return x.id===manAgendaEq;});
@@ -24128,12 +24211,16 @@ function manAgSaveFromForm(){
   var data=document.getElementById("manAgData").value;
   if(!data){ uiConfirm({titulo:"Aviso",msg:"Escolha o dia agendado.",ok:"OK",cancel:""}); return; }
   eqa.agenda={data:data,resp:(document.getElementById("manAgResp").value||"").trim(),fone:(document.getElementById("manAgFone").value||"").trim()};
-  manSave(); manCloudUpsertEq(eqa); manForm=null; renderManut();
+  manSave(); manCloudUpsertEq(eqa,true); manForm=null; renderManut();
 }
 (function initManut(){
   document.getElementById("manAddEq").addEventListener("click",function(){ manForm=(manForm==="eq"?null:"eq"); manEqEdit=null; manEqManualArq=""; manEqManualNome=""; manEqFormId=""; renderManut(); });
   document.getElementById("manAddServ").addEventListener("click",function(){ manForm=(manForm==="serv"?null:"serv"); manServEq=""; manFotoAntes=""; manFotoDepois=""; manNotaArq=""; manNotaNome=""; manSvFormId=""; renderManut(); });
   document.getElementById("manImprimir").addEventListener("click",function(){ manImprimirAgenda(); });
+  document.getElementById("manFilaAviso").addEventListener("click",function(ev){ if(ev.target.closest("#manFilaTentar")) manFilaEnviar(true); });
+  setInterval(function(){ if(manFilaQtd()) manFilaEnviar(false); },30000);
+  window.addEventListener("online",function(){ if(manFilaQtd()) manFilaEnviar(false); });
+  manAvisoFila();
   document.getElementById("manFiltro").addEventListener("change",function(){ manFiltroTipo=this.value; renderManut(); });
   document.getElementById("manFiltroSetor").addEventListener("change",function(){ manFiltroSetor=this.value; renderManut(); });
   document.getElementById("manFormWrap").addEventListener("click",function(ev){
@@ -24169,7 +24256,7 @@ function manAgSaveFromForm(){
     var manb=ev.target.closest("[data-manual]"); if(manb){ var idmn=manb.getAttribute("data-manual"); manManualAberto[idmn]=!manManualAberto[idmn]; renderManut(); return; }
     var eqed=ev.target.closest("[data-eqedit]"); if(eqed){ manForm="eq"; manEqEdit=eqed.getAttribute("data-eqedit"); renderManut(); var w2=document.getElementById("manFormWrap"); if(w2) w2.scrollIntoView({behavior:"smooth",block:"center"}); return; }
     var eqdel=ev.target.closest("[data-eqdel]"); if(eqdel){ var id2=eqdel.getAttribute("data-eqdel"); var e2=manData.equipamentos.find(function(x){return x.id===id2;}); uiConfirm({titulo:"Remover equipamento",msg:'Remover "'+(e2?manEsc(e2.nome):'')+'" e todo o histórico dele?',ok:"Remover",cancel:"Cancelar"}).then(function(ok){ if(!ok)return; var regsDoEq=manData.registros.filter(function(r){return r.idEq===id2;}); if(e2) lixAdd("Equipamento",(e2.nome||"")+(e2.local?" · "+e2.local:""),"man_eq",{eq:e2,regs:regsDoEq}); manData.equipamentos=manData.equipamentos.filter(function(x){return x.id!==id2;}); manData.registros=manData.registros.filter(function(r){return r.idEq!==id2;}); manSave(); manCloudDelEq(id2); renderManut(); }); return; }
-    var rdel=ev.target.closest("[data-rdel]"); if(rdel){ var rid=rdel.getAttribute("data-rdel"); uiConfirm({titulo:"Remover serviço",msg:"Apagar este registro de serviço?",ok:"Remover",cancel:"Cancelar"}).then(function(ok){ if(!ok)return; manData.registros=manData.registros.filter(function(r){return r.id!==rid;}); manSave(); manCloudDelReg(rid); renderManut(); }); return; }
+    var rdel=ev.target.closest("[data-rdel]"); if(rdel){ var rid=rdel.getAttribute("data-rdel"); uiConfirm({titulo:"Remover serviço",msg:"Apagar este registro de serviço?",ok:"Remover",cancel:"Cancelar"}).then(function(ok){ if(!ok)return; var rv=manData.registros.find(function(r){return r.id===rid;}); if(rv){ var ev=manData.equipamentos.find(function(x){return x.id===rv.idEq;}); var rvl=JSON.parse(JSON.stringify(rv)); if((rvl.fotoA||"").indexOf("data:")===0) rvl.fotoA=""; if((rvl.fotoD||"").indexOf("data:")===0) rvl.fotoD=""; lixAdd("Serviço",(ev?ev.nome+" · ":"")+(rv.tipo||"Serviço")+" · "+manFmtBr(rv.data),"man_reg",{reg:rvl}); } manData.registros=manData.registros.filter(function(r){return r.id!==rid;}); manSave(); manCloudDelReg(rid); renderManut(); }); return; }
   });
 })();
 
