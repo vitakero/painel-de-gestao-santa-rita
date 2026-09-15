@@ -99,5 +99,27 @@ console.log("\n== A ARMADILHA DO ARQUIVO: a barra invertida some no caminho ==")
 r = rodar([botao("pontos", "Pontos extras sessenta"), botao("acessos", "Acessos")]);
 eq("nome cheio de s chega inteiro", rotuloDe(r, "pontos"), "Pontos extras sessenta");
 
+console.log("\n== Manutenções — gestor: chave DERIVADA, logo depois de Manutenções (14/09/2026) ==");
+// Não existe botão de menu para o gestor da Manutenção: a caixinha nasce da de Manutenções.
+r = rodar([botao("vendas", "Vendas"), botao("manutencoes", "Manutenções", 3), botao("recibos", "Recibos"), botao("acessos", "Acessos")]);
+eq("a caixinha do gestor existe", rotuloDe(r, "manutencoes_gestor"), "Manutenções — gestor");
+eq("  e fica logo depois de Manutenções", chaves(r), "vendas,manutencoes,manutencoes_gestor,recibos,operacional");
+eq("  aparece uma vez só", r.filter(p => p.key === "manutencoes_gestor").length, 1);
+r = rodar([botao("vendas", "Vendas"), botao("acessos", "Acessos")]);
+eq("sem o botão de Manutenções, não inventa a do gestor", r.some(p => p.key === "manutencoes_gestor"), false);
+
+console.log("\n== podeAba: só a chave do gestor já abre a página da Manutenção ==");
+// podeAba mora dentro do applyPerms; aqui ela é recortada do painel construído e RODA.
+const iPa = HTML.indexOf("function podeAba(p){");
+const fPa = HTML.indexOf("\n    }\n", iPa);
+if (iPa < 0 || fPa < 0) { console.log("ERRO: não achei podeAba no output/index.html"); process.exit(1); }
+const corpoPa = HTML.slice(iPa, fPa + 6);
+const podeAba = (paginas, p) => new Function("ok", "p", corpoPa + "\nreturn podeAba(p);")(paginas, p);
+eq("só manutencoes_gestor abre a página manutencoes", podeAba(["manutencoes_gestor"], "manutencoes"), true);
+eq("  e não abre página nenhuma a mais", podeAba(["manutencoes_gestor"], "entregas"), false);
+eq("operacional (manutencoes) continua abrindo", podeAba(["manutencoes"], "manutencoes"), true);
+eq("sem nenhuma das duas continua fechada (o outro lado da tranca)", podeAba(["escala"], "manutencoes"), false);
+eq("entregas_lancar continua abrindo Entregas", podeAba(["entregas_lancar"], "entregas"), true);
+
 console.log("\n" + ok + " provas passaram, " + falhou + " falharam.");
 process.exit(falhou ? 1 : 0);

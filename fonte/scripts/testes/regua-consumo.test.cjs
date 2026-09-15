@@ -27,8 +27,6 @@ function eq(nome, obtido, esperado) {
 // ---------------------------------------------------------------------------
 const PODE_PEDIR_TUDO = {
   pontos_extras:          "tabela minúscula (1 linha, ~1 KB) — enxugar não pagaria a mexida",
-  manutencao_registros:   "tabela minúscula (~1 KB)",
-  manutencao_equipamentos:"tabela minúscula (17 linhas, ~6 KB)",
   flv_fechamentos:        "conferido: as 15 colunas da linha são TODAS desenhadas na tela",
   galpoes:                "tabela minúscula (<5 KB) e a tela usa quase toda coluna",
   lixeira:                "REPROVADO por risco: enxugar quebrava o botão Restaurar, que passaria a APAGAR DE VEZ",
