@@ -71,6 +71,10 @@ const PASTAS = [
   ["scripts", ".cjs"],             // os que sobraram (montar-portal, publicar-*, previa-*, sicredi*)
   ["scripts", ".ts"],
   ["scripts/testes", ".cjs"],      // as travas que provam que nada quebrou
+  // A oficina da fonte do 1 e do 7 do cartaz: o gerador (.py) e o desenho pronto (.b64).
+  // Sem extensão de propósito — a varredura só conhecia .cjs/.ts e esta pasta ficaria fora
+  // do backup sem ninguém notar. O .woff embutido no painel sai daqui.
+  ["scripts/fonte", ""],
   ["email-templates", ""],         // o que o fornecedor e o funcionário recebem
   ["scripts/central", ""],         // a Central Operacional (tela isolada + tipos)
   ["src/config", ""],              // a configuração da loja
