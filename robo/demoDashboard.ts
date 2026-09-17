@@ -16,6 +16,22 @@ try { simboloDataUri = "data:image/png;base64," + (await readFile("assets/simbol
 // não precisar reenviar a imagem em cada computador — e pra ninguém usar uma logo antiga.
 let cartazBannerUri = "";
 try { cartazBannerUri = "data:image/jpeg;base64," + (await readFile("assets/cartaz-final-de-semana.jpg")).toString("base64"); } catch (e) { /* sem arte de fabrica; a lista fica so com os enviados */ }
+// ==CZNUM== O "1" E O "7" DO CARTAZ (fonte de 2 desenhos só, 3 KB).
+//
+// PROBLEMA (dono, 17/09/2026, com foto de uma placa): na Bangers — a letra do cartaz — o "1"
+// e o "7" são quase o mesmo traço inclinado. Na gôndola, a 3 metros, "17,99" vira "11,99" ou
+// "77,99". Ele pediu pra trocar a letra SÓ desses dois, deixando o resto da placa igual.
+//
+// COMO: uma fonte feita só com o 1 e o 7 da Anton, moldados em cima dos da Bangers (mesma
+// altura de linha, mesma altura de número e a mesma inclinação de 10,9° que eu medi nela).
+// O CSS aplica pelo unicode-range: só esses dois códigos vêm daqui, todo o resto continua
+// Bangers. Quem faz o molde é scripts/fonte/gerar-numeros.py, com as contas explicadas.
+//
+// POR QUE COLADA AQUI E NÃO LIDA DE assets/: o banner acima é lido de assets/ com catch
+// silencioso — se a pasta não chega em quem constrói, a arte some sem avisar. Com o 1 e o 7
+// o estrago seria pior e mais discreto: voltariam ao desenho antigo e ninguém veria. Colada
+// no código, ela viaja junto com o arquivo que o robô baixa. São 4 KB de texto.
+const CZ_NUM_WOFF = "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";
 // ==REG== O REGULAMENTO INTERNO DA EMPRESA (aba de consulta, aberta a todo funcionário).
 // O TEXTO NÃO MORA AQUI: mora em assets/regulamento-interno.json, transcrito do PDF oficial
 // (13 capítulos, Art. 1º ao 38) e conferido trecho a trecho contra ele por
@@ -3366,7 +3382,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-tema{position:relative;border:2px solid #e1e7ee;border-radius:14px;background:#fff;padding:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;transition:.12s;}
         #page-cartaz .cz-tema.on{border-color:#157a35;box-shadow:0 0 0 3px rgba(21,122,53,.12);}
         #page-cartaz .cz-tema img{width:100%;aspect-ratio:16/5;object-fit:contain;background:#f6f8fa;border-radius:9px;display:block;}
-        #page-cartaz .cz-temaTx{width:100%;aspect-ratio:16/5;display:flex;align-items:center;justify-content:center;font-family:'Bangers',cursive;color:#ef1b1b;font-size:30px;background:#ffe600;border-radius:9px;}
+        #page-cartaz .cz-temaTx{width:100%;aspect-ratio:16/5;display:flex;align-items:center;justify-content:center;font-family:'CzNum','Bangers',cursive;color:#ef1b1b;font-size:30px;background:#ffe600;border-radius:9px;}
         #page-cartaz .cz-tema span{font-size:12px;color:#5c6a7a;font-weight:700;}
         #page-cartaz .cz-temaDel{position:absolute;top:7px;right:7px;border:0;background:rgba(20,25,32,.6);color:#fff;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:11px;line-height:1;}
         /* O selo flutua no canto de propósito: em fluxo normal ele aumentava a altura do card,
@@ -3477,7 +3493,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-cartaz .cz-poster .ctz{width:100%;}
         #page-cartaz .cz-emenda{position:absolute;inset:0;display:grid;pointer-events:none;z-index:3;}
         #page-cartaz .cz-emenda i{border:1px dashed rgba(110,122,140,.5);}
-        .ctz{container-type:inline-size;background:#fff;border:1px solid #eceef1;border-radius:18px;box-shadow:0 3px 14px rgba(0,0,0,.09);aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:0;overflow:hidden;font-family:'Bangers',cursive;}
+        /* O 1 e o 7 vêm desta fonte de dois desenhos; todo o resto continua Bangers.
+           Quem decide é o unicode-range. Ver ==CZNUM== lá em cima. */
+        @font-face{font-family:'CzNum';src:url(data:font/woff;base64,${CZ_NUM_WOFF}) format('woff');unicode-range:U+0031,U+0037;font-display:block;}
+        .ctz{container-type:inline-size;background:#fff;border:1px solid #eceef1;border-radius:18px;box-shadow:0 3px 14px rgba(0,0,0,.09);aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:0;overflow:hidden;font-family:'CzNum','Bangers',cursive;}
         .ctz .ctz-top,.ctz .ctz-mid,.ctz .ctz-bot{width:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;padding:0 4cqw;}
         .ctz .ctz-top{padding-top:1.5cqw;}
         .ctz .ctz-bot{padding-bottom:0.2cqw;}
@@ -6099,6 +6118,11 @@ const OPERACAO = ${JSON.stringify(operacaoSeed)};
 const LOGO_URI = ${JSON.stringify(logoDataUri)};
 const SIMBOLO_URI = ${JSON.stringify(simboloDataUri)};
 const CZ_BANNER_URI = ${JSON.stringify(cartazBannerUri)};
+/* A MESMA fonte do 1 e do 7 do CSS lá de cima, agora pra quem monta as folhas de impressão:
+   cada janela de impressão é um documento novo e precisa da @font-face dentro dela. Embutida
+   (data:) de propósito — assim a placa sai certa mesmo com a internet da loja fora. */
+const CZ_NUM_FACE = "@font-face{font-family:'CzNum';src:url(data:font/woff;base64,${CZ_NUM_WOFF}) format('woff');unicode-range:U+0031,U+0037;font-display:block;}";
+const CZ_FAM = "'CzNum','Bangers',cursive";   // aspas simples: o CSS aceita, e evita escapar dentro do template
 const DOW_PT = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 const DIA_SEM_PT = ["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
 
@@ -28225,7 +28249,7 @@ function czInner(p){
 }
 
 var CZ_BR='url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%';
-var CZLCSS='.ctzL{container-type:inline-size;background:#fff;box-sizing:border-box;font-family:"Bangers",cursive;aspect-ratio:198/130;}'
+var CZLCSS=CZ_NUM_FACE+'.ctzL{container-type:inline-size;background:#fff;box-sizing:border-box;font-family:'+CZ_FAM+';aspect-ratio:198/130;}'
  +'.ctzL .ctzLin{background:#fff;position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;overflow:hidden;padding:1.2cqw 3cqw 1.2cqw;box-sizing:border-box;}'
  +'.ctzL .lof{color:#ef1b1b;background:'+CZ_BR+';font-size:calc(var(--k,1)*19cqw);line-height:1;padding:.5cqw 7cqw;transform:rotate(-1.2deg) scaleX(1.3);}'
  +'.ctzL .lnm{color:#111;font-size:calc(var(--k,1)*13.5cqw);line-height:.85;margin-top:.6cqw;white-space:nowrap;transform:scaleX(1.4);}'
@@ -28484,7 +28508,7 @@ function czImprimir(){
       for(var jL=iL;jL<iL+2;jL++){ clL+='<div class="cellL">'+(itens[jL]?('<div class="ctzL">'+czInnerL(itens[jL])+'</div>'):'')+'</div>'; }
       pagesL+='<div class="pg">'+clL+'</div>';
     }
-    var cssL='<style>:root{color-scheme:light only;}@page{size:A4;margin:6mm;}*{margin:0;padding:0;box-sizing:border-box;font-family:"Bangers",cursive;}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+    var cssL='<style>:root{color-scheme:light only;}@page{size:A4;margin:6mm;}*{margin:0;padding:0;box-sizing:border-box;font-family:'+CZ_FAM+';}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
      +'.pg{width:100%;height:269mm;overflow:hidden;break-inside:avoid;display:grid;grid-template-rows:repeat(2,minmax(0,1fr));}.pg+.pg{page-break-before:always;}'
      +'.cellL{display:flex;align-items:center;justify-content:center;overflow:hidden;}'
      +'.cellL .ctzL{width:196mm;height:128mm;}'
@@ -28495,14 +28519,14 @@ function czImprimir(){
     wL.document.close();
     return true;
   }
-  var CZPCSS='.poster{position:absolute;container-type:inline-size;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;overflow:hidden;font-family:"Bangers",cursive;box-sizing:border-box;}.poster .ctz-top,.poster .ctz-mid,.poster .ctz-bot{width:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;padding:0 4cqw;}.poster .ctz-top{padding-top:1.5cqw;}.poster .ctz-bot{padding-bottom:0.2cqw;}.poster .of{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;font-size:calc(var(--k,1)*31.4cqw);line-height:1;padding:.8cqw 5.6cqw;transform:rotate(-1.5deg);}.poster .nm{color:#111;font-size:calc(var(--k,1)*25.4cqw);line-height:.85;margin-top:1.2cqw;white-space:nowrap;}.poster .mc{color:#111;font-size:calc(var(--k,1)*17.4cqw);line-height:.9;white-space:nowrap;}.poster .gr{color:#111;font-size:calc(var(--k,1)*8.6cqw);margin-top:1cqw;border-bottom:.55cqw solid #111;padding:0 1.9cqw .55cqw;white-space:nowrap;}.poster .d{font-size:8.8cqw;margin:0.4cqw 0 0.2cqw;line-height:1;}.poster .d .d1{color:#111;}.poster .d .d2{color:#8a8a8a;text-decoration:line-through;}.poster .d .d3{color:#ef1b1b;}.poster .pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-top:0.4cqw;padding:2.1cqw 5.6cqw;transform:rotate(-1.5deg);}.poster .pr .rs{font-size:11.2cqw;align-self:flex-start;margin-top:1.1cqw;margin-right:.8cqw;}.poster .pr .in{font-size:calc(var(--k,1)*33.2cqw);}.poster .pr .cm{font-size:calc(var(--k,1)*22.2cqw);align-self:flex-end;margin:0 .4cqw 1.9cqw;}.poster .pr .ce{font-size:calc(var(--k,1)*22.2cqw);align-self:flex-start;margin-top:.8cqw;}.poster .ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:calc(var(--k,1)*2.4cqw);margin-top:0.3cqw;line-height:1;white-space:nowrap;}.poster .ctz-top.ctz-topimg{padding:0;}.poster .ofimg{width:100%;max-width:none;height:auto;aspect-ratio:20/7;max-height:35cqw;object-fit:cover;object-position:center;display:block;margin:0;border-radius:0;}.poster .lg{height:8cqw;width:auto;display:block;margin:0.3cqw auto 1.6cqw;}.poster .d ~ .lg{height:5.5cqw;margin:0.2cqw auto 1.1cqw;}';
+  var CZPCSS=CZ_NUM_FACE+'.poster{position:absolute;container-type:inline-size;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;overflow:hidden;font-family:'+CZ_FAM+';box-sizing:border-box;}.poster .ctz-top,.poster .ctz-mid,.poster .ctz-bot{width:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;padding:0 4cqw;}.poster .ctz-top{padding-top:1.5cqw;}.poster .ctz-bot{padding-bottom:0.2cqw;}.poster .of{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;font-size:calc(var(--k,1)*31.4cqw);line-height:1;padding:.8cqw 5.6cqw;transform:rotate(-1.5deg);}.poster .nm{color:#111;font-size:calc(var(--k,1)*25.4cqw);line-height:.85;margin-top:1.2cqw;white-space:nowrap;}.poster .mc{color:#111;font-size:calc(var(--k,1)*17.4cqw);line-height:.9;white-space:nowrap;}.poster .gr{color:#111;font-size:calc(var(--k,1)*8.6cqw);margin-top:1cqw;border-bottom:.55cqw solid #111;padding:0 1.9cqw .55cqw;white-space:nowrap;}.poster .d{font-size:8.8cqw;margin:0.4cqw 0 0.2cqw;line-height:1;}.poster .d .d1{color:#111;}.poster .d .d2{color:#8a8a8a;text-decoration:line-through;}.poster .d .d3{color:#ef1b1b;}.poster .pr{color:#ef1b1b;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTIwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cGF0aCBmaWxsPSIjZmZlNjAwIiBkPSJNNyAzMyBDMzMgMTUgNzEgMjUgMTEyIDE4IEMxNTIgMTEgMTkyIDI3IDIzNiAxNSBDMjc0IDYgMzAyIDE5IDMxNSAzMCBDMzI0IDQ1IDMxMSA2MSAzMTYgNzkgQzMyMSA5OSAyOTUgMTA5IDI1NiAxMDIgQzIxMyA5NSAxNzMgMTExIDEzMSAxMDMgQzkxIDk1IDUxIDEwOSAyMSA5OCBDMyA5MSAxIDczIDcgNTcgQzExIDQ1IC0xIDQzIDcgMzMgWiIvPjwvc3ZnPg==") no-repeat center/100% 100%;display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-top:0.4cqw;padding:2.1cqw 5.6cqw;transform:rotate(-1.5deg);}.poster .pr .rs{font-size:11.2cqw;align-self:flex-start;margin-top:1.1cqw;margin-right:.8cqw;}.poster .pr .in{font-size:calc(var(--k,1)*33.2cqw);}.poster .pr .cm{font-size:calc(var(--k,1)*22.2cqw);align-self:flex-end;margin:0 .4cqw 1.9cqw;}.poster .pr .ce{font-size:calc(var(--k,1)*22.2cqw);align-self:flex-start;margin-top:.8cqw;}.poster .ft{color:#444;font-family:Arial,sans-serif;font-weight:bold;font-size:calc(var(--k,1)*2.4cqw);margin-top:0.3cqw;line-height:1;white-space:nowrap;}.poster .ctz-top.ctz-topimg{padding:0;}.poster .ofimg{width:100%;max-width:none;height:auto;aspect-ratio:20/7;max-height:35cqw;object-fit:cover;object-position:center;display:block;margin:0;border-radius:0;}.poster .lg{height:8cqw;width:auto;display:block;margin:0.3cqw auto 1.6cqw;}.poster .d ~ .lg{height:5.5cqw;margin:0.2cqw auto 1.1cqw;}';
   // ===== POSTERS A1/A2/A3 (multiplas folhas A4 pra emendar, ou folha unica) =====
   var POSTERS={A1:{w:594,h:841,tiles:{cols:2,rows:4,tw:297,th:210.25,rot:1}},
                A2:{w:420,h:594,tiles:{cols:2,rows:2,tw:210,th:297,rot:0}},
                A3:{w:297,h:420,tiles:{cols:1,rows:2,tw:297,th:210,rot:1}}};
   if(POSTERS[czTamanho]){
     var P=POSTERS[czTamanho];
-    var pcss=':root{color-scheme:light only;}*{margin:0;padding:0;box-sizing:border-box;font-family:"Bangers",cursive;}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'+CZPCSS;
+    var pcss=':root{color-scheme:light only;}*{margin:0;padding:0;box-sizing:border-box;font-family:'+CZ_FAM+';}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'+CZPCSS;
     var pgs='';
     if(czImpressao==='unica'){
       pcss='@page{size:'+P.w+'mm '+P.h+'mm;margin:0;}'+pcss+'.pg{position:relative;width:'+P.w+'mm;height:'+P.h+'mm;overflow:hidden;page-break-after:always;}';
@@ -28587,7 +28611,7 @@ function czImprimir(){
     var razaoPost = CC.rot ? (fCelH/fCelW) : (plW/plH);
     var largPost = (CC.rot ? (fCelH/fCelW) : (plW/cellW))*100;
 
-    var ccss=':root{color-scheme:light only;}@page{size:'+CC.page+';margin:0;}*{margin:0;padding:0;box-sizing:border-box;font-family:"Bangers",cursive;}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'+CZPCSS
+    var ccss=':root{color-scheme:light only;}@page{size:'+CC.page+';margin:0;}*{margin:0;padding:0;box-sizing:border-box;font-family:'+CZ_FAM+';}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'+CZPCSS
       /* A folha vale 100% da largura que a página oferecer, MAS nunca mais alta que a página.
    Sem esse min() a folha tem folga zero: medi 1122px de folha contra 1123px de página. Se
    a caixa da página for um tico mais achatada — papel Carta, por exemplo — a folha passa e
@@ -28650,7 +28674,11 @@ function czImprimir(){
   // Quem garante que nada estoura é a trava czFitScript, mais abaixo.
   var _pageDef=(czTamanho==='A7')?'@page{size:A4 landscape;margin:6mm;}':'@page{size:A4;margin:6mm;}';
   var _pgH=(czTamanho==='A7')?'185mm':'268mm';
-  var css='<style>:root{color-scheme:light only;}'+_pageDef+'*{margin:0;padding:0;box-sizing:border-box;font-family:"Bangers",cursive;}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+  /* O @font-face TEM que vir junto: esta folha monta o CSS do zero (nao usa o CZPCSS, que e
+     de poster). Sem ele o 'CzNum' nao existe, o navegador cai calado pra Bangers e o 1 e o 7
+     voltam a ser iguais — foi exatamente o que aconteceu no primeiro build, e so apareceu
+     porque eu medi a grossura do traco no PDF em vez de confiar na tela. */
+  var css='<style>'+CZ_NUM_FACE+':root{color-scheme:light only;}'+_pageDef+'*{margin:0;padding:0;box-sizing:border-box;font-family:'+CZ_FAM+';}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
    +'.pg{width:100%;height:'+_pgH+';overflow:hidden;break-inside:avoid;display:grid;grid-template-columns:repeat('+c.cols+',minmax(0,1fr));grid-template-rows:repeat('+c.rows+',minmax(0,1fr));gap:5mm;}.pg+.pg{page-break-before:always;}'
    // O recuo saiu da FOLHA e foi pras faixas de dentro. É o que deixa a imagem do topo sangrar
    // até a borda no papel, igual à arte do Canva. Efeito colateral: sem recuo na folha, o

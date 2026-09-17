@@ -27,6 +27,11 @@ const SEMFIT = process.env.SEMFIT === "1";
 const PATCH = process.env.PATCH || "";
 const NOME = process.env.NOME || "ARROZ";
 const MARCA = process.env.MARCA === undefined ? "CAMIL" : process.env.MARCA;
+const PRECO = process.env.PRECO || "29,99";
+const PRECO_DE = process.env.PRECO_DE || "";
+// FONTE="Anton" troca a letra do cartaz inteiro, carregando ela do Google na hora.
+// Serve pra comparar fontes ANTES de mexer no painel — a folha sai igualzinha, só muda a letra.
+const FONTE = (process.env.FONTE || "").replace(/[^A-Za-z0-9 ]/g, "");
 
 let h = fs.readFileSync(path.join(RAIZ, "output", "index.html"), "utf8");
 
@@ -61,7 +66,7 @@ const STUB = `<script>
       window.czProdutos = [];
       for(var i=0;i<${QTD};i++){
         window.czProdutos.push({ oferta:"OFERTA", nome:${JSON.stringify(NOME)}, marca:${JSON.stringify(MARCA)}, tipo:"TIPO 1",
-          gram:"5KG", preco:"29,99", preco_de:"", qtd:1, limite:0,
+          gram:"5KG", preco:${JSON.stringify(PRECO)}, precoDe:${JSON.stringify(PRECO_DE)}, preco_de:${JSON.stringify(PRECO_DE)}, qtd:1, limite:0,
           vIni:"2026-08-22", vFim:"2026-08-22" });
       }
       window.czImprimir();
@@ -71,7 +76,14 @@ const STUB = `<script>
     // tiro o window.print() para o Chrome sem tela nao travar num dialogo
     pego = pego.replace(/window\\.print\\(\\);/g, "window.__jaImprimiria=1;");
     if(${SEMFIT ? "true" : "false"}) pego = pego.replace(/try\\{fit\\(\\);\\}catch\\(e\\)\\{\\}/g, "");
+    var FONTE = ${JSON.stringify(FONTE)};
     var PATCH = ${JSON.stringify(PATCH)};
+    if(FONTE){
+      // o @import precisa ser a PRIMEIRA linha do <style>, senao o navegador ignora
+      PATCH = "@import url('https://fonts.googleapis.com/css2?family="
+            + FONTE.replace(/ /g, "+") + "&display=swap');"
+            + "*{font-family:'" + FONTE + "',sans-serif !important;}" + PATCH;
+    }
     if(PATCH) pego = pego.replace("</head>", "<style>" + PATCH + "</style></head>");
     document.open(); document.write(pego); document.close();
   }
@@ -86,4 +98,4 @@ h = h.slice(0, corte) + STUB + h.slice(corte);
 
 fs.mkdirSync(path.dirname(SAIDA), { recursive: true });
 fs.writeFileSync(SAIDA, h);
-console.log((SEMFIT ? "[SEM FIT] " : "") + "FOLHA -> " + SAIDA + "  (" + Math.round(h.length / 1024) + " KB)  tamanho=" + TAMANHO + " qtd=" + QTD + (SEMARTE ? " SEM ARTE" : " com a arte oficial"));
+console.log((SEMFIT ? "[SEM FIT] " : "") + "FOLHA -> " + SAIDA + "  (" + Math.round(h.length / 1024) + " KB)  tamanho=" + TAMANHO + " qtd=" + QTD + (SEMARTE ? " SEM ARTE" : " com a arte oficial") + (FONTE ? ("  fonte=" + FONTE) : "") + "  preco=" + PRECO);
