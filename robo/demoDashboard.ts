@@ -280,6 +280,54 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .kpi .v { font-size:22px; font-weight:700; color:#0c5a26; }
   .kpi .l { font-size:12px; color:#6b7787; margin-top:3px; text-transform:uppercase; letter-spacing:.4px; }
   .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+
+  /* ==HISTCSS== Histórico: ano a ano e mês a mês. Reaproveita .card do painel — aqui só o
+     que ainda não existia. Cores CLARAS de propósito: o escuro sai daqui no build
+     (injetarTemaEscuro). As contas ficam em ==HISTCALC==, testadas fora da tela. */
+  #page-historico .hs-top { display:flex; justify-content:space-between; align-items:flex-end; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
+  #page-historico .hs-top h2 { margin:0 0 3px; font-size:19px; color:#1f2b3a; }
+  #page-historico .hs-top p { margin:0; color:#6b7787; font-size:13px; max-width:78ch; line-height:1.5; }
+  #page-historico .hs-sel { border:1px solid #dbe2ea; background:#fff; color:#33404f; border-radius:9px; padding:8px 12px; font-size:13px; font-weight:600; cursor:pointer; }
+  /* o anel do foco é desenhado FORA do campo: sem folga o teclado corta o desenho */
+  #page-historico .hs-sel:focus-visible { outline:2px solid #157a35; outline-offset:2px; }
+  #page-historico .hs-anos { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; margin-bottom:16px; }
+  #page-historico .hs-ano { background:#fff; border-radius:12px; padding:16px 18px; box-shadow:0 1px 4px rgba(0,0,0,.07); border-top:3px solid #dbe2ea; }
+  #page-historico .hs-ano .a { font-size:12px; color:#6b7787; text-transform:uppercase; letter-spacing:.4px; font-weight:600; }
+  #page-historico .hs-ano .v { font-size:21px; font-weight:700; color:#0c5a26; margin-top:4px; font-variant-numeric:tabular-nums; }
+  #page-historico .hs-ano .c { font-size:12.5px; color:#6b7787; margin-top:6px; line-height:1.45; }
+  #page-historico .hs-pos { color:#0c5a26; } #page-historico .hs-neg { color:#b3341f; }
+  /* ETIQUETA DE ANO PELA METADE. Sem ela o total de 2026 ao lado do de 2025 parece
+     despenque de 26% — e não é: 2026 só tem 8 meses e meio de dias na base. */
+  #page-historico .hs-parcial { display:inline-block; background:#fdf6e6; border:1px solid #f0e0bb; color:#6b5a2e; border-radius:5px; padding:1px 6px; font-size:11px; font-weight:600; margin-left:6px; vertical-align:middle; }
+  #page-historico .hs-leg { display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin:0 0 14px; }
+  #page-historico .hs-leg span { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:#6b7787; font-weight:600; }
+  #page-historico .hs-leg i { width:11px; height:11px; border-radius:3px; display:inline-block; }
+  #page-historico .hs-grafwrap { overflow-x:auto; max-width:100%; }
+  #page-historico .hs-graf { display:flex; align-items:flex-end; gap:0; height:210px; border-bottom:1px solid #dbe2ea; min-width:540px; }
+  #page-historico .hs-mes { flex:1; display:flex; align-items:flex-end; justify-content:center; gap:3px; height:100%; position:relative; }
+  #page-historico .hs-mes + .hs-mes::before { content:""; position:absolute; left:0; top:8px; bottom:0; width:1px; background:#f1f4f8; }
+  #page-historico .hs-b { width:15px; border-radius:3px 3px 0 0; position:relative; min-height:2px; }
+  /* barra de mês fraco fica com 2px: sem isto era impossível acertar o mouse nela.
+     A área de toque cresce; a barra DESENHADA não muda. */
+  #page-historico .hs-b::after { content:""; position:absolute; top:-6px; bottom:-4px; left:-3px; right:-3px; }
+  #page-historico .hs-eixo { display:flex; padding-top:7px; min-width:540px; }
+  #page-historico .hs-eixo span { flex:1; text-align:center; font-size:11.5px; color:#6b7787; font-weight:600; text-transform:uppercase; letter-spacing:.3px; }
+  #page-historico .hs-twrap { overflow-x:auto; max-width:100%; }
+  #page-historico .hs-tbl { width:100%; border-collapse:collapse; font-size:13px; min-width:520px; }
+  #page-historico .hs-tbl th { text-align:right; font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:#6b7787; padding:8px; border-bottom:1px solid #dbe2ea; white-space:nowrap; }
+  #page-historico .hs-tbl th:first-child, #page-historico .hs-tbl td:first-child { text-align:left; }
+  #page-historico .hs-tbl td { text-align:right; padding:7px 8px; border-bottom:1px solid #eef2f7; font-variant-numeric:tabular-nums; color:#33404f; }
+  #page-historico .hs-tbl tr:last-child td { border-bottom:0; }
+  #page-historico .hs-tbl td.mes { font-weight:600; color:#1f2b3a; }
+  #page-historico .hs-tbl tfoot td { border-top:2px solid #dbe2ea; border-bottom:0; font-weight:700; color:#1f2b3a; padding-top:9px; }
+  #page-historico .hs-tbl .hs-vaz { color:#b7c0cb; }
+  #page-historico .hs-nota { font-size:12.5px; color:#6b7787; margin-top:12px; line-height:1.55; }
+  @media (max-width:820px){
+    #page-historico .hs-b { width:9px; }
+    #page-historico .hs-tbl { font-size:12px; }
+    #page-historico .hs-graf { height:170px; }
+  }
+
   /* ---- Venda por setor: ranking, tabela e a tira dos doze meses. Reaproveita
      .card/.kpi/.btn-s; aqui só o que o painel ainda não tinha. Tudo em cores CLARAS
      de propósito — o tema escuro é derivado destas regras no build. ---- */
@@ -1570,6 +1618,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <div class="nav-scroll">
     <button class="nav-item ativo" data-page="vendas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Vendas</button>
     <button class="nav-item" data-page="analise"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span> Análise</button>
+    <button class="nav-item" data-page="historico"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></span> Histórico</button>
     <button class="nav-item" data-page="vendasetor"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="21" x2="21" y2="21"/><rect x="5" y="11" width="3.4" height="8"/><rect x="10.3" y="6" width="3.4" height="13"/><rect x="15.6" y="14" width="3.4" height="5"/></svg></span> Venda por setor</button>
     <button class="nav-item" data-page="estoque"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Estoque</button>
     <button class="nav-item" data-page="datas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/></svg></span> Datas críticas</button>
@@ -1690,6 +1739,35 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       </div>
       <div class="kpis" id="anKpis" style="grid-template-columns:repeat(5,1fr);"></div>
       <div class="kpis" id="anIndicadores" style="grid-template-columns:repeat(auto-fit,minmax(205px,1fr));margin-top:6px;"></div>
+    </section>
+
+    <section id="page-historico" class="page">
+      <div class="hs-top">
+        <div>
+          <h2>Histórico</h2>
+          <p>Como a loja vem andando ao longo do tempo: cada ano inteiro e cada mês lado a lado. Esta tela não tem filtro de data — ela mostra tudo o que existe na base.</p>
+        </div>
+        <select class="hs-sel" id="hsMedida" aria-label="O que mostrar">
+          <option value="fat">Faturamento</option>
+          <option value="marg">Margem</option>
+          <option value="cup">Vendas (cupons)</option>
+          <option value="qtd">Itens vendidos</option>
+        </select>
+      </div>
+      <div class="hs-anos" id="hsAnos"></div>
+      <div class="card">
+        <h2>Mês a mês, ano contra ano</h2>
+        <div class="hs-leg" id="hsLeg"></div>
+        <div class="hs-grafwrap">
+          <div class="hs-graf" id="hsGraf"></div>
+          <div class="hs-eixo" id="hsEixo"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <h2>Os números</h2>
+        <div class="hs-twrap"><table class="hs-tbl" id="hsTbl"></table></div>
+        <div class="hs-nota" id="hsNota"></div>
+      </div>
     </section>
 
     <section id="page-estoque" class="page">
@@ -5644,6 +5722,164 @@ document.getElementById("anLimpar").addEventListener("click", function(){
   document.getElementById("anAte").value=DATA_MAX;
   renderAnalise();
 });
+
+/* ==HISTCALC-INICIO== HISTÓRICO: ano a ano e mês a mês (testado em scripts/testes/historico.test.cjs)
+   Só faz conta sobre o DIA[] que o painel já carrega: não toca em tela nem em nuvem.
+
+   O PROBLEMA QUE ESTE MÓDULO RESOLVE. Ano que ainda não acabou não pode ser comparado
+   com ano inteiro. O total de 2026 (8 meses e meio) ao lado do de 2025 (12 meses) parece
+   queda de 26% quando a loja na verdade está subindo 4,3%. Por isso toda comparação aqui
+   recorta o MESMO PEDAÇO do calendário nos dois anos antes de dividir, e a tela diz qual
+   pedaço foi — número sem a etiqueta do pedaço engana mais do que número faltando.
+
+   A loja fecha no dia 1º de janeiro, então "02/01 até 31/12" É ano inteiro. Se a régua
+   fosse "01-01 até 12-31" na unha, 2024 e 2025 apareceriam etiquetados como pedaço e o
+   dono leria "comparando só 02/01 a 31/12" num ano que está completo. */
+function hsJanelas(dias){
+  var j={};
+  for(var i=0;i<dias.length;i++){
+    var a=dias[i].d.slice(0,4), md=dias[i].d.slice(5,10), x=j[a];
+    if(!x){ j[a]={ini:md,fim:md}; continue; }
+    if(md<x.ini) x.ini=md;
+    if(md>x.fim) x.fim=md;
+  }
+  return j;
+}
+function hsCompleto(j){ return !!j && j.ini<="01-05" && j.fim>="12-27"; }
+function hsUltimoDia(dias){
+  var u=""; for(var i=0;i<dias.length;i++){ if(dias[i].d>u) u=dias[i].d; } return u;
+}
+/* Soma um campo num ano, opcionalmente só dentro de um pedaço (mês-dia).
+   Devolve null quando o ano NÃO TEM NENHUM DIA ali dentro — zero e "não existe" são
+   coisas diferentes, e tratar ausência como zero vira -100% na cara do dono. */
+function hsSoma(dias, campo, ano, ini, fim){
+  var s=0, viu=false;
+  for(var i=0;i<dias.length;i++){
+    var r=dias[i];
+    if(r.d.slice(0,4)!==ano) continue;
+    var md=r.d.slice(5,10);
+    if(ini && md<ini) continue;
+    if(fim && md>fim) continue;
+    s+=(+r[campo]||0); viu=true;
+  }
+  return viu?s:null;
+}
+function hsPorAno(dias, campo){
+  var o={};
+  for(var i=0;i<dias.length;i++){ var a=dias[i].d.slice(0,4); o[a]=(o[a]||0)+(+dias[i][campo]||0); }
+  return o;
+}
+function hsPorMes(dias, campo){
+  var o={};
+  for(var i=0;i<dias.length;i++){ var m=dias[i].d.slice(0,7); o[m]=(o[m]||0)+(+dias[i][campo]||0); }
+  return o;
+}
+/* Compara um ano com o anterior no maior pedaço que os DOIS têm. */
+function hsCompara(dias, campo, ano){
+  var J=hsJanelas(dias), jA=J[ano], ant=String(Number(ano)-1), jB=J[ant];
+  if(!jA||!jB) return null;
+  var ini = jA.ini>jB.ini ? jA.ini : jB.ini;
+  var fim = jA.fim<jB.fim ? jA.fim : jB.fim;
+  if(ini>fim) return null;
+  var vA=hsSoma(dias,campo,ano,ini,fim), vB=hsSoma(dias,campo,ant,ini,fim);
+  if(vA===null||vB===null||!vB) return null;
+  return { contra:ant, pct:(vA/vB-1)*100, ini:ini, fim:fim, anoInteiro:(hsCompleto(jA)&&hsCompleto(jB)) };
+}
+/* ==HISTCALC-FIM== */
+
+/* A TELA. Monta só quando a aba abre (ver o clique do menu) — a página nasce enxuta. */
+var HS_CORES = ["#c8d8cd","#8fb9a0","#4a9468","#12662c"];
+var HS_MESES = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+var HS_MEDIDAS = {
+  fat:  { nome:"Faturamento",     campo:"fat",  tipo:"brl" },
+  marg: { nome:"Margem",          campo:"marg", tipo:"brl" },
+  cup:  { nome:"Vendas (cupons)", campo:"cup",  tipo:"num" },
+  qtd:  { nome:"Itens vendidos",  campo:"qtd",  tipo:"num" }
+};
+function hsBrl(v){ return "R$ "+v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function hsNum(v){ return Math.round(v).toLocaleString("pt-BR"); }
+function hsVal(t,v){ return t==="brl"?hsBrl(v):hsNum(v); }
+function hsData(md){ return md.split("-").reverse().join("/"); }
+function hsPct(p){ return (p>=0?"&#9650; ":"&#9660; ")+Math.abs(p).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%"; }
+function hsCor(anos, a){ var i=anos.indexOf(a); return HS_CORES[(HS_CORES.length-anos.length+i+HS_CORES.length)%HS_CORES.length]||"#9aa7b5"; }
+
+function hsMontar(){
+  var sel=document.getElementById("hsMedida"); if(!sel) return;
+  var M=HS_MEDIDAS[sel.value]||HS_MEDIDAS.fat, campo=M.campo, tipo=M.tipo;
+  var J=hsJanelas(DIA), porAno=hsPorAno(DIA,campo), porMes=hsPorMes(DIA,campo);
+  var anos=Object.keys(porAno).sort();
+  var ultDia=hsUltimoDia(DIA), mesCorrente=ultDia.slice(0,7);
+
+  // ---- cartões de ano ----
+  document.getElementById("hsAnos").innerHTML = anos.map(function(a){
+    var c=hsCompara(DIA,campo,a), jA=J[a];
+    var texto="primeiro ano da base";
+    if(c){
+      texto="<b class='"+(c.pct>=0?"hs-pos":"hs-neg")+"'>"+hsPct(c.pct)+"</b> vs "+c.contra
+          + (c.anoInteiro ? " (ano inteiro)"
+                          : "<br>comparando só "+hsData(c.ini)+" a "+hsData(c.fim)+" nos dois anos");
+    }
+    var etq = hsCompleto(jA) ? ""
+      : "<span class='hs-parcial'>"+(jA.ini>"01-05"?"de "+hsData(jA.ini)+" ":"")+"até "+hsData(jA.fim)+"</span>";
+    return "<div class='hs-ano' style=\\"border-top-color:"+hsCor(anos,a)+"\\">"
+         + "<div class='a'>"+a+etq+"</div>"
+         + "<div class='v'>"+hsVal(tipo,porAno[a])+"</div>"
+         + "<div class='c'>"+texto+"</div></div>";
+  }).join("");
+
+  // ---- barras: um grupo por mês, uma barra por ano ----
+  var maxMes=0;
+  anos.forEach(function(a){ for(var m=1;m<=12;m++){ var v=porMes[a+"-"+("0"+m).slice(-2)]; if(v>maxMes) maxMes=v; } });
+  var grupos="";
+  for(var m=1;m<=12;m++){
+    var mm=("0"+m).slice(-2), barras="";
+    for(var k=0;k<anos.length;k++){
+      var a=anos[k], v=porMes[a+"-"+mm];
+      if(v===undefined) continue;
+      var alt=maxMes?Math.max(2,Math.round(v/maxMes*100)):0;
+      var correndo=((a+"-"+mm)===mesCorrente);
+      barras+="<div class='hs-b' style=\\"height:"+alt+"%;background:"+hsCor(anos,a)+(correndo?";opacity:.55":"")
+            + "\\" title=\\""+HS_MESES[m-1]+"/"+a+": "+hsVal(tipo,v)+(correndo?" (mês ainda correndo)":"")+"\\"></div>";
+    }
+    grupos+="<div class='hs-mes'>"+barras+"</div>";
+  }
+  document.getElementById("hsGraf").innerHTML=grupos;
+  document.getElementById("hsEixo").innerHTML=HS_MESES.map(function(x){ return "<span>"+x+"</span>"; }).join("");
+  document.getElementById("hsLeg").innerHTML=anos.map(function(a){
+      return "<span><i style=\\"background:"+hsCor(anos,a)+"\\"></i>"+a+"</span>"; }).join("")
+    + "<span style='color:#8b96a5;font-weight:500;'>barra mais clara = mês ainda correndo</span>";
+
+  // ---- tabela mês x ano ----
+  var ult=anos[anos.length-1], pen=anos[anos.length-2], corpo="";
+  for(var m2=1;m2<=12;m2++){
+    var mm2=("0"+m2).slice(-2);
+    var tds=anos.map(function(a){
+      var v=porMes[a+"-"+mm2];
+      if(v===undefined) return "<td class='hs-vaz'>—</td>";
+      var correndo=((a+"-"+mm2)===mesCorrente);
+      return "<td"+(correndo?" title=\\"mês ainda correndo\\"":"")+">"+hsVal(tipo,v)+(correndo?" *":"")+"</td>";
+    }).join("");
+    var vU=porMes[ult+"-"+mm2], vP=pen?porMes[pen+"-"+mm2]:undefined, varia="<td class='hs-vaz'>—</td>";
+    if(vU!==undefined && vP!==undefined && vP>0 && (ult+"-"+mm2)!==mesCorrente){
+      var p2=(vU/vP-1)*100;
+      varia="<td class='"+(p2>=0?"hs-pos":"hs-neg")+"' style='font-weight:700'>"+hsPct(p2)+"</td>";
+    }
+    corpo+="<tr><td class='mes'>"+HS_MESES[m2-1]+"</td>"+tds+varia+"</tr>";
+  }
+  document.getElementById("hsTbl").innerHTML=
+      "<thead><tr><th>Mês</th>"+anos.map(function(a){ return "<th>"+a+"</th>"; }).join("")
+    + "<th>"+(pen?ult+" vs "+pen:"—")+"</th></tr></thead>"
+    + "<tbody>"+corpo+"</tbody>"
+    + "<tfoot><tr><td class='mes'>Ano</td>"+anos.map(function(a){ return "<td>"+hsVal(tipo,porAno[a])+"</td>"; }).join("")
+    + "<td class='hs-vaz'>—</td></tr></tfoot>";
+
+  var prim=DIA.length?DIA.reduce(function(x,y){ return x.d<y.d?x:y; }).d:"";
+  document.getElementById("hsNota").innerHTML=
+      "Os números saem dos mesmos dias que o resto do painel — base de <b>"+DIA.length.toLocaleString("pt-BR")
+    + " dias</b>, de "+prim.split("-").reverse().join("/")+" a "+ultDia.split("-").reverse().join("/")
+    + ". O <b>*</b> marca mês que ainda não fechou, e mês aberto não entra na coluna de variação.";
+}
+(function(){ var s=document.getElementById("hsMedida"); if(s) s.addEventListener("change", hsMontar); })();
 
 // Quando digita um código que resolve para UM produto só, preenche o nome.
 function autoPreencherNome(finalizar){
@@ -28784,6 +29020,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="ferias"){ if(!document.getElementById("ferConsultaDia").value){ document.getElementById("ferConsultaDia").value=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2)+"-"+("0"+HOJE.getDate()).slice(-2); } renderFerias(); }
     if(btn.dataset.page==="negociar") renderNegociar();
     if(btn.dataset.page==="analise") renderAnalise();
+    if(btn.dataset.page==="historico") hsMontar();
     try{ localStorage.setItem("ui_pagina_atual", btn.dataset.page); }catch(e){}
     try{ if(window.__presTrack) window.__presTrack(); }catch(e){}   // presença: atualiza "o que está fazendo"
     window.scrollTo(0,0);
