@@ -342,6 +342,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   /* o traço que explica: pontilhado discreto convida o mouse sem virar enfeite */
   #page-historico .hs-tip { cursor:help; border-bottom:1px dotted #b7c0cb; padding-bottom:1px; }
   #page-historico .hs-tip:hover { color:#157a35; }
+  /* o número do mês em curso herda a cor de subida/queda: o pontilhado e a marca de
+     "isto ainda vai mudar", nao um estado cinza */
+  #page-historico .hs-sub2 { font-size:11.5px; color:#6b7787; font-weight:400; margin-top:2px; font-variant-numeric:tabular-nums; }
+  #page-historico .hs-tipv { color:inherit; border-bottom-style:dashed; }
+  #page-historico .hs-tipv:hover { color:inherit; opacity:.75; }
   #page-historico .hs-tip:focus-visible { outline:2px solid #157a35; outline-offset:3px; }
   #page-historico .hs-balao { position:absolute; display:none; width:250px; background:#1f2d3d; color:#fff;
     font-size:11.5px; font-weight:500; line-height:1.45; padding:9px 11px; border-radius:8px; text-align:left;
@@ -5842,6 +5847,20 @@ function hsCasoVazio(porMes, diasPorMes, ano, mm, mesCorrente){
   if(!hsMesCompleto(diasPorMes,ant,mm)) return "base_parcial";
   return null;
 }
+/* ==HISTCURSO== O MES QUE ESTA CORRENDO TAMBEM PODE SER COMPARADO — desde que contra o
+   MESMO PEDACO do ano passado. Em 18/09/2026 a loja tinha feito R$ 2.996.031,09 no mes;
+   contra o setembro INTEIRO de 2025 (R$ 4.627.036,39) isso daria -35,2%, como se a loja
+   tivesse desabado. Contra os dias 1 a 18 de setembro de 2025 (R$ 2.770.143,48) da +8,2%,
+   que e o que esta acontecendo de verdade. O numero muda todo dia, e e pra mudar mesmo. */
+function hsPctMesEmCurso(dias, campo, ano, mm, ultimoDia){
+  var ini = mm+"-01", fim = ultimoDia.slice(5,10);
+  if(fim < ini) return null;
+  var ant = String(Number(ano)-1);
+  var vA = hsSoma(dias, campo, ano, ini, fim);
+  var vB = hsSoma(dias, campo, ant, ini, fim);
+  if(vA===null || vB===null || !vB) return null;
+  return { pct:(vA/vB-1)*100, ini:ini, fim:fim, dias:Number(fim.slice(3)) };
+}
 /* Compara um ano com o anterior no maior pedaço que os DOIS têm. */
 function hsCompara(dias, campo, ano){
   var J=hsJanelas(dias), jA=J[ano], ant=String(Number(ano)-1), jB=J[ant];
@@ -5868,6 +5887,7 @@ function hsBrl(v){ return "R$ "+v.toLocaleString("pt-BR",{minimumFractionDigits:
 function hsNum(v){ return Math.round(v).toLocaleString("pt-BR"); }
 function hsVal(t,v){ return t==="brl"?hsBrl(v):hsNum(v); }
 function hsData(md){ return md.split("-").reverse().join("/"); }
+function hsDiaMes(iso){ return iso.slice(8,10)+"/"+iso.slice(5,7); }
 /* ==HISTSINAL== O NUMERO TEM QUE DIZER SOZINHO QUE E QUEDA.
    A tela mostrava "▼ 1,3%": o triangulo apontava pra baixo, mas o numero lido sozinho era
    "1,3%", igualzinho a uma subida de 1,3%. Quem bate o olho na coluna le o numero, nao o
@@ -5976,8 +5996,21 @@ function hsMontar(){
     if(caso==="sem_dado")         return "Não há "+nome+" de "+ano+" na base.";
     return "";
   }
-  function hsTdPct(p, ano, mm){
+  function hsTdPct(p, ano, mm, correndo){
     if(p!==null) return "<td class='"+(p>=0?"hs-pos":"hs-neg")+"' style='font-weight:700'>"+hsPct(p)+"</td>";
+    /* MES EM CURSO: em vez de um traço, o número do pedaço que já existe nos dois anos.
+       Vem marcado, porque quem le "+8,2%" tem que saber que e parcial e que muda amanha. */
+    if(correndo){
+      var c0 = hsPctMesEmCurso(DIA, campo, ano, mm, ultDia);
+      if(c0){
+        var tipC = MESES_INT[Number(mm)-1].charAt(0).toUpperCase()+MESES_INT[Number(mm)-1].slice(1)
+                 + " ainda está correndo. Isto compara só do dia 1 ao dia "+c0.dias+" nos dois anos — "
+                 + "os dias que já existem dos dois lados. O número muda a cada dia que passa.";
+        return "<td class='"+(c0.pct>=0?"hs-pos":"hs-neg")+"' style='font-weight:700'>"
+             + "<span class='hs-tip hs-tipv' tabindex='0' data-tip='"+tipC.replace(/'/g,"&#39;")+"'>"
+             + hsPct(c0.pct)+"</span></td>";
+      }
+    }
     var caso = (ano===undefined) ? null : hsCasoVazio(porMes, diasPorMes, ano, mm, mesCorrente);
     var tip = caso ? hsMotivo(caso, ano, mm) : "";
     if(!tip) return "<td class='hs-vaz'>—</td>";
@@ -5989,9 +6022,24 @@ function hsMontar(){
     var mm2=("0"+m2).slice(-2), tds="";
     for(var k2=0;k2<anos.length;k2++){
       var a2=anos[k2], v2=porMes[a2+"-"+mm2];
+      /* ==HISTBASE== O NUMERO CERTO NO LUGAR ERRADO VALE TAO POUCO QUANTO O ERRADO.
+         A linha de setembro mostrava "R$ 4.627.036,39" (2025 inteiro), "R$ 2.996.031,09"
+         (2026 ate o dia 18) e "+8,2%" do lado. Qualquer um faz a conta de cabeca, ve 3,0
+         menor que 4,6 e conclui que a tela mente. A conta estava certa — ela compara 1 a 18
+         nos DOIS anos — mas o resultado ficava encostado num numero que nao era a base dele.
+         Agora a base aparece embaixo do valor de 2025, e o +8,2% tem de onde sair, a vista. */
+      var correndo = ((a2+"-"+mm2)===mesCorrente);
+      var ehBase = (mm2===mesCorrente.slice(5,7)) && (String(Number(a2)+1)===mesCorrente.slice(0,4));
+      var pe = "";
+      if(v2!==undefined && correndo){
+        pe = "<div class='hs-sub2'>at&eacute; o dia "+ultDia.slice(8,10)+"</div>";
+      } else if(v2!==undefined && ehBase){
+        var vBase = hsSoma(DIA, campo, a2, mm2+"-01", ultDia.slice(5,10));
+        if(vBase!==null) pe = "<div class='hs-sub2'>1 a "+ultDia.slice(8,10)+": "+hsVal(tipo,vBase)+"</div>";
+      }
       tds += (v2===undefined) ? "<td class='hs-vaz'>—</td>"
-           : "<td>"+hsVal(tipo,v2)+(((a2+"-"+mm2)===mesCorrente)?" *":"")+"</td>";
-      if(k2>0) tds += hsTdPct(hsPctMes(porMes,diasPorMes,a2,mm2), a2, mm2);
+           : "<td>"+hsVal(tipo,v2)+pe+"</td>";
+      if(k2>0) tds += hsTdPct(hsPctMes(porMes,diasPorMes,a2,mm2), a2, mm2, correndo);
     }
     corpo += "<tr><td class='mes'>"+MESES_INT[m2-1].slice(0,3)+"</td>"+tds+"</tr>";
   }
@@ -6011,7 +6059,7 @@ function hsMontar(){
   document.getElementById("hsNota").innerHTML=
       "Os números saem dos mesmos dias que o resto do painel — base de <b>"+DIA.length.toLocaleString("pt-BR")
     + " dias</b>, de "+prim.split("-").reverse().join("/")+" a "+ultDia.split("-").reverse().join("/")
-    + ". O <b>*</b> marca mês que ainda não fechou. Onde a comparação não cabe fica um <b>—</b>: passe o mouse nele que a tela diz o porquê.";
+    + ". O mês que ainda está correndo mostra <b>até o dia "+ultDia.slice(8,10)+"</b>, e a variação dele compara com o mesmo pedaço do ano passado — que aparece logo ao lado, em letra miúda. Por isso esse número muda todo dia. Onde a comparação não cabe fica um <b>—</b>: passe o mouse nele que a tela diz o porquê.";
 }
 (function(){ var s=document.getElementById("hsMedida"); if(s) s.addEventListener("change", hsMontar); })();
 

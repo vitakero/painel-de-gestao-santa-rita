@@ -9,7 +9,7 @@ const ini = HTML.indexOf("==HISTCALC-INICIO==");
 const fim = HTML.indexOf("==HISTCALC-FIM==");
 if (ini < 0 || fim < 0) { console.log("ERRO: não achei o módulo no output/index.html (rode o build antes)."); process.exit(1); }
 const codigo = HTML.slice(HTML.indexOf("*/", ini) + 2, HTML.lastIndexOf("/*", fim));
-const M = new Function(codigo + "\nreturn {hsJanelas,hsCompleto,hsUltimoDia,hsSoma,hsPorAno,hsPorMes,hsCompara,hsDiasPorMes,hsMesCompleto,hsPctMes,hsCasoVazio};")();
+const M = new Function(codigo + "\nreturn {hsJanelas,hsCompleto,hsUltimoDia,hsSoma,hsPorAno,hsPorMes,hsCompara,hsDiasPorMes,hsMesCompleto,hsPctMes,hsCasoVazio,hsPctMesEmCurso};")();
 
 let ok = 0, falhou = 0;
 function eq(nome, obtido, esperado) {
@@ -210,6 +210,49 @@ const d2 = (v) => v === null ? "null" : (Math.round(v * 100) / 100).toFixed(2);
   eq("sao exatamente estes quatro, com estes motivos",
      vazios.join(" "),
      "2024-01:sem_ano_anterior 2024-02:sem_ano_anterior 2024-03:base_parcial 2026-09:mes_aberto");
+}
+
+// ===========================================================================
+// O MES QUE ESTA CORRENDO. Mostrar o numero exige comparar com o MESMO pedaco do
+// ano passado: contra o mes inteiro daria uma queda que nao existe.
+// ===========================================================================
+{
+  const L = [];
+  const dias = (ano, mes, de, ate, v) => { for (let d = de; d <= ate; d++) L.push(D(ano + "-" + mes + "-" + String(d).padStart(2, "0"), v)); };
+  dias("2025", "09", 1, 30, 100);        // setembro inteiro do ano passado: 3000
+  dias("2026", "09", 1, 18, 110);        // ate o dia 18 deste ano: 1980
+  const c = M.hsPctMesEmCurso(L, "fat", "2026", "09", "2026-09-18");
+  eq("compara 1 a 18 nos dois anos", d2(c.pct), "10.00");
+  eq("e diz ate que dia foi", c.dias, 18);
+  // a conta errada, de proposito, pra deixar o perigo escrito:
+  const cru = (M.hsPorMes(L, "fat")["2026-09"] / M.hsPorMes(L, "fat")["2025-09"] - 1) * 100;
+  eq("contra o mes inteiro daria uma queda falsa", d2(cru), "-34.00");
+}
+
+// ===========================================================================
+// Sem o mesmo pedaco do ano anterior, nao ha numero.
+// ===========================================================================
+{
+  const L = [];
+  for (let d = 1; d <= 18; d++) L.push(D("2026-09-" + String(d).padStart(2, "0"), 100));
+  eq("sem ano anterior devolve null", M.hsPctMesEmCurso(L, "fat", "2026", "09", "2026-09-18"), null);
+}
+
+// ===========================================================================
+// Com os dias de verdade: o numero que a tela mostra hoje.
+// ===========================================================================
+{
+  const vr = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "output", "vr-data.json"), "utf8"));
+  const ult = M.hsUltimoDia(vr.DIA), mm = ult.slice(5, 7), ano = ult.slice(0, 4);
+  const c = M.hsPctMesEmCurso(vr.DIA, "fat", ano, mm, ult);
+  eq("o mes corrente TEM numero agora", c !== null, true);
+  eq("e ele e uma subida", c.pct > 0, true);
+  eq("comparou ate o ultimo dia da base", c.dias, Number(ult.slice(8, 10)));
+  // o que a tela NAO pode mostrar:
+  const pm = M.hsPorMes(vr.DIA, "fat");
+  const falso = (pm[ano + "-" + mm] / pm[String(Number(ano) - 1) + "-" + mm] - 1) * 100;
+  eq("a conta ingenua seria uma queda", falso < -20, true);
+  eq("e a certa e uma subida", c.pct > 0, true);
 }
 
 console.log("\n" + ok + " OK, " + falhou + " falha(s)");
