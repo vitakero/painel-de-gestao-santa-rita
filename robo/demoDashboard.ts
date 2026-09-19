@@ -6120,17 +6120,38 @@ function hsMontar(){
           var prE = hsProjecaoMes(DIA, campo, ultDia);
           var linhaProjPct = "";
           if(prE && prE.pct!==null){
-            linhaProjPct = "<div class='hs-sub2'>proje&ccedil;&atilde;o: <b class='"+(prE.pct>=0?"hs-pos":"hs-neg")+"'>"
+            /* ==HISTBALAO3== ESTE BALAO RESPONDE "VOU BATER O MES?".
+               O numero diz onde a loja termina; o ritmo diz se ela chega la. Sao as duas
+               metades da mesma pergunta, por isso moram juntos — e o veredito ("ritmo
+               suficiente") vem escrito, pra ninguem ter que comparar dois numeros de
+               cabeca. Se a loja ficar abaixo do necessario, a frase muda sozinha. */
+            var tipP = "Se o ritmo atual se mantiver, " + MESES_INT[Number(mm)-1] + " fecha "
+                     + (prE.pct>=0?"+":"\u2212") + Math.abs(prE.pct).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})
+                     + "% acima de " + (Number(ano)-1) + " (" + hsVal(tipo, prE.baseAnt) + ").";
+            if(prE.pct<0){
+              tipP = "Se o ritmo atual se mantiver, " + MESES_INT[Number(mm)-1] + " fecha "
+                   + Math.abs(prE.pct).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})
+                   + "% abaixo de " + (Number(ano)-1) + " (" + hsVal(tipo, prE.baseAnt) + ").";
+            }
+            if(ftE && ftE.diasQueFaltam>0 && ftE.falta>0){
+              var rit = v2/Number(ultDia.slice(8,10)), prec = ftE.falta/ftE.diasQueFaltam;
+              tipP += " A loja está fazendo " + hsVal(tipo,rit) + " por dia e precisa de "
+                    + hsVal(tipo,prec) + " por dia: ritmo "
+                    + (rit>=prec ? "suficiente." : "abaixo do necessário.");
+            }
+            linhaProjPct = "<div class='hs-sub2'>proje&ccedil;&atilde;o: "
+                         + "<b class='hs-tip hs-tipv " + (prE.pct>=0?"hs-pos":"hs-neg") + "' tabindex='0' data-tip='"
+                         + tipP.replace(/'/g,"&#39;") + "'>"
                          + (prE.pct>=0?"+":"\u2212")+Math.abs(prE.pct).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})
                          + "%</b></div>";
           }
-          var tipE = MESES_INT[Number(mm)-1].charAt(0).toUpperCase()+MESES_INT[Number(mm)-1].slice(1)
-                   + " ainda está correndo. Este número compara "+c0.dias+" dias deste ano com o mês INTEIRO de "
-                   + (Number(ano)-1) + " — por isso é negativo: faltam " + ftE.diasQueFaltam + " dias para vender. "
-                   + "Faltam " + hsVal(tipo, ftE.falta) + " para igualar. "
-                   + "Comparando os MESMOS " + c0.dias + " dias nos dois anos, a loja está "
-                   + (c0.pct>=0?"+":"\u2212") + Math.abs(c0.pct).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1}) + "%"
-                   + (vB0!==null ? " (" + hsVal(tipo,vB0) + " em " + (Number(ano)-1) + ")" : "") + ".";
+          /* ==HISTBALAO2== O MEDO PRIMEIRO, O NUMERO DEPOIS.
+             Quem para o mouse num -31,8% vermelho esta perguntando uma coisa so: "a loja
+             esta caindo?". A resposta e nao, e ela tem que vir na primeira palavra — nao
+             depois de tres linhas explicando metodologia. */
+          var tipE = "Não é queda: " + MESES_INT[Number(mm)-1] + " ainda não acabou. Faltam "
+                   + ftE.diasQueFaltam + " dias e " + hsVal(tipo, ftE.falta)
+                   + " para igualar o mês inteiro de " + (Number(ano)-1) + ".";
           return "<td class='"+(pctGrande>=0?"hs-pos":"hs-neg")+"' style='font-weight:700'>"
                + "<span class='hs-tip hs-tipv' tabindex='0' data-tip='"+tipE.replace(/'/g,"&#39;")+"'>"
                + hsPct(pctGrande)+"</span>"
@@ -6170,25 +6191,14 @@ function hsMontar(){
            mouse. Informacao repetida nao e reforco: e ruido que esconde o que importa. */
         var pr = hsProjecaoMes(DIA, campo, ultDia);
         var ft = hsFaltaPraAlcancar(DIA, campo, ultDia);
-        var det = "Setembro ainda está correndo.";
-        det = MESES_INT[Number(mm2)-1].charAt(0).toUpperCase()+MESES_INT[Number(mm2)-1].slice(1)
-            + " ainda está correndo: " + hsVal(tipo,v2) + " em " + ultDia.slice(8,10) + " dias.";
-        if(ft && ft.falta>0 && ft.pctDoAlvo!==null){
-          det += " Faltam " + hsVal(tipo,ft.falta) + " (" + ft.pctDoAlvo.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})
-               + "%) para igualar o mês inteiro do ano passado, e restam " + ft.diasQueFaltam + " dias.";
-          if(ft.diasQueFaltam>0){
-            var ritmo = v2/Number(ultDia.slice(8,10)), preciso = ft.falta/ft.diasQueFaltam;
-            det += " A loja está fazendo " + hsVal(tipo,ritmo) + " por dia e precisa de "
-                 + hsVal(tipo,preciso) + " por dia — ritmo " + (ritmo>=preciso ? "suficiente" : "abaixo do necessário") + ".";
-          }
-        }
-        if(pr) det += " Projeção de fechamento: " + hsVal(tipo,pr.valor) + ".";
-        /* ==HISTPROJVISTA== A PROJECAO E A RESPOSTA DO ALARME.
-           Ela estava abreviada ("R$ 4,98 mi") e em cinza miudo, do lado da etiqueta do dia.
-           So que o numero grande da linha ao lado e um -31,8% vermelho que pergunta "vou
-           alcancar o ano passado?" — e a resposta estava em corpo 11, abreviada. Alarme
-           grande com resposta miuda e o pior arranjo possivel. Agora ela tem linha propria
-           e vai por extenso; continua cinza porque continua sendo estimativa. */
+        /* ==HISTBALAO1== UM BALAO, UMA IDEIA.
+           Este balao chegou a ter cinco fatos numa frase so: quanto ja vendeu, em quantos
+           dias, quanto falta, o ritmo atual, o ritmo necessario e a projecao. Quem abre um
+           balao quer entender UM numero — o numero em que ele encostou o mouse. O resto
+           mora nos balaos dos outros numeros. */
+        var det = "Se a loja seguir o ritmo atual até o fim do mês, "
+                + MESES_INT[Number(mm2)-1] + " fecha em " + hsVal(tipo, pr ? pr.valor : v2)
+                + ". É uma estimativa: muda a cada dia que passa.";
         /* ==HISTALCA== A LINHA "ate o dia 19" SAIU A PEDIDO DELE (19/09), E ELA ERA A ALCA
            DO BALAO — todo o detalhe do mes pendurava ali. O balao mudou de alca e foi pra
            linha da projecao, que fica. Nao pode ficar sem alca nenhuma: e nesse balao que
