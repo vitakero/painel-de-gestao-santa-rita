@@ -313,7 +313,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #page-historico .hs-eixo { display:flex; padding-top:7px; min-width:540px; }
   #page-historico .hs-eixo span { flex:1; text-align:center; font-size:11.5px; color:#6b7787; font-weight:600; text-transform:uppercase; letter-spacing:.3px; }
   #page-historico .hs-twrap { overflow-x:auto; max-width:100%; }
-  #page-historico .hs-tbl { width:100%; border-collapse:collapse; font-size:13px; min-width:520px; }
+  #page-historico .hs-tbl { width:100%; border-collapse:collapse; font-size:13px; min-width:760px; }
   #page-historico .hs-tbl th { text-align:right; font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:#6b7787; padding:8px; border-bottom:1px solid #dbe2ea; white-space:nowrap; }
   #page-historico .hs-tbl th:first-child, #page-historico .hs-tbl td:first-child { text-align:left; }
   #page-historico .hs-tbl td { text-align:right; padding:7px 8px; border-bottom:1px solid #eef2f7; font-variant-numeric:tabular-nums; color:#33404f; }
@@ -321,6 +321,14 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #page-historico .hs-tbl td.mes { font-weight:600; color:#1f2b3a; }
   #page-historico .hs-tbl tfoot td { border-top:2px solid #dbe2ea; border-bottom:0; font-weight:700; color:#1f2b3a; padding-top:9px; }
   #page-historico .hs-tbl .hs-vaz { color:#b7c0cb; }
+  /* o traço que explica: pontilhado discreto convida o mouse sem virar enfeite */
+  #page-historico .hs-tip { cursor:help; border-bottom:1px dotted #b7c0cb; padding-bottom:1px; }
+  #page-historico .hs-tip:hover { color:#157a35; }
+  #page-historico .hs-tip:focus-visible { outline:2px solid #157a35; outline-offset:3px; }
+  #page-historico .hs-balao { position:absolute; display:none; width:250px; background:#1f2d3d; color:#fff;
+    font-size:11.5px; font-weight:500; line-height:1.45; padding:9px 11px; border-radius:8px; text-align:left;
+    z-index:60; box-shadow:0 4px 14px rgba(0,0,0,.18); pointer-events:none; }
+  #page-historico .hs-balao.ver { display:block; }
   #page-historico .hs-nota { font-size:12.5px; color:#6b7787; margin-top:12px; line-height:1.55; }
   @media (max-width:820px){
     #page-historico .hs-b { width:9px; }
@@ -1763,7 +1771,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <div class="hs-eixo" id="hsEixo"></div>
         </div>
       </div>
-      <div class="card" style="margin-top:16px;">
+      <div class="card" id="hsCartaoNumeros" style="margin-top:16px;position:relative;">
         <h2>Os números</h2>
         <div class="hs-twrap"><table class="hs-tbl" id="hsTbl"></table></div>
         <div class="hs-nota" id="hsNota"></div>
@@ -5774,6 +5782,48 @@ function hsPorMes(dias, campo){
   for(var i=0;i<dias.length;i++){ var m=dias[i].d.slice(0,7); o[m]=(o[m]||0)+(+dias[i][campo]||0); }
   return o;
 }
+/* ==HISTMES== O MES PELA METADE NAO SERVE DE BASE.
+   Marco de 2023 so tem do dia 17 em diante. Comparado com o marco inteiro de 2024 dava
+   +147,2% na tela — a loja nao cresceu nada disso, era meio mes contra um mes inteiro.
+   Mesma doenca do ano pela metade, um andar abaixo.
+
+   A REGUA E CONTAR OS DIAS, e nao olhar a borda do ano. A primeira versao exigia que o mes
+   estivesse inteiro dentro da janela do ano; como a loja fecha no dia 1o de janeiro, NENHUM
+   janeiro passava e sumiram todas as comparacoes de janeiro junto com a do marco.
+   Contando dias, feriado de loja fechada (1 dia) passa e comeco de base (16 dias) nao.
+   Na base inteira de 1.271 dias, nenhum mes perde mais que 1 dia fora esses dois casos. */
+function hsDiasPorMes(dias){
+  var o={};
+  for(var i=0;i<dias.length;i++){ var m=dias[i].d.slice(0,7); o[m]=(o[m]||0)+1; }
+  return o;
+}
+var HS_FOLGA_DIAS = 3;
+function hsMesCompleto(diasPorMes, ano, mm){
+  var tem = diasPorMes[ano+"-"+mm];
+  if(!tem) return false;
+  var doMes = new Date(Number(ano), Number(mm), 0).getDate();
+  return tem >= doMes - HS_FOLGA_DIAS;
+}
+/* Variação do mês contra o MESMO mês do ano anterior. Os dois têm que estar inteiros. */
+function hsPctMes(porMes, diasPorMes, ano, mm){
+  var ant = String(Number(ano)-1);
+  var vA = porMes[ano+"-"+mm], vB = porMes[ant+"-"+mm];
+  if(vA===undefined || vB===undefined || !vB) return null;
+  if(!hsMesCompleto(diasPorMes,ano,mm) || !hsMesCompleto(diasPorMes,ant,mm)) return null;
+  return (vA/vB-1)*100;
+}
+/* POR QUE ESTE TRACO ESTA AQUI. O mesmo "—" aparecia por quatro motivos diferentes e todos
+   mudos. Isto devolve QUAL deles, pra tela conseguir explicar. */
+function hsCasoVazio(porMes, diasPorMes, ano, mm, mesCorrente){
+  var ant = String(Number(ano)-1);
+  var vA = porMes[ano+"-"+mm], vB = porMes[ant+"-"+mm];
+  if(vA===undefined && vB===undefined) return "nada";
+  if(vA===undefined) return (ano+"-"+mm) > mesCorrente ? "nao_chegou" : "sem_dado";
+  if(vB===undefined) return "sem_ano_anterior";
+  if(!hsMesCompleto(diasPorMes,ano,mm)) return (ano+"-"+mm)===mesCorrente ? "mes_aberto" : "mes_parcial";
+  if(!hsMesCompleto(diasPorMes,ant,mm)) return "base_parcial";
+  return null;
+}
 /* Compara um ano com o anterior no maior pedaço que os DOIS têm. */
 function hsCompara(dias, campo, ano){
   var J=hsJanelas(dias), jA=J[ano], ant=String(Number(ano)-1), jB=J[ant];
@@ -5803,6 +5853,37 @@ function hsData(md){ return md.split("-").reverse().join("/"); }
 function hsPct(p){ return (p>=0?"&#9650; ":"&#9660; ")+Math.abs(p).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%"; }
 function hsCor(anos, a){ var i=anos.indexOf(a); return HS_CORES[(HS_CORES.length-anos.length+i+HS_CORES.length)%HS_CORES.length]||"#9aa7b5"; }
 
+/* ==HISTBALAO== O BALAO MORA FORA DA CAIXA DE ROLAGEM.
+   A tabela rola de lado (overflow-x:auto) e quem rola de lado tambem CORTA em cima e
+   embaixo: o balao desenhado como ::after da propria celula aparecia pela metade — so a
+   ultima linha do texto. Entao existe UM balao so, filho do cartao, posto na mao sobre a
+   celula. Se um dia entrar balao em outra tabela que rola, e a mesma armadilha. */
+function hsLigarBaloes(){
+  var cartao = document.getElementById("hsCartaoNumeros"); if(!cartao) return;
+  var balao = document.getElementById("hsBalao");
+  if(!balao){
+    balao = document.createElement("div");
+    balao.id = "hsBalao"; balao.className = "hs-balao";
+    cartao.appendChild(balao);
+  }
+  function abrir(el){
+    balao.textContent = el.getAttribute("data-tip") || "";
+    balao.classList.add("ver");
+    var c = cartao.getBoundingClientRect(), r = el.getBoundingClientRect();
+    var esq = r.left - c.left + r.width/2 - 125;
+    esq = Math.max(8, Math.min(esq, c.width - 258));
+    balao.style.left = esq + "px";
+    var acima = r.top - c.top - balao.offsetHeight - 9;
+    balao.style.top = (acima > 4 ? acima : (r.bottom - c.top + 9)) + "px";
+  }
+  function fechar(){ balao.classList.remove("ver"); }
+  cartao.querySelectorAll(".hs-tip").forEach(function(el){
+    el.addEventListener("mouseenter", function(){ abrir(el); });
+    el.addEventListener("mouseleave", fechar);
+    el.addEventListener("focus", function(){ abrir(el); });
+    el.addEventListener("blur", fechar);
+  });
+}
 function hsMontar(){
   var sel=document.getElementById("hsMedida"); if(!sel) return;
   var M=HS_MEDIDAS[sel.value]||HS_MEDIDAS.fat, campo=M.campo, tipo=M.tipo;
@@ -5849,35 +5930,58 @@ function hsMontar(){
       return "<span><i style=\\"background:"+hsCor(anos,a)+"\\"></i>"+a+"</span>"; }).join("")
     + "<span style='color:#8b96a5;font-weight:500;'>barra mais clara = mês ainda correndo</span>";
 
-  // ---- tabela mês x ano ----
-  var ult=anos[anos.length-1], pen=anos[anos.length-2], corpo="";
-  for(var m2=1;m2<=12;m2++){
-    var mm2=("0"+m2).slice(-2);
-    var tds=anos.map(function(a){
-      var v=porMes[a+"-"+mm2];
-      if(v===undefined) return "<td class='hs-vaz'>—</td>";
-      var correndo=((a+"-"+mm2)===mesCorrente);
-      return "<td"+(correndo?" title=\\"mês ainda correndo\\"":"")+">"+hsVal(tipo,v)+(correndo?" *":"")+"</td>";
-    }).join("");
-    var vU=porMes[ult+"-"+mm2], vP=pen?porMes[pen+"-"+mm2]:undefined, varia="<td class='hs-vaz'>—</td>";
-    if(vU!==undefined && vP!==undefined && vP>0 && (ult+"-"+mm2)!==mesCorrente){
-      var p2=(vU/vP-1)*100;
-      varia="<td class='"+(p2>=0?"hs-pos":"hs-neg")+"' style='font-weight:700'>"+hsPct(p2)+"</td>";
-    }
-    corpo+="<tr><td class='mes'>"+HS_MESES[m2-1]+"</td>"+tds+varia+"</tr>";
+  var prim0 = DIA.length?DIA.reduce(function(x,y){ return x.d<y.d?x:y; }).d:"";
+  // ---- tabela mês x ano: cada ano com a variação dele do lado ----
+  var diasPorMes = hsDiasPorMes(DIA);
+  var MESES_INT = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+  function hsMaiusc(t){ return t.charAt(0).toUpperCase()+t.slice(1); }
+  /* O texto do balão. O traço nunca fica mudo: cada um diz o motivo DELE. */
+  function hsMotivo(caso, ano, mm){
+    var nome = MESES_INT[Number(mm)-1], ant = String(Number(ano)-1);
+    if(caso==="nao_chegou")       return "Ainda não chegou "+nome+" de "+ano+". A comparação aparece quando o mês acontecer.";
+    if(caso==="mes_aberto")       return hsMaiusc(nome)+" de "+ano+" ainda não fechou. Comparar um mês pela metade com um mês inteiro mostraria uma queda que não existe.";
+    if(caso==="mes_parcial")      return hsMaiusc(nome)+" de "+ano+" não tem todos os dias na base.";
+    if(caso==="base_parcial")     return hsMaiusc(nome)+" de "+ant+" só tem parte dos dias — a base começa em "+prim0.split("-").reverse().join("/")+". Meio mês contra um mês inteiro daria um crescimento que não é de verdade.";
+    if(caso==="sem_ano_anterior") return "A base começa em "+prim0.split("-").reverse().join("/")+", então não existe "+nome+" de "+ant+" para comparar.";
+    if(caso==="sem_dado")         return "Não há "+nome+" de "+ano+" na base.";
+    return "";
   }
-  document.getElementById("hsTbl").innerHTML=
-      "<thead><tr><th>Mês</th>"+anos.map(function(a){ return "<th>"+a+"</th>"; }).join("")
-    + "<th>"+(pen?ult+" vs "+pen:"—")+"</th></tr></thead>"
-    + "<tbody>"+corpo+"</tbody>"
-    + "<tfoot><tr><td class='mes'>Ano</td>"+anos.map(function(a){ return "<td>"+hsVal(tipo,porAno[a])+"</td>"; }).join("")
-    + "<td class='hs-vaz'>—</td></tr></tfoot>";
+  function hsTdPct(p, ano, mm){
+    if(p!==null) return "<td class='"+(p>=0?"hs-pos":"hs-neg")+"' style='font-weight:700'>"+hsPct(p)+"</td>";
+    var caso = (ano===undefined) ? null : hsCasoVazio(porMes, diasPorMes, ano, mm, mesCorrente);
+    var tip = caso ? hsMotivo(caso, ano, mm) : "";
+    if(!tip) return "<td class='hs-vaz'>—</td>";
+    return "<td class='hs-vaz'><span class='hs-tip' tabindex='0' data-tip='"+tip.replace(/'/g,"&#39;")+"'>—</span></td>";
+  }
 
-  var prim=DIA.length?DIA.reduce(function(x,y){ return x.d<y.d?x:y; }).d:"";
+  var corpo="";
+  for(var m2=1;m2<=12;m2++){
+    var mm2=("0"+m2).slice(-2), tds="";
+    for(var k2=0;k2<anos.length;k2++){
+      var a2=anos[k2], v2=porMes[a2+"-"+mm2];
+      tds += (v2===undefined) ? "<td class='hs-vaz'>—</td>"
+           : "<td>"+hsVal(tipo,v2)+(((a2+"-"+mm2)===mesCorrente)?" *":"")+"</td>";
+      if(k2>0) tds += hsTdPct(hsPctMes(porMes,diasPorMes,a2,mm2), a2, mm2);
+    }
+    corpo += "<tr><td class='mes'>"+MESES_INT[m2-1].slice(0,3)+"</td>"+tds+"</tr>";
+  }
+  var cab = "<tr><th>Mês</th>"+anos.map(function(a,i){
+      return "<th>"+a+"</th>"+(i>0?"<th>vs "+anos[i-1]+"</th>":"");
+    }).join("")+"</tr>";
+  var rod = "<tr><td class='mes'>Ano</td>"+anos.map(function(a,i){
+      var c = i>0 ? hsCompara(DIA,campo,a) : null;
+      return "<td>"+hsVal(tipo,porAno[a])+"</td>"
+           + (i>0 ? (c ? "<td class='"+(c.pct>=0?"hs-pos":"hs-neg")+"' style='font-weight:700'>"+hsPct(c.pct)+"</td>" : "<td class='hs-vaz'>—</td>") : "");
+    }).join("")+"</tr>";
+  document.getElementById("hsTbl").innerHTML =
+    "<thead>"+cab+"</thead><tbody>"+corpo+"</tbody><tfoot>"+rod+"</tfoot>";
+  hsLigarBaloes();
+
+  var prim=prim0;
   document.getElementById("hsNota").innerHTML=
       "Os números saem dos mesmos dias que o resto do painel — base de <b>"+DIA.length.toLocaleString("pt-BR")
     + " dias</b>, de "+prim.split("-").reverse().join("/")+" a "+ultDia.split("-").reverse().join("/")
-    + ". O <b>*</b> marca mês que ainda não fechou, e mês aberto não entra na coluna de variação.";
+    + ". O <b>*</b> marca mês que ainda não fechou. Onde a comparação não cabe fica um <b>—</b>: passe o mouse nele que a tela diz o porquê.";
 }
 (function(){ var s=document.getElementById("hsMedida"); if(s) s.addEventListener("change", hsMontar); })();
 

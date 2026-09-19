@@ -9,7 +9,7 @@ const ini = HTML.indexOf("==HISTCALC-INICIO==");
 const fim = HTML.indexOf("==HISTCALC-FIM==");
 if (ini < 0 || fim < 0) { console.log("ERRO: não achei o módulo no output/index.html (rode o build antes)."); process.exit(1); }
 const codigo = HTML.slice(HTML.indexOf("*/", ini) + 2, HTML.lastIndexOf("/*", fim));
-const M = new Function(codigo + "\nreturn {hsJanelas,hsCompleto,hsUltimoDia,hsSoma,hsPorAno,hsPorMes,hsCompara};")();
+const M = new Function(codigo + "\nreturn {hsJanelas,hsCompleto,hsUltimoDia,hsSoma,hsPorAno,hsPorMes,hsCompara,hsDiasPorMes,hsMesCompleto,hsPctMes,hsCasoVazio};")();
 
 let ok = 0, falhou = 0;
 function eq(nome, obtido, esperado) {
@@ -118,6 +118,98 @@ const d2 = (v) => v === null ? "null" : (Math.round(v * 100) / 100).toFixed(2);
   eq("2026 está subindo, não caindo", c.pct > 0, true);
   eq("e a comparação NÃO é de ano inteiro", c.anoInteiro, false);
   eq("o pedaço comparado termina no último dia da base", c.fim, M.hsUltimoDia(vr.DIA).slice(5, 10));
+}
+
+// ===========================================================================
+// O MES PELA METADE. Marco de 2023 so tem do dia 17: meio mes. Comparado com o
+// marco inteiro de 2024 dava +147,2% — a loja nao cresceu nada disso.
+// ===========================================================================
+{
+  const L = [];
+  const dias = (ano, mes, de, ate) => { for (let d = de; d <= ate; d++) L.push(D(ano + "-" + mes + "-" + String(d).padStart(2, "0"), 100)); };
+  dias("2023", "03", 17, 31);            // meio marco: 15 dias
+  dias("2024", "03", 1, 31);             // marco inteiro: 31 dias
+  const dpm = M.hsDiasPorMes(L), pm = M.hsPorMes(L, "fat");
+  eq("marco de 2023 nao esta inteiro", M.hsMesCompleto(dpm, "2023", "03"), false);
+  eq("marco de 2024 esta", M.hsMesCompleto(dpm, "2024", "03"), true);
+  eq("entao nao ha comparacao", M.hsPctMes(pm, dpm, "2024", "03"), null);
+  eq("e a tela sabe dizer por que", M.hsCasoVazio(pm, dpm, "2024", "03", "2026-09"), "base_parcial");
+}
+
+// ===========================================================================
+// A LOJA FECHA NO 1o DE JANEIRO. A primeira regua exigia o mes inteiro dentro da
+// janela do ano e NENHUM janeiro passava: sumiram todas as comparacoes de janeiro
+// junto com a do marco. Contando dias, feriado passa.
+// ===========================================================================
+{
+  const L = [];
+  const dias = (ano, mes, de, ate) => { for (let d = de; d <= ate; d++) L.push(D(ano + "-" + mes + "-" + String(d).padStart(2, "0"), 100)); };
+  dias("2024", "01", 2, 31);             // 30 de 31: fechou dia 1o
+  dias("2025", "01", 2, 31);
+  const dpm = M.hsDiasPorMes(L), pm = M.hsPorMes(L, "fat");
+  eq("janeiro com 30 de 31 dias vale", M.hsMesCompleto(dpm, "2025", "01"), true);
+  eq("e a comparacao de janeiro aparece", d2(M.hsPctMes(pm, dpm, "2025", "01")), "0.00");
+  eq("nao sobra caso vazio", M.hsCasoVazio(pm, dpm, "2025", "01", "2026-09"), null);
+}
+
+// ===========================================================================
+// A FOLGA TEM LIMITE: 3 dias passam, 4 nao. Senao a regua deixaria entrar mes
+// capenga de verdade.
+// ===========================================================================
+{
+  const L = [];
+  for (let d = 4; d <= 31; d++) L.push(D("2025-01-" + String(d).padStart(2, "0"), 100));   // 28 de 31: faltam 3
+  for (let d = 5; d <= 31; d++) L.push(D("2024-01-" + String(d).padStart(2, "0"), 100));   // 27 de 31: faltam 4
+  const dpm = M.hsDiasPorMes(L);
+  eq("faltando 3 dias ainda vale", M.hsMesCompleto(dpm, "2025", "01"), true);
+  eq("faltando 4 nao vale", M.hsMesCompleto(dpm, "2024", "01"), false);
+}
+
+// ===========================================================================
+// CADA TRACO TEM O MOTIVO DELE. Quatro buracos diferentes que a tela precisa
+// saber separar — antes todos eram o mesmo "—" mudo.
+// ===========================================================================
+{
+  const L = [];
+  const dias = (ano, mes, de, ate) => { for (let d = de; d <= ate; d++) L.push(D(ano + "-" + mes + "-" + String(d).padStart(2, "0"), 100)); };
+  dias("2025", "01", 1, 31); dias("2026", "01", 1, 31);
+  dias("2025", "09", 1, 30); dias("2026", "09", 1, 18);   // setembro de 2026 correndo
+  dias("2025", "10", 1, 31);                              // outubro de 2026 nem chegou
+  const dpm = M.hsDiasPorMes(L), pm = M.hsPorMes(L, "fat"), hoje = "2026-09";
+  eq("mes que ainda corre", M.hsCasoVazio(pm, dpm, "2026", "09", hoje), "mes_aberto");
+  eq("mes que nem chegou", M.hsCasoVazio(pm, dpm, "2026", "10", hoje), "nao_chegou");
+  eq("ano anterior nao existe", M.hsCasoVazio(pm, dpm, "2025", "01", hoje), "sem_ano_anterior");
+  eq("mes inteiro dos dois lados: sem buraco", M.hsCasoVazio(pm, dpm, "2026", "01", hoje), null);
+  eq("e o mes aberto nao gera porcentagem", M.hsPctMes(pm, dpm, "2026", "09"), null);
+}
+
+// ===========================================================================
+// COM OS DIAS DE VERDADE DA LOJA.
+// ===========================================================================
+{
+  const vr = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "output", "vr-data.json"), "utf8"));
+  const dpm = M.hsDiasPorMes(vr.DIA), pm = M.hsPorMes(vr.DIA, "fat");
+  const hoje = M.hsUltimoDia(vr.DIA).slice(0, 7);
+  eq("marco de 2024 contra meio marco de 2023: sem numero", M.hsPctMes(pm, dpm, "2024", "03"), null);
+  eq("e o motivo e a base pela metade", M.hsCasoVazio(pm, dpm, "2024", "03", hoje), "base_parcial");
+  eq("janeiro de 2026 TEM comparacao", M.hsPctMes(pm, dpm, "2026", "01") !== null, true);
+  eq("abril de 2026 tambem", M.hsPctMes(pm, dpm, "2026", "04") !== null, true);
+  eq("o mes que corre nao tem", M.hsPctMes(pm, dpm, "2026", hoje.slice(5, 7)), null);
+  // QUAIS meses ficam sem comparacao na base real, e por que cada um.
+  // Sao quatro, nao dois: jan e fev de 2024 nao tem com o que comparar porque a base
+  // comeca em 17/03/2023 — o ano de 2023 nao tem janeiro nem fevereiro.
+  const vazios = [];
+  ["2024", "2025", "2026"].forEach(function (a) {
+    for (let m = 1; m <= 12; m++) {
+      const mm = String(m).padStart(2, "0");
+      if (pm[a + "-" + mm] !== undefined && M.hsPctMes(pm, dpm, a, mm) === null) {
+        vazios.push(a + "-" + mm + ":" + M.hsCasoVazio(pm, dpm, a, mm, hoje));
+      }
+    }
+  });
+  eq("sao exatamente estes quatro, com estes motivos",
+     vazios.join(" "),
+     "2024-01:sem_ano_anterior 2024-02:sem_ano_anterior 2024-03:base_parcial 2026-09:mes_aberto");
 }
 
 console.log("\n" + ok + " OK, " + falhou + " falha(s)");
