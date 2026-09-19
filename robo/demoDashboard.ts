@@ -314,6 +314,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
      direita; a seta encosta nela e todas as setas saem na mesma linha reta. */
   #page-historico .hs-n { display:inline-block; min-width:60px; text-align:right; font-variant-numeric:tabular-nums; }
   #page-historico .hs-seta { margin-right:3px; }
+  /* seta e numero sao uma coisa so: se a coluna apertar, eles encolhem juntos e nunca
+     quebram em duas linhas (foi o que aconteceu em 18/09 quando uma frase esticou a tabela) */
+  #page-historico .hs-tbl td .hs-seta, #page-historico .hs-tbl td .hs-n { white-space:nowrap; }
   /* ETIQUETA DE ANO PELA METADE. Sem ela o total de 2026 ao lado do de 2025 parece
      despenque de 26% — e não é: 2026 só tem 8 meses e meio de dias na base. */
   #page-historico .hs-parcial { display:inline-block; background:#fdf6e6; border:1px solid #f0e0bb; color:#6b5a2e; border-radius:5px; padding:1px 6px; font-size:11px; font-weight:600; margin-left:6px; vertical-align:middle; }
@@ -344,7 +347,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #page-historico .hs-tip:hover { color:#157a35; }
   /* o número do mês em curso herda a cor de subida/queda: o pontilhado e a marca de
      "isto ainda vai mudar", nao um estado cinza */
-  #page-historico .hs-sub2 { font-size:11.5px; color:#6b7787; font-weight:400; margin-top:2px; font-variant-numeric:tabular-nums; }
+  /* ==HISTLARGURA== LINHA MIUDA NAO PODE ESTICAR A COLUNA. A celula da tabela e nowrap;
+     uma frase comprida dentro dela empurrava a coluna do ano corrente, espremia as outras
+     e a seta acabava quebrando pra cima do numero. Elas quebram sozinhas e tem teto. */
+  #page-historico .hs-sub2, #page-historico .hs-proj { white-space:normal; max-width:200px; margin-left:auto; }
+  #page-historico .hs-sub2 { font-size:11.5px; color:#6b7787; font-weight:400; margin-top:2px; font-variant-numeric:tabular-nums; line-height:1.35; }
   /* a projeção é chute: cinza, miúda e com a palavra escrita. Nunca herda o verde/vermelho
      do fato que está logo acima — senão as duas coisas viram a mesma coisa aos olhos. */
   #page-historico .hs-proj { font-size:11.5px; color:#8a97a8; font-weight:600; margin-top:3px; font-variant-numeric:tabular-nums; }
@@ -5889,6 +5896,20 @@ function hsProjecaoMes(dias, campo, ultimoDia){
     baseAnt: (mesAnt===undefined ? null : mesAnt)
   };
 }
+/* ==HISTFALTA== QUANTO FALTA PRA ALCANCAR O MESMO MES DO ANO PASSADO.
+   O dono olhava "R$ 2.996.031,09" ao lado de "R$ 4.627.036,39" e via queda. Nao era queda —
+   eram 18 dias contra 30 — mas a pergunta por tras do olhar dele era legitima e a tela nao
+   respondia: "quanto falta pra bater o ano passado?". Isto responde. */
+function hsFaltaPraAlcancar(dias, campo, ultimoDia){
+  var ano = ultimoDia.slice(0,4), mm = ultimoDia.slice(5,7);
+  var ant = String(Number(ano)-1);
+  var porMes = hsPorMes(dias, campo);
+  var agora = porMes[ano+"-"+mm], alvo = porMes[ant+"-"+mm];
+  if(agora===undefined || alvo===undefined) return null;
+  var diaNum = parseInt(ultimoDia.slice(8,10),10);
+  var diasNoMes = new Date(Date.UTC(Number(ano), Number(mm), 0)).getUTCDate();
+  return { falta: alvo-agora, alvo: alvo, agora: agora, diasQueFaltam: diasNoMes-diaNum };
+}
 /* Compara um ano com o anterior no maior pedaço que os DOIS têm. */
 function hsCompara(dias, campo, ano){
   var J=hsJanelas(dias), jA=J[ano], ant=String(Number(ano)-1), jB=J[ant];
@@ -6045,9 +6066,12 @@ function hsMontar(){
                     + "proje&ccedil;&atilde;o: "+(pr2.pct>=0?"+":"\u2212")
                     + Math.abs(pr2.pct).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%</span></div>";
         }
+        var vB0 = hsSoma(DIA, campo, String(Number(ano)-1), mm+"-01", ultDia.slice(5,10));
+        var linhaBase = (vB0===null) ? ""
+          : "<div class='hs-sub2'>de "+hsVal(tipo,vB0)+"<br>nos mesmos "+c0.dias+" dias</div>";
         return "<td class='"+(c0.pct>=0?"hs-pos":"hs-neg")+"' style='font-weight:700'>"
              + "<span class='hs-tip hs-tipv' tabindex='0' data-tip='"+tipC.replace(/'/g,"&#39;")+"'>"
-             + hsPct(c0.pct)+"</span>" + linhaProj + "</td>";
+             + hsPct(c0.pct)+"</span>" + linhaBase + linhaProj + "</td>";
       }
     }
     var caso = (ano===undefined) ? null : hsCasoVazio(porMes, diasPorMes, ano, mm, mesCorrente);
@@ -6071,13 +6095,17 @@ function hsMontar(){
       var ehBase = (mm2===mesCorrente.slice(5,7)) && (String(Number(a2)+1)===mesCorrente.slice(0,4));
       var pe = "";
       if(v2!==undefined && correndo){
-        pe = "<div class='hs-sub2'>at&eacute; o dia "+ultDia.slice(8,10)+"</div>";
+        pe = "<div class='hs-sub2'>at&eacute; o dia "+ultDia.slice(8,10);
+        var ft = hsFaltaPraAlcancar(DIA, campo, ultDia);
+        if(ft && ft.falta>0){
+          pe += "<br>faltam "+hsVal(tipo,ft.falta)+" pra igualar "+(Number(a2)-1);
+        }
+        pe += "</div>";
         var pr = hsProjecaoMes(DIA, campo, ultDia);
         if(pr) pe += "<div class='hs-proj'>proje&ccedil;&atilde;o: "+hsVal(tipo,pr.valor)+"</div>";
-      } else if(v2!==undefined && ehBase){
-        var vBase = hsSoma(DIA, campo, a2, mm2+"-01", ultDia.slice(5,10));
-        if(vBase!==null) pe = "<div class='hs-sub2'>1 a "+ultDia.slice(8,10)+": "+hsVal(tipo,vBase)+"</div>";
       }
+      /* a base do "agora" saiu DAQUI e foi pra baixo da porcentagem: encostada no numero
+         que ela explica. Aqui ela ficava duas colunas longe e o olho nao fazia a ligacao. */
       tds += (v2===undefined) ? "<td class='hs-vaz'>—</td>"
            : "<td>"+hsVal(tipo,v2)+pe+"</td>";
       if(k2>0) tds += hsTdPct(hsPctMes(porMes,diasPorMes,a2,mm2), a2, mm2, correndo);

@@ -9,7 +9,7 @@ const ini = HTML.indexOf("==HISTCALC-INICIO==");
 const fim = HTML.indexOf("==HISTCALC-FIM==");
 if (ini < 0 || fim < 0) { console.log("ERRO: não achei o módulo no output/index.html (rode o build antes)."); process.exit(1); }
 const codigo = HTML.slice(HTML.indexOf("*/", ini) + 2, HTML.lastIndexOf("/*", fim));
-const M = new Function(codigo + "\nreturn {hsJanelas,hsCompleto,hsUltimoDia,hsSoma,hsPorAno,hsPorMes,hsCompara,hsDiasPorMes,hsMesCompleto,hsPctMes,hsCasoVazio,hsPctMesEmCurso,hsProjecaoMes};")();
+const M = new Function(codigo + "\nreturn {hsJanelas,hsCompleto,hsUltimoDia,hsSoma,hsPorAno,hsPorMes,hsCompara,hsDiasPorMes,hsMesCompleto,hsPctMes,hsCasoVazio,hsPctMesEmCurso,hsProjecaoMes,hsFaltaPraAlcancar};")();
 
 let ok = 0, falhou = 0;
 function eq(nome, obtido, esperado) {
@@ -294,6 +294,47 @@ const d2 = (v) => v === null ? "null" : (Math.round(v * 100) / 100).toFixed(2);
   eq("a projecao tambem", proj.pct > 0, true);
   eq("e a projecao e MAIOR que o mes ja fechado do ano passado", proj.valor > proj.baseAnt, true);
   eq("a projecao e maior que o que ja foi faturado", proj.valor > M.hsPorMes(vr.DIA, "fat")[ult.slice(0, 7)], true);
+}
+
+// ===========================================================================
+// QUANTO FALTA PRA ALCANCAR O MESMO MES DO ANO PASSADO. A pergunta que o dono
+// estava fazendo quando olhou "2,99 milhoes" ao lado de "4,62 milhoes".
+// ===========================================================================
+{
+  const L = [];
+  for (let d = 1; d <= 30; d++) L.push(D("2025-09-" + String(d).padStart(2, "0"), 100));   // 3000
+  for (let d = 1; d <= 18; d++) L.push(D("2026-09-" + String(d).padStart(2, "0"), 110));   // 1980
+  const f = M.hsFaltaPraAlcancar(L, "fat", "2026-09-18");
+  eq("falta 3000 - 1980", d2(f.falta), "1020.00");
+  eq("o alvo e o mes inteiro do ano passado", d2(f.alvo), "3000.00");
+  eq("e sobram 12 dias pra isso", f.diasQueFaltam, 12);
+}
+
+// ===========================================================================
+// Quando o mes JA passou do ano passado, nao falta nada (o numero fica negativo
+// e a tela nao mostra a linha).
+// ===========================================================================
+{
+  const L = [];
+  for (let d = 1; d <= 30; d++) L.push(D("2025-09-" + String(d).padStart(2, "0"), 100));   // 3000
+  for (let d = 1; d <= 28; d++) L.push(D("2026-09-" + String(d).padStart(2, "0"), 200));   // 5600
+  const f = M.hsFaltaPraAlcancar(L, "fat", "2026-09-28");
+  eq("ja passou: falta vira negativo", f.falta < 0, true);
+}
+
+// ===========================================================================
+// Com os dias de verdade: os tres numeros da linha de setembro, e a relacao
+// entre eles. O "agora" sobe, mas ainda falta dinheiro pra igualar o ano passado —
+// as duas coisas sao verdade ao mesmo tempo, e e por isso que a tela mostra as duas.
+// ===========================================================================
+{
+  const vr = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "output", "vr-data.json"), "utf8"));
+  const ult = M.hsUltimoDia(vr.DIA);
+  const agora = M.hsPctMesEmCurso(vr.DIA, "fat", ult.slice(0, 4), ult.slice(5, 7), ult);
+  const falta = M.hsFaltaPraAlcancar(vr.DIA, "fat", ult);
+  eq("nos mesmos dias, subiu", agora.pct > 0, true);
+  eq("e mesmo assim ainda falta pra igualar o mes inteiro", falta.falta > 0, true);
+  eq("o que falta e menor que o mes inteiro do ano passado", falta.falta < falta.alvo, true);
 }
 
 console.log("\n" + ok + " OK, " + falhou + " falha(s)");
