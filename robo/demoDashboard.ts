@@ -5939,6 +5939,14 @@ function hsNum(v){ return Math.round(v).toLocaleString("pt-BR"); }
 function hsVal(t,v){ return t==="brl"?hsBrl(v):hsNum(v); }
 function hsData(md){ return md.split("-").reverse().join("/"); }
 function hsDiaMes(iso){ return iso.slice(8,10)+"/"+iso.slice(5,7); }
+/* nas linhas miudas o valor vai curto: "R$ 4,98 mi" em vez de "R$ 4.979.994,46".
+   O numero exato continua no balao — na linha ele so precisa dar a ordem de grandeza. */
+function hsCurto(tipo, v){
+  if(tipo!=="brl") return hsNum(v);
+  if(Math.abs(v)>=1e6) return "R$ "+(v/1e6).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})+" mi";
+  if(Math.abs(v)>=1000) return "R$ "+(v/1000).toLocaleString("pt-BR",{maximumFractionDigits:0})+" mil";
+  return hsBrl(v);
+}
 /* ==HISTSINAL== O NUMERO TEM QUE DIZER SOZINHO QUE E QUEDA.
    A tela mostrava "▼ 1,3%": o triangulo apontava pra baixo, mas o numero lido sozinho era
    "1,3%", igualzinho a uma subida de 1,3%. Quem bate o olho na coluna le o numero, nao o
@@ -6069,11 +6077,36 @@ function hsMontar(){
                     + Math.abs(pr2.pct).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%</span></div>";
         }
         var vB0 = hsSoma(DIA, campo, String(Number(ano)-1), mm+"-01", ultDia.slice(5,10));
-        var linhaBase = (vB0===null) ? ""
-          : "<div class='hs-sub2'>de "+hsVal(tipo,vB0)+"<br>nos mesmos "+c0.dias+" dias</div>";
+        /* ==HISTESCOLHA== 19/09/2026 — ESCOLHA DO DONO, E ELA TEM UM PRECO CONHECIDO.
+           O numero grande desta celula e o mes em curso contra o mes INTEIRO do ano
+           passado. Ele e negativo porque faltam dias, nao porque a loja piorou: encolhe
+           sozinho ate quase zero no dia 30 sem nada mudar na loja, e e a unica celula da
+           coluna que nao compara mes fechado com mes fechado. Eu expliquei isso quatro
+           vezes e ele decidiu assim mesmo — a tela e dele. O que NAO se abre mao:
+           a etiqueta "vs mes inteiro" embaixo, e a comparacao honesta (mesmos dias) na
+           linha miuda. Sem essas duas, isto vira a mentira que este arquivo inteiro
+           passou o dia combatendo. Nao remover nenhuma das duas. */
+        var ftE = hsFaltaPraAlcancar(DIA, campo, ultDia);
+        if(ftE && ftE.pctDoAlvo!==null){
+          var pctGrande = -ftE.pctDoAlvo;
+          var tipE = MESES_INT[Number(mm)-1].charAt(0).toUpperCase()+MESES_INT[Number(mm)-1].slice(1)
+                   + " ainda está correndo. Este número compara "+c0.dias+" dias deste ano com o mês INTEIRO de "
+                   + (Number(ano)-1) + " — por isso é negativo: faltam " + ftE.diasQueFaltam + " dias para vender. "
+                   + "Faltam " + hsVal(tipo, ftE.falta) + " para igualar. "
+                   + "Comparando os MESMOS " + c0.dias + " dias nos dois anos, a loja está "
+                   + (c0.pct>=0?"+":"\u2212") + Math.abs(c0.pct).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1}) + "%"
+                   + (vB0!==null ? " (" + hsVal(tipo,vB0) + " em " + (Number(ano)-1) + ")" : "") + ".";
+          return "<td class='"+(pctGrande>=0?"hs-pos":"hs-neg")+"' style='font-weight:700'>"
+               + "<span class='hs-tip hs-tipv' tabindex='0' data-tip='"+tipE.replace(/'/g,"&#39;")+"'>"
+               + hsPct(pctGrande)+"</span>"
+               + "<div class='hs-sub2'>vs "+MESES_INT[Number(mm)-1]+" inteiro</div>"
+               + "<div class='hs-sub2'><b class='"+(c0.pct>=0?"hs-pos":"hs-neg")+"'>"
+               + (c0.pct>=0?"+":"\u2212")+Math.abs(c0.pct).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%</b>"
+               + " nos mesmos "+c0.dias+" dias</div></td>";
+        }
         return "<td class='"+(c0.pct>=0?"hs-pos":"hs-neg")+"' style='font-weight:700'>"
              + "<span class='hs-tip hs-tipv' tabindex='0' data-tip='"+tipC.replace(/'/g,"&#39;")+"'>"
-             + hsPct(c0.pct)+"</span>" + linhaBase + linhaProj + "</td>";
+             + hsPct(c0.pct)+"</span><div class='hs-sub2'>nos mesmos "+c0.dias+" dias</div></td>";
       }
     }
     var caso = (ano===undefined) ? null : hsCasoVazio(porMes, diasPorMes, ano, mm, mesCorrente);
@@ -6097,25 +6130,32 @@ function hsMontar(){
       var ehBase = (mm2===mesCorrente.slice(5,7)) && (String(Number(a2)+1)===mesCorrente.slice(0,4));
       var pe = "";
       if(v2!==undefined && correndo){
-        pe = "<div class='hs-sub2'>at&eacute; o dia "+ultDia.slice(8,10);
-        var ft = hsFaltaPraAlcancar(DIA, campo, ultDia);
-        if(ft && ft.falta>0){
-          /* ==HISTBURACO== O VERMELHO MORA AQUI, e nao na porcentagem de cima.
-             O dono olhava "3,15 milhoes" ao lado de "4,62 milhoes" e queria ver vermelho.
-             A vontade estava certa; o lugar e que era outro. A porcentagem de cima compara
-             19 dias com 19 dias e e subida de verdade. ESTA aqui e a que ele queria: os 19
-             dias contra o MES INTEIRO do ano passado. Ela e negativa porque o mes nao
-             acabou, e por isso a frase diz, com todas as letras, o que esta comparando —
-             sem essa frase ela vira a mentira que a gente passou o dia inteiro evitando. */
-          var falPct = (ft.pctDoAlvo!==null)
-            ? "\u2212"+ft.pctDoAlvo.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%" : "";
-          pe += "<br><span class='hs-falta'>"+(falPct?falPct+" vs "+MESES_INT[Number(mm2)-1]+" inteiro de "+(Number(a2)-1)+"<br>":"")
-              + "faltam "+hsVal(tipo,ft.falta)+"</span>";
-        }
-        pe += "</div>";
+        /* ==HISTENXUTO== A LINHA RESPONDE TRES PERGUNTAS, NAO NOVE.
+           Ela chegou a ter 9 linhas de texto numa celula so, e metade era a mesma coisa
+           dita duas vezes: o buraco em % e em reais; a projecao em reais e em %. O que fica
+           a vista e "quanto vendi", "estou melhor que o ano passado" e "vou fechar em
+           quanto". O resto — base da conta, buraco, ritmo — mora no balao, a um passe de
+           mouse. Informacao repetida nao e reforco: e ruido que esconde o que importa. */
         var pr = hsProjecaoMes(DIA, campo, ultDia);
-        if(pr) pe += "<div class='hs-proj'>proje&ccedil;&atilde;o: "+hsVal(tipo,pr.valor)+"</div>";
-      }
+        var ft = hsFaltaPraAlcancar(DIA, campo, ultDia);
+        var det = "Setembro ainda está correndo.";
+        det = MESES_INT[Number(mm2)-1].charAt(0).toUpperCase()+MESES_INT[Number(mm2)-1].slice(1)
+            + " ainda está correndo: " + hsVal(tipo,v2) + " em " + ultDia.slice(8,10) + " dias.";
+        if(ft && ft.falta>0 && ft.pctDoAlvo!==null){
+          det += " Faltam " + hsVal(tipo,ft.falta) + " (" + ft.pctDoAlvo.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})
+               + "%) para igualar o mês inteiro do ano passado, e restam " + ft.diasQueFaltam + " dias.";
+          if(ft.diasQueFaltam>0){
+            var ritmo = v2/Number(ultDia.slice(8,10)), preciso = ft.falta/ft.diasQueFaltam;
+            det += " A loja está fazendo " + hsVal(tipo,ritmo) + " por dia e precisa de "
+                 + hsVal(tipo,preciso) + " por dia — ritmo " + (ritmo>=preciso ? "suficiente" : "abaixo do necessário") + ".";
+          }
+        }
+        if(pr) det += " Projeção de fechamento: " + hsVal(tipo,pr.valor) + ".";
+        pe = "<div class='hs-sub2'><span class='hs-tip hs-tipv' tabindex='0' data-tip='"+det.replace(/'/g,"&#39;")+"'>"
+           + "at&eacute; o dia "+ultDia.slice(8,10)
+           + (pr ? " &middot; proje&ccedil;&atilde;o "+hsCurto(tipo,pr.valor) : "")
+           + "</span></div>";
+            }
       /* a base do "agora" saiu DAQUI e foi pra baixo da porcentagem: encostada no numero
          que ela explica. Aqui ela ficava duas colunas longe e o olho nao fazia a ligacao. */
       tds += (v2===undefined) ? "<td class='hs-vaz'>—</td>"
