@@ -296,6 +296,20 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #page-historico .hs-ano .v { font-size:21px; font-weight:700; color:#0c5a26; margin-top:4px; font-variant-numeric:tabular-nums; }
   #page-historico .hs-ano .c { font-size:12.5px; color:#6b7787; margin-top:6px; line-height:1.45; }
   #page-historico .hs-pos { color:#0c5a26; } #page-historico .hs-neg { color:#b3341f; }
+  /* ==HISTCOR== A COR PRECISA GANHAR DA CELULA. "#page-historico .hs-tbl td" pinta toda
+     celula de #33404f e e MAIS FORTE que ".hs-pos" — resultado: subida e queda saiam as duas
+     do mesmo cinza, e a tabela inteira ficou sem cor desde que nasceu. Nos cartoes de cima
+     nao havia essa briga, entao la o verde aparecia e aqui nao: parecia escolha, era bug.
+     Estas duas linhas tem a classe DENTRO do seletor da celula, e por isso ganham. */
+  #page-historico .hs-tbl td.hs-pos { color:#0c5a26; }
+  #page-historico .hs-tbl td.hs-neg { color:#b3341f; }
+  /* ==HISTFILA== O TRIANGULO TEM QUE FICAR NA MESMA COLUNA.
+     A celula e alinhada a direita, entao "8,5%" e "21,8%" terminam juntos mas comecam em
+     lugares diferentes — e a seta de cada linha caia num ponto diferente. De longe parece
+     numero com casa decimal faltando. O numero vira uma caixa de largura fixa alinhada a
+     direita; a seta encosta nela e todas as setas saem na mesma linha reta. */
+  #page-historico .hs-n { display:inline-block; min-width:60px; text-align:right; font-variant-numeric:tabular-nums; }
+  #page-historico .hs-seta { margin-right:3px; }
   /* ETIQUETA DE ANO PELA METADE. Sem ela o total de 2026 ao lado do de 2025 parece
      despenque de 26% — e não é: 2026 só tem 8 meses e meio de dias na base. */
   #page-historico .hs-parcial { display:inline-block; background:#fdf6e6; border:1px solid #f0e0bb; color:#6b5a2e; border-radius:5px; padding:1px 6px; font-size:11px; font-weight:600; margin-left:6px; vertical-align:middle; }
@@ -5850,7 +5864,19 @@ function hsBrl(v){ return "R$ "+v.toLocaleString("pt-BR",{minimumFractionDigits:
 function hsNum(v){ return Math.round(v).toLocaleString("pt-BR"); }
 function hsVal(t,v){ return t==="brl"?hsBrl(v):hsNum(v); }
 function hsData(md){ return md.split("-").reverse().join("/"); }
-function hsPct(p){ return (p>=0?"&#9650; ":"&#9660; ")+Math.abs(p).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%"; }
+/* ==HISTSINAL== O NUMERO TEM QUE DIZER SOZINHO QUE E QUEDA.
+   A tela mostrava "▼ 1,3%": o triangulo apontava pra baixo, mas o numero lido sozinho era
+   "1,3%", igualzinho a uma subida de 1,3%. Quem bate o olho na coluna le o numero, nao o
+   desenho — e em papel preto-e-branco a cor tambem some. Agora o sinal vai no numero:
+   +11,2% e -1,3%. Seta, sinal e cor dizem a mesma coisa; sobra redundancia de proposito,
+   porque cada uma delas falha num lugar diferente (cor no daltonismo, seta na impressao). */
+function hsPct(p){
+  var n = Math.abs(p).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%";
+  return "<span class='hs-seta'>"+(p>=0?"&#9650;":"&#9660;")+"</span>"
+       + "<span class='hs-n'>"+(p>=0?"+":"\u2212")+n+"</span>";
+}
+/* nos cartoes de cima a porcentagem mora dentro de uma frase: la a seta nao entra em fila */
+function hsPctFrase(p){ return (p>=0?"&#9650; ":"&#9660; ")+Math.abs(p).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%"; }
 function hsCor(anos, a){ var i=anos.indexOf(a); return HS_CORES[(HS_CORES.length-anos.length+i+HS_CORES.length)%HS_CORES.length]||"#9aa7b5"; }
 
 /* ==HISTBALAO== O BALAO MORA FORA DA CAIXA DE ROLAGEM.
@@ -5896,7 +5922,7 @@ function hsMontar(){
     var c=hsCompara(DIA,campo,a), jA=J[a];
     var texto="primeiro ano da base";
     if(c){
-      texto="<b class='"+(c.pct>=0?"hs-pos":"hs-neg")+"'>"+hsPct(c.pct)+"</b> vs "+c.contra
+      texto="<b class='"+(c.pct>=0?"hs-pos":"hs-neg")+"'>"+hsPctFrase(c.pct)+"</b> vs "+c.contra
           + (c.anoInteiro ? " (ano inteiro)"
                           : "<br>comparando só "+hsData(c.ini)+" a "+hsData(c.fim)+" nos dois anos");
     }
