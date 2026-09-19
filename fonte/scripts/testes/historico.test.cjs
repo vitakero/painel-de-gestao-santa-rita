@@ -9,7 +9,7 @@ const ini = HTML.indexOf("==HISTCALC-INICIO==");
 const fim = HTML.indexOf("==HISTCALC-FIM==");
 if (ini < 0 || fim < 0) { console.log("ERRO: não achei o módulo no output/index.html (rode o build antes)."); process.exit(1); }
 const codigo = HTML.slice(HTML.indexOf("*/", ini) + 2, HTML.lastIndexOf("/*", fim));
-const M = new Function(codigo + "\nreturn {hsJanelas,hsCompleto,hsUltimoDia,hsSoma,hsPorAno,hsPorMes,hsCompara,hsDiasPorMes,hsMesCompleto,hsPctMes,hsCasoVazio,hsPctMesEmCurso};")();
+const M = new Function(codigo + "\nreturn {hsJanelas,hsCompleto,hsUltimoDia,hsSoma,hsPorAno,hsPorMes,hsCompara,hsDiasPorMes,hsMesCompleto,hsPctMes,hsCasoVazio,hsPctMesEmCurso,hsProjecaoMes};")();
 
 let ok = 0, falhou = 0;
 function eq(nome, obtido, esperado) {
@@ -253,6 +253,47 @@ const d2 = (v) => v === null ? "null" : (Math.round(v * 100) / 100).toFixed(2);
   const falso = (pm[ano + "-" + mm] / pm[String(Number(ano) - 1) + "-" + mm] - 1) * 100;
   eq("a conta ingenua seria uma queda", falso < -20, true);
   eq("e a certa e uma subida", c.pct > 0, true);
+}
+
+// ===========================================================================
+// A PROJECAO USA A MESMA CONTA DA ANALISE: ate agora / dias passados x dias do mes.
+// Duas telas com projecoes diferentes pro mesmo mes e pior que nenhuma projecao.
+// ===========================================================================
+{
+  const L = [];
+  for (let d = 1; d <= 30; d++) L.push(D("2025-09-" + String(d).padStart(2, "0"), 100));   // set/2025 = 3000
+  for (let d = 1; d <= 18; d++) L.push(D("2026-09-" + String(d).padStart(2, "0"), 110));   // 18 dias = 1980
+  const pr = M.hsProjecaoMes(L, "fat", "2026-09-18");
+  eq("1980 / 18 x 30", d2(pr.valor), "3300.00");
+  eq("dias ja passados", pr.diaNum, 18);
+  eq("dias do mes", pr.diasNoMes, 30);
+  eq("contra o mes inteiro do ano passado", d2(pr.pct), "10.00");
+}
+
+// ===========================================================================
+// Sem o mesmo mes no ano anterior, a projecao existe mas a porcentagem nao.
+// ===========================================================================
+{
+  const L = [];
+  for (let d = 1; d <= 10; d++) L.push(D("2026-09-" + String(d).padStart(2, "0"), 100));
+  const pr = M.hsProjecaoMes(L, "fat", "2026-09-10");
+  eq("o valor projetado sai", d2(pr.valor), "3000.00");
+  eq("mas a comparacao nao", pr.pct, null);
+}
+
+// ===========================================================================
+// Com os dias de verdade: os DOIS numeros da linha de setembro.
+// O de cima e fato, o de baixo e chute — e eles nao podem ser o mesmo numero.
+// ===========================================================================
+{
+  const vr = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "output", "vr-data.json"), "utf8"));
+  const ult = M.hsUltimoDia(vr.DIA);
+  const agora = M.hsPctMesEmCurso(vr.DIA, "fat", ult.slice(0, 4), ult.slice(5, 7), ult);
+  const proj = M.hsProjecaoMes(vr.DIA, "fat", ult);
+  eq("o 'agora' e uma subida", agora.pct > 0, true);
+  eq("a projecao tambem", proj.pct > 0, true);
+  eq("e a projecao e MAIOR que o mes ja fechado do ano passado", proj.valor > proj.baseAnt, true);
+  eq("a projecao e maior que o que ja foi faturado", proj.valor > M.hsPorMes(vr.DIA, "fat")[ult.slice(0, 7)], true);
 }
 
 console.log("\n" + ok + " OK, " + falhou + " falha(s)");

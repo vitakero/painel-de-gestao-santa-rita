@@ -345,6 +345,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   /* o número do mês em curso herda a cor de subida/queda: o pontilhado e a marca de
      "isto ainda vai mudar", nao um estado cinza */
   #page-historico .hs-sub2 { font-size:11.5px; color:#6b7787; font-weight:400; margin-top:2px; font-variant-numeric:tabular-nums; }
+  /* a projeção é chute: cinza, miúda e com a palavra escrita. Nunca herda o verde/vermelho
+     do fato que está logo acima — senão as duas coisas viram a mesma coisa aos olhos. */
+  #page-historico .hs-proj { font-size:11.5px; color:#8a97a8; font-weight:600; margin-top:3px; font-variant-numeric:tabular-nums; }
+  #page-historico .hs-proj .hs-tip { color:#8a97a8; }
   #page-historico .hs-tipv { color:inherit; border-bottom-style:dashed; }
   #page-historico .hs-tipv:hover { color:inherit; opacity:.75; }
   #page-historico .hs-tip:focus-visible { outline:2px solid #157a35; outline-offset:3px; }
@@ -5861,6 +5865,30 @@ function hsPctMesEmCurso(dias, campo, ano, mm, ultimoDia){
   if(vA===null || vB===null || !vB) return null;
   return { pct:(vA/vB-1)*100, ini:ini, fim:fim, dias:Number(fim.slice(3)) };
 }
+/* ==HISTPROJ== A PROJECAO DO MES, no MESMO ritmo que a Analise ja usa na "Estimativa do mes":
+   faturamento ate agora / dias passados x dias do mes. Uma conta so no painel inteiro — duas
+   telas com projecoes diferentes pro mesmo mes e pior que nenhuma projecao.
+
+   ISTO E CHUTE, E TEM QUE PARECER CHUTE. Vai na tela em letra miuda, cinza, com a palavra
+   "projecao" escrita. O numero de cima (o que ja aconteceu) e fato e fica grande. Misturar
+   os dois na mesma letra faz a pessoa decidir em cima do chute achando que e fato. */
+function hsProjecaoMes(dias, campo, ultimoDia){
+  var mes = ultimoDia.slice(0,7), ano = ultimoDia.slice(0,4), mm = ultimoDia.slice(5,7);
+  var ateAgora = hsSoma(dias, campo, ano, mm+"-01", ultimoDia.slice(5,10));
+  if(ateAgora===null) return null;
+  var diaNum = parseInt(ultimoDia.slice(8,10),10);
+  if(!diaNum) return null;
+  var diasNoMes = new Date(Date.UTC(Number(ano), Number(mm), 0)).getUTCDate();
+  var valor = ateAgora/diaNum*diasNoMes;
+  var ant = String(Number(ano)-1);
+  var porMes = hsPorMes(dias, campo);
+  var mesAnt = porMes[ant+"-"+mm];
+  return {
+    valor: valor, diaNum: diaNum, diasNoMes: diasNoMes, mes: mes,
+    pct: (mesAnt && mesAnt>0) ? (valor/mesAnt-1)*100 : null,
+    baseAnt: (mesAnt===undefined ? null : mesAnt)
+  };
+}
 /* Compara um ano com o anterior no maior pedaço que os DOIS têm. */
 function hsCompara(dias, campo, ano){
   var J=hsJanelas(dias), jA=J[ano], ant=String(Number(ano)-1), jB=J[ant];
@@ -6006,9 +6034,20 @@ function hsMontar(){
         var tipC = MESES_INT[Number(mm)-1].charAt(0).toUpperCase()+MESES_INT[Number(mm)-1].slice(1)
                  + " ainda está correndo. Isto compara só do dia 1 ao dia "+c0.dias+" nos dois anos — "
                  + "os dias que já existem dos dois lados. O número muda a cada dia que passa.";
+        var pr2 = hsProjecaoMes(DIA, campo, ultDia);
+        var linhaProj = "";
+        if(pr2 && pr2.pct!==null){
+          var tipP = "Projeção: se a loja mantiver o ritmo destes " + pr2.diaNum + " dias até o fim do mês, "
+                   + MESES_INT[Number(mm)-1] + " fecha em " + hsVal(tipo, pr2.valor) + " — "
+                   + (pr2.pct>=0?"+":"\u2212") + Math.abs(pr2.pct).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})
+                   + "% sobre o mês inteiro do ano passado. É estimativa, não é o que aconteceu.";
+          linhaProj = "<div class='hs-proj'><span class='hs-tip hs-tipv' tabindex='0' data-tip='"+tipP.replace(/'/g,"&#39;")+"'>"
+                    + "proje&ccedil;&atilde;o: "+(pr2.pct>=0?"+":"\u2212")
+                    + Math.abs(pr2.pct).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%</span></div>";
+        }
         return "<td class='"+(c0.pct>=0?"hs-pos":"hs-neg")+"' style='font-weight:700'>"
              + "<span class='hs-tip hs-tipv' tabindex='0' data-tip='"+tipC.replace(/'/g,"&#39;")+"'>"
-             + hsPct(c0.pct)+"</span></td>";
+             + hsPct(c0.pct)+"</span>" + linhaProj + "</td>";
       }
     }
     var caso = (ano===undefined) ? null : hsCasoVazio(porMes, diasPorMes, ano, mm, mesCorrente);
@@ -6033,6 +6072,8 @@ function hsMontar(){
       var pe = "";
       if(v2!==undefined && correndo){
         pe = "<div class='hs-sub2'>at&eacute; o dia "+ultDia.slice(8,10)+"</div>";
+        var pr = hsProjecaoMes(DIA, campo, ultDia);
+        if(pr) pe += "<div class='hs-proj'>proje&ccedil;&atilde;o: "+hsVal(tipo,pr.valor)+"</div>";
       } else if(v2!==undefined && ehBase){
         var vBase = hsSoma(DIA, campo, a2, mm2+"-01", ultDia.slice(5,10));
         if(vBase!==null) pe = "<div class='hs-sub2'>1 a "+ultDia.slice(8,10)+": "+hsVal(tipo,vBase)+"</div>";
