@@ -308,6 +308,7 @@ const d2 = (v) => v === null ? "null" : (Math.round(v * 100) / 100).toFixed(2);
   eq("falta 3000 - 1980", d2(f.falta), "1020.00");
   eq("o alvo e o mes inteiro do ano passado", d2(f.alvo), "3000.00");
   eq("e sobram 12 dias pra isso", f.diasQueFaltam, 12);
+  eq("o buraco em porcentagem do mes do ano passado", d2(f.pctDoAlvo), "34.00");
 }
 
 // ===========================================================================

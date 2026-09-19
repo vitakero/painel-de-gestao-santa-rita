@@ -354,6 +354,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #page-historico .hs-sub2 { font-size:11.5px; color:#6b7787; font-weight:400; margin-top:2px; font-variant-numeric:tabular-nums; line-height:1.35; }
   /* a projeção é chute: cinza, miúda e com a palavra escrita. Nunca herda o verde/vermelho
      do fato que está logo acima — senão as duas coisas viram a mesma coisa aos olhos. */
+  #page-historico .hs-falta { color:#c0392b; font-weight:700; }
   #page-historico .hs-proj { font-size:11.5px; color:#8a97a8; font-weight:600; margin-top:3px; font-variant-numeric:tabular-nums; }
   #page-historico .hs-proj .hs-tip { color:#8a97a8; }
   #page-historico .hs-tipv { color:inherit; border-bottom-style:dashed; }
@@ -5908,7 +5909,8 @@ function hsFaltaPraAlcancar(dias, campo, ultimoDia){
   if(agora===undefined || alvo===undefined) return null;
   var diaNum = parseInt(ultimoDia.slice(8,10),10);
   var diasNoMes = new Date(Date.UTC(Number(ano), Number(mm), 0)).getUTCDate();
-  return { falta: alvo-agora, alvo: alvo, agora: agora, diasQueFaltam: diasNoMes-diaNum };
+  return { falta: alvo-agora, alvo: alvo, agora: agora, diasQueFaltam: diasNoMes-diaNum,
+           pctDoAlvo: alvo>0 ? (alvo-agora)/alvo*100 : null };
 }
 /* Compara um ano com o anterior no maior pedaço que os DOIS têm. */
 function hsCompara(dias, campo, ano){
@@ -6098,7 +6100,17 @@ function hsMontar(){
         pe = "<div class='hs-sub2'>at&eacute; o dia "+ultDia.slice(8,10);
         var ft = hsFaltaPraAlcancar(DIA, campo, ultDia);
         if(ft && ft.falta>0){
-          pe += "<br>faltam "+hsVal(tipo,ft.falta)+" pra igualar "+(Number(a2)-1);
+          /* ==HISTBURACO== O VERMELHO MORA AQUI, e nao na porcentagem de cima.
+             O dono olhava "3,15 milhoes" ao lado de "4,62 milhoes" e queria ver vermelho.
+             A vontade estava certa; o lugar e que era outro. A porcentagem de cima compara
+             19 dias com 19 dias e e subida de verdade. ESTA aqui e a que ele queria: os 19
+             dias contra o MES INTEIRO do ano passado. Ela e negativa porque o mes nao
+             acabou, e por isso a frase diz, com todas as letras, o que esta comparando —
+             sem essa frase ela vira a mentira que a gente passou o dia inteiro evitando. */
+          var falPct = (ft.pctDoAlvo!==null)
+            ? "\u2212"+ft.pctDoAlvo.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%" : "";
+          pe += "<br><span class='hs-falta'>"+(falPct?falPct+" vs "+MESES_INT[Number(mm2)-1]+" inteiro de "+(Number(a2)-1)+"<br>":"")
+              + "faltam "+hsVal(tipo,ft.falta)+"</span>";
         }
         pe += "</div>";
         var pr = hsProjecaoMes(DIA, campo, ultDia);
