@@ -6212,8 +6212,27 @@ function hsMontar(){
             }
       /* a base do "agora" saiu DAQUI e foi pra baixo da porcentagem: encostada no numero
          que ela explica. Aqui ela ficava duas colunas longe e o olho nao fazia a ligacao. */
+      /* ==HISTBALAO4== O VALOR DO MES EM CURSO TAMBEM EXPLICA A SI MESMO.
+         Era o unico dos quatro numeros da linha sem balao, e e justamente nele que cabe a
+         comparacao mais honesta da tabela: os mesmos dias nos dois anos. Ela tinha saido da
+         tela quando enxugamos os outros balaos; aqui ela volta, no numero a que pertence. */
+      var valHtml = (v2===undefined) ? "" : hsVal(tipo,v2);
+      if(v2!==undefined && correndo){
+        var cAg = hsPctMesEmCurso(DIA, campo, a2, mm2, ultDia);
+        var vAnt = hsSoma(DIA, campo, String(Number(a2)-1), mm2+"-01", ultDia.slice(5,10));
+        if(cAg && vAnt!==null){
+          var acimaAbaixo = (cAg.pct>=0 ? "acima" : "abaixo");
+          var tipV = "Faturamento dos " + cAg.dias + " dias de " + MESES_INT[Number(mm2)-1]
+                   + " comparado com os mesmos " + cAg.dias + " dias de " + (Number(a2)-1)
+                   + " (" + hsVal(tipo,vAnt) + "). A loja está "
+                   + (cAg.pct>=0?"+":"\u2212")
+                   + Math.abs(cAg.pct).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})
+                   + "% " + acimaAbaixo + " do ano passado.";
+          valHtml = "<span class='hs-tip hs-tipv' tabindex='0' data-tip='"+tipV.replace(/'/g,"&#39;")+"'>"+valHtml+"</span>";
+        }
+      }
       tds += (v2===undefined) ? "<td class='hs-vaz'>—</td>"
-           : "<td>"+hsVal(tipo,v2)+pe+"</td>";
+           : "<td>"+valHtml+pe+"</td>";
       if(k2>0) tds += hsTdPct(hsPctMes(porMes,diasPorMes,a2,mm2), a2, mm2, correndo);
     }
     corpo += "<tr><td class='mes'>"+MESES_INT[m2-1].slice(0,3)+"</td>"+tds+"</tr>";
