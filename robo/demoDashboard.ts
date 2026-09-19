@@ -295,14 +295,18 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #page-historico .hs-ano .a { font-size:12px; color:#6b7787; text-transform:uppercase; letter-spacing:.4px; font-weight:600; }
   #page-historico .hs-ano .v { font-size:21px; font-weight:700; color:#0c5a26; margin-top:4px; font-variant-numeric:tabular-nums; }
   #page-historico .hs-ano .c { font-size:12.5px; color:#6b7787; margin-top:6px; line-height:1.45; }
-  #page-historico .hs-pos { color:#0c5a26; } #page-historico .hs-neg { color:#b3341f; }
+  /* ==HISTPAR== O PAR DE CORES E O DO PAINEL, nao um novo. Verde #157a35 e vermelho #c0392b
+     sao os mesmos do ranking das Entregas (table.ent-rank .sobe/.desce) e de outras telas.
+     O Historico nasceu com um verde e um vermelho mais escuros, so dele — duas telas dizendo
+     "subiu" com verdes diferentes fazem a pessoa procurar significado onde nao ha. */
+  #page-historico .hs-pos { color:#157a35; } #page-historico .hs-neg { color:#c0392b; }
   /* ==HISTCOR== A COR PRECISA GANHAR DA CELULA. "#page-historico .hs-tbl td" pinta toda
      celula de #33404f e e MAIS FORTE que ".hs-pos" — resultado: subida e queda saiam as duas
      do mesmo cinza, e a tabela inteira ficou sem cor desde que nasceu. Nos cartoes de cima
      nao havia essa briga, entao la o verde aparecia e aqui nao: parecia escolha, era bug.
      Estas duas linhas tem a classe DENTRO do seletor da celula, e por isso ganham. */
-  #page-historico .hs-tbl td.hs-pos { color:#0c5a26; }
-  #page-historico .hs-tbl td.hs-neg { color:#b3341f; }
+  #page-historico .hs-tbl td.hs-pos { color:#157a35; }
+  #page-historico .hs-tbl td.hs-neg { color:#c0392b; }
   /* ==HISTFILA== O TRIANGULO TEM QUE FICAR NA MESMA COLUNA.
      A celula e alinhada a direita, entao "8,5%" e "21,8%" terminam juntos mas comecam em
      lugares diferentes — e a seta de cada linha caia num ponto diferente. De longe parece
