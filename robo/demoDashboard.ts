@@ -5985,13 +5985,32 @@ function hsLigarBaloes(){
     var acima = r.top - c.top - balao.offsetHeight - 9;
     balao.style.top = (acima > 4 ? acima : (r.bottom - c.top + 9)) + "px";
   }
-  function fechar(){ balao.classList.remove("ver"); }
+  function fechar(){ balao.classList.remove("ver"); balao.dataset.dono = ""; }
+  /* ==HISTTOQUE== NO CELULAR NAO EXISTE MOUSE.
+     19/09/2026: medido no modo celular, com toque de verdade — o balao NAO abria nem no
+     toque nem no clique, so no mouseenter. Ou seja, toda explicacao que a tela empurrou
+     pro balao simplesmente nao existia pra quem abre no telefone. Como e justamente no
+     balao que mora o "contra o que este numero esta comparando", isso deixava o numero
+     mais perigoso da tabela sem legenda no aparelho que o dono mais usa.
+     Agora abre no toque tambem, e fecha ao tocar fora. */
   cartao.querySelectorAll(".hs-tip").forEach(function(el){
     el.addEventListener("mouseenter", function(){ abrir(el); });
-    el.addEventListener("mouseleave", fechar);
+    el.addEventListener("mouseleave", function(){ if(balao.dataset.dono!=="fixo") fechar(); });
     el.addEventListener("focus", function(){ abrir(el); });
-    el.addEventListener("blur", fechar);
+    el.addEventListener("blur", function(){ if(balao.dataset.dono!=="fixo") fechar(); });
+    el.addEventListener("click", function(ev){
+      ev.stopPropagation();
+      var jaAberto = balao.classList.contains("ver") && balao.dataset.alvo===(el.getAttribute("data-tip")||"");
+      if(jaAberto){ fechar(); return; }
+      abrir(el);
+      balao.dataset.alvo = el.getAttribute("data-tip")||"";
+      balao.dataset.dono = "fixo";   // preso ate tocar fora
+    });
   });
+  if(!cartao.dataset.fechaFora){
+    cartao.dataset.fechaFora = "1";
+    document.addEventListener("click", function(){ fechar(); });
+  }
 }
 function hsMontar(){
   var sel=document.getElementById("hsMedida"); if(!sel) return;
@@ -6082,13 +6101,29 @@ function hsMontar(){
            passado. Ele e negativo porque faltam dias, nao porque a loja piorou: encolhe
            sozinho ate quase zero no dia 30 sem nada mudar na loja, e e a unica celula da
            coluna que nao compara mes fechado com mes fechado. Eu expliquei isso quatro
-           vezes e ele decidiu assim mesmo — a tela e dele. O que NAO se abre mao:
-           a etiqueta "vs mes inteiro" embaixo, e a comparacao honesta (mesmos dias) na
-           linha miuda. Sem essas duas, isto vira a mentira que este arquivo inteiro
-           passou o dia combatendo. Nao remover nenhuma das duas. */
+           vezes e ele decidiu assim mesmo — a tela e dele. A etiqueta "vs mes inteiro"
+           que ficava aqui embaixo saiu a pedido dele em 19/09, e SO pode ficar fora
+           porque o balao passou a abrir no toque (ver ==HISTTOQUE==): a explicacao mudou
+           de lugar, nao deixou de existir. Se um dia o toque parar de abrir o balao, esta
+           etiqueta TEM que voltar — senao sobra na tela um "-31,8%" sem dizer contra o
+           que, que e a mentira que este arquivo inteiro passou o dia combatendo.
+           A linha miuda com a comparacao honesta (mesmos dias) fica. */
         var ftE = hsFaltaPraAlcancar(DIA, campo, ultDia);
         if(ftE && ftE.pctDoAlvo!==null){
           var pctGrande = -ftE.pctDoAlvo;
+          /* ==HISTMESMABASE== AS DUAS LINHAS COMPARAM COM A MESMA COISA.
+             Antes a celula tinha -31,8% (contra o mes inteiro do ano passado) e logo abaixo
+             +7,8% (contra os mesmos 19 dias) — duas bases diferentes empilhadas, e o leitor
+             tinha que saber disso pra nao achar que uma desmentia a outra. Agora as duas
+             olham para o mesmo alvo, o setembro INTEIRO de 2025: onde estamos hoje, e onde
+             vamos terminar. A comparacao dos mesmos dias continua existindo, no balao. */
+          var prE = hsProjecaoMes(DIA, campo, ultDia);
+          var linhaProjPct = "";
+          if(prE && prE.pct!==null){
+            linhaProjPct = "<div class='hs-sub2'>proje&ccedil;&atilde;o: <b class='"+(prE.pct>=0?"hs-pos":"hs-neg")+"'>"
+                         + (prE.pct>=0?"+":"\u2212")+Math.abs(prE.pct).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})
+                         + "%</b></div>";
+          }
           var tipE = MESES_INT[Number(mm)-1].charAt(0).toUpperCase()+MESES_INT[Number(mm)-1].slice(1)
                    + " ainda está correndo. Este número compara "+c0.dias+" dias deste ano com o mês INTEIRO de "
                    + (Number(ano)-1) + " — por isso é negativo: faltam " + ftE.diasQueFaltam + " dias para vender. "
@@ -6099,10 +6134,7 @@ function hsMontar(){
           return "<td class='"+(pctGrande>=0?"hs-pos":"hs-neg")+"' style='font-weight:700'>"
                + "<span class='hs-tip hs-tipv' tabindex='0' data-tip='"+tipE.replace(/'/g,"&#39;")+"'>"
                + hsPct(pctGrande)+"</span>"
-               + "<div class='hs-sub2'>vs "+MESES_INT[Number(mm)-1]+" inteiro</div>"
-               + "<div class='hs-sub2'><b class='"+(c0.pct>=0?"hs-pos":"hs-neg")+"'>"
-               + (c0.pct>=0?"+":"\u2212")+Math.abs(c0.pct).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%</b>"
-               + " nos mesmos "+c0.dias+" dias</div></td>";
+               + linhaProjPct + "</td>";
         }
         return "<td class='"+(c0.pct>=0?"hs-pos":"hs-neg")+"' style='font-weight:700'>"
              + "<span class='hs-tip hs-tipv' tabindex='0' data-tip='"+tipC.replace(/'/g,"&#39;")+"'>"
@@ -6151,10 +6183,22 @@ function hsMontar(){
           }
         }
         if(pr) det += " Projeção de fechamento: " + hsVal(tipo,pr.valor) + ".";
-        pe = "<div class='hs-sub2'><span class='hs-tip hs-tipv' tabindex='0' data-tip='"+det.replace(/'/g,"&#39;")+"'>"
-           + "at&eacute; o dia "+ultDia.slice(8,10)
-           + (pr ? " &middot; proje&ccedil;&atilde;o "+hsCurto(tipo,pr.valor) : "")
-           + "</span></div>";
+        /* ==HISTPROJVISTA== A PROJECAO E A RESPOSTA DO ALARME.
+           Ela estava abreviada ("R$ 4,98 mi") e em cinza miudo, do lado da etiqueta do dia.
+           So que o numero grande da linha ao lado e um -31,8% vermelho que pergunta "vou
+           alcancar o ano passado?" — e a resposta estava em corpo 11, abreviada. Alarme
+           grande com resposta miuda e o pior arranjo possivel. Agora ela tem linha propria
+           e vai por extenso; continua cinza porque continua sendo estimativa. */
+        /* ==HISTALCA== A LINHA "ate o dia 19" SAIU A PEDIDO DELE (19/09), E ELA ERA A ALCA
+           DO BALAO — todo o detalhe do mes pendurava ali. O balao mudou de alca e foi pra
+           linha da projecao, que fica. Nao pode ficar sem alca nenhuma: e nesse balao que
+           moram o quanto falta, o ritmo atual contra o necessario, e o numero de dias que
+           ja passaram. Na tela agora o "19 dias" so aparece ali dentro. */
+        pe = "";
+        if(pr){
+          pe = "<div class='hs-proj'><span class='hs-tip hs-tipv' tabindex='0' data-tip='"+det.replace(/'/g,"&#39;")+"'>"
+             + "proje&ccedil;&atilde;o: "+hsVal(tipo,pr.valor)+"</span></div>";
+        }
             }
       /* a base do "agora" saiu DAQUI e foi pra baixo da porcentagem: encostada no numero
          que ela explica. Aqui ela ficava duas colunas longe e o olho nao fazia a ligacao. */
