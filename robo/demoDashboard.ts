@@ -348,6 +348,16 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
      "este ainda nao acabou" com desenhos diferentes obrigam a pessoa a aprender duas vezes. */
   #page-historico .hs-b.hs-andando { opacity:.8; background-image:repeating-linear-gradient(45deg,
     rgba(255,255,255,.6) 0 3px, transparent 3px 6px); }
+  /* o fantasma: so contorno tracejado, sem preenchimento — "ainda nao aconteceu" */
+  #page-historico .hs-b.hs-bproj { background:none; border:1px dashed; border-bottom:0;
+    border-radius:3px 3px 0 0; opacity:1; }
+  #page-historico .hs-bproj .hs-real { position:absolute; left:0; right:0; bottom:0; display:block;
+    border-radius:2px 2px 0 0; }
+  /* a listra vale tambem para a parte cheia DENTRO do fantasma (a regra de cima pedia .hs-b) */
+  #page-historico .hs-real.hs-andando { opacity:.85; background-image:repeating-linear-gradient(45deg,
+    rgba(255,255,255,.6) 0 3px, transparent 3px 6px); }
+  #page-historico .hs-leg i.hs-legproj { background:none; border:1px dashed #8fb9a0; border-bottom:0;
+    border-radius:3px 3px 0 0; height:9px; margin-right:4px; }
   #page-historico .hs-eixo { display:flex; padding-top:7px; min-width:540px; }
   #page-historico .hs-eixo span { flex:1; text-align:center; font-size:11.5px; color:#6b7787; font-weight:600; text-transform:uppercase; letter-spacing:.3px; }
   #page-historico .hs-twrap { overflow-x:auto; max-width:100%; }
@@ -5938,7 +5948,10 @@ function hsFaltaPraAlcancar(dias, campo, ultimoDia){
    10) e sobe o topo ate um multiplo dele: as linhas caem em 1 mi, 2 mi, 3 mi... e o olho
    consegue estimar a altura de qualquer barra sem passar o mouse. */
 function hsEscala(max, alvo){
-  alvo = alvo || 5;
+  /* 6 divisoes, nao 5: com 5 o passo caia em 2 milhoes e sobravam so quatro marcas
+     (0, 2, 4, 6) — todas as barras ficavam espremidas entre a de 4 e a de 6 e a regua
+     quase nao ajudava a ler. Com 6 o passo vira 1 milhao e cada barra cai perto de uma linha. */
+  alvo = alvo || 6;
   if(!(max>0)) return { topo:0, passo:0, linhas:[] };
   var bruto = max/alvo;
   var mag = Math.pow(10, Math.floor(Math.log(bruto)/Math.LN10));
@@ -6116,11 +6129,15 @@ function hsMontar(){
   // ---- barras: um grupo por mês, uma barra por ano ----
   var maxMes=0;
   anos.forEach(function(a){ for(var m=1;m<=12;m++){ var v=porMes[a+"-"+("0"+m).slice(-2)]; if(v>maxMes) maxMes=v; } });
-  /* ==HISTEIXOY== O EIXO MORA FORA DA CAIXA QUE ROLA.
-     No celular o grafico rola de lado; se os rotulos da escala fossem junto, eles sumiriam
-     na primeira arrastada e a regua deixaria de ser regua. Eles ficam numa coluna fixa a
-     esquerda, e so as linhas de referencia acompanham as barras. */
-  var esc = hsEscala(maxMes, 5);
+  /* ==HISTFANTASMA== A BARRA DO MES EM CURSO MOSTRA ATE ONDE ELA DEVE CHEGAR.
+     A parte cheia (listrada) e o que a loja JA vendeu; o contorno tracejado acima e a
+     projecao de fechamento — a mesma conta da tabela, nao um desenho solto. Sem isso a
+     barra de setembro parecia so "o mes pior do ano" ao lado das outras onze, quando na
+     verdade ela esta pela metade. A regua precisa CABER a projecao, senao o fantasma
+     estoura o topo do grafico. */
+  var projMes = hsProjecaoMes(DIA, campo, ultDia);
+  if(projMes && projMes.valor > maxMes) maxMes = projMes.valor;
+  var esc = hsEscala(maxMes, 6);
   var topo = esc.topo || maxMes || 1;
   var elY = document.getElementById("hsEixoY");
   if(elY){
@@ -6140,6 +6157,16 @@ function hsMontar(){
       if(v===undefined) continue;
       var alt=topo?Math.max(2,Math.round(v/topo*100)):0;
       var correndo=((a+"-"+mm)===mesCorrente);
+      if(correndo && projMes && projMes.valor>v){
+        var altProj = Math.max(alt, Math.round(projMes.valor/topo*100));
+        var dentro  = Math.max(2, Math.round(v/projMes.valor*100));
+        barras += "<div class='hs-b hs-bproj' style=\\"height:"+altProj+"%;border-color:"+hsCor(anos,a)+"\\""
+                + " title=\\""+HS_MESES[m-1]+"/"+a+": "+hsVal(tipo,v)+" at\u00e9 o dia "+ultDia.slice(8,10)
+                + " \u00b7 proje\u00e7\u00e3o "+hsVal(tipo,projMes.valor)+"\\">"
+                + "<i class='hs-real hs-andando' style=\\"height:"+dentro+"%;background-color:"+hsCor(anos,a)+"\\"></i>"
+                + "</div>";
+        continue;
+      }
       /* background-COLOR, nao "background": a propriedade curta zera o background-image e a
          listra do mes em curso sumia (visto em 20/09/2026). */
       barras+="<div class='hs-b"+(correndo?" hs-andando":"")+"' style=\\"height:"+alt+"%;background-color:"+hsCor(anos,a)
@@ -6151,7 +6178,8 @@ function hsMontar(){
   document.getElementById("hsEixo").innerHTML=HS_MESES.map(function(x){ return "<span>"+x+"</span>"; }).join("");
   document.getElementById("hsLeg").innerHTML=anos.map(function(a){
       return "<span><i style=\\"background:"+hsCor(anos,a)+"\\"></i>"+a+"</span>"; }).join("")
-    + "<span style='color:#8b96a5;font-weight:500;'><i class='hs-andando' style=\\"background-color:"+hsCor(anos,anos[anos.length-1])+"\\"></i>barra listrada = mês ainda correndo</span>";
+    + "<span style='color:#8b96a5;font-weight:500;'><i class='hs-andando' style=\\"background-color:"+hsCor(anos,anos[anos.length-1])+"\\"></i>listrado = mês ainda correndo</span>"
+    + "<span style='color:#8b96a5;font-weight:500;'><i class='hs-legproj'></i>tracejado = projeção de fechamento</span>";
 
   var prim0 = DIA.length?DIA.reduce(function(x,y){ return x.d<y.d?x:y; }).d:"";
   // ---- tabela mês x ano: cada ano com a variação dele do lado ----

@@ -9,7 +9,7 @@ const ini = HTML.indexOf("==HISTCALC-INICIO==");
 const fim = HTML.indexOf("==HISTCALC-FIM==");
 if (ini < 0 || fim < 0) { console.log("ERRO: não achei o módulo no output/index.html (rode o build antes)."); process.exit(1); }
 const codigo = HTML.slice(HTML.indexOf("*/", ini) + 2, HTML.lastIndexOf("/*", fim));
-const M = new Function(codigo + "\nreturn {hsJanelas,hsCompleto,hsUltimoDia,hsSoma,hsPorAno,hsPorMes,hsCompara,hsDiasPorMes,hsMesCompleto,hsPctMes,hsCasoVazio,hsPctMesEmCurso,hsProjecaoMes,hsFaltaPraAlcancar,hsProjecaoAno,hsDiaDoAno};")();
+const M = new Function(codigo + "\nreturn {hsJanelas,hsCompleto,hsUltimoDia,hsSoma,hsPorAno,hsPorMes,hsCompara,hsDiasPorMes,hsMesCompleto,hsPctMes,hsCasoVazio,hsPctMesEmCurso,hsProjecaoMes,hsFaltaPraAlcancar,hsProjecaoAno,hsDiaDoAno,hsEscala};")();
 
 let ok = 0, falhou = 0;
 function eq(nome, obtido, esperado) {
@@ -393,6 +393,31 @@ const d2 = (v) => v === null ? "null" : (Math.round(v * 100) / 100).toFixed(2);
   // as duas coisas sao verdade ao mesmo tempo — e por isso a linha mostra as duas
   const c = M.hsCompara(vr.DIA, "fat", ult.slice(0, 4));
   eq("no mesmo pedaco do calendario, esta subindo", c.pct > 0, true);
+}
+
+// ===========================================================================
+// A REGUA DO GRAFICO. Se o topo for o maior valor, a linha de cima cai em
+// "R$ 5.031.329,74" e ninguem mede nada. E se o passo for grosso demais, todas
+// as barras ficam espremidas entre duas linhas.
+// ===========================================================================
+{
+  const e = M.hsEscala(5031329.74);
+  eq("passo de 1 milhao", e.passo, 1000000);
+  eq("topo redondo em 6 milhoes", e.topo, 6000000);
+  eq("sete marcas: 0 a 6", e.linhas.length, 7);
+  eq("comeca no zero", e.linhas[0], 0);
+  eq("e a ultima marca e o topo", e.linhas[e.linhas.length - 1], e.topo);
+  eq("o topo cobre o maior valor", e.topo >= 5031329.74, true);
+}
+{
+  // ordens de grandeza diferentes continuam caindo em numero redondo
+  const casos = [[95, 20], [4300, 1000], [47000, 10000], [860000, 200000], [12500000, 2500000]];
+  casos.forEach(function (c) {
+    const e = M.hsEscala(c[0]);
+    eq("passo redondo para max " + c[0], e.passo, c[1]);
+    eq("  e o topo cobre o maior valor", e.topo >= c[0], true);
+  });
+  eq("sem dados nao inventa escala", M.hsEscala(0).linhas.length, 0);
 }
 
 console.log("\n" + ok + " OK, " + falhou + " falha(s)");
