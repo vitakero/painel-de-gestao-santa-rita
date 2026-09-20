@@ -387,7 +387,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #page-historico .hs-tipv { color:inherit; border-bottom-style:dashed; }
   #page-historico .hs-tipv:hover { color:inherit; opacity:.75; }
   #page-historico .hs-tip:focus-visible { outline:2px solid #157a35; outline-offset:3px; }
-  #page-historico .hs-balao { position:absolute; display:none; width:250px; background:#1f2d3d; color:#fff;
+  #page-historico .hs-balao { position:absolute; display:none; width:264px; background:#1f2d3d; color:#fff;
     font-size:11.5px; font-weight:500; line-height:1.45; padding:9px 11px; border-radius:8px; text-align:left;
     z-index:60; box-shadow:0 4px 14px rgba(0,0,0,.18); pointer-events:none; }
   #page-historico .hs-balao.ver { display:block; }
@@ -6015,7 +6015,11 @@ var HS_MEDIDAS = {
   cup:  { nome:"Vendas (cupons)", campo:"cup",  tipo:"num" },
   qtd:  { nome:"Itens vendidos",  campo:"qtd",  tipo:"num" }
 };
-function hsBrl(v){ return "R$ "+v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+/* ==HISTNBSP== O VALOR NAO PODE PARTIR NO MEIO.
+   Nos baloes o texto quebra em varias linhas, e "R$ " com espaco comum deixava o simbolo no
+   fim de uma linha e o numero no comeco da outra ("R$" / "4.939.020,21"). O espaco duro
+   (\u00a0) gruda os dois: a linha quebra ANTES do valor, nunca dentro dele. */
+function hsBrl(v){ return "R$\u00a0"+v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function hsNum(v){ return Math.round(v).toLocaleString("pt-BR"); }
 function hsVal(t,v){ return t==="brl"?hsBrl(v):hsNum(v); }
 function hsData(md){ return md.split("-").reverse().join("/"); }
@@ -6027,8 +6031,8 @@ function hsDiaMes(iso){ return iso.slice(8,10)+"/"+iso.slice(5,7); }
 function hsEixoTxt(tipo, v){
   if(v===0) return "0";
   if(tipo==="brl"){
-    if(Math.abs(v)>=1e6){ var n=v/1e6; return (n%1===0?n:n.toLocaleString("pt-BR",{maximumFractionDigits:1}))+" mi"; }
-    return Math.round(v/1000)+" mil";
+    if(Math.abs(v)>=1e6){ var n=v/1e6; return (n%1===0?n:n.toLocaleString("pt-BR",{maximumFractionDigits:1}))+"\u00a0mi"; }
+    return Math.round(v/1000)+"\u00a0mil";
   }
   if(Math.abs(v)>=1e6){ var q=v/1e6; return (q%1===0?q:q.toLocaleString("pt-BR",{maximumFractionDigits:1}))+" mi"; }
   if(Math.abs(v)>=1000) return Math.round(v/1000)+" mil";
@@ -6036,8 +6040,8 @@ function hsEixoTxt(tipo, v){
 }
 function hsCurto(tipo, v){
   if(tipo!=="brl") return hsNum(v);
-  if(Math.abs(v)>=1e6) return "R$ "+(v/1e6).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})+" mi";
-  if(Math.abs(v)>=1000) return "R$ "+(v/1000).toLocaleString("pt-BR",{maximumFractionDigits:0})+" mil";
+  if(Math.abs(v)>=1e6) return "R$\u00a0"+(v/1e6).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})+"\u00a0mi";
+  if(Math.abs(v)>=1000) return "R$\u00a0"+(v/1000).toLocaleString("pt-BR",{maximumFractionDigits:0})+"\u00a0mil";
   return hsBrl(v);
 }
 /* ==HISTSINAL== O NUMERO TEM QUE DIZER SOZINHO QUE E QUEDA.
@@ -6079,8 +6083,8 @@ function hsLigarBaloes(idCartao){
     balao.innerHTML = el.getAttribute("data-tip") || "";
     balao.classList.add("ver");
     var c = cartao.getBoundingClientRect(), r = el.getBoundingClientRect();
-    var esq = r.left - c.left + r.width/2 - 125;
-    esq = Math.max(8, Math.min(esq, c.width - 258));
+    var esq = r.left - c.left + r.width/2 - 132;
+    esq = Math.max(8, Math.min(esq, c.width - 272));
     balao.style.left = esq + "px";
     var acima = r.top - c.top - balao.offsetHeight - 9;
     balao.style.top = (acima > 4 ? acima : (r.bottom - c.top + 9)) + "px";
