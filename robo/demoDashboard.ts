@@ -5912,6 +5912,34 @@ function hsFaltaPraAlcancar(dias, campo, ultimoDia){
   return { falta: alvo-agora, alvo: alvo, agora: agora, diasQueFaltam: diasNoMes-diaNum,
            pctDoAlvo: alvo>0 ? (alvo-agora)/alvo*100 : null };
 }
+/* ==HISTPROJANO== A LINHA "ANO" TEM A MESMA DOENCA DA LINHA DO MES EM CURSO.
+   Em 20/09/2026 ela mostrava R$ 41.976.953,73 ao lado de R$ 56.226.405,30 (2025 inteiro) e
+   um "+4,4%" verde — o +4,4% esta certo (compara 01/01 a 20/09 nos dois anos), mas encostado
+   num numero visivelmente menor ele parece mentira. Mesma solucao do mes: o numero grande
+   passa a ser contra o ano INTEIRO do ano passado, e a projecao diz onde 2026 termina.
+   A conta e a mesma da projecao do mes, um andar acima: ate agora / dias corridos x dias do ano. */
+function hsDiaDoAno(iso){
+  var a=Number(iso.slice(0,4)), m=Number(iso.slice(5,7)), d=Number(iso.slice(8,10));
+  return Math.round((Date.UTC(a,m-1,d)-Date.UTC(a,0,0))/86400000);
+}
+function hsProjecaoAno(dias, campo, ultimoDia){
+  var ano = ultimoDia.slice(0,4), ant = String(Number(ano)-1);
+  var ateAgora = hsSoma(dias, campo, ano, null, ultimoDia.slice(5,10));
+  if(ateAgora===null) return null;
+  var diaDoAno = hsDiaDoAno(ultimoDia);
+  if(!diaDoAno) return null;
+  var diasNoAno = Math.round((Date.UTC(Number(ano)+1,0,0)-Date.UTC(Number(ano),0,0))/86400000);
+  var valor = ateAgora/diaDoAno*diasNoAno;
+  var totalAnt = hsSoma(dias, campo, ant, null, null);
+  return {
+    valor: valor, ateAgora: ateAgora, diaDoAno: diaDoAno, diasNoAno: diasNoAno,
+    diasQueFaltam: diasNoAno - diaDoAno,
+    totalAnt: totalAnt,
+    pct: (totalAnt && totalAnt>0) ? (valor/totalAnt-1)*100 : null,
+    pctHoje: (totalAnt && totalAnt>0) ? (ateAgora/totalAnt-1)*100 : null,
+    falta: (totalAnt===null) ? null : totalAnt-ateAgora
+  };
+}
 /* Compara um ano com o anterior no maior pedaço que os DOIS têm. */
 function hsCompara(dias, campo, ano){
   var J=hsJanelas(dias), jA=J[ano], ant=String(Number(ano)-1), jB=J[ant];
@@ -6243,10 +6271,57 @@ function hsMontar(){
   var cab = "<tr><th>Mês</th>"+anos.map(function(a,i){
       return "<th>"+a+"</th>"+(i>0?"<th>"+a+" vs "+anos[i-1]+"</th>":"");
     }).join("")+"</tr>";
+  /* ==HISTRODAPE== A LINHA "ANO" SEGUE A MESMA REGRA DA LINHA DO MES EM CURSO.
+     O ano corrente ganha projecao no valor e a comparacao contra o ano INTEIRO do anterior;
+     os anos fechados continuam com a comparacao normal. Ver ==HISTPROJANO==. */
+  var anoCorrente = ultDia.slice(0,4);
   var rod = "<tr><td class='mes'>Ano</td>"+anos.map(function(a,i){
-      var c = i>0 ? hsCompara(DIA,campo,a) : null;
-      return "<td>"+hsVal(tipo,porAno[a])+"</td>"
-           + (i>0 ? (c ? "<td class='"+(c.pct>=0?"hs-pos":"hs-neg")+"' style='font-weight:700'>"+hsPct(c.pct)+"</td>" : "<td class='hs-vaz'>—</td>") : "");
+      var ehCorrente = (a===anoCorrente) && !hsCompleto(J[a]);
+      var pa = ehCorrente ? hsProjecaoAno(DIA, campo, ultDia) : null;
+
+      // ---- celula do valor ----
+      var vTxt = hsVal(tipo,porAno[a]), extra = "";
+      if(pa){
+        var tipAV = "Faturamento de " + a + " até " + hsDiaMes(ultDia) + " comparado com os mesmos dias de "
+                  + (Number(a)-1) + ". A loja está "
+                  + ((hsCompara(DIA,campo,a)||{pct:0}).pct>=0?"+":"\u2212")
+                  + Math.abs((hsCompara(DIA,campo,a)||{pct:0}).pct).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})
+                  + "% " + (((hsCompara(DIA,campo,a)||{pct:0}).pct)>=0?"acima":"abaixo") + " do ano passado.";
+        vTxt = "<span class='hs-tip hs-tipv' tabindex='0' data-tip='"+tipAV.replace(/'/g,"&#39;")+"'>"+vTxt+"</span>";
+        var tipAP = "Se a loja seguir o ritmo atual até 31 de dezembro, " + a + " fecha em "
+                  + hsVal(tipo,pa.valor) + ". É uma estimativa: muda a cada dia que passa.";
+        extra = "<div class='hs-proj'><span class='hs-tip hs-tipv' tabindex='0' data-tip='"+tipAP.replace(/'/g,"&#39;")+"'>"
+              + "proje&ccedil;&atilde;o: "+hsVal(tipo,pa.valor)+"</span></div>";
+      }
+      var celValor = "<td>"+vTxt+extra+"</td>";
+
+      // ---- celula da comparacao ----
+      var celCmp = "";
+      if(i>0){
+        if(pa && pa.pctHoje!==null){
+          var tipAG = "Não é queda: " + a + " ainda não acabou. Faltam " + pa.diasQueFaltam
+                    + " dias e " + hsVal(tipo, pa.falta) + " para igualar o ano inteiro de " + (Number(a)-1) + ".";
+          var linhaP = "";
+          if(pa.pct!==null){
+            var tipAPP = "Se o ritmo atual se mantiver, " + a + " fecha "
+                       + (pa.pct>=0?"+":"\u2212") + Math.abs(pa.pct).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})
+                       + "% " + (pa.pct>=0?"acima":"abaixo") + " de " + (Number(a)-1)
+                       + " (" + hsVal(tipo,pa.totalAnt) + ").";
+            linhaP = "<div class='hs-sub2'>proje&ccedil;&atilde;o: <b class='hs-tip hs-tipv "+(pa.pct>=0?"hs-pos":"hs-neg")
+                   + "' tabindex='0' data-tip='"+tipAPP.replace(/'/g,"&#39;")+"'>"
+                   + (pa.pct>=0?"+":"\u2212")+Math.abs(pa.pct).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})
+                   + "%</b></div>";
+          }
+          celCmp = "<td class='"+(pa.pctHoje>=0?"hs-pos":"hs-neg")+"' style='font-weight:700'>"
+                 + "<span class='hs-tip hs-tipv' tabindex='0' data-tip='"+tipAG.replace(/'/g,"&#39;")+"'>"
+                 + hsPct(pa.pctHoje)+"</span>" + linhaP + "</td>";
+        } else {
+          var c = hsCompara(DIA,campo,a);
+          celCmp = c ? "<td class='"+(c.pct>=0?"hs-pos":"hs-neg")+"' style='font-weight:700'>"+hsPct(c.pct)+"</td>"
+                     : "<td class='hs-vaz'>—</td>";
+        }
+      }
+      return celValor + celCmp;
     }).join("")+"</tr>";
   document.getElementById("hsTbl").innerHTML =
     "<thead>"+cab+"</thead><tbody>"+corpo+"</tbody><tfoot>"+rod+"</tfoot>";

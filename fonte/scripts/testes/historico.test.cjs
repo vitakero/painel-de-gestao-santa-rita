@@ -9,7 +9,7 @@ const ini = HTML.indexOf("==HISTCALC-INICIO==");
 const fim = HTML.indexOf("==HISTCALC-FIM==");
 if (ini < 0 || fim < 0) { console.log("ERRO: não achei o módulo no output/index.html (rode o build antes)."); process.exit(1); }
 const codigo = HTML.slice(HTML.indexOf("*/", ini) + 2, HTML.lastIndexOf("/*", fim));
-const M = new Function(codigo + "\nreturn {hsJanelas,hsCompleto,hsUltimoDia,hsSoma,hsPorAno,hsPorMes,hsCompara,hsDiasPorMes,hsMesCompleto,hsPctMes,hsCasoVazio,hsPctMesEmCurso,hsProjecaoMes,hsFaltaPraAlcancar};")();
+const M = new Function(codigo + "\nreturn {hsJanelas,hsCompleto,hsUltimoDia,hsSoma,hsPorAno,hsPorMes,hsCompara,hsDiasPorMes,hsMesCompleto,hsPctMes,hsCasoVazio,hsPctMesEmCurso,hsProjecaoMes,hsFaltaPraAlcancar,hsProjecaoAno,hsDiaDoAno};")();
 
 let ok = 0, falhou = 0;
 function eq(nome, obtido, esperado) {
@@ -336,6 +336,63 @@ const d2 = (v) => v === null ? "null" : (Math.round(v * 100) / 100).toFixed(2);
   eq("nos mesmos dias, subiu", agora.pct > 0, true);
   eq("e mesmo assim ainda falta pra igualar o mes inteiro", falta.falta > 0, true);
   eq("o que falta e menor que o mes inteiro do ano passado", falta.falta < falta.alvo, true);
+}
+
+// ===========================================================================
+// A LINHA "ANO" TEM A MESMA DOENCA DA LINHA DO MES EM CURSO.
+// 41,9 milhoes ao lado de 56,2 milhoes com um "+4,4%" verde parece mentira —
+// o +4,4% esta certo, mas encostado no numero errado.
+// ===========================================================================
+{
+  const L = [];
+  const dia = (iso, v) => L.push(D(iso, v));
+  // 2025 inteiro: 365 dias x 100 = 36500
+  for (let d = 1; d <= 365; d++) {
+    const dt = new Date(Date.UTC(2025, 0, d));
+    dia(dt.toISOString().slice(0, 10), 100);
+  }
+  // 2026 ate o dia 100 do ano, a 110 por dia = 11000
+  for (let d = 1; d <= 100; d++) {
+    const dt = new Date(Date.UTC(2026, 0, d));
+    dia(dt.toISOString().slice(0, 10), 110);
+  }
+  const ult = M.hsUltimoDia(L);
+  eq("o dia do ano foi contado certo", M.hsDiaDoAno(ult), 100);
+  const pa = M.hsProjecaoAno(L, "fat", ult);
+  eq("ja faturou 11000", d2(pa.ateAgora), "11000.00");
+  eq("o ano passado inteiro foi 36500", d2(pa.totalAnt), "36500.00");
+  eq("HOJE esta 69,9% abaixo do ano inteiro", d2(pa.pctHoje), "-69.86");
+  eq("11000 / 100 x 365 = 40150", d2(pa.valor), "40150.00");
+  eq("a PROJECAO fecha 10% acima", d2(pa.pct), "10.00");
+  eq("faltam 265 dias", pa.diasQueFaltam, 265);
+  eq("e faltam 25500 para igualar", d2(pa.falta), "25500.00");
+}
+
+// ===========================================================================
+// ANO BISSEXTO: 2028 tem 366 dias. A conta nao pode fixar 365.
+// ===========================================================================
+{
+  const L = [];
+  for (let d = 1; d <= 366; d++) { const dt = new Date(Date.UTC(2027, 0, d)); L.push(D(dt.toISOString().slice(0, 10), 100)); }
+  for (let d = 1; d <= 10; d++) { const dt = new Date(Date.UTC(2028, 0, d)); L.push(D(dt.toISOString().slice(0, 10), 100)); }
+  const pa = M.hsProjecaoAno(L, "fat", "2028-01-10");
+  eq("2028 tem 366 dias", pa.diasNoAno, 366);
+  eq("31/12 e o dia 365 de 2027", M.hsDiaDoAno("2027-12-31"), 365);
+}
+
+// ===========================================================================
+// Com os dias de verdade: o que a linha "Ano" mostra hoje.
+// ===========================================================================
+{
+  const vr = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "output", "vr-data.json"), "utf8"));
+  const ult = M.hsUltimoDia(vr.DIA);
+  const pa = M.hsProjecaoAno(vr.DIA, "fat", ult);
+  eq("hoje o ano esta ABAIXO do ano passado inteiro", pa.pctHoje < 0, true);
+  eq("mas a projecao fecha ACIMA", pa.pct > 0, true);
+  eq("e a projecao e maior que o ano passado inteiro", pa.valor > pa.totalAnt, true);
+  // as duas coisas sao verdade ao mesmo tempo — e por isso a linha mostra as duas
+  const c = M.hsCompara(vr.DIA, "fat", ult.slice(0, 4));
+  eq("no mesmo pedaco do calendario, esta subindo", c.pct > 0, true);
 }
 
 console.log("\n" + ok + " OK, " + falhou + " falha(s)");
