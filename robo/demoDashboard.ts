@@ -323,14 +323,31 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #page-historico .hs-leg { display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin:0 0 14px; }
   #page-historico .hs-leg span { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:#6b7787; font-weight:600; }
   #page-historico .hs-leg i { width:11px; height:11px; border-radius:3px; display:inline-block; }
-  #page-historico .hs-grafwrap { overflow-x:auto; max-width:100%; }
-  #page-historico .hs-graf { display:flex; align-items:flex-end; gap:0; height:210px; border-bottom:1px solid #dbe2ea; min-width:540px; }
+  #page-historico .hs-leg i.hs-andando { opacity:.8; background-image:repeating-linear-gradient(45deg,
+    rgba(255,255,255,.6) 0 3px, transparent 3px 6px); margin-right:4px; }
+  #page-historico .hs-grafbox { display:flex; align-items:stretch; gap:8px; }
+  /* a coluna da escala: altura do grafico + a faixa dos meses, pra alinhar com a linha do zero */
+  #page-historico .hs-eixoy { flex:none; width:52px; height:210px; display:flex; flex-direction:column;
+    justify-content:space-between; align-items:flex-end; font-size:11px; color:#8b96a5;
+    font-variant-numeric:tabular-nums; line-height:1; padding-bottom:0; }
+  #page-historico .hs-eixoy span { transform:translateY(-50%); }
+  #page-historico .hs-eixoy span:first-child { transform:none; }
+  #page-historico .hs-eixoy span:last-child { transform:translateY(-50%); }
+  #page-historico .hs-linha { position:absolute; left:0; right:0; height:1px; background:#eef2f7; pointer-events:none; }
+  #page-historico .hs-grafwrap { overflow-x:auto; max-width:100%; flex:1; min-width:0; }
+  #page-historico .hs-graf { position:relative; display:flex; align-items:flex-end; gap:0; height:210px; border-bottom:1px solid #dbe2ea; min-width:540px; }
   #page-historico .hs-mes { flex:1; display:flex; align-items:flex-end; justify-content:center; gap:3px; height:100%; position:relative; }
   #page-historico .hs-mes + .hs-mes::before { content:""; position:absolute; left:0; top:8px; bottom:0; width:1px; background:#f1f4f8; }
   #page-historico .hs-b { width:15px; border-radius:3px 3px 0 0; position:relative; min-height:2px; }
   /* barra de mês fraco fica com 2px: sem isto era impossível acertar o mouse nela.
      A área de toque cresce; a barra DESENHADA não muda. */
   #page-historico .hs-b::after { content:""; position:absolute; top:-6px; bottom:-4px; left:-3px; right:-3px; }
+  /* ==HISTLISTRA== MES EM CURSO = BARRA LISTRADA, a MESMA regra da Venda por setor
+     (.vs-col b.andando). Antes era so opacidade menor, e barra clara se confunde com barra
+     de ano antigo, que tambem e clara. Listra ninguem confunde com cor. Duas telas dizendo
+     "este ainda nao acabou" com desenhos diferentes obrigam a pessoa a aprender duas vezes. */
+  #page-historico .hs-b.hs-andando { opacity:.8; background-image:repeating-linear-gradient(45deg,
+    rgba(255,255,255,.6) 0 3px, transparent 3px 6px); }
   #page-historico .hs-eixo { display:flex; padding-top:7px; min-width:540px; }
   #page-historico .hs-eixo span { flex:1; text-align:center; font-size:11.5px; color:#6b7787; font-weight:600; text-transform:uppercase; letter-spacing:.3px; }
   #page-historico .hs-twrap { overflow-x:auto; max-width:100%; }
@@ -1801,9 +1818,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       <div class="card">
         <h2>Mês a mês, ano contra ano</h2>
         <div class="hs-leg" id="hsLeg"></div>
-        <div class="hs-grafwrap">
-          <div class="hs-graf" id="hsGraf"></div>
-          <div class="hs-eixo" id="hsEixo"></div>
+        <div class="hs-grafbox">
+          <div class="hs-eixoy" id="hsEixoY"></div>
+          <div class="hs-grafwrap">
+            <div class="hs-graf" id="hsGraf"></div>
+            <div class="hs-eixo" id="hsEixo"></div>
+          </div>
         </div>
       </div>
       <div class="card" id="hsCartaoNumeros" style="margin-top:16px;position:relative;">
@@ -5912,6 +5932,23 @@ function hsFaltaPraAlcancar(dias, campo, ultimoDia){
   return { falta: alvo-agora, alvo: alvo, agora: agora, diasQueFaltam: diasNoMes-diaNum,
            pctDoAlvo: alvo>0 ? (alvo-agora)/alvo*100 : null };
 }
+/* ==HISTESCALA== A ESCALA DO GRAFICO TEM QUE CAIR EM NUMERO REDONDO.
+   Usar o maior valor como topo faz a linha de cima cair em "R$ 5.031.329,74", que nao ajuda
+   ninguem a medir nada. Isto escolhe um passo redondo (1, 2, 2,5 ou 5 vezes uma potencia de
+   10) e sobe o topo ate um multiplo dele: as linhas caem em 1 mi, 2 mi, 3 mi... e o olho
+   consegue estimar a altura de qualquer barra sem passar o mouse. */
+function hsEscala(max, alvo){
+  alvo = alvo || 5;
+  if(!(max>0)) return { topo:0, passo:0, linhas:[] };
+  var bruto = max/alvo;
+  var mag = Math.pow(10, Math.floor(Math.log(bruto)/Math.LN10));
+  var norm = bruto/mag;
+  var passo = (norm<=1 ? 1 : norm<=2 ? 2 : norm<=2.5 ? 2.5 : norm<=5 ? 5 : 10) * mag;
+  var topo = Math.ceil(max/passo)*passo;
+  var linhas = [];
+  for(var k=0; k<=Math.round(topo/passo); k++) linhas.push(k*passo);
+  return { topo:topo, passo:passo, linhas:linhas };
+}
 /* ==HISTPROJANO== A LINHA "ANO" TEM A MESMA DOENCA DA LINHA DO MES EM CURSO.
    Em 20/09/2026 ela mostrava R$ 41.976.953,73 ao lado de R$ 56.226.405,30 (2025 inteiro) e
    um "+4,4%" verde — o +4,4% esta certo (compara 01/01 a 20/09 nos dois anos), mas encostado
@@ -5969,6 +6006,18 @@ function hsData(md){ return md.split("-").reverse().join("/"); }
 function hsDiaMes(iso){ return iso.slice(8,10)+"/"+iso.slice(5,7); }
 /* nas linhas miudas o valor vai curto: "R$ 4,98 mi" em vez de "R$ 4.979.994,46".
    O numero exato continua no balao — na linha ele so precisa dar a ordem de grandeza. */
+/* no eixo o rotulo e o mais curto possivel: "3 mi" em vez de "R$ 3.000.000,00".
+   Numero comprido no eixo rouba largura do grafico e ninguem le centavo em regua. */
+function hsEixoTxt(tipo, v){
+  if(v===0) return "0";
+  if(tipo==="brl"){
+    if(Math.abs(v)>=1e6){ var n=v/1e6; return (n%1===0?n:n.toLocaleString("pt-BR",{maximumFractionDigits:1}))+" mi"; }
+    return Math.round(v/1000)+" mil";
+  }
+  if(Math.abs(v)>=1e6){ var q=v/1e6; return (q%1===0?q:q.toLocaleString("pt-BR",{maximumFractionDigits:1}))+" mi"; }
+  if(Math.abs(v)>=1000) return Math.round(v/1000)+" mil";
+  return String(Math.round(v));
+}
 function hsCurto(tipo, v){
   if(tipo!=="brl") return hsNum(v);
   if(Math.abs(v)>=1e6) return "R$ "+(v/1e6).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})+" mi";
@@ -6067,24 +6116,42 @@ function hsMontar(){
   // ---- barras: um grupo por mês, uma barra por ano ----
   var maxMes=0;
   anos.forEach(function(a){ for(var m=1;m<=12;m++){ var v=porMes[a+"-"+("0"+m).slice(-2)]; if(v>maxMes) maxMes=v; } });
+  /* ==HISTEIXOY== O EIXO MORA FORA DA CAIXA QUE ROLA.
+     No celular o grafico rola de lado; se os rotulos da escala fossem junto, eles sumiriam
+     na primeira arrastada e a regua deixaria de ser regua. Eles ficam numa coluna fixa a
+     esquerda, e so as linhas de referencia acompanham as barras. */
+  var esc = hsEscala(maxMes, 5);
+  var topo = esc.topo || maxMes || 1;
+  var elY = document.getElementById("hsEixoY");
+  if(elY){
+    elY.innerHTML = esc.linhas.slice().reverse().map(function(v){
+      return "<span>"+hsEixoTxt(tipo, v)+"</span>";
+    }).join("");
+  }
+  var linhas = esc.linhas.map(function(v){
+    return "<i class='hs-linha' style=\\"bottom:"+(v/topo*100)+"%\\"></i>";
+  }).join("");
+
   var grupos="";
   for(var m=1;m<=12;m++){
     var mm=("0"+m).slice(-2), barras="";
     for(var k=0;k<anos.length;k++){
       var a=anos[k], v=porMes[a+"-"+mm];
       if(v===undefined) continue;
-      var alt=maxMes?Math.max(2,Math.round(v/maxMes*100)):0;
+      var alt=topo?Math.max(2,Math.round(v/topo*100)):0;
       var correndo=((a+"-"+mm)===mesCorrente);
-      barras+="<div class='hs-b' style=\\"height:"+alt+"%;background:"+hsCor(anos,a)+(correndo?";opacity:.55":"")
+      /* background-COLOR, nao "background": a propriedade curta zera o background-image e a
+         listra do mes em curso sumia (visto em 20/09/2026). */
+      barras+="<div class='hs-b"+(correndo?" hs-andando":"")+"' style=\\"height:"+alt+"%;background-color:"+hsCor(anos,a)
             + "\\" title=\\""+HS_MESES[m-1]+"/"+a+": "+hsVal(tipo,v)+(correndo?" (mês ainda correndo)":"")+"\\"></div>";
     }
     grupos+="<div class='hs-mes'>"+barras+"</div>";
   }
-  document.getElementById("hsGraf").innerHTML=grupos;
+  document.getElementById("hsGraf").innerHTML=linhas+grupos;
   document.getElementById("hsEixo").innerHTML=HS_MESES.map(function(x){ return "<span>"+x+"</span>"; }).join("");
   document.getElementById("hsLeg").innerHTML=anos.map(function(a){
       return "<span><i style=\\"background:"+hsCor(anos,a)+"\\"></i>"+a+"</span>"; }).join("")
-    + "<span style='color:#8b96a5;font-weight:500;'>barra mais clara = mês ainda correndo</span>";
+    + "<span style='color:#8b96a5;font-weight:500;'><i class='hs-andando' style=\\"background-color:"+hsCor(anos,anos[anos.length-1])+"\\"></i>barra listrada = mês ainda correndo</span>";
 
   var prim0 = DIA.length?DIA.reduce(function(x,y){ return x.d<y.d?x:y; }).d:"";
   // ---- tabela mês x ano: cada ano com a variação dele do lado ----
