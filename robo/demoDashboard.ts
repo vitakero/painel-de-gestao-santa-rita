@@ -391,6 +391,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     font-size:11.5px; font-weight:500; line-height:1.45; padding:9px 11px; border-radius:8px; text-align:left;
     z-index:60; box-shadow:0 4px 14px rgba(0,0,0,.18); pointer-events:none; }
   #page-historico .hs-balao.ver { display:block; }
+  #page-historico .hs-balao b { display:block; font-weight:700; margin-bottom:3px; }
+  #page-historico .hs-balao i { font-style:normal; color:#b9c4d2; }
   #page-historico .hs-nota { font-size:12.5px; color:#6b7787; margin-top:12px; line-height:1.55; }
   @media (max-width:820px){
     #page-historico .hs-b { width:9px; }
@@ -1825,7 +1827,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         </select>
       </div>
       <div class="hs-anos" id="hsAnos"></div>
-      <div class="card">
+      <div class="card" id="hsCartaoGrafico" style="position:relative;">
         <h2>Mês a mês, ano contra ano</h2>
         <div class="hs-leg" id="hsLeg"></div>
         <div class="hs-grafbox">
@@ -6006,6 +6008,7 @@ function hsCompara(dias, campo, ano){
 /* A TELA. Monta só quando a aba abre (ver o clique do menu) — a página nasce enxuta. */
 var HS_CORES = ["#c8d8cd","#8fb9a0","#4a9468","#12662c"];
 var HS_MESES = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+var HS_MESES_INT = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 var HS_MEDIDAS = {
   fat:  { nome:"Faturamento",     campo:"fat",  tipo:"brl" },
   marg: { nome:"Margem",          campo:"marg", tipo:"brl" },
@@ -6057,16 +6060,23 @@ function hsCor(anos, a){ var i=anos.indexOf(a); return HS_CORES[(HS_CORES.length
    embaixo: o balao desenhado como ::after da propria celula aparecia pela metade — so a
    ultima linha do texto. Entao existe UM balao so, filho do cartao, posto na mao sobre a
    celula. Se um dia entrar balao em outra tabela que rola, e a mesma armadilha. */
-function hsLigarBaloes(){
-  var cartao = document.getElementById("hsCartaoNumeros"); if(!cartao) return;
-  var balao = document.getElementById("hsBalao");
+function hsLigarBaloes(idCartao){
+  /* ==HISTBALAOJA== O BALAO ABRE NA HORA; A ETIQUETA DO NAVEGADOR NAO.
+     As barras do grafico usavam o atributo "title", que o sistema so mostra depois de
+     ~1 segundo parado em cima — e com 43 barras a pessoa desiste antes. A tabela ja tinha
+     balao proprio, que abre no mesmo instante. Agora os dois usam a MESMA maquina: quem
+     tiver data-tip ganha balao, com ou sem a classe .hs-tip (que e so o sublinhado). */
+  var cartao = document.getElementById(idCartao || "hsCartaoNumeros"); if(!cartao) return;
+  var balao = cartao.querySelector(".hs-balao");
   if(!balao){
     balao = document.createElement("div");
-    balao.id = "hsBalao"; balao.className = "hs-balao";
+    balao.className = "hs-balao";
     cartao.appendChild(balao);
   }
   function abrir(el){
-    balao.textContent = el.getAttribute("data-tip") || "";
+    /* innerHTML de proposito: o texto e montado aqui dentro a partir de numeros e nomes de
+       mes, nunca de coisa digitada por gente — e assim o balao ganha linhas e negrito. */
+    balao.innerHTML = el.getAttribute("data-tip") || "";
     balao.classList.add("ver");
     var c = cartao.getBoundingClientRect(), r = el.getBoundingClientRect();
     var esq = r.left - c.left + r.width/2 - 125;
@@ -6083,7 +6093,9 @@ function hsLigarBaloes(){
      balao que mora o "contra o que este numero esta comparando", isso deixava o numero
      mais perigoso da tabela sem legenda no aparelho que o dono mais usa.
      Agora abre no toque tambem, e fecha ao tocar fora. */
-  cartao.querySelectorAll(".hs-tip").forEach(function(el){
+  cartao.querySelectorAll("[data-tip]").forEach(function(el){
+    if(el.dataset.balaoLigado) return;
+    el.dataset.balaoLigado = "1";
     el.addEventListener("mouseenter", function(){ abrir(el); });
     el.addEventListener("mouseleave", function(){ if(balao.dataset.dono!=="fixo") fechar(); });
     el.addEventListener("focus", function(){ abrir(el); });
@@ -6161,8 +6173,9 @@ function hsMontar(){
         var altProj = Math.max(alt, Math.round(projMes.valor/topo*100));
         var dentro  = Math.max(2, Math.round(v/projMes.valor*100));
         barras += "<div class='hs-b hs-bproj' style=\\"height:"+altProj+"%;border-color:"+hsCor(anos,a)+"\\""
-                + " title=\\""+HS_MESES[m-1]+"/"+a+": "+hsVal(tipo,v)+" at\u00e9 o dia "+ultDia.slice(8,10)
-                + " \u00b7 proje\u00e7\u00e3o "+hsVal(tipo,projMes.valor)+"\\">"
+                + " data-tip=\\"<b>"+HS_MESES_INT[m-1]+" de "+a+"</b>"
+                + hsVal(tipo,v)+" <i>at\u00e9 o dia "+ultDia.slice(8,10)+"</i><br>"
+                + "<i>proje\u00e7\u00e3o de fechamento:</i> "+hsVal(tipo,projMes.valor)+"\\">"
                 + "<i class='hs-real hs-andando' style=\\"height:"+dentro+"%;background-color:"+hsCor(anos,a)+"\\"></i>"
                 + "</div>";
         continue;
@@ -6170,11 +6183,20 @@ function hsMontar(){
       /* background-COLOR, nao "background": a propriedade curta zera o background-image e a
          listra do mes em curso sumia (visto em 20/09/2026). */
       barras+="<div class='hs-b"+(correndo?" hs-andando":"")+"' style=\\"height:"+alt+"%;background-color:"+hsCor(anos,a)
-            + "\\" title=\\""+HS_MESES[m-1]+"/"+a+": "+hsVal(tipo,v)+(correndo?" (mês ainda correndo)":"")+"\\"></div>";
+            + "\\" data-tip=\\"<b>"+HS_MESES_INT[m-1]+" de "+a+"</b>"+hsVal(tipo,v)
+            + (function(){
+                var pv = hsPctMes(porMes, hsDiasPorMes(DIA), a, mm);
+                if(pv===null) return "";
+                return "<br><i>"+(pv>=0?"+":"\u2212")
+                     + Math.abs(pv).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})
+                     + "% vs "+(Number(a)-1)+"</i>";
+              })()
+            + "\\"></div>";
     }
     grupos+="<div class='hs-mes'>"+barras+"</div>";
   }
   document.getElementById("hsGraf").innerHTML=linhas+grupos;
+  hsLigarBaloes("hsCartaoGrafico");
   document.getElementById("hsEixo").innerHTML=HS_MESES.map(function(x){ return "<span>"+x+"</span>"; }).join("");
   document.getElementById("hsLeg").innerHTML=anos.map(function(a){
       return "<span><i style=\\"background:"+hsCor(anos,a)+"\\"></i>"+a+"</span>"; }).join("")
@@ -6184,7 +6206,7 @@ function hsMontar(){
   var prim0 = DIA.length?DIA.reduce(function(x,y){ return x.d<y.d?x:y; }).d:"";
   // ---- tabela mês x ano: cada ano com a variação dele do lado ----
   var diasPorMes = hsDiasPorMes(DIA);
-  var MESES_INT = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+  var MESES_INT = HS_MESES_INT;
   function hsMaiusc(t){ return t.charAt(0).toUpperCase()+t.slice(1); }
   /* O texto do balão. O traço nunca fica mudo: cada um diz o motivo DELE. */
   function hsMotivo(caso, ano, mm){
@@ -6420,7 +6442,7 @@ function hsMontar(){
     }).join("")+"</tr>";
   document.getElementById("hsTbl").innerHTML =
     "<thead>"+cab+"</thead><tbody>"+corpo+"</tbody><tfoot>"+rod+"</tfoot>";
-  hsLigarBaloes();
+  hsLigarBaloes("hsCartaoNumeros");
 
   var prim=prim0;
   document.getElementById("hsNota").innerHTML=
