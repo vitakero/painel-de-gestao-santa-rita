@@ -6237,8 +6237,11 @@ function hsMontar(){
     }
     corpo += "<tr><td class='mes'>"+MESES_INT[m2-1].slice(0,3)+"</td>"+tds+"</tr>";
   }
+  /* ==HISTCAB== O CABECALHO DIZ OS DOIS ANOS.
+     Era so "VS 2023", e essa coluna fica ENTRE a de 2024 e a de 2025 — nao dava para saber
+     de quem era a comparacao sem contar as colunas com o dedo. Agora diz "2024 vs 2023". */
   var cab = "<tr><th>Mês</th>"+anos.map(function(a,i){
-      return "<th>"+a+"</th>"+(i>0?"<th>vs "+anos[i-1]+"</th>":"");
+      return "<th>"+a+"</th>"+(i>0?"<th>"+a+" vs "+anos[i-1]+"</th>":"");
     }).join("")+"</tr>";
   var rod = "<tr><td class='mes'>Ano</td>"+anos.map(function(a,i){
       var c = i>0 ? hsCompara(DIA,campo,a) : null;
