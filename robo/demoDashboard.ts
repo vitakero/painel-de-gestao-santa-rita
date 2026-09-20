@@ -394,6 +394,43 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   #page-historico .hs-balao b { display:block; font-weight:700; margin-bottom:3px; }
   #page-historico .hs-balao i { font-style:normal; color:#b9c4d2; }
   #page-historico .hs-nota { font-size:12.5px; color:#6b7787; margin-top:12px; line-height:1.55; }
+  /* ==HISTGAVETACSS== a sanfona e a MESMA dos Pontos Extras (.px-exp/.px-det/.px-det-wrap/
+     .px-det-box, definidas la em cima). Aqui so o que a gaveta do mes acrescenta. */
+  #page-historico .hs-mesbt { background:none; border:0; padding:2px; margin-right:5px; cursor:pointer;
+    color:#8b96a5; display:inline-flex; align-items:center; border-radius:6px; vertical-align:middle; }
+  #page-historico .hs-mesbt:hover { background:#e3f0e8; color:#157a35; }
+  #page-historico .hs-mesbt svg { transition:transform .15s; }
+  #page-historico .hs-mesbt.aberto svg { transform:rotate(90deg); }
+  #page-historico .hs-mesbt:focus-visible { outline:2px solid #157a35; outline-offset:2px; }
+  #page-historico .hs-cel { cursor:pointer; border-radius:6px; }
+  #page-historico .hs-cel:hover { background:#f0f7f3; }
+  #page-historico tr.hs-gvlinha > td { background:#f7f9fc; padding:0; border-top:0; }
+  /* ==HISTGAVETACELULAR== A GAVETA MORA DENTRO DA TABELA QUE ROLA DE LADO.
+     Medido em 20/09/2026 num aparelho de 375px: a gaveta nascia com 855px (a largura da
+     TABELA, nao a da tela) e no celular so aparecia um pedaco dela — o resto exigia
+     arrastar a tabela pro lado, e ninguem descobre isso sozinho. Presa com sticky, ela
+     acompanha o dedo e fica sempre visivel, com a largura da tela. */
+  #page-historico .hs-gv { padding:0 0 4px; }
+  #page-historico tr.hs-gvlinha > td { padding:0; }
+  #page-historico .hs-gv-cab { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; padding:16px 20px 0; }
+  #page-historico .hs-gv-cab > b { font-size:16px; color:#1f2b3a; }
+  #page-historico .hs-gv-sub2 { font-size:12.5px; color:#6b7787; }
+  #page-historico .hs-gv-chips { margin-left:auto; display:flex; gap:6px; }
+  #page-historico .hs-gv-chip { display:inline-block; padding:3px 11px; border-radius:20px; font-size:12px;
+    font-weight:700; background:#e8eef4; color:#46546a; cursor:pointer; }
+  #page-historico .hs-gv-chip.on { background:#157a35; color:#fff; cursor:default; }
+  #page-historico .hs-gv-chip.off { background:#f3f6fa; color:#c3ccd7; cursor:default; }
+  #page-historico .hs-gv-rot { font-size:11px; color:#6b7787; text-transform:uppercase; letter-spacing:.4px; font-weight:600; }
+  #page-historico .hs-gv-val { font-size:19px; font-weight:700; color:#1f2b3a; margin-top:3px; font-variant-numeric:tabular-nums; }
+  #page-historico .hs-gv-frase { font-size:16px; font-weight:600; color:#1f2b3a; }
+  #page-historico .hs-gv-sub { font-size:12px; margin-top:2px; font-variant-numeric:tabular-nums; }
+  #page-historico .hs-gv-semana { padding:4px 20px 18px; }
+  #page-historico .hs-gv-barras { display:flex; gap:6px; max-width:460px; margin-top:7px; }
+  #page-historico .hs-gv-col { flex:1; text-align:center; }
+  #page-historico .hs-gv-trilho { height:56px; display:flex; align-items:flex-end; justify-content:center; }
+  #page-historico .hs-gv-bar { width:62%; background:#4a9468; border-radius:3px 3px 0 0; cursor:default; }
+  #page-historico .hs-gv-sem { font-size:10.5px; color:#8b96a5; margin-top:4px; }
+  #page-historico .hs-gv-legsem { font-size:12.5px; color:#6b7787; margin-top:8px; }
   @media (max-width:820px){
     #page-historico .hs-b { width:9px; }
     #page-historico .hs-tbl { font-size:12px; }
@@ -5964,6 +6001,88 @@ function hsEscala(max, alvo){
   for(var k=0; k<=Math.round(topo/passo); k++) linhas.push(k*passo);
   return { topo:topo, passo:passo, linhas:linhas };
 }
+/* ==HISTGAVETA== OS NUMEROS DE UM MES POR DENTRO (testado em historico.test.cjs).
+   So faz conta sobre o DIA[]. A tela chama isto e desenha; nenhuma conta mora no desenho.
+
+   DUAS TRAVAS QUE VALEM MAIS QUE QUALQUER KPI AQUI DENTRO:
+
+   1) A MARGEM DE 2023 E FANTASIA. Medido na base: mar/23 57,8%, abr 49,1%, mai 41,6%,
+      jun 39,7%, jul 37,3%, ago 36,7%, set 35,6% — e so em out/23 ela estabiliza em ~33%,
+      onde fica ate hoje. Isso nao e a loja piorando: e o custo que nao estava preenchido
+      no VR no comeco. Mes anterior a out/2023 sai SEM margem, em vez de sair com um numero
+      que leva direto a conclusao falsa "a margem despencou 25 pontos em tres anos".
+
+   2) O DIA DE HOJE ESTA PELA METADE. Em 20/09/2026 o dia corria e tinha feito R$ 52.695
+      contra uma media de R$ 164.634 no mes: ele seria o "pior dia do mes" todo santo dia,
+      ate as 23h59. O dia em curso sai da disputa de melhor/pior. */
+var HS_MARGEM_DESDE = "2023-10";
+function hsMargemConfiavel(mes){ return mes >= HS_MARGEM_DESDE; }
+function hsMesKpis(dias, campo, ano, mm, ultimoDia, ateDia){
+  /* ateDia: quando o mes ATUAL esta pela metade, o mes do ano passado tem que ser cortado
+     no mesmo dia — senao 20 dias contra 30 devolve "cupons -35,7%" e a gaveta vira a
+     mesma mentira que a tabela levou o dia inteiro para nao contar. */
+  var mes = ano+"-"+mm, doMes = [];
+  for(var i=0;i<dias.length;i++){
+    if(dias[i].d.slice(0,7)!==mes) continue;
+    if(ateDia && Number(dias[i].d.slice(8,10))>ateDia) continue;
+    doMes.push(dias[i]);
+  }
+  if(!doMes.length) return null;
+  var emCurso = (ultimoDia && ultimoDia.slice(0,7)===mes);
+  var fat=0, marg=0, cup=0, qtd=0, porSem=[0,0,0,0,0,0,0], nSem=[0,0,0,0,0,0,0];
+  for(var k=0;k<doMes.length;k++){
+    var r=doMes[k];
+    fat+=(+r.fat||0); marg+=(+r.marg||0); cup+=(+r.cup||0); qtd+=(+r.qtd||0);
+    var w = new Date(r.d+"T12:00:00Z").getUTCDay();
+    porSem[w]+=(+r.fat||0); nSem[w]++;
+  }
+  /* melhor e pior dia: o dia EM CURSO nao entra (ver trava 2) */
+  var candidatos = [];
+  for(var j=0;j<doMes.length;j++){ if(!(emCurso && doMes[j].d===ultimoDia)) candidatos.push(doMes[j]); }
+  var melhor=null, pior=null;
+  for(var q=0;q<candidatos.length;q++){
+    if(!melhor || candidatos[q].fat>melhor.fat) melhor=candidatos[q];
+    if(!pior   || candidatos[q].fat<pior.fat)   pior=candidatos[q];
+  }
+  var diasNoMes = new Date(Number(ano), Number(mm), 0).getDate();
+  return {
+    mes:mes, ano:ano, mm:mm, emCurso:!!emCurso,
+    diasAbertos: doMes.length, diasNoMes: diasNoMes,
+    fat:fat, marg:marg, cup:cup, qtd:qtd,
+    md: doMes.length ? fat/doMes.length : null,
+    tk: cup>0 ? fat/cup : null,
+    ipc: cup>0 ? qtd/cup : null,
+    margPct: fat>0 ? marg/fat*100 : null,
+    margConfiavel: hsMargemConfiavel(mes),
+    melhor: melhor, pior: pior,
+    sab: nSem[6], sex: nSem[5],
+    porSem: porSem, nSem: nSem,
+    mediaSem: porSem.map(function(v,idx){ return nSem[idx] ? v/nSem[idx] : null; })
+  };
+}
+/* O MES SUBIU POR QUE? Separa o que foi a loja do que foi preco.
+   Devolve um codigo, nao uma frase — a frase e assunto da tela, o codigo e testavel. */
+function hsPorQue(pCup, pTk, pQtd){
+  if(pCup===null || pTk===null) return null;
+  if(pCup<=0 && pTk<=0) return "caiu_tudo";
+  if(pQtd!==null && pQtd<0 && pTk>0) return "preco";
+  if(pCup>=Math.abs(pTk)) return "gente";
+  return "ticket";
+}
+/* Qual o mes FECHADO mais recente com aquele nome? E o que a setinha do nome do mes abre:
+   em 20/09/2026 "jan" abre 2026 e "set" abre 2025, porque setembro de 2026 ainda corre. */
+function hsAnoDaSetinha(dias, mm, ultimoDia){
+  var anos = {};
+  for(var i=0;i<dias.length;i++){ if(dias[i].d.slice(5,7)===mm) anos[dias[i].d.slice(0,4)]=1; }
+  var lista = Object.keys(anos).sort();
+  var diasPorMes = hsDiasPorMes(dias);
+  for(var k=lista.length-1;k>=0;k--){
+    var a=lista[k];
+    if(ultimoDia && (a+"-"+mm)===ultimoDia.slice(0,7)) continue;      // mes em curso nao
+    if(hsMesCompleto(diasPorMes, a, mm)) return a;
+  }
+  return lista.length ? lista[lista.length-1] : null;
+}
 /* ==HISTPROJANO== A LINHA "ANO" TEM A MESMA DOENCA DA LINHA DO MES EM CURSO.
    Em 20/09/2026 ela mostrava R$ 41.976.953,73 ao lado de R$ 56.226.405,30 (2025 inteiro) e
    um "+4,4%" verde — o +4,4% esta certo (compara 01/01 a 20/09 nos dois anos), mas encostado
@@ -6118,6 +6237,167 @@ function hsLigarBaloes(idCartao){
     document.addEventListener("click", function(){ fechar(); });
   }
 }
+/* ==HISTGAVETADESENHO== A GAVETA NA TELA. Reaproveita a sanfona dos Pontos Extras
+   (.px-exp, tr.px-det, .px-det-wrap, .px-det-box) — mesmo icone, mesma animacao, mesma
+   barra verde na lateral. Uma gaveta aberta por vez: doze abertas viram um paredao. */
+/* ==HISTGAVETACLIQUE== UMA GAVETA ABERTA POR VEZ, e um caminho so para abrir.
+   Tres portas levam a mesma gaveta: a setinha do nome do mes (abre o mes fechado mais
+   recente), a celula do valor (que ja e mes+ano) e as fichinhas de ano dentro da gaveta.
+   A barra do grafico NAO abre a gaveta de proposito: desde o ==HISTTOQUE== o clique nela e
+   o que prende o balao no celular, e roubar esse clique apagaria a explicacao justamente no
+   aparelho onde ela mais faz falta. */
+function hsLigarGaveta(campo, tipo){
+  var tbl = document.getElementById("hsTbl"); if(!tbl || tbl.dataset.gavetaLigada) return;
+  tbl.dataset.gavetaLigada = "1";
+  tbl.addEventListener("click", function(ev){
+    var alvo = ev.target.closest("[data-hsmes], [data-hsano]");
+    if(!alvo) return;
+    var dado = alvo.getAttribute("data-hsmes") || alvo.getAttribute("data-hsano");
+    var pt = dado.split("|"), ano = pt[0], mm = pt[1];
+    var linha = tbl.querySelector("tr[data-hslinha='"+mm+"']"); if(!linha) return;
+    var abertaAqui = linha.nextElementSibling && linha.nextElementSibling.classList.contains("hs-gvlinha");
+    var mesmoAno = abertaAqui && linha.nextElementSibling.dataset.ano===ano;
+    // fecha tudo antes: doze gavetas abertas viram um paredao
+    tbl.querySelectorAll("tr.hs-gvlinha").forEach(function(x){ x.parentNode.removeChild(x); });
+    tbl.querySelectorAll(".hs-mesbt.aberto").forEach(function(x){ x.classList.remove("aberto"); });
+    if(mesmoAno) return;                       // clicou de novo no mesmo: fecha
+    var html = hsGavetaHTML(ano, mm, campo, tipo); if(!html) return;
+    var tr = document.createElement("tr");
+    tr.className = "hs-gvlinha"; tr.dataset.ano = ano;
+    tr.innerHTML = "<td colspan='"+linha.cells.length+"'>"+html+"</td>";
+    linha.parentNode.insertBefore(tr, linha.nextSibling);
+    var bt = linha.querySelector(".hs-mesbt"); if(bt) bt.classList.add("aberto");
+    /* ==HISTGAVETACELULAR== A GAVETA ACOMPANHA O ARRASTO DA TABELA.
+       Medido em 375px: a gaveta nascia com a largura da TABELA (855px), nao da tela, e so
+       um pedaco dela aparecia. Prender com position:sticky nao resolve — sticky nao vale em
+       celula de tabela com border-collapse:collapse, que e o caso desta. Entao a largura e
+       a da parte visivel e o conteudo anda junto com o dedo. */
+    var wrap = tbl.closest(".hs-twrap"), gv = tr.querySelector(".hs-gv");
+    if(wrap && gv && wrap.clientWidth && wrap.clientWidth < tbl.scrollWidth){
+      gv.style.width = wrap.clientWidth + "px";
+      var seguir = function(){ gv.style.transform = "translateX("+wrap.scrollLeft+"px)"; };
+      seguir();
+      wrap.addEventListener("scroll", seguir);
+    }
+    hsLigarBaloes("hsCartaoNumeros");          // as barrinhas do dia da semana tambem explicam
+  });
+}
+function hsGavetaHTML(ano, mm, campo, tipo){
+  var ult = hsUltimoDia(DIA);
+  var k = hsMesKpis(DIA, campo, ano, mm, ult);
+  if(!k) return "";
+  var ateDia = k.emCurso ? Number(ult.slice(8,10)) : null;
+  var ant = hsMesKpis(DIA, campo, String(Number(ano)-1), mm, ult, ateDia);
+  var rotuloVs = ateDia ? ("vs "+(Number(ano)-1)+" <span style='color:#8a97a8'>(mesmos "+ateDia+" dias)</span>") : ("vs "+(Number(ano)-1));
+  var nome = HS_MESES_INT[Number(mm)-1];
+  var vsAno = Number(ano)-1;
+
+  function p(a,b){ return (a===null||b===null||!b) ? null : (a/b-1)*100; }
+  function txtPct(x){ return (x>=0?"+":"−")+Math.abs(x).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%"; }
+  function comp(x){
+    if(x===null) return "<span style='color:#b7c0cb'>—</span>";
+    return "<b class='"+(x>=0?"hs-pos":"hs-neg")+"'>"+(x>=0?"&#9650;":"&#9660;")+" "+txtPct(x)+"</b>"
+         + " <span style='color:#8a97a8'>"+rotuloVs+"</span>";
+  }
+  function item(rot, val, sub){
+    return "<div class='px-det-item'><div class='hs-gv-rot'>"+rot+"</div>"
+         + "<div class='hs-gv-val'>"+val+"</div>"
+         + (sub ? "<div class='hs-gv-sub'>"+sub+"</div>" : "") + "</div>";
+  }
+  function dm(iso){ return iso.slice(8,10)+"/"+iso.slice(5,7); }
+  var SEMN = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
+  var SEMC = ["dom","seg","ter","qua","qui","sex","sáb"];
+
+  /* cabecalho: diz o mes, o ano e o tamanho do mes. Mes em curso avisa que esta pela metade. */
+  var sub = k.emCurso
+    ? "mês em curso &middot; até o dia "+ult.slice(8,10)+" de "+k.diasNoMes
+    : "mês fechado &middot; "+k.diasAbertos+" dias abertos de "+k.diasNoMes;
+  var chips = "";
+  for(var a4=2023; a4<=Number(hsUltimoDia(DIA).slice(0,4)); a4++){
+    var tem = !!hsMesKpis(DIA, campo, String(a4), mm, ult);
+    var at = (String(a4)===ano);
+    chips += "<span class='hs-gv-chip"+(at?" on":"")+(tem?"":" off")+"'"
+           + (tem&&!at ? " data-hsano='"+a4+"|"+mm+"'" : "") + ">"+a4+"</span>";
+  }
+  var cab = "<div class='hs-gv-cab'><b>"+nome.charAt(0).toUpperCase()+nome.slice(1)+" de "+ano+"</b>"
+          + "<span class='hs-gv-sub2'>"+sub+"</span>"
+          + "<span class='hs-gv-chips'>"+chips+"</span></div>";
+
+  /* 1) faturamento e media por dia. A media vai com o denominador escrito: mes de 28 e mes
+        de 31 nao se comparam no total, mas se comparam por dia. */
+  var pFat = ant ? p(k.fat, ant.fat) : null;
+  var pMd  = (ant && ant.md) ? p(k.md, ant.md) : null;
+  var cor = "";
+  cor += item("Faturamento", hsVal(tipo,k.fat), comp(pFat));
+  cor += item("Média por dia aberto", k.md===null?"—":hsVal(tipo,k.md),
+              comp(pMd) + " <span style='color:#8a97a8'>&middot; "+k.diasAbertos+" dias</span>");
+
+  /* 2) subiu por que: a loja ou o preco */
+  var pCup = (ant && ant.cup) ? p(k.cup, ant.cup) : null;
+  var pTk  = (ant && ant.tk)  ? p(k.tk, ant.tk)   : null;
+  var pQtd = (ant && ant.qtd) ? p(k.qtd, ant.qtd) : null;
+  var caso = hsPorQue(pCup, pTk, pQtd);
+  var frase = { gente:"veio de <b>mais gente na loja</b>", preco:"veio de <b>preço</b>, não de volume",
+                ticket:"veio de <b>ticket maior</b>", caiu_tudo:"<b>caiu dos dois lados</b>" }[caso] || "—";
+  cor += item("Subiu por quê?", "<span class='hs-gv-frase'>"+frase+"</span>",
+              (pCup!==null&&pTk!==null)
+                ? "<span style='color:#8a97a8'>cupons "+txtPct(pCup)+" &middot; ticket "+txtPct(pTk)+"</span>"
+                : null);
+
+  /* 3) melhor e pior dia (o dia em curso nao disputa — ver ==HISTGAVETA==) */
+  if(k.melhor) cor += item("Melhor dia", hsVal(tipo,k.melhor.fat),
+    "<span style='color:#8a97a8'>"+dm(k.melhor.d)+", "+SEMN[new Date(k.melhor.d+"T12:00:00Z").getUTCDay()]+"</span>");
+  if(k.pior) cor += item("Pior dia", hsVal(tipo,k.pior.fat),
+    "<span style='color:#8a97a8'>"+dm(k.pior.d)+", "+SEMN[new Date(k.pior.d+"T12:00:00Z").getUTCDay()]+"</span>");
+
+  /* 4) efeito calendario: sabado e o dia mais forte, e um sabado a mais infla o mes inteiro */
+  if(ant){
+    var dif = k.sab - ant.sab;
+    cor += item("Sábados no mês", k.sab+" <span style='font-size:13px;font-weight:600;color:#6b7787'>(contra "+ant.sab+")</span>",
+      dif===0 ? "<span style='color:#8a97a8'>mesmo calendário</span>"
+              : "<b class='"+(dif>0?"hs-pos":"hs-neg")+"'>"+(dif>0?"+":"−")+Math.abs(dif)+" sábado"+(Math.abs(dif)>1?"s":"")+"</b>"
+                + " <span style='color:#8a97a8'>que "+vsAno+(ateDia?" nos mesmos "+ateDia+" dias":"")+"</span>");
+  }
+
+  /* 5) margem: so quando ela e confiavel (ver trava 1) */
+  if(k.margConfiavel && k.margPct!==null){
+    var pp = (ant && ant.margConfiavel && ant.margPct!==null) ? (k.margPct-ant.margPct) : null;
+    cor += item("Margem",
+      k.margPct.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%",
+      pp===null ? "<span style='color:#b7c0cb'>—</span>"
+                : "<b class='"+(pp>=0?"hs-pos":"hs-neg")+"'>"+(pp>=0?"+":"−")
+                  + Math.abs(pp).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})
+                  + " ponto"+(Math.abs(pp)>=2?"s":"")+"</b> <span style='color:#8a97a8'>"+rotuloVs+"</span>");
+  }
+
+  /* 6) as barrinhas do dia da semana: MEDIA por dia, nunca o total — um mes tem 4 ou 5 de
+        cada dia e o total faria o sabado parecer maior so por existir mais vezes. */
+  var maxSem = 0;
+  for(var w=0;w<7;w++){ if(k.mediaSem[w]!==null && k.mediaSem[w]>maxSem) maxSem=k.mediaSem[w]; }
+  var barras = "";
+  for(var w2=0;w2<7;w2++){
+    var med = k.mediaSem[w2], alt = (med!==null && maxSem) ? Math.max(3, Math.round(med/maxSem*100)) : 0;
+    barras += "<div class='hs-gv-col'><div class='hs-gv-trilho'>"
+            + (med===null ? "" : "<div class='hs-gv-bar' style=\\"height:"+alt+"%\\" data-tip=\\"<b>"+SEMN[w2]+"</b>"+hsVal(tipo,med)+" <i>por dia</i>\\"></div>")
+            + "</div><div class='hs-gv-sem'>"+SEMC[w2]+"</div></div>";
+  }
+  var maisForte = 0;
+  for(var w3=1;w3<7;w3++){ if((k.mediaSem[w3]||0) > (k.mediaSem[maisForte]||0)) maisForte=w3; }
+  var maisFraco = 0;
+  for(var w4=1;w4<7;w4++){ if((k.mediaSem[w4]!==null) && (k.mediaSem[maisFraco]===null || k.mediaSem[w4] < k.mediaSem[maisFraco])) maisFraco=w4; }
+  var razao = (k.mediaSem[maisFraco]) ? (k.mediaSem[maisForte]/k.mediaSem[maisFraco]) : null;
+  var legSem = razao ? "um "+SEMN[maisForte]+" vale "+razao.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})
+                     + " "+SEMN[maisFraco]+"s" : "";
+
+  return "<div class='px-det-wrap'><div class='hs-gv'>"
+       + cab
+       + "<div class='px-det-box'>"+cor+"</div>"
+       + "<div class='hs-gv-semana'><div class='hs-gv-rot'>Média por dia da semana</div>"
+       + "<div class='hs-gv-barras'>"+barras+"</div>"
+       + (legSem ? "<div class='hs-gv-legsem'>"+legSem+"</div>" : "")
+       + "</div></div></div>";
+}
+
 function hsMontar(){
   var sel=document.getElementById("hsMedida"); if(!sel) return;
   var M=HS_MEDIDAS[sel.value]||HS_MEDIDAS.fat, campo=M.campo, tipo=M.tipo;
@@ -6381,10 +6661,19 @@ function hsMontar(){
         }
       }
       tds += (v2===undefined) ? "<td class='hs-vaz'>—</td>"
-           : "<td>"+valHtml+pe+"</td>";
+           : "<td class='hs-cel' data-hsmes='"+a2+"|"+mm2+"' title='Ver os n&uacute;meros de "+MESES_INT[m2-1]+" de "+a2+"'>"+valHtml+pe+"</td>";
       if(k2>0) tds += hsTdPct(hsPctMes(porMes,diasPorMes,a2,mm2), a2, mm2, correndo);
     }
-    corpo += "<tr><td class='mes'>"+MESES_INT[m2-1].slice(0,3)+"</td>"+tds+"</tr>";
+    /* a setinha so existe se houver um mes FECHADO daquele nome para abrir */
+    var anoSet = hsAnoDaSetinha(DIA, mm2, ultDia);
+    var bt = anoSet
+      ? "<button class='hs-mesbt' type='button' data-hsmes='"+anoSet+"|"+mm2+"' "
+        + "title='Ver os n&uacute;meros de "+MESES_INT[m2-1]+" de "+anoSet+"' "
+        + "aria-label='Abrir "+MESES_INT[m2-1]+" de "+anoSet+"'>"
+        + "<svg width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='9 18 15 12 9 6'/></svg>"
+        + "</button>"
+      : "";
+    corpo += "<tr data-hslinha='"+mm2+"'><td class='mes'>"+bt+MESES_INT[m2-1].slice(0,3)+"</td>"+tds+"</tr>";
   }
   /* ==HISTCAB== O CABECALHO DIZ OS DOIS ANOS.
      Era so "VS 2023", e essa coluna fica ENTRE a de 2024 e a de 2025 — nao dava para saber
@@ -6447,11 +6736,13 @@ function hsMontar(){
   document.getElementById("hsTbl").innerHTML =
     "<thead>"+cab+"</thead><tbody>"+corpo+"</tbody><tfoot>"+rod+"</tfoot>";
   hsLigarBaloes("hsCartaoNumeros");
+  hsLigarGaveta(campo, tipo);
 
   var prim=prim0;
   document.getElementById("hsNota").innerHTML=
       "Os números saem dos mesmos dias que o resto do painel — base de <b>"+DIA.length.toLocaleString("pt-BR")
     + " dias</b>, de "+prim.split("-").reverse().join("/")+" a "+ultDia.split("-").reverse().join("/")
+    + ". Clique no nome de um mês ou no valor de um ano para abrir os números daquele mês por dentro"
     + ". O mês que ainda está correndo mostra <b>até o dia "+ultDia.slice(8,10)+"</b>, e a variação dele compara com o mesmo pedaço do ano passado — que aparece logo ao lado, em letra miúda. Por isso esse número muda todo dia. Onde a comparação não cabe fica um <b>—</b>: passe o mouse nele que a tela diz o porquê.";
 }
 (function(){ var s=document.getElementById("hsMedida"); if(s) s.addEventListener("change", hsMontar); })();

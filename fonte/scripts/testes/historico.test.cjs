@@ -9,7 +9,7 @@ const ini = HTML.indexOf("==HISTCALC-INICIO==");
 const fim = HTML.indexOf("==HISTCALC-FIM==");
 if (ini < 0 || fim < 0) { console.log("ERRO: não achei o módulo no output/index.html (rode o build antes)."); process.exit(1); }
 const codigo = HTML.slice(HTML.indexOf("*/", ini) + 2, HTML.lastIndexOf("/*", fim));
-const M = new Function(codigo + "\nreturn {hsJanelas,hsCompleto,hsUltimoDia,hsSoma,hsPorAno,hsPorMes,hsCompara,hsDiasPorMes,hsMesCompleto,hsPctMes,hsCasoVazio,hsPctMesEmCurso,hsProjecaoMes,hsFaltaPraAlcancar,hsProjecaoAno,hsDiaDoAno,hsEscala};")();
+const M = new Function(codigo + "\nreturn {hsJanelas,hsCompleto,hsUltimoDia,hsSoma,hsPorAno,hsPorMes,hsCompara,hsDiasPorMes,hsMesCompleto,hsPctMes,hsCasoVazio,hsPctMesEmCurso,hsProjecaoMes,hsFaltaPraAlcancar,hsProjecaoAno,hsDiaDoAno,hsEscala,hsMesKpis,hsPorQue,hsAnoDaSetinha,hsMargemConfiavel};")();
 
 let ok = 0, falhou = 0;
 function eq(nome, obtido, esperado) {
@@ -418,6 +418,133 @@ const d2 = (v) => v === null ? "null" : (Math.round(v * 100) / 100).toFixed(2);
     eq("  e o topo cobre o maior valor", e.topo >= c[0], true);
   });
   eq("sem dados nao inventa escala", M.hsEscala(0).linhas.length, 0);
+}
+
+// ===========================================================================
+// A GAVETA DO MES. Duas travas valem mais que todos os KPIs dela juntos.
+// ===========================================================================
+
+// --- TRAVA 1: a margem de 2023 e fantasia (custo nao preenchido no VR no comeco) ---
+{
+  eq("marco/2023 nao tem margem confiavel", M.hsMargemConfiavel("2023-03"), false);
+  eq("setembro/2023 ainda nao", M.hsMargemConfiavel("2023-09"), false);
+  eq("outubro/2023 ja tem", M.hsMargemConfiavel("2023-10"), true);
+  eq("2026 tem", M.hsMargemConfiavel("2026-01"), true);
+  // e o numero real que justifica a trava:
+  const vr = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "output", "vr-data.json"), "utf8"));
+  const ult = M.hsUltimoDia(vr.DIA);
+  const mar23 = M.hsMesKpis(vr.DIA, "fat", "2023", "03", ult);
+  const out23 = M.hsMesKpis(vr.DIA, "fat", "2023", "10", ult);
+  eq("marco/2023 marcaria margem acima de 50%", mar23.margPct > 50, true);
+  eq("outubro/2023 ja esta na casa dos 32%", Math.round(out23.margPct), 32);
+  eq("e a gaveta de marco/2023 sabe que nao pode mostrar", mar23.margConfiavel, false);
+}
+
+// --- TRAVA 2: o dia em curso nao disputa melhor/pior dia ---
+{
+  const L = [];
+  for (let d = 1; d <= 19; d++) L.push(D("2026-09-" + String(d).padStart(2, "0"), 160000));
+  L.push(D("2026-09-20", 52695));   // o dia de hoje, pela metade
+  const k = M.hsMesKpis(L, "fat", "2026", "09", "2026-09-20");
+  eq("o mes esta em curso", k.emCurso, true);
+  eq("hoje NAO e o pior dia", k.pior.d !== "2026-09-20", true);
+  eq("o pior dia e um dia cheio", d2(k.pior.fat), "160000.00");
+  // no mes fechado o ultimo dia disputa normalmente
+  const F = [];
+  for (let d = 1; d <= 30; d++) F.push(D("2026-04-" + String(d).padStart(2, "0"), d === 30 ? 10 : 100));
+  const kf = M.hsMesKpis(F, "fat", "2026", "04", "2026-09-20");
+  eq("mes fechado: o ultimo dia pode ser o pior", kf.pior.d, "2026-04-30");
+}
+
+// --- A setinha do nome do mes abre o mes FECHADO mais recente ---
+{
+  const vr = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "output", "vr-data.json"), "utf8"));
+  const ult = M.hsUltimoDia(vr.DIA);
+  eq("'jan' abre 2026", M.hsAnoDaSetinha(vr.DIA, "01", ult), "2026");
+  eq("'set' abre 2025, nao o setembro que corre", M.hsAnoDaSetinha(vr.DIA, "09", ult), "2025");
+  eq("'dez' abre 2025", M.hsAnoDaSetinha(vr.DIA, "12", ult), "2025");
+  eq("'mar' NAO abre 2023 (meio mes)", M.hsAnoDaSetinha(vr.DIA, "03", ult) !== "2023", true);
+}
+
+// --- "subiu por que": separa a loja do preco ---
+{
+  eq("mais gente", M.hsPorQue(7.9, 2.0, 6.4), "gente");
+  eq("preco: ticket sobe e mercadoria cai", M.hsPorQue(-2.0, 3.4, -4.6), "preco");
+  eq("ticket puxando", M.hsPorQue(1.0, 8.0, 5.0), "ticket");
+  eq("caiu tudo", M.hsPorQue(-3.0, -2.0, -5.0), "caiu_tudo");
+  eq("sem base nao chuta", M.hsPorQue(null, 2.0, 1.0), null);
+}
+
+// --- Branco nao e zero: mes sem cupom nao vira divisao por zero ---
+{
+  const L = [{ d: "2026-05-01", fat: 1000 }, { d: "2026-05-02", fat: 2000 }];
+  const k = M.hsMesKpis(L, "fat", "2026", "05", "2026-09-20");
+  eq("sem cupom, ticket e null (nao Infinity)", k.tk, null);
+  eq("sem cupom, itens por cupom e null", k.ipc, null);
+  eq("mas o faturamento sai", d2(k.fat), "3000.00");
+  eq("mes que nao existe devolve null", M.hsMesKpis(L, "fat", "2026", "07", "2026-09-20"), null);
+}
+
+// --- Os numeros de verdade de janeiro/2026, que e o que a gaveta mostra ---
+{
+  const vr = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "output", "vr-data.json"), "utf8"));
+  const ult = M.hsUltimoDia(vr.DIA);
+  const a = M.hsMesKpis(vr.DIA, "fat", "2026", "01", ult);
+  const b = M.hsMesKpis(vr.DIA, "fat", "2025", "01", ult);
+  eq("janeiro/2026 abriu 30 dias de 31", a.diasAbertos + " de " + a.diasNoMes, "30 de 31");
+  eq("teve 5 sabados", a.sab, 5);
+  eq("janeiro/2025 teve 4", b.sab, 4);
+  eq("o melhor dia foi 31/01", a.melhor.d, "2026-01-31");
+  eq("e o pior foi 04/01", a.pior.d, "2026-01-04");
+  eq("sabado e o dia mais forte", a.mediaSem[6] > a.mediaSem[0], true);
+  eq("e o mes cresceu por gente, nao por preco",
+     M.hsPorQue((a.cup / b.cup - 1) * 100, (a.tk / b.tk - 1) * 100, (a.qtd / b.qtd - 1) * 100), "gente");
+}
+
+// ===========================================================================
+// A GAVETA DO MES EM CURSO NAO PODE REPETIR A MENTIRA DA TABELA.
+// Sem o corte, setembro/2026 (20 dias) contra setembro/2025 (30 dias) devolvia
+// "cupons -35,7%" — a loja nao perdeu um terco dos clientes, faltam 10 dias.
+// ===========================================================================
+{
+  const L = [];
+  for (let d = 1; d <= 30; d++) L.push({ d: "2025-09-" + String(d).padStart(2, "0"), fat: 100, cup: 100, qtd: 10, marg: 33 });
+  for (let d = 1; d <= 20; d++) L.push({ d: "2026-09-" + String(d).padStart(2, "0"), fat: 110, cup: 105, qtd: 10, marg: 36 });
+  const ult = "2026-09-20";
+  const atual = M.hsMesKpis(L, "fat", "2026", "09", ult);
+  eq("o mes esta em curso", atual.emCurso, true);
+
+  // SEM corte: o ano passado inteiro
+  const cru = M.hsMesKpis(L, "fat", "2025", "09", ult);
+  eq("sem corte, o ano passado tem 30 dias", cru.diasAbertos, 30);
+  eq("e os cupons dariam uma queda falsa", ((atual.cup / cru.cup - 1) * 100) < -25, true);
+
+  // COM corte no mesmo dia
+  const justo = M.hsMesKpis(L, "fat", "2025", "09", ult, 20);
+  eq("com corte, o ano passado tem 20 dias", justo.diasAbertos, 20);
+  eq("e os cupons sobem 5%", d2((atual.cup / justo.cup - 1) * 100), "5.00");
+  eq("o faturamento sobe 10%", d2((atual.fat / justo.fat - 1) * 100), "10.00");
+  eq("e o veredito vira 'gente', nao 'preco'",
+     M.hsPorQue((atual.cup / justo.cup - 1) * 100, (atual.tk / justo.tk - 1) * 100, (atual.qtd / justo.qtd - 1) * 100), "gente");
+}
+
+// --- Com os dias de verdade: o corte muda o sinal do veredito de setembro ---
+{
+  const vr = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "output", "vr-data.json"), "utf8"));
+  const ult = M.hsUltimoDia(vr.DIA);
+  const dia = Number(ult.slice(8, 10));
+  const a = M.hsMesKpis(vr.DIA, "fat", ult.slice(0, 4), ult.slice(5, 7), ult);
+  const cru = M.hsMesKpis(vr.DIA, "fat", String(Number(ult.slice(0, 4)) - 1), ult.slice(5, 7), ult);
+  const justo = M.hsMesKpis(vr.DIA, "fat", String(Number(ult.slice(0, 4)) - 1), ult.slice(5, 7), ult, dia);
+  // O corte nao "melhora" o numero: ele torna o numero VERDADEIRO. Aqui a queda de cupons
+  // e real (menos gente na loja), mas o tamanho dela muda de uma ordem de grandeza:
+  // -35,7% (ilusao de 20 dias contra 30) vira -5,1% (o que de fato aconteceu).
+  const semCorte = (a.cup / cru.cup - 1) * 100;
+  const comCorte = (a.cup / justo.cup - 1) * 100;
+  eq("sem corte, a queda de cupons passa de 20%", semCorte < -20, true);
+  eq("com corte, ela fica abaixo de 10%", Math.abs(comCorte) < 10, true);
+  eq("o corte reduz a queda em mais de 5 vezes", Math.abs(semCorte) / Math.abs(comCorte) > 5, true);
+  eq("e os dois meses ficam com o mesmo tamanho", a.diasAbertos, justo.diasAbertos);
 }
 
 console.log("\n" + ok + " OK, " + falhou + " falha(s)");
