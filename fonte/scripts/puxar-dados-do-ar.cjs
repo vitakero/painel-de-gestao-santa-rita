@@ -25,6 +25,14 @@ const ALVO = path.join(__dirname, "..", "output", "vr-data.json");
 
 // nome da tabela no vr-data.json  ->  nome com que ela é gravada no HTML publicado
 const MAPA = { DIA: "DIA", HORA: "HORA", OP: "OPER", PAG: "PAGS", SETOR: "SETORES", MESPROD: "MESPROD" };
+/* ==PUXAOPC== TABELAS QUE PODEM NAO EXISTIR no retrato do ar (painel antigo, ou modulo que
+   o robo ainda nao gerou). Diferente das seis de cima, a falta destas NAO derruba o script:
+   ela so avisa e mantem o que ja havia no arquivo local.
+   POR QUE EXISTE (22/09/2026): o FCX_DIA (frente de caixa) nao estava na lista, entao toda
+   vez que eu puxava os dados do ar pra publicar do Mac, ele era APAGADO em silencio — o
+   painel ia pro ar com os dois cards escritos "SEM DADOS". Tabela nova tem que entrar aqui
+   junto com o modulo, senao some na primeira publicacao feita daqui. */
+const OPCIONAIS = { FCX_DIA: "FCX_DIA", SETPROD: "SETPROD" };
 
 // Recorta o array equilibrando os colchetes. Regex não serve: os dados têm [ ] dentro.
 function recorta(html, nome) {
@@ -60,6 +68,14 @@ const maisRecente = (linhas) => {
     try { novo[chave] = JSON.parse(bruto); }
     catch (e) { console.log("ERRO: a tabela " + chave + " não virou JSON (" + e.message + "). Nada foi alterado."); process.exit(1); }
     if (!Array.isArray(novo[chave]) || !novo[chave].length) { console.log("ERRO: a tabela " + chave + " veio vazia. Nada foi alterado."); process.exit(1); }
+  }
+
+  // as opcionais: se vierem, entram; se nao vierem, o que estava no arquivo local fica
+  for (const [chave, nomeNoHtml] of Object.entries(OPCIONAIS)) {
+    const bruto = recorta(html, nomeNoHtml);
+    if (!bruto) { console.log("  (" + chave + " nao veio no retrato do ar - mantenho o que ja estava aqui)"); continue; }
+    try { novo[chave] = JSON.parse(bruto); console.log("  " + chave + ": " + novo[chave].length + " linhas recuperadas do ar."); }
+    catch (e) { console.log("  (" + chave + " veio quebrado - mantenho o que ja estava aqui)"); }
   }
 
   let antigo = null;
