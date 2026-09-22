@@ -77,9 +77,19 @@ const vr = JSON.parse(await readFile("output/vr-data.json", "utf8")) as {
   // produtos. Opcional: retrato antigo do VR nao tem, e o painel tem que abrir do mesmo
   // jeito (a tela avisa que o dado ainda nao chegou).
   SETPROD?: { s: string; de: number; para: number; id: string; nome: string; qd: number; qp: number; m: number }[];
+  // Frente de caixa: resumo POR DIA de cancelamentos e descontos manuais. Opcional de
+  // proposito — retrato antigo do VR nao tem, e o painel tem que abrir igual (a faixa
+  // "Controle operacional" simplesmente nao aparece, em vez de quebrar a tela).
+  // Nao ha nome de pessoa aqui: o detalhamento com operador mora na nuvem, com RLS.
+  FCX_DIA?: { d: string; ce: number; cev: number; cc: number; ccv: number; cp: number; cpv: number;
+              cq: number; cqv: number; cn: number; cnv: number;
+              dn: number; dv: number; da: number; ds: number; dal: number }[];
 };
 const { DIA, HORA, OP, PAG, SETOR, MESPROD } = vr;
 const SETPROD = vr.SETPROD || [];
+// Frente de caixa: se o robô ainda não gerou (retrato antigo do vr-data.json), fica lista
+// vazia e a faixa "Controle operacional" não aparece — a tela abre normal, sem quebrar.
+const FCX_DIA = vr.FCX_DIA || [];
 const estoque: { id_produto: string; produto: string; setor: string; estoque: number; ruptura: string }[] = [];
 
 const dataMin = DIA.length ? DIA[0].d : "";
@@ -1832,6 +1842,52 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-analise #anKpis .an-trend.down{color:#c0392b;}
         #page-analise #anKpis .an-spark{margin-top:auto;padding-top:10px;width:100%;}
         #page-analise #anKpis .an-spark svg{width:100%;height:30px;display:block;}
+        /* ==FCXCSS== Frente de caixa. Só cores que já existem na paleta do painel: assim o
+           gerador de tema escuro do build (injetarTemaEscuro) reconhece cada hex e o modo
+           noturno sai sozinho, sem folha paralela pra manter. */
+        #page-analise .fcx-titulo{font-size:12px;color:#6b7787;text-transform:uppercase;letter-spacing:.6px;margin:22px 0 8px;font-weight:700;}
+        #page-analise .fcx-card{cursor:pointer;}
+        #page-analise .fcx-card .l{margin-top:0;margin-bottom:7px;}
+        #page-analise .fcx-sub{font-size:12.5px;color:#6b7787;margin-top:4px;}
+        #page-analise .fcx-rod{font-size:11.5px;color:#8a97a8;margin-top:10px;}
+        #page-analise .fcx-selo{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;margin-top:6px;}
+        #page-analise .fcx-ok{background:#eaf5ee;color:#157a35;}
+        #page-analise .fcx-bad{background:#fdecec;color:#c0392b;}
+        #page-analise .fcx-est{background:#eef2f7;color:#6b7787;}
+        #page-analise .fcx-alerta{margin-top:9px;font-size:12.5px;color:#9a6a00;font-weight:700;}
+        #page-analise .fcx-clique{font-size:11px;color:#a9b4c0;margin-top:10px;}
+        #page-analise .fcx-painel{background:#ffffff;border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-top:10px;}
+        #page-analise .fcx-ph{font-size:13.5px;font-weight:700;color:#1d2733;margin-bottom:12px;}
+        #page-analise .fcx-ph span{display:block;font-size:11.5px;font-weight:500;color:#8a97a8;margin-top:2px;}
+        #page-analise .fcx-ph2{font-size:12px;font-weight:700;color:#6b7787;margin:16px 0 8px;text-transform:uppercase;letter-spacing:.4px;}
+        #page-analise .fcx-barra{display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:12px;}
+        #page-analise .fcx-barra i{display:block;}
+        #page-analise .fcx-tab{width:100%;border-collapse:collapse;font-size:13px;}
+        #page-analise .fcx-tab th{text-align:left;font-size:11px;color:#8a97a8;text-transform:uppercase;letter-spacing:.4px;padding:0 0 6px;font-weight:700;}
+        #page-analise .fcx-tab th.r,#page-analise .fcx-tab td.r{text-align:right;}
+        #page-analise .fcx-tab td.r{white-space:nowrap;}
+        #page-analise .fcx-tab td{padding:8px 0;border-top:1px solid #eef1f5;color:#1d2733;}
+        #page-analise .fcx-lin{cursor:pointer;}
+        #page-analise .fcx-lin:hover td{background:#f7f9fb;}
+        #page-analise .fcx-zero td{color:#a9b4c0;}
+        #page-analise .fcx-forte td{font-weight:700;}
+        #page-analise .fcx-bolinha{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:8px;}
+        #page-analise .fcx-concilia{font-size:12px;color:#157a35;margin-top:10px;padding-top:9px;border-top:1px solid #e3e8ee;}
+        #page-analise .fcx-oc{padding:9px 0;border-top:1px solid #eef1f5;}
+        #page-analise .fcx-oc1{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:#1d2733;}
+        #page-analise .fcx-oc1 b{white-space:nowrap;}
+        #page-analise .fcx-oc2{font-size:11.5px;color:#8a97a8;margin-top:3px;}
+        #page-analise .fcx-al{border-left:3px solid #9a6a00;background:#fdf3d9;padding:10px 12px;margin-bottom:8px;}
+        #page-analise .fcx-al1{font-size:13px;font-weight:700;color:#9a6a00;}
+        #page-analise .fcx-al1 span{font-weight:500;}
+        #page-analise .fcx-al2{font-size:12px;color:#9a6a00;margin-top:4px;}
+        #page-analise .fcx-al3{font-size:11.5px;color:#9a6a00;margin-top:5px;font-weight:700;}
+        #page-analise .fcx-vazio{font-size:12.5px;color:#8a97a8;padding:10px 0;font-style:italic;}
+        @media(max-width:760px){
+          #page-analise .fcx-oc1{flex-direction:column;gap:2px;}
+          #page-analise .fcx-tab{font-size:12px;}
+          #page-analise .fcx-tab th{font-size:10px;}
+        }
       </style>
       <div class="filtros">
         <div class="campo">
@@ -1848,6 +1904,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       </div>
       <div class="kpis" id="anKpis" style="grid-template-columns:repeat(5,1fr);"></div>
       <div class="kpis" id="anIndicadores" style="grid-template-columns:repeat(auto-fit,minmax(205px,1fr));margin-top:6px;"></div>
+      <div id="fcxBloco"></div>
     </section>
 
     <section id="page-historico" class="page">
@@ -5492,6 +5549,7 @@ const PAGS = ${JSON.stringify(PAG)};
 const SETORES = ${JSON.stringify(SETOR)};
 const MESPROD = ${JSON.stringify(MESPROD)};
 const SETPROD = ${JSON.stringify(SETPROD)};
+const FCX_DIA = ${JSON.stringify(FCX_DIA)};
 const ESTOQUE = ${JSON.stringify(estoque)};
 const PRODUTOS = ${JSON.stringify(produtosUnicos)}; // [[codigo, nome], ...]
 const DATA_MIN = ${JSON.stringify(dataMin)};
@@ -5827,6 +5885,11 @@ function renderAnalise(){
   document.getElementById("anIndicadores").innerHTML = inds.map(function(x){
     return '<div class="kpi"><div class="v '+x.cls+'">'+x.v+'</div><div class="l">'+x.l+' <span class="kpi-help" data-tip="'+x.tip.replace(/"/g,'&quot;')+'">?</span></div></div>';
   }).join('');
+
+  /* ==FCXCHAMA== A faixa "Controle operacional" é redesenhada junto com o resto da Análise,
+     para o período do filtro valer para ela também. Em try/catch de propósito: defeito no
+     módulo novo não pode derrubar os KPIs que já estavam no ar. */
+  try{ renderFrenteCaixa(); }catch(e){ if(window.console) console.warn("frente de caixa:", e); }
 }
 document.getElementById("anAplicar").addEventListener("click", renderAnalise);
 document.getElementById("anLimpar").addEventListener("click", function(){
@@ -5834,6 +5897,446 @@ document.getElementById("anLimpar").addEventListener("click", function(){
   document.getElementById("anAte").value=DATA_MAX;
   renderAnalise();
 });
+
+/* ==FCXCALC-INICIO== FRENTE DE CAIXA: cancelamentos e descontos manuais (testado em scripts/testes/frente-caixa.test.cjs)
+   Só faz conta sobre FCX_DIA[] e as ocorrências que o painel já carregou: não toca em tela nem em nuvem.
+
+   O QUE ESTE MÓDULO RESOLVE. O VR chama de "cancelamento" cinco coisas diferentes: o erro de
+   quem registrou, o cliente que desistiu, o cartão que o banco recusou, o teste de equipamento
+   e a duplicidade do leitor. Somadas dão 0,93% da venda — quase o dobro da referência de 0,50%
+   — e nessa soma some a única parte que a loja consegue reduzir com treino. Por isso o total
+   continua inteiro no card (é o que concilia com o VR) e a composição abre em grupos.
+
+   REGRA DE OURO: o total do card = soma dos grupos = soma das ocorrências. Sempre. Motivo do VR
+   que não estiver classificado NÃO some dentro de um grupo existente: cai em "Não classificado"
+   e aparece na tela. Foi pedido explícito do dono em 21/09/2026 — categoria nova entrando calada
+   é número que mente sem ninguém perceber.
+
+   DE ONDE VEM O MOTIVO. Item cancelado sozinho tem motivo próprio (vendaitem.id_tipocancelamento).
+   Item de cupom cancelado NÃO tem — vem nulo, e o motivo verdadeiro está no cupom
+   (venda.id_tipocancelamento). Ler o do item nos dois casos joga 53 mil ocorrências e R$ 418 mil
+   em "sem motivo". Quem resolve isso é o robô, ao montar a linha; aqui a ocorrência já chega com
+   o motivo certo.
+
+   SEM DADO NÃO É ZERO. Período sem nenhum dia de movimento devolve null, não 0 — e a tela escreve
+   "sem dados". Dia com venda e sem cancelamento devolve 0, que é verdade diferente. */
+
+/* Parâmetros de gestão. Um lugar só — trocar aqui muda tela, alerta e cor.
+   Não são padrão de varejo: são referências internas do Santa Rita, começadas em 21/09/2026. */
+var FCX_CFG = {
+  refCancelamento: 0.50,   // % da venda no MÊS que o cancelamento não deveria passar
+  refDesconto:     0.30,   // % da venda que o desconto manual não deveria passar
+  limiteItem:      0.50,   // desconto que leva metade ou mais do preço do item vira alerta
+  exigirMotivo:    true    // desconto manual sem motivo informado vira alerta
+};
+
+/* Motivo do VR -> grupo gerencial. O que não estiver aqui é "naoclass" de propósito. */
+var FCX_GRUPOS = {
+  erro:    [2, 4, 10],   // ERRO DE REGISTRO, PRECO ERRADO, DUPLICIDADE DE REGISTRO (EQUIPAMENTO)
+  cliente: [1, 3],       // DEVOLUCAO DO CLIENTE, DINHEIRO INSUFICIENTE
+  pagto:   [6, 7],       // CHEQUE RECUSADO, CARTAO RECUSADO OU SEM SALDO
+  equip:   [5, 8]        // TESTE DE EQUIPAMENTO, PROBLEMA NO EQUIPAMENTO
+};
+var FCX_ORDEM = ["erro", "pagto", "cliente", "equip", "naoclass"];
+var FCX_NOME = { erro:"Erro de operação", cliente:"Cliente desistiu", pagto:"Pagamento falhou",
+                 equip:"Equipamento", naoclass:"Não classificado" };
+
+/* Em que grupo cai este motivo. Motivo nulo/desconhecido -> naoclass (nunca somado calado). */
+function fcxGrupo(motivo){
+  if(motivo===null || motivo===undefined || motivo==="") return "naoclass";
+  var m = Number(motivo);
+  if(!isFinite(m)) return "naoclass";
+  for(var g in FCX_GRUPOS){ if(FCX_GRUPOS[g].indexOf(m) >= 0) return g; }
+  return "naoclass";
+}
+
+/* Soma os dias do período. Devolve null quando NENHUM dia caiu na janela — sem dado não é zero. */
+function fcxSomaDias(linhas, de, ate){
+  var z = { dias:0, ce:0,cev:0, cc:0,ccv:0, cp:0,cpv:0, cq:0,cqv:0, cn:0,cnv:0,
+            dn:0, dv:0, da:0, ds:0, dal:0 };
+  for(var i=0;i<linhas.length;i++){
+    var r = linhas[i];
+    if(r.d < de || r.d > ate) continue;
+    z.dias++;
+    z.ce+=(r.ce||0); z.cev+=(r.cev||0); z.cc+=(r.cc||0); z.ccv+=(r.ccv||0);
+    z.cp+=(r.cp||0); z.cpv+=(r.cpv||0); z.cq+=(r.cq||0); z.cqv+=(r.cqv||0);
+    z.cn+=(r.cn||0); z.cnv+=(r.cnv||0);
+    z.dn+=(r.dn||0); z.dv+=(r.dv||0); z.da+=(r.da||0); z.ds+=(r.ds||0); z.dal+=(r.dal||0);
+  }
+  return z.dias ? z : null;
+}
+
+/* Arredonda para centavo antes de comparar: soma de float acumula resto e a conciliação
+   falharia por R$ 0,0000001 sem nenhum defeito real. */
+function fcxCent(v){ return Math.round((Number(v)||0)*100)/100; }
+
+/* O cancelamento do período, em grupos. base = faturamento do mesmo período (pode ser 0). */
+function fcxCancelamento(soma, base){
+  if(soma===null) return null;
+  var g = {
+    erro:     { n:soma.ce, v:fcxCent(soma.cev) },
+    pagto:    { n:soma.cp, v:fcxCent(soma.cpv) },
+    cliente:  { n:soma.cc, v:fcxCent(soma.ccv) },
+    equip:    { n:soma.cq, v:fcxCent(soma.cqv) },
+    naoclass: { n:soma.cn, v:fcxCent(soma.cnv) }
+  };
+  var totV=0, totN=0;
+  for(var i=0;i<FCX_ORDEM.length;i++){ var k=FCX_ORDEM[i]; totV+=g[k].v; totN+=g[k].n; }
+  totV = fcxCent(totV);
+  return {
+    grupos: g, ordem: FCX_ORDEM,
+    total: totV, ocorrencias: totN,
+    /* base 0 não vira divisão por zero nem 0%: vira null, e a tela escreve "sem dados" */
+    pct: (base>0) ? (totV/base*100) : null,
+    temNaoClassificado: g.naoclass.n > 0
+  };
+}
+
+/* Percentual de cada grupo dentro do total. Total 0 -> null (não 0%). */
+function fcxFatia(valor, total){ return (total>0) ? (valor/total*100) : null; }
+
+/* O desconto manual do período. Separa OCORRÊNCIAS de MOTIVOS: uma operação que estoura o
+   limite E está sem motivo é UMA ocorrência com DOIS motivos de alerta. */
+function fcxDesconto(soma, base){
+  if(soma===null) return null;
+  var v = fcxCent(soma.dv);
+  return {
+    valor: v, ocorrencias: soma.dn,
+    acimaDoLimite: soma.da,
+    semMotivo: FCX_CFG.exigirMotivo ? soma.ds : 0,
+    /* já vem contado sem duplicar: o robô marca a linha uma vez, mesmo com as duas regras */
+    ocorrenciasParaRevisar: soma.dal,
+    motivosDeAlerta: soma.da + (FCX_CFG.exigirMotivo ? soma.ds : 0),
+    pct: (base>0) ? (v/base*100) : null
+  };
+}
+
+/* Quais regras esta ocorrência de desconto acionou. Devolve [] quando nenhuma.
+   bruto = quantidade x preço (valor do item ANTES do desconto). */
+function fcxAlertasDoDesconto(bruto, desconto, motivo){
+  var a = [];
+  /* Desconto que não existe não gera alerta nenhum. Sem esta linha, uma linha de promoção
+     (desconto 0, motivo nulo, porque promoção não tem motivo) seria acusada de "sem motivo".
+     Achado pelo teste em 21/09/2026, antes de ir pro ar. */
+  if(!(desconto > 0)) return a;
+  if(bruto > 0 && (desconto/bruto) >= FCX_CFG.limiteItem){
+    a.push("desconto acima de " + Math.round(FCX_CFG.limiteItem*100) + "% do item");
+  }
+  if(FCX_CFG.exigirMotivo && (motivo===null || motivo===undefined || motivo==="")){
+    a.push("motivo não informado");
+  }
+  return a;
+}
+
+/* Status contra a referência. Só o MÊS vale como régua: um domingo fraco põe qualquer dia
+   acima de 0,50% sem nada ter acontecido de errado. pct null -> "sem dados". */
+function fcxStatus(pct, referencia){
+  if(pct===null || pct===undefined) return { txt:"SEM DADOS", cls:"est" };
+  return pct <= referencia ? { txt:"EM DIA", cls:"ok" }
+                           : { txt:"ACIMA DA REFERÊNCIA", cls:"bad" };
+}
+
+/* A trava que o dono exigiu: card = grupos = ocorrências. Devolve o que NÃO fecha.
+   Chamada pela tela e pelo teste; diferença de centavo (arredondamento) não conta. */
+function fcxConciliar(resumo, ocorrencias){
+  var somaGrupos = 0, somaOco = 0, nGrupos = 0, nOco = 0;
+  for(var i=0;i<FCX_ORDEM.length;i++){
+    var k = FCX_ORDEM[i];
+    somaGrupos += resumo.grupos[k].v; nGrupos += resumo.grupos[k].n;
+  }
+  for(var j=0;j<ocorrencias.length;j++){ somaOco += (ocorrencias[j].v||0); nOco++; }
+  somaGrupos = fcxCent(somaGrupos); somaOco = fcxCent(somaOco);
+  return {
+    fecha: Math.abs(somaGrupos - resumo.total) < 0.005 && nGrupos === resumo.ocorrencias
+           && Math.abs(somaOco - resumo.total) < 0.005 && nOco === resumo.ocorrencias,
+    totalCard: resumo.total, somaGrupos: somaGrupos, somaOcorrencias: somaOco,
+    nCard: resumo.ocorrencias, nGrupos: nGrupos, nOcorrencias: nOco
+  };
+}
+/* ==FCXCALC-FIM== */
+
+/* ==FCXTELA-INICIO== FRENTE DE CAIXA: a tela (a conta está em ==FCXCALC==, testada à parte)
+   Desenha os dois cards na faixa "Controle operacional" e abre o detalhamento no clique.
+
+   PERÍODO: tudo aqui obedece anDe/anAte, os mesmos campos dos outros KPIs da tela. Número,
+   referência e status falam do MESMO período — pedido do dono em 21/09/2026, depois de eu
+   propor misturar o período com a régua do mês: "não faça uma solução confusa em que o número
+   mostrado é de um período e o status parece ser daquele período quando na verdade foi
+   calculado com outro". Um dia fraco vai acusar acima da referência; isso é honesto e o
+   detalhamento explica por quê.
+
+   O DETALHAMENTO NÃO VEM EMBUTIDO. O resumo por dia (FCX_DIA) é leve e não tem nome de ninguém,
+   então viaja dentro do painel. A lista de ocorrências diz qual operador cancelou o quê: essa
+   fica na nuvem, com a trava no banco (RLS por pode_pagina), e só desce no clique de quem pode.
+   Esconder na tela deixaria o dado no computador de quem não pode ver.
+
+   VAZIO NÃO É NEGADO. Quando o RLS barra, o PostgREST devolve lista vazia e status 200 — sem
+   erro. A Central Operacional sumiu por três semanas assim, sem ninguém perceber. Por isso a
+   busca distingue os dois casos e a tela escreve o que aconteceu. */
+/* Cor de cada grupo. Fica aqui, e não no ==FCXCALC==, porque aquele bloco é só conta
+   (o teste o roda sem tela nenhuma). */
+var FCX_COR = { erro:"#ba7517", cliente:"#1b9e4b", pagto:"#1565c0", equip:"#8a97a8", naoclass:"#c0392b" };
+var FCX_OCO_CACHE = {};   /* período já buscado -> linhas; evita ir à nuvem duas vezes */
+
+function fcxPeriodo(){
+  var de = document.getElementById("anDe").value || DATA_MIN;
+  var ate = document.getElementById("anAte").value || DATA_MAX;
+  if(de > ate){ var t = de; de = ate; ate = t; }
+  return [de, ate];
+}
+function fcxBase(de, ate){
+  return DIA.filter(function(x){ return x.d>=de && x.d<=ate; })
+            .reduce(function(s,x){ return s+(x.fat||0); }, 0);
+}
+function fcxBrl(v){ return brl(v); }
+function fcxNum(v){ return Math.round(Number(v)||0).toLocaleString("pt-BR"); }
+function fcxPct(v, casas){
+  if(v===null || v===undefined) return "—";
+  return Number(v).toFixed(casas===undefined?2:casas).replace(".",",")+"%";
+}
+function fcxDataCurta(s){ var p=String(s).split("-"); return p[2]+"/"+p[1]; }
+
+function renderFrenteCaixa(){
+  var el = document.getElementById("fcxBloco");
+  if(!el) return;
+  var pr = fcxPeriodo(), de = pr[0], ate = pr[1];
+  var soma = fcxSomaDias(typeof FCX_DIA!=="undefined" ? FCX_DIA : [], de, ate);
+  var base = fcxBase(de, ate);
+  var canc = fcxCancelamento(soma, base);
+  var desc = fcxDesconto(soma, base);
+
+  var stC = fcxStatus(canc ? canc.pct : null, FCX_CFG.refCancelamento);
+  var stD = fcxStatus(desc ? desc.pct : null, FCX_CFG.refDesconto);
+
+  var cardC = '<div class="kpi fcx-card" data-fcx="canc">'+
+    '<div class="l">Cancelamentos</div>'+
+    (canc
+      ? '<div class="v '+(stC.cls==="bad"?"ind-bad":stC.cls==="ok"?"ind-ok":"ind-est")+'">'+fcxPct(canc.pct)+'</div>'+
+        '<div class="fcx-sub">'+fcxBrl(canc.total)+' · '+fcxNum(canc.ocorrencias)+' ocorrência'+(canc.ocorrencias===1?"":"s")+'</div>'+
+        '<div class="fcx-rod">Referência ≤ '+fcxPct(FCX_CFG.refCancelamento)+' no período</div>'+
+        '<span class="fcx-selo fcx-'+stC.cls+'">'+stC.txt+'</span>'
+      : '<div class="v ind-est">SEM DADOS</div><div class="fcx-sub">período sem movimento</div>')+
+    '<div class="fcx-clique">clique para ver a composição</div></div>';
+
+  var cardD = '<div class="kpi fcx-card" data-fcx="desc">'+
+    '<div class="l">Descontos manuais</div>'+
+    (desc
+      ? '<div class="v '+(stD.cls==="bad"?"ind-bad":stD.cls==="ok"?"ind-ok":"ind-est")+'">'+fcxPct(desc.pct)+'</div>'+
+        '<div class="fcx-sub">'+fcxBrl(desc.valor)+' · '+fcxNum(desc.ocorrencias)+' desconto'+(desc.ocorrencias===1?"":"s")+'</div>'+
+        '<div class="fcx-rod">Referência ≤ '+fcxPct(FCX_CFG.refDesconto)+' no período</div>'+
+        '<span class="fcx-selo fcx-'+stD.cls+'">'+stD.txt+'</span>'+
+        (desc.ocorrenciasParaRevisar>0
+          ? '<div class="fcx-alerta">&#9888; '+fcxNum(desc.ocorrenciasParaRevisar)+' alerta'+(desc.ocorrenciasParaRevisar===1?"":"s")+' para revisar</div>'
+          : '')
+      : '<div class="v ind-est">SEM DADOS</div><div class="fcx-sub">período sem movimento</div>')+
+    '<div class="fcx-clique">clique para ver as ocorrências</div></div>';
+
+  el.innerHTML = '<div class="fcx-titulo">Controle operacional</div>'+
+    '<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(250px,1fr));">'+cardC+cardD+'</div>'+
+    '<div id="fcxDet"></div>';
+
+  var cards = el.querySelectorAll(".fcx-card");
+  for(var i=0;i<cards.length;i++){
+    cards[i].addEventListener("click", (function(c){
+      return function(){ fcxAbrir(c.getAttribute("data-fcx")); };
+    })(cards[i]));
+  }
+}
+
+function fcxAbrir(qual){
+  var d = document.getElementById("fcxDet");
+  if(!d) return;
+  if(d.getAttribute("data-aberto")===qual){ d.innerHTML=""; d.removeAttribute("data-aberto"); return; }
+  d.setAttribute("data-aberto", qual);
+  d.innerHTML = '<div class="fcx-painel"><div class="fcx-vazio">Buscando…</div></div>';
+  var pr = fcxPeriodo();
+  fcxBuscarOcorrencias(pr[0], pr[1], function(erro, linhas){
+    if(d.getAttribute("data-aberto")!==qual) return;   /* trocou de card enquanto buscava */
+    if(erro){ d.innerHTML = '<div class="fcx-painel"><div class="fcx-vazio">'+erro+'</div></div>'; return; }
+    d.innerHTML = (qual==="canc") ? fcxDetCancelamento(linhas) : fcxDetDesconto(linhas);
+    if(qual==="canc"){
+      var lins = d.querySelectorAll(".fcx-lin");
+      for(var i=0;i<lins.length;i++){
+        lins[i].addEventListener("click", (function(l){
+          return function(){
+            document.getElementById("fcxOco").innerHTML = fcxListaOcorrencias(linhas, l.getAttribute("data-g"));
+          };
+        })(lins[i]));
+      }
+    }
+  });
+}
+
+/* Busca as ocorrências na nuvem. Distingue os três desfechos: deu certo, não pode ver, deu erro.
+   Sem isso, "o RLS te barrou" apareceria como "nenhum cancelamento no período" — foi assim que a
+   Central Operacional sumiu por três semanas sem ninguém ver erro nenhum.
+
+   CHAMA A FUNÇÃO, NÃO A TABELA. O banco NEGA a coluna do nome (operador e fiscal) para quem está
+   logado, justamente para que um select * não vaze. Quem decide se a pessoa enxerga nome é a
+   função frentecaixa_ocorrencias_listar, que devolve a mesma ocorrência com o nome em branco
+   para quem não pode — sem esconder valor nem motivo. Um select("*") aqui voltaria erro de
+   permissão e o card ficaria vazio sem explicar por quê. */
+function fcxBuscarOcorrencias(de, ate, pronto){
+  var chave = de+"|"+ate;
+  if(FCX_OCO_CACHE[chave]) return pronto(null, FCX_OCO_CACHE[chave]);
+  var sb = (typeof SB!=="undefined") ? SB : null;
+  if(!sb) return pronto("Não consegui falar com a nuvem. Recarregue a página.", null);
+  if(window.__PERFIL == null) return pronto("Carregando seu acesso… tente de novo em instantes.", null);
+  sb.rpc("frentecaixa_ocorrencias_listar", { p_de:de, p_ate:ate, p_tipo:null, p_grupo:null, p_limite:5000 })
+    .then(function(r){
+      if(r && r.error){
+        var m = String((r.error && r.error.message) || "");
+        /* o guard da função responde com texto próprio quando é falta de acesso */
+        if(m.indexOf("acesso") >= 0 || m.indexOf("Entre no painel") >= 0)
+          return pronto("Seu acesso não inclui o detalhamento da Frente de Caixa. Fale com o administrador.", null);
+        if(m.indexOf("does not exist") >= 0 || m.indexOf("schema cache") >= 0)
+          return pronto("O detalhamento ainda não foi ligado na nuvem (falta rodar o SQL).", null);
+        return pronto("Não consegui buscar o detalhamento: " + (m || "erro na nuvem"), null);
+      }
+      var linhas = (r && r.data) ? r.data : [];
+      FCX_OCO_CACHE[chave] = linhas;
+      pronto(null, linhas);
+    }, function(){ pronto("Não consegui buscar o detalhamento agora. Tente de novo.", null); });
+}
+
+/* A função devolve o nome em branco para quem não pode ver. A tela escreve isso com todas as
+   letras em vez de mostrar um traço, que pareceria dado faltando no VR. */
+function fcxNomeOu(valor, linha){
+  if(valor) return valor;
+  if(linha && linha.mostra_nomes === false) return "<i>nome restrito</i>";
+  return "—";
+}
+
+function fcxDetCancelamento(linhas){
+  var pr = fcxPeriodo(), de = pr[0], ate = pr[1];
+  var soma = fcxSomaDias(typeof FCX_DIA!=="undefined" ? FCX_DIA : [], de, ate);
+  var base = fcxBase(de, ate);
+  var resumo = fcxCancelamento(soma, base);
+  if(!resumo) return '<div class="fcx-painel"><div class="fcx-vazio">Período sem movimento — nada a mostrar.</div></div>';
+
+  var barra = '<div class="fcx-barra">';
+  for(var i=0;i<FCX_ORDEM.length;i++){
+    var g = FCX_ORDEM[i], v = resumo.grupos[g].v;
+    if(resumo.total>0 && v>0) barra += '<i style="width:'+(v/resumo.total*100)+'%;background:'+FCX_COR[g]+'"></i>';
+  }
+  barra += '</div>';
+
+  var linhasTab = "";
+  for(var j=0;j<FCX_ORDEM.length;j++){
+    var k = FCX_ORDEM[j], gr = resumo.grupos[k], vazio = (gr.n===0);
+    linhasTab += '<tr class="fcx-lin'+(vazio?" fcx-zero":"")+'" data-g="'+k+'">'+
+      '<td><i class="fcx-bolinha" style="background:'+FCX_COR[k]+'"></i>'+FCX_NOME[k]+'</td>'+
+      '<td class="r">'+fcxNum(gr.n)+'</td>'+
+      '<td class="r">'+fcxBrl(gr.v)+'</td>'+
+      '<td class="r">'+fcxPct(fcxFatia(gr.v, resumo.total), 1)+'</td>'+
+      '<td class="r">'+fcxPct(base>0 ? gr.v/base*100 : null)+'</td></tr>';
+  }
+
+  var so = linhas.filter(function(x){ return x.tipo==="cancelamento"; });
+  var conc = fcxConciliar(resumo, so.map(function(x){ return { v: Number(x.valor)||0 }; }));
+  var aviso = conc.fecha
+    ? '&#10003; soma dos grupos fecha com o total'
+    : '&#9888; conferir: card '+fcxBrl(conc.totalCard)+' · grupos '+fcxBrl(conc.somaGrupos)+' · lista '+fcxBrl(conc.somaOcorrencias);
+
+  return '<div class="fcx-painel">'+
+    '<div class="fcx-ph">Cancelamentos · composição<span>'+fcxDataCurta(de)+' a '+fcxDataCurta(ate)+' · '+
+      fcxNum(resumo.ocorrencias)+' ocorrências · '+fcxBrl(resumo.total)+'</span></div>'+
+    barra+
+    '<table class="fcx-tab"><thead><tr><th>Grupo</th><th class="r">Ocorr.</th><th class="r">Valor</th>'+
+      '<th class="r">% do total</th><th class="r">% da venda</th></tr></thead><tbody>'+linhasTab+'</tbody></table>'+
+    '<div class="fcx-concilia">'+aviso+'</div>'+
+    (resumo.temNaoClassificado
+      ? '<div class="fcx-vazio">Há motivo do VR que ainda não tem grupo. Me avise para eu classificar.</div>' : '')+
+    '<div class="fcx-ph2">Clique num grupo para ver as ocorrências</div><div id="fcxOco"></div></div>';
+}
+
+function fcxListaOcorrencias(linhas, grupo){
+  var l = linhas.filter(function(x){ return x.tipo==="cancelamento" && x.grupo===grupo; })
+                .sort(function(a,b){ return (Number(b.valor)||0)-(Number(a.valor)||0); });
+  if(!l.length) return '<div class="fcx-vazio">Nenhuma ocorrência neste grupo no período.</div>';
+  var top = l.slice(0, 40);
+  var h = '<div class="fcx-ph2">'+FCX_NOME[grupo]+' · '+fcxNum(l.length)+' ocorrências · maiores primeiro</div>';
+  for(var i=0;i<top.length;i++){
+    var x = top[i];
+    h += '<div class="fcx-oc">'+
+      '<div class="fcx-oc1"><span>'+(x.produto||"—")+'</span><b>'+fcxBrl(x.valor)+'</b></div>'+
+      '<div class="fcx-oc2">'+fcxDataCurta(x.data)+' '+(x.hora||"")+' · PDV '+(x.pdv||"—")+' · '+fcxNomeOu(x.operador, x)+
+        ' · '+(x.cupom_inteiro ? "cupom cancelado inteiro" : "item cancelado")+
+        ' · '+Number(x.quantidade||0).toLocaleString("pt-BR")+' un · cupom '+(x.cupom||"—")+'</div>'+
+      '<div class="fcx-oc2">motivo: '+(x.motivo_vr || "<i>sem motivo informado</i>")+
+        (x.fiscal ? ' · autorizou: '+x.fiscal : (x.mostra_nomes===false ? ' · autorizou: <i>nome restrito</i>' : ''))+'</div></div>';
+  }
+  if(l.length>top.length) h += '<div class="fcx-vazio">mostrando as 40 maiores de '+fcxNum(l.length)+'.</div>';
+  return h;
+}
+
+function fcxDetDesconto(linhas){
+  var pr = fcxPeriodo(), de = pr[0], ate = pr[1];
+  var soma = fcxSomaDias(typeof FCX_DIA!=="undefined" ? FCX_DIA : [], de, ate);
+  var base = fcxBase(de, ate);
+  var resumo = fcxDesconto(soma, base);
+  if(!resumo) return '<div class="fcx-painel"><div class="fcx-vazio">Período sem movimento — nada a mostrar.</div></div>';
+
+  var l = linhas.filter(function(x){ return x.tipo==="desconto"; });
+  var somaLista = 0;
+  for(var i=0;i<l.length;i++) somaLista += (Number(l[i].valor_desconto)||0);
+  somaLista = fcxCent(somaLista);
+  var fecha = Math.abs(somaLista - resumo.valor) < 0.005;
+
+  var comAlerta = l.filter(function(x){
+    return fcxAlertasDoDesconto(Number(x.valor_bruto)||0, Number(x.valor_desconto)||0, x.motivo_vr).length > 0;
+  }).sort(function(a,b){
+    var pa = (Number(a.valor_bruto)>0) ? Number(a.valor_desconto)/Number(a.valor_bruto) : 0;
+    var pb = (Number(b.valor_bruto)>0) ? Number(b.valor_desconto)/Number(b.valor_bruto) : 0;
+    return pb-pa;
+  });
+
+  var h = '<div class="fcx-painel">'+
+    '<div class="fcx-ph">Descontos manuais<span>'+fcxDataCurta(de)+' a '+fcxDataCurta(ate)+'</span></div>'+
+    '<table class="fcx-tab"><tbody>'+
+    '<tr><td>Percentual sobre a venda</td><td class="r">'+fcxPct(resumo.pct)+'</td></tr>'+
+    '<tr><td>Valor total</td><td class="r">'+fcxBrl(resumo.valor)+'</td></tr>'+
+    '<tr><td>Ocorrências</td><td class="r">'+fcxNum(resumo.ocorrencias)+'</td></tr>'+
+    '<tr><td>Acima de '+Math.round(FCX_CFG.limiteItem*100)+'% do item</td><td class="r">'+fcxNum(resumo.acimaDoLimite)+'</td></tr>'+
+    '<tr><td>Sem motivo informado</td><td class="r">'+fcxNum(resumo.semMotivo)+'</td></tr>'+
+    '<tr class="fcx-forte"><td>Ocorrências para revisar</td><td class="r">'+fcxNum(resumo.ocorrenciasParaRevisar)+'</td></tr>'+
+    '<tr class="fcx-forte"><td>Motivos de alerta</td><td class="r">'+fcxNum(resumo.motivosDeAlerta)+'</td></tr>'+
+    '</tbody></table>'+
+    '<div class="fcx-concilia">'+(fecha ? '&#10003; detalhamento fecha com o card'
+      : '&#9888; conferir: card '+fcxBrl(resumo.valor)+' · lista '+fcxBrl(somaLista))+'</div>';
+
+  if(comAlerta.length){
+    h += '<div class="fcx-ph2">Alertas para revisar</div>';
+    for(var j=0;j<Math.min(comAlerta.length,25);j++){
+      var x = comAlerta[j];
+      var bruto = Number(x.valor_bruto)||0, dsc = Number(x.valor_desconto)||0;
+      var av = fcxAlertasDoDesconto(bruto, dsc, x.motivo_vr);
+      h += '<div class="fcx-al">'+
+        '<div class="fcx-al1">'+(x.produto||"—")+(x.codigo_barras?' <span>'+x.codigo_barras+'</span>':'')+'</div>'+
+        '<div class="fcx-al2">Valor original: '+fcxBrl(bruto)+' &nbsp;·&nbsp; Valor final: '+fcxBrl(bruto-dsc)+
+          ' &nbsp;·&nbsp; Desconto: '+fcxBrl(dsc)+' &nbsp;·&nbsp; <b>'+fcxPct(bruto>0?dsc/bruto*100:null,0)+'</b></div>'+
+        '<div class="fcx-al2">'+fcxDataCurta(x.data)+' '+(x.hora||"")+' · PDV '+(x.pdv||"—")+' · '+fcxNomeOu(x.operador, x)+
+          ' · cupom '+(x.cupom||"—")+' · motivo: '+(x.motivo_vr||"não informado")+'</div>'+
+        '<div class="fcx-al3">ALERTAS: &bull; '+av.join(" &nbsp; &bull; ")+'</div></div>';
+    }
+    if(comAlerta.length>25) h += '<div class="fcx-vazio">mostrando 25 de '+fcxNum(comAlerta.length)+'.</div>';
+  } else {
+    h += '<div class="fcx-vazio">Nenhum alerta no período.</div>';
+  }
+
+  h += '<div class="fcx-ph2">Todos os descontos do período · '+fcxNum(l.length)+'</div>';
+  var todos = l.slice().sort(function(a,b){ return (Number(b.valor_desconto)||0)-(Number(a.valor_desconto)||0); });
+  for(var k=0;k<Math.min(todos.length,30);k++){
+    var y = todos[k], yb = Number(y.valor_bruto)||0, yd = Number(y.valor_desconto)||0;
+    h += '<div class="fcx-oc"><div class="fcx-oc1"><span>'+(y.produto||"—")+'</span><b>'+fcxBrl(yd)+'</b></div>'+
+      '<div class="fcx-oc2">'+fcxDataCurta(y.data)+' '+(y.hora||"")+' · PDV '+(y.pdv||"—")+' · '+fcxNomeOu(y.operador, y)+
+      ' · de '+fcxBrl(yb)+' por '+fcxBrl(yb-yd)+' ('+fcxPct(yb>0?yd/yb*100:null,0)+')'+
+      ' · motivo: '+(y.motivo_vr||"não informado")+'</div></div>';
+  }
+  if(todos.length>30) h += '<div class="fcx-vazio">mostrando 30 de '+fcxNum(todos.length)+'.</div>';
+  return h+'</div>';
+}
+/* ==FCXTELA-FIM== */
 
 /* ==HISTCALC-INICIO== HISTÓRICO: ano a ano e mês a mês (testado em scripts/testes/historico.test.cjs)
    Só faz conta sobre o DIA[] que o painel já carrega: não toca em tela nem em nuvem.

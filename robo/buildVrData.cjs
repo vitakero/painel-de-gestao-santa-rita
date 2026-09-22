@@ -29,6 +29,220 @@ function sbUpsertCompras(rows){return new Promise((res,rej)=>{const body=JSON.st
 const COMPRAS_SYNC_MS=6*3600*1000; // nota de entrada nao muda de hora em hora: 1x a cada 6h
 function sbUpsertProdutos(rows){return new Promise((res,rej)=>{const body=JSON.stringify(rows);const req=https.request({host:SB_HOST,path:"/rest/v1/estoque_produtos?on_conflict=cod",method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal","Content-Length":Buffer.byteLength(body)}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>r.statusCode<300?res():rej(new Error("HTTP "+r.statusCode+" "+d)))});req.on("error",rej);req.write(body);req.end();});}
 
+// ============================================================================
+// FRENTE DE CAIXA: cancelamentos e descontos manuais (os dois KPIs da Analise)
+// ============================================================================
+// O painel NAO faz conta sobre o VR. Daqui saem duas coisas, de proposito separadas:
+//
+//   FCX_DIA  -> resumo POR DIA, embutido no arquivo do painel. Nao tem nome de pessoa
+//               nenhum: e so contagem e dinheiro. Medido na bancada: 27 KB para 208 dias
+//               (~130 bytes por dia), ou seja ~150 KB pro historico inteiro do VR.
+//   nuvem    -> as OCORRENCIAS (operador, PDV, produto, motivo, quem autorizou). Essas
+//               tem nome de gente, entao NAO entram no arquivo do painel: vao pro
+//               Supabase, na tabela frentecaixa_ocorrencias, atras de RLS.
+//
+// DUAS PEGADINHAS MEDIDAS NO BANCO DA LOJA. As duas ja produziram numero errado:
+//
+// 1) O MOTIVO DO ITEM MENTE QUANDO O CUPOM FOI CANCELADO. Quando o CUPOM inteiro e
+//    cancelado, os itens dele recebem valorcancelado mas NAO recebem cancelado=true, e o
+//    id_tipocancelamento do item vem NULO — o motivo verdadeiro esta no CUPOM. Lendo o
+//    motivo do item nos dois casos, 53.051 ocorrencias e R$ 418.313,93 caem em "sem
+//    motivo". Por isso, em TODA consulta daqui, o motivo e lido assim:
+//        CASE WHEN cupom.cancelado THEN cupom.id_tipocancelamento ELSE item.id_tipocancelamento END
+//    (Conferido no arquivo de medicao: os 102 cupons cancelados inteiros tem UM motivo
+//     por cupom, nunca dois — o motivo e mesmo do cupom, nao do item.)
+//
+// 2) O VALOR NAO SAI DO CUPOM. 36 dos 99 cupons cancelados de 01 a 20/09/2026 vem com
+//    subtotalimpressora = 0 (sao os cancelados durante a venda, antes de fechar o cupom).
+//    Somar o subtotal subestima o cancelamento em 21%. O valor certo e a soma de
+//    valorcancelado dos ITENS — e e por ITEM que a ocorrencia e contada: 1.796 itens de
+//    cupons cancelados + 1.280 itens cancelados sozinhos = as 3.076 ocorrencias e os
+//    R$ 30.974,04 conferidos naquele periodo.
+const FCX_OCO_MESES=13;          // alcance do detalhe que vai pra nuvem (ver bloco do sync)
+const FCX_OCO_DIAS=7;            // janela curta, mandada de 20 em 20 min
+const FCX_OCO_MS=20*60*1000;     // janela curta: 1x a cada 20 min (igual ao setor/dia)
+const FCX_OCO_FULL_MS=24*3600*1000; // varredura dos 13 meses: 1x por dia
+function sbUpsertFcx(rows){return new Promise((res,rej)=>{const body=JSON.stringify(rows);const req=https.request({host:SB_HOST,path:"/rest/v1/frentecaixa_ocorrencias?on_conflict=tipo,id_venda,sequencia",method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal","Content-Length":Buffer.byteLength(body)}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>r.statusCode<300?res():rej(new Error("HTTP "+r.statusCode+" "+d)))});req.on("error",rej);req.write(body);req.end();});}
+
+/* ==FCXSQL-INICIO== As regras e as consultas da Frente de Caixa, num pedaco so.
+   Esta fatia nao depende de nada do resto do arquivo de proposito: a bancada
+   (scripts/testes) consegue recortar ela, RODAR as consultas num Postgres de mentira e
+   provar que o numero bate — grep nao prova nada, so rodar prova. */
+
+/* Motivo do VR -> grupo gerencial. TEM QUE SER IGUAL ao FCX_GRUPOS do painel
+   (scripts/demoDashboard.ts, bloco ==FCXCALC-INICIO==). Se os dois divergirem, o card
+   mostra um total e a lista de ocorrencias mostra outro.
+     erro    = 2 ERRO DE REGISTRO, 4 PRECO ERRADO, 10 DUPLICIDADE DE REGISTRO (EQUIPAMENTO)
+     cliente = 1 DEVOLUCAO DO CLIENTE, 3 DINHEIRO INSUFICIENTE
+     pagto   = 6 CHEQUE RECUSADO, 7 CARTAO RECUSADO OU SEM SALDO
+     equip   = 5 TESTE DE EQUIPAMENTO, 8 PROBLEMA NO EQUIPAMENTO
+   Motivo que nao estiver aqui (inclusive NULO, e inclusive um codigo novo que a loja
+   cadastrar amanha no VR) cai em "naoclass" DE PROPOSITO, e aparece na tela. Pedido
+   explicito do dono: categoria nova entrando calada dentro de um grupo existente e
+   numero que mente sem ninguem perceber. */
+const FCX_GRUPOS={ erro:[2,4,10], cliente:[1,3], pagto:[6,7], equip:[5,8] };
+/* Desconto que leva METADE ou mais do preco do item vira alerta. Tem que ser igual ao
+   FCX_CFG.limiteItem do painel. (Medido: o maior desconto do historico foi 96,32% do
+   item; nenhum passa de 100%.) */
+const FCX_LIMITE_ITEM=0.50;
+/* Desconto manual lancado numa venda que DEPOIS foi cancelada: conta ou nao conta?
+   Hoje CONTA (false), porque e assim que os R$ 159,27 / 37 ocorrencias de 01 a 20/09/2026
+   foram conferidos com a loja. Nao ficou provado que exista desconto assim: dos 41
+   descontos de setembro, 5 caem num cupom que teve cancelamento, mas 4 deles sao
+   CLARAMENTE outra linha do mesmo cupom (quantidade diferente: 20 contra 1) e so 1 ficou
+   duvidoso. Se o dono decidir que "desconto de venda cancelada nao e desconto", muda so
+   esta linha pra true — o numero do card, a lista e o alerta acompanham juntos. */
+const FCX_DSC_IGNORA_CANCELADO=false;
+
+/* Em que grupo cai este motivo. Mesma regra do painel. */
+function fcxGrupoDe(motivo){
+  if(motivo===null||motivo===undefined||motivo==="") return "naoclass";
+  const m=Number(motivo);
+  if(!isFinite(m)) return "naoclass";
+  for(const g in FCX_GRUPOS){ if(FCX_GRUPOS[g].indexOf(m)>=0) return g; }
+  return "naoclass";
+}
+/* O mesmo de cima, escrito em SQL a partir da MESMA constante — assim e impossivel o
+   agregado (que o painel mostra) e a lista (que a nuvem guarda) discordarem. */
+function fcxCaseGrupo(expr){
+  let s="CASE";
+  for(const g in FCX_GRUPOS) s+=" WHEN ("+expr+") IN ("+FCX_GRUPOS[g].join(",")+") THEN '"+g+"'";
+  return s+" ELSE 'naoclass' END";
+}
+
+/* O motivo de verdade (pegadinha 1) e a marca de "isto e um cancelamento". */
+const FCX_MOTIVO="CASE WHEN COALESCE(cu.cancelado,false) THEN cu.id_tipocancelamento ELSE i.id_tipocancelamento END";
+/* MARCADO = o VR marcou cancelado no item ou no cupom.
+   CANCELADO = marcado OU tem valorcancelado. O "ou tem valor" existe pra dinheiro nunca
+   sumir calado: se um dia aparecer linha com valor cancelado e sem marca, ela ENTRA na
+   conta (no grupo do motivo dela) e o robo avisa no log, em vez de evaporar. Na medicao
+   de setembro/2026 nao existia nenhuma assim — ou seja, isto nao muda o numero conferido. */
+const FCX_MARCADO="(COALESCE(i.cancelado,false) OR COALESCE(cu.cancelado,false))";
+const FCX_CANCELADO="("+FCX_MARCADO+" OR COALESCE(i.valorcancelado,0) <> 0)";
+
+/* O AGREGADO POR DIA — uma linha por dia, que e o que vai embutido no painel.
+   filtroData entra vazio (historico inteiro) ou com um AND de corte (rede de seguranca).
+   UMA passada so pelas duas tabelas: cancelamento e desconto saem juntos, porque os dois
+   moram na MESMA linha de vendaitem. Duas consultas custariam duas varreduras. */
+function fcxSqlDia(filtroData){
+  const tdesc=FCX_DSC_IGNORA_CANCELADO ? "(tdesc AND NOT marcado)" : "tdesc";
+  const acima="(bruto > 0 AND vd/bruto >= "+FCX_LIMITE_ITEM+")";
+  return `
+    WITH linha AS (
+      SELECT to_char(i.data,'YYYY-MM-DD') d,
+             ${FCX_CANCELADO} canc,
+             ${FCX_MARCADO}   marcado,
+             ${fcxCaseGrupo(FCX_MOTIVO)} g,
+             COALESCE(i.valorcancelado,0) vc,
+             (COALESCE(i.valordescontomanual,0) <> 0) tdesc,
+             COALESCE(i.valordescontomanual,0) vd,
+             (COALESCE(i.quantidade,0) * COALESCE(i.precovenda,0)) bruto,
+             i.id_tipodesconto md
+        FROM pdv.vendaitem i
+        JOIN pdv.venda cu ON cu.id = i.id_venda
+       WHERE (COALESCE(i.cancelado,false) OR COALESCE(cu.cancelado,false)
+              OR COALESCE(i.valorcancelado,0) <> 0
+              OR COALESCE(i.valordescontomanual,0) <> 0)
+             ${filtroData||""}
+    )
+    SELECT d,
+      COUNT(*) FILTER (WHERE canc AND g='erro')     ce, COALESCE(SUM(vc) FILTER (WHERE canc AND g='erro'),0)     cev,
+      COUNT(*) FILTER (WHERE canc AND g='cliente')  cc, COALESCE(SUM(vc) FILTER (WHERE canc AND g='cliente'),0)  ccv,
+      COUNT(*) FILTER (WHERE canc AND g='pagto')    cp, COALESCE(SUM(vc) FILTER (WHERE canc AND g='pagto'),0)    cpv,
+      COUNT(*) FILTER (WHERE canc AND g='equip')    cq, COALESCE(SUM(vc) FILTER (WHERE canc AND g='equip'),0)    cqv,
+      COUNT(*) FILTER (WHERE canc AND g='naoclass') cn, COALESCE(SUM(vc) FILTER (WHERE canc AND g='naoclass'),0) cnv,
+      COUNT(*) FILTER (WHERE ${tdesc}) dn,
+      COALESCE(SUM(vd) FILTER (WHERE ${tdesc}),0) dv,
+      COUNT(*) FILTER (WHERE ${tdesc} AND ${acima}) da,
+      COUNT(*) FILTER (WHERE ${tdesc} AND md IS NULL) ds,
+      -- OCORRENCIAS pra revisar: a linha que estourou o limite E esta sem motivo conta
+      -- UMA vez. Nao e da+ds (isso seriam os MOTIVOS de alerta, que o painel mostra separado).
+      COUNT(*) FILTER (WHERE ${tdesc} AND (${acima} OR md IS NULL)) dal,
+      -- dois contadores que NAO vao pro painel: sao o alarme do robo (ver o log da rodada)
+      COUNT(*) FILTER (WHERE canc AND vc = 0) z_semvalor,
+      COUNT(*) FILTER (WHERE NOT marcado AND COALESCE(vc,0) <> 0) z_semmarca
+     FROM linha
+    GROUP BY d`;
+}
+
+/* AS OCORRENCIAS DE CANCELAMENTO (com nome de gente) — vao pra nuvem, nao pro painel.
+   Uma linha por ITEM cancelado, que e a unidade que o dono confere. O par
+   (id_venda, sequencia) identifica a linha pra sempre: e o que segura o upsert e impede
+   ocorrencia duplicada quando a mesma janela e enviada de novo. */
+function fcxSqlCanc(desde){
+  return `
+    SELECT to_char(i.data,'YYYY-MM-DD') d, to_char(cu.horainicio,'HH24:MI') h,
+           cu.ecf pdv, cu.numerocupom nc, cu.id id_venda, i.sequencia seq,
+           cu.matricula op_mat,
+           CASE WHEN COALESCE(cu.cancelado,false) THEN cu.matriculacancelamento
+                ELSE i.matriculacancelamento END fi_mat,
+           COALESCE(cu.cancelado,false) ci, COALESCE(i.cancelado,false) ic,
+           i.id_produto, p.descricaocompleta pr,
+           i.quantidade q, COALESCE(i.valorcancelado,0) v,
+           ${FCX_MOTIVO} mot
+      FROM pdv.vendaitem i
+      JOIN pdv.venda cu ON cu.id = i.id_venda
+      LEFT JOIN public.produto p ON p.id = i.id_produto
+     WHERE i.data >= ${desde}
+       AND ${FCX_CANCELADO}`;
+}
+
+/* AS OCORRENCIAS DE DESCONTO MANUAL. Sao POUCAS (2.924 em todo o historico do VR), por
+   isso da pra buscar o codigo de barras de cada uma sem pesar: e o numero que o dono
+   digita pra achar o produto.
+   PEGADINHA JA CONHECIDA: codigobarras no VR e NUMERIC — sem ::text o Postgres reclama, e
+   ainda vem com ".0" no fim, que o robo tira depois. (Mesmo cuidado do sync de produtos.)
+   BRUTO = quantidade x preco de venda, que e o valor do item ANTES do desconto. Foi medido
+   que ele bate com valortotal nos 2.924 itens com desconto manual, mas a conta escrita e
+   a definicao, nao a coincidencia: o dia que valortotal passar a vir liquido, esta conta
+   continua certa. Vai tambem a marca de cancelado, pra decidir a regra do
+   FCX_DSC_IGNORA_CANCELADO olhando dado, sem precisar ler o VR de novo. */
+function fcxSqlDesc(desde){
+  return `
+    SELECT to_char(i.data,'YYYY-MM-DD') d, to_char(cu.horainicio,'HH24:MI') h,
+           cu.ecf pdv, cu.numerocupom nc, cu.id id_venda, i.sequencia seq,
+           cu.matricula op_mat,
+           COALESCE(cu.cancelado,false) ci, COALESCE(i.cancelado,false) ic,
+           i.id_produto, p.descricaocompleta pr,
+           (SELECT pa.codigobarras::text FROM public.produtoautomacao pa
+             WHERE pa.id_produto::text = i.id_produto::text
+             ORDER BY pa.qtdembalagem LIMIT 1) cod,
+           i.quantidade q,
+           (COALESCE(i.quantidade,0) * COALESCE(i.precovenda,0)) br,
+           COALESCE(i.valordescontomanual,0) dv,
+           i.id_tipodesconto mot
+      FROM pdv.vendaitem i
+      JOIN pdv.venda cu ON cu.id = i.id_venda
+      LEFT JOIN public.produto p ON p.id = i.id_produto
+     WHERE i.data >= ${desde}
+       AND COALESCE(i.valordescontomanual,0) <> 0`;
+}
+
+/* MONTA O FCX_DIA que vai embutido no painel: uma linha por dia, com ZERO onde o dia teve
+   venda e nao teve nem cancelamento nem desconto.
+   SEM DADO NAO E ZERO, e ZERO NAO E SEM DADO — sao duas verdades diferentes, e a tela
+   escreve coisas diferentes pra cada uma. Dia que a loja abriu e nao cancelou nada precisa
+   existir aqui valendo 0; dia que NAO FOI MEDIDO nao pode aparecer valendo 0, senao o
+   painel jura que em 2024 ninguem cancelou nada. Por isso o preenchimento com zero para no
+   PISO DO QUE FOI MEDIDO (o dia mais antigo que a consulta alcancou): se a rede de
+   seguranca caiu pros ultimos 90 dias, 2024 fica "sem dados" em vez de virar mentira. */
+function fcxMontaDia(rows, diasComVenda){
+  const cent=v=>Math.round((Number(v)||0)*100)/100; // mesmo arredondamento do num() do robo
+  if(!rows.length) return [];
+  const porDia={}; rows.forEach(r=>{ porDia[r.d]=r; });
+  const piso=rows.map(r=>r.d).sort()[0];
+  return [...new Set((diasComVenda||[]).concat(rows.map(r=>r.d)))]
+    .filter(d=>d>=piso).sort()
+    .map(d=>{ const r=porDia[d]||{};
+      return { d:d,
+        ce:Number(r.ce||0), cev:cent(r.cev), cc:Number(r.cc||0), ccv:cent(r.ccv),
+        cp:Number(r.cp||0), cpv:cent(r.cpv), cq:Number(r.cq||0), cqv:cent(r.cqv),
+        cn:Number(r.cn||0), cnv:cent(r.cnv),
+        dn:Number(r.dn||0), dv:cent(r.dv), da:Number(r.da||0), ds:Number(r.ds||0), dal:Number(r.dal||0) };
+    });
+}
+/* ==FCXSQL-FIM== */
+
 // ---- Cobranca Pix REAL (Sicredi) - worker do robo ----
 // O painel INSERE pedidos na tabela pix_cobrancas (status 'pedido'); aqui o robo gera o
 // boleto HIBRIDO (QR Pix) no Sicredi e grava o resultado ('gerado'); depois concilia os
@@ -93,6 +307,14 @@ async function timed(c,nome,sql,params){
   const pagMap={}; // id_finalizadora -> nome
   (await timed(c,"finalizadoras",`SELECT id, descricao FROM pdv.finalizadora`))
     .forEach(r=>pagMap[r.id]=(r.descricao||"").trim()||("Forma "+r.id));
+  // Motivos de cancelamento e de desconto, do jeito que a LOJA cadastrou no VR. Lidos do
+  // banco e nao escritos aqui de proposito: se o dono cadastrar um motivo novo amanha, o
+  // nome dele aparece sozinho na tela (e o grupo cai em "Nao classificado", que e visivel).
+  const cancMap={}, descMap={};
+  (await timed(c,"motivos de cancelamento",`SELECT id, descricao FROM pdv.tipocancelamento`))
+    .forEach(r=>cancMap[r.id]=(r.descricao||"").trim());
+  (await timed(c,"motivos de desconto",`SELECT id, descricao FROM pdv.tipodesconto`))
+    .forEach(r=>descMap[r.id]=(r.descricao||"").trim());
 
   // ---- DIA: faturamento (cupom, = VR Venda Liquida) + margem/qtd (itens) + cupons ----
   // Faturamento pelo TOTAL DO CUPOM (subtotalimpressora), igual ao que o VR mostra como
@@ -275,12 +497,57 @@ async function timed(c,nome,sql,params){
   })).filter(x=>x.s);
   const MESPROD=mp.map(r=>({m:r.mes,id:String(r.id_produto),nome:nomeProd[r.id_produto]||("Prod "+r.id_produto),s:setorMap[r.m1]||"",qtd:num(r.qtd),fat:num(r.fat)}));
 
+  // ---- FRENTE DE CAIXA por dia (os dois KPIs da Analise) ----
+  // ALCANCE: o historico INTEIRO, o mesmo do DIA[] ali em cima. Medido na loja: o
+  // agregado do historico inteiro leva 9,4s e os ultimos 90 dias, 0,8s. Paguei os 9,4s de
+  // proposito, por um motivo de tela: o dono escolhe o periodo que quiser na Analise, e
+  // DIA[] tem o historico todo. Se o cancelamento so cobrisse 90 dias, ele abriria
+  // "maio/2025", veria o faturamento na tela e os dois cards novos escritos "SEM DADOS" —
+  // e ia achar que o painel quebrou. Numa rodada que ja leva 2-3 min lendo a MESMA tabela
+  // varias vezes, 9,4s e o preco de nao ter card mudo.
+  //
+  // REDE DE SEGURANCA EM TRES DEGRAUS (a mesma ideia do RANKING). Se esta consulta nova
+  // travar, a rodada inteira morreria e o painel PARARIA DE ATUALIZAR — caro demais por um
+  // detalhe novo. Entao: (1) o banco tem ordem de desistir sozinho em 90s
+  // (statement_timeout, que interrompe o trabalho NO SERVIDOR do caixa, nao so aqui);
+  // (2) se o historico inteiro falhar, tenta so os ultimos 90 dias, que e a leitura rapida
+  // e ja segura o mes corrente; (3) se os dois falharem, FCX_DIA vai vazio e o painel abre
+  // normal, com os dois cards escritos "sem dados". Nada do resto da rodada e afetado.
+  let fcxRows=[];
+  try{
+    await c.query("SET statement_timeout TO 90000");
+    try{
+      fcxRows=await timed(c,"FRENTE DE CAIXA por dia (historico inteiro)",{text:fcxSqlDia(""),query_timeout:120000});
+    }catch(e){
+      console.log("  FRENTE DE CAIXA historico falhou ("+e.message+") - tentando so os ultimos 90 dias.");
+      fcxRows=await timed(c,"FRENTE DE CAIXA por dia (ultimos 90 dias)",
+        {text:fcxSqlDia("AND i.data >= CURRENT_DATE - INTERVAL '90 days'"),query_timeout:120000});
+    }
+  }catch(e){
+    console.log("  FRENTE DE CAIXA falhou de vez ("+e.message+") - o painel abre sem os dois cards.");
+    fcxRows=[];
+  }finally{
+    try{ await c.query("SET statement_timeout TO DEFAULT"); }catch(e){}
+  }
+
   await c.end();
 
   // A quantidade por setor/dia sai do arquivo do painel: ela vai pro Supabase, e a tela
   // busca de la. Deixar aqui engordaria o arquivo pra todo mundo sem necessidade.
   const SETOR_ARQ = SETOR.map(r=>({d:r.d,s:r.s,fat:r.fat}));
-  const data={ gerado:new Date().toISOString(), DIA, HORA, OP, PAG, SETOR:SETOR_ARQ, MESPROD, SETPROD };
+
+  // ---- FCX_DIA: uma linha por dia, com zero onde o dia teve venda e nao teve nada ----
+  // (a regra do zero x "sem dados" esta escrita dentro do fcxMontaDia, la em cima)
+  const FCX_DIA = fcxMontaDia(fcxRows, DIA.map(x=>x.d));
+  // Os dois alarmes. Nenhum dos dois apareceu na medicao de setembro/2026; se aparecerem,
+  // e porque o VR mudou de comportamento — e ai o numero do painel pode diferir do que o
+  // dono conferiu na mao. Melhor o robo gritar no log do que a diferenca aparecer sozinha.
+  const fcxZeroVal=fcxRows.reduce((a,r)=>a+Number(r.z_semvalor||0),0);
+  const fcxSemMarca=fcxRows.reduce((a,r)=>a+Number(r.z_semmarca||0),0);
+  if(fcxZeroVal) console.log("ATENCAO Frente de caixa: "+fcxZeroVal+" cancelamento(s) com valor R$ 0,00 - contam como ocorrencia e nao somam dinheiro.");
+  if(fcxSemMarca) console.log("ATENCAO Frente de caixa: "+fcxSemMarca+" linha(s) com valor cancelado e SEM a marca de cancelado - entraram na conta pelo motivo delas (dinheiro nao some calado), mas o VR mudou de comportamento: confira.");
+
+  const data={ gerado:new Date().toISOString(), DIA, HORA, OP, PAG, SETOR:SETOR_ARQ, MESPROD, SETPROD, FCX_DIA };
   const outDir=path.join(__dirname,"..","output");
   if(!fs.existsSync(outDir)) fs.mkdirSync(outDir);
   const file=path.join(outDir,"vr-data.json");
@@ -288,7 +555,13 @@ async function timed(c,nome,sql,params){
   const mb=(fs.statSync(file).size/1048576).toFixed(2);
   try{ fs.writeFileSync(lockF, String(Date.now())); }catch(e){}
   console.log("\nOK -> output/vr-data.json ("+mb+" MB)");
-  console.log("Linhas: SETPROD="+SETPROD.length+" DIA="+DIA.length+" HORA="+HORA.length+" OP="+OP.length+" PAG="+PAG.length+" SETOR="+SETOR.length+" MESPROD="+MESPROD.length);
+  console.log("Linhas: SETPROD="+SETPROD.length+" DIA="+DIA.length+" HORA="+HORA.length+" OP="+OP.length+" PAG="+PAG.length+" SETOR="+SETOR.length+" MESPROD="+MESPROD.length+" FCX_DIA="+FCX_DIA.length);
+  if(FCX_DIA.length){
+    const fx=FCX_DIA.reduce((a,r)=>({n:a.n+r.ce+r.cc+r.cp+r.cq+r.cn, v:a.v+r.cev+r.ccv+r.cpv+r.cqv+r.cnv, dn:a.dn+r.dn, dv:a.dv+r.dv}),{n:0,v:0,dn:0,dv:0});
+    console.log("Frente de caixa: "+fx.n+" cancelamentos (R$ "+num(fx.v).toFixed(2)+") e "+fx.dn+" descontos manuais (R$ "+num(fx.dv).toFixed(2)+") de "+FCX_DIA[0].d+" a "+FCX_DIA[FCX_DIA.length-1].d+".");
+  } else {
+    console.log("Frente de caixa: SEM DADOS nesta rodada - o painel abre com os dois cards escritos 'sem dados'.");
+  }
   console.log("Periodo: "+(DIA[0]&&DIA[0].d)+" a "+(DIA[DIA.length-1]&&DIA[DIA.length-1].d));
 
   // ---- SYNC de produtos/estoque pra nuvem (conexao NOVA e separada, no fim; throttle 3h; nunca derruba o robo) ----
@@ -560,4 +833,141 @@ async function timed(c,nome,sql,params){
       }
     }
   }catch(e){ console.log("Pix: erro ("+e.message+") - robo segue normal, tenta na proxima."); }
+
+  // ---- SYNC FRENTE DE CAIXA: as ocorrencias (com nome de gente) pra nuvem ----
+  // POR QUE NAO VAI NO ARQUIVO DO PAINEL: aqui tem nome de operador, quem autorizou o
+  // cancelamento, produto e cupom. O arquivo do painel e servido pra quem abre a pagina;
+  // isto so pode ser visto por quem tem permissao. Entao o numero (FCX_DIA) vai embutido e
+  // a lista vai pra nuvem, atras de RLS.
+  //
+  // ALCANCE: 13 MESES. Por que 13 e nao 12: com 13 o mes corrente pela metade ainda pode
+  // ser comparado com o MESMO mes do ano passado INTEIRO (setembro de 2026 contra setembro
+  // de 2025); com 12 esse mes ja teria caido fora pela metade. Por que nao o historico
+  // inteiro: sao ~155 ocorrencias por dia (~56 mil por ano) com nome de gente dentro —
+  // mandar 3 anos disso a cada rodada seria carga inutil na internet da loja pra responder
+  // pergunta que ninguem faz ("quem cancelou em 2024?"). O numero de 2024 continua no
+  // painel, no FCX_DIA; o que tem prazo de validade e o NOME.
+  //
+  // DUAS VELOCIDADES, pelo mesmo motivo: mandar os 13 meses (~60 mil linhas, ~120 pedidos
+  // ao Supabase) de 5 em 5 minutos entupiria a linha da loja a troco de nada, porque o
+  // passado nao muda. Entao:
+  //   - de 20 em 20 minutos vai a JANELA CURTA (7 dias), que e o que o dono olha;
+  //   - 1x por dia vai a VARREDURA dos 13 meses, que preenche o que ficou pra tras (robo
+  //     desligado, internet caida) e corrige cupom que foi cancelado depois.
+  // O upsert nunca apaga: ocorrencia que sai da janela de 13 meses FICA guardada na nuvem.
+  //
+  // A TABELA (rodar uma vez no SQL Editor do Supabase, senao este bloco so vai dar erro
+  // 404 no log e o resto da rodada segue normal):
+  //
+  //   create table if not exists public.frentecaixa_ocorrencias (
+  //     tipo               text    not null,          -- 'cancelamento' ou 'desconto'
+  //     id_venda           bigint  not null,          -- cupom no VR
+  //     sequencia          int     not null,          -- linha do item dentro do cupom
+  //     data               date    not null,
+  //     hora               text,
+  //     pdv                int,                       -- venda.ecf
+  //     cupom              bigint,                    -- numero impresso no cupom
+  //     operador_matricula int,
+  //     operador           text,                      -- quem estava no caixa
+  //     fiscal_matricula   int,
+  //     fiscal             text,                      -- quem autorizou o cancelamento
+  //     id_produto         bigint,
+  //     produto            text,
+  //     codigo             text,                      -- codigo de barras (so no desconto)
+  //     quantidade         numeric(16,3),
+  //     motivo_id          int,
+  //     motivo             text,                      -- descricao cadastrada no VR
+  //     grupo              text,                      -- erro/cliente/pagto/equip/naoclass
+  //     valor              numeric(14,2),             -- cancelado, ou o desconto dado
+  //     bruto              numeric(14,2),             -- so no desconto: valor do item ANTES
+  //     cupom_cancelado    boolean not null default false,
+  //     item_cancelado     boolean not null default false,
+  //     atualizado_em      timestamptz not null default now(),
+  //     primary key (tipo, id_venda, sequencia)
+  //   );
+  //   create index if not exists frentecaixa_oco_data_idx
+  //     on public.frentecaixa_ocorrencias (data desc, tipo);
+  //   -- So MASTER le: isto e nome de funcionario ao lado de "cancelou R$ 981". Escrita nao
+  //   -- tem policy de proposito: quem grava e o robo com a service key, que passa por cima
+  //   -- de RLS. (Mesmo desenho da compra_entradas.)
+  //   do $$ declare pol record; begin
+  //     alter table public.frentecaixa_ocorrencias enable row level security;
+  //     for pol in select policyname from pg_policies
+  //                 where schemaname='public' and tablename='frentecaixa_ocorrencias' loop
+  //       execute format('drop policy if exists %I on public.frentecaixa_ocorrencias', pol.policyname);
+  //     end loop;
+  //     create policy "frentecaixa_sel_master" on public.frentecaixa_ocorrencias
+  //       for select to authenticated
+  //       using (exists (select 1 from public.perfis p where p.id = auth.uid() and p.is_master = true));
+  //   end $$;
+  const fcxMarkF=path.join(__dirname,"..","output","last-fcx-sync.txt");
+  const fcxFullF=path.join(__dirname,"..","output","last-fcx-full.txt");
+  try{
+    let ultima=0, ultimaFull=0;
+    try{ ultima=Number(fs.readFileSync(fcxMarkF,"utf8"))||0; }catch(e){}
+    try{ ultimaFull=Number(fs.readFileSync(fcxFullF,"utf8"))||0; }catch(e){}
+    const cheio=(Date.now()-ultimaFull >= FCX_OCO_FULL_MS);
+    if(!SB_KEY){ console.log("Frente de caixa (nuvem): sem SUPABASE_SERVICE_KEY no .env - pulando."); }
+    else if(!cheio && Date.now()-ultima < FCX_OCO_MS){ console.log("Frente de caixa (nuvem): feito ha < 20 min - pulando."); }
+    else {
+      const desde = cheio ? "CURRENT_DATE - INTERVAL '"+FCX_OCO_MESES+" months'"
+                          : "CURRENT_DATE - INTERVAL '"+FCX_OCO_DIAS+" days'";
+      const janela = cheio ? FCX_OCO_MESES+" meses" : FCX_OCO_DIAS+" dias";
+      // Conexao PROPRIA e no fim da rodada: o arquivo do painel ja foi escrito la em cima,
+      // entao nada aqui pode atrasar a atualizacao do painel. E o banco do caixa tem ordem
+      // de desistir em 5 min, pra varredura grande nunca virar peso em cima da loja.
+      const c4=new Client({ ...cfg, query_timeout:360000 });
+      await c4.connect();
+      let canc=[], desc=[];
+      try{
+        await c4.query("SET statement_timeout TO 300000");
+        canc=(await c4.query(fcxSqlCanc(desde))).rows;
+        desc=(await c4.query(fcxSqlDesc(desde))).rows;
+      } finally {
+        // SEM ESTE finally O ROBO TRAVA. Se a consulta estoura, a conexao fica aberta, o
+        // Node acha que ainda tem trabalho e o processo NAO termina — a rodada seguinte
+        // bate na trava de 4 min e o painel congela. Fechar sempre.
+        try{ await c4.end(); }catch(e){}
+      }
+      const agora=new Date().toISOString();
+      const nomeDe=m=>(m===null||m===undefined)?null:(opMap[m]||("Op "+m));
+      const linhas=[];
+      canc.forEach(r=>{
+        const mot=(r.mot===null||r.mot===undefined)?null:Number(r.mot);
+        linhas.push({ tipo:"cancelamento", id_venda:Number(r.id_venda), sequencia:Number(r.seq),
+          data:r.d, hora:r.h||null, pdv:r.pdv==null?null:Number(r.pdv), cupom:r.nc==null?null:Number(r.nc),
+          operador_matricula:r.op_mat==null?null:Number(r.op_mat), operador:nomeDe(r.op_mat),
+          fiscal_matricula:r.fi_mat==null?null:Number(r.fi_mat), fiscal:nomeDe(r.fi_mat),
+          id_produto:r.id_produto==null?null:Number(r.id_produto), produto:(r.pr||"").trim()||null,
+          codigo:null, quantidade:num3(r.q),
+          motivo_id:mot, motivo:(mot===null?null:(cancMap[mot]||null)), grupo:fcxGrupoDe(mot),
+          valor:num(r.v), bruto:null,
+          cupom_cancelado:!!r.ci, item_cancelado:!!r.ic, atualizado_em:agora });
+      });
+      desc.forEach(r=>{
+        const mot=(r.mot===null||r.mot===undefined)?null:Number(r.mot);
+        linhas.push({ tipo:"desconto", id_venda:Number(r.id_venda), sequencia:Number(r.seq),
+          data:r.d, hora:r.h||null, pdv:r.pdv==null?null:Number(r.pdv), cupom:r.nc==null?null:Number(r.nc),
+          operador_matricula:r.op_mat==null?null:Number(r.op_mat), operador:nomeDe(r.op_mat),
+          fiscal_matricula:null, fiscal:null,
+          id_produto:r.id_produto==null?null:Number(r.id_produto), produto:(r.pr||"").trim()||null,
+          // o ".0" do NUMERIC vem junto quando o codigo vira texto; sai aqui
+          codigo:r.cod==null?null:String(r.cod).trim().replace(/\.0+$/,"")||null,
+          quantidade:num3(r.q),
+          // grupo do desconto fica nulo: os grupos (erro/cliente/pagto/equip) sao a
+          // classificacao do CANCELAMENTO. Desconto tem os motivos dele (preco errado,
+          // venda atacado, falta produto oferta) e mistura-los esconderia os dois.
+          motivo_id:mot, motivo:(mot===null?null:(descMap[mot]||null)), grupo:null,
+          valor:num(r.dv), bruto:num(r.br),
+          cupom_cancelado:!!r.ci, item_cancelado:!!r.ic, atualizado_em:agora });
+      });
+      let ok=0;
+      for(let i=0;i<linhas.length;i+=500){ await sbUpsertFcx(linhas.slice(i,i+500)); ok+=Math.min(500,linhas.length-i); }
+      // So marca "feito" depois que TUDO subiu. Se estourou no meio, a proxima rodada
+      // refaz a mesma janela - o upsert por (tipo,id_venda,sequencia) nao duplica nada.
+      try{ fs.writeFileSync(fcxMarkF, String(Date.now())); }catch(e){}
+      if(cheio){ try{ fs.writeFileSync(fcxFullF, String(Date.now())); }catch(e){} }
+      console.log("Frente de caixa (nuvem): "+ok+" ocorrencias ("+canc.length+" cancelamentos + "+desc.length+" descontos) dos ultimos "+janela+" enviadas.");
+    }
+  }catch(e){ console.log("Frente de caixa (nuvem): erro ("+e.message+") - robo segue normal, tenta na proxima. (Se disser 404, a tabela frentecaixa_ocorrencias ainda nao foi criada no Supabase.)"); }
 })().catch(e=>{ console.log("ERRO: "+e.message); process.exit(1); });
