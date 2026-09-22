@@ -6179,8 +6179,11 @@ function fcxAbrir(qual){
 function fcxBuscarOcorrencias(de, ate, pronto){
   var chave = de+"|"+ate;
   if(FCX_OCO_CACHE[chave]) return pronto(null, FCX_OCO_CACHE[chave]);
-  var sb = (typeof SB!=="undefined") ? SB : null;
-  if(!sb) return pronto("Não consegui falar com a nuvem. Recarregue a página.", null);
+  /* A conexão com a nuvem mora em window.__SB (criada lá embaixo, dentro do bloco do login).
+     A variável SB solta NÃO existe aqui fora — foi o que me mordeu em 22/09/2026: o clique
+     dizia "não consegui falar com a nuvem" mesmo com o painel logado e funcionando. */
+  var sb = window.__SB || null;
+  if(!sb) return pronto("Ainda estou entrando na sua conta. Tente de novo em instantes.", null);
   if(window.__PERFIL == null) return pronto("Carregando seu acesso… tente de novo em instantes.", null);
   sb.rpc("frentecaixa_ocorrencias_listar", { p_de:de, p_ate:ate, p_tipo:null, p_grupo:null, p_limite:5000 })
     .then(function(r){
