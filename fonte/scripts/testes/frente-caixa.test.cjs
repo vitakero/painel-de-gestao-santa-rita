@@ -38,7 +38,7 @@ function bloco(marca) {
   return HTML.slice(HTML.indexOf("*/", i) + 2, HTML.lastIndexOf("/*", f));
 }
 const M = new Function(bloco("FCXCALC") +
-  "\nreturn {FCX_CFG,FCX_GRUPOS,FCX_ORDEM,FCX_NOME,fcxGrupo,fcxSomaDias,fcxCent," +
+  "\nreturn {FCX_CFG,FCX_GRUPOS,FCX_ORDEM,FCX_NOME,FCX_DORDEM,FCX_DNOME,fcxGrupo,fcxSomaDias,fcxCent," +
   "fcxCancelamento,fcxFatia,fcxDesconto,fcxAlertasDoDesconto,fcxStatus,fcxConciliar};")();
 
 let ok = 0, falhou = 0;
@@ -507,6 +507,89 @@ console.log("\n-- e o status decide pelo NUMERO, nunca pelo texto --");
   eq("0,30% no limite ainda e EM DIA", M.fcxStatus(0.30, M.FCX_CFG.refDesconto).txt, "EM DIA");
   eq("0,31% passa a ser ACIMA", M.fcxStatus(0.31, M.FCX_CFG.refDesconto).txt, "ACIMA DA REFERÊNCIA");
   eq("sem dado nao vira zero", M.fcxStatus(null, M.FCX_CFG.refDesconto).txt, "SEM DADOS");
+}
+
+/* ==FCXDGRUPO== O DESCONTO EM GRUPOS (22/09/2026).
+   Nasceu de um engano do dono que era culpa da tela: ele viu R$ 2.215,67 na tela de desconto
+   do VR e R$ 164,75 no card, e achou que o painel estava errado. Não estava — o VR soma a
+   coluna valordesconto (o desconto TOTAL) e o painel somava só valordescontomanual. Decisão
+   dele: o card passa a mostrar o total e a composição abre em grupos, igual aos cancelamentos.
+   Os números aqui são os MEDIDOS no VR de 01 a 22/09/2026. */
+console.log("\n-- DESCONTO EM GRUPOS: o card e a composicao --");
+{
+  // um dia só, com os números reais de setembro inteiro dentro dele
+  const dia = { d:"2026-09-10", ce:0,cev:0, cc:0,ccv:0, cp:0,cpv:0, cq:0,cqv:0, cn:0,cnv:0,
+                dn:43, dv:164.75, da:2, ds:0, dal:2,
+                gan:2756, gav:268.72, gcn:1753, gcv:1758.66, gon:10, gov:24.00, gxn:0, gxv:0 };
+  const soma = M.fcxSomaDias([dia], "2026-09-01", "2026-09-30");
+  const base = 3443819.71;                    // faturamento medido de 01 a 21/09/2026
+  const r = M.fcxDesconto(soma, base);
+
+  eq("o card mostra o TOTAL, nao so o manual", r.valor, 2216.13);
+  eq("e conta as ocorrencias de todos os grupos", r.ocorrencias, 4562);
+  eq("o total bate com a soma dos grupos", M.fcxCent(
+      r.grupos.manual.v + r.grupos.campanha.v + r.grupos.atacado.v + r.grupos.oferta.v + r.grupos.naoclass.v), 2216.13);
+  eq("as ocorrencias tambem fecham", r.grupos.manual.n + r.grupos.campanha.n + r.grupos.atacado.n +
+      r.grupos.oferta.n + r.grupos.naoclass.n, 4562);
+  eq("manual continua sendo o numero de sempre", r.manual.v, 164.75);
+  eq("campanha de industria", r.grupos.campanha.v, 1758.66);
+  eq("atacado", r.grupos.atacado.v, 268.72);
+  eq("oferta cadastrada", r.grupos.oferta.v, 24);
+  eq("nao classificado nasce zerado (e existe)", r.grupos.naoclass.n, 0);
+  eq("o periodo esta completo", r.completo, true);
+  eq("o alerta continua olhando SO o manual", r.ocorrenciasParaRevisar, 2);
+  eq("o % do card e do total", (r.pct*10000).toFixed(0), (2216.13/base*100*10000).toFixed(0));
+  eq("e o % do manual continua disponivel separado", (r.pctManual*10000).toFixed(0), (164.75/base*100*10000).toFixed(0));
+}
+
+console.log("\n-- BRANCO NAO E ZERO: dia publicado antes da mudanca --");
+{
+  // dia velho: tem o manual, NAO tem os campos do automatico
+  const velho = { d:"2026-09-10", ce:0,cev:0, cc:0,ccv:0, cp:0,cpv:0, cq:0,cqv:0, cn:0,cnv:0,
+                  dn:43, dv:164.75, da:2, ds:0, dal:2 };
+  const r = M.fcxDesconto(M.fcxSomaDias([velho], "2026-09-01", "2026-09-30"), 3443819.71);
+  eq("sem a medida nova, o card volta a mostrar SO o manual", r.valor, 164.75);
+  eq("e avisa que nao esta completo", r.completo, false);
+  eq("dizendo quantos dias faltam", r.diasSemGrupo, 1);
+  eq("o automatico NAO virou R$ 0,00 calado", r.grupos.atacado.v + r.grupos.campanha.v, 0);
+
+  // periodo MISTURADO: um dia medido e um dia nao
+  const novo = { d:"2026-09-11", ce:0,cev:0, cc:0,ccv:0, cp:0,cpv:0, cq:0,cqv:0, cn:0,cnv:0,
+                 dn:0, dv:0, da:0, ds:0, dal:0,
+                 gan:10, gav:5.00, gcn:0, gcv:0, gon:0, gov:0, gxn:0, gxv:0 };
+  const r2 = M.fcxDesconto(M.fcxSomaDias([velho, novo], "2026-09-01", "2026-09-30"), 3443819.71);
+  eq("um dia sem a medida ja segura o total do periodo inteiro", r2.completo, false);
+  eq("e o card mostra o manual dos dois dias", r2.valor, 164.75);
+}
+
+console.log("\n-- MOTIVO NOVO DO VR CAI EM 'NAO CLASSIFICADO' --");
+{
+  const dia = { d:"2026-09-10", ce:0,cev:0, cc:0,ccv:0, cp:0,cpv:0, cq:0,cqv:0, cn:0,cnv:0,
+                dn:1, dv:10.00, da:0, ds:0, dal:0,
+                gan:0, gav:0, gcn:0, gcv:0, gon:0, gov:0, gxn:3, gxv:77.00 };
+  const r = M.fcxDesconto(M.fcxSomaDias([dia], "2026-09-01", "2026-09-30"), 100000);
+  eq("marca nova do VR aparece, nao some dentro de outro grupo", r.grupos.naoclass.v, 77);
+  eq("e o painel levanta a mao", r.temNaoClassificado, true);
+  eq("o total inclui ela (dinheiro nao evapora)", r.valor, 87);
+}
+
+console.log("\n-- O CONTRATO ENTRE O ROBO E O PAINEL --");
+{
+  /* Os dois lados batizam os grupos em arquivos diferentes. Se divergirem, o card mostra um
+     total e a composicao mostra outro — foi exatamente assim que a tabela da nuvem ficou
+     vazia por uma hora em 22/09/2026 (nomes de coluna diferentes dos dois lados). */
+  const robo = fs.readFileSync(path.join(__dirname, "..", "buildVrData.cjs"), "utf8");
+  const caso = robo.slice(robo.indexOf("function fcxCaseGrupoDesc"), robo.indexOf("function fcxCaseGrupoDesc") + 700);
+  const nomesRobo = (caso.match(/THEN '([a-z]+)'/g) || []).map(x => x.replace(/THEN '|'/g, ""))
+    .concat((caso.match(/ELSE '([a-z]+)'/g) || []).map(x => x.replace(/ELSE '|'/g, "")));
+  const nomesPainel = M.FCX_DORDEM.slice().sort().join(",");
+  eq("o robo e o painel usam os MESMOS nomes de grupo", nomesRobo.slice().sort().join(","), nomesPainel);
+  eq("e o painel tem nome de tela pra cada um", M.FCX_DORDEM.every(g => !!M.FCX_DNOME[g]), true);
+
+  const campos = robo.slice(robo.indexOf("dn:Number(r.dn"), robo.indexOf("dn:Number(r.dn") + 400);
+  ["gan", "gav", "gcn", "gcv", "gon", "gov", "gxn", "gxv"].forEach(c => {
+    eq("o robo leva o campo " + c + " para o FCX_DIA", campos.indexOf(c + ":") >= 0, true);
+  });
 }
 
 console.log("\n" + ok + " OK, " + falhou + " falha(s)");

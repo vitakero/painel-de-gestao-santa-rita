@@ -112,6 +112,43 @@ const FCX_LIMITE_ITEM=0.50;
    esta linha pra true — o numero do card, a lista e o alerta acompanham juntos. */
 const FCX_DSC_IGNORA_CANCELADO=false;
 
+/* ==FCXDGRUPO== DESCONTO -> GRUPO GERENCIAL (22/09/2026).
+   O dono olhou a tela de desconto do VR (R$ 2.215,67 de 01 a 22/09) e o card do painel
+   (R$ 164,75) e achou que o painel estava errado. Nao estava: o VR soma a coluna
+   `valordesconto`, que e o desconto TOTAL, e o painel somava so `valordescontomanual`.
+   Decisao dele: o card passa a mostrar o TOTAL e a composicao abre em grupos — a MESMA
+   estrategia dos cancelamentos ("o total concilia com o VR, a composicao explica").
+
+   A ORDEM DO CASE IMPORTA: a mesma linha pode ter mais de uma marca (atacado que tambem
+   e oferta, por exemplo). Quem vem primeiro ganha, e esta escrito aqui pra ninguem
+   descobrir isso por acidente daqui a um ano.
+     manual    = descontomanual=1        -> o operador deu no caixa (e o unico que e
+                                            controle de frente de caixa; e o que ja era
+                                            o card inteiro ate hoje)
+     atacado   = atacado                 -> levou a quantidade, caiu o preco
+     oferta    = oferta                  -> oferta cadastrada
+     campanha  = aplicadescontopromocao  -> campanha de industria (Rexona, Dove, Knorr...)
+     naoclass  = o resto                 -> nao existe hoje (medido: 0 linhas em 3 anos),
+                                            e justamente por isso tem que existir: marca
+                                            nova do VR aparece na tela em vez de sumir
+                                            dentro de um grupo que ja existe.
+
+   O VALOR DE CADA GRUPO VEM DE COLUNA DIFERENTE, DE PROPOSITO:
+     manual  -> valordescontomanual   (o que o operador concedeu)
+     o resto -> valordesconto         (o que de fato saiu do preco)
+   Parece inconsistencia e nao e. Quando a venda e CANCELADA o VR ZERA `valordesconto` mas
+   MANTEM `valordescontomanual` — sao 29 linhas em 3 anos (R$ 281,88). Usar `valordesconto`
+   no manual apagaria desconto que a loja concedeu, e mudaria o numero que o card mostra
+   desde 21/09. O manual continua sendo exatamente o mesmo numero de sempre. */
+const FCX_DORDEM=["manual","campanha","atacado","oferta","naoclass"];
+function fcxCaseGrupoDesc(){
+  return `CASE WHEN COALESCE(i.descontomanual,0)=1              THEN 'manual'
+               WHEN COALESCE(i.atacado,false)                   THEN 'atacado'
+               WHEN COALESCE(i.oferta,false)                    THEN 'oferta'
+               WHEN COALESCE(i.aplicadescontopromocao,false)    THEN 'campanha'
+               ELSE 'naoclass' END`;
+}
+
 /* Em que grupo cai este motivo. Mesma regra do painel. */
 function fcxGrupoDe(motivo){
   if(motivo===null||motivo===undefined||motivo==="") return "naoclass";
@@ -155,12 +192,18 @@ function fcxSqlDia(filtroData){
              (COALESCE(i.valordescontomanual,0) <> 0) tdesc,
              COALESCE(i.valordescontomanual,0) vd,
              (COALESCE(i.quantidade,0) * COALESCE(i.precovenda,0)) bruto,
-             i.id_tipodesconto md
+             i.id_tipodesconto md,
+             -- ==FCXDGRUPO== o desconto TOTAL e o grupo dele (ver o bloco la em cima)
+             ${fcxCaseGrupoDesc()} dg,
+             COALESCE(i.valordesconto,0) vdt
         FROM pdv.vendaitem i
         JOIN pdv.venda cu ON cu.id = i.id_venda
        WHERE (COALESCE(i.cancelado,false) OR COALESCE(cu.cancelado,false)
               OR COALESCE(i.valorcancelado,0) <> 0
-              OR COALESCE(i.valordescontomanual,0) <> 0)
+              OR COALESCE(i.valordescontomanual,0) <> 0
+              -- desconto automatico (atacado, campanha, oferta). MEDIDO em 22/09/2026:
+              -- este OR custa 0,3s numa varredura de 22,5s, porque a passada ja e inteira.
+              OR COALESCE(i.valordesconto,0) <> 0)
              ${filtroData||""}
     )
     SELECT d,
@@ -176,6 +219,13 @@ function fcxSqlDia(filtroData){
       -- OCORRENCIAS pra revisar: a linha que estourou o limite E esta sem motivo conta
       -- UMA vez. Nao e da+ds (isso seriam os MOTIVOS de alerta, que o painel mostra separado).
       COUNT(*) FILTER (WHERE ${tdesc} AND (${acima} OR md IS NULL)) dal,
+      -- ==FCXDGRUPO== os grupos do desconto AUTOMATICO. O manual NAO entra aqui: ele ja e
+      -- o par dn/dv logo acima, com a coluna dele (valordescontomanual). Assim o card novo
+      -- (total) fecha com a composicao SEM mexer no numero que o manual sempre mostrou.
+      COUNT(*) FILTER (WHERE dg='atacado'  AND vdt <> 0) gan, COALESCE(SUM(vdt) FILTER (WHERE dg='atacado'  AND vdt <> 0),0) gav,
+      COUNT(*) FILTER (WHERE dg='campanha' AND vdt <> 0) gcn, COALESCE(SUM(vdt) FILTER (WHERE dg='campanha' AND vdt <> 0),0) gcv,
+      COUNT(*) FILTER (WHERE dg='oferta'   AND vdt <> 0) gon, COALESCE(SUM(vdt) FILTER (WHERE dg='oferta'   AND vdt <> 0),0) gov,
+      COUNT(*) FILTER (WHERE dg='naoclass' AND vdt <> 0) gxn, COALESCE(SUM(vdt) FILTER (WHERE dg='naoclass' AND vdt <> 0),0) gxv,
       -- dois contadores que NAO vao pro painel: sao o alarme do robo (ver o log da rodada)
       COUNT(*) FILTER (WHERE canc AND vc = 0) z_semvalor,
       COUNT(*) FILTER (WHERE NOT marcado AND COALESCE(vc,0) <> 0) z_semmarca
@@ -256,7 +306,9 @@ function fcxMontaDia(rows, diasComVenda){
         ce:Number(r.ce||0), cev:cent(r.cev), cc:Number(r.cc||0), ccv:cent(r.ccv),
         cp:Number(r.cp||0), cpv:cent(r.cpv), cq:Number(r.cq||0), cqv:cent(r.cqv),
         cn:Number(r.cn||0), cnv:cent(r.cnv),
-        dn:Number(r.dn||0), dv:cent(r.dv), da:Number(r.da||0), ds:Number(r.ds||0), dal:Number(r.dal||0) };
+        dn:Number(r.dn||0), dv:cent(r.dv), da:Number(r.da||0), ds:Number(r.ds||0), dal:Number(r.dal||0),
+        gan:Number(r.gan||0), gav:cent(r.gav), gcn:Number(r.gcn||0), gcv:cent(r.gcv),
+        gon:Number(r.gon||0), gov:cent(r.gov), gxn:Number(r.gxn||0), gxv:cent(r.gxv) };
     });
 }
 /* ==FCXSQL-FIM== */
@@ -983,10 +1035,14 @@ async function timed(c,nome,sql,params){
           // o ".0" do NUMERIC vem junto quando o codigo vira texto; sai aqui
           codigo_barras:r.cod==null?null:String(r.cod).trim().replace(/\.0+$/,"")||null,
           quantidade:num3(r.q),
-          // grupo do desconto fica nulo: os grupos (erro/cliente/pagto/equip) sao a
-          // classificacao do CANCELAMENTO. Desconto tem os motivos dele (preco errado,
-          // venda atacado, falta produto oferta) e mistura-los esconderia os dois.
-          motivo_id:mot, motivo_vr:(mot===null?null:(descMap[mot]||null)), grupo:null,
+          // ==FCXDGRUPO== grupo "manual": a lista de ocorrencias SO tem desconto manual
+          // (a consulta filtra valordescontomanual <> 0). A partir de 22/09/2026 o card
+          // mostra o total e a composicao tem quatro grupos — mas o unico que abre lista
+          // e este. Gravar o nome do grupo aqui deixa o clique na composicao filtrar pelo
+          // MESMO nome que o painel usa, sem ninguem ter que lembrar de traduzir.
+          // Os grupos do cancelamento (erro/cliente/pagto/equip) continuam sendo outra
+          // coisa: aquela e a classificacao do MOTIVO do cancelamento.
+          motivo_id:mot, motivo_vr:(mot===null?null:(descMap[mot]||null)), grupo:"manual",
           valor:_dv, valor_bruto:_br, valor_desconto:_dv, alertas:_al,
           cupom_inteiro:!!r.ci, atualizado_em:agora });
       });

@@ -1953,6 +1953,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-analise .fcx-tab td{padding:8px 0;border-top:1px solid #eef1f5;color:#1d2733;}
         #page-analise .fcx-lin{cursor:pointer;}
         #page-analise .fcx-lin:hover td{background:#f7f9fb;}
+        /* ==FCXDGRUPO== grupo sem lista: não é clicável, e a mãozinha não aparece */
+        #page-analise .fcx-lin.fcx-semlista{cursor:default;}
+        #page-analise .fcx-lin.fcx-semlista:hover td{background:none;}
+        #page-analise .fcx-so{display:block;font-size:11.5px;color:#8a97a8;font-weight:400;
+                              text-transform:none;letter-spacing:0;margin-top:4px;}
         #page-analise .fcx-zero td{color:#a9b4c0;}
         #page-analise .fcx-forte td{font-weight:700;}
         #page-analise .fcx-bolinha{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:8px;}
@@ -2039,6 +2044,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           #page-analise .fcx-oc1{flex-direction:column;gap:2px;}
           #page-analise .fcx-tab{font-size:12px;}
           #page-analise .fcx-tab th{font-size:10px;}
+          /* ==FCXDGRUPO== em celular as colunas de numero encostavam uma na outra
+             ("1.755R$ 1.759,58"). Uma folga de 10px separa, e vale para a composicao
+             do cancelamento tambem, que tem o mesmo aperto com numero de 4 digitos. */
+          #page-analise .fcx-tab th.r,#page-analise .fcx-tab td.r{padding-left:10px;}
           #fcxPainelBg{padding:0;align-items:stretch;}
           #fcxPainelCx{max-width:none;max-height:none;height:100%;border-radius:0;}
           .fcx-pt,.fcx-res,.fcx-fer,.fcx-lst,.fcx-pe{padding-left:14px;padding-right:14px;}
@@ -6117,6 +6126,14 @@ var FCX_ORDEM = ["erro", "pagto", "cliente", "equip", "naoclass"];
 var FCX_NOME = { erro:"Erro de operação", cliente:"Cliente desistiu", pagto:"Pagamento falhou",
                  equip:"Equipamento", naoclass:"Não classificado" };
 
+/* ==FCXDGRUPO== DESCONTO EM GRUPOS (22/09/2026). Tem que ser IGUAL ao fcxCaseGrupoDesc()
+   do robô (scripts/buildVrData.cjs) — se divergirem, o card mostra um total e a composição
+   mostra outro. Só o MANUAL é controle de frente de caixa; os outros três são preço.
+   O alerta individual (acima de 50% do item / sem motivo) continua valendo só no manual. */
+var FCX_DORDEM = ["manual", "campanha", "atacado", "oferta", "naoclass"];
+var FCX_DNOME = { manual:"Manual (no caixa)", campanha:"Campanha de indústria",
+                  atacado:"Atacado", oferta:"Oferta cadastrada", naoclass:"Não classificado" };
+
 /* Em que grupo cai este motivo. Motivo nulo/desconhecido -> naoclass (nunca somado calado). */
 function fcxGrupo(motivo){
   if(motivo===null || motivo===undefined || motivo==="") return "naoclass";
@@ -6129,7 +6146,8 @@ function fcxGrupo(motivo){
 /* Soma os dias do período. Devolve null quando NENHUM dia caiu na janela — sem dado não é zero. */
 function fcxSomaDias(linhas, de, ate){
   var z = { dias:0, ce:0,cev:0, cc:0,ccv:0, cp:0,cpv:0, cq:0,cqv:0, cn:0,cnv:0,
-            dn:0, dv:0, da:0, ds:0, dal:0 };
+            dn:0, dv:0, da:0, ds:0, dal:0,
+            gan:0,gav:0, gcn:0,gcv:0, gon:0,gov:0, gxn:0,gxv:0, diasComGrupo:0 };
   for(var i=0;i<linhas.length;i++){
     var r = linhas[i];
     if(r.d < de || r.d > ate) continue;
@@ -6138,6 +6156,15 @@ function fcxSomaDias(linhas, de, ate){
     z.cp+=(r.cp||0); z.cpv+=(r.cpv||0); z.cq+=(r.cq||0); z.cqv+=(r.cqv||0);
     z.cn+=(r.cn||0); z.cnv+=(r.cnv||0);
     z.dn+=(r.dn||0); z.dv+=(r.dv||0); z.da+=(r.da||0); z.ds+=(r.ds||0); z.dal+=(r.dal||0);
+    /* ==FCXDGRUPO== BRANCO NÃO É ZERO. Dia publicado ANTES de 22/09/2026 não tem os campos
+       do desconto automático — e ausência não pode virar R$ 0,00, senão o card jura que a
+       loja não deu desconto nenhum naquele dia. Conta separado quantos dias FORAM medidos;
+       quem decide o que mostrar é o fcxDesconto. Some sozinho na primeira rodada da loja. */
+    if(r.gav !== undefined && r.gav !== null){
+      z.diasComGrupo++;
+      z.gan+=(r.gan||0); z.gav+=(r.gav||0); z.gcn+=(r.gcn||0); z.gcv+=(r.gcv||0);
+      z.gon+=(r.gon||0); z.gov+=(r.gov||0); z.gxn+=(r.gxn||0); z.gxv+=(r.gxv||0);
+    }
   }
   return z.dias ? z : null;
 }
@@ -6175,15 +6202,42 @@ function fcxFatia(valor, total){ return (total>0) ? (valor/total*100) : null; }
    limite E está sem motivo é UMA ocorrência com DOIS motivos de alerta. */
 function fcxDesconto(soma, base){
   if(soma===null) return null;
-  var v = fcxCent(soma.dv);
+  var man = fcxCent(soma.dv);
+  /* ==FCXDGRUPO== O card mostra o TOTAL (decisão dele em 22/09/2026, mesma estratégia dos
+     cancelamentos: o total concilia com o VR, a composição explica). Mas enquanto a loja
+     não rodar uma vez com o robô novo, os grupos automáticos NÃO foram medidos — e aí o
+     card volta a mostrar só o manual, dizendo que falta. Melhor um número menor e avisado
+     do que um total que finge estar completo. */
+  var completo = (soma.diasComGrupo === soma.dias);
+  var g = {
+    manual:   { n:soma.dn,  v:man },
+    campanha: { n:soma.gcn, v:fcxCent(soma.gcv) },
+    atacado:  { n:soma.gan, v:fcxCent(soma.gav) },
+    oferta:   { n:soma.gon, v:fcxCent(soma.gov) },
+    naoclass: { n:soma.gxn, v:fcxCent(soma.gxv) }
+  };
+  var totV=0, totN=0;
+  for(var i=0;i<FCX_DORDEM.length;i++){ var k=FCX_DORDEM[i]; totV+=g[k].v; totN+=g[k].n; }
+  totV = fcxCent(totV);
+  var v = completo ? totV : man;
+  var n = completo ? totN : soma.dn;
   return {
-    valor: v, ocorrencias: soma.dn,
+    /* o que o card mostra */
+    valor: v, ocorrencias: n,
+    pct: (base>0) ? (v/base*100) : null,
+    /* a composição */
+    grupos: g, ordem: FCX_DORDEM,
+    total: totV, ocorrenciasGrupos: totN,
+    completo: completo, diasSemGrupo: soma.dias - soma.diasComGrupo,
+    temNaoClassificado: g.naoclass.n > 0,
+    /* o manual continua existindo sozinho: é ele que o alerta vigia */
+    manual: g.manual,
+    pctManual: (base>0) ? (man/base*100) : null,
     acimaDoLimite: soma.da,
     semMotivo: FCX_CFG.exigirMotivo ? soma.ds : 0,
     /* já vem contado sem duplicar: o robô marca a linha uma vez, mesmo com as duas regras */
     ocorrenciasParaRevisar: soma.dal,
-    motivosDeAlerta: soma.da + (FCX_CFG.exigirMotivo ? soma.ds : 0),
-    pct: (base>0) ? (v/base*100) : null
+    motivosDeAlerta: soma.da + (FCX_CFG.exigirMotivo ? soma.ds : 0)
   };
 }
 
@@ -6252,6 +6306,10 @@ function fcxConciliar(resumo, ocorrencias){
 /* Cor de cada grupo. Fica aqui, e não no ==FCXCALC==, porque aquele bloco é só conta
    (o teste o roda sem tela nenhuma). */
 var FCX_COR = { erro:"#ba7517", cliente:"#1b9e4b", pagto:"#1565c0", equip:"#8a97a8", naoclass:"#c0392b" };
+/* ==FCXDGRUPO== O MANUAL fica com o âmbar, a mesma cor do "erro de operação" dos
+   cancelamentos: é o grupo que pede olho humano. Os outros três são preço, e ficam em
+   tons frios para não competir com ele. Não classificado é vermelho nos dois, de propósito. */
+var FCX_DCOR = { manual:"#ba7517", campanha:"#1565c0", atacado:"#4a8fd4", oferta:"#7aa8c9", naoclass:"#c0392b" };
 var FCX_OCO_CACHE = {};   /* período já buscado -> linhas; evita ir à nuvem duas vezes */
 
 function fcxPeriodo(){
@@ -6304,18 +6362,26 @@ function renderFrenteCaixa(){
       : '<div class="v ind-est">SEM DADOS</div><div class="fcx-sub">período sem movimento</div>')+
     '<div class="fcx-clique">clique para ver a composição</div></div>';
 
+  /* ==FCXDGRUPO== O card do desconto mostra o TOTAL desde 22/09/2026 — o mesmo número que
+     a tela de desconto do VR soma. Enquanto a loja não rodar com o robô novo, ele volta a
+     mostrar só o manual e diz que falta, em vez de fingir um total completo. */
   var cardD = '<div class="kpi fcx-card" data-fcx="desc">'+
-    '<div class="l">Descontos manuais</div>'+
+    '<div class="l">'+(desc && !desc.completo ? "Descontos manuais" : "Descontos")+'</div>'+
     (desc
       ? '<div class="v '+(stD.cls==="bad"?"ind-bad":stD.cls==="ok"?"ind-ok":"ind-est")+'">'+fcxPctDesc(desc.pct)+'</div>'+
-        '<div class="fcx-sub">'+fcxBrl(desc.valor)+' · '+fcxNum(desc.ocorrencias)+' desconto'+(desc.ocorrencias===1?"":"s")+'</div>'+
+        '<div class="fcx-sub">'+fcxBrl(desc.valor)+' · '+fcxNum(desc.ocorrencias)+' '+
+          (desc.completo ? ('ocorrência'+(desc.ocorrencias===1?"":"s"))
+                         : ('desconto'+(desc.ocorrencias===1?"":"s")))+'</div>'+
         '<div class="fcx-rod">Referência ≤ '+fcxPct(FCX_CFG.refDesconto)+' no período</div>'+
         '<span class="fcx-selo fcx-'+stD.cls+'">'+stD.txt+'</span>'+
         (desc.ocorrenciasParaRevisar>0
           ? '<div class="fcx-alerta">&#9888; '+fcxNum(desc.ocorrenciasParaRevisar)+' alerta'+(desc.ocorrenciasParaRevisar===1?"":"s")+' para revisar</div>'
-          : '')
+          : '')+
+        (desc.completo ? ''
+          : '<div class="fcx-rod">o desconto automático ainda não chegou da loja — '+
+            fcxNum(desc.diasSemGrupo)+' dia'+(desc.diasSemGrupo===1?"":"s")+' do período sem essa medida</div>')
       : '<div class="v ind-est">SEM DADOS</div><div class="fcx-sub">período sem movimento</div>')+
-    '<div class="fcx-clique">clique para ver as ocorrências</div></div>';
+    '<div class="fcx-clique">clique para ver a composição</div></div>';
 
   el.innerHTML = '<div class="fcx-titulo">Controle operacional</div>'+
     /* auto-FILL (nao auto-fit): com dois cards o auto-fit estica cada um ate meia tela.
@@ -6333,9 +6399,6 @@ function renderFrenteCaixa(){
 }
 
 function fcxAbrir(qual){
-  /* DESCONTOS vai direto pro painel: a lista dele e curta e nao tem composicao por grupo.
-     CANCELAMENTOS abre a composicao na pagina, e cada grupo abre o painel. */
-  if(qual==="desc") return fcxAbrirPainel("desconto", null);
   var d = document.getElementById("fcxDet");
   if(!d) return;
   if(d.getAttribute("data-aberto")===qual){ d.innerHTML=""; d.removeAttribute("data-aberto"); return; }
@@ -6343,11 +6406,25 @@ function fcxAbrir(qual){
   /* A COMPOSICAO NAO VAI MAIS A NUVEM. Ela sai do FCX_DIA, que o painel ja carregou — entao
      aparece na hora, sem espera. A nuvem so e chamada quando o dono clica num grupo, que e
      quando ele quer mesmo ver as ocorrencias. Menos peso ao abrir a Analise. */
-  d.innerHTML = fcxDetCancelamento();
+  d.innerHTML = (qual==="desc") ? fcxDetDesconto() : fcxDetCancelamento();
+  var tipo = (qual==="desc") ? "desconto" : "cancelamento";
   var lins = d.querySelectorAll(".fcx-lin");
   for(var i=0;i<lins.length;i++){
     lins[i].addEventListener("click", (function(l){
-      return function(){ fcxAbrirPainel("cancelamento", l.getAttribute("data-g")); };
+      return function(){
+        /* ==FCXDGRUPO== So o grupo MANUAL tem lista de ocorrencias na nuvem — os outros
+           tres sao preco (atacado, campanha, oferta), nao lancamento de caixa, e nao vao
+           pra nuvem. Clicar neles nao pode abrir uma lista vazia dizendo "nada encontrado":
+           isso mente. A linha diz o porque, na propria composicao. */
+        if(tipo==="desconto" && l.getAttribute("data-g")!=="manual") return;
+        /* ==FCXDGRUPO== NO DESCONTO O GRUPO VAI NULO DE PROPOSITO. A lista da nuvem só tem
+           desconto manual (a consulta do robô filtra valordescontomanual <> 0), então o
+           filtro seria redundante — e seria PERIGOSO: as ocorrências que já estão gravadas
+           foram gravadas com grupo NULO, e a função da nuvem compara "grupo = p_grupo".
+           Mandar "manual" devolveria lista VAZIA até a loja reenviar os 13 meses, e uma
+           lista vazia se parece com "não há nada", não com "ainda não sincronizou". */
+        fcxAbrirPainel(tipo, tipo==="desconto" ? null : l.getAttribute("data-g"));
+      };
     })(lins[i]));
   }
 }
@@ -6442,6 +6519,68 @@ function fcxDetCancelamento(){
     (resumo.temNaoClassificado
       ? '<div class="fcx-vazio">Há motivo do VR que ainda não tem grupo. Me avise para eu classificar.</div>' : '')+
     '<div class="fcx-ph2">Clique num grupo para ver as ocorrências</div></div>';
+}
+
+/* ==FCXDGRUPO== A COMPOSIÇÃO DO DESCONTO. Espelha a dos cancelamentos de propósito: o
+   dono pediu "a mesma estratégia" em 22/09/2026, depois de comparar o card com a tela de
+   desconto do VR. Mesma barra, mesma tabela, mesma linha de conciliação.
+   A DIFERENÇA: só o grupo MANUAL abre a lista de ocorrências. Atacado, campanha e oferta
+   são PREÇO — não passam pela mão de ninguém no caixa e não vão para a nuvem. A tabela diz
+   isso na própria linha, em vez de abrir uma lista vazia que pareceria "não achei nada". */
+function fcxDetDesconto(){
+  var pr = fcxPeriodo(), de = pr[0], ate = pr[1];
+  var soma = fcxSomaDias(typeof FCX_DIA!=="undefined" ? FCX_DIA : [], de, ate);
+  var base = fcxBase(de, ate);
+  var resumo = fcxDesconto(soma, base);
+  if(!resumo) return '<div class="fcx-painel"><div class="fcx-vazio">Período sem movimento — nada a mostrar.</div></div>';
+
+  if(!resumo.completo){
+    return '<div class="fcx-painel">'+
+      '<div class="fcx-ph">Descontos · composição<span>'+fcxDataCurta(de)+' a '+fcxDataCurta(ate)+'</span></div>'+
+      '<div class="fcx-vazio">O desconto automático (atacado, campanha e oferta) ainda não foi medido em '+
+        fcxNum(resumo.diasSemGrupo)+' dia'+(resumo.diasSemGrupo===1?"":"s")+' deste período. '+
+        'A loja traz essa medida na próxima rodada do robô. Até lá o card mostra só o manual, '+
+        'que é '+fcxBrl(resumo.manual.v)+' em '+fcxNum(resumo.manual.n)+' desconto'+(resumo.manual.n===1?"":"s")+'.</div>'+
+      '<div class="fcx-ph2">Clique aqui para ver as ocorrências manuais</div></div>';
+  }
+
+  var barra = '<div class="fcx-barra">';
+  for(var i=0;i<FCX_DORDEM.length;i++){
+    var g = FCX_DORDEM[i], v = resumo.grupos[g].v;
+    if(resumo.total>0 && v>0) barra += '<i style="width:'+(v/resumo.total*100)+'%;background:'+FCX_DCOR[g]+'"></i>';
+  }
+  barra += '</div>';
+
+  var linhasTab = "";
+  for(var j=0;j<FCX_DORDEM.length;j++){
+    var k = FCX_DORDEM[j], gr = resumo.grupos[k], vazio = (gr.n===0), abre = (k==="manual");
+    linhasTab += '<tr class="fcx-lin'+(vazio?" fcx-zero":"")+(abre?"":" fcx-semlista")+'" data-g="'+k+'">'+
+      '<td><i class="fcx-bolinha" style="background:'+FCX_DCOR[k]+'"></i>'+FCX_DNOME[k]+'</td>'+
+      '<td class="r">'+fcxNum(gr.n)+'</td>'+
+      '<td class="r">'+fcxBrl(gr.v)+'</td>'+
+      '<td class="r">'+fcxPct(fcxFatia(gr.v, resumo.total), 1)+'</td>'+
+      '<td class="r">'+fcxPct(base>0 ? gr.v/base*100 : null)+'</td></tr>';
+  }
+
+  /* A mesma conciliação do cancelamento: CARD x GRUPOS, as duas partes que saem do FCX_DIA. */
+  var somaG=0, nG=0;
+  for(var q=0;q<FCX_DORDEM.length;q++){ somaG+=resumo.grupos[FCX_DORDEM[q]].v; nG+=resumo.grupos[FCX_DORDEM[q]].n; }
+  somaG = fcxCent(somaG);
+  var batem = Math.abs(somaG - resumo.valor) < 0.005 && nG === resumo.ocorrencias;
+  var aviso = batem ? '&#10003; a soma dos grupos fecha com o total'
+                    : '&#9888; CONFERIR: card '+fcxBrl(resumo.valor)+' · grupos '+fcxBrl(somaG);
+
+  return '<div class="fcx-painel">'+
+    '<div class="fcx-ph">Descontos · composição<span>'+fcxDataCurta(de)+' a '+fcxDataCurta(ate)+' · '+
+      fcxNum(resumo.ocorrencias)+' ocorrências · '+fcxBrl(resumo.total)+'</span></div>'+
+    barra+
+    '<table class="fcx-tab"><thead><tr><th>Grupo</th><th class="r">Ocorr.</th><th class="r">Valor</th>'+
+      '<th class="r">% do total</th><th class="r">% da venda</th></tr></thead><tbody>'+linhasTab+'</tbody></table>'+
+    '<div class="fcx-concilia">'+aviso+'</div>'+
+    (resumo.temNaoClassificado
+      ? '<div class="fcx-vazio">Há desconto do VR que ainda não tem grupo. Me avise para eu classificar.</div>' : '')+
+    '<div class="fcx-ph2">Clique em "Manual (no caixa)" para ver as ocorrências<span class="fcx-so">'+
+      'atacado, campanha e oferta são preço — não passam pela mão de ninguém no caixa e não têm lista</span></div></div>';
 }
 
 /* ==FCXPAINEL-INICIO== O PAINEL DE OCORRENCIAS (V2, 22/09/2026)
