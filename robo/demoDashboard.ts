@@ -1901,20 +1901,47 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .fcx-res{display:flex;gap:26px;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid #eef1f5;flex-shrink:0;}
         .fcx-res div span{display:block;font-size:11px;color:#8a97a8;text-transform:uppercase;letter-spacing:.4px;}
         .fcx-res div b{font-size:17px;font-weight:700;color:#1d2733;}
-        .fcx-fer{display:flex;gap:9px;flex-wrap:wrap;align-items:center;padding:11px 20px;border-bottom:1px solid #eef1f5;flex-shrink:0;background:#f7f9fb;}
-        .fcx-fer input,.fcx-fer select{padding:7px 10px;border:1px solid #cdd6e0;border-radius:8px;font-size:13px;background:#ffffff;color:#1d2733;}
-        .fcx-fer input{flex:1;min-width:170px;}
-        .fcx-fer .fcx-cont{margin-left:auto;font-size:12px;color:#8a97a8;}
-        .fcx-lst{overflow-y:auto;padding:4px 20px 18px;flex:1;}
-        .fcx-it{display:flex;gap:14px;align-items:flex-start;padding:11px 0;border-bottom:1px solid #eef1f5;}
-        .fcx-it-c{flex:1;min-width:0;}
-        .fcx-it-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;}
-        .fcx-it-n{font-size:13.5px;font-weight:700;color:#1d2733;overflow-wrap:anywhere;}
-        .fcx-it-d{font-size:11.5px;color:#8a97a8;margin-top:3px;overflow-wrap:anywhere;}
-        .fcx-it-m{font-size:11.5px;color:#6b7787;margin-top:3px;overflow-wrap:anywhere;}
-        .fcx-it-v{font-size:15px;font-weight:700;color:#1d2733;white-space:nowrap;text-align:right;flex-shrink:0;}
-        .fcx-it-v i{display:block;font-size:11.5px;font-weight:500;font-style:normal;color:#8a97a8;}
-        .fcx-tag{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:5px;background:#eef2f7;color:#6b7787;margin-right:5px;}
+        /* os filtros em UMA linha no desktop: quem cede espaco e a busca, que encolhe
+           primeiro. No celular o flex-wrap volta (ver a media query la embaixo). */
+        .fcx-fer{display:flex;gap:8px;flex-wrap:nowrap;align-items:center;padding:10px 20px;border-bottom:1px solid #eef1f5;flex-shrink:0;background:#f7f9fb;}
+        .fcx-fer input,.fcx-fer select{padding:6px 9px;border:1px solid #cdd6e0;border-radius:8px;font-size:12px;background:#ffffff;color:#1d2733;}
+        .fcx-fer input{flex:1 1 auto;min-width:100px;}
+        .fcx-fer select{flex:0 1 auto;min-width:0;}
+        .fcx-fer .fcx-cont{margin-left:auto;font-size:11.5px;color:#8a97a8;white-space:nowrap;padding-left:8px;}
+        .fcx-lst{overflow-y:auto;padding:0 20px 16px;flex:1;}
+        /* ==FCXTAB== A lista virou TABELA (aprovado em 22/09/2026). O ganho e o alinhamento
+           vertical: todos os PDVs numa coluna, todos os operadores noutra — da pra varrer de
+           cima a baixo em vez de ler ocorrencia por ocorrencia. Passou de 8 para 22 linhas
+           na mesma tela. As larguras sao pensadas: PDV e cupom ficam com o minimo que o
+           numero precisa, e o que sobra vai pro produto, operador e motivo, que sao as tres
+           colunas que ele le. Tudo que corta tem o texto inteiro no title (aparece no mouse). */
+        #page-analise .fcx-tb{width:100%;border-collapse:collapse;font-size:11.5px;table-layout:fixed;}
+        #page-analise .fcx-tb thead th{position:sticky;top:0;z-index:2;background:#ffffff;text-align:left;
+          font-size:9.5px;font-weight:700;color:#a9b4c0;text-transform:uppercase;letter-spacing:.5px;
+          padding:8px 7px 6px 0;border-bottom:1px solid #e3e8ee;}
+        #page-analise .fcx-tb thead th.r{text-align:right;padding-right:0;}
+        #page-analise .fcx-tb thead th.c{text-align:center;}
+        #page-analise .fcx-tb tbody td{padding:5px 7px 5px 0;border-bottom:1px solid #f1f4f8;color:#8a97a8;
+          max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
+        #page-analise .fcx-tb tbody tr:hover td{background:#f7f9fb;}
+        #page-analise .fcx-tb .tb-prod{font-size:12.5px;font-weight:700;color:#1d2733;}
+        #page-analise .fcx-tb .tb-op{color:#6b7787;}
+        #page-analise .fcx-tb .tb-num{text-align:center;padding-right:7px;}
+        #page-analise .fcx-tb .tb-v{text-align:right;font-size:13px;font-weight:700;color:#1d2733;padding-right:0;}
+        #page-analise .fcx-tb .tb-v i{display:block;font-style:normal;font-size:10.5px;font-weight:500;color:#a9b4c0;}
+        #page-analise .fcx-tb .tb-al{display:block;margin-top:2px;white-space:normal;}
+        #page-analise .fcx-tb col.k-prod{width:auto;}
+        #page-analise .fcx-tb col.k-data{width:74px;}
+        #page-analise .fcx-tb col.k-pdv{width:34px;}
+        #page-analise .fcx-tb col.k-op{width:146px;}
+        #page-analise .fcx-tb col.k-cup{width:56px;}
+        #page-analise .fcx-tb col.k-tipo{width:92px;}
+        #page-analise .fcx-tb col.k-mot{width:240px;}
+        #page-analise .fcx-tb col.k-fis{width:80px;}
+        #page-analise .fcx-tb col.k-val{width:80px;}
+        #page-analise .fcx-tb col.k-preco{width:150px;}
+        #page-analise .fcx-tb col.k-pct{width:60px;}
+        .fcx-tag{display:inline-block;vertical-align:top;max-width:100%;font-size:9.5px;font-weight:700;padding:2px 5px;border-radius:5px;background:#eef2f7;color:#6b7787;letter-spacing:-.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .fcx-tag-vr{background:#eef2f7;color:#6b7787;}
         .fcx-tag-al{background:#fdf3d9;color:#9a6a00;}
         .fcx-pe{padding:10px 20px;border-top:1px solid #eef1f5;font-size:11.5px;color:#8a97a8;flex-shrink:0;background:#f7f9fb;}
@@ -1927,11 +1954,24 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           .fcx-pt,.fcx-res,.fcx-fer,.fcx-lst,.fcx-pe{padding-left:14px;padding-right:14px;}
           .fcx-res{gap:16px;}
           .fcx-res div b{font-size:15px;}
+          .fcx-fer{flex-wrap:wrap;}
           .fcx-fer input,.fcx-fer select{font-size:14px;padding:9px 11px;}
           .fcx-fer input{min-width:100%;}
-          .fcx-fer .fcx-cont{margin-left:0;width:100%;}
-          .fcx-it{gap:10px;}
+          .fcx-fer .fcx-cont{margin-left:0;width:100%;padding-left:0;}
           .fcx-pt-x{width:40px;height:40px;font-size:22px;}
+          /* NO CELULAR A TABELA DEIXA DE SER TABELA. Nove colunas espremidas num telefone
+             nao se le, e rolagem lateral e pior ainda: cada ocorrencia vira um cartao, com
+             o produto em cima, o valor no canto e o resto corrido embaixo. */
+          #page-analise .fcx-tb,#page-analise .fcx-tb tbody,#page-analise .fcx-tb tr,#page-analise .fcx-tb td{display:block;width:auto;}
+          #page-analise .fcx-tb thead,#page-analise .fcx-tb colgroup{display:none;}
+          #page-analise .fcx-tb tbody tr{padding:10px 0;border-bottom:1px solid #eef1f5;position:relative;}
+          #page-analise .fcx-tb tbody td{border:none;padding:1px 0;white-space:normal;display:inline;max-width:none;overflow:visible;font-size:11.5px;}
+          #page-analise .fcx-tb tbody td.tb-prod{display:block;padding-right:96px;font-size:13px;}
+          #page-analise .fcx-tb tbody td.tb-v{position:absolute;top:10px;right:0;display:block;font-size:14px;text-align:right;}
+          #page-analise .fcx-tb tbody td.tb-num{text-align:left;}
+          #page-analise .fcx-tb tbody td:not(.tb-prod):not(.tb-v):not(:empty)::after{content:" · ";color:#cdd6e0;}
+          #page-analise .fcx-tb tbody td.tb-fim::after{content:"";}
+          #page-analise .fcx-tb .tb-al{display:inline;}
         }
       </style>
       <div class="filtros">
@@ -6473,29 +6513,62 @@ function fcxDesenharPainel(){
     '<option value="velho"'+(P.ordem==="velho"?" selected":"")+'>Mais antigo</option></select>'+
     '<span class="fcx-cont">'+fcxNum(l.length)+(l.length===1?" ocorrência":" ocorrências")+' · '+fcxBrl(soma)+'</span>';
 
-  var itens="";
-  if(!l.length) itens='<div class="fcx-vazio">Nenhuma ocorrência com esses filtros.</div>';
-  for(var i=0;i<l.length;i++){
-    var x=l[i];
-    var vv = Number(ehDesc?x.valor_desconto:x.valor)||0;
-    var br = Number(x.valor_bruto)||0;
-    var al = x.alertas||[];
-    /* nome e valor na MESMA linha do topo. Na V2 o valor ficava numa coluna a direita e,
-       no celular, saia da tela — o dono nao via o numero, que e o que ele mais procura. */
-    itens+='<div class="fcx-it"><div class="fcx-it-c">'+
-      '<div class="fcx-it-top"><span class="fcx-it-n">'+(x.produto||"—")+'</span>'+
-        '<span class="fcx-it-v">'+fcxBrl(vv)+
-        (ehDesc&&br>0?'<i>'+fcxPct(vv/br*100,0)+' do item</i>':'')+'</span></div>'+
-      '<div class="fcx-it-d">'+fcxDataCurta(x.data)+' '+(x.hora||"")+' · PDV '+(x.pdv||"—")+
-        ' · '+fcxNomeOu(x.operador,x)+' · cupom '+(x.cupom||"—")+
-        (ehDesc?'':' · '+(x.cupom_inteiro?"cupom cancelado inteiro":"item cancelado")+
-                 ' · '+Number(x.quantidade||0).toLocaleString("pt-BR")+' un')+'</div>'+
-      '<div class="fcx-it-m"><span class="fcx-tag fcx-tag-vr">'+(x.motivo_vr||"sem motivo informado")+'</span>'+
-        (x.fiscal?'autorizou: '+x.fiscal:(x.mostra_nomes===false&&!ehDesc?'autorizou: <i>nome restrito</i>':''))+
-        (ehDesc&&br>0?' · de '+fcxBrl(br)+' por '+fcxBrl(br-vv):'')+'</div>'+
-      (al.length?'<div class="fcx-it-m">'+al.map(function(a){ return '<span class="fcx-tag fcx-tag-al">&#9888; '+a+'</span>'; }).join("")+'</div>':'')+
-      '</div></div>';
+  /* ==FCXLINHAS== Uma ocorrencia por LINHA DE TABELA. O cancelamento e o desconto tem
+     colunas diferentes de proposito: o desconto precisa mostrar de quanto por quanto e
+     quantos por cento do item saiu, que o cancelamento nao tem. O que corta leva o texto
+     inteiro no title — e a regra que o dono pediu para produto, operador e motivo. */
+  var esc = function(t){ return String(t==null?"":t).replace(/"/g,"&quot;").replace(/</g,"&lt;"); };
+  /* A BARRA TEM QUE SER DOBRADA. Este arquivo é um template string que GERA o HTML: com
+     \s simples o TypeScript engole a barra e o regex vira /s+/, que divide por "s" em vez
+     de por espaço. Foi o que aconteceu em 22/09/2026 — "JOSINALDO DANTAS" saía inteiro.
+     Mesmo cuidado do bloco ==ACSLISTA==. */
+  var soPrimeiro = function(n){ var p2=String(n||"").trim().split(/\\s+/); return p2[0]||"—"; };
+
+  var cols, cab, corpo="";
+  if(ehDesc){
+    cols='<col class="k-prod"><col class="k-data"><col class="k-pdv"><col class="k-op">'+
+         '<col class="k-cup"><col class="k-mot"><col class="k-preco"><col class="k-pct"><col class="k-val">';
+    cab='<tr><th>Produto</th><th>Data/hora</th><th class="c">PDV</th><th>Operador</th>'+
+        '<th class="c">Cupom</th><th>Motivo do VR</th><th>De / por</th><th class="r">% do item</th>'+
+        '<th class="r">Desconto</th></tr>';
+    for(var i=0;i<l.length;i++){
+      var x=l[i], vv=Number(x.valor_desconto)||0, br=Number(x.valor_bruto)||0, al=x.alertas||[];
+      corpo+='<tr>'+
+        '<td class="tb-prod" title="'+esc(x.produto)+'">'+(x.produto||"—")+
+          (al.length?'<span class="tb-al">'+al.map(function(a){ return '<span class="fcx-tag fcx-tag-al" title="'+esc(a)+'">&#9888; '+a+'</span>'; }).join(" ")+'</span>':'')+'</td>'+
+        '<td>'+fcxDataCurta(x.data)+' '+(x.hora||"")+'</td>'+
+        '<td class="tb-num">'+(x.pdv||"—")+'</td>'+
+        '<td class="tb-op" title="'+esc(x.operador)+'">'+fcxNomeOu(x.operador,x)+'</td>'+
+        '<td class="tb-num">'+(x.cupom||"—")+'</td>'+
+        '<td><span class="fcx-tag" title="'+esc(x.motivo_vr||"sem motivo informado")+'">'+(x.motivo_vr||"sem motivo informado")+'</span></td>'+
+        '<td>'+(br>0?fcxBrl(br)+' &rarr; '+fcxBrl(br-vv):'—')+'</td>'+
+        '<td class="tb-v" style="font-size:11.5px;font-weight:500;color:#6b7787;">'+(br>0?fcxPct(vv/br*100,0):"—")+'</td>'+
+        '<td class="tb-v tb-fim">'+fcxBrl(vv)+'</td></tr>';
+    }
+  } else {
+    cols='<col class="k-prod"><col class="k-data"><col class="k-pdv"><col class="k-op">'+
+         '<col class="k-cup"><col class="k-tipo"><col class="k-mot"><col class="k-fis"><col class="k-val">';
+    cab='<tr><th>Produto</th><th>Data/hora</th><th class="c">PDV</th><th>Operador</th>'+
+        '<th class="c">Cupom</th><th>Tipo</th><th>Motivo do VR</th><th>Autorizou</th>'+
+        '<th class="r">Valor</th></tr>';
+    for(var j=0;j<l.length;j++){
+      var y=l[j];
+      corpo+='<tr>'+
+        '<td class="tb-prod" title="'+esc(y.produto)+'">'+(y.produto||"—")+'</td>'+
+        '<td>'+fcxDataCurta(y.data)+' '+(y.hora||"")+'</td>'+
+        '<td class="tb-num">'+(y.pdv||"—")+'</td>'+
+        '<td class="tb-op" title="'+esc(y.operador)+'">'+fcxNomeOu(y.operador,y)+'</td>'+
+        '<td class="tb-num">'+(y.cupom||"—")+'</td>'+
+        '<td>'+(y.cupom_inteiro?"cupom":"item")+' &middot; '+Number(y.quantidade||0).toLocaleString("pt-BR")+' un</td>'+
+        '<td><span class="fcx-tag" title="'+esc(y.motivo_vr||"sem motivo informado")+'">'+(y.motivo_vr||"sem motivo informado")+'</span></td>'+
+        '<td class="tb-op" title="'+esc(y.fiscal||(y.mostra_nomes===false?"nome restrito":""))+'">'+
+          (y.fiscal?soPrimeiro(y.fiscal):(y.mostra_nomes===false?"<i>restrito</i>":"—"))+'</td>'+
+        '<td class="tb-v tb-fim">'+fcxBrl(Number(y.valor)||0)+'</td></tr>';
+    }
   }
+  var itens = l.length
+    ? '<table class="fcx-tb"><colgroup>'+cols+'</colgroup><thead>'+cab+'</thead><tbody>'+corpo+'</tbody></table>'
+    : '<div class="fcx-vazio">Nenhuma ocorrência com esses filtros.</div>';
 
   cx.innerHTML='<button class="fcx-pt-x" onclick="fcxFecharPainel()" title="Fechar">&times;</button>'+
     '<div class="fcx-pt"><div class="fcx-pt-cam">'+cam+'</div>'+
