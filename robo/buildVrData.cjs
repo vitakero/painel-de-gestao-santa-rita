@@ -142,7 +142,13 @@ const FCX_DSC_IGNORA_CANCELADO=false;
    desde 21/09. O manual continua sendo exatamente o mesmo numero de sempre. */
 const FCX_DORDEM=["manual","campanha","atacado","oferta","naoclass"];
 function fcxCaseGrupoDesc(){
-  return `CASE WHEN COALESCE(i.descontomanual,0)=1              THEN 'manual'
+  // A MARCA E O VALOR JUNTOS. Os contadores dn/dv somam o manual por
+  // valordescontomanual <> 0; se aqui bastasse a marca, uma linha marcada e sem valor
+  // manual nao entraria em dn/dv NEM nos grupos automaticos — sumiria do total com o
+  // valordesconto dela. Medido em 22/09/2026: 0 linhas assim em 3 anos. A trava fica
+  // porque some calado e' pior do que aparecer errado.
+  return `CASE WHEN COALESCE(i.descontomanual,0)=1
+                AND COALESCE(i.valordescontomanual,0) <> 0       THEN 'manual'
                WHEN COALESCE(i.atacado,false)                   THEN 'atacado'
                WHEN COALESCE(i.oferta,false)                    THEN 'oferta'
                WHEN COALESCE(i.aplicadescontopromocao,false)    THEN 'campanha'
@@ -1035,14 +1041,16 @@ async function timed(c,nome,sql,params){
           // o ".0" do NUMERIC vem junto quando o codigo vira texto; sai aqui
           codigo_barras:r.cod==null?null:String(r.cod).trim().replace(/\.0+$/,"")||null,
           quantidade:num3(r.q),
-          // ==FCXDGRUPO== grupo "manual": a lista de ocorrencias SO tem desconto manual
-          // (a consulta filtra valordescontomanual <> 0). A partir de 22/09/2026 o card
-          // mostra o total e a composicao tem quatro grupos — mas o unico que abre lista
-          // e este. Gravar o nome do grupo aqui deixa o clique na composicao filtrar pelo
-          // MESMO nome que o painel usa, sem ninguem ter que lembrar de traduzir.
-          // Os grupos do cancelamento (erro/cliente/pagto/equip) continuam sendo outra
-          // coisa: aquela e a classificacao do MOTIVO do cancelamento.
-          motivo_id:mot, motivo_vr:(mot===null?null:(descMap[mot]||null)), grupo:"manual",
+          // ==FCXDGRUPO== GRUPO FICA NULO, E TEM QUE FICAR. A tabela na nuvem tem a trava
+          // frentecaixa_ocorrencias_grupo_ck, que EXIGE grupo IS NULL quando tipo='desconto'
+          // (os grupos erro/cliente/pagto/equip sao a classificacao do CANCELAMENTO).
+          // Em 22/09/2026 eu tentei gravar "manual" aqui: o PostgREST devolve 400 (23514) e
+          // recusa o LOTE INTEIRO de 500 linhas — levando junto os cancelamentos, que viajam
+          // no mesmo lote. A sincronizacao inteira pararia, e o catch la embaixo so registra
+          // o erro. Pego por revisao antes de a rodada estourar. Filtrar por grupo tambem
+          // seria inutil: a lista ja e 100% manual, porque a consulta filtra
+          // valordescontomanual <> 0.
+          motivo_id:mot, motivo_vr:(mot===null?null:(descMap[mot]||null)), grupo:null,
           valor:_dv, valor_bruto:_br, valor_desconto:_dv, alertas:_al,
           cupom_inteiro:!!r.ci, atualizado_em:agora });
       });

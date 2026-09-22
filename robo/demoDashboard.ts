@@ -1953,9 +1953,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-analise .fcx-tab td{padding:8px 0;border-top:1px solid #eef1f5;color:#1d2733;}
         #page-analise .fcx-lin{cursor:pointer;}
         #page-analise .fcx-lin:hover td{background:#f7f9fb;}
-        /* ==FCXDGRUPO== grupo sem lista: não é clicável, e a mãozinha não aparece */
+        /* ==FCXDGRUPO== grupo sem lista: não é clicável, e a mãozinha não aparece.
+           O !important existe por causa do tema escuro: ele é gerado no build a partir
+           deste CSS e nasce com "html.tema-escuro ... .fcx-lin:hover td{...}", que tem
+           mais peso que esta regra e fazia a linha acender no escuro como se abrisse algo. */
         #page-analise .fcx-lin.fcx-semlista{cursor:default;}
-        #page-analise .fcx-lin.fcx-semlista:hover td{background:none;}
+        #page-analise .fcx-lin.fcx-semlista:hover td{background:none!important;}
         #page-analise .fcx-so{display:block;font-size:11.5px;color:#8a97a8;font-weight:400;
                               text-transform:none;letter-spacing:0;margin-top:4px;}
         #page-analise .fcx-zero td{color:#a9b4c0;}
@@ -6200,7 +6203,7 @@ function fcxFatia(valor, total){ return (total>0) ? (valor/total*100) : null; }
 
 /* O desconto manual do período. Separa OCORRÊNCIAS de MOTIVOS: uma operação que estoura o
    limite E está sem motivo é UMA ocorrência com DOIS motivos de alerta. */
-function fcxDesconto(soma, base){
+function fcxDesconto(soma, base, diasComVenda){
   if(soma===null) return null;
   var man = fcxCent(soma.dv);
   /* ==FCXDGRUPO== O card mostra o TOTAL (decisão dele em 22/09/2026, mesma estratégia dos
@@ -6208,7 +6211,16 @@ function fcxDesconto(soma, base){
      não rodar uma vez com o robô novo, os grupos automáticos NÃO foram medidos — e aí o
      card volta a mostrar só o manual, dizendo que falta. Melhor um número menor e avisado
      do que um total que finge estar completo. */
-  var completo = (soma.diasComGrupo === soma.dias);
+  /* ==FCXDGRUPO== DUAS MANEIRAS DE FALTAR DADO, e as duas contam:
+     1) o dia ESTA no FCX_DIA mas sem os campos novos (painel publicado antes da loja rodar);
+     2) o dia NAO ESTA no FCX_DIA (a rede de seguranca do robô caiu para 90 dias e o resto
+        do histórico não veio) — esse nem chega aqui para ser contado, mas o faturamento
+        dele ENTRA na base, porque a base vem do DIA[], que é o histórico inteiro.
+     Sem o segundo teste, um período de um ano com só 90 dias medidos se diz "completo" e
+     mostra um percentual diluído em 275 dias que não têm numerador. */
+  var faltamDias = (typeof diasComVenda === "number") ? (diasComVenda - soma.dias) : 0;
+  if(faltamDias < 0) faltamDias = 0;
+  var completo = (soma.diasComGrupo === soma.dias) && (faltamDias === 0);
   var g = {
     manual:   { n:soma.dn,  v:man },
     campanha: { n:soma.gcn, v:fcxCent(soma.gcv) },
@@ -6228,7 +6240,7 @@ function fcxDesconto(soma, base){
     /* a composição */
     grupos: g, ordem: FCX_DORDEM,
     total: totV, ocorrenciasGrupos: totN,
-    completo: completo, diasSemGrupo: soma.dias - soma.diasComGrupo,
+    completo: completo, diasSemGrupo: (soma.dias - soma.diasComGrupo) + faltamDias,
     temNaoClassificado: g.naoclass.n > 0,
     /* o manual continua existindo sozinho: é ele que o alerta vigia */
     manual: g.manual,
@@ -6322,6 +6334,11 @@ function fcxBase(de, ate){
   return DIA.filter(function(x){ return x.d>=de && x.d<=ate; })
             .reduce(function(s,x){ return s+(x.fat||0); }, 0);
 }
+/* ==FCXDGRUPO== Quantos dias de VENDA o período tem, segundo o DIA[] (que é o histórico
+   inteiro). Serve para saber se o FCX_DIA cobriu todos eles — ver fcxDesconto. */
+function fcxDiasComVenda(de, ate){
+  return DIA.filter(function(x){ return x.d>=de && x.d<=ate; }).length;
+}
 function fcxBrl(v){ return brl(v); }
 function fcxNum(v){ return Math.round(Number(v)||0).toLocaleString("pt-BR"); }
 function fcxPct(v, casas){
@@ -6347,7 +6364,7 @@ function renderFrenteCaixa(){
   var soma = fcxSomaDias(typeof FCX_DIA!=="undefined" ? FCX_DIA : [], de, ate);
   var base = fcxBase(de, ate);
   var canc = fcxCancelamento(soma, base);
-  var desc = fcxDesconto(soma, base);
+  var desc = fcxDesconto(soma, base, fcxDiasComVenda(de, ate));
 
   var stC = fcxStatus(canc ? canc.pct : null, FCX_CFG.refCancelamento);
   var stD = fcxStatus(desc ? desc.pct : null, FCX_CFG.refDesconto);
@@ -6531,7 +6548,7 @@ function fcxDetDesconto(){
   var pr = fcxPeriodo(), de = pr[0], ate = pr[1];
   var soma = fcxSomaDias(typeof FCX_DIA!=="undefined" ? FCX_DIA : [], de, ate);
   var base = fcxBase(de, ate);
-  var resumo = fcxDesconto(soma, base);
+  var resumo = fcxDesconto(soma, base, fcxDiasComVenda(de, ate));
   if(!resumo) return '<div class="fcx-painel"><div class="fcx-vazio">Período sem movimento — nada a mostrar.</div></div>';
 
   if(!resumo.completo){
@@ -6539,9 +6556,19 @@ function fcxDetDesconto(){
       '<div class="fcx-ph">Descontos · composição<span>'+fcxDataCurta(de)+' a '+fcxDataCurta(ate)+'</span></div>'+
       '<div class="fcx-vazio">O desconto automático (atacado, campanha e oferta) ainda não foi medido em '+
         fcxNum(resumo.diasSemGrupo)+' dia'+(resumo.diasSemGrupo===1?"":"s")+' deste período. '+
-        'A loja traz essa medida na próxima rodada do robô. Até lá o card mostra só o manual, '+
-        'que é '+fcxBrl(resumo.manual.v)+' em '+fcxNum(resumo.manual.n)+' desconto'+(resumo.manual.n===1?"":"s")+'.</div>'+
-      '<div class="fcx-ph2">Clique aqui para ver as ocorrências manuais</div></div>';
+        'A loja traz essa medida na próxima rodada do robô. Até lá o card mostra só o manual.</div>'+
+      /* ==FCXDGRUPO== TEM QUE SER UMA LINHA DE VERDADE. Antes isto era só um texto em caixa
+         alta convidando ao clique — e fcxAbrir() só liga o clique em ".fcx-lin", então a
+         frase prometia uma porta que não existia. Aqui vai a mesma tabela de uma linha só,
+         com a classe que o clique escuta. */
+      '<table class="fcx-tab"><thead><tr><th>Grupo</th><th class="r">Ocorr.</th><th class="r">Valor</th>'+
+        '<th class="r">% da venda</th></tr></thead><tbody>'+
+        '<tr class="fcx-lin'+(resumo.manual.n===0?" fcx-zero":"")+'" data-g="manual">'+
+        '<td><i class="fcx-bolinha" style="background:'+FCX_DCOR.manual+'"></i>'+FCX_DNOME.manual+'</td>'+
+        '<td class="r">'+fcxNum(resumo.manual.n)+'</td>'+
+        '<td class="r">'+fcxBrl(resumo.manual.v)+'</td>'+
+        '<td class="r">'+fcxPctDesc(resumo.pctManual)+'</td></tr></tbody></table>'+
+      '<div class="fcx-ph2">Clique na linha para ver as ocorrências manuais</div></div>';
   }
 
   var barra = '<div class="fcx-barra">';
@@ -6559,16 +6586,27 @@ function fcxDetDesconto(){
       '<td class="r">'+fcxNum(gr.n)+'</td>'+
       '<td class="r">'+fcxBrl(gr.v)+'</td>'+
       '<td class="r">'+fcxPct(fcxFatia(gr.v, resumo.total), 1)+'</td>'+
-      '<td class="r">'+fcxPct(base>0 ? gr.v/base*100 : null)+'</td></tr>';
+      /* ==FCXPCTD== aqui também: os grupos do desconto são pequenos demais para duas casas,
+         e "0,00%" na linha de R$ 268,72 parece que não houve desconto nenhum. */
+      '<td class="r">'+fcxPctDesc(base>0 ? gr.v/base*100 : null)+'</td></tr>';
   }
 
-  /* A mesma conciliação do cancelamento: CARD x GRUPOS, as duas partes que saem do FCX_DIA. */
+  /* ==FCXDGRUPO== A CONFERENCIA TEM QUE SER CONTRA O DADO CRU, senão não é conferência.
+     Somar de novo os mesmos resumo.grupos e comparar com resumo.valor nunca falharia: neste
+     ponto completo já é true e resumo.valor É aquela soma — a linha diria "fecha" mesmo com
+     o módulo quebrado. Aqui o total é refeito a partir do FCX_DIA, dia a dia, pelo caminho
+     que NÃO passa por fcxDesconto. Se os dois discordarem, é defeito de verdade. */
   var somaG=0, nG=0;
-  for(var q=0;q<FCX_DORDEM.length;q++){ somaG+=resumo.grupos[FCX_DORDEM[q]].v; nG+=resumo.grupos[FCX_DORDEM[q]].n; }
+  for(var q2=0;q2<FCX_DIA.length;q2++){
+    var dd=FCX_DIA[q2];
+    if(dd.d < de || dd.d > ate) continue;
+    somaG += (dd.dv||0) + (dd.gav||0) + (dd.gcv||0) + (dd.gov||0) + (dd.gxv||0);
+    nG    += (dd.dn||0) + (dd.gan||0) + (dd.gcn||0) + (dd.gon||0) + (dd.gxn||0);
+  }
   somaG = fcxCent(somaG);
   var batem = Math.abs(somaG - resumo.valor) < 0.005 && nG === resumo.ocorrencias;
   var aviso = batem ? '&#10003; a soma dos grupos fecha com o total'
-                    : '&#9888; CONFERIR: card '+fcxBrl(resumo.valor)+' · grupos '+fcxBrl(somaG);
+                    : '&#9888; CONFERIR: card '+fcxBrl(resumo.valor)+' · dias '+fcxBrl(somaG);
 
   return '<div class="fcx-painel">'+
     '<div class="fcx-ph">Descontos · composição<span>'+fcxDataCurta(de)+' a '+fcxDataCurta(ate)+' · '+
@@ -6580,7 +6618,10 @@ function fcxDetDesconto(){
     (resumo.temNaoClassificado
       ? '<div class="fcx-vazio">Há desconto do VR que ainda não tem grupo. Me avise para eu classificar.</div>' : '')+
     '<div class="fcx-ph2">Clique em "Manual (no caixa)" para ver as ocorrências<span class="fcx-so">'+
-      'atacado, campanha e oferta são preço — não passam pela mão de ninguém no caixa e não têm lista</span></div></div>';
+      'é o único grupo com lista: atacado, campanha e oferta são preço, não passam pela mão de '+
+      'ninguém no caixa' +
+      (resumo.temNaoClassificado ? ' — e "não classificado" é marca do VR que eu ainda não conheço' : '')+
+      '</span></div></div>';
 }
 
 /* ==FCXPAINEL-INICIO== O PAINEL DE OCORRENCIAS (V2, 22/09/2026)
@@ -6699,14 +6740,22 @@ function fcxDesenharPainel(){
   var base=fcxBase(P.de,P.ate);
   var res="";
   if(ehDesc){
-    var rd=fcxDesconto(soma2, base);
+    var rd=fcxDesconto(soma2, base, fcxDiasComVenda(P.de, P.ate));
     /* A ORDEM E PEDIDO DELE (item 10 da V2): primeiro o percentual sobre a venda, depois o
        valor, depois a quantidade, e o "para revisar" com destaque. Os detalhes do alerta
        (quantos acima do limite, quantos sem motivo, quantos motivos) vem depois, menores —
        sao a explicacao do numero de cima, nao competem com ele. */
-    if(rd) res='<div><span>Sobre a venda</span><b>'+fcxPctDesc(rd.pct)+'</b></div>'+
-               '<div><span>Valor</span><b>'+fcxBrl(rd.valor)+'</b></div>'+
-               '<div><span>Descontos</span><b>'+fcxNum(rd.ocorrencias)+'</b></div>'+
+    /* ==FCXDGRUPO== AQUI VAI O MANUAL, NAO O TOTAL. Esta janela e a lista do desconto
+       MANUAL — o titulo diz "Descontos manuais", so o grupo manual a abre, e a nuvem so
+       guarda valordescontomanual <> 0. Depois que o card virou o total (22/09/2026),
+       rd.valor passou a ser a soma dos cinco grupos: o topo anunciava R$ 2.217,05 em cima
+       de uma lista de R$ 164,75, e o proprio contador do rodape da janela escrevia o valor
+       certo — dois numeros de dinheiro se contradizendo na mesma tela, 13 vezes de
+       diferenca. E exatamente o engano que esta mudanca existe para acabar, ao contrario.
+       Por isso o fcxDesconto devolve manual{n,v} e pctManual: e deste lugar que eles sao. */
+    if(rd) res='<div><span>Sobre a venda</span><b>'+fcxPctDesc(rd.pctManual)+'</b></div>'+
+               '<div><span>Valor</span><b>'+fcxBrl(rd.manual.v)+'</b></div>'+
+               '<div><span>Descontos</span><b>'+fcxNum(rd.manual.n)+'</b></div>'+
                '<div><span>Para revisar</span><b'+(rd.ocorrenciasParaRevisar>0?' style="color:#9a6a00"':'')+'>'+
                  (rd.ocorrenciasParaRevisar>0?'&#9888; ':'')+fcxNum(rd.ocorrenciasParaRevisar)+'</b></div>'+
                (rd.ocorrenciasParaRevisar>0

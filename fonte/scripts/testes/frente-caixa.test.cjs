@@ -573,13 +573,64 @@ console.log("\n-- MOTIVO NOVO DO VR CAI EM 'NAO CLASSIFICADO' --");
   eq("o total inclui ela (dinheiro nao evapora)", r.valor, 87);
 }
 
+/* Os defeitos que a revisao adversarial achou em 22/09/2026, depois de publicado. Cada um
+   virou teste para nao voltar. */
+console.log("\n-- OS DEFEITOS QUE A REVISAO PEGOU --");
+{
+  const cheio = { d:"2026-09-10", ce:0,cev:0, cc:0,ccv:0, cp:0,cpv:0, cq:0,cqv:0, cn:0,cnv:0,
+                  dn:43, dv:164.75, da:2, ds:0, dal:2,
+                  gan:2756, gav:268.72, gcn:1755, gcv:1759.58, gon:10, gov:24.00, gxn:0, gxv:0 };
+  const base = 3443819.71;
+  const r = M.fcxDesconto(M.fcxSomaDias([cheio], "2026-09-01", "2026-09-30"), base, 1);
+
+  // 1) o painel de ocorrencias e a lista do MANUAL: o topo dele nao pode falar o total
+  eq("o manual tem valor proprio para o painel de ocorrencias", r.manual.v, 164.75);
+  eq("e quantidade propria", r.manual.n, 43);
+  eq("e percentual proprio", (r.pctManual*1e6).toFixed(0), (164.75/base*100*1e6).toFixed(0));
+  eq("que NAO e o do card", r.pctManual === r.pct, false);
+
+  // 2) rede de seguranca do robo: dia que nem veio tambem conta como falta
+  const so90 = M.fcxDesconto(M.fcxSomaDias([cheio], "2026-09-01", "2026-09-30"), base, 30);
+  eq("periodo com 30 dias de venda e 1 dia medido NAO e completo", so90.completo, false);
+  eq("e diz que faltam 29", so90.diasSemGrupo, 29);
+  eq("sem o terceiro argumento, segue como antes", 
+     M.fcxDesconto(M.fcxSomaDias([cheio], "2026-09-01", "2026-09-30"), base).completo, true);
+
+  // 3) as duas faltas somam
+  const velho = { d:"2026-09-11", ce:0,cev:0, cc:0,ccv:0, cp:0,cpv:0, cq:0,cqv:0, cn:0,cnv:0,
+                  dn:1, dv:5, da:0, ds:0, dal:0 };
+  const mix = M.fcxDesconto(M.fcxSomaDias([cheio, velho], "2026-09-01", "2026-09-30"), base, 5);
+  eq("1 dia sem os campos + 3 dias que nem vieram = 4 faltando", mix.diasSemGrupo, 4);
+  eq("e o periodo nao e completo", mix.completo, false);
+}
+
+console.log("\n-- O ROBO NAO PODE GRAVAR GRUPO NO DESCONTO --");
+{
+  /* A tabela na nuvem tem a trava frentecaixa_ocorrencias_grupo_ck: grupo TEM que ser nulo
+     quando tipo='desconto'. Gravar "manual" faz o PostgREST devolver 400 e recusar o LOTE
+     INTEIRO de 500 linhas — levando os cancelamentos junto, que viajam no mesmo lote. */
+  const robo = fs.readFileSync(path.join(__dirname, "..", "buildVrData.cjs"), "utf8");
+  const i = robo.indexOf('linhas.push({ tipo:"desconto"');
+  const trecho = robo.slice(i, i + 2200);   // a janela tem que passar do comentario
+  eq("a ocorrencia de desconto vai com grupo NULO", /grupo:\s*null/.test(trecho), true);
+  eq("e nao com um nome de grupo", /grupo:\s*"/.test(trecho), false);
+
+  const sql = fs.readFileSync(path.join(__dirname, "..", "..", "sql", "frentecaixa_ocorrencias.sql"), "utf8");
+  eq("e a trava que cobra isso existe no SQL", sql.indexOf("frentecaixa_ocorrencias_grupo_ck") >= 0, true);
+
+  /* e o CASE do robo so chama de manual quem TEM valor manual — senao a linha sumiria do
+     total (nao entra em dn/dv nem nos grupos automaticos) */
+  const caso = robo.slice(robo.indexOf("function fcxCaseGrupoDesc"), robo.indexOf("function fcxCaseGrupoDesc") + 1400);
+  eq("manual exige a marca E o valor", /descontomanual,0\)=1[\s\S]{0,120}valordescontomanual,0\) <> 0[\s\S]{0,40}'manual'/.test(caso), true);
+}
+
 console.log("\n-- O CONTRATO ENTRE O ROBO E O PAINEL --");
 {
   /* Os dois lados batizam os grupos em arquivos diferentes. Se divergirem, o card mostra um
      total e a composicao mostra outro — foi exatamente assim que a tabela da nuvem ficou
      vazia por uma hora em 22/09/2026 (nomes de coluna diferentes dos dois lados). */
   const robo = fs.readFileSync(path.join(__dirname, "..", "buildVrData.cjs"), "utf8");
-  const caso = robo.slice(robo.indexOf("function fcxCaseGrupoDesc"), robo.indexOf("function fcxCaseGrupoDesc") + 700);
+  const caso = robo.slice(robo.indexOf("function fcxCaseGrupoDesc"), robo.indexOf("function fcxCaseGrupoDesc") + 1400);
   const nomesRobo = (caso.match(/THEN '([a-z]+)'/g) || []).map(x => x.replace(/THEN '|'/g, ""))
     .concat((caso.match(/ELSE '([a-z]+)'/g) || []).map(x => x.replace(/ELSE '|'/g, "")));
   const nomesPainel = M.FCX_DORDEM.slice().sort().join(",");
