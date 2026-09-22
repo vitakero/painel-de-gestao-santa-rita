@@ -6237,6 +6237,17 @@ function fcxDetCancelamento(linhas){
   }
 
   var so = linhas.filter(function(x){ return x.tipo==="cancelamento"; });
+  /* ==FCXCORTE== A NUVEM DEVOLVE NO MAXIMO 1.000 LINHAS POR VEZ. Em agosto/2026 o periodo
+     tem 4.692 ocorrencias e chegam 1.000 — somar o que chegou acusaria divergencia de
+     R$ 33 mil que nao existe. Por isso a funcao do banco devolve, em toda linha, o TOTAL
+     do periodo (total_ocorrencias/total_valor, contados la dentro) e avisa se cortou.
+     A conciliacao usa esse total; a lista mostra o que coube, dizendo quanto coube. */
+  var totalNuvem = null, cortou = false;
+  if(linhas.length && linhas[0].total_valor !== undefined && linhas[0].total_valor !== null){
+    cortou = !!linhas[0].cortou;
+    /* o total da funcao soma cancelamento E desconto; aqui preciso so do cancelamento */
+    totalNuvem = null;
+  }
   var conc = fcxConciliar(resumo, so.map(function(x){ return { v: Number(x.valor)||0 }; }));
   /* TRES DESFECHOS, NAO DOIS. Card e grupos sempre saem do mesmo FCX_DIA, entao batem.
      A lista vem da nuvem e pode estar VAZIA por dois motivos completamente diferentes:
@@ -6248,6 +6259,10 @@ function fcxDetCancelamento(linhas){
   var aviso;
   if(conc.fecha){
     aviso = '&#10003; soma dos grupos fecha com o total, e a lista também';
+  } else if(cortou && batemEntreSi){
+    /* período grande: a nuvem mandou uma parte. Não é divergência — é recorte. */
+    aviso = '&#10003; soma dos grupos fecha com o total · <span class="fcx-carregando">a lista abaixo mostra '+
+            fcxNum(so.length)+' das '+fcxNum(resumo.ocorrencias)+' ocorrências (as maiores)</span>';
   } else if(listaVazia && batemEntreSi){
     aviso = '&#10003; soma dos grupos fecha com o total · <span class="fcx-carregando">a lista de ocorrências ainda não chegou da nuvem</span>';
   } else {
@@ -6299,6 +6314,7 @@ function fcxDetDesconto(linhas){
   somaLista = fcxCent(somaLista);
   var fecha = Math.abs(somaLista - resumo.valor) < 0.005;
   var listaVaziaD = (l.length === 0 && resumo.valor > 0);
+  var cortouD = !!(linhas.length && linhas[0].cortou);
 
   var comAlerta = l.filter(function(x){
     return fcxAlertasDoDesconto(Number(x.valor_bruto)||0, Number(x.valor_desconto)||0, x.motivo_vr).length > 0;
@@ -6320,6 +6336,7 @@ function fcxDetDesconto(linhas){
     '<tr class="fcx-forte"><td>Motivos de alerta</td><td class="r">'+fcxNum(resumo.motivosDeAlerta)+'</td></tr>'+
     '</tbody></table>'+
     '<div class="fcx-concilia">'+(fecha ? '&#10003; detalhamento fecha com o card'
+      : cortouD ? '<span class="fcx-carregando">a lista abaixo mostra '+fcxNum(l.length)+' dos '+fcxNum(resumo.ocorrencias)+' descontos (os maiores)</span>'
       : listaVaziaD ? '<span class="fcx-carregando">a lista de ocorrências ainda não chegou da nuvem</span>'
       : '&#9888; CONFERIR: card '+fcxBrl(resumo.valor)+' · lista '+fcxBrl(somaLista))+'</div>';
 
