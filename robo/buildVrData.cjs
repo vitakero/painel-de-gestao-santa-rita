@@ -62,7 +62,7 @@ const FCX_OCO_MESES=13;          // alcance do detalhe que vai pra nuvem (ver bl
 const FCX_OCO_DIAS=7;            // janela curta, mandada de 20 em 20 min
 const FCX_OCO_MS=20*60*1000;     // janela curta: 1x a cada 20 min (igual ao setor/dia)
 const FCX_OCO_FULL_MS=24*3600*1000; // varredura dos 13 meses: 1x por dia
-function sbUpsertFcx(rows){return new Promise((res,rej)=>{const body=JSON.stringify(rows);const req=https.request({host:SB_HOST,path:"/rest/v1/frentecaixa_ocorrencias?on_conflict=tipo,id_venda,sequencia",method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal","Content-Length":Buffer.byteLength(body)}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>r.statusCode<300?res():rej(new Error("HTTP "+r.statusCode+" "+d)))});req.on("error",rej);req.write(body);req.end();});}
+function sbUpsertFcx(rows){return new Promise((res,rej)=>{const body=JSON.stringify(rows);const req=https.request({host:SB_HOST,path:"/rest/v1/frentecaixa_ocorrencias?on_conflict=tipo,venda_id,sequencia",method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal","Content-Length":Buffer.byteLength(body)}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>r.statusCode<300?res():rej(new Error("HTTP "+r.statusCode+" "+d)))});req.on("error",rej);req.write(body);req.end();});}
 
 /* ==FCXSQL-INICIO== As regras e as consultas da Frente de Caixa, num pedaco so.
    Esta fatia nao depende de nada do resto do arquivo de proposito: a bancada
@@ -934,32 +934,42 @@ async function timed(c,nome,sql,params){
       const linhas=[];
       canc.forEach(r=>{
         const mot=(r.mot===null||r.mot===undefined)?null:Number(r.mot);
-        linhas.push({ tipo:"cancelamento", id_venda:Number(r.id_venda), sequencia:Number(r.seq),
+        // ==FCXCOLS== OS NOMES SAO OS DA TABELA, nao os que dao jeito aqui. O upsert do
+        // PostgREST recusa o lote inteiro quando UMA coluna nao existe — e a tabela fica
+        // vazia sem ninguem ver. Foi o que aconteceu em 22/09/2026: o robo mandava
+        // id_venda/codigo/motivo/bruto/cupom_cancelado e a tabela tem
+        // venda_id/codigo_barras/motivo_vr/valor_bruto/cupom_inteiro. Antes de acrescentar
+        // campo aqui, confira a coluna NA NUVEM.
+        linhas.push({ tipo:"cancelamento", venda_id:Number(r.id_venda), sequencia:Number(r.seq),
           data:r.d, hora:r.h||null, pdv:r.pdv==null?null:Number(r.pdv), cupom:r.nc==null?null:Number(r.nc),
-          operador_matricula:r.op_mat==null?null:Number(r.op_mat), operador:nomeDe(r.op_mat),
-          fiscal_matricula:r.fi_mat==null?null:Number(r.fi_mat), fiscal:nomeDe(r.fi_mat),
-          id_produto:r.id_produto==null?null:Number(r.id_produto), produto:(r.pr||"").trim()||null,
-          codigo:null, quantidade:num3(r.q),
-          motivo_id:mot, motivo:(mot===null?null:(cancMap[mot]||null)), grupo:fcxGrupoDe(mot),
-          valor:num(r.v), bruto:null,
-          cupom_cancelado:!!r.ci, item_cancelado:!!r.ic, atualizado_em:agora });
+          operador:nomeDe(r.op_mat), fiscal:nomeDe(r.fi_mat),
+          produto:(r.pr||"").trim()||null, codigo_barras:null, quantidade:num3(r.q),
+          motivo_id:mot, motivo_vr:(mot===null?null:(cancMap[mot]||null)), grupo:fcxGrupoDe(mot),
+          valor:num(r.v), valor_bruto:null, valor_desconto:null, alertas:[],
+          cupom_inteiro:!!r.ci, atualizado_em:agora });
       });
       desc.forEach(r=>{
         const mot=(r.mot===null||r.mot===undefined)?null:Number(r.mot);
-        linhas.push({ tipo:"desconto", id_venda:Number(r.id_venda), sequencia:Number(r.seq),
+        // o desconto grava o valor em DOIS lugares de proposito: "valor" e o que soma no
+        // total da ocorrencia (igual pro cancelamento), e "valor_desconto" e o que a tela
+        // mostra ao lado do valor original. Sao o mesmo numero, com papeis diferentes.
+        const _br=num(r.br), _dv=num(r.dv);
+        const _al=[];
+        if(_br>0 && (_dv/_br)>=FCX_LIMITE_ITEM) _al.push("desconto acima de "+Math.round(FCX_LIMITE_ITEM*100)+"% do item");
+        if(mot===null) _al.push("motivo nao informado");
+        linhas.push({ tipo:"desconto", venda_id:Number(r.id_venda), sequencia:Number(r.seq),
           data:r.d, hora:r.h||null, pdv:r.pdv==null?null:Number(r.pdv), cupom:r.nc==null?null:Number(r.nc),
-          operador_matricula:r.op_mat==null?null:Number(r.op_mat), operador:nomeDe(r.op_mat),
-          fiscal_matricula:null, fiscal:null,
-          id_produto:r.id_produto==null?null:Number(r.id_produto), produto:(r.pr||"").trim()||null,
+          operador:nomeDe(r.op_mat), fiscal:null,
+          produto:(r.pr||"").trim()||null,
           // o ".0" do NUMERIC vem junto quando o codigo vira texto; sai aqui
-          codigo:r.cod==null?null:String(r.cod).trim().replace(/\.0+$/,"")||null,
+          codigo_barras:r.cod==null?null:String(r.cod).trim().replace(/\.0+$/,"")||null,
           quantidade:num3(r.q),
           // grupo do desconto fica nulo: os grupos (erro/cliente/pagto/equip) sao a
           // classificacao do CANCELAMENTO. Desconto tem os motivos dele (preco errado,
           // venda atacado, falta produto oferta) e mistura-los esconderia os dois.
-          motivo_id:mot, motivo:(mot===null?null:(descMap[mot]||null)), grupo:null,
-          valor:num(r.dv), bruto:num(r.br),
-          cupom_cancelado:!!r.ci, item_cancelado:!!r.ic, atualizado_em:agora });
+          motivo_id:mot, motivo_vr:(mot===null?null:(descMap[mot]||null)), grupo:null,
+          valor:_dv, valor_bruto:_br, valor_desconto:_dv, alertas:_al,
+          cupom_inteiro:!!r.ci, atualizado_em:agora });
       });
       let ok=0;
       for(let i=0;i<linhas.length;i+=500){ await sbUpsertFcx(linhas.slice(i,i+500)); ok+=Math.min(500,linhas.length-i); }
