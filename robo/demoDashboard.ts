@@ -138,17 +138,23 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   header .logo { flex:none; display:flex; align-items:center; }
   header .logo img { height:30px; width:auto; display:block; }
   .hsep { width:1px; height:22px; background:#e8ecf1; flex:none; }
-  header .htxt { min-width:0; }
-  header h1 { margin:0; font-size:14.5px; font-weight:600; color:#101828; letter-spacing:-.1px; line-height:1.25; white-space:nowrap; }
-  header p { margin:2px 0 0; font-size:10.5px; font-weight:500; color:#6b7787; letter-spacing:.2px; line-height:1.2; white-space:nowrap; }
-  .hdir { margin-left:auto; display:flex; align-items:center; gap:10px; min-width:0; }
+  header .htxt { min-width:0; flex:1 1 auto; overflow:hidden; }
+  /* ==OLHO== o nome corta com reticências em vez de ser serrado no meio da letra — assim o
+     cabeçalho cede espaço em celular estreito sem empurrar os botões para fora da tela */
+  header h1 { margin:0; font-size:14.5px; font-weight:600; color:#101828; letter-spacing:-.1px; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  header p { margin:2px 0 0; font-size:10.5px; font-weight:500; color:#6b7787; letter-spacing:.2px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* ==OLHO== flex:none no lado direito. Sem isso o navegador ENCOLHE a caixa dos botões
+     quando a tela aperta, e os botões (que têm tamanho fixo) vazam para fora dela — foi o
+     que o quarto botão, o olho, começou a fazer em celular. Quem cede espaço é o nome do
+     painel, que corta com reticências; os botões ficam sempre inteiros. */
+  .hdir { margin-left:auto; display:flex; flex:none; align-items:center; gap:10px; min-width:0; }
   .hchip { display:inline-flex; align-items:center; gap:7px; background:#f8fafc; border:1px solid #e8ecf1; padding:0 10px; height:26px; border-radius:8px; flex:none; font-size:11px; font-weight:500; color:#56606d; letter-spacing:.2px; transition:background .15s ease, border-color .15s ease; }
   .hchip:hover { background:#f2f5f8; border-color:#dde3ea; }
   .hver { font-variant-numeric:tabular-nums; }
   .hmeta { text-align:right; line-height:1.4; flex:none; }
   .hmeta .hdata { display:block; font-size:11px; font-weight:500; color:#56606d; }
   .hmeta .hupd { display:block; font-size:10.5px; font-weight:400; color:#6b7787; }
-  #hUser { display:none; align-items:center; gap:8px; background:none; border:0; cursor:pointer; padding:4px 8px; border-radius:8px; font:inherit; text-align:left; max-width:220px; transition:background .15s ease; }
+  #hUser { display:none; flex:none; align-items:center; gap:8px; background:none; border:0; cursor:pointer; padding:4px 8px; border-radius:8px; font:inherit; text-align:left; max-width:220px; transition:background .15s ease; }
   #hUser:hover { background:#f2f5f8; }
   #hUser:active { background:#eceff4; }
   #hUser .hu-av { width:28px; height:28px; border-radius:50%; background:#e3f0e8; color:#0c5a26; font-size:11px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; flex:none; letter-spacing:.3px; }
@@ -160,6 +166,24 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   @media (max-width:1020px){ .hver, .hmeta .hdata { display:none; } }
   @media (max-width:840px){ .hmeta, .hsep-r { display:none; } }
   @media (max-width:600px){ header { padding:0 12px; } header .htxt p { display:none; } #hUser .hu-tx, #hUser .hu-ch { display:none; } }
+  /* ==OLHO== O olho é o quarto botão do cabeçalho (noturno, olho, sino, pessoa). Em celular
+     de 360 px isso passava 6 px da tela e fazia o painel INTEIRO rolar de lado — em todas as
+     páginas, não só na Análise. Apertando os espaços entre os botões sobra folga de novo, e
+     ninguém perde botão. Medido em 320, 360 e 390 px pelo teste do cabeçalho. */
+  @media (max-width:600px){
+    header .hwrap { gap:8px; }
+    .hdir { gap:6px; }
+    #hSino { margin-left:2px; }
+  }
+  /* celular bem estreito (320 px, iPhone SE antigo): o risquinho decorativo sai e os espaços
+     encolhem mais um pouco. Continua com os quatro botões e o nome do painel. */
+  @media (max-width:380px){
+    .hsep { display:none; }
+    header .hwrap { gap:6px; }
+    header .logo img { height:26px; }
+  }
+  /* abaixo disso o nome sobraria em "P…", que não diz nada — o carrinho já identifica o painel */
+  @media (max-width:340px){ header .htxt { display:none; } }
   .tag { display:inline-flex; align-items:center; gap:6px; background:#ffffff22; border:1px solid #ffffff55; padding:3px 11px; border-radius:20px; font-size:11px; font-weight:600; letter-spacing:.3px; vertical-align:middle; }
   .tag .dot { width:7px; height:7px; border-radius:50%; background:#5df08a; animation:pulseDot 1.8s infinite; }
   @keyframes pulseDot { 0%{box-shadow:0 0 0 0 rgba(93,240,138,.6);} 70%{box-shadow:0 0 0 7px rgba(93,240,138,0);} 100%{box-shadow:0 0 0 0 rgba(93,240,138,0);} }
@@ -1641,13 +1665,50 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   @media (prefers-reduced-motion: no-preference){
     .nav-item, button, .hchip, .card, input, select, textarea{ transition: background-color .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease; }
   }
-  #hTema{ display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid #d7dee7; background:#fff; border-radius:9px; cursor:pointer; color:#56606d; padding:0; }
+  #hTema{ display:inline-flex; flex:none; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid #d7dee7; background:#fff; border-radius:9px; cursor:pointer; color:#56606d; padding:0; }
   #hTema:hover{ background:#f0f3f7; }
   #hTema svg{ width:17px; height:17px; transition:transform .3s ease; }
   #hTema:active svg{ transform:rotate(40deg) scale(.9); }
+  /* ==OLHO== MODO APRESENTAÇÃO. O dono mostra a tela para outros setores (gestão à vista)
+     e não quer expor faturamento, margem e lucro — mas quer discutir cancelamentos e
+     descontos. O olho borra os números sensíveis da tela toda, deixando o Controle
+     Operacional à vista. Fica do lado do modo noturno porque é a mesma família: ajuste de
+     COMO a tela aparece, não do que ela calcula.
+     IMPORTANTE, e está dito na tela: isto é APRESENTAÇÃO, não segurança. O número continua
+     no navegador de quem abriu a página; quem souber usar as ferramentas do navegador lê.
+     Serve para mostrar a tela a quem está do lado, não para proteger dado de quem tem o
+     login. Quem não pode ver um dado de verdade é barrado no banco, pela permissão. */
+  #hOlho{ display:inline-flex; flex:none; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid #d7dee7; background:#fff; border-radius:9px; cursor:pointer; color:#56606d; padding:0; }
+  #hOlho:hover{ background:#f0f3f7; }
+  #hOlho .olho-nao{ display:none; }
+  html.modo-discreto #hOlho{ background:#fdf3d9; border-color:#e8c98a; color:#9a6a00; }
+  html.modo-discreto #hOlho .olho-ver{ display:none; }
+  html.modo-discreto #hOlho .olho-nao{ display:block; }
+  /* O QUE SOME: os KPIs e indicadores do topo da Análise. A faixa Controle Operacional
+     fica de fora de propósito — é justamente o que ele quer mostrar. */
+  html.modo-discreto #page-analise #anKpis .kpi .v,
+  html.modo-discreto #page-analise #anKpis .an-trend,
+  html.modo-discreto #page-analise #anKpis .an-spark,
+  html.modo-discreto #page-analise #anIndicadores .kpi .v{
+    filter:blur(7px); user-select:none; pointer-events:none;
+  }
+  /* Os rótulos ficam nítidos de propósito: quem olha precisa entender que o número está
+     escondido, não que a tela quebrou. A única exceção é o percentual que vive dentro do
+     rótulo da margem ("MARGEM (33%)") — esse é valor, e some junto. */
+  html.modo-discreto #page-analise .an-sens{ filter:blur(6px); user-select:none; }
+  /* A bolinha "?" de cada indicador explica a conta CITANDO o valor ("faturamento do mês
+     até agora: R$ ..."). Passar o mouse nela com o modo ligado entregaria justamente o que
+     o olho escondeu, então ela sai de cena junto. */
+  html.modo-discreto #page-analise #anIndicadores .kpi-help{ display:none; }
+  /* uma tarja discreta, para ninguém esquecer ligado e achar que o painel quebrou */
+  html.modo-discreto #page-analise::before{
+    content:"Modo apresentação ligado — os valores do topo estão escondidos. Clique no olho para mostrar.";
+    display:block; background:#fdf3d9; color:#9a6a00; font-size:12px; font-weight:700;
+    padding:8px 14px; border-radius:10px; margin-bottom:12px;
+  }
   /* SINO DE AVISOS — o mesmo lugar e o mesmo tamanho do botão do modo noturno, para
      não parecer um enfeite colado no topo. Só aparece para quem tem algo esperando. */
-  #hSino{ position:relative; display:inline-flex; align-items:center; justify-content:center;
+  #hSino{ position:relative; display:inline-flex; flex:none; align-items:center; justify-content:center;
           width:32px; height:32px; border:1px solid #d7dee7; background:#fff; border-radius:9px;
           cursor:pointer; color:#56606d; padding:0; margin-left:8px; }
   #hSino:hover{ background:#f0f3f7; }
@@ -1700,6 +1761,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         </div>
         <span class="hchip hver" title="Versão do painel — gerada em ${geradoEm}">v${versaoPainel}</span>
         <button id="hTema" type="button" title="Modo noturno"></button>
+        <button id="hOlho" type="button" title="Esconder os valores para apresentar a tela" aria-pressed="false">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="olho-ver"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="olho-nao"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
         <button id="hSino" type="button" title="Avisos" style="display:none;">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <span id="hSinoN"></span>
@@ -1725,6 +1790,25 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       var esc=r.classList.contains("tema-escuro");
       try{ localStorage.setItem("ui_tema", esc?"escuro":"claro"); }catch(e){}
       try{ if(window.__temaMeta) window.__temaMeta.content=esc?"#0F1115":"#ffffff"; }catch(e){}
+      pinta();
+    };
+    pinta();
+  })();
+  /* ==OLHO== O botão do modo apresentação. Escolha guardada em ui_discreto, igual ao tema.
+     NÃO é segurança: o número continua no navegador de quem abriu a página. Serve para
+     mostrar a tela a quem está do lado — gestão à vista — sem expor faturamento. Quem não
+     pode ver um dado de verdade é barrado no banco, pela permissão. */
+  (function(){
+    var bt=document.getElementById("hOlho"); if(!bt) return;
+    function pinta(){
+      var on=document.documentElement.classList.contains("modo-discreto");
+      bt.setAttribute("aria-pressed", on?"true":"false");
+      bt.title = on ? "Mostrar os valores de novo" : "Esconder os valores para apresentar a tela";
+    }
+    try{ if(localStorage.getItem("ui_discreto")==="1") document.documentElement.classList.add("modo-discreto"); }catch(e){}
+    bt.onclick=function(){
+      var r=document.documentElement; r.classList.toggle("modo-discreto");
+      try{ localStorage.setItem("ui_discreto", r.classList.contains("modo-discreto")?"1":"0"); }catch(e){}
       pinta();
     };
     pinta();
@@ -5872,7 +5956,7 @@ function renderAnalise(){
     ["brl", fat, "Faturamento", _fatP, serieOf(_cur,"fat"), serieOf(_prev,"fat")],
     ["n", cup, "Vendas (cupons)", _cupP, serieOf(_cur,"cup"), serieOf(_prev,"cup")],
     ["brl", ticket, "Ticket médio", _tkP, serieOf(_cur,"tk"), serieOf(_prev,"tk")],
-    ["brl", marg, "Margem ("+margPerc.toFixed(0)+"%)", _margP, serieOf(_cur,"marg"), serieOf(_prev,"marg")],
+    ["brl", marg, 'Margem <span class="an-sens">('+margPerc.toFixed(0)+'%)</span>', _margP, serieOf(_cur,"marg"), serieOf(_prev,"marg")],
     ["n", qtd, "Itens vendidos", _qtdP, serieOf(_cur,"qtd"), serieOf(_prev,"qtd")]
   ];
   document.getElementById("anKpis").innerHTML = cards.map(function(a){
