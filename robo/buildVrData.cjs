@@ -62,6 +62,24 @@ const FCX_OCO_MESES=13;          // alcance do detalhe que vai pra nuvem (ver bl
 const FCX_OCO_DIAS=7;            // janela curta, mandada de 20 em 20 min
 const FCX_OCO_MS=20*60*1000;     // janela curta: 1x a cada 20 min (igual ao setor/dia)
 const FCX_OCO_FULL_MS=24*3600*1000; // varredura dos 13 meses: 1x por dia
+/* ==FCXLOG== O robo avisa a nuvem como foi a carga da frente de caixa.
+   POR QUE: a janela preta fecha na loja e leva o erro junto. Em 22/09/2026 a tabela ficou
+   vazia por quase uma hora e eu nao tinha como saber por que sem pedir foto do log pro dono.
+   Agora cada rodada deixa o recado em receb_eventos, e da pra ler de qualquer lugar.
+   Nunca derruba a rodada: falha aqui so imprime aviso. */
+function fcxAvisar(acao, motivo, detalhe){
+  return new Promise((res)=>{
+    if(!SB_KEY) return res();
+    const body=JSON.stringify([{ entidade:"frentecaixa_sync",
+      entidade_id:"00000000-0000-0000-0000-000000000000",
+      acao:acao, motivo:String(motivo).slice(0,300), detalhe:detalhe||null }]);
+    const req=https.request({host:SB_HOST,path:"/rest/v1/receb_eventos",method:"POST",
+      headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",
+               Prefer:"return=minimal","Content-Length":Buffer.byteLength(body)}},
+      r=>{ r.on("data",()=>{}); r.on("end",res); });
+    req.on("error",()=>res()); req.write(body); req.end();
+  });
+}
 function sbUpsertFcx(rows){return new Promise((res,rej)=>{const body=JSON.stringify(rows);const req=https.request({host:SB_HOST,path:"/rest/v1/frentecaixa_ocorrencias?on_conflict=tipo,venda_id,sequencia",method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal","Content-Length":Buffer.byteLength(body)}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>r.statusCode<300?res():rej(new Error("HTTP "+r.statusCode+" "+d)))});req.on("error",rej);req.write(body);req.end();});}
 
 /* ==FCXSQL-INICIO== As regras e as consultas da Frente de Caixa, num pedaco so.
@@ -908,7 +926,8 @@ async function timed(c,nome,sql,params){
     try{ ultimaFull=Number(fs.readFileSync(fcxFullF,"utf8"))||0; }catch(e){}
     const cheio=(Date.now()-ultimaFull >= FCX_OCO_FULL_MS);
     if(!SB_KEY){ console.log("Frente de caixa (nuvem): sem SUPABASE_SERVICE_KEY no .env - pulando."); }
-    else if(!cheio && Date.now()-ultima < FCX_OCO_MS){ console.log("Frente de caixa (nuvem): feito ha < 20 min - pulando."); }
+    else if(!cheio && Date.now()-ultima < FCX_OCO_MS){ console.log("Frente de caixa (nuvem): feito ha < 20 min - pulando.");
+      await fcxAvisar("pulou", "feito ha menos de 20 min", { minutos:Math.round((Date.now()-ultima)/60000) }); }
     else {
       const desde = cheio ? "CURRENT_DATE - INTERVAL '"+FCX_OCO_MESES+" months'"
                           : "CURRENT_DATE - INTERVAL '"+FCX_OCO_DIAS+" days'";
@@ -978,6 +997,11 @@ async function timed(c,nome,sql,params){
       try{ fs.writeFileSync(fcxMarkF, String(Date.now())); }catch(e){}
       if(cheio){ try{ fs.writeFileSync(fcxFullF, String(Date.now())); }catch(e){} }
       console.log("Frente de caixa (nuvem): "+ok+" ocorrencias ("+canc.length+" cancelamentos + "+desc.length+" descontos) dos ultimos "+janela+" enviadas.");
+      await fcxAvisar("ok", ok+" ocorrencias ("+canc.length+" cancelamentos + "+desc.length+" descontos) dos ultimos "+janela,
+                      { enviadas:ok, cancelamentos:canc.length, descontos:desc.length, janela:janela, cheio:cheio });
     }
-  }catch(e){ console.log("Frente de caixa (nuvem): erro ("+e.message+") - robo segue normal, tenta na proxima. (Se disser 404, a tabela frentecaixa_ocorrencias ainda nao foi criada no Supabase.)"); }
+  }catch(e){
+    console.log("Frente de caixa (nuvem): erro ("+e.message+") - robo segue normal, tenta na proxima. (Se disser 404, a tabela frentecaixa_ocorrencias ainda nao foi criada no Supabase.)");
+    try{ await fcxAvisar("com_erro", e.message, { erro:String(e.message).slice(0,500) }); }catch(e2){}
+  }
 })().catch(e=>{ console.log("ERRO: "+e.message); process.exit(1); });
