@@ -604,24 +604,60 @@ console.log("\n-- OS DEFEITOS QUE A REVISAO PEGOU --");
   eq("e o periodo nao e completo", mix.completo, false);
 }
 
-console.log("\n-- O ROBO NAO PODE GRAVAR GRUPO NO DESCONTO --");
+/* ==FCXDGRUPO== 22/09/2026, TARDE. Este bloco cobrava o contrato ANTIGO: "o desconto vai
+   com grupo NULO". Era verdade de manhã, porque a trava do banco EXIGIA nulo — e foi ela
+   que derrubou a sincronização às 13:45 quando tentei gravar "manual".
+   Agora a trava foi trocada (sql/frentecaixa_desconto_grupos.sql) e o desconto VAI com
+   grupo: é o que permite clicar nos cinco grupos da composição. O teste mudou de lado de
+   propósito, e continua cobrando a ORDEM, que é o que não pode ser esquecido. */
+console.log("\n-- O DESCONTO AGORA VAI COM GRUPO (e a ordem importa) --");
 {
-  /* A tabela na nuvem tem a trava frentecaixa_ocorrencias_grupo_ck: grupo TEM que ser nulo
-     quando tipo='desconto'. Gravar "manual" faz o PostgREST devolver 400 e recusar o LOTE
-     INTEIRO de 500 linhas — levando os cancelamentos junto, que viajam no mesmo lote. */
   const robo = fs.readFileSync(path.join(__dirname, "..", "buildVrData.cjs"), "utf8");
   const i = robo.indexOf('linhas.push({ tipo:"desconto"');
-  const trecho = robo.slice(i, i + 2200);   // a janela tem que passar do comentario
-  eq("a ocorrencia de desconto vai com grupo NULO", /grupo:\s*null/.test(trecho), true);
-  eq("e nao com um nome de grupo", /grupo:\s*"/.test(trecho), false);
+  const trecho = robo.slice(i, i + 2600);   // a janela tem que passar do comentario
+  eq("a ocorrencia de desconto leva o grupo", /grupo:\s*_g\b/.test(trecho), true);
+  eq("e NAO volta a mandar nulo", /grupo:\s*null/.test(trecho), false);
 
-  const sql = fs.readFileSync(path.join(__dirname, "..", "..", "sql", "frentecaixa_ocorrencias.sql"), "utf8");
-  eq("e a trava que cobra isso existe no SQL", sql.indexOf("frentecaixa_ocorrencias_grupo_ck") >= 0, true);
+  const mig = fs.readFileSync(path.join(__dirname, "..", "..", "sql", "frentecaixa_desconto_grupos.sql"), "utf8");
+  eq("existe o SQL que troca a trava", mig.indexOf("frentecaixa_ocorrencias_grupo_ck") >= 0, true);
+  eq("e ela aceita os cinco grupos do desconto",
+     ["manual","campanha","atacado","oferta","naoclass"].every(g => mig.indexOf("'"+g+"'") >= 0), true);
+  eq("aceita TAMBEM o nulo (para o robo velho nao quebrar enquanto nao sobe)",
+     /when 'desconto'\s+then grupo is null/.test(mig), true);
+  eq("e as 871 linhas antigas viram 'manual' no mesmo arquivo",
+     /update public\.frentecaixa_ocorrencias[\s\S]{0,200}set grupo = 'manual'/.test(mig), true);
+
+  /* o alerta e de prevencao de perdas: so no manual. 28 mil linhas de campanha nascendo
+     com "motivo nao informado" seria acusacao falsa em massa. */
+  eq("o alerta so e calculado no grupo manual", /if\(_g==="manual"\)\{/.test(trecho.length>0?robo:""), true);
+
+  /* a subconsulta por linha do codigo de barras nao passava: 300s no VR de verdade */
+  eq("o codigo de barras vem por JOIN, nao por subconsulta por linha",
+     robo.indexOf("WITH cod AS (") >= 0 && robo.indexOf("SELECT pa.codigobarras::text FROM public.produtoautomacao pa\n             WHERE") < 0, true);
+
+  /* um desconto ruim nao pode derrubar os 83 mil cancelamentos */
+  eq("cancelamento e desconto sobem em lotes SEPARADOS",
+     robo.indexOf("const soCanc=linhas.filter") >= 0 && robo.indexOf("const soDesc=linhas.filter") >= 0, true);
 
   /* e o CASE do robo so chama de manual quem TEM valor manual — senao a linha sumiria do
      total (nao entra em dn/dv nem nos grupos automaticos) */
   const caso = robo.slice(robo.indexOf("function fcxCaseGrupoDesc"), robo.indexOf("function fcxCaseGrupoDesc") + 1400);
   eq("manual exige a marca E o valor", /descontomanual,0\)=1[\s\S]{0,120}valordescontomanual,0\) <> 0[\s\S]{0,40}'manual'/.test(caso), true);
+}
+
+console.log("\n-- A JANELA DA NUVEM: os dois arquivos tem que dizer o mesmo numero --");
+{
+  /* O card sai do dado embutido (base inteira desde 2023); a lista sai da nuvem, que
+     guarda 13 meses. Se os dois numeros divergirem, a tela promete um detalhe que nao
+     existe — ou esconde um que existe. Estao em arquivos diferentes, e ninguem lembraria
+     de mudar os dois. */
+  const robo = fs.readFileSync(path.join(__dirname, "..", "buildVrData.cjs"), "utf8");
+  const mRobo = /FCX_OCO_MESES\s*=\s*(\d+)/.exec(robo);
+  const mPainel = /FCX_NUVEM_MESES\s*=\s*(\d+)/.exec(HTML);
+  eq("o robo diz quantos meses guarda", mRobo && mRobo[1], "13");
+  eq("e o painel diz o MESMO numero", mPainel && mPainel[1], mRobo && mRobo[1]);
+  eq("a tela avisa quando o periodo e mais antigo que a janela",
+     HTML.indexOf("O detalhamento guarda os últimos") >= 0, true);
 }
 
 console.log("\n-- O CONTRATO ENTRE O ROBO E O PAINEL --");

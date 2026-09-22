@@ -272,24 +272,54 @@ function fcxSqlCanc(desde){
    continua certa. Vai tambem a marca de cancelado, pra decidir a regra do
    FCX_DSC_IGNORA_CANCELADO olhando dado, sem precisar ler o VR de novo. */
 function fcxSqlDesc(desde){
+  // ==FCXDGRUPO== TODO desconto vai pra nuvem desde 22/09/2026, nao so o manual.
+  // O dono pediu para clicar nos cinco grupos da composicao; os automaticos abrem
+  // um RESUMO POR PRODUTO, que o banco soma (frentecaixa_desconto_produtos), e
+  // clicar num produto abre as ocorrencias DELE. Para isso a ocorrencia precisa
+  // estar la.
+  //
+  // O FILTRO E O GEMEO do fcxSqlDia. Se os dois divergirem, o card mostra um
+  // total e a lista mostra outro — e ninguem percebe, porque cada lado esta
+  // certo sozinho.
+  //
+  // O CODIGO DE BARRAS ERA UMA SUBCONSULTA POR LINHA, e isso NAO passava:
+  // medido em 22/09/2026 no VR da loja, 13 meses com o filtro aberto foi
+  // CANCELADO aos 300s (so agosto, aos 180s). A mesma consulta SEM ela roda os
+  // 13 meses em 10,2s com 77.209 linhas. A culpa e do `pa.id_produto::text =
+  // i.id_produto::text`: o ::text anula o indice, e ela roda uma vez POR LINHA.
+  // Agora e um LEFT JOIN com DISTINCT ON, o mesmo jeito do PROD_SYNC_SQL que o
+  // robo ja roda todo dia. Isso importa muito: se esta consulta estourar, o
+  // robo engole no catch e os 83 mil CANCELAMENTOS param junto, calados.
   return `
+    WITH cod AS (
+      SELECT DISTINCT ON (pa.id_produto) pa.id_produto, pa.codigobarras::text cb
+        FROM public.produtoautomacao pa
+       WHERE pa.codigobarras IS NOT NULL AND trim(pa.codigobarras::text) <> ''
+       ORDER BY pa.id_produto, pa.qtdembalagem
+    )
     SELECT to_char(i.data,'YYYY-MM-DD') d, to_char(cu.horainicio,'HH24:MI') h,
            cu.ecf pdv, cu.numerocupom nc, cu.id id_venda, i.sequencia seq,
            cu.matricula op_mat,
            COALESCE(cu.cancelado,false) ci, COALESCE(i.cancelado,false) ic,
            i.id_produto, p.descricaocompleta pr,
-           (SELECT pa.codigobarras::text FROM public.produtoautomacao pa
-             WHERE pa.id_produto::text = i.id_produto::text
-             ORDER BY pa.qtdembalagem LIMIT 1) cod,
+           cod.cb,
            i.quantidade q,
            (COALESCE(i.quantidade,0) * COALESCE(i.precovenda,0)) br,
-           COALESCE(i.valordescontomanual,0) dv,
-           i.id_tipodesconto mot
+           -- o manual soma pela coluna dele; o automatico, pelo desconto total.
+           -- Mesma regra do fcxSqlDia: quando a venda e cancelada o VR ZERA o
+           -- valordesconto mas MANTEM o valordescontomanual, e o desconto que a
+           -- loja concedeu nao pode sumir.
+           CASE WHEN COALESCE(i.descontomanual,0)=1 AND COALESCE(i.valordescontomanual,0) <> 0
+                THEN i.valordescontomanual ELSE COALESCE(i.valordesconto,0) END dv,
+           i.id_tipodesconto mot,
+           ${fcxCaseGrupoDesc()} g
       FROM pdv.vendaitem i
       JOIN pdv.venda cu ON cu.id = i.id_venda
       LEFT JOIN public.produto p ON p.id = i.id_produto
+      LEFT JOIN cod ON cod.id_produto::text = i.id_produto::text
      WHERE i.data >= ${desde}
-       AND COALESCE(i.valordescontomanual,0) <> 0`;
+       AND (COALESCE(i.valordescontomanual,0) <> 0
+            OR COALESCE(i.valordesconto,0) <> 0)`;
 }
 
 /* MONTA O FCX_DIA que vai embutido no painel: uma linha por dia, com ZERO onde o dia teve
@@ -1031,15 +1061,23 @@ async function timed(c,nome,sql,params){
         // total da ocorrencia (igual pro cancelamento), e "valor_desconto" e o que a tela
         // mostra ao lado do valor original. Sao o mesmo numero, com papeis diferentes.
         const _br=num(r.br), _dv=num(r.dv);
+        const _g=String(r.g||"naoclass");
+        // ==FCXDGRUPO== ALERTA SO NO MANUAL. Os dois alertas (acima de 50% do item e
+        // motivo nao informado) sao prevencao de PERDAS: alguem concedeu um desconto.
+        // Num desconto automatico ninguem concedeu nada e nao existe motivo — marcar
+        // "motivo nao informado" em 28 mil linhas de campanha seria acusacao falsa em
+        // massa, e ainda estragaria o alerta que hoje funciona.
         const _al=[];
-        if(_br>0 && (_dv/_br)>=FCX_LIMITE_ITEM) _al.push("desconto acima de "+Math.round(FCX_LIMITE_ITEM*100)+"% do item");
-        if(mot===null) _al.push("motivo nao informado");
+        if(_g==="manual"){
+          if(_br>0 && (_dv/_br)>=FCX_LIMITE_ITEM) _al.push("desconto acima de "+Math.round(FCX_LIMITE_ITEM*100)+"% do item");
+          if(mot===null) _al.push("motivo nao informado");
+        }
         linhas.push({ tipo:"desconto", venda_id:Number(r.id_venda), sequencia:Number(r.seq),
           data:r.d, hora:r.h||null, pdv:r.pdv==null?null:Number(r.pdv), cupom:r.nc==null?null:Number(r.nc),
           operador:nomeDe(r.op_mat), fiscal:null,
           produto:(r.pr||"").trim()||null,
           // o ".0" do NUMERIC vem junto quando o codigo vira texto; sai aqui
-          codigo_barras:r.cod==null?null:String(r.cod).trim().replace(/\.0+$/,"")||null,
+          codigo_barras:r.cb==null?null:String(r.cb).trim().replace(/\.0+$/,"")||null,
           quantidade:num3(r.q),
           // ==FCXDGRUPO== GRUPO FICA NULO, E TEM QUE FICAR. A tabela na nuvem tem a trava
           // frentecaixa_ocorrencias_grupo_ck, que EXIGE grupo IS NULL quando tipo='desconto'
@@ -1050,12 +1088,29 @@ async function timed(c,nome,sql,params){
           // o erro. Pego por revisao antes de a rodada estourar. Filtrar por grupo tambem
           // seria inutil: a lista ja e 100% manual, porque a consulta filtra
           // valordescontomanual <> 0.
-          motivo_id:mot, motivo_vr:(mot===null?null:(descMap[mot]||null)), grupo:null,
+          // ==FCXDGRUPO== O GRUPO AGORA VAI GRAVADO. A trava do banco foi trocada
+          // (sql/frentecaixa_desconto_grupos.sql) e passou a aceitar o grupo no
+          // desconto. ORDEM: aquele arquivo TEM que rodar antes deste codigo subir;
+          // com a trava velha o PostgREST devolve 400 (23514) e recusa o LOTE
+          // INTEIRO. Os grupos do cancelamento (erro/cliente/pagto/equip) sao outra
+          // coisa: aquela e a classificacao do MOTIVO do cancelamento.
+          motivo_id:mot, motivo_vr:(mot===null?(_g==="manual"?null:null):(descMap[mot]||null)), grupo:_g,
           valor:_dv, valor_bruto:_br, valor_desconto:_dv, alertas:_al,
           cupom_inteiro:!!r.ci, atualizado_em:agora });
       });
+      // ==FCXDGRUPO== OS DOIS TIPOS VAO EM LOTES SEPARADOS.
+      // O PostgREST recusa o LOTE INTEIRO quando UMA linha viola uma trava. Ate
+      // 22/09/2026 cancelamento e desconto viajavam juntos, e um desconto ruim
+      // derrubou os 83 mil cancelamentos junto — aconteceu as 13:45 daquele dia,
+      // com o grupo que a trava ainda nao aceitava. Agora o cancelamento sobe
+      // primeiro e sozinho: se o desconto quebrar, o cancelamento ja entrou, e o
+      // erro sobe do mesmo jeito (a marca de "feito" nao e escrita e a proxima
+      // rodada refaz a janela; o upsert por (tipo,venda_id,sequencia) nao duplica).
+      const soCanc=linhas.filter(x=>x.tipo==="cancelamento");
+      const soDesc=linhas.filter(x=>x.tipo==="desconto");
       let ok=0;
-      for(let i=0;i<linhas.length;i+=500){ await sbUpsertFcx(linhas.slice(i,i+500)); ok+=Math.min(500,linhas.length-i); }
+      for(let i=0;i<soCanc.length;i+=500){ await sbUpsertFcx(soCanc.slice(i,i+500)); ok+=Math.min(500,soCanc.length-i); }
+      for(let i=0;i<soDesc.length;i+=500){ await sbUpsertFcx(soDesc.slice(i,i+500)); ok+=Math.min(500,soDesc.length-i); }
       // So marca "feito" depois que TUDO subiu. Se estourou no meio, a proxima rodada
       // refaz a mesma janela - o upsert por (tipo,id_venda,sequencia) nao duplica nada.
       try{ fs.writeFileSync(fcxMarkF, String(Date.now())); }catch(e){}

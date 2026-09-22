@@ -54,8 +54,12 @@ console.log("\n=== Backup da fonte ===\n");
   // A varredura cobre as pastas que ela conhece. O risco que sobra é alguém criar uma
   // pasta NOVA com fonte dentro e ninguém lembrar de inscrevê-la. Então aqui eu faço o
   // caminho contrário: percorro o repositório procurando fonte, e cobro cobertura.
+  //  .backup/ guarda o RETRATO de antes de uma mudança grande (cópia dos mesmos
+  //  arquivos que já têm backup próprio, mais o vr-data.json). Mandar isso para o
+  //  GitHub seria duplicar fonte e engordar o repositório com um JSON de 6 MB a cada
+  //  mexida. É retrato local, para rollback na hora — não é fonte nova.
   const IGNORAR = new Set(["node_modules", "output", ".previa", ".git", "backups",
-                           "assets", "docs", ".vercel", "dist"]);
+                           ".backup", "assets", "docs", ".vercel", "dist"]);
   const EXT = [".sql", ".cjs", ".ts", ".bat", ".vbs"];
   const PASTAS = ["sql", "scripts", "scripts/testes", "email-templates",
                   "scripts/central", "src/config", "."];  // sql conta: tem destino próprio (privado)

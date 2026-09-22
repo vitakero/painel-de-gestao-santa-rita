@@ -2039,6 +2039,37 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-analise .fcx-tb col.k-val{width:80px;}
         #page-analise .fcx-tb col.k-preco{width:150px;}
         #page-analise .fcx-tb col.k-pct{width:60px;}
+        /* ==FCXDGRUPO== as colunas do RESUMO POR PRODUTO. "Ocorr." não cabe nos 34px
+           do PDV, e "% sobre a venda" precisa de folga para o cabeçalho não encostar
+           na coluna Venda — medido na prévia. */
+        #page-analise .fcx-tb col.k-cod{width:120px;}
+        #page-analise .fcx-tb col.k-ocor{width:56px;}
+        #page-analise .fcx-tb col.k-qtd{width:60px;}
+        #page-analise .fcx-tb col.k-vend{width:108px;}
+        #page-analise .fcx-tb col.k-pctl{width:120px;}
+        #page-analise .fcx-tb col.k-med{width:92px;}
+        #page-analise .fcx-tb col.k-pctg{width:84px;}
+        /* o código de barras é número: fonte tabular e discreto, para o olho ir no nome */
+        #page-analise .fcx-tb .tb-cod{font-variant-numeric:tabular-nums;font-size:11px;
+          color:#a9b4c0;letter-spacing:.2px;}
+        /* número secundário (venda, %, desc./ocorr.) — o desconto é que fica forte */
+        #page-analise .fcx-tb .tb-p{font-size:11.5px;font-weight:500;color:#6b7787;}
+        /* LINHA DE PRODUTO CLICÁVEL: o chevron só acende no mouse, para não poluir uma
+           tabela que já tem nove colunas. */
+        #page-analise .fcx-tb .fcx-lin-p{cursor:pointer;}
+        #page-analise .fcx-tb .fcx-lin-p:hover td{background:#f7f9fb;}
+        #page-analise .fcx-tb .tb-ch{color:#cdd6e0;font-weight:700;margin-right:6px;
+          transition:color .15s ease;}
+        #page-analise .fcx-tb .fcx-lin-p:hover .tb-ch{color:#157a35;}
+        /* o código de barras ao lado do título, no detalhamento de um produto.
+           Sem escopo de #page-analise: a janela mora fora dela, presa ao body. */
+        .fcx-pt-tit .fcx-tit-cod{display:inline-block;font-size:12px;font-weight:500;
+          color:#a9b4c0;letter-spacing:.3px;margin-left:10px;vertical-align:1px;}
+        /* "Para revisar" clicável: a mesma caixa do resumo, que responde ao mouse */
+        .fcx-res .fcx-res-clic{cursor:pointer;border-radius:8px;padding:2px 10px;margin:-2px -6px;
+          transition:background .15s ease;}
+        .fcx-res .fcx-res-clic:hover{background:#fdf3d9;}
+        .fcx-res .fcx-res-clic.on{background:#fdf3d9;}
         .fcx-tag{display:inline-block;vertical-align:top;max-width:100%;font-size:9.5px;font-weight:700;padding:2px 5px;border-radius:5px;background:#eef2f7;color:#6b7787;letter-spacing:-.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .fcx-tag-vr{background:#eef2f7;color:#6b7787;}
         .fcx-tag-al{background:#fdf3d9;color:#9a6a00;}
@@ -2051,10 +2082,35 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
              ("1.755R$ 1.759,58"). Uma folga de 10px separa, e vale para a composicao
              do cancelamento tambem, que tem o mesmo aperto com numero de 4 digitos. */
           #page-analise .fcx-tab th.r,#page-analise .fcx-tab td.r{padding-left:10px;}
+          /* ==FCXDGRUPO== A FAIXA DOS 5 KPIs EMPURRAVA A PÁGINA INTEIRA. Ela nasce com
+             grid-template-columns:repeat(5,1fr) escrito no próprio elemento, e no celular
+             as cinco colunas somam ~782px: a página da Análise ficava com 850px de largura
+             num aparelho de 390. Isso é anterior a esta mudança — o modal de Cancelamentos
+             já abria com 850px e metade das colunas fora da tela, porque um position:fixed
+             se estica junto com a página quando ela cresce assim.
+             Em duas colunas tudo cabe, sem rolagem de lado nenhuma. O !important é porque
+             a regra original mora no atributo style do elemento. */
+          /* minmax(0,1fr) e NAO 1fr: "1fr" nao deixa a coluna ficar menor que o
+             min-content, e "R$ 4.919.742,44" tem 205px de min-content — a faixa
+             continuava passando da tela por causa de UM cartao. Com minmax(0,...) a
+             coluna manda, e o numero acompanha. */
+          #page-analise #anKpis{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+          #page-analise #anKpis .kpi .v{font-size:19px;letter-spacing:-.4px;}
+          #page-analise #anKpis .an-top{gap:5px;}
+          #page-analise #anKpis .an-spark{padding-top:6px;}
+          #page-analise #anKpis .an-spark svg{height:24px;}
           #fcxPainelBg{padding:0;align-items:stretch;}
           #fcxPainelCx{max-width:none;max-height:none;height:100%;border-radius:0;}
           .fcx-pt,.fcx-res,.fcx-fer,.fcx-lst,.fcx-pe{padding-left:14px;padding-right:14px;}
-          .fcx-res{gap:16px;}
+          /* ==FCXDGRUPO== O RESUMO TEM QUE QUEBRAR LINHA. Com quatro números ele cabia
+             numa fila; o resumo por produto tem seis (produtos, ocorrências, venda,
+             desconto, % sobre a venda, participação) e a fila passava a ser mais larga
+             que o celular. Como o resumo é irmão da tabela dentro da mesma janela, ele
+             alargava a JANELA INTEIRA e metade das colunas saía da tela — dava para ver
+             "OCORR. 143" e não dava para ver "QTD 152". Sem rolagem de lado: quebra. */
+          .fcx-res{gap:14px 20px;flex-wrap:wrap;}
+          .fcx-res>div{min-width:calc(50% - 20px);}
+          .fcx-res>div[style]{border-left:0!important;padding-left:0!important;}
           .fcx-res div b{font-size:15px;}
           .fcx-fer{flex-wrap:wrap;}
           .fcx-fer input,.fcx-fer select{font-size:14px;padding:9px 11px;}
@@ -2070,6 +2126,35 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           #page-analise .fcx-tb tbody td{border:none;padding:1px 0;white-space:normal;display:inline;max-width:none;overflow:visible;font-size:11.5px;}
           #page-analise .fcx-tb tbody td.tb-prod{display:block;padding-right:96px;font-size:13px;}
           #page-analise .fcx-tb tbody td.tb-v{position:absolute;top:10px;right:0;display:block;font-size:14px;text-align:right;}
+          /* ==FCXDGRUPO== NO CELULAR a linha vira CARTÃO. O painel já colava o valor no
+             canto; aqui os outros números ganham rótulo, porque no resumo por produto são
+             seis números parecidos e sem rótulo viram uma fileira de dígitos. Na lista de
+             ocorrências isso não é preciso: data, PDV e operador se explicam sozinhos. */
+          #page-analise .fcx-tb tbody td[data-r]:not(.tb-fim){
+            position:static!important;display:inline-block!important;width:auto!important;
+            min-width:46%;box-sizing:border-box;padding:4px 10px 4px 0!important;
+            text-align:left!important;vertical-align:top!important;font-size:12.5px!important;
+            font-weight:600!important;color:#33404f!important;}
+          #page-analise .fcx-tb tbody td[data-r]:not(.tb-fim)::after{content:""!important;}
+          #page-analise .fcx-tb tbody td[data-r]:not(.tb-fim)::before{content:attr(data-r);
+            display:block;font-size:9px;font-weight:700;color:#a9b4c0;text-transform:uppercase;
+            letter-spacing:.4px;margin-bottom:1px;}
+          /* o valor do canto sozinho não diz o que é: "14/09 09:10 ... R$ 5,90" poderia ser
+             o preço. O rótulo minúsculo em cima resolve. */
+          #page-analise .fcx-tb tbody td.tb-fim::before{content:"Desconto";display:block;
+            font-size:9px;font-weight:700;color:#a9b4c0;text-transform:uppercase;
+            letter-spacing:.4px;margin-bottom:1px;text-align:right;}
+          /* O CÓDIGO DE BARRAS SEMPRE EM LINHA PRÓPRIA, mesmo quando o nome quebra em duas
+             linhas — foi o que o dono pegou na prévia 2. E sem o separador " · " que o
+             painel põe nas outras células. */
+          #page-analise .fcx-tb tbody td.tb-cod{display:block!important;width:100%!important;
+            position:static!important;text-align:left!important;padding:0 0 6px!important;
+            font-size:10.5px!important;color:#a9b4c0!important;}
+          #page-analise .fcx-tb tbody td.tb-cod::before,
+          #page-analise .fcx-tb tbody td.tb-cod::after{content:""!important;}
+          #page-analise .fcx-tb tbody td.tb-prod{padding-right:84px!important;}
+          /* o X do canto: o título e a trilha precisam de folga para não passar por baixo */
+          .fcx-pt{padding-right:58px;}
           #page-analise .fcx-tb tbody td.tb-num{text-align:left;}
           #page-analise .fcx-tb tbody td:not(.tb-prod):not(.tb-v):not(:empty)::after{content:" · ";color:#cdd6e0;}
           #page-analise .fcx-tb tbody td.tb-fim::after{content:"";}
@@ -6350,10 +6435,18 @@ function fcxPct(v, casas){
    casas vira "0,00%" — e 0,00% ao lado de "6 descontos" parece que nao houve desconto nenhum.
    O NUMERO NAO MUDA. Quem compara com a referencia de 0,30% continua recebendo o valor cheio
    (fcxStatus recebe desc.pct, nunca este texto). Aqui e so apresentacao. */
-function fcxPctDesc(v){
+function fcxPctDesc(v, casas){
   if(v===null || v===undefined) return "—";
   if(v > 0 && v < 0.01) return "&lt; 0,01%";          /* tem desconto, mas nao chega a 0,01% */
-  return Number(v).toFixed(2).replace(".",",")+"%";   /* zero de verdade cai aqui: "0,00%" */
+  return Number(v).toFixed(casas===undefined?2:casas).replace(".",",")+"%";   /* zero de verdade cai aqui: "0,00%" */
+}
+/* ==FCXDGRUPO== Quantidade tem item por PESO: 186 das 77 mil linhas vêm com casas
+   (quiabo, carne, batata doce). Inteiro sai sem casa; fracionado sai com três, para
+   ninguém ler "1" onde são 1,195 kg. */
+function fcxQtd(v){
+  var n = Number(v)||0;
+  if(Math.abs(n - Math.round(n)) < 0.0005) return fcxNum(n);
+  return n.toFixed(3).replace(".",",");
 }
 function fcxDataCurta(s){ var p=String(s).split("-"); return p[2]+"/"+p[1]; }
 
@@ -6429,18 +6522,11 @@ function fcxAbrir(qual){
   for(var i=0;i<lins.length;i++){
     lins[i].addEventListener("click", (function(l){
       return function(){
-        /* ==FCXDGRUPO== So o grupo MANUAL tem lista de ocorrencias na nuvem — os outros
-           tres sao preco (atacado, campanha, oferta), nao lancamento de caixa, e nao vao
-           pra nuvem. Clicar neles nao pode abrir uma lista vazia dizendo "nada encontrado":
-           isso mente. A linha diz o porque, na propria composicao. */
-        if(tipo==="desconto" && l.getAttribute("data-g")!=="manual") return;
-        /* ==FCXDGRUPO== NO DESCONTO O GRUPO VAI NULO DE PROPOSITO. A lista da nuvem só tem
-           desconto manual (a consulta do robô filtra valordescontomanual <> 0), então o
-           filtro seria redundante — e seria PERIGOSO: as ocorrências que já estão gravadas
-           foram gravadas com grupo NULO, e a função da nuvem compara "grupo = p_grupo".
-           Mandar "manual" devolveria lista VAZIA até a loja reenviar os 13 meses, e uma
-           lista vazia se parece com "não há nada", não com "ainda não sincronizou". */
-        fcxAbrirPainel(tipo, tipo==="desconto" ? null : l.getAttribute("data-g"));
+        /* ==FCXDGRUPO== OS CINCO GRUPOS ABREM, desde 22/09/2026. Campanha, atacado e
+           oferta abrem o RESUMO POR PRODUTO (quem decide é o fcxAbrirPainel); manual e
+           não classificado abrem a lista de ocorrências. O grupo vai no pedido à nuvem:
+           é isso que faz o total do cabeçalho ser o do grupo, e não o do tipo inteiro. */
+        fcxAbrirPainel(tipo, l.getAttribute("data-g"));
       };
     })(lins[i]));
   }
@@ -6455,8 +6541,38 @@ function fcxAbrir(qual){
    função frentecaixa_ocorrencias_listar, que devolve a mesma ocorrência com o nome em branco
    para quem não pode — sem esconder valor nem motivo. Um select("*") aqui voltaria erro de
    permissão e o card ficaria vazio sem explicar por quê. */
-function fcxBuscarOcorrencias(de, ate, tipo, pronto){
-  var chave = de+"|"+ate+"|"+(tipo||"tudo");
+function fcxErroNuvem(m){
+  if(m.indexOf("acesso") >= 0 || m.indexOf("Entre no painel") >= 0)
+    return "Seu acesso não inclui o detalhamento da Frente de Caixa. Fale com o administrador.";
+  if(m.indexOf("does not exist") >= 0 || m.indexOf("schema cache") >= 0)
+    return "O detalhamento ainda não foi ligado na nuvem (falta rodar o SQL).";
+  return "Não consegui buscar o detalhamento: " + (m || "erro na nuvem");
+}
+
+/* ==FCXDGRUPO== O RESUMO POR PRODUTO, somado NO BANCO.
+   ATACADO tem 47 mil ocorrências em 13 meses para 12 produtos. Baixar as 47 mil
+   para agrupar no navegador seria pesado e, pior, a nuvem corta em 5.000 — a tela
+   mostraria uma fatia achando que é tudo. Somando no banco, chegam 12 linhas. */
+function fcxBuscarProdutos(de, ate, grupo, pronto){
+  var chave = "P|"+de+"|"+ate+"|"+(grupo||"tudo");
+  if(FCX_OCO_CACHE[chave]) return pronto(null, FCX_OCO_CACHE[chave]);
+  var sb = window.__SB || null;
+  if(!sb) return pronto("Ainda estou entrando na sua conta. Tente de novo em instantes.", null);
+  if(window.__PERFIL == null) return pronto("Carregando seu acesso… tente de novo em instantes.", null);
+  sb.rpc("frentecaixa_desconto_produtos", { p_de:de, p_ate:ate, p_grupo:(grupo||null) })
+    .then(function(r){
+      if(r && r.error) return pronto(fcxErroNuvem(String((r.error && r.error.message) || "")), null);
+      var linhas = (r && r.data) ? r.data : [];
+      FCX_OCO_CACHE[chave] = linhas;
+      pronto(null, linhas);
+    }, function(){ pronto("Não consegui buscar o resumo agora. Tente de novo.", null); });
+}
+
+function fcxBuscarOcorrencias(de, ate, tipo, grupo, produto, pronto){
+  /* ==FCXDGRUPO== O GRUPO E O PRODUTO ENTRAM NA CHAVE. Sem isso o cache de um
+     grupo seria servido para outro — e, pior, a lista de um produto apareceria
+     dentro de outro produto. */
+  var chave = de+"|"+ate+"|"+(tipo||"tudo")+"|"+(grupo||"-")+"|"+(produto||"-");
   if(FCX_OCO_CACHE[chave]) return pronto(null, FCX_OCO_CACHE[chave]);
   /* A conexão com a nuvem mora em window.__SB (criada lá embaixo, dentro do bloco do login).
      A variável SB solta NÃO existe aqui fora — foi o que me mordeu em 22/09/2026: o clique
@@ -6464,21 +6580,22 @@ function fcxBuscarOcorrencias(de, ate, tipo, pronto){
   var sb = window.__SB || null;
   if(!sb) return pronto("Ainda estou entrando na sua conta. Tente de novo em instantes.", null);
   if(window.__PERFIL == null) return pronto("Carregando seu acesso… tente de novo em instantes.", null);
-  /* PEDE SO O TIPO QUE O CARD ABRIU. A nuvem devolve no maximo 1.000 linhas, e num periodo
+  /* PEDE SO O TIPO QUE O CARD ABRIU. A nuvem devolve no maximo 5.000 linhas, e num periodo
      grande os cancelamentos (que sao 100x mais numerosos) engoliam a cota inteira: o
      detalhe de Descontos de marco/2026 mostrava 4 dos 68. Separando o pedido, cada card
-     recebe a sua cota. */
-  sb.rpc("frentecaixa_ocorrencias_listar", { p_de:de, p_ate:ate, p_tipo:(tipo||null), p_grupo:null, p_limite:5000 })
+     recebe a sua cota.
+
+     ==FCXDGRUPO== E O GRUPO VAI JUNTO, desde 22/09/2026. Antes a tela pedia TODAS as
+     ocorrências do tipo e separava o grupo no navegador. Com poucas linhas ninguém
+     percebia; medido na nuvem, março/2026 tem 5.041 cancelamentos — acima do teto. A
+     lista de "erro de operação" chegava cortada ANTES de separar o grupo, e o rodapé
+     comparava o que mostrou com o total do TIPO, não do grupo. Pedindo por grupo, o
+     teto quase nunca é alcançado e os totais que a função devolve já são os do grupo. */
+  sb.rpc("frentecaixa_ocorrencias_listar",
+         { p_de:de, p_ate:ate, p_tipo:(tipo||null), p_grupo:(grupo||null),
+           p_limite:5000, p_produto:(produto||null) })
     .then(function(r){
-      if(r && r.error){
-        var m = String((r.error && r.error.message) || "");
-        /* o guard da função responde com texto próprio quando é falta de acesso */
-        if(m.indexOf("acesso") >= 0 || m.indexOf("Entre no painel") >= 0)
-          return pronto("Seu acesso não inclui o detalhamento da Frente de Caixa. Fale com o administrador.", null);
-        if(m.indexOf("does not exist") >= 0 || m.indexOf("schema cache") >= 0)
-          return pronto("O detalhamento ainda não foi ligado na nuvem (falta rodar o SQL).", null);
-        return pronto("Não consegui buscar o detalhamento: " + (m || "erro na nuvem"), null);
-      }
+      if(r && r.error) return pronto(fcxErroNuvem(String((r.error && r.error.message) || "")), null);
       var linhas = (r && r.data) ? r.data : [];
       FCX_OCO_CACHE[chave] = linhas;
       pronto(null, linhas);
@@ -6568,7 +6685,7 @@ function fcxDetDesconto(){
         '<td class="r">'+fcxNum(resumo.manual.n)+'</td>'+
         '<td class="r">'+fcxBrl(resumo.manual.v)+'</td>'+
         '<td class="r">'+fcxPctDesc(resumo.pctManual)+'</td></tr></tbody></table>'+
-      '<div class="fcx-ph2">Clique na linha para ver as ocorrências manuais</div></div>';
+      '<div class="fcx-ph2">Clique na linha para ver as ocorrências manuais</div></div>';   /* os grupos automáticos ainda não têm número neste período */
   }
 
   var barra = '<div class="fcx-barra">';
@@ -6580,8 +6697,8 @@ function fcxDetDesconto(){
 
   var linhasTab = "";
   for(var j=0;j<FCX_DORDEM.length;j++){
-    var k = FCX_DORDEM[j], gr = resumo.grupos[k], vazio = (gr.n===0), abre = (k==="manual");
-    linhasTab += '<tr class="fcx-lin'+(vazio?" fcx-zero":"")+(abre?"":" fcx-semlista")+'" data-g="'+k+'">'+
+    var k = FCX_DORDEM[j], gr = resumo.grupos[k], vazio = (gr.n===0);
+    linhasTab += '<tr class="fcx-lin'+(vazio?" fcx-zero":"")+'" data-g="'+k+'">'+
       '<td><i class="fcx-bolinha" style="background:'+FCX_DCOR[k]+'"></i>'+FCX_DNOME[k]+'</td>'+
       '<td class="r">'+fcxNum(gr.n)+'</td>'+
       '<td class="r">'+fcxBrl(gr.v)+'</td>'+
@@ -6617,9 +6734,9 @@ function fcxDetDesconto(){
     '<div class="fcx-concilia">'+aviso+'</div>'+
     (resumo.temNaoClassificado
       ? '<div class="fcx-vazio">Há desconto do VR que ainda não tem grupo. Me avise para eu classificar.</div>' : '')+
-    '<div class="fcx-ph2">Clique em "Manual (no caixa)" para ver as ocorrências<span class="fcx-so">'+
-      'é o único grupo com lista: atacado, campanha e oferta são preço, não passam pela mão de '+
-      'ninguém no caixa' +
+    '<div class="fcx-ph2">Clique num grupo para ver o que tem dentro<span class="fcx-so">'+
+      'manual abre as ocorrências, com operador e motivo; campanha, atacado e oferta abrem '+
+      'os produtos — e cada produto abre as ocorrências dele'+
       (resumo.temNaoClassificado ? ' — e "não classificado" é marca do VR que eu ainda não conheço' : '')+
       '</span></div></div>';
 }
@@ -6646,7 +6763,30 @@ document.addEventListener("keydown",function(e){
      document.getElementById("fcxPainelBg").classList.contains("show")) fcxFecharPainel();
 });
 
-function fcxAbrirPainel(tipo, grupo){
+/* ==FCXDGRUPO== Os grupos de desconto que NÃO passam pela mão de ninguém no caixa.
+   Neles a unidade de leitura é o PRODUTO, não a ocorrência: abrem o resumo por
+   produto, e cada produto abre as ocorrências dele. Manual e Não classificado
+   abrem direto a lista — no manual porque tem gente e motivo por trás, no não
+   classificado porque o objetivo é descobrir de onde a linha veio. */
+var FCX_DAUTO = ["campanha", "atacado", "oferta"];
+
+/* ==FCXDGRUPO== QUANTO A NUVEM GUARDA. Tem que ser IGUAL ao FCX_OCO_MESES do robô
+   (scripts/buildVrData.cjs). O card sai do dado embutido, que cobre a base inteira
+   desde 2023; a lista sai da nuvem, que guarda 13 meses. Num período mais antigo o
+   card mostra número e a lista vem vazia — e dizer "ainda não chegou" ali seria
+   mentira, porque aquele detalhe não vai chegar nunca: está fora da janela.
+   Uma trava em scripts/testes/frente-caixa.test.cjs cobra que os dois números sejam
+   o mesmo, porque estão em arquivos diferentes e ninguém lembraria de mudar os dois. */
+var FCX_NUVEM_MESES = 13;
+function fcxForaDaJanela(de){
+  var d = new Date();
+  d.setMonth(d.getMonth() - FCX_NUVEM_MESES);
+  var limite = d.toISOString().slice(0,10);
+  return String(de) < limite ? limite : null;
+}
+function fcxEhAuto(tipo, grupo){ return tipo==="desconto" && FCX_DAUTO.indexOf(grupo)>=0; }
+
+function fcxAbrirPainel(tipo, grupo, produto, totalGrupo){
   var bg=document.getElementById("fcxPainelBg"), cx=document.getElementById("fcxPainelCx");
   if(!bg||!cx) return;
   bg.classList.add("show");
@@ -6654,17 +6794,47 @@ function fcxAbrirPainel(tipo, grupo){
   bg.onclick=function(e){ if(e.target===bg) fcxFecharPainel(); };
   cx.innerHTML='<div class="fcx-pt"><div class="fcx-pt-tit">Buscando…</div></div>';
   var pr=fcxPeriodo(), de=pr[0], ate=pr[1];
-  fcxBuscarOcorrencias(de, ate, tipo, function(erro, linhas){
-    if(erro){
-      cx.innerHTML='<button class="fcx-pt-x" onclick="fcxFecharPainel()">&times;</button>'+
-        '<div class="fcx-pt"><div class="fcx-pt-tit">Detalhamento</div></div>'+
-        '<div class="fcx-lst"><div class="fcx-vazio">'+erro+'</div></div>';
-      return;
-    }
-    FCX_PN={ tipo:tipo, grupo:grupo||null, linhas:linhas, de:de, ate:ate,
-             busca:"", fOp:"", fPdv:"", fMot:"", fTipo:"", fAlerta:"", ordem:"valor" };
+  var erroNaTela=function(erro){
+    cx.innerHTML='<button class="fcx-pt-x" onclick="fcxFecharPainel()">&times;</button>'+
+      '<div class="fcx-pt"><div class="fcx-pt-tit">Detalhamento</div></div>'+
+      '<div class="fcx-lst"><div class="fcx-vazio">'+erro+'</div></div>';
+  };
+  var base={ tipo:tipo, grupo:grupo||null, produto:produto||null, de:de, ate:ate,
+             totalGrupo:(typeof totalGrupo==="number" ? totalGrupo : null),
+             busca:"", fOp:"", fPdv:"", fMot:"", fTipo:"", fAlerta:"", ordem:"valor",
+             ordemP:"desconto" };
+
+  /* grupo automático SEM produto escolhido -> o resumo por produto */
+  if(fcxEhAuto(tipo, grupo) && !produto){
+    return fcxBuscarProdutos(de, ate, grupo, function(erro, produtos){
+      if(erro) return erroNaTela(erro);
+      FCX_PN = Object.assign({}, base, { vista:"produtos", produtos:produtos, linhas:[] });
+      fcxDesenharPainel();
+    });
+  }
+  fcxBuscarOcorrencias(de, ate, tipo, grupo, produto, function(erro, linhas){
+    if(erro) return erroNaTela(erro);
+    FCX_PN = Object.assign({}, base, {
+      vista: produto ? "produto" : "ocorrencias", linhas:linhas, produtos:[] });
     fcxDesenharPainel();
   });
+}
+
+/* o resumo por produto depois da busca e da ordenação */
+function fcxProdutosFiltrados(){
+  var P=FCX_PN, l=(P.produtos||[]).slice();
+  var b=(P.busca||"").trim().toLowerCase();
+  if(b) l=l.filter(function(x){
+    return String(x.produto||"").toLowerCase().indexOf(b)>=0
+        || String(x.codigo_barras||"").indexOf(b)>=0;
+  });
+  var d=function(x){ return Number(x.valor_desconto)||0; };
+  var br=function(x){ return Number(x.valor_bruto)||0; };
+  if(P.ordemP==="desconto")      l.sort(function(a,c){ return d(c)-d(a); });
+  else if(P.ordemP==="pct")      l.sort(function(a,c){ return (br(c)?d(c)/br(c):0)-(br(a)?d(a)/br(a):0); });
+  else if(P.ordemP==="venda")    l.sort(function(a,c){ return br(c)-br(a); });
+  else if(P.ordemP==="ocorr")    l.sort(function(a,c){ return (Number(c.ocorrencias)||0)-(Number(a.ocorrencias)||0); });
+  return l;
 }
 
 /* o que sobra depois da busca e dos filtros — em um lugar so, pra lista e contador nunca
@@ -6719,9 +6889,127 @@ function fcxOpcoes(campo, rotulo){
   return h+"</select>";
 }
 
+/* ==FCXDGRUPO== O RESUMO POR PRODUTO (campanha, atacado, oferta).
+   A casca é a MESMA da lista de ocorrências — trilha, título, período, os cinco
+   números do topo, barra de ferramentas, tabela compacta, rodapé. O que muda é o
+   conteúdo, porque a pergunta é outra: ali é "quem fez", aqui é "qual produto".
+   Os totais do cabeçalho vêm da própria função da nuvem, somados na mesma
+   varredura dos produtos — é o que garante que o topo e a soma da tabela nasçam
+   iguais em vez de serem duas contas parecidas. */
+function fcxDesenharProdutos(){
+  var P=FCX_PN, cx=document.getElementById("fcxPainelCx");
+  if(!P||!cx) return;
+  var l=fcxProdutosFiltrados();
+  var t=(P.produtos && P.produtos.length) ? P.produtos[0] : null;
+  var tProd = t ? Number(t.total_produtos)||0 : 0;
+  var tOcor = t ? Number(t.total_ocorrencias)||0 : 0;
+  var tBrut = t ? Number(t.total_bruto)||0 : 0;
+  var tDesc = t ? Number(t.total_desconto)||0 : 0;
+  var nomeG = FCX_DNOME[P.grupo]||"";
+
+  var res='<div><span>Produtos</span><b>'+fcxNum(tProd)+'</b></div>'+
+          '<div><span>Ocorrências</span><b>'+fcxNum(tOcor)+'</b></div>'+
+          '<div><span>Venda relacionada</span><b>'+fcxBrl(tBrut)+'</b></div>'+
+          '<div><span>Desconto</span><b>'+fcxBrl(tDesc)+'</b></div>'+
+          '<div style="border-left:1px solid #eef1f5;padding-left:26px;"><span>Sobre essa venda</span>'+
+            '<b>'+fcxPctDesc(tBrut>0?tDesc/tBrut*100:null,1)+'</b></div>';
+
+  var fer='<input type="search" placeholder="Buscar produto ou código de barras…" value="'+
+          String(P.busca).replace(/"/g,"&quot;")+'" data-fcx-b>'+
+          '<select data-fcx-op>'+
+            '<option value="desconto"'+(P.ordemP==="desconto"?" selected":"")+'>Maior desconto</option>'+
+            '<option value="pct"'+(P.ordemP==="pct"?" selected":"")+'>Maior % de desconto</option>'+
+            '<option value="venda"'+(P.ordemP==="venda"?" selected":"")+'>Maior venda</option>'+
+            '<option value="ocorr"'+(P.ordemP==="ocorr"?" selected":"")+'>Mais ocorrências</option>'+
+          '</select>'+
+          '<span class="fcx-cont">'+fcxNum(l.length)+(l.length===1?" produto":" produtos")+'</span>';
+
+  var esc2=function(t2){ return String(t2==null?"":t2).replace(/"/g,"&quot;").replace(/</g,"&lt;"); };
+  var corpo="";
+  for(var i=0;i<l.length;i++){
+    var x=l[i], n=Number(x.ocorrencias)||0, br=Number(x.valor_bruto)||0, d=Number(x.valor_desconto)||0;
+    corpo+='<tr class="fcx-lin-p" data-fcx-prod="'+esc2(x.produto)+'">'+
+      '<td class="tb-prod" title="'+esc2(x.produto)+'"><span class="tb-ch">&rsaquo;</span>'+(x.produto||"—")+'</td>'+
+      '<td class="tb-cod">'+(x.codigo_barras||"—")+'</td>'+
+      '<td class="tb-num" data-r="Ocorr.">'+fcxNum(n)+'</td>'+
+      '<td class="tb-num" data-r="Qtd">'+fcxQtd(x.quantidade)+'</td>'+
+      '<td class="tb-v tb-p" data-r="Venda">'+fcxBrl(br)+'</td>'+
+      '<td class="tb-v tb-p" data-r="% sobre a venda">'+fcxPctDesc(br>0?d/br*100:null,1)+'</td>'+
+      /* DESC./OCORR. = desconto do produto ÷ ocorrências. O nome diz a conta de
+         propósito: "média" sozinho não dizia se era por ocorrência ou por unidade. */
+      '<td class="tb-v tb-p" data-r="Desc./ocorr.">'+fcxBrl(n>0?d/n:0)+'</td>'+
+      '<td class="tb-v tb-p" data-r="% do grupo">'+fcxPctDesc(tDesc>0?d/tDesc*100:null,1)+'</td>'+
+      '<td class="tb-v tb-fim" data-r="Desconto">'+fcxBrl(d)+'</td></tr>';
+  }
+  /* ==FCXDGRUPO== VAZIO NÃO É "NÃO HÁ NADA". A composição sai do FCX_DIA, que vem
+     embutido no painel; a lista de produtos sai da nuvem, que o robô enche uma vez por
+     dia. Enquanto a varredura dos 13 meses não roda, o grupo tem número no card e zero
+     produto aqui. Dizer "nenhum desconto deste grupo" seria mentira — e é a mesma
+     mentira que a gente passou o dia consertando. */
+  var somaD=fcxSomaDias(typeof FCX_DIA!=="undefined"?FCX_DIA:[], P.de, P.ate);
+  var rd2=fcxDesconto(somaD, fcxBase(P.de,P.ate), fcxDiasComVenda(P.de,P.ate));
+  var esperado = (rd2 && rd2.grupos && rd2.grupos[P.grupo]) ? rd2.grupos[P.grupo].n : 0;
+  var vazio = (!P.produtos || !P.produtos.length) && esperado > 0;
+  var fora = fcxForaDaJanela(P.de);
+
+  var itens = (vazio && fora)
+    /* período antes da janela: não adianta esperar, o detalhe não existe na nuvem */
+    ? '<div class="fcx-vazio">O detalhamento guarda os últimos '+FCX_NUVEM_MESES+' meses.<br>'+
+      '<span style="font-size:12px;color:#a9b4c0;">O card mostra '+fcxNum(esperado)+
+      ' ocorrência'+(esperado===1?"":"s")+' neste período porque o resumo por dia vem desde 2023, '+
+      'mas a lista produto a produto só vai até '+fcxDataCurta(fora)+'. '+
+      'Escolha um período a partir dessa data para ver o detalhe.</span></div>'
+    : vazio
+    ? '<div class="fcx-vazio">O detalhamento deste grupo ainda não chegou da loja.<br>'+
+      '<span style="font-size:12px;color:#a9b4c0;">O card mostra '+fcxNum(esperado)+
+      ' ocorrência'+(esperado===1?"":"s")+' no período, e elas existem no VR — o robô manda '+
+      'o detalhe uma vez por dia. Tente de novo mais tarde.</span></div>'
+    : l.length
+    ? '<table class="fcx-tb"><colgroup><col class="k-prod"><col class="k-cod"><col class="k-ocor">'+
+      '<col class="k-qtd"><col class="k-vend"><col class="k-pctl"><col class="k-med">'+
+      '<col class="k-pctg"><col class="k-val"></colgroup>'+
+      '<thead><tr><th>Produto</th><th>Cód. barras</th><th class="c">Ocorr.</th><th class="c">Qtd</th>'+
+      '<th class="r">Venda</th><th class="r">% sobre a venda</th><th class="r">Desc./ocorr.</th>'+
+      '<th class="r">% do grupo</th><th class="r">Desconto</th></tr></thead>'+
+      '<tbody>'+corpo+'</tbody></table>'
+    : '<div class="fcx-vazio">'+(P.busca ? "Nenhum produto com essa busca."
+        : "Nenhum desconto deste grupo no período.")+'</div>';
+
+  cx.innerHTML='<button class="fcx-pt-x" onclick="fcxFecharPainel()" title="Fechar">&times;</button>'+
+    '<div class="fcx-pt"><div class="fcx-pt-cam"><b>Descontos</b> &rsaquo; <b>'+nomeG+'</b></div>'+
+      '<div class="fcx-pt-tit">'+nomeG+'</div>'+
+      '<div class="fcx-pt-per">Período: '+fcxDataCurta(P.de)+' a '+fcxDataCurta(P.ate)+'</div></div>'+
+    '<div class="fcx-res">'+res+'</div>'+
+    '<div class="fcx-fer">'+fer+'</div>'+
+    '<div class="fcx-lst">'+itens+'</div>'+
+    '<div class="fcx-pe">'+fcxNum(tProd)+' produto'+(tProd===1?"":"s")+' · '+fcxNum(tOcor)+
+      ' ocorrência'+(tOcor===1?"":"s")+' · '+fcxBrl(tDesc)+
+      ' — o período inteiro, somado na nuvem. Clique num produto para ver as ocorrências dele.</div>';
+
+  var bu=cx.querySelector("[data-fcx-b]");
+  if(bu) bu.addEventListener("input",function(){ P.busca=this.value; var p2=this.selectionStart;
+    fcxDesenharProdutos(); var n2=document.querySelector("#fcxPainelCx [data-fcx-b]");
+    if(n2){ n2.focus(); try{ n2.setSelectionRange(p2,p2); }catch(e){} } });
+  var op=cx.querySelector("[data-fcx-op]");
+  if(op) op.addEventListener("change",function(){ P.ordemP=this.value; fcxDesenharProdutos(); });
+  cx.querySelectorAll("[data-fcx-prod]").forEach(function(tr){
+    tr.addEventListener("click",function(){
+      /* ==FCXDGRUPO== O TOTAL DO GRUPO VIAJA JUNTO. A "participação no grupo" do
+         detalhamento tem que dividir pelo MESMO total que a coluna "% do grupo" do
+         resumo usou — os dois saem da nuvem. Buscar um na nuvem e outro no FCX_DIA
+         dava 33,0% numa tela e 33,4% na outra, porque são dois retratos tirados em
+         minutos diferentes. Dois números para a mesma coisa é defeito, mesmo quando
+         a diferença é pequena. */
+      fcxAbrirPainel(P.tipo, P.grupo, this.getAttribute("data-fcx-prod"), tDesc);
+    });
+  });
+}
+
 function fcxDesenharPainel(){
   var P=FCX_PN, cx=document.getElementById("fcxPainelCx");
   if(!P||!cx) return;
+  /* ==FCXDGRUPO== a janela tem TRÊS caras agora; o resumo por produto tem a sua */
+  if(P.vista==="produtos") return fcxDesenharProdutos();
   var ehDesc = (P.tipo==="desconto");
   var l=fcxFiltradas();
   var soma=l.reduce(function(a,x){ return a+(Number(ehDesc?x.valor_desconto:x.valor)||0); },0);
@@ -6730,10 +7018,19 @@ function fcxDesenharPainel(){
   var totN = P.linhas.length && P.linhas[0].total_ocorrencias!=null ? Number(P.linhas[0].total_ocorrencias) : P.linhas.length;
   var cortou = !!(P.linhas.length && P.linhas[0].cortou);
 
-  /* o grupo pertence a NOSSA classificacao; o motivo e do VR. A trilha deixa isso claro. */
-  var cam = ehDesc ? '<b>Descontos manuais</b>'
-                   : '<b>Cancelamentos</b>'+(P.grupo?' &rsaquo; <b>'+FCX_NOME[P.grupo]+'</b>':'');
-  var tit = ehDesc ? "Descontos manuais" : (P.grupo ? FCX_NOME[P.grupo] : "Cancelamentos");
+  /* o grupo pertence a NOSSA classificacao; o motivo e do VR. A trilha deixa isso claro.
+     ==FCXDGRUPO== com cinco grupos de desconto, a trilha tem que dizer QUAL — e, no
+     detalhamento, qual produto. Escrever "Descontos manuais" abrindo campanha seria a
+     mesma mentira de 22/09, com outra roupa. */
+  var nomeG = ehDesc ? (FCX_DNOME[P.grupo]||"") : (FCX_NOME[P.grupo]||"");
+  var cam = (ehDesc ? '<b>Descontos</b>' : '<b>Cancelamentos</b>')+
+            (P.grupo ? ' &rsaquo; <b>'+nomeG+'</b>' : '')+
+            (P.produto ? ' &rsaquo; <b>'+P.produto+'</b>' : '');
+  var tit = P.produto ? P.produto
+                      : (P.grupo ? nomeG : (ehDesc ? "Descontos" : "Cancelamentos"));
+  var codTit = "";
+  if(P.produto && P.linhas.length && P.linhas[0].codigo_barras)
+    codTit = '<span class="fcx-tit-cod">'+P.linhas[0].codigo_barras+'</span>';
 
   /* o resumo do topo: os numeros do GRUPO dentro do periodo, sem inventar nada */
   var soma2=fcxSomaDias(typeof FCX_DIA!=="undefined"?FCX_DIA:[], P.de, P.ate);
@@ -6753,11 +7050,39 @@ function fcxDesenharPainel(){
        certo — dois numeros de dinheiro se contradizendo na mesma tela, 13 vezes de
        diferenca. E exatamente o engano que esta mudanca existe para acabar, ao contrario.
        Por isso o fcxDesconto devolve manual{n,v} e pctManual: e deste lugar que eles sao. */
-    if(rd) res='<div><span>Sobre a venda</span><b>'+fcxPctDesc(rd.pctManual)+'</b></div>'+
+    /* ==FCXDGRUPO== DETALHAMENTO DE UM PRODUTO: os números são DELE, e saem da
+       própria lista que a nuvem devolveu (a função já filtrou por produto, então
+       total_ocorrencias e total_valor são do produto, não do grupo). */
+    if(P.produto){
+      var somaB=0, somaQ=0;
+      for(var pi=0; pi<P.linhas.length; pi++){
+        somaB += Number(P.linhas[pi].valor_bruto)||0;
+        somaQ += Number(P.linhas[pi].quantidade)||0;
+      }
+      var totV = P.linhas.length ? Number(P.linhas[0].total_valor)||0 : 0;
+      /* o total do grupo vem de quem abriu (a nuvem). Só cai no FCX_DIA quando
+         alguém chegou aqui por outro caminho — e aí a fonte é a mesma do card. */
+      var totG = (P.totalGrupo!=null) ? P.totalGrupo
+               : ((rd && rd.grupos && rd.grupos[P.grupo]) ? rd.grupos[P.grupo].v : 0);
+      res='<div><span>Ocorrências</span><b>'+fcxNum(totN)+'</b></div>'+
+          '<div><span>Unidades</span><b>'+fcxQtd(somaQ)+'</b></div>'+
+          '<div><span>Venda relacionada</span><b>'+fcxBrl(somaB)+'</b></div>'+
+          '<div><span>Desconto</span><b>'+fcxBrl(totV)+'</b></div>'+
+          '<div><span>% sobre a venda</span><b>'+fcxPctDesc(somaB>0?totV/somaB*100:null,1)+'</b></div>'+
+          '<div style="border-left:1px solid #eef1f5;padding-left:26px;"><span>Participação no grupo</span>'+
+            '<b>'+fcxPctDesc(totG>0?totV/totG*100:null,1)+'</b></div>';
+    }
+    else if(rd) res='<div><span>Sobre a venda</span><b>'+fcxPctDesc(rd.pctManual)+'</b></div>'+
                '<div><span>Valor</span><b>'+fcxBrl(rd.manual.v)+'</b></div>'+
                '<div><span>Descontos</span><b>'+fcxNum(rd.manual.n)+'</b></div>'+
-               '<div><span>Para revisar</span><b'+(rd.ocorrenciasParaRevisar>0?' style="color:#9a6a00"':'')+'>'+
-                 (rd.ocorrenciasParaRevisar>0?'&#9888; ':'')+fcxNum(rd.ocorrenciasParaRevisar)+'</b></div>'+
+               /* ==FCXDGRUPO== "Para revisar" virou BOTÃO: liga o filtro de alerta que
+                  já existe. Nenhuma regra de alerta muda — é o mesmo "com alerta" da
+                  barra de filtros, só que ao alcance do dedo, onde o número aparece. */
+               '<div class="fcx-res-clic'+(P.fAlerta==="com"?" on":"")+'" data-fcx-rev="1" '+
+                 'title="Clique para ver só as que precisam de revisão"><span>Para revisar</span>'+
+                 '<b'+(rd.ocorrenciasParaRevisar>0?' style="color:#9a6a00"':'')+'>'+
+                 (rd.ocorrenciasParaRevisar>0?'&#9888; ':'')+fcxNum(rd.ocorrenciasParaRevisar)+
+                 (rd.ocorrenciasParaRevisar>0?' &rsaquo;':'')+'</b></div>'+
                (rd.ocorrenciasParaRevisar>0
                  ? '<div style="border-left:1px solid #eef1f5;padding-left:26px;"><span>Detalhe do alerta</span>'+
                    '<b style="font-size:12.5px;font-weight:500;color:#6b7787;">'+
@@ -6775,7 +7100,21 @@ function fcxDesenharPainel(){
     }
   }
 
-  var fer='<input type="search" placeholder="Buscar produto, operador, cupom ou motivo…" value="'+
+  /* ==FCXDGRUPO== No detalhamento de um produto não há operador, fiscal nem motivo:
+     filtro desses campos ali seria caixa vazia. O que sobra e serve é procurar o cupom
+     ou o caixa, e ordenar. */
+  var fer;
+  if(P.produto){
+    fer='<input type="search" placeholder="Buscar cupom ou PDV…" value="'+
+        String(P.busca).replace(/"/g,"&quot;")+'" data-fcx-b>'+
+        '<select data-fcx-o><option value="valor"'+(P.ordem==="valor"?" selected":"")+'>Maior desconto</option>'+
+        '<option value="novo"'+(P.ordem==="novo"?" selected":"")+'>Mais recente</option>'+
+        '<option value="velho"'+(P.ordem==="velho"?" selected":"")+'>Mais antigo</option>'+
+        '<option value="pct"'+(P.ordem==="pct"?" selected":"")+'>Maior percentual</option></select>'+
+        '<span class="fcx-cont">'+fcxNum(l.length)+(l.length===1?" ocorrência":" ocorrências")+' · '+fcxBrl(soma)+'</span>';
+  }
+  else {
+  fer='<input type="search" placeholder="Buscar produto, operador, cupom ou motivo…" value="'+
           String(P.busca).replace(/"/g,"&quot;")+'" data-fcx-b>'+
           fcxOpcoes("operador","Operador")+fcxOpcoes("pdv","PDV")+fcxOpcoes("motivo_vr","Motivo");
   if(!ehDesc) fer+='<select data-fcx-f="tipo"><option value="">Item e cupom</option>'+
@@ -6790,6 +7129,7 @@ function fcxDesenharPainel(){
     '<option value="novo"'+(P.ordem==="novo"?" selected":"")+'>Mais recente</option>'+
     '<option value="velho"'+(P.ordem==="velho"?" selected":"")+'>Mais antigo</option></select>'+
     '<span class="fcx-cont">'+fcxNum(l.length)+(l.length===1?" ocorrência":" ocorrências")+' · '+fcxBrl(soma)+'</span>';
+  }
 
   /* ==FCXLINHAS== Uma ocorrencia por LINHA DE TABELA. O cancelamento e o desconto tem
      colunas diferentes de proposito: o desconto precisa mostrar de quanto por quanto e
@@ -6803,7 +7143,30 @@ function fcxDesenharPainel(){
   var soPrimeiro = function(n){ var p2=String(n||"").trim().split(/\\s+/); return p2[0]||"—"; };
 
   var cols, cab, corpo="";
-  if(ehDesc){
+  /* ==FCXDGRUPO== AS OCORRÊNCIAS DE UM PRODUTO (grupo automático).
+     Sem operador, sem fiscal, sem motivo e sem alerta: num desconto automático
+     ninguém concedeu nada, e coluna vazia em tela de gestão é ruído. O que existe
+     é quando, em que caixa, em que cupom, quanto, de que preço por que preço. */
+  if(P.produto){
+    cols='<col class="k-prod"><col class="k-pdv"><col class="k-cup"><col class="k-pdv">'+
+         '<col class="k-preco"><col class="k-preco"><col class="k-pct"><col class="k-val">';
+    cab='<tr><th>Data / hora</th><th class="c">PDV</th><th class="c">Cupom</th><th class="c">Qtd</th>'+
+        '<th class="r">Preço normal</th><th class="r">Preço aplicado</th>'+
+        '<th class="r">% sobre a venda</th><th class="r">Desconto</th></tr>';
+    for(var k=0;k<l.length;k++){
+      var z=l[k], zv=Number(z.valor_desconto)||0, zb=Number(z.valor_bruto)||0, zq=Number(z.quantidade)||0;
+      corpo+='<tr>'+
+        '<td class="tb-prod">'+fcxDataCurta(z.data)+' '+(z.hora||"")+'</td>'+
+        '<td class="tb-num" data-r="PDV">'+(z.pdv||"—")+'</td>'+
+        '<td class="tb-num" data-r="Cupom">'+(z.cupom!=null?fcxNum(z.cupom):"—")+'</td>'+
+        '<td class="tb-num" data-r="Qtd">'+fcxQtd(zq)+'</td>'+
+        '<td class="tb-v tb-p" data-r="Preço normal">'+(zq>0?fcxBrl(zb/zq):"—")+'</td>'+
+        '<td class="tb-v tb-p" data-r="Preço aplicado">'+(zq>0?fcxBrl((zb-zv)/zq):"—")+'</td>'+
+        '<td class="tb-v tb-p" data-r="% sobre a venda">'+fcxPctDesc(zb>0?zv/zb*100:null,1)+'</td>'+
+        '<td class="tb-v tb-fim" data-r="Desconto">'+fcxBrl(zv)+'</td></tr>';
+    }
+  }
+  else if(ehDesc){
     cols='<col class="k-prod"><col class="k-data"><col class="k-pdv"><col class="k-op">'+
          '<col class="k-cup"><col class="k-motd"><col class="k-preco"><col class="k-pct"><col class="k-val">';
     cab='<tr><th>Produto</th><th>Data/hora</th><th class="c">PDV</th><th>Operador</th>'+
@@ -6844,13 +7207,21 @@ function fcxDesenharPainel(){
         '<td class="tb-v tb-fim">'+fcxBrl(Number(y.valor)||0)+'</td></tr>';
     }
   }
+  /* ==FCXDGRUPO== a mesma janela de 13 meses vale para a lista. "Nenhuma ocorrência
+     com esses filtros" num período de 2024 seria mentira: não é o filtro, é a janela. */
+  var foraJ = fcxForaDaJanela(P.de);
   var itens = l.length
     ? '<table class="fcx-tb"><colgroup>'+cols+'</colgroup><thead>'+cab+'</thead><tbody>'+corpo+'</tbody></table>'
+    : (foraJ && !P.busca && !P.fOp && !P.fPdv && !P.fMot && !P.fTipo && !P.fAlerta)
+    ? '<div class="fcx-vazio">O detalhamento guarda os últimos '+FCX_NUVEM_MESES+' meses.<br>'+
+      '<span style="font-size:12px;color:#a9b4c0;">Escolha um período a partir de '+
+      fcxDataCurta(foraJ)+' para ver as ocorrências. O card e a composição continuam '+
+      'valendo para o período inteiro.</span></div>'
     : '<div class="fcx-vazio">Nenhuma ocorrência com esses filtros.</div>';
 
   cx.innerHTML='<button class="fcx-pt-x" onclick="fcxFecharPainel()" title="Fechar">&times;</button>'+
     '<div class="fcx-pt"><div class="fcx-pt-cam">'+cam+'</div>'+
-      '<div class="fcx-pt-tit">'+tit+'</div>'+
+      '<div class="fcx-pt-tit">'+tit+codTit+'</div>'+
       '<div class="fcx-pt-per">Período: '+fcxDataCurta(P.de)+' a '+fcxDataCurta(P.ate)+'</div></div>'+
     '<div class="fcx-res">'+res+'</div>'+
     '<div class="fcx-fer">'+fer+'</div>'+
@@ -6873,6 +7244,13 @@ function fcxDesenharPainel(){
   });
   var or=cx.querySelector("[data-fcx-o]");
   if(or) or.addEventListener("change",function(){ P.ordem=this.value; fcxDesenharPainel(); });
+  /* ==FCXDGRUPO== "Para revisar" liga e desliga o filtro de alerta que já existe.
+     Clicar de novo desliga — senão o dono fica preso no recorte sem saber como sair. */
+  var rev=cx.querySelector("[data-fcx-rev]");
+  if(rev) rev.addEventListener("click",function(){
+    P.fAlerta = (P.fAlerta==="com") ? "" : "com";
+    fcxDesenharPainel();
+  });
 }
 /* ==FCXPAINEL-FIM== */
 

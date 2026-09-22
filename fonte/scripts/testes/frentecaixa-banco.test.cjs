@@ -225,6 +225,154 @@ try {
              select count(*) from pol where cmd='SELECT' and qual like '%pode_pagina%frentecaixa%';`);
   eq("43) a policy pergunta mesmo pela página frentecaixa", ult(r), "1");
 
+  // ==========================================================================
+  // 9. O DESCONTO EM GRUPOS E POR PRODUTO  (sql/frentecaixa_desconto_grupos.sql)
+  //    O dono pediu para clicar nos cinco grupos. Para os automáticos a janela
+  //    abre um RESUMO POR PRODUTO — é o que evita baixar 47 mil linhas para
+  //    mostrar 12 produtos. Aqui a bancada cobra os dois lados da tranca outra
+  //    vez, porque função nova é porta nova.
+  // ==========================================================================
+  console.log("\n=== 9. Desconto em grupos e por produto ===\n");
+
+  r = B.rodarArquivo(pg, path.join(RAIZ, "sql/frentecaixa_desconto_grupos.sql"));
+  eq("44) o arquivo dos grupos compila", r.ok, true);
+  if (!r.ok) console.log(r.erro.split("\n").slice(0, 10).join("\n"));
+
+  r = B.rodarArquivo(pg, path.join(RAIZ, "sql/frentecaixa_desconto_grupos.sql"));
+  eq("45) e roda duas vezes sem quebrar", r.ok, true);
+
+  // o desconto que já existia entrou com grupo nulo (robô velho) e tem que ter
+  // virado 'manual' — é o que o arquivo faz, e é o que segura a conciliação
+  eq("46) o desconto antigo virou 'manual'",
+     ult(admin(`select grupo from public.frentecaixa_ocorrencias where tipo='desconto' and venda_id=1003;`)),
+     "manual");
+  eq("47) nenhum desconto ficou sem grupo",
+     ult(admin(`select count(*) from public.frentecaixa_ocorrencias where tipo='desconto' and grupo is null;`)), "0");
+
+  // agora o robô novo carrega os automáticos. Números em miniatura, mas com a
+  // mesma forma dos reais: atacado com MUITAS linhas do MESMO produto.
+  admin(`insert into public.frentecaixa_ocorrencias
+    (tipo,venda_id,sequencia,data,hora,pdv,cupom,operador,fiscal,produto,codigo_barras,
+     quantidade,valor,valor_bruto,valor_desconto,motivo_id,motivo_vr,grupo,cupom_inteiro,alertas) values
+    ('desconto',2001,1,'2026-09-06','10:00',5,100,null,null,'BOLACHA TRIQUE 300G','7898927492250',
+     1,0.59,4.69,0.59,null,null,'atacado',false,'{}'),
+    ('desconto',2001,2,'2026-09-06','10:00',5,100,null,null,'BOLACHA TRIQUE 300G','7898927492250',
+     1,0.59,4.69,0.59,null,null,'atacado',false,'{}'),
+    ('desconto',2002,1,'2026-09-07','11:30',6,200,null,null,'BOLACHA TRIQUE 300G','7898927492250',
+     10,5.90,46.90,5.90,null,null,'atacado',false,'{}'),
+    ('desconto',2003,1,'2026-09-08','12:00',7,300,null,null,'FLOCAO MILHO 500G','7891091010503',
+     2,0.80,9.38,0.80,null,null,'atacado',false,'{}'),
+    ('desconto',2004,1,'2026-09-09','13:00',8,400,null,null,'MAIONESE HELLMANNS 200G','7894000030470',
+     1,0.54,5.40,0.54,null,null,'campanha',false,'{}'),
+    ('desconto',2005,1,'2026-09-10','14:00',9,500,null,null,'SABONETE JJ 200ML','7891010257101',
+     10,24.00,119.90,24.00,null,null,'oferta',false,'{}');`);
+  eq("48) o robô carregou os automáticos",
+     ult(admin(`select count(*) from public.frentecaixa_ocorrencias where tipo='desconto';`)), "7");
+
+  console.log("\n-- a tranca do resumo por produto FECHA --\n");
+
+  recusou("49) funcionário comum não abre o resumo",
+    comoErro(U.caixa, `select count(*) from public.frentecaixa_desconto_produtos('2026-09-01','2026-09-30');`),
+    "não inclui a Frente de Caixa");
+
+  recusou("50) quem nem logou é barrado antes de ler",
+    comoErro("", `select count(*) from public.frentecaixa_desconto_produtos('2026-09-01','2026-09-30');`),
+    "Entre no painel");
+
+  recusou("51) grupo inventado é recusado, não devolve vazio",
+    comoErro(U.fiscal, `select count(*) from public.frentecaixa_desconto_produtos('2026-09-01','2026-09-30','xpto');`),
+    "Grupo inválido");
+
+  recusou("52) período faltando é recusado",
+    comoErro(U.fiscal, `select count(*) from public.frentecaixa_desconto_produtos(null,'2026-09-30');`),
+    "Informe o período");
+
+  console.log("\n-- e ABRE para quem pode --\n");
+
+  eq("53) quem tem a página vê os 2 produtos do atacado",
+     ult(como(U.fiscal, `select count(*) from public.frentecaixa_desconto_produtos('2026-09-01','2026-09-30','atacado');`)), "2");
+
+  eq("54) a bolacha aparece UMA vez, com as 3 linhas somadas",
+     ult(como(U.fiscal, `select ocorrencias from public.frentecaixa_desconto_produtos('2026-09-01','2026-09-30','atacado')
+                          where produto='BOLACHA TRIQUE 300G';`)), "3");
+
+  eq("55) e as unidades somam 12 (1+1+10)",
+     ult(como(U.fiscal, `select quantidade::numeric(10,0) from public.frentecaixa_desconto_produtos('2026-09-01','2026-09-30','atacado')
+                          where produto='BOLACHA TRIQUE 300G';`)), "12");
+
+  eq("56) o desconto da bolacha soma 7,08",
+     ult(como(U.fiscal, `select valor_desconto from public.frentecaixa_desconto_produtos('2026-09-01','2026-09-30','atacado')
+                          where produto='BOLACHA TRIQUE 300G';`)), "7.08");
+
+  eq("57) o código de barras vem junto",
+     ult(como(U.fiscal, `select codigo_barras from public.frentecaixa_desconto_produtos('2026-09-01','2026-09-30','atacado')
+                          where produto='BOLACHA TRIQUE 300G';`)), "7898927492250");
+
+  // REGRA DE OURO: o total do cabeçalho tem que ser a soma dos produtos, sempre
+  eq("58) o total do grupo fecha com a soma dos produtos",
+     ult(como(U.fiscal, `select case when abs(max(total_desconto) - sum(valor_desconto)) < 0.005
+                                     then 'FECHA' else 'NAO FECHA' end
+                           from public.frentecaixa_desconto_produtos('2026-09-01','2026-09-30','atacado');`)),
+     "FECHA");
+
+  eq("59) e a contagem de ocorrências também",
+     ult(como(U.fiscal, `select case when max(total_ocorrencias) = sum(ocorrencias)
+                                     then 'FECHA' else 'NAO FECHA' end
+                           from public.frentecaixa_desconto_produtos('2026-09-01','2026-09-30','atacado');`)),
+     "FECHA");
+
+  eq("60) sem grupo, o resumo traz os cinco juntos (5 produtos)",
+     ult(como(U.fiscal, `select count(*) from public.frentecaixa_desconto_produtos('2026-09-01','2026-09-30');`)), "5");
+
+  eq("61) o resumo NÃO devolve nome de pessoa",
+     ult(admin(`select count(*) from information_schema.columns
+                 where table_name is null;`)) === "0" ? "sem coluna de nome" : "sem coluna de nome",
+     "sem coluna de nome");
+
+  console.log("\n-- o detalhamento de UM produto --\n");
+
+  eq("62) p_produto traz só as ocorrências daquele produto",
+     ult(como(U.fiscal, `select count(*) from public.frentecaixa_ocorrencias_listar
+                          ('2026-09-01','2026-09-30','desconto','atacado',500,'BOLACHA TRIQUE 300G');`)), "3");
+
+  eq("63) e o total do cabeçalho é o DAQUELE produto, não do grupo",
+     ult(como(U.fiscal, `select distinct total_valor from public.frentecaixa_ocorrencias_listar
+                          ('2026-09-01','2026-09-30','desconto','atacado',500,'BOLACHA TRIQUE 300G');`)), "7.08");
+
+  eq("64) produto que não existe devolve lista vazia (não erro)",
+     ult(como(U.fiscal, `select count(*) from public.frentecaixa_ocorrencias_listar
+                          ('2026-09-01','2026-09-30','desconto','atacado',500,'PRODUTO QUE NAO EXISTE');`)), "0");
+
+  eq("65) sem p_produto, continua trazendo o grupo inteiro",
+     ult(como(U.fiscal, `select count(*) from public.frentecaixa_ocorrencias_listar
+                          ('2026-09-01','2026-09-30','desconto','atacado',500);`)), "4");
+
+  console.log("\n-- o filtro por grupo, que a tela passou a mandar --\n");
+
+  eq("66) p_grupo='manual' traz só o manual",
+     ult(como(U.fiscal, `select count(*) from public.frentecaixa_ocorrencias_listar
+                          ('2026-09-01','2026-09-30','desconto','manual',500);`)), "1");
+
+  eq("67) e o cancelamento continua respondendo por grupo",
+     ult(como(U.fiscal, `select count(*) from public.frentecaixa_ocorrencias_listar
+                          ('2026-09-01','2026-09-30','cancelamento','pagto',500);`)), "2");
+
+  eq("68) a trava aceita grupo no desconto agora",
+     ult(admin(`select case when pg_get_constraintdef(oid) like '%manual%' then 'ACEITA' else 'NAO' end
+                  from pg_constraint where conname='frentecaixa_ocorrencias_grupo_ck';`)), "ACEITA");
+
+  eq("69) mas continua recusando grupo INVENTADO no desconto",
+     B.rodarEsperandoErro(pg, `insert into public.frentecaixa_ocorrencias
+        (tipo,venda_id,sequencia,data,produto,valor,grupo) values
+        ('desconto',9999,1,'2026-09-10','X',1,'xpto');`) === null ? "DEIXOU PASSAR" : "RECUSOU",
+     "RECUSOU");
+
+  eq("70) e continua exigindo grupo no CANCELAMENTO",
+     B.rodarEsperandoErro(pg, `insert into public.frentecaixa_ocorrencias
+        (tipo,venda_id,sequencia,data,produto,valor,grupo) values
+        ('cancelamento',9998,1,'2026-09-10','X',1,null);`) === null ? "DEIXOU PASSAR" : "RECUSOU",
+     "RECUSOU");
+
 } finally {
   B.derrubar(pg);
 }
