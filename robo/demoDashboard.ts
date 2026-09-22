@@ -6151,7 +6151,7 @@ function fcxAbrir(qual){
   d.setAttribute("data-aberto", qual);
   d.innerHTML = '<div class="fcx-painel"><div class="fcx-vazio">Buscando…</div></div>';
   var pr = fcxPeriodo();
-  fcxBuscarOcorrencias(pr[0], pr[1], function(erro, linhas){
+  fcxBuscarOcorrencias(pr[0], pr[1], (qual==="canc" ? "cancelamento" : "desconto"), function(erro, linhas){
     if(d.getAttribute("data-aberto")!==qual) return;   /* trocou de card enquanto buscava */
     if(erro){ d.innerHTML = '<div class="fcx-painel"><div class="fcx-vazio">'+erro+'</div></div>'; return; }
     d.innerHTML = (qual==="canc") ? fcxDetCancelamento(linhas) : fcxDetDesconto(linhas);
@@ -6177,8 +6177,8 @@ function fcxAbrir(qual){
    função frentecaixa_ocorrencias_listar, que devolve a mesma ocorrência com o nome em branco
    para quem não pode — sem esconder valor nem motivo. Um select("*") aqui voltaria erro de
    permissão e o card ficaria vazio sem explicar por quê. */
-function fcxBuscarOcorrencias(de, ate, pronto){
-  var chave = de+"|"+ate;
+function fcxBuscarOcorrencias(de, ate, tipo, pronto){
+  var chave = de+"|"+ate+"|"+(tipo||"tudo");
   if(FCX_OCO_CACHE[chave]) return pronto(null, FCX_OCO_CACHE[chave]);
   /* A conexão com a nuvem mora em window.__SB (criada lá embaixo, dentro do bloco do login).
      A variável SB solta NÃO existe aqui fora — foi o que me mordeu em 22/09/2026: o clique
@@ -6186,7 +6186,11 @@ function fcxBuscarOcorrencias(de, ate, pronto){
   var sb = window.__SB || null;
   if(!sb) return pronto("Ainda estou entrando na sua conta. Tente de novo em instantes.", null);
   if(window.__PERFIL == null) return pronto("Carregando seu acesso… tente de novo em instantes.", null);
-  sb.rpc("frentecaixa_ocorrencias_listar", { p_de:de, p_ate:ate, p_tipo:null, p_grupo:null, p_limite:5000 })
+  /* PEDE SO O TIPO QUE O CARD ABRIU. A nuvem devolve no maximo 1.000 linhas, e num periodo
+     grande os cancelamentos (que sao 100x mais numerosos) engoliam a cota inteira: o
+     detalhe de Descontos de marco/2026 mostrava 4 dos 68. Separando o pedido, cada card
+     recebe a sua cota. */
+  sb.rpc("frentecaixa_ocorrencias_listar", { p_de:de, p_ate:ate, p_tipo:(tipo||null), p_grupo:null, p_limite:5000 })
     .then(function(r){
       if(r && r.error){
         var m = String((r.error && r.error.message) || "");
