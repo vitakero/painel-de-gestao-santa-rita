@@ -6301,8 +6301,17 @@ function fcxDetCancelamento(){
     '<div class="fcx-concilia">'+aviso+'</div>'+
     (resumo.temNaoClassificado
       ? '<div class="fcx-vazio">Há motivo do VR que ainda não tem grupo. Me avise para eu classificar.</div>' : '')+
-    '<div class="fcx-ph2">Clique num grupo para ver as ocorrências</div><div id="fcxOco"></div></div>';
+    '<div class="fcx-ph2">Clique num grupo para ver as ocorrências</div></div>';
 }
+
+/* ==FCXPAINEL-INICIO== O PAINEL DE OCORRENCIAS (V2, 22/09/2026)
+   A Analise e tela gerencial: bater o olho, entender a composicao, investigar, fechar e
+   continuar. Na V1 o clique num grupo esticava a pagina com centenas de linhas e o dono
+   perdia o contexto — pedido dele: "nao quero transformar a Analise num relatorio gigante".
+   Agora o detalhe abre POR CIMA, com busca, filtro e ordenacao, e fecha voltando exatamente
+   pra composicao, sem perder periodo nem filtro da tela.
+   NADA AQUI MUDA CONTA: os numeros vem do ==FCXCALC== e da mesma funcao da nuvem. */
+var FCX_PN = null;   /* o que esta aberto: {tipo, grupo, linhas, filtros, ordem} */
 
 function fcxFecharPainel(){
   var bg=document.getElementById("fcxPainelBg");
