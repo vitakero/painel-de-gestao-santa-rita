@@ -476,5 +476,38 @@ console.log("\n-- o limite do painel e o do robô têm que ser o mesmo número -
      limpa(mGrupoPainel), limpa(mGrupoRobo));
 }
 
+
+
+
+/* ==================================================================
+   ZERO DE VERDADE x ZERO DE ARREDONDAMENTO (so no desconto manual).
+   O desconto desta loja e minusculo: R$ 5,48 num dia de R$ 110 mil da 0,0049%, que com
+   duas casas vira "0,00%". O dono viu isso no card em 22/09/2026: "0,00%" ao lado de
+   "6 descontos" parece que nao houve desconto nenhum.
+   A REGRA E SO DE EXIBICAO. O status continua decidido pelo valor cheio — se um dia
+   alguem comparar o TEXTO com a referencia, estes casos quebram.
+   ================================================================== */
+console.log("\n-- o percentual do desconto na tela --");
+{
+  const iF = HTML.indexOf("function fcxPct(");
+  const T = new Function(HTML.slice(iF, HTML.indexOf("function fcxDataCurta(")) + "\nreturn {fcxPct,fcxPctDesc};")();
+  eq("nenhum desconto continua 0,00%", T.fcxPctDesc(0), "0,00%");
+  eq("0,0049% (o caso real) vira < 0,01%", T.fcxPctDesc(0.0049), "&lt; 0,01%");
+  eq("0,009% tambem", T.fcxPctDesc(0.009), "&lt; 0,01%");
+  eq("exatamente 0,01% ja aparece normal", T.fcxPctDesc(0.01), "0,01%");
+  eq("0,04% normal", T.fcxPctDesc(0.04), "0,04%");
+  eq("0,35% normal", T.fcxPctDesc(0.35), "0,35%");
+  eq("sem dado continua traco", T.fcxPctDesc(null), "—");
+  eq("e o percentual do CANCELAMENTO nao mudou", T.fcxPct(0.0049), "0,00%");
+}
+
+console.log("\n-- e o status decide pelo NUMERO, nunca pelo texto --");
+{
+  eq("0,0049% esta EM DIA (referencia 0,30%)", M.fcxStatus(0.0049, M.FCX_CFG.refDesconto).txt, "EM DIA");
+  eq("0,30% no limite ainda e EM DIA", M.fcxStatus(0.30, M.FCX_CFG.refDesconto).txt, "EM DIA");
+  eq("0,31% passa a ser ACIMA", M.fcxStatus(0.31, M.FCX_CFG.refDesconto).txt, "ACIMA DA REFERÊNCIA");
+  eq("sem dado nao vira zero", M.fcxStatus(null, M.FCX_CFG.refDesconto).txt, "SEM DADOS");
+}
+
 console.log("\n" + ok + " OK, " + falhou + " falha(s)");
 process.exit(falhou ? 1 : 0);

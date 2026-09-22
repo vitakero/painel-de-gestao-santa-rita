@@ -6140,6 +6140,16 @@ function fcxPct(v, casas){
   if(v===null || v===undefined) return "—";
   return Number(v).toFixed(casas===undefined?2:casas).replace(".",",")+"%";
 }
+/* ==FCXPCTD== SO PARA O PERCENTUAL DE DESCONTO MANUAL, e SO na hora de escrever na tela.
+   O desconto desta loja e minusculo: R$ 5,48 num dia de R$ 110 mil da 0,0049%, que com duas
+   casas vira "0,00%" — e 0,00% ao lado de "6 descontos" parece que nao houve desconto nenhum.
+   O NUMERO NAO MUDA. Quem compara com a referencia de 0,30% continua recebendo o valor cheio
+   (fcxStatus recebe desc.pct, nunca este texto). Aqui e so apresentacao. */
+function fcxPctDesc(v){
+  if(v===null || v===undefined) return "—";
+  if(v > 0 && v < 0.01) return "&lt; 0,01%";          /* tem desconto, mas nao chega a 0,01% */
+  return Number(v).toFixed(2).replace(".",",")+"%";   /* zero de verdade cai aqui: "0,00%" */
+}
 function fcxDataCurta(s){ var p=String(s).split("-"); return p[2]+"/"+p[1]; }
 
 function renderFrenteCaixa(){
@@ -6167,7 +6177,7 @@ function renderFrenteCaixa(){
   var cardD = '<div class="kpi fcx-card" data-fcx="desc">'+
     '<div class="l">Descontos manuais</div>'+
     (desc
-      ? '<div class="v '+(stD.cls==="bad"?"ind-bad":stD.cls==="ok"?"ind-ok":"ind-est")+'">'+fcxPct(desc.pct)+'</div>'+
+      ? '<div class="v '+(stD.cls==="bad"?"ind-bad":stD.cls==="ok"?"ind-ok":"ind-est")+'">'+fcxPctDesc(desc.pct)+'</div>'+
         '<div class="fcx-sub">'+fcxBrl(desc.valor)+' · '+fcxNum(desc.ocorrencias)+' desconto'+(desc.ocorrencias===1?"":"s")+'</div>'+
         '<div class="fcx-rod">Referência ≤ '+fcxPct(FCX_CFG.refDesconto)+' no período</div>'+
         '<span class="fcx-selo fcx-'+stD.cls+'">'+stD.txt+'</span>'+
@@ -6361,7 +6371,7 @@ function fcxFiltradas(){
   });
   if(P.fOp)  l=l.filter(function(x){ return String(x.operador||"")===P.fOp; });
   if(P.fPdv) l=l.filter(function(x){ return String(x.pdv||"")===P.fPdv; });
-  if(P.fMot) l=l.filter(function(x){ return String(x.motivo_vr||"(sem motivo)")===P.fMot; });
+  if(P.fMot) l=l.filter(function(x){ return String(x.motivo_vr||FCX_SEM_MOTIVO)===P.fMot; });
   if(P.fTipo==="item")  l=l.filter(function(x){ return !x.cupom_inteiro; });
   if(P.fTipo==="cupom") l=l.filter(function(x){ return !!x.cupom_inteiro; });
   if(P.fAlerta==="com") l=l.filter(function(x){ return (x.alertas||[]).length>0; });
@@ -6377,15 +6387,21 @@ function fcxFiltradas(){
   return l;
 }
 
+var FCX_SEM_MOTIVO = "Sem motivo informado";   /* rotulo na tela; no dado continua nulo */
+
 function fcxOpcoes(campo, rotulo){
   var P=FCX_PN, vis={}, base=P.linhas;
   if(P.tipo==="cancelamento" && P.grupo) base=base.filter(function(x){ return (x.grupo||"naoclass")===P.grupo; });
   base.forEach(function(x){
-    var v = campo==="motivo_vr" ? (x.motivo_vr||"(sem motivo)") : String(x[campo]||"");
+    var v = campo==="motivo_vr" ? (x.motivo_vr||FCX_SEM_MOTIVO) : String(x[campo]||"");
     if(v) vis[v]=(vis[v]||0)+1;
   });
   var ks=Object.keys(vis).sort();
-  if(ks.length<2) return "";   /* filtro com uma opcao so nao ajuda ninguem */
+  /* Filtro com uma opcao so nao ajuda — EXCETO o motivo do desconto, que o dono pediu para
+     estar sempre a mao (22/09/2026): ele responde "por que o desconto foi dado", pergunta
+     diferente do "com/sem alerta" que fica ao lado. Os dois convivem de proposito. */
+  var minimo = (campo==="motivo_vr" && P.tipo==="desconto") ? 1 : 2;
+  if(ks.length<minimo) return "";
   var sel = campo==="operador" ? P.fOp : campo==="pdv" ? P.fPdv : P.fMot;
   var h='<select data-fcx-f="'+campo+'"><option value="">'+rotulo+' (todos)</option>';
   ks.forEach(function(k){ h+='<option value="'+String(k).replace(/"/g,"&quot;")+'"'+(sel===k?" selected":"")+'>'+
@@ -6419,7 +6435,7 @@ function fcxDesenharPainel(){
        valor, depois a quantidade, e o "para revisar" com destaque. Os detalhes do alerta
        (quantos acima do limite, quantos sem motivo, quantos motivos) vem depois, menores —
        sao a explicacao do numero de cima, nao competem com ele. */
-    if(rd) res='<div><span>Sobre a venda</span><b>'+fcxPct(rd.pct)+'</b></div>'+
+    if(rd) res='<div><span>Sobre a venda</span><b>'+fcxPctDesc(rd.pct)+'</b></div>'+
                '<div><span>Valor</span><b>'+fcxBrl(rd.valor)+'</b></div>'+
                '<div><span>Descontos</span><b>'+fcxNum(rd.ocorrencias)+'</b></div>'+
                '<div><span>Para revisar</span><b'+(rd.ocorrenciasParaRevisar>0?' style="color:#9a6a00"':'')+'>'+
