@@ -1883,6 +1883,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-analise .fcx-al2{font-size:12px;color:#9a6a00;margin-top:4px;}
         #page-analise .fcx-al3{font-size:11.5px;color:#9a6a00;margin-top:5px;font-weight:700;}
         #page-analise .fcx-vazio{font-size:12.5px;color:#8a97a8;padding:10px 0;font-style:italic;}
+        #page-analise .fcx-carregando{color:#8a97a8;font-style:italic;}
         @media(max-width:760px){
           #page-analise .fcx-oc1{flex-direction:column;gap:2px;}
           #page-analise .fcx-tab{font-size:12px;}
@@ -6237,9 +6238,21 @@ function fcxDetCancelamento(linhas){
 
   var so = linhas.filter(function(x){ return x.tipo==="cancelamento"; });
   var conc = fcxConciliar(resumo, so.map(function(x){ return { v: Number(x.valor)||0 }; }));
-  var aviso = conc.fecha
-    ? '&#10003; soma dos grupos fecha com o total'
-    : '&#9888; conferir: card '+fcxBrl(conc.totalCard)+' · grupos '+fcxBrl(conc.somaGrupos)+' · lista '+fcxBrl(conc.somaOcorrencias);
+  /* TRES DESFECHOS, NAO DOIS. Card e grupos sempre saem do mesmo FCX_DIA, entao batem.
+     A lista vem da nuvem e pode estar VAZIA por dois motivos completamente diferentes:
+     o robô ainda não carregou aquele período (normal, e some sozinho), ou os números
+     divergem de verdade (grave). Escrever "conferir" nos dois casos ensina o dono a
+     ignorar o aviso — e no dia da divergência de verdade ele não olha. */
+  var listaVazia = (so.length === 0);
+  var batemEntreSi = Math.abs(conc.somaGrupos - conc.totalCard) < 0.005 && conc.nGrupos === conc.nCard;
+  var aviso;
+  if(conc.fecha){
+    aviso = '&#10003; soma dos grupos fecha com o total, e a lista também';
+  } else if(listaVazia && batemEntreSi){
+    aviso = '&#10003; soma dos grupos fecha com o total · <span class="fcx-carregando">a lista de ocorrências ainda não chegou da nuvem</span>';
+  } else {
+    aviso = '&#9888; CONFERIR: card '+fcxBrl(conc.totalCard)+' · grupos '+fcxBrl(conc.somaGrupos)+' · lista '+fcxBrl(conc.somaOcorrencias);
+  }
 
   return '<div class="fcx-painel">'+
     '<div class="fcx-ph">Cancelamentos · composição<span>'+fcxDataCurta(de)+' a '+fcxDataCurta(ate)+' · '+
@@ -6285,6 +6298,7 @@ function fcxDetDesconto(linhas){
   for(var i=0;i<l.length;i++) somaLista += (Number(l[i].valor_desconto)||0);
   somaLista = fcxCent(somaLista);
   var fecha = Math.abs(somaLista - resumo.valor) < 0.005;
+  var listaVaziaD = (l.length === 0 && resumo.valor > 0);
 
   var comAlerta = l.filter(function(x){
     return fcxAlertasDoDesconto(Number(x.valor_bruto)||0, Number(x.valor_desconto)||0, x.motivo_vr).length > 0;
@@ -6306,7 +6320,8 @@ function fcxDetDesconto(linhas){
     '<tr class="fcx-forte"><td>Motivos de alerta</td><td class="r">'+fcxNum(resumo.motivosDeAlerta)+'</td></tr>'+
     '</tbody></table>'+
     '<div class="fcx-concilia">'+(fecha ? '&#10003; detalhamento fecha com o card'
-      : '&#9888; conferir: card '+fcxBrl(resumo.valor)+' · lista '+fcxBrl(somaLista))+'</div>';
+      : listaVaziaD ? '<span class="fcx-carregando">a lista de ocorrências ainda não chegou da nuvem</span>'
+      : '&#9888; CONFERIR: card '+fcxBrl(resumo.valor)+' · lista '+fcxBrl(somaLista))+'</div>';
 
   if(comAlerta.length){
     h += '<div class="fcx-ph2">Alertas para revisar</div>';
