@@ -1937,6 +1937,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-analise .fcx-tb col.k-cup{width:56px;}
         #page-analise .fcx-tb col.k-tipo{width:92px;}
         #page-analise .fcx-tb col.k-mot{width:240px;}
+        /* O motivo do DESCONTO e curto: o mais longo do historico tem 20 caracteres
+           ("sem motivo informado"), contra 37 do cancelamento
+           ("DUPLICIDADE DE REGISTRO (EQUIPAMENTO)"). Usar a mesma largura nas duas tabelas
+           deixava 100px de branco na de descontos — espaco que o nome do produto precisa.
+           Medido no dado em 22/09/2026, a pedido do dono. */
+        #page-analise .fcx-tb col.k-motd{width:142px;}
         #page-analise .fcx-tb col.k-fis{width:80px;}
         #page-analise .fcx-tb col.k-val{width:80px;}
         #page-analise .fcx-tb col.k-preco{width:150px;}
@@ -6527,7 +6533,7 @@ function fcxDesenharPainel(){
   var cols, cab, corpo="";
   if(ehDesc){
     cols='<col class="k-prod"><col class="k-data"><col class="k-pdv"><col class="k-op">'+
-         '<col class="k-cup"><col class="k-mot"><col class="k-preco"><col class="k-pct"><col class="k-val">';
+         '<col class="k-cup"><col class="k-motd"><col class="k-preco"><col class="k-pct"><col class="k-val">';
     cab='<tr><th>Produto</th><th>Data/hora</th><th class="c">PDV</th><th>Operador</th>'+
         '<th class="c">Cupom</th><th>Motivo do VR</th><th>De / por</th><th class="r">% do item</th>'+
         '<th class="r">Desconto</th></tr>';
