@@ -1884,10 +1884,54 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         #page-analise .fcx-al3{font-size:11.5px;color:#9a6a00;margin-top:5px;font-weight:700;}
         #page-analise .fcx-vazio{font-size:12.5px;color:#8a97a8;padding:10px 0;font-style:italic;}
         #page-analise .fcx-carregando{color:#8a97a8;font-style:italic;}
+        /* ==FCXV2== O painel de ocorrencias. A Analise e tela GERENCIAL: o detalhe abre POR
+           CIMA e fecha, em vez de esticar a pagina com centenas de linhas. Segue o molde do
+           .modal-bg do painel (fixed + show + z-index), mas largo: 430px do modal comum nao
+           serve pra investigar ocorrencia. No celular ocupa a tela toda. */
+        #fcxPainelBg{position:fixed;inset:0;background:rgba(20,28,38,.45);display:none;align-items:center;justify-content:center;z-index:9998;padding:20px;}
+        #fcxPainelBg.show{display:flex;}
+        #fcxPainelCx{background:#ffffff;border-radius:14px;width:100%;max-width:1120px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 18px 50px rgba(0,0,0,.28);overflow:hidden;}
+        .fcx-pt{padding:16px 20px 12px;border-bottom:1px solid #eef1f5;flex-shrink:0;}
+        .fcx-pt-cam{font-size:11.5px;color:#8a97a8;text-transform:uppercase;letter-spacing:.5px;}
+        .fcx-pt-cam b{color:#1d2733;font-weight:700;}
+        .fcx-pt-tit{font-size:19px;font-weight:700;color:#1d2733;margin-top:3px;}
+        .fcx-pt-per{font-size:12px;color:#8a97a8;margin-top:2px;}
+        .fcx-pt-x{position:absolute;top:14px;right:18px;width:32px;height:32px;border-radius:8px;border:1px solid #cdd6e0;background:#ffffff;color:#6b7787;font-size:19px;line-height:1;cursor:pointer;}
+        .fcx-pt-x:hover{background:#f7f9fb;}
+        .fcx-res{display:flex;gap:26px;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid #eef1f5;flex-shrink:0;}
+        .fcx-res div span{display:block;font-size:11px;color:#8a97a8;text-transform:uppercase;letter-spacing:.4px;}
+        .fcx-res div b{font-size:17px;font-weight:700;color:#1d2733;}
+        .fcx-fer{display:flex;gap:9px;flex-wrap:wrap;align-items:center;padding:11px 20px;border-bottom:1px solid #eef1f5;flex-shrink:0;background:#f7f9fb;}
+        .fcx-fer input,.fcx-fer select{padding:7px 10px;border:1px solid #cdd6e0;border-radius:8px;font-size:13px;background:#ffffff;color:#1d2733;}
+        .fcx-fer input{flex:1;min-width:170px;}
+        .fcx-fer .fcx-cont{margin-left:auto;font-size:12px;color:#8a97a8;}
+        .fcx-lst{overflow-y:auto;padding:4px 20px 18px;flex:1;}
+        .fcx-it{display:flex;gap:14px;align-items:flex-start;padding:11px 0;border-bottom:1px solid #eef1f5;}
+        .fcx-it-c{flex:1;min-width:0;}
+        .fcx-it-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;}
+        .fcx-it-n{font-size:13.5px;font-weight:700;color:#1d2733;overflow-wrap:anywhere;}
+        .fcx-it-d{font-size:11.5px;color:#8a97a8;margin-top:3px;overflow-wrap:anywhere;}
+        .fcx-it-m{font-size:11.5px;color:#6b7787;margin-top:3px;overflow-wrap:anywhere;}
+        .fcx-it-v{font-size:15px;font-weight:700;color:#1d2733;white-space:nowrap;text-align:right;flex-shrink:0;}
+        .fcx-it-v i{display:block;font-size:11.5px;font-weight:500;font-style:normal;color:#8a97a8;}
+        .fcx-tag{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:5px;background:#eef2f7;color:#6b7787;margin-right:5px;}
+        .fcx-tag-vr{background:#eef2f7;color:#6b7787;}
+        .fcx-tag-al{background:#fdf3d9;color:#9a6a00;}
+        .fcx-pe{padding:10px 20px;border-top:1px solid #eef1f5;font-size:11.5px;color:#8a97a8;flex-shrink:0;background:#f7f9fb;}
         @media(max-width:760px){
           #page-analise .fcx-oc1{flex-direction:column;gap:2px;}
           #page-analise .fcx-tab{font-size:12px;}
           #page-analise .fcx-tab th{font-size:10px;}
+          #fcxPainelBg{padding:0;align-items:stretch;}
+          #fcxPainelCx{max-width:none;max-height:none;height:100%;border-radius:0;}
+          .fcx-pt,.fcx-res,.fcx-fer,.fcx-lst,.fcx-pe{padding-left:14px;padding-right:14px;}
+          .fcx-res{gap:16px;}
+          .fcx-res div b{font-size:15px;}
+          .fcx-fer input,.fcx-fer select{font-size:14px;padding:9px 11px;}
+          .fcx-fer input{min-width:100%;}
+          .fcx-fer .fcx-cont{margin-left:0;width:100%;}
+          .fcx-it{gap:10px;}
+          .fcx-pt-x{width:40px;height:40px;font-size:22px;}
         }
       </style>
       <div class="filtros">
@@ -1906,6 +1950,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       <div class="kpis" id="anKpis" style="grid-template-columns:repeat(5,1fr);"></div>
       <div class="kpis" id="anIndicadores" style="grid-template-columns:repeat(auto-fit,minmax(205px,1fr));margin-top:6px;"></div>
       <div id="fcxBloco"></div>
+      <div id="fcxPainelBg"><div id="fcxPainelCx" style="position:relative;"></div></div>
     </section>
 
     <section id="page-historico" class="page">
@@ -6133,7 +6178,10 @@ function renderFrenteCaixa(){
     '<div class="fcx-clique">clique para ver as ocorrências</div></div>';
 
   el.innerHTML = '<div class="fcx-titulo">Controle operacional</div>'+
-    '<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(250px,1fr));">'+cardC+cardD+'</div>'+
+    /* auto-FILL (nao auto-fit): com dois cards o auto-fit estica cada um ate meia tela.
+       O auto-fill mantem a largura dos indicadores de cima e deixa o espaco sobrando — e
+       ja abre lugar pros proximos indicadores de prevencao de perdas. */
+    '<div class="kpis" style="grid-template-columns:repeat(auto-fill,minmax(258px,1fr));">'+cardC+cardD+'</div>'+
     '<div id="fcxDet"></div>';
 
   var cards = el.querySelectorAll(".fcx-card");
@@ -6145,27 +6193,23 @@ function renderFrenteCaixa(){
 }
 
 function fcxAbrir(qual){
+  /* DESCONTOS vai direto pro painel: a lista dele e curta e nao tem composicao por grupo.
+     CANCELAMENTOS abre a composicao na pagina, e cada grupo abre o painel. */
+  if(qual==="desc") return fcxAbrirPainel("desconto", null);
   var d = document.getElementById("fcxDet");
   if(!d) return;
   if(d.getAttribute("data-aberto")===qual){ d.innerHTML=""; d.removeAttribute("data-aberto"); return; }
   d.setAttribute("data-aberto", qual);
-  d.innerHTML = '<div class="fcx-painel"><div class="fcx-vazio">Buscando…</div></div>';
-  var pr = fcxPeriodo();
-  fcxBuscarOcorrencias(pr[0], pr[1], (qual==="canc" ? "cancelamento" : "desconto"), function(erro, linhas){
-    if(d.getAttribute("data-aberto")!==qual) return;   /* trocou de card enquanto buscava */
-    if(erro){ d.innerHTML = '<div class="fcx-painel"><div class="fcx-vazio">'+erro+'</div></div>'; return; }
-    d.innerHTML = (qual==="canc") ? fcxDetCancelamento(linhas) : fcxDetDesconto(linhas);
-    if(qual==="canc"){
-      var lins = d.querySelectorAll(".fcx-lin");
-      for(var i=0;i<lins.length;i++){
-        lins[i].addEventListener("click", (function(l){
-          return function(){
-            document.getElementById("fcxOco").innerHTML = fcxListaOcorrencias(linhas, l.getAttribute("data-g"));
-          };
-        })(lins[i]));
-      }
-    }
-  });
+  /* A COMPOSICAO NAO VAI MAIS A NUVEM. Ela sai do FCX_DIA, que o painel ja carregou — entao
+     aparece na hora, sem espera. A nuvem so e chamada quando o dono clica num grupo, que e
+     quando ele quer mesmo ver as ocorrencias. Menos peso ao abrir a Analise. */
+  d.innerHTML = fcxDetCancelamento();
+  var lins = d.querySelectorAll(".fcx-lin");
+  for(var i=0;i<lins.length;i++){
+    lins[i].addEventListener("click", (function(l){
+      return function(){ fcxAbrirPainel("cancelamento", l.getAttribute("data-g")); };
+    })(lins[i]));
+  }
 }
 
 /* Busca as ocorrências na nuvem. Distingue os três desfechos: deu certo, não pode ver, deu erro.
@@ -6215,7 +6259,7 @@ function fcxNomeOu(valor, linha){
   return "—";
 }
 
-function fcxDetCancelamento(linhas){
+function fcxDetCancelamento(){
   var pr = fcxPeriodo(), de = pr[0], ate = pr[1];
   var soma = fcxSomaDias(typeof FCX_DIA!=="undefined" ? FCX_DIA : [], de, ate);
   var base = fcxBase(de, ate);
@@ -6240,38 +6284,13 @@ function fcxDetCancelamento(linhas){
       '<td class="r">'+fcxPct(base>0 ? gr.v/base*100 : null)+'</td></tr>';
   }
 
-  var so = linhas.filter(function(x){ return x.tipo==="cancelamento"; });
-  /* ==FCXCORTE== A NUVEM DEVOLVE NO MAXIMO 1.000 LINHAS POR VEZ. Em agosto/2026 o periodo
-     tem 4.692 ocorrencias e chegam 1.000 — somar o que chegou acusaria divergencia de
-     R$ 33 mil que nao existe. Por isso a funcao do banco devolve, em toda linha, o TOTAL
-     do periodo (total_ocorrencias/total_valor, contados la dentro) e avisa se cortou.
-     A conciliacao usa esse total; a lista mostra o que coube, dizendo quanto coube. */
-  var totalNuvem = null, cortou = false;
-  if(linhas.length && linhas[0].total_valor !== undefined && linhas[0].total_valor !== null){
-    cortou = !!linhas[0].cortou;
-    /* o total da funcao soma cancelamento E desconto; aqui preciso so do cancelamento */
-    totalNuvem = null;
-  }
-  var conc = fcxConciliar(resumo, so.map(function(x){ return { v: Number(x.valor)||0 }; }));
-  /* TRES DESFECHOS, NAO DOIS. Card e grupos sempre saem do mesmo FCX_DIA, entao batem.
-     A lista vem da nuvem e pode estar VAZIA por dois motivos completamente diferentes:
-     o robô ainda não carregou aquele período (normal, e some sozinho), ou os números
-     divergem de verdade (grave). Escrever "conferir" nos dois casos ensina o dono a
-     ignorar o aviso — e no dia da divergência de verdade ele não olha. */
-  var listaVazia = (so.length === 0);
-  var batemEntreSi = Math.abs(conc.somaGrupos - conc.totalCard) < 0.005 && conc.nGrupos === conc.nCard;
-  var aviso;
-  if(conc.fecha){
-    aviso = '&#10003; soma dos grupos fecha com o total, e a lista também';
-  } else if(cortou && batemEntreSi){
-    /* período grande: a nuvem mandou uma parte. Não é divergência — é recorte. */
-    aviso = '&#10003; soma dos grupos fecha com o total · <span class="fcx-carregando">a lista abaixo mostra '+
-            fcxNum(so.length)+' das '+fcxNum(resumo.ocorrencias)+' ocorrências (as maiores)</span>';
-  } else if(listaVazia && batemEntreSi){
-    aviso = '&#10003; soma dos grupos fecha com o total · <span class="fcx-carregando">a lista de ocorrências ainda não chegou da nuvem</span>';
-  } else {
-    aviso = '&#9888; CONFERIR: card '+fcxBrl(conc.totalCard)+' · grupos '+fcxBrl(conc.somaGrupos)+' · lista '+fcxBrl(conc.somaOcorrencias);
-  }
+  /* A conciliacao aqui e CARD x GRUPOS (as duas partes que saem do FCX_DIA). A terceira
+     ponta — a lista de ocorrencias — e conferida no painel, quando o dono abre um grupo:
+     e la que a lista existe. Assim a composicao aparece instantanea, sem esperar a nuvem. */
+  var conc = fcxConciliar(resumo, []);
+  var batem = Math.abs(conc.somaGrupos - conc.totalCard) < 0.005 && conc.nGrupos === conc.nCard;
+  var aviso = batem ? '&#10003; a soma dos grupos fecha com o total'
+                    : '&#9888; CONFERIR: card '+fcxBrl(conc.totalCard)+' · grupos '+fcxBrl(conc.somaGrupos);
 
   return '<div class="fcx-painel">'+
     '<div class="fcx-ph">Cancelamentos · composição<span>'+fcxDataCurta(de)+' a '+fcxDataCurta(ate)+' · '+
@@ -6285,96 +6304,202 @@ function fcxDetCancelamento(linhas){
     '<div class="fcx-ph2">Clique num grupo para ver as ocorrências</div><div id="fcxOco"></div></div>';
 }
 
-function fcxListaOcorrencias(linhas, grupo){
-  var l = linhas.filter(function(x){ return x.tipo==="cancelamento" && x.grupo===grupo; })
-                .sort(function(a,b){ return (Number(b.valor)||0)-(Number(a.valor)||0); });
-  if(!l.length) return '<div class="fcx-vazio">Nenhuma ocorrência neste grupo no período.</div>';
-  var top = l.slice(0, 40);
-  var h = '<div class="fcx-ph2">'+FCX_NOME[grupo]+' · '+fcxNum(l.length)+' ocorrências · maiores primeiro</div>';
-  for(var i=0;i<top.length;i++){
-    var x = top[i];
-    h += '<div class="fcx-oc">'+
-      '<div class="fcx-oc1"><span>'+(x.produto||"—")+'</span><b>'+fcxBrl(x.valor)+'</b></div>'+
-      '<div class="fcx-oc2">'+fcxDataCurta(x.data)+' '+(x.hora||"")+' · PDV '+(x.pdv||"—")+' · '+fcxNomeOu(x.operador, x)+
-        ' · '+(x.cupom_inteiro ? "cupom cancelado inteiro" : "item cancelado")+
-        ' · '+Number(x.quantidade||0).toLocaleString("pt-BR")+' un · cupom '+(x.cupom||"—")+'</div>'+
-      '<div class="fcx-oc2">motivo: '+(x.motivo_vr || "<i>sem motivo informado</i>")+
-        (x.fiscal ? ' · autorizou: '+x.fiscal : (x.mostra_nomes===false ? ' · autorizou: <i>nome restrito</i>' : ''))+'</div></div>';
-  }
-  if(l.length>top.length) h += '<div class="fcx-vazio">mostrando as 40 maiores de '+fcxNum(l.length)+'.</div>';
-  return h;
+function fcxFecharPainel(){
+  var bg=document.getElementById("fcxPainelBg");
+  if(bg) bg.classList.remove("show");
+  try{ document.body.style.overflow=""; }catch(e){}
+  FCX_PN=null;
 }
 
-function fcxDetDesconto(linhas){
-  var pr = fcxPeriodo(), de = pr[0], ate = pr[1];
-  var soma = fcxSomaDias(typeof FCX_DIA!=="undefined" ? FCX_DIA : [], de, ate);
-  var base = fcxBase(de, ate);
-  var resumo = fcxDesconto(soma, base);
-  if(!resumo) return '<div class="fcx-painel"><div class="fcx-vazio">Período sem movimento — nada a mostrar.</div></div>';
+/* ESC fecha, clique no fundo fecha — o mesmo jeito dos outros modais do painel. */
+document.addEventListener("keydown",function(e){
+  if(e.key==="Escape" && document.getElementById("fcxPainelBg") &&
+     document.getElementById("fcxPainelBg").classList.contains("show")) fcxFecharPainel();
+});
 
-  var l = linhas.filter(function(x){ return x.tipo==="desconto"; });
-  var somaLista = 0;
-  for(var i=0;i<l.length;i++) somaLista += (Number(l[i].valor_desconto)||0);
-  somaLista = fcxCent(somaLista);
-  var fecha = Math.abs(somaLista - resumo.valor) < 0.005;
-  var listaVaziaD = (l.length === 0 && resumo.valor > 0);
-  var cortouD = !!(linhas.length && linhas[0].cortou);
-
-  var comAlerta = l.filter(function(x){
-    return fcxAlertasDoDesconto(Number(x.valor_bruto)||0, Number(x.valor_desconto)||0, x.motivo_vr).length > 0;
-  }).sort(function(a,b){
-    var pa = (Number(a.valor_bruto)>0) ? Number(a.valor_desconto)/Number(a.valor_bruto) : 0;
-    var pb = (Number(b.valor_bruto)>0) ? Number(b.valor_desconto)/Number(b.valor_bruto) : 0;
-    return pb-pa;
-  });
-
-  var h = '<div class="fcx-painel">'+
-    '<div class="fcx-ph">Descontos manuais<span>'+fcxDataCurta(de)+' a '+fcxDataCurta(ate)+'</span></div>'+
-    '<table class="fcx-tab"><tbody>'+
-    '<tr><td>Percentual sobre a venda</td><td class="r">'+fcxPct(resumo.pct)+'</td></tr>'+
-    '<tr><td>Valor total</td><td class="r">'+fcxBrl(resumo.valor)+'</td></tr>'+
-    '<tr><td>Ocorrências</td><td class="r">'+fcxNum(resumo.ocorrencias)+'</td></tr>'+
-    '<tr><td>Acima de '+Math.round(FCX_CFG.limiteItem*100)+'% do item</td><td class="r">'+fcxNum(resumo.acimaDoLimite)+'</td></tr>'+
-    '<tr><td>Sem motivo informado</td><td class="r">'+fcxNum(resumo.semMotivo)+'</td></tr>'+
-    '<tr class="fcx-forte"><td>Ocorrências para revisar</td><td class="r">'+fcxNum(resumo.ocorrenciasParaRevisar)+'</td></tr>'+
-    '<tr class="fcx-forte"><td>Motivos de alerta</td><td class="r">'+fcxNum(resumo.motivosDeAlerta)+'</td></tr>'+
-    '</tbody></table>'+
-    '<div class="fcx-concilia">'+(fecha ? '&#10003; detalhamento fecha com o card'
-      : cortouD ? '<span class="fcx-carregando">a lista abaixo mostra '+fcxNum(l.length)+' dos '+fcxNum(resumo.ocorrencias)+' descontos (os maiores)</span>'
-      : listaVaziaD ? '<span class="fcx-carregando">a lista de ocorrências ainda não chegou da nuvem</span>'
-      : '&#9888; CONFERIR: card '+fcxBrl(resumo.valor)+' · lista '+fcxBrl(somaLista))+'</div>';
-
-  if(comAlerta.length){
-    h += '<div class="fcx-ph2">Alertas para revisar</div>';
-    for(var j=0;j<Math.min(comAlerta.length,25);j++){
-      var x = comAlerta[j];
-      var bruto = Number(x.valor_bruto)||0, dsc = Number(x.valor_desconto)||0;
-      var av = fcxAlertasDoDesconto(bruto, dsc, x.motivo_vr);
-      h += '<div class="fcx-al">'+
-        '<div class="fcx-al1">'+(x.produto||"—")+(x.codigo_barras?' <span>'+x.codigo_barras+'</span>':'')+'</div>'+
-        '<div class="fcx-al2">Valor original: '+fcxBrl(bruto)+' &nbsp;·&nbsp; Valor final: '+fcxBrl(bruto-dsc)+
-          ' &nbsp;·&nbsp; Desconto: '+fcxBrl(dsc)+' &nbsp;·&nbsp; <b>'+fcxPct(bruto>0?dsc/bruto*100:null,0)+'</b></div>'+
-        '<div class="fcx-al2">'+fcxDataCurta(x.data)+' '+(x.hora||"")+' · PDV '+(x.pdv||"—")+' · '+fcxNomeOu(x.operador, x)+
-          ' · cupom '+(x.cupom||"—")+' · motivo: '+(x.motivo_vr||"não informado")+'</div>'+
-        '<div class="fcx-al3">ALERTAS: &bull; '+av.join(" &nbsp; &bull; ")+'</div></div>';
+function fcxAbrirPainel(tipo, grupo){
+  var bg=document.getElementById("fcxPainelBg"), cx=document.getElementById("fcxPainelCx");
+  if(!bg||!cx) return;
+  bg.classList.add("show");
+  try{ document.body.style.overflow="hidden"; }catch(e){}
+  bg.onclick=function(e){ if(e.target===bg) fcxFecharPainel(); };
+  cx.innerHTML='<div class="fcx-pt"><div class="fcx-pt-tit">Buscando…</div></div>';
+  var pr=fcxPeriodo(), de=pr[0], ate=pr[1];
+  fcxBuscarOcorrencias(de, ate, tipo, function(erro, linhas){
+    if(erro){
+      cx.innerHTML='<button class="fcx-pt-x" onclick="fcxFecharPainel()">&times;</button>'+
+        '<div class="fcx-pt"><div class="fcx-pt-tit">Detalhamento</div></div>'+
+        '<div class="fcx-lst"><div class="fcx-vazio">'+erro+'</div></div>';
+      return;
     }
-    if(comAlerta.length>25) h += '<div class="fcx-vazio">mostrando 25 de '+fcxNum(comAlerta.length)+'.</div>';
+    FCX_PN={ tipo:tipo, grupo:grupo||null, linhas:linhas, de:de, ate:ate,
+             busca:"", fOp:"", fPdv:"", fMot:"", fTipo:"", fAlerta:"", ordem:"valor" };
+    fcxDesenharPainel();
+  });
+}
+
+/* o que sobra depois da busca e dos filtros — em um lugar so, pra lista e contador nunca
+   discordarem */
+function fcxFiltradas(){
+  var P=FCX_PN, l=P.linhas.slice();
+  if(P.tipo==="cancelamento" && P.grupo) l=l.filter(function(x){ return (x.grupo||"naoclass")===P.grupo; });
+  var b=(P.busca||"").trim().toLowerCase();
+  if(b) l=l.filter(function(x){
+    return String(x.produto||"").toLowerCase().indexOf(b)>=0
+        || String(x.operador||"").toLowerCase().indexOf(b)>=0
+        || String(x.cupom||"").indexOf(b)>=0
+        || String(x.motivo_vr||"").toLowerCase().indexOf(b)>=0;
+  });
+  if(P.fOp)  l=l.filter(function(x){ return String(x.operador||"")===P.fOp; });
+  if(P.fPdv) l=l.filter(function(x){ return String(x.pdv||"")===P.fPdv; });
+  if(P.fMot) l=l.filter(function(x){ return String(x.motivo_vr||"(sem motivo)")===P.fMot; });
+  if(P.fTipo==="item")  l=l.filter(function(x){ return !x.cupom_inteiro; });
+  if(P.fTipo==="cupom") l=l.filter(function(x){ return !!x.cupom_inteiro; });
+  if(P.fAlerta==="com") l=l.filter(function(x){ return (x.alertas||[]).length>0; });
+  if(P.fAlerta==="sem") l=l.filter(function(x){ return (x.alertas||[]).length===0; });
+  var vl=function(x){ return Number(P.tipo==="desconto" ? x.valor_desconto : x.valor)||0; };
+  var pc=function(x){ var b2=Number(x.valor_bruto)||0; return b2>0 ? vl(x)/b2 : 0; };
+  var q=function(x){ return String(x.data||"")+" "+String(x.hora||""); };
+  if(P.ordem==="valor")     l.sort(function(a,b2){ return vl(b2)-vl(a); });
+  else if(P.ordem==="menor")l.sort(function(a,b2){ return vl(a)-vl(b2); });
+  else if(P.ordem==="novo") l.sort(function(a,b2){ return q(b2)<q(a)?-1:1; });
+  else if(P.ordem==="velho")l.sort(function(a,b2){ return q(a)<q(b2)?-1:1; });
+  else if(P.ordem==="pct")  l.sort(function(a,b2){ return pc(b2)-pc(a); });
+  return l;
+}
+
+function fcxOpcoes(campo, rotulo){
+  var P=FCX_PN, vis={}, base=P.linhas;
+  if(P.tipo==="cancelamento" && P.grupo) base=base.filter(function(x){ return (x.grupo||"naoclass")===P.grupo; });
+  base.forEach(function(x){
+    var v = campo==="motivo_vr" ? (x.motivo_vr||"(sem motivo)") : String(x[campo]||"");
+    if(v) vis[v]=(vis[v]||0)+1;
+  });
+  var ks=Object.keys(vis).sort();
+  if(ks.length<2) return "";   /* filtro com uma opcao so nao ajuda ninguem */
+  var sel = campo==="operador" ? P.fOp : campo==="pdv" ? P.fPdv : P.fMot;
+  var h='<select data-fcx-f="'+campo+'"><option value="">'+rotulo+' (todos)</option>';
+  ks.forEach(function(k){ h+='<option value="'+String(k).replace(/"/g,"&quot;")+'"'+(sel===k?" selected":"")+'>'+
+    (campo==="pdv"?"PDV ":"")+k+" ("+vis[k]+")</option>"; });
+  return h+"</select>";
+}
+
+function fcxDesenharPainel(){
+  var P=FCX_PN, cx=document.getElementById("fcxPainelCx");
+  if(!P||!cx) return;
+  var ehDesc = (P.tipo==="desconto");
+  var l=fcxFiltradas();
+  var soma=l.reduce(function(a,x){ return a+(Number(ehDesc?x.valor_desconto:x.valor)||0); },0);
+
+  /* os totais DO PERIODO vem do servidor (a nuvem manda no maximo ~1.000 linhas) */
+  var totN = P.linhas.length && P.linhas[0].total_ocorrencias!=null ? Number(P.linhas[0].total_ocorrencias) : P.linhas.length;
+  var cortou = !!(P.linhas.length && P.linhas[0].cortou);
+
+  /* o grupo pertence a NOSSA classificacao; o motivo e do VR. A trilha deixa isso claro. */
+  var cam = ehDesc ? '<b>Descontos manuais</b>'
+                   : '<b>Cancelamentos</b>'+(P.grupo?' &rsaquo; <b>'+FCX_NOME[P.grupo]+'</b>':'');
+  var tit = ehDesc ? "Descontos manuais" : (P.grupo ? FCX_NOME[P.grupo] : "Cancelamentos");
+
+  /* o resumo do topo: os numeros do GRUPO dentro do periodo, sem inventar nada */
+  var soma2=fcxSomaDias(typeof FCX_DIA!=="undefined"?FCX_DIA:[], P.de, P.ate);
+  var base=fcxBase(P.de,P.ate);
+  var res="";
+  if(ehDesc){
+    var rd=fcxDesconto(soma2, base);
+    /* A ORDEM E PEDIDO DELE (item 10 da V2): primeiro o percentual sobre a venda, depois o
+       valor, depois a quantidade, e o "para revisar" com destaque. Os detalhes do alerta
+       (quantos acima do limite, quantos sem motivo, quantos motivos) vem depois, menores —
+       sao a explicacao do numero de cima, nao competem com ele. */
+    if(rd) res='<div><span>Sobre a venda</span><b>'+fcxPct(rd.pct)+'</b></div>'+
+               '<div><span>Valor</span><b>'+fcxBrl(rd.valor)+'</b></div>'+
+               '<div><span>Descontos</span><b>'+fcxNum(rd.ocorrencias)+'</b></div>'+
+               '<div><span>Para revisar</span><b'+(rd.ocorrenciasParaRevisar>0?' style="color:#9a6a00"':'')+'>'+
+                 (rd.ocorrenciasParaRevisar>0?'&#9888; ':'')+fcxNum(rd.ocorrenciasParaRevisar)+'</b></div>'+
+               (rd.ocorrenciasParaRevisar>0
+                 ? '<div style="border-left:1px solid #eef1f5;padding-left:26px;"><span>Detalhe do alerta</span>'+
+                   '<b style="font-size:12.5px;font-weight:500;color:#6b7787;">'+
+                     fcxNum(rd.acimaDoLimite)+' acima de '+Math.round(FCX_CFG.limiteItem*100)+'% do item · '+
+                     fcxNum(rd.semMotivo)+' sem motivo · '+fcxNum(rd.motivosDeAlerta)+' motivos</b></div>'
+                 : '<div><span>Alertas</span><b style="font-size:13px;font-weight:500;color:#8a97a8;">Nenhum no período</b></div>');
   } else {
-    h += '<div class="fcx-vazio">Nenhum alerta no período.</div>';
+    var rc=fcxCancelamento(soma2, base);
+    if(rc){
+      var g = P.grupo ? rc.grupos[P.grupo] : { n:rc.ocorrencias, v:rc.total };
+      res='<div><span>Ocorrências</span><b>'+fcxNum(g.n)+'</b></div>'+
+          '<div><span>Valor</span><b>'+fcxBrl(g.v)+'</b></div>'+
+          (P.grupo?'<div><span>Dos cancelamentos</span><b>'+fcxPct(fcxFatia(g.v, rc.total),1)+'</b></div>':'')+
+          '<div><span>Das vendas</span><b>'+fcxPct(base>0?g.v/base*100:null)+'</b></div>';
+    }
   }
 
-  h += '<div class="fcx-ph2">Todos os descontos do período · '+fcxNum(l.length)+'</div>';
-  var todos = l.slice().sort(function(a,b){ return (Number(b.valor_desconto)||0)-(Number(a.valor_desconto)||0); });
-  for(var k=0;k<Math.min(todos.length,30);k++){
-    var y = todos[k], yb = Number(y.valor_bruto)||0, yd = Number(y.valor_desconto)||0;
-    h += '<div class="fcx-oc"><div class="fcx-oc1"><span>'+(y.produto||"—")+'</span><b>'+fcxBrl(yd)+'</b></div>'+
-      '<div class="fcx-oc2">'+fcxDataCurta(y.data)+' '+(y.hora||"")+' · PDV '+(y.pdv||"—")+' · '+fcxNomeOu(y.operador, y)+
-      ' · de '+fcxBrl(yb)+' por '+fcxBrl(yb-yd)+' ('+fcxPct(yb>0?yd/yb*100:null,0)+')'+
-      ' · motivo: '+(y.motivo_vr||"não informado")+'</div></div>';
+  var fer='<input type="search" placeholder="Buscar produto, operador, cupom ou motivo…" value="'+
+          String(P.busca).replace(/"/g,"&quot;")+'" data-fcx-b>'+
+          fcxOpcoes("operador","Operador")+fcxOpcoes("pdv","PDV")+fcxOpcoes("motivo_vr","Motivo");
+  if(!ehDesc) fer+='<select data-fcx-f="tipo"><option value="">Item e cupom</option>'+
+    '<option value="item"'+(P.fTipo==="item"?" selected":"")+'>Só item cancelado</option>'+
+    '<option value="cupom"'+(P.fTipo==="cupom"?" selected":"")+'>Só cupom inteiro</option></select>';
+  else fer+='<select data-fcx-f="alerta"><option value="">Com e sem alerta</option>'+
+    '<option value="com"'+(P.fAlerta==="com"?" selected":"")+'>Só com alerta</option>'+
+    '<option value="sem"'+(P.fAlerta==="sem"?" selected":"")+'>Só sem alerta</option></select>';
+  fer+='<select data-fcx-o><option value="valor"'+(P.ordem==="valor"?" selected":"")+'>Maior valor</option>'+
+    '<option value="menor"'+(P.ordem==="menor"?" selected":"")+'>Menor valor</option>'+
+    (ehDesc?'<option value="pct"'+(P.ordem==="pct"?" selected":"")+'>Maior percentual</option>':'')+
+    '<option value="novo"'+(P.ordem==="novo"?" selected":"")+'>Mais recente</option>'+
+    '<option value="velho"'+(P.ordem==="velho"?" selected":"")+'>Mais antigo</option></select>'+
+    '<span class="fcx-cont">'+fcxNum(l.length)+(l.length===1?" ocorrência":" ocorrências")+' · '+fcxBrl(soma)+'</span>';
+
+  var itens="";
+  if(!l.length) itens='<div class="fcx-vazio">Nenhuma ocorrência com esses filtros.</div>';
+  for(var i=0;i<l.length;i++){
+    var x=l[i];
+    var vv = Number(ehDesc?x.valor_desconto:x.valor)||0;
+    var br = Number(x.valor_bruto)||0;
+    var al = x.alertas||[];
+    /* nome e valor na MESMA linha do topo. Na V2 o valor ficava numa coluna a direita e,
+       no celular, saia da tela — o dono nao via o numero, que e o que ele mais procura. */
+    itens+='<div class="fcx-it"><div class="fcx-it-c">'+
+      '<div class="fcx-it-top"><span class="fcx-it-n">'+(x.produto||"—")+'</span>'+
+        '<span class="fcx-it-v">'+fcxBrl(vv)+
+        (ehDesc&&br>0?'<i>'+fcxPct(vv/br*100,0)+' do item</i>':'')+'</span></div>'+
+      '<div class="fcx-it-d">'+fcxDataCurta(x.data)+' '+(x.hora||"")+' · PDV '+(x.pdv||"—")+
+        ' · '+fcxNomeOu(x.operador,x)+' · cupom '+(x.cupom||"—")+
+        (ehDesc?'':' · '+(x.cupom_inteiro?"cupom cancelado inteiro":"item cancelado")+
+                 ' · '+Number(x.quantidade||0).toLocaleString("pt-BR")+' un')+'</div>'+
+      '<div class="fcx-it-m"><span class="fcx-tag fcx-tag-vr">'+(x.motivo_vr||"sem motivo informado")+'</span>'+
+        (x.fiscal?'autorizou: '+x.fiscal:(x.mostra_nomes===false&&!ehDesc?'autorizou: <i>nome restrito</i>':''))+
+        (ehDesc&&br>0?' · de '+fcxBrl(br)+' por '+fcxBrl(br-vv):'')+'</div>'+
+      (al.length?'<div class="fcx-it-m">'+al.map(function(a){ return '<span class="fcx-tag fcx-tag-al">&#9888; '+a+'</span>'; }).join("")+'</div>':'')+
+      '</div></div>';
   }
-  if(todos.length>30) h += '<div class="fcx-vazio">mostrando 30 de '+fcxNum(todos.length)+'.</div>';
-  return h+'</div>';
+
+  cx.innerHTML='<button class="fcx-pt-x" onclick="fcxFecharPainel()" title="Fechar">&times;</button>'+
+    '<div class="fcx-pt"><div class="fcx-pt-cam">'+cam+'</div>'+
+      '<div class="fcx-pt-tit">'+tit+'</div>'+
+      '<div class="fcx-pt-per">Período: '+fcxDataCurta(P.de)+' a '+fcxDataCurta(P.ate)+'</div></div>'+
+    '<div class="fcx-res">'+res+'</div>'+
+    '<div class="fcx-fer">'+fer+'</div>'+
+    '<div class="fcx-lst">'+itens+'</div>'+
+    (cortou?'<div class="fcx-pe">Mostrando '+fcxNum(P.linhas.length)+' de '+fcxNum(totN)+
+            ' ocorrências do período (as de maior valor). Os totais acima são do período inteiro.</div>':'');
+
+  var bu=cx.querySelector("[data-fcx-b]");
+  if(bu) bu.addEventListener("input",function(){ P.busca=this.value; var v=this.value, p2=this.selectionStart;
+    fcxDesenharPainel(); var n2=document.querySelector("#fcxPainelCx [data-fcx-b]");
+    if(n2){ n2.focus(); try{ n2.setSelectionRange(p2,p2); }catch(e){} } });
+  cx.querySelectorAll("[data-fcx-f]").forEach(function(sel){
+    sel.addEventListener("change",function(){
+      var c=this.getAttribute("data-fcx-f");
+      if(c==="operador") P.fOp=this.value; else if(c==="pdv") P.fPdv=this.value;
+      else if(c==="motivo_vr") P.fMot=this.value; else if(c==="tipo") P.fTipo=this.value;
+      else if(c==="alerta") P.fAlerta=this.value;
+      fcxDesenharPainel();
+    });
+  });
+  var or=cx.querySelector("[data-fcx-o]");
+  if(or) or.addEventListener("change",function(){ P.ordem=this.value; fcxDesenharPainel(); });
 }
+/* ==FCXPAINEL-FIM== */
+
 /* ==FCXTELA-FIM== */
 
 /* ==HISTCALC-INICIO== HISTÓRICO: ano a ano e mês a mês (testado em scripts/testes/historico.test.cjs)
