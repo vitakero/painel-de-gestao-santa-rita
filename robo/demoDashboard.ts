@@ -7105,8 +7105,9 @@ function fcxDesenharPainel(){
      ou o caixa, e ordenar. */
   var fer;
   if(P.produto){
-    fer='<input type="search" placeholder="Buscar cupom ou PDV…" value="'+
+    fer='<input type="search" placeholder="Buscar cupom, PDV ou caixa…" value="'+
         String(P.busca).replace(/"/g,"&quot;")+'" data-fcx-b>'+
+        fcxOpcoes("operador","Caixa")+fcxOpcoes("pdv","PDV")+
         '<select data-fcx-o><option value="valor"'+(P.ordem==="valor"?" selected":"")+'>Maior desconto</option>'+
         '<option value="novo"'+(P.ordem==="novo"?" selected":"")+'>Mais recente</option>'+
         '<option value="velho"'+(P.ordem==="velho"?" selected":"")+'>Mais antigo</option>'+
@@ -7148,9 +7149,17 @@ function fcxDesenharPainel(){
      ninguém concedeu nada, e coluna vazia em tela de gestão é ruído. O que existe
      é quando, em que caixa, em que cupom, quanto, de que preço por que preço. */
   if(P.produto){
-    cols='<col class="k-prod"><col class="k-pdv"><col class="k-cup"><col class="k-pdv">'+
-         '<col class="k-preco"><col class="k-preco"><col class="k-pct"><col class="k-val">';
-    cab='<tr><th>Data / hora</th><th class="c">PDV</th><th class="c">Cupom</th><th class="c">Qtd</th>'+
+    /* ==FCXDGRUPO== A COLUNA "CAIXA" É QUEM PASSOU A COMPRA, NÃO QUEM DEU O DESCONTO.
+       O dono pediu para saber "quem deu o desconto" no atacado, e a resposta honesta é:
+       ninguém deu. O preço de atacado é aplicado pelo VR quando o cliente leva 2 ou mais
+       do mesmo produto no mesmo cupom — medido nos 523 pares produto+cupom de setembro,
+       a menor quantidade é 2, NUNCA 1. O operador está gravado em todas as 47.493 linhas
+       (é quem estava no caixa), e mostrar isso ajuda a investigar; chamar a coluna de
+       "quem deu o desconto" seria acusar quem só passou o produto. Por isso "Caixa". */
+    cols='<col class="k-prod"><col class="k-pdv"><col class="k-cup"><col class="k-op">'+
+         '<col class="k-pdv"><col class="k-preco"><col class="k-preco"><col class="k-pct"><col class="k-val">';
+    cab='<tr><th>Data / hora</th><th class="c">PDV</th><th class="c">Cupom</th><th>Caixa</th>'+
+        '<th class="c">Qtd</th>'+
         '<th class="r">Preço normal</th><th class="r">Preço aplicado</th>'+
         '<th class="r">% sobre a venda</th><th class="r">Desconto</th></tr>';
     for(var k=0;k<l.length;k++){
@@ -7159,6 +7168,7 @@ function fcxDesenharPainel(){
         '<td class="tb-prod">'+fcxDataCurta(z.data)+' '+(z.hora||"")+'</td>'+
         '<td class="tb-num" data-r="PDV">'+(z.pdv||"—")+'</td>'+
         '<td class="tb-num" data-r="Cupom">'+(z.cupom!=null?fcxNum(z.cupom):"—")+'</td>'+
+        '<td class="tb-op" data-r="Caixa" title="'+esc(z.operador)+'">'+fcxNomeOu(z.operador,z)+'</td>'+
         '<td class="tb-num" data-r="Qtd">'+fcxQtd(zq)+'</td>'+
         '<td class="tb-v tb-p" data-r="Preço normal">'+(zq>0?fcxBrl(zb/zq):"—")+'</td>'+
         '<td class="tb-v tb-p" data-r="Preço aplicado">'+(zq>0?fcxBrl((zb-zv)/zq):"—")+'</td>'+
