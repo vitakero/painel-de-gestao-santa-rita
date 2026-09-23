@@ -7177,10 +7177,17 @@ function fcxDesenharPainel(){
     }
   }
   else if(ehDesc){
+    /* ==FCXAUT== A coluna AUTORIZOU, igual a do cancelamento (23/09/2026).
+       A tecla de desconto do PDV esta em nivel FISCAL na loja: o operador NAO da
+       desconto sozinho. Medido no VR: 1.762 liberacoes em 2 anos, TODAS do
+       Josinaldo ou do Marcio, e 872 de 872 nos 13 meses da janela. Antes esta
+       coluna nem existia aqui e o dono nao tinha como ver isso na tela.
+       No desconto AUTOMATICO (atacado, campanha, oferta) ela vem vazia de
+       proposito: ninguem concedeu nada, o sistema aplicou pelo preco cadastrado. */
     cols='<col class="k-prod"><col class="k-data"><col class="k-pdv"><col class="k-op">'+
-         '<col class="k-cup"><col class="k-motd"><col class="k-preco"><col class="k-pct"><col class="k-val">';
+         '<col class="k-cup"><col class="k-motd"><col class="k-fis"><col class="k-preco"><col class="k-pct"><col class="k-val">';
     cab='<tr><th>Produto</th><th>Data/hora</th><th class="c">PDV</th><th>Operador</th>'+
-        '<th class="c">Cupom</th><th>Motivo do VR</th><th>De / por</th><th class="r">% do item</th>'+
+        '<th class="c">Cupom</th><th>Motivo do VR</th><th>Autorizou</th><th>De / por</th><th class="r">% do item</th>'+
         '<th class="r">Desconto</th></tr>';
     for(var i=0;i<l.length;i++){
       var x=l[i], vv=Number(x.valor_desconto)||0, br=Number(x.valor_bruto)||0, al=x.alertas||[];
@@ -7192,6 +7199,8 @@ function fcxDesenharPainel(){
         '<td class="tb-op" title="'+esc(x.operador)+'">'+fcxNomeOu(x.operador,x)+'</td>'+
         '<td class="tb-num">'+(x.cupom||"—")+'</td>'+
         '<td><span class="fcx-tag" title="'+esc(x.motivo_vr||"sem motivo informado")+'">'+(x.motivo_vr||"sem motivo informado")+'</span></td>'+
+        '<td class="tb-op" data-r="Autorizou" title="'+esc(x.fiscal||(x.mostra_nomes===false?"nome restrito":""))+'">'+
+          (x.fiscal?soPrimeiro(x.fiscal):(x.mostra_nomes===false?"<i>restrito</i>":"—"))+'</td>'+
         '<td>'+(br>0?fcxBrl(br)+' &rarr; '+fcxBrl(br-vv):'—')+'</td>'+
         '<td class="tb-v" style="font-size:11.5px;font-weight:500;color:#6b7787;">'+(br>0?fcxPct(vv/br*100,0):"—")+'</td>'+
         '<td class="tb-v tb-fim">'+fcxBrl(vv)+'</td></tr>';

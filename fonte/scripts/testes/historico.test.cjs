@@ -543,7 +543,17 @@ const d2 = (v) => v === null ? "null" : (Math.round(v * 100) / 100).toFixed(2);
   const comCorte = (a.cup / justo.cup - 1) * 100;
   eq("sem corte, a queda de cupons passa de 20%", semCorte < -20, true);
   eq("com corte, ela fica abaixo de 10%", Math.abs(comCorte) < 10, true);
-  eq("o corte reduz a queda em mais de 5 vezes", Math.abs(semCorte) / Math.abs(comCorte) > 5, true);
+  // NAO MEDIR PELA RAZAO. A primeira versao exigia "reduz em mais de 5 vezes" e quebrou
+  // sozinha em 23/09/2026, sem ninguem mexer no codigo: deu 4,96x. O bloco HISTCALC
+  // estava byte a byte identico — o que mudou foi o DADO. E natural: a razao e
+  // (ilusao / queda real), e a queda real muda todo dia; num mes em que a loja cai de
+  // verdade, a razao despenca mesmo com o corte funcionando perfeitamente.
+  // O que NAO muda e a DISTANCIA em pontos: a ilusao nasce de comparar um mes parcial
+  // contra um mes inteiro, entao ela vale mais ou menos a fatia de mes que falta —
+  // dezenas de pontos, independente de quanto a loja caiu. Medido em 23/09/2026:
+  // -27,4% vira -5,5%, uma distancia de 21,9 pontos.
+  eq("o corte tira dezenas de pontos da queda falsa",
+     Math.abs(semCorte) - Math.abs(comCorte) > 15, true);
   eq("e os dois meses ficam com o mesmo tamanho", a.diasAbertos, justo.diasAbertos);
 }
 

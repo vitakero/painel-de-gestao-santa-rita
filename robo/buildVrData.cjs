@@ -378,12 +378,61 @@ function fcxSqlDesc(desde){
   // Agora e um LEFT JOIN com DISTINCT ON, o mesmo jeito do PROD_SYNC_SQL que o
   // robo ja roda todo dia. Isso importa muito: se esta consulta estourar, o
   // robo engole no catch e os 83 mil CANCELAMENTOS param junto, calados.
+  //
+  // ==FCXAUT== QUEM AUTORIZOU E O MOTIVO DE VERDADE (23/09/2026).
+  //
+  // A tecla de desconto do PDV esta em nivel FISCAL na loja: o operador NAO da
+  // desconto sozinho, quem digita a liberacao e o Josinaldo ou o Marcio. Isso o
+  // VR registra em pdv.logtransacao, funcao 165 (desconto no item) e 164 (no
+  // cupom) — 1.762 liberacoes em 2 anos, TODAS de um dos dois. Medido 23/09/2026.
+  //
+  // O log guarda duas coisas que faltavam na tela:
+  //   matricula  -> QUEM liberou
+  //   observacao -> "ITEM: 055, DESCONTO: 2,30, MOTIVO: PRECO ERRADO"
+  //
+  // O MOTIVO IMPORTA MUITO. A coluna i.id_tipodesconto as vezes vem NULA mesmo o
+  // desconto tendo motivo: de dez/2025 a mar/2026 ela veio nula em 153 linhas, e
+  // a tela mostrou "sem motivo informado" para 153 descontos que TINHAM motivo
+  // escrito no log. Acusacao falsa. O log nunca veio vazio: 1.762 de 1.762 tem
+  // MOTIVO no texto.
+  //
+  // CASAMENTO: (data, ecf, numerocupom, sequencia). Medido em 22/08/2025 ate
+  // hoje: 873 linhas no log, 873 casaram, ZERO sobraram. 100%.
+  //
+  // O GROUP BY DA CTE NAO E ENFEITE: se o log tiver duas linhas para a mesma
+  // chave, sem ele o LEFT JOIN DUPLICA a ocorrencia e o total do desconto sobe
+  // sozinho na tela. Com ele, chave repetida continua sendo uma linha so.
+  //
+  // OS TIPOS SAO OS DO VR, conferidos no banco da loja em 23/09/2026:
+  // logtransacao.referencia e BIGINT (nao texto), datamovimento ja e DATE,
+  // observacao e varchar. A primeira versao tratava referencia como texto e
+  // morreu contra a loja com "operator does not exist: bigint ~ unknown" —
+  // tinha passado em 15 conferencias aqui, porque o banco de mentira da bancada
+  // e que estava com o tipo errado. Banco de mentira com tipo errado nao prova
+  // nada: a bancada agora copia os tipos do VR.
+  //
+  // A GUARDA do observacao NAO e contra queda — eu achei que fosse e fui conferir
+  // rodando: substring que nao casa da NULL, NULL::int e NULL, e NULL nunca casa
+  // com sequencia nenhuma. Ela so evita carregar linha inutil (estorno de cupom e
+  // outras funcoes sem item) para dentro da CTE.
   return `
     WITH cod AS (
       SELECT DISTINCT ON (pa.id_produto) pa.id_produto, pa.codigobarras::text cb
         FROM public.produtoautomacao pa
        WHERE pa.codigobarras IS NOT NULL AND trim(pa.codigobarras::text) <> ''
        ORDER BY pa.id_produto, pa.qtdembalagem
+    ),
+    aut AS (
+      SELECT l.datamovimento ad, l.ecf aecf,
+             l.referencia acup,
+             (substring(l.observacao from 'ITEM: *0*([0-9]+)'))::int aseq,
+             max(l.matricula) amat,
+             max(substring(l.observacao from 'MOTIVO: (.*)$')) amot
+        FROM pdv.logtransacao l
+       WHERE l.id_funcao IN (164,165)
+         AND l.datamovimento >= ${desde}
+         AND l.observacao ~ 'ITEM: *[0-9]+'
+       GROUP BY 1,2,3,4
     )
     SELECT to_char(i.data,'YYYY-MM-DD') d, to_char(cu.horainicio,'HH24:MI') h,
            cu.ecf pdv, cu.numerocupom nc, cu.id id_venda, i.sequencia seq,
@@ -399,12 +448,20 @@ function fcxSqlDesc(desde){
            -- loja concedeu nao pode sumir.
            CASE WHEN COALESCE(i.descontomanual,0)=1 AND COALESCE(i.valordescontomanual,0) <> 0
                 THEN i.valordescontomanual ELSE COALESCE(i.valordesconto,0) END dv,
-           i.id_tipodesconto mot,
+           -- ==FCXAUT== o motivo do ITEM manda; quando ele vem nulo, vale o do LOG.
+           -- Nesta ordem de proposito: o id do item nao envelhece quando o dono
+           -- renomeia um motivo no VR Master, o texto do log sim (ele guarda o
+           -- nome do dia em que foi gravado).
+           COALESCE(i.id_tipodesconto, td.id) mot,
+           aut.amat fi_mat,
            ${fcxCaseGrupoDesc()} g
       FROM pdv.vendaitem i
       JOIN pdv.venda cu ON cu.id = i.id_venda
       LEFT JOIN public.produto p ON p.id = i.id_produto
       LEFT JOIN cod ON cod.id_produto::text = i.id_produto::text
+      LEFT JOIN aut ON aut.ad = i.data AND aut.aecf = cu.ecf
+                   AND aut.acup = cu.numerocupom AND aut.aseq = i.sequencia
+      LEFT JOIN pdv.tipodesconto td ON upper(btrim(td.descricao)) = upper(btrim(aut.amot))
      WHERE i.data >= ${desde}
        AND (COALESCE(i.valordescontomanual,0) <> 0
             OR COALESCE(i.valordesconto,0) <> 0)`;
@@ -1162,7 +1219,8 @@ async function timed(c,nome,sql,params){
         }
         linhas.push({ tipo:"desconto", venda_id:Number(r.id_venda), sequencia:Number(r.seq),
           data:r.d, hora:r.h||null, pdv:r.pdv==null?null:Number(r.pdv), cupom:r.nc==null?null:Number(r.nc),
-          operador:nomeDe(r.op_mat), fiscal:null,
+          // ==FCXAUT== quem liberou o desconto, do log do PDV (antes: sempre vazio).
+          operador:nomeDe(r.op_mat), fiscal:nomeDe(r.fi_mat),
           produto:(r.pr||"").trim()||null,
           // o ".0" do NUMERIC vem junto quando o codigo vira texto; sai aqui
           codigo_barras:r.cb==null?null:String(r.cb).trim().replace(/\.0+$/,"")||null,
