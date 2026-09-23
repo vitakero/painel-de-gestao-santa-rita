@@ -82,6 +82,94 @@ function fcxAvisar(acao, motivo, detalhe){
 }
 function sbUpsertFcx(rows){return new Promise((res,rej)=>{const body=JSON.stringify(rows);const req=https.request({host:SB_HOST,path:"/rest/v1/frentecaixa_ocorrencias?on_conflict=tipo,venda_id,sequencia",method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal","Content-Length":Buffer.byteLength(body)}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>r.statusCode<300?res():rej(new Error("HTTP "+r.statusCode+" "+d)))});req.on("error",rej);req.write(body);req.end();});}
 
+/* ==FCXNOME-INICIO== O NOME DO MOTIVO E UMA COPIA, e copia envelhece.
+
+   A linha guarda DUAS coisas do motivo: motivo_id (o numero, que nunca muda) e motivo_vr
+   (o nome, copiado do cadastro do VR na hora em que a linha subiu). O robo so reescreve
+   o nome das linhas que estao na JANELA desta rodada — 7 dias no dia a dia. Entao quando
+   o dono renomeia um motivo no VR Master, o historico inteiro fica para tras com o nome
+   velho.
+
+   Aconteceu em 22/09/2026: DEVOLUCAO DO CLIENTE virou DE CLIENTE, DINHEIRO INSUFICIENTE
+   virou SALDO INSUFICIENTE e DUPLICIDADE DE REGISTRO perdeu o (EQUIPAMENTO). 31.473
+   linhas ficaram com o nome antigo, cortadas exatamente na borda da janela (15/09).
+   Os numeros da tela continuaram CERTOS — a composicao agrupa pelo NUMERO, nao pelo nome
+   (fcxGrupoDe) — mas o filtro "Motivo" da lista e montado a partir dos nomes guardados,
+   entao ele passou a mostrar o mesmo motivo DUAS VEZES, e escolher um escondia o outro.
+
+   Daqui pra frente cada rodada acerta o historico inteiro: para cada motivo do cadastro,
+   reescreve o nome SO das linhas que estao diferentes (motivo_vr=neq). No dia a dia isso
+   nao pega linha nenhuma e custa um pedido vazio por motivo; no dia de uma renomeacao,
+   conserta tudo sozinho na rodada seguinte.
+
+   DUAS COISAS DE PROPOSITO:
+   - So percorre os motivos que EXISTEM no cadastro. Motivo excluido do VR nao entra no
+     laco, entao as linhas antigas dele GUARDAM o nome que tinham — e o historico continua
+     dizendo o que aconteceu, em vez de virar "sem motivo informado".
+   - Nome vazio e pulado. Se a leitura do cadastro vier torta, o certo e nao fazer nada,
+     nunca apagar nome bom com vazio. */
+
+/* NADA DE ASPAS. Tentei mandar o nome entre aspas, do jeito que o PostgREST documenta
+   para valor com caractere especial — e perguntando ao servidor DE VERDADE (so lendo) o
+   filtro pegou 25.889 de 25.889 linhas em vez de 25.715: o servidor leu as aspas como
+   PARTE do nome, entao nenhuma linha era "igual" e o neq. pegava tudo. O robo teria
+   reescrito o historico inteiro toda rodada, calado, para sempre. Passou em 37
+   conferencias de bancada antes de morrer na nuvem — de novo.
+   O que funciona e o nome cru, so percentuado. Depois do "neq." o PostgREST pega o
+   resto do valor inteiro, entao ponto, virgula e parentese nao atrapalham.
+
+   encodeURIComponent deixa ! ' ( ) * passarem inteiros; percentua eles na mao tambem,
+   porque parentese e o que agrupa condicao no PostgREST e nao custa nada fechar a porta. */
+function fcxEncode(s){
+  return encodeURIComponent(String(s)).replace(/[!'()*]/g, c=>"%"+c.charCodeAt(0).toString(16).toUpperCase());
+}
+
+/* O endereco do conserto de UM motivo. Funcao pura de proposito: a bancada consegue
+   chamar ela e conferir o endereco sem tocar na internet. */
+function fcxNomePath(tipo,id,nome){
+  return "/rest/v1/frentecaixa_ocorrencias"
+       + "?tipo=eq."+fcxEncode(tipo)
+       + "&motivo_id=eq."+fcxEncode(id)
+       + "&motivo_vr=neq."+fcxEncode(nome);
+}
+
+/* Quantas linhas o PATCH mexeu, lido do cabecalho Content-Range ("0-8/9" -> 9). */
+function fcxQuantasMexeu(contentRange){
+  const m=String(contentRange||"").match(/\/(\d+)\s*$/);
+  return m?Number(m[1]):0;
+}
+/* ==FCXNOME-FIM== */
+
+function sbRenomearMotivo(tipo,id,nome){
+  return new Promise(res=>{
+    const body=JSON.stringify({motivo_vr:nome});
+    const req=https.request({host:SB_HOST,path:fcxNomePath(tipo,id,nome),method:"PATCH",
+      headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",
+               Prefer:"return=minimal,count=exact","Content-Length":Buffer.byteLength(body)}},
+      r=>{ let d=""; r.on("data",c=>d+=c);
+           r.on("end",()=>res(r.statusCode<300?fcxQuantasMexeu(r.headers["content-range"]):0)); });
+    /* Nome e enfeite: se falhar, a rodada segue e a proxima tenta de novo. */
+    req.on("error",()=>res(0)); req.write(body); req.end();
+  });
+}
+
+/* Passa o cadastro inteiro (os dois, cancelamento e desconto) e devolve quantas linhas
+   acertou. Nunca estoura: erro aqui nao pode derrubar a sincronizacao. */
+async function fcxAcertarNomes(cancMap,descMap){
+  let n=0;
+  try{
+    for(const [id,nome] of Object.entries(cancMap||{})){
+      if(!String(nome||"").trim()) continue;
+      n+=await sbRenomearMotivo("cancelamento",id,nome);
+    }
+    for(const [id,nome] of Object.entries(descMap||{})){
+      if(!String(nome||"").trim()) continue;
+      n+=await sbRenomearMotivo("desconto",id,nome);
+    }
+  }catch(e){ /* enfeite: nunca derruba a rodada */ }
+  return n;
+}
+
 /* ==FCXSQL-INICIO== As regras e as consultas da Frente de Caixa, num pedaco so.
    Esta fatia nao depende de nada do resto do arquivo de proposito: a bancada
    (scripts/testes) consegue recortar ela, RODAR as consultas num Postgres de mentira e
@@ -1113,11 +1201,16 @@ async function timed(c,nome,sql,params){
       for(let i=0;i<soDesc.length;i+=500){ await sbUpsertFcx(soDesc.slice(i,i+500)); ok+=Math.min(500,soDesc.length-i); }
       // So marca "feito" depois que TUDO subiu. Se estourou no meio, a proxima rodada
       // refaz a mesma janela - o upsert por (tipo,id_venda,sequencia) nao duplica nada.
+      // ==FCXNOME== Depois que as linhas subiram, alinha o NOME do motivo no historico
+      // inteiro com o cadastro do VR. Normalmente nao mexe em nada.
+      const nomesAcertados=await fcxAcertarNomes(cancMap,descMap);
+      if(nomesAcertados) console.log("Frente de caixa (nuvem): "+nomesAcertados+" linha(s) com nome de motivo desatualizado foram acertadas.");
+
       try{ fs.writeFileSync(fcxMarkF, String(Date.now())); }catch(e){}
       if(cheio){ try{ fs.writeFileSync(fcxFullF, String(Date.now())); }catch(e){} }
       console.log("Frente de caixa (nuvem): "+ok+" ocorrencias ("+canc.length+" cancelamentos + "+desc.length+" descontos) dos ultimos "+janela+" enviadas.");
       await fcxAvisar("ok", ok+" ocorrencias ("+canc.length+" cancelamentos + "+desc.length+" descontos) dos ultimos "+janela,
-                      { enviadas:ok, cancelamentos:canc.length, descontos:desc.length, janela:janela, cheio:cheio });
+                      { enviadas:ok, cancelamentos:canc.length, descontos:desc.length, janela:janela, cheio:cheio, nomes_acertados:nomesAcertados });
     }
   }catch(e){
     console.log("Frente de caixa (nuvem): erro ("+e.message+") - robo segue normal, tenta na proxima. (Se disser 404, a tabela frentecaixa_ocorrencias ainda nao foi criada no Supabase.)");
