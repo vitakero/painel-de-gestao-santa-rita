@@ -51,6 +51,21 @@ try { faviconDataUri = "data:image/png;base64," + (await readFile("assets/favico
 // Módulo isolado da Central Operacional (Feed) — injetado como <script> no fim do body.
 // OPCIONAL: se o arquivo não existir (ex: robô sem o asset ainda), o painel gera igual, sem a Central.
 let centralFeedJs = ""; try { centralFeedJs = await readFile("scripts/central/feed.client.js", "utf8"); } catch (e) { /* módulo ausente: painel roda normal */ }
+/* ==CXV== COMPRA × VENDA (tela "Projeção de compras"), 24/09/2026. Módulo isolado em
+   scripts/compras-x-venda/: cálculo, tela, CSS e a ligação com a nuvem. Os dados NÃO vêm
+   embutidos aqui (o site é público): a tela lê compras_retrato ao abrir, com login.
+   Faltou algum arquivo (a loja não baixou)? A página volta ao "em construção" e o resto
+   do painel é gerado normal. */
+let cxvCss = "", cxvJs = "";
+try {
+  cxvCss = await readFile("scripts/compras-x-venda/tela.css", "utf8");
+  cxvJs = [await readFile("scripts/compras-x-venda/calculo.cjs", "utf8"),
+           await readFile("scripts/compras-x-venda/tela.js", "utf8"),
+           await readFile("scripts/compras-x-venda/painel.js", "utf8")].join("\n");
+} catch (e) { cxvCss = ""; cxvJs = ""; }
+const cxvSecao = cxvJs
+  ? "<style>" + cxvCss + "</style><div id=\"cxvRaiz\"><div class=\"card\"><h2 style=\"margin:0 0 6px;font-size:20px;color:#0c5a26;\">Compra × Venda</h2><p style=\"margin:0;font-size:14px;color:#6b7787;\">Carregando…</p></div></div>"
+  : "<div class=\"card\"><h2 style=\"margin:0 0 6px;font-size:20px;color:#0c5a26;\">Projeção de compras</h2><p style=\"margin:0;font-size:14px;color:#6b7787;line-height:1.6;\">Esta tela está em construção.</p></div>";
 const qrcodeLib = (await readFile("assets/qrcode-generator.js")).toString();
 
 if (!config.BQ_PROJECT_ID) throw new Error("BQ_PROJECT_ID não configurado no .env");
@@ -5736,12 +5751,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       </div>
     </section>
     <section id="page-projecao" class="page">
-      <!-- ==PROJCOMPRAS== Projeção de compras: por enquanto só o lugar no menu (12/09/2026).
-           Sem tabela, sem consulta, sem conta — o que a tela vai mostrar ainda não foi decidido. -->
-      <div class="card">
-        <h2 style="margin:0 0 6px;font-size:20px;color:#0c5a26;">Projeção de compras</h2>
-        <p style="margin:0;font-size:14px;color:#6b7787;line-height:1.6;">Esta tela está em construção.</p>
-      </div>
+      <!-- ==PROJCOMPRAS== Projeção de compras (menu desde 12/09/2026). Desde 24/09/2026 mostra
+           o Compra × Venda (==CXV==): o conteúdo vem de scripts/compras-x-venda/. -->
+      ${cxvSecao}
     </section>
     <section id="page-regulamento" class="page">
       <style>
@@ -31287,6 +31299,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     // presença: grava a página e re-registra JÁ (antes dos renders, pra não travar se algum render der erro)
     try{ localStorage.setItem("ui_pagina_atual", btn.dataset.page); if(window.__presTrack) window.__presTrack(); }catch(e){}
     if(btn.dataset.page==="calendario"){ calAno=HOJE.getFullYear(); calMes=HOJE.getMonth(); setView("ano"); }
+    if(btn.dataset.page==="projecao" && window.cxvAbrir) window.cxvAbrir(); // ==CXV== lê a nuvem só ao abrir
     if(btn.dataset.page==="agenda"){ renderAgenda(); agCloudLoad(); }
     if(btn.dataset.page==="organograma"){ renderOrg(); orgCenterView(); }
     if(btn.dataset.page==="fluxograma") renderFlux();
@@ -34833,6 +34846,13 @@ if (centralFeedJs) {
   comCentral = _i >= 0
     ? finalHtml.slice(0, _i) + "<scr" + "ipt>" + centralFeedJs + "</scr" + "ipt>\n" + finalHtml.slice(_i)
     : finalHtml + "<scr" + "ipt>" + centralFeedJs + "</scr" + "ipt>";
+}
+// ==CXV== os scripts do Compra × Venda, também antes do ÚLTIMO </body>.
+if (cxvJs) {
+  const _j = comCentral.lastIndexOf("</body>");
+  comCentral = _j >= 0
+    ? comCentral.slice(0, _j) + "<scr" + "ipt>" + cxvJs + "</scr" + "ipt>\n" + comCentral.slice(_j)
+    : comCentral + "<scr" + "ipt>" + cxvJs + "</scr" + "ipt>";
 }
 // ===== SPRINT UI 1.0 — TEMA ESCURO PREMIUM (gerado no build) =====
 // A folha escura NÃO é mantida à mão: cada regra de cor do tema claro ganha uma

@@ -62,6 +62,15 @@ const FILES = [
   ["robo/vr-sync-notas.cjs", "vr-sync-notas.cjs", "receb_notas_vr"],
   ["robo/vr-sync-codigos.cjs", "vr-sync-codigos.cjs", "receb_codigos_fornecedor"],
   // .bat de clicar duas vezes: vai para a RAIZ (C:\\vr-robo), nao para scripts/
+  // COMPRA × VENDA (24/09/2026). A tela (4 arquivos) é lida pelo demoDashboard.ts no build;
+  // a extração e o mapa de setores, pelo vr-sync-compras.cjs. Marcador ASCII de propósito.
+  ["robo/compras-x-venda/calculo.cjs", "compras-x-venda/calculo.cjs", "==CXV-CALC=="],
+  ["robo/compras-x-venda/tela.js", "compras-x-venda/tela.js", "==CXV-TELA=="],
+  ["robo/compras-x-venda/tela.css", "compras-x-venda/tela.css", "==CXV-CSS=="],
+  ["robo/compras-x-venda/painel.js", "compras-x-venda/painel.js", "==CXV-PAINEL=="],
+  ["robo/compras-x-venda/extrair-vr.cjs", "compras-x-venda/extrair-vr.cjs", "notaentradaitem"],
+  ["robo/compras-x-venda/mapa-inicial.json", "compras-x-venda/mapa-inicial.json", "id_produto"],
+  ["robo/vr-sync-compras.cjs", "vr-sync-compras.cjs", "compras_retrato"],
   ["robo/notas.bat", "../notas.bat", "NOTAS-BAT"],
   ["robo/robo.bat", "../robo.bat", "ROBO-BAT"],
   ["robo/puxar-codigo.cjs", "puxar-codigo.cjs", "Baixa o codigo mais recente do GitHub via API"],

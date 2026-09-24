@@ -62,7 +62,7 @@ console.log("\n=== Backup da fonte ===\n");
                            ".backup", "assets", "docs", ".vercel", "dist"]);
   const EXT = [".sql", ".cjs", ".ts", ".bat", ".vbs"];
   const PASTAS = ["sql", "scripts", "scripts/testes", "email-templates",
-                  "scripts/central", "src/config", "."];  // sql conta: tem destino próprio (privado)
+                  "scripts/central", "scripts/compras-x-venda", "src/config", "."];  // sql conta: tem destino próprio (privado)
 
   const naLista = new Set((DEP.match(/\["([^"]+)", "robo\//g) || [])
     .map(function (m) { return m.slice(2, m.indexOf('", "robo/')); }));

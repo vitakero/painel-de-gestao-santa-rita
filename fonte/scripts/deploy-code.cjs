@@ -43,6 +43,14 @@ const FILES = [
   ["scripts/notas-passo.cjs", "robo/notas-passo.cjs"],
   ["scripts/vr-sync-notas.cjs", "robo/vr-sync-notas.cjs"],
   ["scripts/vr-sync-codigos.cjs", "robo/vr-sync-codigos.cjs"],
+  // COMPRA × VENDA (24/09/2026): tela (lida no build) + extração e mapa (robô)
+  ["scripts/compras-x-venda/calculo.cjs", "robo/compras-x-venda/calculo.cjs"],
+  ["scripts/compras-x-venda/tela.js", "robo/compras-x-venda/tela.js"],
+  ["scripts/compras-x-venda/tela.css", "robo/compras-x-venda/tela.css"],
+  ["scripts/compras-x-venda/painel.js", "robo/compras-x-venda/painel.js"],
+  ["scripts/compras-x-venda/extrair-vr.cjs", "robo/compras-x-venda/extrair-vr.cjs"],
+  ["scripts/compras-x-venda/mapa-inicial.json", "robo/compras-x-venda/mapa-inicial.json"],
+  ["scripts/vr-sync-compras.cjs", "robo/vr-sync-compras.cjs"],
   ["scripts/notas.bat", "robo/notas.bat"],
   ["robo-loja/pix.bat", "robo/pix.bat"],
   ["robo-loja/pix-loop.vbs", "robo/pix-loop.vbs"],
@@ -77,6 +85,7 @@ const PASTAS = [
   ["scripts/fonte", ""],
   ["email-templates", ""],         // o que o fornecedor e o funcionário recebem
   ["scripts/central", ""],         // a Central Operacional (tela isolada + tipos)
+  ["scripts/compras-x-venda", ""], // Compra × Venda: a oficina inteira (fotos, prévia) — a parte que roda já vai em robo/
   ["src/config", ""],              // a configuração da loja
   [".", ".cjs"],                   // os vigias que moram na raiz
 ];

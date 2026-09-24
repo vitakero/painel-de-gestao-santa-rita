@@ -1,0 +1,33 @@
+{
+  "_leia": "Classificação gerencial do Compra × Venda: produto a produto, NUNCA setor inteiro. Proposta de 23/09/2026 a partir das instruções do dono (BOI UND → Açougue; matérias-primas da Padaria → Padaria). Critério usado para achar as MP: nome com 'MP', venda zero em 12 semanas e compra no período. Cada linha precisa da confirmação dele; 'confirmar' = dúvida aberta. Na Fase 1 isto vira a tabela compras_setor_gerencial na nuvem (com quem/quando/motivo e desfazer).",
+  "itens": [
+    { "id_produto": 20779, "descricao": "BOI UND",                           "setor_gerencial": "ACOUGUE", "motivo": "Boi inteiro do produtor vira os cortes do açougue (desossa)" },
+
+    { "id_produto": 30937, "descricao": "LEITE MP LT",                       "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção" },
+    { "id_produto": 216,   "descricao": "MIST MOUSSE CHOCOLATE KG MP",       "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção" },
+    { "id_produto": 60187, "descricao": "CHOCOLATE PO % CACAU KG MP",        "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção" },
+    { "id_produto": 28785, "descricao": "EMULSIFICANTE OLEO P PAO MP KG",    "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção" },
+    { "id_produto": 41319, "descricao": "BANHA SUINA MP KG",                 "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção", "confirmar": "Padaria ou Açougue?" },
+    { "id_produto": 30941, "descricao": "ANTIMOFO MP KG",                    "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção" },
+    { "id_produto": 30940, "descricao": "FERMENTO QUIMICO MP KG",            "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção" },
+    { "id_produto": 37828, "descricao": "COCO RALADO KG MP",                 "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção" },
+    { "id_produto": 441,   "descricao": "CEREAL CHOCO POWER BALL MP KG",     "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção" },
+    { "id_produto": 51194, "descricao": "BARRA COBERTURA CHOC MP KG",        "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção" },
+    { "id_produto": 59523, "descricao": "CONFEITO PASTILHA COLORIDA KG MP",  "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção" },
+    { "id_produto": 60175, "descricao": "COBERTURA GOTA PINGO MP KG",        "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção" },
+    { "id_produto": 548,   "descricao": "AMENDOIM GRANUL/TRITUR MP KG",      "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção" },
+    { "id_produto": 1252,  "descricao": "ESSENCIA PO SABOR NATA MP KG",      "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção" },
+
+    { "id_produto": 661,   "descricao": "MARGARINA KG MP",                   "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção (hoje em Frios)" },
+    { "id_produto": 28418, "descricao": "MARGARINA FOLHADA KG MP",           "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção (hoje em Frios)" },
+    { "id_produto": 30932, "descricao": "ACUCAR KG MP",                      "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção (hoje em Mercearia Seca)" },
+    { "id_produto": 28580, "descricao": "CHOCOLATE GRANULADO KG MP",         "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção (hoje em Mercearia)" },
+    { "id_produto": 46581, "descricao": "COBERTURA CHOC BRANCO MP KG",       "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção (hoje em Mercearia)" },
+    { "id_produto": 1264,  "descricao": "COBERTURA CHOC  MP KG",             "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção (hoje em Mercearia)" },
+    { "id_produto": 832,   "descricao": "COBERTURA BRILHO CHOCOLATE MP KG",  "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção (hoje em Mercearia)" },
+    { "id_produto": 1265,  "descricao": "COBERTURA BRILHO LIMAO MP KG",      "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção (hoje em Mercearia)" },
+    { "id_produto": 46932, "descricao": "COBERTURA BRILHO MORANGO MP KG",    "setor_gerencial": "PADARIA", "motivo": "Matéria-prima da produção (hoje em Mercearia)" },
+    { "id_produto": 824,   "descricao": "CREME ACAI SLUP CHOC MP KG",        "setor_gerencial": "PADARIA", "motivo": "Matéria-prima do açaí (os outros cremes Slup já estão na Padaria)", "confirmar": "O açaí é vendido pela Padaria?" },
+    { "id_produto": 501,   "descricao": "CREME ACAI SLUP OREO MP KG",        "setor_gerencial": "PADARIA", "motivo": "Matéria-prima do açaí (os outros cremes Slup já estão na Padaria)", "confirmar": "O açaí é vendido pela Padaria?" }
+  ]
+}

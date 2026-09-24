@@ -1,0 +1,17 @@
+{
+  "_leia": "Margem OBJETIVO de cada setor (base oficial do orçamento). Decisão do dono em 24/09/2026: usar como ponto de partida a margem real da semana 07–13/09 (arredondada) e ir ajustando depois. Setor fora desta lista = 'não definida' (sem orçamento, nunca 0%). Pode estocar: só o que ele disse no briefing (Mercearia/Bebidas sim; Hortifrúti/Padaria não).",
+  "setores": {
+    "MERCEARIA":      { "margem": 33, "estoque": true },
+    "ACOUGUE":        { "margem": 26 },
+    "HORTFRUTI":      { "margem": 22, "estoque": false },
+    "FRIOS":          { "margem": 38 },
+    "PERFUMARIA":     { "margem": 39 },
+    "PADARIA":        { "margem": 39, "estoque": false },
+    "CONGELADO":      { "margem": 35 },
+    "LIMPEZA":        { "margem": 42 },
+    "MERCEARIA SECA": { "margem": 22, "estoque": true },
+    "BEBIDAS":        { "margem": 21, "estoque": true },
+    "BAZAR":          { "margem": 51 },
+    "PET SHOP":       { "margem": 50 }
+  }
+}
