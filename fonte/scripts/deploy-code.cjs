@@ -51,6 +51,7 @@ const FILES = [
   ["scripts/compras-x-venda/extrair-vr.cjs", "robo/compras-x-venda/extrair-vr.cjs"],
   ["scripts/compras-x-venda/mapa-inicial.json", "robo/compras-x-venda/mapa-inicial.json"],
   ["scripts/vr-sync-compras.cjs", "robo/vr-sync-compras.cjs"],
+  ["scripts/trocar-bat.cjs", "robo/trocar-bat.cjs"],   // troca o .bat depois que a rodada termina
   ["scripts/notas.bat", "robo/notas.bat"],
   ["robo-loja/pix.bat", "robo/pix.bat"],
   ["robo-loja/pix-loop.vbs", "robo/pix-loop.vbs"],

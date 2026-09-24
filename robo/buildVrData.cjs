@@ -1280,8 +1280,10 @@ async function timed(c,nome,sql,params){
   // quando é chamado de dentro dele — e ele sempre é). Este arquivo, sim, chega toda rodada.
   // O próprio vr-sync-compras tem trava de 4 min contra robô duplicado e nunca sai com erro; mesmo
   // assim, qualquer falha aqui é engolida: a leitura de vendas já terminou e o painel segue.
+  // Quando o robo.bat NOVO esta no comando (RODADA_V=2), ele mesmo chama o passo 1.95: calo aqui.
   try{
     const cxv=path.join(__dirname,"vr-sync-compras.cjs");
-    if(fs.existsSync(cxv)) require("child_process").spawnSync(process.execPath,[cxv],{stdio:"inherit",timeout:5*60*1000});
+    if(process.env.RODADA_V==="2") console.log("(Compra x Venda fica para o passo 1.95 do robo.bat)");
+    else if(fs.existsSync(cxv)) require("child_process").spawnSync(process.execPath,[cxv],{stdio:"inherit",timeout:5*60*1000});
   }catch(e){ console.log("Compra x Venda: nao rodou ("+e.message+") - painel segue normal."); }
 })().catch(e=>{ console.log("ERRO: "+e.message); process.exit(1); });

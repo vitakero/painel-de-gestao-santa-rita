@@ -71,6 +71,9 @@ const FILES = [
   ["robo/compras-x-venda/extrair-vr.cjs", "compras-x-venda/extrair-vr.cjs", "notaentradaitem"],
   ["robo/compras-x-venda/mapa-inicial.json", "compras-x-venda/mapa-inicial.json", "id_produto"],
   ["robo/vr-sync-compras.cjs", "vr-sync-compras.cjs", "compras_retrato"],
+  // o ajudante que troca o .bat DEPOIS da rodada. Tem que vir ANTES dos .bat nesta lista:
+  // e na vez deles que eu o chamo.
+  ["robo/trocar-bat.cjs", "trocar-bat.cjs", "==TROCAR-BAT=="],
   ["robo/notas.bat", "../notas.bat", "NOTAS-BAT"],
   ["robo/robo.bat", "../robo.bat", "ROBO-BAT"],
   ["robo/puxar-codigo.cjs", "puxar-codigo.cjs", "Baixa o codigo mais recente do GitHub via API"],
@@ -83,7 +86,32 @@ const headers = {
   "X-GitHub-Api-Version": "2022-11-28",
 };
 
-(async () => {
+/* O .BAT QUE ESTA RODANDO: GUARDO AO LADO E TROCO QUANDO ELE TERMINAR.
+   Ate 24/09/2026 eu so pulava ("guardo para a proxima") — e a proxima nunca chegava, porque
+   eu sempre sou chamado de dentro dele. O robo.bat ficou parado em 27/08.
+   Agora gravo <bat>.novo e lanco o trocar-bat.cjs destacado, com o numero do cmd que roda o
+   .bat. Ele espera esse cmd terminar e troca. O numero certo e o do meu PAI — mas so quando
+   o cmd me chamou direto. Se eu fui relancado por um puxar-codigo antigo (que nao repassa
+   PID_DO_BAT), meu pai e um node que morre ANTES do .bat: ai so guardo, e a troca fica para
+   a rodada seguinte, em que eu ja sou o primeiro. */
+function guardarParaDepois(dest, txt, marker, local) {
+  fs.writeFileSync(dest + ".novo", txt);
+  const pid = process.env.PID_DO_BAT ||
+              (process.argv.indexOf("--jaatualizei") < 0 ? String(process.ppid) : "");
+  const ajudante = path.join(__dirname, "trocar-bat.cjs");
+  if (!pid || !fs.existsSync(ajudante)) {
+    console.log("  (" + local + " tem versao nova - guardei ao lado; troco na proxima rodada)");
+    return false;
+  }
+  const c = require("child_process").spawn(process.execPath, [ajudante, pid, dest, marker],
+    { detached: true, stdio: "ignore", windowsHide: true, cwd: path.dirname(dest) });
+  c.unref();
+  console.log("  (" + local + " tem versao nova - troco assim que esta rodada terminar)");
+  return true;
+}
+module.exports = { guardarParaDepois };
+
+if (require.main === module) (async () => {
   if (!TOKEN) { console.log("  (sem GITHUB_TOKEN no .env - mantendo o codigo atual)"); return; }
 
   /* EU ME ATUALIZO PRIMEIRO.
@@ -102,8 +130,10 @@ const headers = {
         if (novo.indexOf("Baixa o codigo mais recente do GitHub") >= 0 && novo !== atual) {
           fs.writeFileSync(__filename, novo);
           console.log("  atualizado: puxar-codigo.cjs (recomecando com a lista nova)");
+          // repasso o numero do cmd: la dentro, meu "pai" seria eu, nao o cmd do .bat
           const r = require("child_process").spawnSync(process.execPath,
-            [__filename, "--jaatualizei"], { stdio: "inherit" });
+            [__filename, "--jaatualizei"], { stdio: "inherit",
+              env: Object.assign({}, process.env, { PID_DO_BAT: process.env.PID_DO_BAT || String(process.ppid) }) });
           process.exit(r.status || 0);
         }
       }
@@ -122,12 +152,16 @@ const headers = {
       // ele roda - reescrever o arquivo no meio da execucao embaralha o que falta rodar.
       let igual = false;
       try { igual = fs.readFileSync(dest, "utf8") === txt; } catch (e) {}
-      if (igual) continue;
+      if (igual) {
+        // versao guardada que ficou velha (voltaram o arquivo no GitHub): nao pode ser trocada depois
+        if (fs.existsSync(dest + ".novo")) { try { fs.unlinkSync(dest + ".novo"); } catch (e) {} }
+        continue;
+      }
       // O .bat que me chamou nao pode ser reescrito enquanto roda: o Windows le o
       // arquivo linha por linha DURANTE a execucao, entao trocar o conteudo no meio
-      // embaralha o que ainda falta rodar. Ele se atualiza na proxima vez.
+      // embaralha o que ainda falta rodar. Vai ao lado e e trocado quando ele terminar.
       if (process.env.RODANDO_BAT && path.basename(dest) === process.env.RODANDO_BAT) {
-        console.log("  (" + local + " tem versao nova - guardo para a proxima, ele esta rodando agora)");
+        guardarParaDepois(dest, txt, marker, local);
         continue;
       }
       fs.mkdirSync(path.dirname(dest), { recursive: true });   // garante subpasta (ex.: central/) antes de gravar

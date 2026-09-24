@@ -114,7 +114,8 @@ t("o recomeço tem trava contra laço infinito",
 
 // 7) só grava o que mudou. O Windows lê o .bat linha por linha ENQUANTO ele roda:
 //    regravar no meio da execução embaralha o que ainda falta rodar.
-t("não regrava arquivo idêntico", PUXAR.indexOf("if (igual) continue;") > 0);
+t("não regrava arquivo idêntico", PUXAR.indexOf("if (igual) {") > 0 &&
+  PUXAR.slice(PUXAR.indexOf("if (igual) {"), PUXAR.indexOf("if (igual) {") + 300).indexOf("continue;") > 0);
 t("não reescreve o .bat que está rodando", PUXAR.indexOf("process.env.RODANDO_BAT") > 0);
 
 // 7b) e o .bat tem que AVISAR quem está rodando, senão a proteção acima nunca liga.

@@ -12,8 +12,13 @@ title Robo do Painel Santa Rita
 cd /d %~dp0
 REM Avisa o puxar-codigo para nao reescrever ESTE arquivo agora: o Windows le o .bat
 REM linha por linha enquanto ele roda, e trocar o conteudo no meio embaralha o resto.
-REM Ele se atualiza na proxima vez, ou quando alguem roda o puxar-codigo sozinho.
+REM A versao nova fica ao lado (robo.bat.novo) e o scripts\trocar-bat.cjs troca quando
+REM esta rodada termina. Ate 24/09/2026 ele so dizia que trocava na proxima vez, e a
+REM proxima nunca chegava: este arquivo ficou parado na loja desde 27/08.
 set RODANDO_BAT=robo.bat
+REM RODADA_V=2 avisa o buildVrData que ESTE arquivo ja chama o passo 1.95 (Compra x Venda).
+REM O robo.bat antigo nao dizia isso, e o buildVrData chamava o passo no lugar dele.
+set RODADA_V=2
 echo ================================================
 echo [%date% %time%] ROBO INICIADO
 echo ================================================
