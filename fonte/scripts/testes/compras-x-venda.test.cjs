@@ -169,6 +169,11 @@ console.log("\n-- ARQUIVO REAL DO VR bate com o medido à parte (23/09/2026) --"
     eq("reclassificação: entra = sai", s("2026-09-14", "recl_ent"), s("2026-09-14", "recl_sai"));
     eq("BOI UND está no Açougue gerencial", d.setores[d.mapa.find((x) => x.id === 20779).ger], "NOVO ACOUGUE");
     eq("nenhum produto do mapa trocado para o mesmo setor", d.mapa.filter((x) => x.vr === x.ger).length, 0);
+    // O retrato tem de trazer TUDO que a tela lê (24/09: a extração perdeu pendenciasSetor e o robô quebraria).
+    ["gerado", "hoje", "semanaAtual", "toleranciaDias", "setores", "mapa", "semanas", "naoFinalizadas", "pedidos", "pendenciasSetor", "resumoPedidos", "ritmo"]
+      .forEach((k) => eq("o retrato traz " + k, d[k] !== undefined && d[k] !== null, true));
+    eq("pendências por setor não vêm vazias", Object.keys(d.pendenciasSetor || {}).length > 0, true);
+    eq("a lista de pedidos só leva o que a tela mostra", d.pedidos.every((p) => p.classe === "comprometido" || p.classe === "futuro"), true);
     const R14 = C.calcularSemana(d, {}, "2026-09-14");
     eq("recebido líquido da loja 14–20/09 pelo cálculo (752.752,86 − 1.943,43)", Math.round(R14.total.recebido), 750809);
     const R = C.calcularSemana(d, {}, "2026-09-21");

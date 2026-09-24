@@ -188,6 +188,12 @@ async function extrair(opc) {
   // Pendência antiga e sobra parcial viajam só como total por setor (pendenciasSetor):
   // as listas delas pesavam 170 KB e a tela nem desenha.
   const pedidosLista = pedidos.filter((p) => p.classe === "comprometido" || p.classe === "futuro");
+  // Total das pendências por setor (antigo sem nota / sobra de entrega parcial / sobra recente).
+  const pendSetor = {};
+  pedidos.forEach((p) => { if (p.classe === "comprometido" || p.classe === "futuro") return;
+    for (const g in p.setores) { const o = (pendSetor[g] = pendSetor[g] || { antigo_sem_nota: 0, sobra_parcial: 0, sobra_recente: 0, n_antigo: 0, n_sobra: 0 });
+      o[p.classe] = num(o[p.classe] + p.setores[g]); if (p.classe === "antigo_sem_nota") o.n_antigo++; else o.n_sobra++;
+      if (p.classe === "sobra_parcial" && p.ultNota && p.ultNota >= limite) o.sobra_recente = num(o.sobra_recente + p.setores[g]); } });
 
   // ---- RITMO: em que dia da semana a loja recebe (fração acumulada), 12 semanas fechadas ----
   const rit = await q("ritmo de compra", `

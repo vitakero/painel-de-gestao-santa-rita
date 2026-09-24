@@ -16,7 +16,7 @@ let h = fs.readFileSync(path.join(RAIZ, "output", "index.html"), "utf8");
 // Configuração: a margem objetivo que o dono aprovou em 24/09 (margens-objetivo.json).
 // Setor fora do arquivo fica "não definida" — sem orçamento, nunca 0%.
 const d = JSON.parse(DADOS);
-const MO = JSON.parse(fs.readFileSync(P("margens-objetivo.json"), "utf8")).setores;
+const MO = JSON.parse(fs.readFileSync(path.join(RAIZ, ".previa", "margens-objetivo.json"), "utf8")).setores // fica fora do GitHub (público): a margem de verdade mora em compras_margem_setor;
 const chave = (n) => n.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/^NOVO\s*-?\s*/, "").trim();
 const conf = {};
 for (const [m, nome] of Object.entries(d.setores)) {

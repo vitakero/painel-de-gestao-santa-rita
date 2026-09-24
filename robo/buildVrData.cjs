@@ -1274,4 +1274,14 @@ async function timed(c,nome,sql,params){
     console.log("Frente de caixa (nuvem): erro ("+e.message+") - robo segue normal, tenta na proxima. (Se disser 404, a tabela frentecaixa_ocorrencias ainda nao foi criada no Supabase.)");
     try{ await fcxAvisar("com_erro", e.message, { erro:String(e.message).slice(0,500) }); }catch(e2){}
   }
+
+  // ==CXV== COMPRA × VENDA (24/09/2026). Chamado DAQUI e não só do robo.bat: o robo.bat da
+  // loja nunca se atualiza sozinho (o puxar-codigo guarda a versão nova "para a próxima"
+  // quando é chamado de dentro dele — e ele sempre é). Este arquivo, sim, chega toda rodada.
+  // O próprio vr-sync-compras só tira retrato a cada 30 min e nunca sai com erro; mesmo
+  // assim, qualquer falha aqui é engolida: a leitura de vendas já terminou e o painel segue.
+  try{
+    const cxv=path.join(__dirname,"vr-sync-compras.cjs");
+    if(fs.existsSync(cxv)) require("child_process").spawnSync(process.execPath,[cxv],{stdio:"inherit",timeout:5*60*1000});
+  }catch(e){ console.log("Compra x Venda: nao rodou ("+e.message+") - painel segue normal."); }
 })().catch(e=>{ console.log("ERRO: "+e.message); process.exit(1); });
