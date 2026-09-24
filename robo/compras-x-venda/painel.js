@@ -24,9 +24,16 @@
     window.cxvMontar(r, { dados: retrato.dados, conf: conf, podeEditar: master(), previa: false, geradoEm: retrato.gerado_em, salvarSetor: salvarSetor });
   }
 
+  var tentativas = 0;
   function carregar() {
     var cli = sb();
-    if (!cli) return aviso("Compra × Venda", "Entre no painel para ver o Compra × Venda.");
+    // Recarregar a página JÁ nesta aba abre a tela antes do login terminar (__SB/__PERFIL
+    // ainda vazios). Espera o login em vez de desistir: até ~20 s, de 0,5 em 0,5 s.
+    if (!cli || !window.__PERFIL) {
+      if (tentativas++ < 40) { aviso("Compra × Venda", "Carregando…"); return setTimeout(carregar, 500); }
+      return aviso("Compra × Venda", "Entre no painel para ver o Compra × Venda.");
+    }
+    tentativas = 0;
     if (carregando) return; carregando = true;
     if (!retrato) aviso("Compra × Venda", "Carregando…");
     Promise.all([
@@ -72,4 +79,12 @@
     if (retrato && Date.now() - lidoEm < GUARDA_MS) return; // já lido há pouco: a tela está montada
     carregar();
   };
+
+  // CHEGUEI ATRASADO? O painel reabre na última página usada, e esse clique automático pode
+  // acontecer ANTES deste arquivo carregar (ele vem no fim da página) — aí ninguém chamava
+  // cxvAbrir e a tela ficava em "Carregando…" para sempre. Se a página já é a Projeção, abro.
+  try {
+    var pg = document.getElementById("page-projecao");
+    if ((pg && pg.classList.contains("ativo")) || localStorage.getItem("ui_pagina_atual") === "projecao") window.cxvAbrir();
+  } catch (e) {}
 })();
