@@ -50,7 +50,7 @@ function gravar(linha) {
     const { extrair } = require(path.join(__dirname, "compras-x-venda", "extrair-vr.cjs"));
     dados = await extrair();
   }
-  const r = await gravar({ chave: "atual", dados, gerado_em: dados.gerado });
+  const r = await gravar({ chave: "atual", dados, gerado_em: dados.gerado, gravado_em: new Date().toISOString() }); // gravado_em só tem default no INSERT
   if (r.status >= 200 && r.status < 300) {
     if (!process.env.CXV_ARQUIVO) { fs.mkdirSync(path.dirname(MARCA), { recursive: true }); fs.writeFileSync(MARCA, String(Date.now())); }
     console.log(`Compra × Venda: retrato gravado na nuvem (${(JSON.stringify(dados).length / 1024).toFixed(0)} KB).`);
