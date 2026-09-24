@@ -2,9 +2,9 @@
 // Roda DENTRO da rede da loja (passo 1.95 do robo.bat): node scripts/vr-sync-compras.cjs
 // Só LÊ o VR; ESCREVE só na nuvem, com a chave de serviço.
 //
-// NO MÁXIMO A CADA 30 MINUTOS: a consulta de venda percorre 14 semanas de itens (≈7 s no
-// VR). O robô roda a cada 5–13 min; repetir isso toda rodada só pesaria o VR, e compra
-// da semana não muda de minuto em minuto. CXV_FORCAR=1 ignora o intervalo.
+// EM TODA RODADA DO ROBÔ (5–13 min): o dono pediu o número o mais perto possível do
+// "agora" (24/09/2026). A consulta de venda leva ≈7 s no VR. A trava de 4 min só existe
+// para robô duplicado não tirar dois retratos seguidos. CXV_FORCAR=1 ignora a trava.
 //
 // CXV_ARQUIVO=<json> manda um retrato já extraído (usado do Mac, fora da rede da loja).
 //
@@ -12,7 +12,7 @@
 // é avisada e o script sai com 0 — o painel continua sendo gerado e publicado.
 const fs = require("fs"), path = require("path"), https = require("https");
 const RAIZ = path.join(__dirname, "..");
-const INTERVALO_MIN = 30;
+const INTERVALO_MIN = 4;
 const MARCA = path.join(RAIZ, "output", "last-compras-run.txt");
 function env() { try { return fs.readFileSync(path.join(RAIZ, ".env"), "utf8"); } catch (e) { return ""; } }
 const E = env(), g = (k) => { const m = E.match(new RegExp("^" + k + "=(.*)$", "m")); return m ? m[1].trim() : ""; };

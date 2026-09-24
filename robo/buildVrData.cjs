@@ -1278,7 +1278,7 @@ async function timed(c,nome,sql,params){
   // ==CXV== COMPRA × VENDA (24/09/2026). Chamado DAQUI e não só do robo.bat: o robo.bat da
   // loja nunca se atualiza sozinho (o puxar-codigo guarda a versão nova "para a próxima"
   // quando é chamado de dentro dele — e ele sempre é). Este arquivo, sim, chega toda rodada.
-  // O próprio vr-sync-compras só tira retrato a cada 30 min e nunca sai com erro; mesmo
+  // O próprio vr-sync-compras tem trava de 4 min contra robô duplicado e nunca sai com erro; mesmo
   // assim, qualquer falha aqui é engolida: a leitura de vendas já terminou e o painel segue.
   try{
     const cxv=path.join(__dirname,"vr-sync-compras.cjs");
