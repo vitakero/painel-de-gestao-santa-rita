@@ -20,7 +20,15 @@ const ANO_PISO=2024;
 const PISO_DATA=ANO_PISO+"-01-01";
 const PISO_MES=ANO_PISO+"-01";
 const PROD_SYNC_MS=3*3600*1000; // no maximo 1x a cada 3h (produto novo aparece em ate 3h)
-const PROD_SYNC_SQL="SELECT DISTINCT ON (p.id) pa.codigobarras::text cod, p.descricaocompleta nome, e.estoque::text total FROM public.produto p JOIN public.produtoautomacao pa ON pa.id_produto::text=p.id::text LEFT JOIN public.estoque e ON e.id_produto::text=p.id::text AND e.id_loja::text='1' WHERE pa.codigobarras IS NOT NULL AND trim(pa.codigobarras::text)<>'' ORDER BY p.id, pa.qtdembalagem";
+// ==ESTSALDO== DE ONDE VEM O SALDO (corrigido 25/09/2026).
+// public.estoque NAO e o saldo: e uma FOTO POR DIA (2023 ate ontem, ~30 milhoes de linhas).
+// Juntada sem filtrar a data, o DISTINCT ON ficava com a linha de um dia QUALQUER: medido em
+// 200 ativos, ZERO vinham do ultimo dia, e 93% dos ativos que vendem estavam errados na nuvem.
+// O saldo atual e produtocomplemento.estoque da loja 1 (uma linha por produto e loja).
+// O codigobarras no fim do ORDER BY e o desempate: sem ele, 1.505 produtos com mais de um
+// codigo na menor embalagem trocavam de codigo entre rodadas e a linha antiga ficava
+// congelada na nuvem. No VR o codigobarras e UNICO (indice un_produtoautomacao).
+const PROD_SYNC_SQL="SELECT DISTINCT ON (p.id) pa.codigobarras::text cod, p.descricaocompleta nome, pc.estoque::text total FROM public.produto p JOIN public.produtoautomacao pa ON pa.id_produto = p.id LEFT JOIN public.produtocomplemento pc ON pc.id_produto = p.id AND pc.id_loja = 1 WHERE pa.codigobarras IS NOT NULL AND trim(pa.codigobarras::text)<>'' ORDER BY p.id, pa.qtdembalagem, pa.codigobarras";
 function sbGetJson(q){return new Promise((res,rej)=>{const req=https.request({host:SB_HOST,path:"/rest/v1/"+q,method:"GET",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>{if(r.statusCode>=300)return rej(new Error("HTTP "+r.statusCode+" "+d));try{res(JSON.parse(d));}catch(e){rej(e);}})});req.on("error",rej);req.end();});}
 function sbUpsertMes(rows){return new Promise((res,rej)=>{const body=JSON.stringify(rows);const req=https.request({host:SB_HOST,path:"/rest/v1/vendasetor_mes?on_conflict=ano,mes,setor",method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal","Content-Length":Buffer.byteLength(body)}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>r.statusCode<300?res():rej(new Error("HTTP "+r.statusCode+" "+d)))});req.on("error",rej);req.write(body);req.end();});}
 function sbUpsertDia(rows){return new Promise((res,rej)=>{const body=JSON.stringify(rows);const req=https.request({host:SB_HOST,path:"/rest/v1/vendasetor_dia?on_conflict=data,setor",method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal","Content-Length":Buffer.byteLength(body)}},r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>r.statusCode<300?res():rej(new Error("HTTP "+r.statusCode+" "+d)))});req.on("error",rej);req.write(body);req.end();});}
