@@ -1,0 +1,320 @@
+/* ==ENC-CSS== PLANEJAMENTO DE ENCARTES — a aparência da tela (menu "Encartes").
+   TUDO aqui começa por ".enc" (a raiz #encRaiz tem essa classe): o painel tem ~35 mil linhas
+   de CSS e JS, e um seletor solto (".vaga", "h2", "table") mudaria outras telas sem ninguém ver.
+   Cores escritas por extenso (#hex), nunca var(--x): o modo noturno é GERADO no build a partir
+   destas cores (injetarTemaEscuro), e ele só enxerga a cor escrita na regra.
+   Celular: a partir de 760 px (o mesmo corte da gaveta do menu), tudo empilha; a grade dos
+   cartões já se ajusta sozinha à largura que sobrar (minmax com min()). */
+.enc{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#1a2233;font-size:13.5px;line-height:1.45;}
+.enc *{box-sizing:border-box;}
+.enc button,.enc input,.enc select,.enc textarea{font-family:inherit;}
+.enc h2,.enc h3,.enc h4{margin:0;color:#1a2233;}
+/* "hidden" tem de esconder MESMO quando a peça tem display próprio (grid/flex) — sem isto,
+   a categoria da devolução aparecia em toda vaga da Aprovação, marcada ou não. */
+.enc [hidden]{display:none !important;}
+
+/* ---------- peças comuns ---------- */
+.enc .enc-cartao{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);padding:16px 18px;margin-bottom:14px;min-width:0;}
+.enc .enc-cartao>h3{font-size:15px;margin:0 0 4px;}
+.enc .enc-sub{color:#4a5667;font-size:13px;margin-top:3px;}
+.enc .enc-apagado{color:#7a8799;}
+.enc .enc-num{font-variant-numeric:tabular-nums;}
+.enc .enc-bt{background:#eef2f7;color:#33404f;border:1px solid #dbe2ea;border-radius:9px;padding:8px 13px;font-size:13px;font-weight:600;cursor:pointer;line-height:1.25;min-height:36px;}
+.enc .enc-bt:hover{background:#e3e9f1;}
+.enc .enc-bt-p{background:#157a35;color:#fff;border:1px solid #157a35;border-radius:9px;padding:8px 15px;font-size:13px;font-weight:700;cursor:pointer;line-height:1.25;min-height:36px;}
+.enc .enc-bt-p:hover{background:#0c5a26;border-color:#0c5a26;}
+.enc .enc-bt-p:disabled,.enc .enc-bt:disabled{background:#c3ccd6;border-color:#c3ccd6;color:#fff;cursor:not-allowed;}
+.enc .enc-bt-perigo{background:#fff;color:#b42318;border:1px solid #f0b8b3;border-radius:9px;padding:8px 13px;font-size:13px;font-weight:600;cursor:pointer;min-height:36px;}
+.enc .enc-bt-perigo:hover{background:#fdecec;}
+.enc .enc-bt-l{background:none;border:0;color:#157a35;font-weight:700;font-size:13px;cursor:pointer;padding:6px 0;min-height:32px;}
+.enc .enc-bt-l:hover{text-decoration:underline;}
+.enc .enc-chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:700;white-space:nowrap;background:#e9ecf1;color:#39475a;}
+.enc .enc-st-atrasado{background:#fdecec;color:#c62828;}
+.enc .enc-st-atencao{background:#fff6dc;color:#9a6b00;}
+.enc .enc-st-no_prazo{background:#e8f5ec;color:#0c5a26;}
+.enc .enc-st-futuro{background:#e8f1fc;color:#1c6fd1;}
+.enc .enc-st-aprovado{background:#e9ecf1;color:#39475a;}
+.enc .enc-st-anterior{background:#f1eefb;color:#5b3fa8;}
+.enc .enc-st-noar{background:#c62828;color:#fff;}
+.enc .enc-bolinha{width:10px;height:10px;border-radius:50%;flex:none;display:inline-block;background:#98a4b4;}
+.enc .enc-aviso{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid #f0d58a;border-left:4px solid #e0a100;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;line-height:1.5;}
+.enc .enc-aviso.enc-vermelho{border-color:#f3c1c1;border-left-color:#c62828;background:#fff8f8;}
+.enc .enc-aviso.enc-azul{border-color:#c8dcf5;border-left-color:#1c6fd1;}
+.enc .enc-aviso.enc-verde{border-color:#bfe3cb;border-left-color:#157a35;}
+.enc .enc-aviso>div{flex:1;min-width:0;}
+.enc .enc-aviso .enc-bt-l{padding:0;min-height:0;}
+.enc .enc-msg{border-radius:9px;padding:9px 12px;font-size:13px;margin:10px 0 0;line-height:1.5;background:#e8f5ec;color:#0c5a26;}
+.enc .enc-msg.enc-erro{background:#fdecec;color:#b42318;}
+.enc .enc-msg.enc-alerta{background:#fff6dc;color:#7a5600;}
+.enc .enc-carregando{padding:22px;text-align:center;color:#7a8799;font-size:13px;}
+
+/* barra de andamento: definidas | negociando | trilho (a negociar), 2px de vão entre os pedaços */
+.enc .enc-barra{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden;background:#d5dbe3;}
+.enc .enc-barra i{display:block;height:100%;}
+.enc .enc-barra .enc-d{background:#1f8a4c;}
+.enc .enc-barra .enc-n{background:#e0a100;}
+.enc .enc-leg{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12.5px;color:#4a5667;margin-top:7px;}
+.enc .enc-leg span{display:inline-flex;align-items:center;gap:5px;}
+.enc .enc-leg .enc-q{width:10px;height:10px;border-radius:3px;display:inline-block;background:#d5dbe3;}
+.enc .enc-leg .enc-q.enc-d{background:#1f8a4c;}
+.enc .enc-leg .enc-q.enc-n{background:#e0a100;}
+
+/* ---------- FILA ---------- */
+.enc .enc-topo{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.enc .enc-topo h2{font-size:21px;line-height:1.2;color:#0c5a26;}
+.enc .enc-topo>div:first-child{flex:1;min-width:0;}
+.enc .enc-topo .enc-acoes{display:flex;gap:8px;flex-wrap:wrap;}
+.enc .enc-dadosvr{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#4a5667;margin-top:6px;}
+.enc .enc-dadosvr.enc-velho{color:#c62828;font-weight:700;}
+.enc .enc-resumo{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.enc .enc-resumo button{border:1px solid #e3e8ef;background:#fff;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;color:#1a2233;min-height:38px;}
+.enc .enc-resumo button b{font-size:15px;}
+.enc .enc-resumo button.enc-on{outline:2px solid #157a35;outline-offset:-1px;}
+.enc .enc-resumo .enc-chip{padding:2px 7px;}
+.enc .enc-secao{margin:16px 0 22px;}
+.enc .enc-secao>h3{font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:#4a5667;margin:0 0 9px;font-weight:700;}
+.enc .enc-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px;}
+.enc .enc-ed{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);padding:14px 16px;border-left:5px solid #c3ccd6;cursor:pointer;min-width:0;text-align:left;width:100%;font-size:13px;color:#1a2233;border-top:0;border-right:0;border-bottom:0;display:block;}
+.enc .enc-ed:hover{box-shadow:0 3px 12px rgba(16,24,40,.12);}
+.enc .enc-ed.enc-virtual{background:#fbfcfd;cursor:default;}
+/* nome comprido ("Terçou das Frutas e Verduras") fica numa linha e a situação desce, em vez de espremer o nome */
+.enc .enc-ed .enc-l1{display:flex;align-items:flex-start;gap:4px 8px;justify-content:space-between;flex-wrap:wrap;}
+.enc .enc-ed .enc-nome{font-weight:700;font-size:15px;min-width:0;overflow-wrap:anywhere;flex:1 1 auto;}
+.enc .enc-ed .enc-nome small{display:block;font-weight:600;font-size:12px;color:#4a5667;margin-top:1px;}
+.enc .enc-ed .enc-datas{font-size:12.5px;color:#4a5667;margin:3px 0 10px;}
+.enc .enc-ed .enc-nums{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:#4a5667;margin-top:7px;}
+.enc .enc-ed .enc-nums b{color:#1a2233;}
+.enc .enc-ed .enc-motivo{margin-top:9px;font-size:12.8px;display:flex;gap:6px;align-items:flex-start;color:#7a8799;}
+.enc .enc-ed .enc-motivo.enc-atrasado{color:#c62828;}
+.enc .enc-ed .enc-motivo.enc-atencao{color:#9a6b00;}
+.enc .enc-ed .enc-marcas{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;}
+.enc .enc-marca{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;border-radius:6px;padding:2px 7px;background:#fff6dc;color:#8a5a00;}
+.enc .enc-marca.enc-vermelho{background:#c62828;color:#fff;}
+.enc .enc-marca.enc-azul{background:#e8f1fc;color:#1c6fd1;}
+.enc .enc-marca.enc-roxo{background:#f1eefb;color:#5b3fa8;}
+.enc .enc-linha-fina{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border-radius:10px;padding:10px 14px;box-shadow:0 1px 4px rgba(0,0,0,.07);font-size:13px;margin-bottom:8px;}
+.enc button.enc-linha-fina{width:100%;border:0;text-align:left;cursor:pointer;color:#1a2233;}
+.enc .enc-linha-fina .enc-dir{margin-left:auto;}
+
+/* ---------- EDIÇÃO ---------- */
+.enc .enc-volta{margin-bottom:8px;}
+.enc .enc-cab{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;}
+.enc .enc-cab .enc-tit{flex:1;min-width:260px;}
+.enc .enc-cab h2{font-size:21px;line-height:1.2;}
+.enc .enc-linha-tit{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.enc .enc-origem{font-size:12px;color:#7a8799;margin-top:5px;}
+.enc .enc-andamento{min-width:260px;flex:1;max-width:420px;}
+.enc .enc-grande{font-size:30px;font-weight:800;line-height:1;}
+.enc .enc-prazos{display:flex;margin:18px 0 4px;}
+.enc .enc-pz{flex:1;position:relative;padding-top:19px;font-size:12px;color:#4a5667;min-width:0;}
+.enc .enc-pz:before{content:"";position:absolute;top:6px;left:0;right:0;height:3px;background:#e3e8ef;}
+.enc .enc-pz.enc-feito:before{background:#1f8a4c;}
+.enc .enc-pz .enc-pt{position:absolute;top:0;left:0;width:15px;height:15px;border-radius:50%;background:#fff;border:3px solid #e3e8ef;}
+.enc .enc-pz.enc-feito .enc-pt{border-color:#1f8a4c;background:#1f8a4c;}
+.enc .enc-pz.enc-hoje .enc-pt{border-color:#e0a100;background:#fff;}
+.enc .enc-pz b{display:block;color:#1a2233;font-size:12.5px;}
+.enc .enc-pz.enc-hoje b{color:#9a6b00;}
+.enc .enc-abas{display:flex;gap:4px;border-bottom:1px solid #e3e8ef;margin:4px 0 14px;overflow-x:auto;}
+.enc .enc-abas button{border:0;background:none;padding:10px 12px;font-size:13.5px;font-weight:600;color:#4a5667;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;min-height:40px;}
+.enc .enc-abas button.enc-on{color:#0c5a26;border-bottom-color:#157a35;}
+.enc .enc-filtros{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px;}
+.enc .enc-filtros button{border:1px solid #e3e8ef;background:#fff;border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;color:#4a5667;min-height:34px;}
+.enc .enc-filtros button.enc-on{background:#1a2233;color:#fff;border-color:#1a2233;}
+.enc .enc-grupo{padding:0;overflow:hidden;}
+.enc .enc-grupo-cab{padding:10px 16px;border-bottom:1px solid #eef1f4;display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap;}
+.enc .enc-grupo-cab h4{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:#4a5667;}
+.enc .enc-grupo-cab .enc-gi{font-size:12px;color:#7a8799;}
+.enc .enc-grupo-cab .enc-gc{margin-left:auto;font-size:12.5px;font-weight:700;color:#4a5667;}
+.enc .enc-vaga{display:grid;grid-template-columns:150px 160px minmax(0,1fr) 20px;gap:12px;align-items:center;padding:11px 16px;border-bottom:1px solid #eef1f4;cursor:pointer;font-size:13px;width:100%;background:#fff;border-top:0;border-left:0;border-right:0;text-align:left;color:#1a2233;}
+.enc .enc-vaga:last-child{border-bottom:0;}
+.enc .enc-vaga:hover{background:#f8fafc;}
+.enc .enc-vaga .enc-cat{font-weight:700;min-width:0;overflow-wrap:anywhere;}
+.enc .enc-vaga .enc-cat small{display:block;font-weight:500;font-size:11.5px;color:#7a8799;}
+.enc .enc-vaga .enc-svc{display:flex;flex-direction:column;gap:4px;align-items:flex-start;}
+.enc .enc-vaga .enc-prod{min-width:0;}
+.enc .enc-vaga .enc-prod .enc-pd{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.enc .enc-vaga .enc-prod .enc-px{font-size:12px;color:#4a5667;margin-top:2px;}
+.enc .enc-vaga .enc-al{font-size:12px;margin-top:3px;color:#9a6b00;}
+.enc .enc-vaga .enc-al.enc-vermelho{color:#c62828;}
+.enc .enc-vaga .enc-ir{color:#7a8799;font-size:18px;text-align:right;}
+.enc .enc-sv{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;white-space:nowrap;}
+.enc .enc-sv .enc-q{width:10px;height:10px;border-radius:3px;display:inline-block;}
+.enc .enc-sv.enc-def .enc-q{background:#1f8a4c;}
+.enc .enc-sv.enc-neg .enc-q{background:#e0a100;}
+.enc .enc-sv.enc-an .enc-q{background:#fff;border:2px solid #98a4b4;}
+.enc .enc-ea{display:inline-flex;align-items:center;font-size:11px;font-weight:700;border-radius:6px;padding:1px 7px;white-space:nowrap;}
+.enc .enc-ea.enc-aprovada{background:#e8f5ec;color:#0c5a26;}
+.enc .enc-ea.enc-em_ajuste{background:#fdecec;color:#b42318;}
+.enc .enc-ea.enc-aguardando_visto{background:#e8f1fc;color:#1c6fd1;}
+/* aprovada e depois retirada: um item aprovado saiu do encarte (no ar, é crítica) */
+.enc .enc-ea.enc-retirada{background:#c62828;color:#fff;white-space:normal;}
+.enc .enc-tab tr.enc-retirada-l td,.enc .enc-cmp .enc-retirada-l{background:#fff5f5;}
+/* edição juntada: a situação vira "Juntada à edição X", com o link para a outra */
+.enc .enc-chip.enc-juntada{white-space:normal;flex-wrap:wrap;}
+.enc .enc-chip.enc-juntada .enc-bt-l{padding:0;min-height:0;font-size:12px;}
+.enc .enc-mais{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;padding-top:10px;border-top:1px solid #eef1f4;margin-top:4px;font-size:12.5px;}
+.enc .enc-retiradas{padding:9px 16px;font-size:12px;color:#7a8799;border-top:1px dashed #e3e8ef;}
+.enc .enc-rodape{display:flex;gap:8px 10px;flex-wrap:wrap;align-items:center;margin-top:6px;}
+.enc .enc-rodape .enc-porque{font-size:12.5px;color:#7a8799;}
+.enc .enc-rodape .enc-esp{flex:1;}
+.enc .enc-eventos{list-style:none;margin:0;padding:0;font-size:12.8px;}
+.enc .enc-eventos li{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px;padding:8px 0;border-bottom:1px solid #eef1f4;}
+.enc .enc-eventos li:last-child{border-bottom:0;}
+.enc .enc-eventos .enc-h{color:#7a8799;font-variant-numeric:tabular-nums;}
+.enc .enc-eventos .enc-quem{color:#4a5667;font-weight:600;}
+.enc .enc-eventos li.enc-destaque{background:#fff5f5;border-left:3px solid #c62828;padding-left:8px;}
+.enc .enc-eventos .enc-mot{display:block;color:#4a5667;font-size:12px;margin-top:2px;}
+.enc .enc-tw{overflow-x:auto;}
+.enc .enc-tab{width:100%;border-collapse:collapse;font-size:12.5px;}
+.enc .enc-tab th{text-align:left;font-size:11px;color:#7a8799;font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:7px 8px;border-bottom:1px solid #e3e8ef;border-top:0;background:none;white-space:nowrap;}
+.enc .enc-tab td{padding:8px;border-bottom:1px solid #eef1f4;border-top:0;vertical-align:top;}
+.enc .enc-tab td.enc-r,.enc .enc-tab th.enc-r{text-align:right;white-space:nowrap;}
+.enc .enc-tab td.enc-nw{white-space:nowrap;}
+.enc .enc-tab tr.enc-mudou td{background:#fffaf0;}
+.enc .enc-cmp{display:none;}
+
+/* ---------- VAGA / PROPOSTAS ---------- */
+/* Lado a lado com a MESMA largura na linha (comparar é o ponto); a linha se completa sem sobrar coluna vazia. */
+.enc .enc-props{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;}
+.enc .enc-prop{background:#fff;border:1px solid #e3e8ef;border-radius:12px;padding:14px;display:flex;flex-direction:column;min-width:0;flex:1 1 290px;max-width:560px;}
+.enc .enc-prop.enc-escolhida{border:2px solid #1f8a4c;background:#f7fcf8;}
+.enc .enc-prop .enc-pn{font-size:11px;font-weight:700;color:#7a8799;letter-spacing:.5px;text-transform:uppercase;display:flex;justify-content:space-between;gap:8px;}
+.enc .enc-prop .enc-pdesc{font-weight:700;font-size:13.5px;margin:5px 0 2px;overflow-wrap:anywhere;}
+.enc .enc-prop .enc-pf{font-size:12px;color:#4a5667;margin-bottom:8px;}
+.enc .enc-prop dl{margin:0;display:grid;grid-template-columns:minmax(0,1fr) auto;font-size:12.5px;}
+.enc .enc-prop dt{color:#4a5667;padding:5px 8px 5px 0;border-top:1px solid #eef1f4;}
+.enc .enc-prop dd{margin:0;padding:5px 0;border-top:1px solid #eef1f4;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;}
+.enc .enc-prop dt small{display:block;font-size:11px;color:#7a8799;font-weight:500;}
+.enc .enc-prop dd small{display:block;font-size:11px;font-weight:500;color:#7a8799;}
+.enc .enc-prop dd.enc-bom{color:#1f8a4c;}
+.enc .enc-prop dd.enc-ruim{color:#c62828;}
+.enc .enc-prop .enc-sec{font-size:11px;font-weight:700;color:#7a8799;letter-spacing:.5px;text-transform:uppercase;margin:10px 0 2px;}
+.enc .enc-prop .enc-alertas{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:5px;}
+.enc .enc-prop .enc-alertas li{font-size:12px;color:#7a5600;background:#fff6dc;border-radius:8px;padding:6px 8px;}
+.enc .enc-prop .enc-alertas li.enc-vermelho{color:#b42318;background:#fdecec;}
+.enc .enc-prop .enc-obs{font-size:12px;color:#4a5667;margin-top:8px;font-style:italic;overflow-wrap:anywhere;}
+.enc .enc-prop .enc-pacoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:12px;}
+.enc .enc-prop .enc-pacoes .enc-bt-p{flex:1 1 100%;}
+.enc .enc-tag{display:inline-block;font-size:10.5px;font-weight:700;border-radius:5px;padding:1px 6px;margin-left:4px;background:#fff3c4;color:#7a5600;vertical-align:1px;}
+.enc .enc-tag.enc-vermelho{background:#fdecec;color:#b42318;}
+.enc .enc-nota{font-size:12px;color:#7a8799;margin-top:10px;line-height:1.5;}
+.enc .enc-duas{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;}
+.enc .enc-duas>*{min-width:0;}
+.enc .enc-fornecedores{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;}
+.enc .enc-fornecedores span{background:#f3f6f9;border:1px solid #e3e8ef;border-radius:8px;padding:3px 8px;font-size:12px;}
+.enc .enc-descartadas{margin-top:12px;font-size:12.5px;color:#4a5667;}
+.enc .enc-descartadas summary{cursor:pointer;font-weight:600;padding:4px 0;}
+
+/* ---------- JANELAS (diálogos) ---------- */
+/* A janela fica PARADA e o conteúdo rola por dentro: cabeçalho e botões sempre à vista
+   (lição do agendamento, 22/08 — rolar a janela inteira tirava da tela o que se conferia). */
+.enc .enc-fundo{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(20,28,40,.45);z-index:950;display:flex;align-items:flex-start;justify-content:center;padding:32px 14px;}
+.enc .enc-janela{background:#fff;border-radius:14px;max-width:680px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3);display:flex;flex-direction:column;max-height:calc(100vh - 64px);min-height:0;}
+.enc .enc-janela.enc-larga{max-width:860px;}
+.enc .enc-jcab{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #eef1f4;flex:none;}
+.enc .enc-jcab h3{font-size:16px;min-width:0;}
+.enc .enc-jcorpo{padding:14px 18px;overflow-y:auto;flex:1 1 auto;min-height:0;}
+.enc .enc-jpe{display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid #eef1f4;flex:none;}
+.enc .enc-jpe .enc-jmsg{margin:0 auto 0 0;flex:1 1 200px;font-size:12.5px;}
+.enc .enc-jpe .enc-jmsg:empty{flex:1 1 0;min-width:0;}
+.enc .enc-campo{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:600;color:#4a5667;min-width:0;}
+.enc .enc-campo input,.enc .enc-campo select,.enc .enc-campo textarea{font-weight:500;color:#1a2233;border:1px solid #cdd6e0;border-radius:8px;padding:8px 10px;font-size:14px;width:100%;min-width:0;background:#fff;min-height:38px;}
+.enc .enc-campo small{font-weight:500;color:#7a8799;font-size:11.5px;}
+.enc .enc-campo.enc-obrig>span:after{content:" *";color:#c62828;}
+.enc .enc-grade-f{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:10px;}
+.enc .enc-grade-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+.enc .enc-inline{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px;}
+.enc .enc-inline input{width:72px;border:1px solid #cdd6e0;border-radius:8px;padding:7px 8px;font-size:14px;min-height:36px;}
+.enc .enc-check{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:500;color:#1a2233;cursor:pointer;}
+.enc .enc-check input{width:18px;height:18px;margin:0;flex:none;}
+.enc .enc-busca-res{border:1px solid #e3e8ef;border-radius:8px;margin-top:6px;max-height:240px;overflow:auto;}
+.enc .enc-busca-res button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #eef1f4;background:#fff;padding:8px 10px;cursor:pointer;font-size:12.5px;color:#1a2233;}
+.enc .enc-busca-res button:hover,.enc .enc-busca-res button.enc-on{background:#e8f5ec;}
+.enc .enc-busca-res small{display:block;color:#4a5667;font-weight:400;margin-top:2px;}
+.enc .enc-escolhidos{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.enc .enc-escolhidos span{display:inline-flex;align-items:center;gap:6px;background:#e8f5ec;color:#0c5a26;border-radius:8px;padding:4px 4px 4px 9px;font-size:12px;font-weight:600;max-width:100%;}
+.enc .enc-escolhidos span button{border:0;background:#cfe9d7;color:#0c5a26;border-radius:6px;width:26px;height:26px;cursor:pointer;font-weight:700;flex:none;}
+.enc .enc-conta{background:#f6f8fa;border-radius:10px;padding:10px 12px;margin-top:12px;font-size:12.5px;line-height:1.6;}
+.enc .enc-conta .enc-longe{color:#9a6b00;font-weight:700;margin-top:4px;}
+.enc .enc-aprov-lista{list-style:none;margin:0;padding:0;}
+.enc .enc-aprov-lista li{border:1px solid #e3e8ef;border-radius:10px;padding:10px 12px;margin-bottom:8px;}
+.enc .enc-aprov-lista li.enc-devolver{border-color:#f0b8b3;background:#fffafa;}
+/* devolvida que o comprador ainda não mexeu: aparece, sem caixa (o banco não a aprova) */
+.enc .enc-aprov-lista li.enc-esperando{border-style:dashed;background:#fbfcfd;}
+.enc .enc-aprov-l1{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;}
+.enc .enc-aprov-l1>div{min-width:0;flex:1 1 220px;}
+.enc .enc-aprov-dev{display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr);gap:8px;margin-top:8px;}
+.enc .enc-opcoes{display:flex;flex-direction:column;gap:8px;margin:8px 0;}
+.enc .enc-opcoes label{display:flex;gap:8px;align-items:flex-start;border:1px solid #e3e8ef;border-radius:10px;padding:9px 11px;cursor:pointer;font-size:13px;}
+.enc .enc-opcoes label input{margin-top:3px;flex:none;}
+
+/* ---------- MODELOS ---------- */
+.enc .enc-mlista .enc-lm{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid #eef1f4;font-size:13px;width:100%;background:none;border-top:0;border-left:0;border-right:0;text-align:left;cursor:pointer;color:#1a2233;}
+.enc .enc-mlista .enc-lm:hover{background:#f8fafc;}
+.enc .enc-mlista .enc-lm .enc-d{margin-left:auto;color:#4a5667;font-size:12px;text-align:right;}
+.enc .enc-mg{border:1px solid #e3e8ef;border-radius:12px;padding:12px 14px;margin-top:12px;}
+.enc .enc-mg-cab{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.enc .enc-mg-cab input{flex:1 1 180px;font-weight:700;font-size:14px;border:1px solid #cdd6e0;border-radius:8px;padding:7px 9px;min-width:0;min-height:36px;}
+.enc .enc-mg-opc{display:flex;gap:8px 16px;flex-wrap:wrap;margin:10px 0 4px;font-size:12.5px;}
+.enc .enc-mvagas{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
+.enc .enc-mvagas th{font-size:11px;color:#7a8799;text-transform:uppercase;letter-spacing:.4px;text-align:left;padding:6px;border-bottom:1px solid #e3e8ef;border-top:0;background:none;}
+.enc .enc-mvagas td{padding:5px 6px;border-bottom:1px solid #eef1f4;border-top:0;vertical-align:middle;}
+.enc .enc-mvagas input[type=text]{width:100%;border:1px solid #dbe2ea;border-radius:7px;padding:6px 8px;font-size:13.5px;min-width:0;min-height:34px;}
+.enc .enc-qtd{display:inline-flex;align-items:center;border:1px solid #e3e8ef;border-radius:8px;overflow:hidden;}
+.enc .enc-qtd button{border:0;background:#f3f6f9;width:32px;height:32px;cursor:pointer;font-weight:700;font-size:15px;color:#1a2233;}
+.enc .enc-qtd span{width:30px;text-align:center;font-weight:700;}
+.enc .enc-x{border:0;background:none;color:#b42318;font-size:18px;cursor:pointer;width:32px;height:32px;border-radius:7px;}
+.enc .enc-x:hover{background:#fdecec;}
+
+/* ---------- CELULAR (≤ 760 px: o mesmo corte da gaveta do menu) ---------- */
+@media (max-width:760px){
+  .enc .enc-cartao{padding:14px 14px;}
+  .enc .enc-topo h2,.enc .enc-cab h2{font-size:19px;}
+  .enc .enc-topo .enc-acoes{width:100%;}
+  .enc .enc-topo .enc-acoes .enc-bt,.enc .enc-topo .enc-acoes .enc-bt-p{flex:1 1 auto;}
+  /* filtros da fila quebram linha: rolando de lado, 3 dos 6 ficavam fora da tela */
+  .enc .enc-resumo{flex-wrap:wrap;}
+  .enc .enc-resumo button{flex:1 1 auto;}
+  .enc .enc-cab .enc-tit{min-width:0;flex-basis:100%;}
+  .enc .enc-andamento{max-width:none;min-width:0;flex-basis:100%;}
+  .enc .enc-grande{font-size:26px;}
+  .enc .enc-pz{font-size:11px;}
+  .enc .enc-pz b{font-size:11.5px;}
+  .enc .enc-grupo-cab{padding:10px 12px;}
+  .enc .enc-abas button{padding:10px 8px;font-size:13px;}
+  .enc .enc-vaga{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:11px 12px;}
+  .enc .enc-vaga .enc-cat{grid-column:1;grid-row:1;}
+  .enc .enc-vaga .enc-svc{grid-column:2;grid-row:1;align-items:flex-end;}
+  .enc .enc-vaga .enc-prod{grid-column:1/3;}
+  .enc .enc-vaga .enc-ir{display:none;}
+  .enc .enc-duas{grid-template-columns:minmax(0,1fr);}
+  .enc .enc-grade-f,.enc .enc-grade-3{grid-template-columns:minmax(0,1fr);}
+  .enc .enc-eventos li{grid-template-columns:minmax(0,1fr);gap:2px;}
+  .enc .enc-tab.enc-some-cel{display:none;}
+  .enc .enc-cmp{display:block;}
+  /* "O que o VR sabe" e "Os mais vendidos": um cartão por produto, cada número com o nome da
+     coluna (data-rot) — a tabela de 6 colunas rolava de lado dentro do cartão e cortava o custo. */
+  .enc .enc-tab.enc-cartoes-cel thead{display:none;}
+  .enc .enc-tab.enc-cartoes-cel,.enc .enc-tab.enc-cartoes-cel tbody,.enc .enc-tab.enc-cartoes-cel tr{display:block;width:100%;}
+  .enc .enc-tab.enc-cartoes-cel tr{border:1px solid #e3e8ef;border-radius:10px;padding:6px 10px;margin-top:8px;}
+  .enc .enc-tab.enc-cartoes-cel td,.enc .enc-tab.enc-cartoes-cel td.enc-r,.enc .enc-tab.enc-cartoes-cel td.enc-nw{display:flow-root;border:0;padding:3px 0;text-align:right;white-space:normal;overflow-wrap:anywhere;}
+  .enc .enc-tab.enc-cartoes-cel td:before{content:attr(data-rot);float:left;margin-right:10px;color:#7a8799;font-size:11.5px;font-weight:600;text-align:left;}
+  .enc .enc-tab.enc-cartoes-cel td.enc-tc-nome{text-align:left;font-weight:700;font-size:13px;padding-bottom:5px;margin-bottom:2px;border-bottom:1px solid #eef1f4;}
+  .enc .enc-tab.enc-cartoes-cel td.enc-tc-nome:before{content:none;}
+  .enc .enc-fundo{padding:0;}
+  .enc .enc-janela,.enc .enc-janela.enc-larga{border-radius:0;max-height:100%;height:100%;max-width:none;}
+  .enc .enc-aprov-dev{grid-template-columns:minmax(0,1fr);}
+  .enc .enc-jpe{padding:10px 14px;}
+  .enc .enc-jpe .enc-jmsg:not(:empty){flex-basis:100%;}
+  .enc .enc-jpe .enc-jmsg:empty{display:none;}
+  .enc .enc-jpe>button{flex:1 1 auto;}
+  .enc .enc-mvagas thead{display:none;}
+  .enc .enc-mvagas tr{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 6px;padding:6px 0;border-bottom:1px solid #eef1f4;}
+  .enc .enc-mvagas td{border:0;padding:0;}
+  .enc .enc-mvagas td.enc-mv-nome{grid-column:1/4;}
+  .enc .enc-mvagas td.enc-mv-muda{grid-column:1/2;}
+  /* sem o cabeçalho da tabela, cada campo leva o seu rótulo (data-rot) */
+  .enc .enc-mvagas td[data-rot]:before{content:attr(data-rot);display:block;font-size:11px;color:#7a8799;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;}
+  .enc .enc-rodape .enc-esp{display:none;}
+  .enc .enc-rodape>button{flex:1 1 auto;}
+}

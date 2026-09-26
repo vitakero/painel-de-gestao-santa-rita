@@ -1294,4 +1294,13 @@ async function timed(c,nome,sql,params){
     if(process.env.RODADA_V==="2") console.log("(Compra x Venda fica para o passo 1.95 do robo.bat)");
     else if(fs.existsSync(cxv)) require("child_process").spawnSync(process.execPath,[cxv],{stdio:"inherit",timeout:5*60*1000});
   }catch(e){ console.log("Compra x Venda: nao rodou ("+e.message+") - painel segue normal."); }
+
+  // ==ENC== PLANEJAMENTO DE ENCARTES (26/09/2026): sobe a ficha do VR (custo com imposto, preço, estoque,
+  // venda de 30 dias) para a tela comparar propostas. Chamado daqui pelo mesmo motivo do Compra × Venda.
+  // O próprio script tem janela (06h-21h), trava de 55 min e nunca sai com erro; mesmo assim qualquer
+  // falha é engolida aqui: a leitura de vendas já terminou e o painel segue.
+  try{
+    const enc=path.join(__dirname,"vr-sync-encartes.cjs");
+    if(fs.existsSync(enc)) require("child_process").spawnSync(process.execPath,[enc],{stdio:"inherit",timeout:4*60*1000});   // o script se encerra sozinho aos 200 s
+  }catch(e){ console.log("Encartes: nao rodou ("+e.message+") - painel segue normal."); }
 })().catch(e=>{ console.log("ERRO: "+e.message); process.exit(1); });

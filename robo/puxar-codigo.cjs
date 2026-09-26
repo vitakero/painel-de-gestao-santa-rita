@@ -71,6 +71,13 @@ const FILES = [
   ["robo/compras-x-venda/extrair-vr.cjs", "compras-x-venda/extrair-vr.cjs", "notaentradaitem"],
   ["robo/compras-x-venda/mapa-inicial.json", "compras-x-venda/mapa-inicial.json", "id_produto"],
   ["robo/vr-sync-compras.cjs", "vr-sync-compras.cjs", "compras_retrato"],
+  // PLANEJAMENTO DE ENCARTES (26/09/2026). Calculo e tela lidos pelo demoDashboard.ts no build;
+  // a ficha do VR (custo, preco, estoque) sobe pelo vr-sync-encartes.cjs. Marcador ASCII.
+  ["robo/encartes/calculo.cjs", "encartes/calculo.cjs", "==ENC-CALC=="],
+  ["robo/encartes/tela.js", "encartes/tela.js", "==ENC-TELA=="],
+  ["robo/encartes/tela.css", "encartes/tela.css", "==ENC-CSS=="],
+  ["robo/encartes/painel.js", "encartes/painel.js", "==ENC-PAINEL=="],
+  ["robo/vr-sync-encartes.cjs", "vr-sync-encartes.cjs", "encarte_produtos_vr"],
   // o ajudante que troca o .bat DEPOIS da rodada. Tem que vir ANTES dos .bat nesta lista:
   // e na vez deles que eu o chamo.
   ["robo/trocar-bat.cjs", "trocar-bat.cjs", "==TROCAR-BAT=="],

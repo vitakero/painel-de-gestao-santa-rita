@@ -51,6 +51,12 @@ const FILES = [
   ["scripts/compras-x-venda/extrair-vr.cjs", "robo/compras-x-venda/extrair-vr.cjs"],
   ["scripts/compras-x-venda/mapa-inicial.json", "robo/compras-x-venda/mapa-inicial.json"],
   ["scripts/vr-sync-compras.cjs", "robo/vr-sync-compras.cjs"],
+  // PLANEJAMENTO DE ENCARTES (26/09/2026): cálculo + tela (lidos no build) e a ficha do VR (robô)
+  ["scripts/encartes/calculo.cjs", "robo/encartes/calculo.cjs"],
+  ["scripts/encartes/tela.js", "robo/encartes/tela.js"],
+  ["scripts/encartes/tela.css", "robo/encartes/tela.css"],
+  ["scripts/encartes/painel.js", "robo/encartes/painel.js"],
+  ["scripts/vr-sync-encartes.cjs", "robo/vr-sync-encartes.cjs"],
   ["scripts/trocar-bat.cjs", "robo/trocar-bat.cjs"],   // troca o .bat depois que a rodada termina
   ["scripts/notas.bat", "robo/notas.bat"],
   ["robo-loja/pix.bat", "robo/pix.bat"],
@@ -87,6 +93,7 @@ const PASTAS = [
   ["email-templates", ""],         // o que o fornecedor e o funcionário recebem
   ["scripts/central", ""],         // a Central Operacional (tela isolada + tipos)
   ["scripts/compras-x-venda", ""], // Compra × Venda: a oficina inteira (fotos, prévia) — a parte que roda já vai em robo/
+  ["scripts/encartes", ""],        // Planejamento de Encartes: a parte que roda também vai em robo/
   ["src/config", ""],              // a configuração da loja
   [".", ".cjs"],                   // os vigias que moram na raiz
 ];

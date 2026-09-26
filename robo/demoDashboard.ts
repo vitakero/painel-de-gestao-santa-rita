@@ -66,6 +66,22 @@ try {
 const cxvSecao = cxvJs
   ? "<style>" + cxvCss + "</style><div id=\"cxvRaiz\"><div class=\"card\"><h2 style=\"margin:0 0 6px;font-size:20px;color:#0c5a26;\">Compra × Venda</h2><p style=\"margin:0;font-size:14px;color:#6b7787;\">Carregando…</p></div></div>"
   : "<div class=\"card\"><h2 style=\"margin:0 0 6px;font-size:20px;color:#0c5a26;\">Compra × Venda</h2><p style=\"margin:0;font-size:14px;color:#6b7787;line-height:1.6;\">Esta tela está em construção.</p></div>";
+/* ==ENC== PLANEJAMENTO DE ENCARTES (menu "Encartes", chave "encartes"), 26/09/2026. Módulo isolado em
+   scripts/encartes/. O cálculo de datas (calculo.cjs) vai no <head> porque o Calendário também usa.
+   Custos e margens NÃO vêm embutidos (o site é público): a tela lê a nuvem ao abrir, com login.
+   Faltou arquivo? A página volta ao "em construção" e o resto do painel é gerado normal. */
+let encCalc = "", encCss = "", encJs = "";
+try { encCalc = await readFile("scripts/encartes/calculo.cjs", "utf8"); } catch (e) { encCalc = ""; }
+try {
+  encCss = await readFile("scripts/encartes/tela.css", "utf8");
+  encJs = [await readFile("scripts/encartes/tela.js", "utf8"),
+           await readFile("scripts/encartes/painel.js", "utf8")].join("\n");
+} catch (e) { encCss = ""; encJs = ""; }
+if (!encCalc) encJs = "";
+const encHead = encCalc ? "<script>" + encCalc + "</script>" : "";
+const encSecao = encJs
+  ? "<style>" + encCss + "</style><div id=\"encRaiz\" class=\"enc\"><div class=\"card\"><h2 style=\"margin:0 0 6px;font-size:20px;color:#0c5a26;\">Planejamento de Encartes</h2><p style=\"margin:0;font-size:14px;color:#6b7787;\">Carregando…</p></div></div>"
+  : "<div class=\"card\"><h2 style=\"margin:0 0 6px;font-size:20px;color:#0c5a26;\">Planejamento de Encartes</h2><p style=\"margin:0;font-size:14px;color:#6b7787;line-height:1.6;\">Esta tela está em construção.</p></div>";
 const qrcodeLib = (await readFile("assets/qrcode-generator.js")).toString();
 
 if (!config.BQ_PROJECT_ID) throw new Error("BQ_PROJECT_ID não configurado no .env");
@@ -1027,6 +1043,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .cal-legenda .qd { width:13px; height:13px; border-radius:3px; }
   .camp { font-size:10px; line-height:1.25; padding:2px 5px; border-radius:5px; color:#fff; font-weight:600; margin-top:auto; }
   .mini-cell.tem-camp { color:#fff; font-weight:700; }
+  /* ==CALREGRAS== aviso de coincidência e etiqueta que abre a edição no Encartes */
+  .cal-coin { font-size:10px; line-height:1.25; font-weight:700; color:#8a5a00; background:#fff4d6; border:1px solid #f0d58a; border-radius:5px; padding:1px 5px; overflow-wrap:anywhere; }
+  .camp.camp-ed { box-shadow:inset 0 0 0 1px rgba(255,255,255,.6); }
+  .camp.camp-ed:hover { filter:brightness(1.1); }
   /* Legenda clicável + destaque dos dias da campanha selecionada */
   .leg-item { cursor:pointer; padding:2px 5px; border-radius:6px; transition:background .15s; }
   .leg-item:hover { background:#e8eef5; }
@@ -1748,13 +1768,13 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .av-it span{ display:block; font-size:12.5px; color:#68727e; margin-top:3px; line-height:1.5; }
   .av-it .av-acoes{ display:flex; gap:8px; margin-top:10px; }
   .av-vazio{ padding:30px 20px; text-align:center; color:#8a939e; font-size:13px; }
-</style><link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
+</style><link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>${encHead}</head>
 <body>
 <div id="authOv" style="display:flex"><div id="authCard"><img id="authLogo" alt=""><h2>Painel Santa Rita</h2><p class="sub">Entre com o acesso do seu setor</p><div id="authChecando" style="text-align:center;color:#8a97a8;font-size:13.5px;padding:14px 0 6px;">Verificando acesso...</div><div id="authLoginBox" style="display:none"><div class="auth-tab"><button id="tabLogin" class="on" type="button">Entrar</button><button id="tabCad" type="button">Criar conta</button></div><div class="auth-fld" id="fldNome" style="display:none"><label>Seu nome</label><input id="authNome" placeholder="Ex: João"></div><div class="auth-fld" id="fldSetor" style="display:none"><label>Setor</label><select id="authSetor"><option value="">Selecione...</option><option>Frente de Loja</option><option>Açougue</option><option>Padaria</option><option>Hortifruti</option><option>Mercearia</option><option>Estoque</option><option>Entregas</option><option>Financeiro</option><option>RH</option><option>Compras</option><option>Administração</option><option>Diretoria</option><option>Outro</option></select></div><div class="auth-fld"><label>Email do setor</label><input id="authEmail" type="email" placeholder="setor@empresa.com" autocomplete="username"></div><div class="auth-fld"><label>Senha</label><div class="pw-wrap"><input id="authSenha" type="password" placeholder="senha" autocomplete="current-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld" id="fldRepetir" style="display:none"><label>Repetir senha</label><div class="pw-wrap"><input id="authRepetir" type="password" placeholder="digite a senha de novo" autocomplete="new-password"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authBtn" type="button">Entrar</button><div id="authMsg"></div><span id="authForgot">Esqueci minha senha</span></div><div id="authReset" style="display:none"><div class="auth-fld"><label>Nova senha</label><div class="pw-wrap"><input id="authNovaSenha" type="password" placeholder="mínimo 6 caracteres"><span class="pw-eye" title="Mostrar senha"></span></div></div><div class="auth-fld"><label>Repetir nova senha</label><div class="pw-wrap"><input id="authNovaRepetir" type="password" placeholder="digite a senha de novo"><span class="pw-eye" title="Mostrar senha"></span></div></div><button id="authResetBtn" type="button">Salvar nova senha</button><div id="authResetMsg" style="font-size:13px;margin-top:10px;text-align:center;"></div></div><div id="authWait" style="display:none"><div style="font-size:44px;margin:4px 0 8px;">⏳</div><p style="font-size:14.5px;color:#33404f;line-height:1.65;margin:0 0 6px;"><b>Conta confirmada!</b><br>Falta o administrador liberar o seu acesso ao painel.</p><p style="font-size:12.5px;color:#8a97a8;margin:0 0 16px;">Avise o responsável. Assim que ele liberar, você entra automaticamente.</p><button id="authWaitSair" type="button" style="background:#eef1f5;color:#33404f;border:0;border-radius:10px;padding:10px 22px;font-weight:700;cursor:pointer;">Sair</button></div></div></div>
 <script>try{var _o=document.getElementById("authOv");var _s=(location.hash||"")+(location.search||"");var _rec=(_s.indexOf("type=recovery")>=0)||(window.sessionStorage&&sessionStorage.getItem("sr_recovery")==="1");var _exp=(!_rec)&&(_s.indexOf("otp_expired")>=0||_s.indexOf("access_denied")>=0||_s.indexOf("error_code")>=0);if(_o&&(_rec||_exp)){_o.style.display="flex";var _lb=document.getElementById("authLoginBox");var _rb=document.getElementById("authReset");if(_rec){if(_lb)_lb.style.display="none";if(_rb)_rb.style.display="";}else{if(_rb)_rb.style.display="none";if(_lb)_lb.style.display="";var _m=document.getElementById("authMsg");if(_m){_m.textContent="Este link de senha já foi usado ou expirou. Toque em Esqueci minha senha para receber um novo.";_m.style.color="#c0392b";}}}}catch(e){}</script>
 <script>try{var _o2=document.getElementById("authOv");var _s2=(location.hash||"")+(location.search||"");var _rec2=(_s2.indexOf("type=recovery")>=0)||(window.sessionStorage&&sessionStorage.getItem("sr_recovery")==="1");if(_o2&&!_rec2&&localStorage.getItem("sr_lib")){var _t=false;for(var _i=0;_i<sessionStorage.length;_i++){var _k=sessionStorage.key(_i);if(_k&&_k.indexOf("sb-")===0&&_k.indexOf("auth-token")>=0){_t=true;break;}}if(_t){_o2.style.display="none"; if(localStorage.getItem("sr_master")==="1"){var _nm=document.createElement("style");_nm.textContent=".nav-item.nav-mo{display:flex!important}";(document.head||document.documentElement).appendChild(_nm);window.__navmocss=_nm;}}}}catch(e){}</script>
 <script>try{var _t=localStorage.getItem("ui_tema");var _esc=(_t==="escuro");var _ovT=document.getElementById("authOv");var _dentro=!_ovT||_ovT.style.display==="none";window.__temaEsc=_esc;window.__temaAplica=function(){if(window.__temaEsc){document.documentElement.classList.add("tema-escuro");if(window.__temaMeta)window.__temaMeta.content="#0F1115";}};if(_esc&&_dentro){document.documentElement.classList.add("tema-escuro");}var _m=document.createElement("meta");_m.name="theme-color";_m.content=(_esc&&_dentro)?"#0F1115":"#ffffff";(document.head||document.documentElement).appendChild(_m);window.__temaMeta=_m;}catch(e){}</script>
-<script>try{var _pgc=localStorage.getItem("ui_pagina_atual");if(_pgc&&_pgc!=="vendas"&&/^[a-z0-9_-]+$/.test(_pgc)){var _esc3=document.documentElement.classList.contains("tema-escuro");var _tx=_esc3?"#dde3ea":"#33404f",_ic=_esc3?"#8f98a5":"#8a97a8",_tw=_esc3?"#f3f4f6":"#fff";var _stc=document.createElement("style");_stc.textContent="#page-vendas.ativo{display:none!important}#page-"+_pgc+"{display:grid!important}"+".nav-item[data-page='vendas'].ativo{background:none!important;color:"+_tx+"!important;font-weight:500!important}.nav-item[data-page='vendas'].ativo .ico{color:"+_ic+"!important}.nav-item[data-page='"+_pgc+"']{background:#157a35!important;color:"+_tw+"!important;font-weight:600!important}.nav-item[data-page='"+_pgc+"'] .ico{color:"+_tw+"!important}";(document.head||document.documentElement).appendChild(_stc);window.__pgcss=_stc;}}catch(e){}</script>
+<script>try{var _pgc=localStorage.getItem("ui_pagina_atual");if(_pgc&&_pgc!=="vendas"&&_pgc!=="negociar"&&/^[a-z0-9_-]+$/.test(_pgc)){var _esc3=document.documentElement.classList.contains("tema-escuro");var _tx=_esc3?"#dde3ea":"#33404f",_ic=_esc3?"#8f98a5":"#8a97a8",_tw=_esc3?"#f3f4f6":"#fff";var _stc=document.createElement("style");_stc.textContent="#page-vendas.ativo{display:none!important}#page-"+_pgc+"{display:grid!important}"+".nav-item[data-page='vendas'].ativo{background:none!important;color:"+_tx+"!important;font-weight:500!important}.nav-item[data-page='vendas'].ativo .ico{color:"+_ic+"!important}.nav-item[data-page='"+_pgc+"']{background:#157a35!important;color:"+_tw+"!important;font-weight:600!important}.nav-item[data-page='"+_pgc+"'] .ico{color:"+_tw+"!important}";(document.head||document.documentElement).appendChild(_stc);window.__pgcss=_stc;}}catch(e){}</script>
   <header>
     <div class="hwrap">
       <button id="btnGaveta" class="btn-gaveta" type="button" aria-label="Abrir o menu"
@@ -1841,6 +1861,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="estoque"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Estoque</button>
     <button class="nav-item" data-page="datas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/></svg></span> Datas críticas</button>
     <button class="nav-item" data-page="calendario"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Calendário</button>
+    <button class="nav-item" data-page="encartes"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 9h16"/><path d="M9 9v11"/><path d="M13 13h4"/><path d="M13 17h4"/></svg></span> Encartes</button>
     <button class="nav-item" data-page="agenda"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg></span> Agenda<span class="nav-badge" id="agNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="escala"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span> Escala</button>
     <button class="nav-item" data-page="ferias"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg></span> Férias</button>
@@ -1869,7 +1890,6 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="cargos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4V10H4zM10 20h4V4h-4zM16 20h4v-7h-4z"/></svg></span> Cargos e Salários</button>
     <button class="nav-item" data-page="jornada"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span> Banco de Horas</button>
     <button class="nav-item" data-page="manutencoes"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.3-.6-.6-2.3 2.6-2.6z"/></svg></span> Manutenções<span class="nav-badge" id="manNavBadge" style="display:none;"></span></button>
-    <button class="nav-item" data-page="negociar"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span> Negociar<span class="nav-badge" id="negNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="metas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span> Metas</button>
     <button class="nav-item" data-page="entregas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Entregas</button>
     <button class="nav-item" data-page="cartaz"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span> Cartaz de oferta</button>
@@ -2398,9 +2418,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
       </div>
       <div class="card">
         <details id="ccBox">
-          <summary style="cursor:pointer;font-weight:700;color:#0c5a26;font-size:15px;">➕ Adicionar campanha / data comemorativa</summary>
-          <p style="margin:10px 0 6px;color:#6b7787;font-size:13px;">Crie suas próprias campanhas (ex: "Quarta do Hortifruti", "Aniversário do Cliente"). Elas aparecem no calendário e na legenda.</p>
-          <div class="filtros" style="box-shadow:none;padding:0;flex-wrap:wrap;align-items:flex-start;">
+          <summary style="cursor:pointer;font-weight:700;color:#0c5a26;font-size:15px;">Campanhas e datas do calendário</summary>
+          <p style="margin:10px 0 6px;color:#6b7787;font-size:13px;line-height:1.5;">Cada campanha segue uma regra e vale para todos os anos. Pausar não apaga: some do calendário e deixa de gerar trabalho. Data comemorativa é oportunidade: só vira trabalho quando alguém decide uma ação, no Encartes. Só o master cria, pausa ou reativa.</p>
+          <div class="filtros" id="ccForm" style="box-shadow:none;padding:0;flex-wrap:wrap;align-items:flex-start;">
             <div class="campo" style="flex:1;min-width:180px;"><label for="ccNome">Nome da campanha</label><input type="text" id="ccNome" placeholder="ex: Quarta do Hortifruti"></div>
             <div class="campo"><label for="ccCor">Cor</label><input type="color" id="ccCor" value="#157a35" style="width:54px;height:40px;padding:2px;cursor:pointer;"></div>
             <div class="campo"><label for="ccTipo">Quando acontece</label>
@@ -2424,6 +2444,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <div id="ccLista" style="margin-top:12px;"></div>
         </details>
       </div>
+    </section>
+
+    <section id="page-encartes" class="page">
+      ${encSecao}
     </section>
 
     <section id="page-escala" class="page">
@@ -8299,11 +8323,81 @@ setInterval(function(){
 },60000);
 let calAno=HOJE.getFullYear(), calMes=HOJE.getMonth(), calView="ano";
 let calModo="campanhas"; // "campanhas" ou "operacao"
-// O que aparece em cada dia: campanhas OU as tarefas de operação (do Calendário Comercial).
+/* ==CALREGRAS== (26/09/2026, junto com o Planejamento de Encartes). As campanhas e datas deixaram de ser
+   listas fixas de 2026: cada uma é uma REGRA (toda segunda, 2º sábado, última quinta, 2º domingo de maio,
+   Páscoa menos 48 dias...) calculada para QUALQUER ano pelo mesmo motor do Encartes (window.ENC, que vem de
+   scripts/encartes/calculo.cjs e é carregado no cabeçalho da página).
+   Fonte: a tabela calendario_regras, lida quando o Calendário abre. Sem login ou sem a tabela, vale a cópia
+   ENC.REGRAS_PADRAO — o calendário nunca fica vazio.
+   ATIVA / PAUSADA: campanha pausada não aparece e não gera nada (é o caso da Sexta da Carne).
+   DATA NO CALENDÁRIO NÃO É AÇÃO: datas comemorativas aparecem como oportunidade e não geram tarefa. */
+var CAL_REGRAS = (window.ENC && window.ENC.REGRAS_PADRAO) ? window.ENC.REGRAS_PADRAO.slice() : [];
+var CAL_MODELOS = (window.ENC && window.ENC.MODELOS_PADRAO) ? window.ENC.MODELOS_PADRAO.slice() : [];
+var CAL_EDICOES = [];      // resumo das edições reais do Encartes (etiquetas com contagem e a Operação)
+var _calOcCache = {}, _calCoinCache = {}, _calOpCache = null, _calOpChave = "";
+var _calNuvemEm = 0, _calNuvemLendo = false;
+function calInvalidar(){ _calOcCache = {}; _calCoinCache = {}; _calOpCache = null; }
+function calEnc(){ return window.ENC || null; }
+
+// Ocorrências de todas as campanhas ATIVAS no ano, dia a dia. Começa 10 dias antes do ano para pegar
+// a Promoção Semanal que começa em dezembro e atravessa o Ano Novo.
+function calOcorrenciasAno(ano){
+  if(_calOcCache[ano]) return _calOcCache[ano];
+  var mapa = {}, E = calEnc(), semanal = {};
+  CAL_REGRAS.forEach(function(r){ var g=r.regra; if(typeof g==="string"){ try{ g=JSON.parse(g); }catch(e){ g=null; } } semanal[r.id]=!!(g && g.tipo==="semanal"); });
+  try{
+    if(E){
+      E.ocorrenciasCampanhas(CAL_REGRAS, E.addDias(ano+"-01-01",-10), ano+"-12-31").forEach(function(o){
+        var d=o.inicio, guarda=0;
+        while(d<=o.fim && guarda++<40){
+          if(d.slice(0,4)===String(ano)) (mapa[d]=mapa[d]||[]).push({id:o.id,nome:o.nome,tipo:o.tipo,categoria:o.categoria,cor:o.cor,setor:o.setor||"",inicio:o.inicio,fim:o.fim,inicio_regra:o.inicio_regra,primeiroDia:d===o.inicio,semanal:!!semanal[o.id]});
+          d=E.addDias(d,1);
+        }
+      });
+    }
+  }catch(e){}
+  _calOcCache[ano]=mapa; return mapa;
+}
+// Onde começa o grupo "Final de semana de ofertas" dentro da Promoção Semanal (vem do modelo).
+function calFds(){
+  try{
+    var m=CAL_MODELOS.filter(function(x){ return x.id==="promocao-semanal"; })[0];
+    var g=m && m.estrutura && (m.estrutura.grupos||[]).filter(function(x){ return x.periodo && x.ativo_padrao!==false; })[0];
+    return g ? {ini:+g.periodo.ini_offset, nome:g.identidade||g.nome} : null;
+  }catch(e){ return null; }
+}
+function calItem(o,extra){
+  var x={nome:o.nome,id:o.id,tipo:o.tipo,categoria:o.categoria,cor:o.cor,setor:o.setor||"",inicio:o.inicio,inicio_regra:o.inicio_regra,primeiroDia:o.primeiroDia,semanal:o.semanal};
+  for(var k in extra) x[k]=extra[k];
+  return x;
+}
+// A Promoção Semanal ocupa todos os dias do ano: no calendário ela aparece só na SEGUNDA em que começa,
+// e o Final de semana de ofertas na sexta daquela semana. Senão ela cobriria todas as outras campanhas.
+function campanhasDoDia(a,m,d,dow){
+  var iso=fmtKey(a,m,d), lista=calOcorrenciasAno(a)[iso]||[], out=[], fds=calFds(), E=calEnc();
+  lista.forEach(function(o){
+    if(o.id==="promocao-semanal"){
+      if(o.primeiroDia) out.push(calItem(o,{ps:true}));
+      else if(fds && E && iso===E.addDias(o.inicio,fds.ini)) out.push(calItem(o,{nome:fds.nome, fds:true}));
+      return;
+    }
+    out.push(calItem(o,{}));
+  });
+  return out;
+}
+// Resumo da edição real (Encartes) daquela ocorrência, se já existir. Casa pela data que a REGRA manda
+// (inicio_regra): uma edição movida por coincidência continua sendo a mesma ocorrência.
+function calEdicaoDe(id, inicioRegra){
+  for(var i=0;i<CAL_EDICOES.length;i++){ var e=CAL_EDICOES[i]; if(e.campanha_id===id && (e.inicio_regra||e.inicio)===inicioRegra) return e; }
+  return null;
+}
+function calContagemTxt(e){
+  var c=e && e.contagem; if(!c || !c.total) return "";
+  return c.definidas+"/"+c.total;
+}
 function itensDoDia(a,m,d,dow){
   if(calModo==="operacao"){
-    var k=fmtKey(a,m,d);
-    return (OPERACAO[k]||[]).map(function(t){ return { nome:t[0], camp:t[1], setor:t[1], alvo:t[2]||"" }; });
+    return (calOperacaoMapa()[fmtKey(a,m,d)]||[]).map(function(t){ return { nome:t.nome, camp:t.camp, setor:t.camp, alvo:t.alvo||"" }; });
   }
   return campanhasDoDia(a,m,d,dow);
 }
@@ -8341,114 +8435,78 @@ function celulasDoMes(ano,mes){
   return cels;
 }
 
-// Cor de cada setor (usada nas etiquetas de campanha).
-const SETOR_COR={ "Geral":"#7048b6", "Açougue":"#c0392b", "Hortifruti":"#1b9e4b", "Mercearia":"#e8a800", "Perfumaria":"#d6336c", "Bebidas":"#2a9d8f", "Bomboniere":"#e8590c" };
-const corSetor=(s)=> SETOR_COR[s] || "#566379";
-
-// Campanhas RECORRENTES (valem todo ano). "quando" recebe (ano,mes,dia,dow).
-const CAMPANHAS=[
-  { nome:"Terçou das Frutas e Verduras", setor:"Hortifruti", quando:(a,m,d,dow)=> dow===2 },
-  { nome:"Sexta da Carne", setor:"Açougue", quando:(a,m,d,dow)=> dow===5 },
-  { nome:"Sábado Bombástico", setor:"Geral", quando:(a,m,d,dow)=> dow===6 && d>=8 && d<=14 },
-  { nome:"Sábado Bombástico (Prorrogado)", setor:"Geral", quando:(a,m,d,dow)=> dow===0 && d>=9 && d<=15 },
-  { nome:"Hora da Economia", setor:"Geral", quando:(a,m,d,dow)=> dow===4 && d+7 > new Date(a,m+1,0).getDate() },
-];
-// Campanhas de DATA ESPECIAL (dia exato de 2026; feriados móveis precisam ajuste em outro ano).
-const DATAS_ESPECIAIS=[
-  { key:"2026-01-15", nome:"Volta às Aulas", setor:"Mercearia" },
-  { key:"2026-02-16", nome:"Carnaval", setor:"Geral" },
-  { key:"2026-02-17", nome:"Carnaval", setor:"Geral" },
-  { key:"2026-03-08", nome:"Dia da Mulher", setor:"Perfumaria" },
-  { key:"2026-03-15", nome:"Dia do Consumidor", setor:"Geral" },
-  { key:"2026-04-05", nome:"Páscoa", setor:"Mercearia" },
-  { key:"2026-04-21", nome:"Tiradentes", setor:"Geral" },
-  { key:"2026-05-10", nome:"Dia das Mães", setor:"Perfumaria" },
-  { key:"2026-06-12", nome:"Dia dos Namorados", setor:"Perfumaria" },
-  { key:"2026-06-24", nome:"São João", setor:"Mercearia" },
-  { key:"2026-06-29", nome:"São Pedro", setor:"Mercearia" },
-  { key:"2026-08-09", nome:"Dia dos Pais", setor:"Geral" },
-  { key:"2026-10-12", nome:"Dia das Crianças", setor:"Bomboniere" },
-  { key:"2026-10-31", nome:"Halloween", setor:"Bomboniere" },
-  { key:"2026-11-27", nome:"Black Friday", setor:"Geral" },
-  { key:"2026-12-24", nome:"Véspera de Natal", setor:"Mercearia" },
-  { key:"2026-12-31", nome:"Réveillon", setor:"Geral" },
-];
-// Datas ANUAIS (mesmo dia/mês todo ano, independente do ano). mes é 0-11.
-const DATAS_ANUAIS=[
-  { mes:8, dia:16, nome:"Aniversário Santa Rita", setor:"Geral" }, // 16/09, desde 1988
-];
-function campanhasDoDia(a,m,d,dow){
-  const k=fmtKey(a,m,d);
-  const anu=DATAS_ANUAIS.filter(c=>c.mes===m && c.dia===d);         // anuais primeiro
-  const esp=DATAS_ESPECIAIS.filter(c=>c.key===k);                   // datas especiais
-  const rec=CAMPANHAS.filter(c=>c.quando(a,m,d,dow));
-  const usr=campanhasUsuario.filter(function(c){
-    if(c.tipo==="semana") return c.dow===dow;
-    if(c.tipo==="data"){ if(c.anual){ var p=c.data.split("-"); return (+p[1]-1)===m && (+p[2])===d; } return c.data===k; }
-    return false;
-  }).map(function(c){ return {nome:c.nome, setor:"Personalizada"}; });
-  return [...anu, ...esp, ...rec, ...usr];
+// Operação: as ETAPAS reais do Planejamento de Encartes — Começar, Definir, Aprovar e No ar — das edições
+// que existem (Encartes) e das que vão nascer das campanhas ATIVAS com modelo (até 120 dias). Não usa mais
+// a lista antiga de 1.540 tarefas: data sem ação e campanha pausada não geram tarefa nenhuma.
+var OP_STEPS=["Começar","Definir","Aprovar","No ar"];
+var OP_STEP_COR={ "Começar":"#1c7ed6","Definir":"#e8a800","Aprovar":"#2f9e44","No ar":"#c2255c" };
+function calNomeGrupo(modeloId, chave){
+  try{
+    var m=CAL_MODELOS.filter(function(x){ return x.id===modeloId; })[0];
+    var g=m && (m.estrutura.grupos||[]).filter(function(x){ return x.chave===chave; })[0];
+    return g ? g.nome : chave;
+  }catch(e){ return chave; }
+}
+function calOperacaoMapa(){
+  var E=calEnc(); var chave=CAL_EDICOES.length+"|"+CAL_REGRAS.length+"|"+CAL_MODELOS.length+"|"+(E?E.hojeISO():"");
+  if(_calOpCache && _calOpChave===chave) return _calOpCache;
+  var mapa={};
+  if(!E){ _calOpCache=mapa; _calOpChave=chave; return mapa; }
+  function por(dia, etapa, titulo, alvo){ if(!dia) return; (mapa[dia]=mapa[dia]||[]).push({nome:etapa, camp:titulo, alvo:alvo}); }
+  // Etiqueta curta: "Definir: Promoção Semanal → 19/10" (o período inteiro fica no texto de ajuda).
+  function lancar(e, titulo){
+    titulo=String(titulo||"").split(" · ")[0];
+    var p=e.prazos||{};
+    por(p.comecar,"Começar",titulo,e.inicio); por(p.definir,"Definir",titulo,e.inicio); por(p.aprovar,"Aprovar",titulo,e.inicio);
+    por(e.inicio,"No ar",titulo,e.inicio);
+    (e.grupos||[]).forEach(function(g){
+      var gp=g.prazos; if(!gp) return;
+      if(gp.definir===p.definir && gp.aprovar===p.aprovar && gp.comecar===p.comecar) return; // mesmo prazo da edição: já está lançado
+      var t=titulo+" · "+g.nome, alvo=g.inicio||e.inicio;
+      por(gp.comecar,"Começar",t,alvo); por(gp.definir,"Definir",t,alvo); por(gp.aprovar,"Aprovar",t,alvo);
+    });
+  }
+  var vistas={};
+  CAL_EDICOES.forEach(function(e){ vistas[e.campanha_id+"|"+(e.inicio_regra||e.inicio)]=1; lancar(e, e.titulo); });
+  try{
+    var hoje=E.hojeISO();
+    E.edicoesParaCriar(CAL_REGRAS, CAL_MODELOS, hoje, []).concat(E.edicoesFuturas(CAL_REGRAS, CAL_MODELOS, hoje, 120)).forEach(function(e){
+      var k=e.campanha_id+"|"+(e.inicio_regra||e.inicio); if(vistas[k]) return; vistas[k]=1;
+      var pg=(e.prazos && e.prazos.grupos)||{}, gr=[];
+      Object.keys(pg).forEach(function(c){ gr.push({nome:calNomeGrupo(e.modelo_id,c), inicio:pg[c].inicio, prazos:pg[c]}); });
+      lancar({inicio:e.inicio, prazos:e.prazos, grupos:gr}, e.titulo);
+    });
+  }catch(err){}
+  _calOpCache=mapa; _calOpChave=chave; return mapa;
 }
 
-// Cor única por campanha. Para evitar tons parecidos, usamos DOIS anéis de
-// claridade (um mais escuro, um mais claro) e espalhamos os matizes em passos
-// de 36°. Assim, mesmo duas campanhas de família próxima (ex.: dois verdes)
-// caem em claridades diferentes e ficam fáceis de distinguir.
-// O "Prorrogado" herda a mesma cor do "Sábado Bombástico" (é a mesma campanha).
-const CAMP_COR=(function(){
-  const base=[], visto={};
-  CAMPANHAS.concat(DATAS_ESPECIAIS).forEach(function(c){
-    if(c.nome==="Sábado Bombástico (Prorrogado)") return;
-    if(!visto[c.nome]){ visto[c.nome]=1; base.push(c.nome); }
-  });
-  const map={};
-  base.forEach(function(nome,i){
-    const ring=i%2;                 // 0 = escuro, 1 = claro (alterna)
-    const k=Math.floor(i/2);        // posição no anel
-    const hue=(k*36 + ring*18) % 360;
-    const lum=ring===0?44:63;
-    const sat=ring===0?72:62;
-    map[nome]="hsl("+hue+","+sat+"%,"+lum+"%)";
-  });
-  // Cores fixas escolhidas manualmente (sobrepõem o automático).
-  const FIXAS={
-    "Terçou das Frutas e Verduras":"#1b9e4b",   // verde
-    "Sexta da Carne":"#e60000",                 // vermelho vivo
-    "Sábado Bombástico":"#f1c40f",              // amarelo
-    "Hora da Economia":"#0a6cff",               // azul vivo
-    // --- datas comemorativas (segunda seção) — versão mais viva ---
-    "Volta às Aulas":"#A4D400",
-    "Carnaval":"#D4A017",
-    "Dia da Mulher":"#D1006C",
-    "Dia do Consumidor":"#00C2A8",
-    "Páscoa":"#74411F",
-    "Tiradentes":"#495057",
-    "Dia das Mães":"#FF5C8A",
-    "Dia dos Namorados":"#5F0F99",
-    "São João":"#C8642F",
-    "São Pedro":"#3F37C9",
-    "Dia dos Pais":"#C026D3",
-    "Dia das Crianças":"#00B4D8",
-    "Halloween":"#FF7518",
-    "Black Friday":"#111111",
-    "Véspera de Natal":"#006400",
-    "Réveillon":"#ADB5BD",
-    "Aniversário Santa Rita":"#A78BFA",
-  };
-  Object.keys(FIXAS).forEach(function(k){ map[k]=FIXAS[k]; });
-  map["Sábado Bombástico (Prorrogado)"]=map["Sábado Bombástico"];
-  return map;
-})();
-// Campanhas criadas pelo usuário (salvas no navegador, via "Adicionar campanha").
-var campanhasUsuario = (function(){ try{ return JSON.parse(localStorage.getItem("calendario_campanhas")||"[]"); }catch(e){ return []; } })();
-function salvarCampUser(){ try{ localStorage.setItem("calendario_campanhas", JSON.stringify(campanhasUsuario)); }catch(e){} }
-var USER_COR={};
-function rebuildUserCor(){ USER_COR={}; campanhasUsuario.forEach(function(c){ USER_COR[c.nome]=c.cor; }); }
-rebuildUserCor();
-// Etapas do Calendário de Operação (cor de cada uma).
-const OP_STEPS=["Análise de produto","Reunião de compras","Negociação","Aprovação","Pedido","Recebimento","Encarte","Divulgação da campanha","Montagem","Divulgação do encarte"];
-const OP_STEP_COR={ "Análise de produto":"#343a40","Reunião de compras":"#1c7ed6","Negociação":"#6741d9","Aprovação":"#2f9e44","Pedido":"#e8590c","Recebimento":"#8a5a2b","Encarte":"#0c8599","Divulgação da campanha":"#e64980","Montagem":"#f0b400","Divulgação do encarte":"#c2255c" };
-const corCampanha=(nome)=> USER_COR[nome] || CAMP_COR[nome] || OP_STEP_COR[nome] || "#566379";
+// COINCIDÊNCIAS (decisão 7, regra 2): o sistema AVISA; quem decide é a pessoa, na edição do Encartes.
+// A regra de quem coincide com quem é a MESMA do Encartes (ENC.coincidencias). Além dela, avisa
+// campanha que cai em dia de loja FECHADA (ex.: última quinta de dezembro num dia 25).
+function calCoincidenciasAno(ano){
+  if(_calCoinCache[ano]) return _calCoinCache[ano];
+  var dias={}, E=calEnc();
+  function marca(z,txt,det){ var d=z.inicio,g=0; while(d<=z.fim && g++<40){ if(d.slice(0,4)===String(ano)){ var l=(dias[d]=dias[d]||[]); if(!l.some(function(x){ return x.curto===txt; })) l.push({curto:txt, texto:det}); } d=E.addDias(d,1); } }
+  try{
+    if(E && E.coincidencias){
+      var oc=E.ocorrenciasCampanhas(CAL_REGRAS, E.addDias(ano+"-01-01",-7), E.addDias(ano+"-12-31",7));
+      // Só campanhas que têm modelo de edição ativo (as outras não têm encarte para decidir).
+      var comEdicao=CAL_MODELOS.filter(function(m){ return m.tipo==="edicao" && m.ativo!==false && m.campanha_id; }).map(function(m){ return m.campanha_id; });
+      E.coincidencias(oc,{regras:CAL_REGRAS, comEdicao:comEdicao}).forEach(function(c){ var t=c.a.nome+" × "+c.b.nome; marca(c.a,t,c.texto); marca(c.b,t,c.texto); });
+      oc.forEach(function(y){ if(y.tipo!=="campanha" || y.continua) return; var d=y.inicio,g=0; while(d<=y.fim && g++<10){ if(E.lojaFechada(d)){ marca({inicio:d,fim:d}, y.nome+" com a loja fechada", y.nome+" cai num dia em que a loja fecha ("+(E.nomeFeriado?E.nomeFeriado(d):"feriado")+")"); } d=E.addDias(d,1); } });
+    }
+  }catch(e){}
+  _calCoinCache[ano]=dias; return dias;
+}
+
+// Cor de cada campanha: vem da regra (tabela). As etapas da Operação têm cor própria.
+function corCampanha(nome){
+  if(OP_STEP_COR[nome]) return OP_STEP_COR[nome];
+  for(var i=0;i<CAL_REGRAS.length;i++){ if(CAL_REGRAS[i].nome===nome) return CAL_REGRAS[i].cor||"#566379"; }
+  var fds=calFds(); if(fds && nome===fds.nome){ for(var j=0;j<CAL_REGRAS.length;j++){ if(CAL_REGRAS[j].id==="promocao-semanal") return CAL_REGRAS[j].cor||"#0c8599"; } }
+  return "#566379";
+}
+const corSetor=(s)=> "#566379";
 
 // Campanha destacada ao clicar na legenda (null = nenhuma).
 // Pode ser o nome de uma campanha ou os tokens especiais "__hoje__" / "__fechado__".
@@ -8463,43 +8521,36 @@ function ehMatch(ehHoje,motivo,camps){
 function montarLegendas(){
   function montar(lista){
     const nomes=[], vistos={};
-    lista.forEach(function(c){
-      if(!vistos[c.nome]){ vistos[c.nome]=1; nomes.push(c); }
-    });
+    lista.forEach(function(c){ if(!vistos[c.nome]){ vistos[c.nome]=1; nomes.push(c); } });
     return nomes.map(function(c){
-      return '<span class="leg-item" data-camp="'+c.nome+'"><span class="qd" style="background:'+corCampanha(c.nome)+'"></span> '+c.nome+'</span>';
+      return '<span class="leg-item" data-camp="'+pxEsc(c.nome)+'"><span class="qd" style="background:'+corCampanha(c.nome)+'"></span> '+pxEsc(c.nome)+'</span>';
     }).join("");
   }
   const box=document.getElementById("calLegSetores");
   const box2=document.getElementById("calLegDatas");
   const box3=document.getElementById("calLegUser");
   if(calModo==="operacao"){
-    // Modo Operação: legenda com as etapas (Negociação, Pedido, ...).
     if(box){ box.style.display=""; box.innerHTML=montar(OP_STEPS.map(function(s){ return {nome:s}; })); }
     if(box2) box2.style.display="none";
     if(box3) box3.style.display="none";
     return;
   }
-  // Modo Campanhas
-  // Grupo 1: promoções recorrentes do mercado.
-  if(box){ box.style.display=""; box.innerHTML=montar(CAMPANHAS); }
-  // Grupo 2: datas comemorativas (separado por linha; some quando vazio).
-  if(box2){
-    const lista2=DATAS_ANUAIS.concat(DATAS_ESPECIAIS);
-    if(lista2.length){ box2.style.display=""; box2.innerHTML=montar(lista2); }
-    else { box2.style.display="none"; }
-  }
-  // Grupo 3: campanhas que VOCÊ adicionou (some quando vazio).
-  if(box3){
-    if(campanhasUsuario.length){ box3.style.display=""; box3.innerHTML=montar(campanhasUsuario); }
-    else { box3.style.display="none"; box3.innerHTML=""; }
-  }
+  var ativas=CAL_REGRAS.filter(function(r){ return r.situacao!=="pausada"; });
+  var campanhas=ativas.filter(function(r){ return r.tipo==="campanha" && String(r.id).indexOf("usr-")!==0; });
+  // Data "configurável por ano" ainda sem nenhuma data (Volta às Aulas) não entra na legenda: não teria o que destacar.
+  function temData(r){ var g=r.regra; if(typeof g==="string"){ try{ g=JSON.parse(g); }catch(e){ g=null; } } return !(g && g.tipo==="datas" && !(g.lista && g.lista.length)); }
+  var datas=ativas.filter(function(r){ return r.tipo!=="campanha" && String(r.id).indexOf("usr-")!==0 && temData(r); });
+  var minhas=ativas.filter(function(r){ return String(r.id).indexOf("usr-")===0; });
+  if(box){ box.style.display=""; box.innerHTML=montar(campanhas); }
+  if(box2){ if(datas.length){ box2.style.display=""; box2.innerHTML=montar(datas); } else { box2.style.display="none"; } }
+  if(box3){ if(minhas.length){ box3.style.display=""; box3.innerHTML=montar(minhas); } else { box3.style.display="none"; box3.innerHTML=""; } }
 }
 montarLegendas();
 
 function renderMes(){
   document.getElementById("calTitulo").textContent=MESES[calMes]+" "+calAno;
   const fech=feriadosFechado(calAno);
+  const coin=(calModo==="operacao") ? {} : calCoincidenciasAno(calAno);
   document.getElementById("calDias").innerHTML=celulasDoMes(calAno,calMes).map(c=>{
     const ehHoje=!c.fora && ehHojeDmy(calAno,calMes,c.dia);
     const fds=(c.dow===0||c.dow===6);
@@ -8509,8 +8560,20 @@ function renderMes(){
     const dim=destaque && !match && !c.fora;
     const cls="cal-cell"+(c.fora?" fora":"")+(fds?" fds":"")+(ehHoje?" hoje":"")+(motivo?" fechado":"")+(match?" destacado":"")+(dim?" atenuado":"");
     const tag=motivo ? '<span class="fechado-tag">Fechado · '+motivo+'</span>' : '';
-    const chips=camps.map(cp=>{ var alvoTxt=cp.alvo ? (' → '+cp.alvo.slice(8,10)+'/'+cp.alvo.slice(5,7)) : ''; var txt=cp.camp ? (cp.nome+': '+cp.camp+alvoTxt) : cp.nome; var ttl=cp.camp ? (cp.nome+' · '+cp.camp+(cp.alvo?(' · campanha em '+cp.alvo.split("-").reverse().join("/")):'')) : (cp.nome+' · '+cp.setor); return '<span class="camp" style="background:'+corCampanha(cp.nome)+'" title="'+ttl+'">'+txt+'</span>'; }).join('');
-    return '<div class="'+cls+'"><span class="dia">'+c.dia+'</span>'+tag+chips+'</div>';
+    const avisos=!c.fora ? (coin[fmtKey(calAno,calMes,c.dia)]||[]) : [];
+    const aviso=avisos.length ? '<span class="cal-coin" title="'+pxEsc("Coincidência: "+avisos.map(function(x){ return x.texto; }).join(" · ")+". Quem decide é a pessoa, na edição, no Encartes.")+'">⚠ '+pxEsc(avisos[0].curto)+'</span>' : '';
+    const chips=camps.map(cp=>{
+      if(cp.camp){
+        var alvoTxt=cp.alvo ? (' → '+cp.alvo.slice(8,10)+'/'+cp.alvo.slice(5,7)) : '';
+        return '<span class="camp" style="background:'+corCampanha(cp.nome)+'" title="'+pxEsc(cp.nome+' · '+cp.camp+(cp.alvo?(' · no ar em '+cp.alvo.split("-").reverse().join("/")):''))+'">'+pxEsc(cp.nome+': '+cp.camp+alvoTxt)+'</span>';
+      }
+      var ed=(cp.tipo==="campanha" && !cp.fds) ? calEdicaoDe(cp.id, cp.inicio_regra||cp.inicio) : null;
+      var cont=calContagemTxt(ed);
+      var txt=cp.nome+(cont?(' · '+cont):'');
+      var ttl=cp.nome+(cp.setor?(' · '+cp.setor):'')+(cp.tipo==="data"?' · oportunidade (sem ação decidida não gera trabalho)':'')+(ed?(' · '+cont+' vagas definidas — clique para abrir no Encartes'):'');
+      return '<span class="camp'+(ed?' camp-ed':'')+'"'+(ed?(' data-ed="'+ed.edicao_id+'"'):'')+' style="background:'+corCampanha(cp.nome)+(ed?';cursor:pointer':'')+'" title="'+pxEsc(ttl)+'">'+pxEsc(txt)+'</span>';
+    }).join('');
+    return '<div class="'+cls+'"><span class="dia">'+c.dia+'</span>'+tag+aviso+chips+'</div>';
   }).join('');
 }
 
@@ -8525,14 +8588,16 @@ function renderAno(){
       const fds=(c.dow===0||c.dow===6);
       const motivo=!c.fora ? fech.get(fmtKey(calAno,m,c.dia)) : null;
       const camps=!c.fora ? itensDoDia(calAno,m,c.dia,c.dow) : [];
-      // O fundo colorido (estilo B) só vale quando NÃO é hoje nem dia fechado (esses já têm cor própria).
-      const pinta=camps.length && !ehHoje && !motivo;
+      // A Promoção Semanal e o Final de semana não pintam o quadradinho: ocupariam o ano inteiro.
+      // Campanha de toda semana (Terçou) pinta só o 1º dia, como antes: senão o ano fica todo colorido.
+      const pintaveis=camps.filter(x=>!x.ps && !x.fds && !(x.semanal && !x.primeiroDia));
+      const pinta=pintaveis.length && !ehHoje && !motivo;
       const match=ehMatch(ehHoje,motivo,camps);
       const dim=destaque && !match && !c.fora;
       const cls="mini-cell"+(c.fora?" fora":"")+(fds?" fds":"")+(ehHoje?" hoje":"")+(motivo?" fechado":"")+(pinta?" tem-camp":"")+(match?" destacado":"")+(dim?" atenuado":"");
       const ttl=motivo ? 'Fechado · '+motivo : (camps.length ? camps.map(x=>x.camp?(x.nome+": "+x.camp+(x.alvo?(" ("+x.alvo.slice(8,10)+"/"+x.alvo.slice(5,7)+")"):"")):x.nome).join(", ") : "");
-      const sty=pinta ? ' style="background:'+corCampanha(camps[0].nome)+'"' : '';
-      return '<div class="'+cls+'"'+sty+(ttl?' title="'+ttl+'"':'')+'>'+c.dia+'</div>';
+      const sty=pinta ? ' style="background:'+corCampanha(pintaveis[0].nome)+'"' : '';
+      return '<div class="'+cls+'"'+sty+(ttl?' title="'+pxEsc(ttl)+'"':'')+'>'+c.dia+'</div>';
     }).join('');
     html+='<div class="mini" data-mes="'+m+'"><h3>'+MESES[m]+'</h3><div class="mini-grid">'+cabec+dias+'</div></div>';
   }
@@ -8574,6 +8639,16 @@ document.getElementById("calNext").addEventListener("click",()=>{
   renderCal();
 });
 document.getElementById("calHoje").addEventListener("click",()=>{ calAno=HOJE.getFullYear(); calMes=HOJE.getMonth(); setView("mes"); });
+// Etiqueta de campanha com edição: abre a edição no Encartes.
+function calAbrirEncarte(edId){
+  var b=document.querySelector('.nav-item[data-page="encartes"]'); if(!b) return;
+  b.click();
+  if(window.encAbrirEdicao) setTimeout(function(){ window.encAbrirEdicao(edId); }, 60);
+}
+document.getElementById("calDias").addEventListener("click",function(e){
+  var el=e.target.closest("[data-ed]"); if(!el) return;
+  e.stopPropagation(); calAbrirEncarte(el.dataset.ed);
+});
 
 // Clicar numa campanha da legenda destaca os dias dela no calendário.
 function campanhaNoMes(nome,ano,mes){
@@ -8617,18 +8692,59 @@ document.addEventListener("click",function(e){
 });
 setView(calView);
 
-// ---- Adicionar campanha (calendário) ----
+// Lê as regras (calendario_regras), os modelos e o resumo das edições quando o Calendário abre.
+// Enxuto: colunas nomeadas, teto, guarda de 5 minutos. Sem login ou sem tabela: fica com a cópia padrão.
+function calCarregarNuvem(forcar){
+  var cli=window.__SB;
+  if(!cli || !window.__PERFIL) return;
+  if(_calNuvemLendo) return;
+  if(!forcar && Date.now()-_calNuvemEm < 5*60e3) return;
+  _calNuvemLendo=true;
+  Promise.all([
+    cli.from("calendario_regras").select("id,nome,tipo,categoria,regra,setor,cor,situacao,ordem").order("ordem",{ascending:true}).limit(300),
+    cli.from("encarte_modelos").select("id,campanha_id,tipo,nome,prazos,dias_antes_no_ar,estrutura,versao,ativo").eq("ativo",true).limit(100)
+  ]).then(function(rs){
+    _calNuvemLendo=false; _calNuvemEm=Date.now();
+    if(!rs[0].error && rs[0].data && rs[0].data.length){ CAL_REGRAS=rs[0].data; }
+    if(!rs[1].error && rs[1].data && rs[1].data.length){ CAL_MODELOS=rs[1].data; }
+    calInvalidar(); montarLegendas(); renderCal(); ccRenderLista();
+    var E=calEnc();
+    if(window.encResumoCalendario && E){
+      window.encResumoCalendario(E.addDias(E.hojeISO(),-60), E.addDias(E.hojeISO(),200)).then(function(l){
+        CAL_EDICOES=l||[]; _calOpCache=null; renderCal();
+      }, function(){});
+    }
+  }, function(){ _calNuvemLendo=false; });
+}
+
+// ---- Campanhas e datas (lista, criar, pausar) ----
+// Quem cria ou pausa: só o master (a regra mora na nuvem e vale para todos). Pausar NUNCA apaga: a campanha
+// continua cadastrada, some do calendário e deixa de gerar trabalho; reativar traz de volta.
+function calEhMaster(){ return !!(window.__PERFIL && window.__PERFIL.is_master); }
+function calDescRegra(r){
+  var g=r.regra||{}, dn=["domingo","segunda","terça","quarta","quinta","sexta","sábado"], ms=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+  if(g.tipo==="semanal") return "Toda "+dn[g.dia_semana];
+  if(g.tipo==="mensal_nth") return g.n+"º "+dn[g.dia_semana]+" do mês";
+  if(g.tipo==="mensal_ultimo") return "Última "+dn[g.dia_semana]+" do mês";
+  if(g.tipo==="anual_fixa") return g.dia+" de "+ms[g.mes-1];
+  if(g.tipo==="anual_nth") return g.n+"º "+dn[g.dia_semana]+" de "+ms[g.mes-1];
+  if(g.tipo==="anual_ultimo") return "Última "+dn[g.dia_semana]+" de "+ms[g.mes-1];
+  if(g.tipo==="pascoa") return g.deslocamento_dias===0 ? "Domingo de Páscoa" : ("Páscoa "+(g.deslocamento_dias>0?"+":"")+g.deslocamento_dias+" dias");
+  if(g.tipo==="datas") return (g.lista&&g.lista.length) ? g.lista.map(function(x){ return x.inicio.split("-").reverse().join("/"); }).join(", ") : "Data a configurar por ano";
+  return "";
+}
 function ccRenderLista(){
   var box=document.getElementById("ccLista"); if(!box) return;
-  if(!campanhasUsuario.length){ box.innerHTML='<p style="color:#8a97a8;font-size:13px;margin:4px 0;">Você ainda não adicionou nenhuma campanha.</p>'; return; }
-  var diasSem=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+  var m=calEhMaster();
+  var form=document.getElementById("ccForm"); if(form) form.style.display=m?"":"none";
+  var lista=CAL_REGRAS.slice().sort(function(a,b){ return (a.tipo===b.tipo?0:(a.tipo==="campanha"?-1:1)) || ((a.ordem||0)-(b.ordem||0)); });
   box.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:13px;">'+
-    campanhasUsuario.map(function(c){
-      var quando = c.tipo==="semana" ? ("Toda "+diasSem[c.dow]) : (c.data.split("-").reverse().join("/")+(c.anual?" (todo ano)":""));
-      return '<tr style="border-bottom:1px solid #eef2f6;"><td style="padding:6px 4px;"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:'+c.cor+';vertical-align:middle;margin-right:7px;"></span>'+pxEsc(c.nome)+'</td><td style="padding:6px 4px;color:#6b7787;">'+quando+'</td><td style="padding:6px 4px;text-align:right;"><span data-ccdel="'+c.id+'" style="color:#c0392b;cursor:pointer;font-weight:700;">excluir</span></td></tr>';
+    lista.map(function(r){
+      var pausada=r.situacao==="pausada";
+      var acao=m ? '<span data-ccsit="'+pxEsc(r.id)+'" data-para="'+(pausada?"ativa":"pausada")+'" style="color:'+(pausada?'#157a35':'#c0392b')+';cursor:pointer;font-weight:700;">'+(pausada?'reativar':'pausar')+'</span>' : '';
+      return '<tr style="border-bottom:1px solid #eef2f6;'+(pausada?'opacity:.55;':'')+'"><td style="padding:6px 4px;"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:'+pxEsc(r.cor||"#566379")+';vertical-align:middle;margin-right:7px;"></span>'+pxEsc(r.nome)+'</td><td style="padding:6px 4px;color:#6b7787;">'+pxEsc(calDescRegra(r))+'</td><td style="padding:6px 4px;color:#6b7787;">'+(r.tipo==="campanha"?"campanha":"data")+(pausada?" · PAUSADA":"")+'</td><td style="padding:6px 4px;text-align:right;">'+acao+'</td></tr>';
     }).join('')+'</table>';
 }
-function ccUid(){ return "c"+HOJE.getTime()+Math.floor(performance.now()*1000)+campanhasUsuario.length; }
 (function(){
   var tipo=document.getElementById("ccTipo"); if(!tipo) return;
   tipo.addEventListener("change",function(){
@@ -8641,26 +8757,36 @@ function ccUid(){ return "c"+HOJE.getTime()+Math.floor(performance.now()*1000)+c
     var cor=document.getElementById("ccCor").value;
     var t=document.getElementById("ccTipo").value;
     var msg=document.getElementById("ccMsg");
-    function erro(x){ msg.textContent=x; msg.style.display="block"; }
-    if(!nome){ return erro("Digite o nome da campanha."); }
-    var nova={ id:ccUid(), nome:nome, cor:cor, tipo:t };
-    if(t==="semana"){ nova.dow=parseInt(document.getElementById("ccDow").value,10); }
+    function erro(x){ msg.textContent=x; msg.style.color="#c0392b"; msg.style.display="block"; }
+    if(!calEhMaster()) return erro("Só o master cria ou pausa campanhas.");
+    if(!window.__SB) return erro("Entre no painel para criar.");
+    if(!nome) return erro("Digite o nome da campanha.");
+    var regra;
+    if(t==="semana"){ regra={tipo:"semanal", dia_semana:parseInt(document.getElementById("ccDow").value,10), duracao_dias:1}; }
     else {
       var data=document.getElementById("ccData").value;
-      if(!/^\\d{4}-\\d{2}-\\d{2}\$/.test(data)){ return erro("Escolha a data da campanha."); }
-      nova.data=data; nova.anual=document.getElementById("ccAnual").checked;
+      if(!data || data.length!==10) return erro("Escolha a data da campanha.");
+      var p=data.split("-");
+      regra=document.getElementById("ccAnual").checked ? {tipo:"anual_fixa", mes:+p[1], dia:+p[2], duracao_dias:1} : {tipo:"datas", lista:[{inicio:data, fim:data}]};
     }
-    campanhasUsuario.push(nova);
-    salvarCampUser(); rebuildUserCor(); montarLegendas(); renderCal(); ccRenderLista();
-    document.getElementById("ccNome").value=""; msg.style.display="none";
+    // p_id vazio: o banco dá o identificador ("usr-..."). Nasce ATIVA.
+    window.__SB.rpc("calendario_salvar_regra",{p_id:null, p:{nome:nome, tipo:"data", categoria:"media", regra:regra, cor:cor, setor:"Personalizada"}}).then(function(r){
+      if(r.error) return erro("O banco recusou: "+String(r.error.message||r.error).slice(0,160));
+      document.getElementById("ccNome").value=""; msg.style.display="none";
+      calCarregarNuvem(true);
+    }, function(e){ erro("Sem conexão agora. Tente de novo."); });
   });
   document.getElementById("ccLista").addEventListener("click",function(e){
-    var d=e.target.closest("[data-ccdel]"); if(!d) return;
-    var alvo=campanhasUsuario.find(function(c){ return c.id===d.dataset.ccdel; });
-    uiConfirm({titulo:"Excluir campanha",msg:"Remover a campanha '"+((alvo&&alvo.nome)||"")+"'?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){
+    var d=e.target.closest("[data-ccsit]"); if(!d) return;
+    if(!calEhMaster() || !window.__SB) return;
+    var alvo=CAL_REGRAS.find(function(r){ return r.id===d.dataset.ccsit; });
+    var para=d.dataset.para;
+    uiConfirm({titulo:(para==="pausada"?"Pausar campanha":"Reativar campanha"), msg:(para==="pausada" ? "Pausar '"+((alvo&&alvo.nome)||"")+"'? Ela some do calendário e deixa de gerar trabalho. Nada é apagado: dá para reativar." : "Reativar '"+((alvo&&alvo.nome)||"")+"'? Ela volta a aparecer e a gerar o planejamento futuro."), ok:(para==="pausada"?"Pausar":"Reativar"), cancel:"Cancelar"}).then(function(sim){
       if(!sim) return;
-      campanhasUsuario=campanhasUsuario.filter(function(c){ return c.id!==d.dataset.ccdel; });
-      salvarCampUser(); rebuildUserCor(); montarLegendas(); renderCal(); ccRenderLista();
+      window.__SB.rpc("calendario_mudar_situacao",{p_id:d.dataset.ccsit, p_situacao:para}).then(function(r){
+        if(r.error){ uiConfirm({titulo:"Não deu",msg:"O banco recusou: "+String(r.error.message||r.error).slice(0,160),ok:"OK",cancel:""}); return; }
+        calCarregarNuvem(true);
+      });
     });
   });
   ccRenderLista();
@@ -8668,7 +8794,7 @@ function ccUid(){ return "c"+HOJE.getTime()+Math.floor(performance.now()*1000)+c
 
 // ---- Escala de trabalho (editável, salva no navegador) ----
 const ESCALA_ROSTER = ${JSON.stringify(escalaRoster)};
-const OPERACAO = ${JSON.stringify(operacaoSeed)};
+const OPERACAO = {}; // ==CALREGRAS== a Operação agora vem das edições do Encartes (calOperacaoMapa); a lista fictícia saiu em 26/09/2026
 const LOGO_URI = ${JSON.stringify(logoDataUri)};
 const SIMBOLO_URI = ${JSON.stringify(simboloDataUri)};
 const CZ_BANNER_URI = ${JSON.stringify(cartazBannerUri)};
@@ -31298,7 +31424,8 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     document.getElementById("page-"+btn.dataset.page).classList.add("ativo");
     // presença: grava a página e re-registra JÁ (antes dos renders, pra não travar se algum render der erro)
     try{ localStorage.setItem("ui_pagina_atual", btn.dataset.page); if(window.__presTrack) window.__presTrack(); }catch(e){}
-    if(btn.dataset.page==="calendario"){ calAno=HOJE.getFullYear(); calMes=HOJE.getMonth(); setView("ano"); }
+    if(btn.dataset.page==="calendario"){ calAno=HOJE.getFullYear(); calMes=HOJE.getMonth(); setView("ano"); try{ calCarregarNuvem(false); }catch(e){} }
+    if(btn.dataset.page==="encartes" && window.encAbrir) window.encAbrir(); // ==ENC== lê a nuvem só ao abrir
     if(btn.dataset.page==="projecao" && window.cxvAbrir) window.cxvAbrir(); // ==CXV== lê a nuvem só ao abrir
     if(btn.dataset.page==="agenda"){ renderAgenda(); agCloudLoad(); }
     if(btn.dataset.page==="organograma"){ renderOrg(); orgCenterView(); }
@@ -31337,7 +31464,6 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="entregas"){ renderEntregas(); entCloudLoad(); entFilaProcessar(true); }
     if(btn.dataset.page==="cartaz"){ renderCartaz(); czHistCloudLoad(); }
     if(btn.dataset.page==="ferias"){ if(!document.getElementById("ferConsultaDia").value){ document.getElementById("ferConsultaDia").value=HOJE.getFullYear()+"-"+("0"+(HOJE.getMonth()+1)).slice(-2)+"-"+("0"+HOJE.getDate()).slice(-2); } renderFerias(); }
-    if(btn.dataset.page==="negociar") renderNegociar();
     if(btn.dataset.page==="analise") renderAnalise();
     if(btn.dataset.page==="historico") hsMontar();
     try{ localStorage.setItem("ui_pagina_atual", btn.dataset.page); }catch(e){}
@@ -34358,6 +34484,7 @@ function pedEnviar(){
       if(p==="regulamento") return true;
       if(p==="entregas" && ok.indexOf("entregas_lancar")>=0) return true;   // versão enxuta abre a MESMA aba
       if(p==="manutencoes" && ok.indexOf("manutencoes_gestor")>=0) return true;   // ==MAN2ACS== gestor da Manutenção abre a MESMA aba
+      if(p==="encartes" && ok.indexOf("encartes_comprador")>=0) return true;   // ==ENCACS== comprador abre a MESMA aba
       // estas vivem DENTRO de Receitas e não têm item de menu próprio
       if(["insumos","custosop","material","rateio"].indexOf(p)>=0 && ok.indexOf("receitas")>=0) return true;
       return false;
@@ -34686,6 +34813,9 @@ function renderAcessos(){
   // Manutenções. Sozinha ela já libera a página (ver podeAba) — igual a "Entregas — só lançar".
   (function(){ var i=-1; pages.forEach(function(p,k){ if(p.key==="manutencoes") i=k; });
     if(i>=0 && !pages.some(function(p){ return p.key==="manutencoes_gestor"; })) pages.splice(i+1,0,{key:"manutencoes_gestor",label:"Manutenções — gestor"}); })();
+  // ==ENCACS== "Encartes — comprador" é chave DERIVADA (registra e escolhe propostas); sozinha já abre a aba.
+  (function(){ var i=-1; pages.forEach(function(p,k){ if(p.key==="encartes") i=k; });
+    if(i>=0 && !pages.some(function(p){ return p.key==="encartes_comprador"; })) pages.splice(i+1,0,{key:"encartes_comprador",label:"Encartes — comprador"}); })();
   // ==ACSLISTA-FIM==
   // Acesso reduzido: só a grade de lançamento e o cadastro de entregadores.
   // Não vê ritmo, projeção, ranking, gráficos nem dinheiro.
@@ -34853,6 +34983,13 @@ if (cxvJs) {
   comCentral = _j >= 0
     ? comCentral.slice(0, _j) + "<scr" + "ipt>" + cxvJs + "</scr" + "ipt>\n" + comCentral.slice(_j)
     : comCentral + "<scr" + "ipt>" + cxvJs + "</scr" + "ipt>";
+}
+// ==ENC== os scripts do Planejamento de Encartes, também antes do ÚLTIMO </body>.
+if (encJs) {
+  const _k = comCentral.lastIndexOf("</body>");
+  comCentral = _k >= 0
+    ? comCentral.slice(0, _k) + "<scr" + "ipt>" + encJs + "</scr" + "ipt>\n" + comCentral.slice(_k)
+    : comCentral + "<scr" + "ipt>" + encJs + "</scr" + "ipt>";
 }
 // ===== SPRINT UI 1.0 — TEMA ESCURO PREMIUM (gerado no build) =====
 // A folha escura NÃO é mantida à mão: cada regra de cor do tema claro ganha uma
