@@ -2566,7 +2566,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <div class="campo"><label for="glRg">RG do inquilino</label><input type="text" id="glRg" placeholder="ex: 003.046.362" style="width:150px;"></div>
           <div class="campo"><label for="glTel">Contato</label><input type="tel" id="glTel" placeholder="ex: (84) 99999-0000" style="width:160px;"></div>
           <div class="campo"><label for="glEmail">E-mail (p/ cobrança)</label><input type="email" id="glEmail" placeholder="ex: financeiro@empresa.com" style="width:230px;"></div>
-          <div class="campo" style="flex:1;min-width:200px;"><label for="glEnd">Endereço do galpão — automático</label><input type="text" id="glEnd" readonly style="background:#f4f6f9;color:#56606d;" title="Montado sozinho: rua fixa + o Nº do galpão."></div>
+          <div class="campo" style="flex:1;min-width:200px;"><label for="glEnd">Endereço do galpão</label><input type="text" id="glEnd" readonly style="background:#f4f6f9;color:#56606d;" title="Montado sozinho: rua fixa + o Nº do galpão."></div>
           <div class="campo" style="flex:1;min-width:200px;"><label for="glEndInq">Endereço do inquilino</label><input type="text" id="glEndInq" placeholder="ex: R. Terezinha Leite, 77 - Penedo (onde ele mora)"></div>
           <div class="campo"><label for="glAluguel">Aluguel no contrato</label>
             <select id="glAluguel" class="px-filtro" style="width:190px;">
