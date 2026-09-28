@@ -17141,7 +17141,7 @@ function glSincValorForm(){
     inp.value=(Math.round(f*glSalValor()*100)/100).toFixed(2);
     inp.readOnly=true; inp.style.background="#f4f6f9"; inp.style.color="#56606d";
     inp.title="Calculado pelo salário mínimo ("+brl(glSalValor())+"). Muda sozinho quando o mínimo mudar.";
-    if(lb) lb.textContent="Valor (R$) — automático";
+    if(lb) lb.textContent="Valor (R$)";
   }
 }
 // Endereço dos galpões: a rua e o bairro são FIXOS (o terreno é todo do dono, mesma rua);
