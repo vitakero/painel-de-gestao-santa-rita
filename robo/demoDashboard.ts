@@ -7378,18 +7378,27 @@ function hsDiasPorMes(dias){
   return o;
 }
 var HS_FOLGA_DIAS = 3;
-function hsMesCompleto(diasPorMes, ano, mm){
+function hsMesCompleto(diasPorMes, ano, mm, ultimoDia){
+  /* ==HISTFOLGADIA== A FOLGA E PARA FERIADO, NAO PARA O MES QUE AINDA CORRE.
+     28/09/2026: setembro tinha 27 dias na base, de 30. Como a folga e de 3, esta regra
+     declarou o mes FECHADO faltando tres dias de venda — e a tabela passou a comparar 27
+     dias com o setembro INTEIRO de 2025: "-5,0%", a loja "caindo" sem ter caido. De
+     quebra, o caminho do mes em curso deixou de rodar e a linha "projecao: +X%" sumiu da
+     celula, enquanto a projecao em reais continuava na celula do lado — as duas se
+     desmentindo na mesma linha. O mes que contem o ultimo dia da base NUNCA esta
+     completo, nem faltando um dia so. */
+  if(ultimoDia && (ano+"-"+mm)===ultimoDia.slice(0,7)) return false;
   var tem = diasPorMes[ano+"-"+mm];
   if(!tem) return false;
   var doMes = new Date(Number(ano), Number(mm), 0).getDate();
   return tem >= doMes - HS_FOLGA_DIAS;
 }
 /* Variação do mês contra o MESMO mês do ano anterior. Os dois têm que estar inteiros. */
-function hsPctMes(porMes, diasPorMes, ano, mm){
+function hsPctMes(porMes, diasPorMes, ano, mm, ultimoDia){
   var ant = String(Number(ano)-1);
   var vA = porMes[ano+"-"+mm], vB = porMes[ant+"-"+mm];
   if(vA===undefined || vB===undefined || !vB) return null;
-  if(!hsMesCompleto(diasPorMes,ano,mm) || !hsMesCompleto(diasPorMes,ant,mm)) return null;
+  if(!hsMesCompleto(diasPorMes,ano,mm,ultimoDia) || !hsMesCompleto(diasPorMes,ant,mm,ultimoDia)) return null;
   return (vA/vB-1)*100;
 }
 /* POR QUE ESTE TRACO ESTA AQUI. O mesmo "—" aparecia por quatro motivos diferentes e todos
@@ -7400,7 +7409,7 @@ function hsCasoVazio(porMes, diasPorMes, ano, mm, mesCorrente){
   if(vA===undefined && vB===undefined) return "nada";
   if(vA===undefined) return (ano+"-"+mm) > mesCorrente ? "nao_chegou" : "sem_dado";
   if(vB===undefined) return "sem_ano_anterior";
-  if(!hsMesCompleto(diasPorMes,ano,mm)) return (ano+"-"+mm)===mesCorrente ? "mes_aberto" : "mes_parcial";
+  if(!hsMesCompleto(diasPorMes,ano,mm,mesCorrente)) return (ano+"-"+mm)===mesCorrente ? "mes_aberto" : "mes_parcial";
   if(!hsMesCompleto(diasPorMes,ant,mm)) return "base_parcial";
   return null;
 }
@@ -7555,7 +7564,7 @@ function hsAnoDaSetinha(dias, mm, ultimoDia){
   for(var k=lista.length-1;k>=0;k--){
     var a=lista[k];
     if(ultimoDia && (a+"-"+mm)===ultimoDia.slice(0,7)) continue;      // mes em curso nao
-    if(hsMesCompleto(diasPorMes, a, mm)) return a;
+    if(hsMesCompleto(diasPorMes, a, mm, ultimoDia)) return a;
   }
   return lista.length ? lista[lista.length-1] : null;
 }
@@ -7945,7 +7954,7 @@ function hsMontar(){
       barras+="<div class='hs-b"+(correndo?" hs-andando":"")+"' style=\\"height:"+alt+"%;background-color:"+hsCor(anos,a)
             + "\\" data-tip=\\"<b>"+HS_MESES_INT[m-1]+" de "+a+"</b>"+hsVal(tipo,v)
             + (function(){
-                var pv = hsPctMes(porMes, hsDiasPorMes(DIA), a, mm);
+                var pv = hsPctMes(porMes, hsDiasPorMes(DIA), a, mm, ultDia);
                 if(pv===null) return "";
                 return "<br><i>"+(pv>=0?"+":"\u2212")
                      + Math.abs(pv).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})
@@ -8138,7 +8147,7 @@ function hsMontar(){
       }
       tds += (v2===undefined) ? "<td class='hs-vaz'>—</td>"
            : "<td class='hs-cel' data-hsmes='"+a2+"|"+mm2+"' title='Ver os n&uacute;meros de "+MESES_INT[m2-1]+" de "+a2+"'>"+valHtml+pe+"</td>";
-      if(k2>0) tds += hsTdPct(hsPctMes(porMes,diasPorMes,a2,mm2), a2, mm2, correndo);
+      if(k2>0) tds += hsTdPct(hsPctMes(porMes,diasPorMes,a2,mm2,ultDia), a2, mm2, correndo);
     }
     /* a setinha so existe se houver um mes FECHADO daquele nome para abrir */
     var anoSet = hsAnoDaSetinha(DIA, mm2, ultDia);

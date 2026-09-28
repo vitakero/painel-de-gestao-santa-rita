@@ -194,7 +194,13 @@ const d2 = (v) => v === null ? "null" : (Math.round(v * 100) / 100).toFixed(2);
   eq("e o motivo e a base pela metade", M.hsCasoVazio(pm, dpm, "2024", "03", hoje), "base_parcial");
   eq("janeiro de 2026 TEM comparacao", M.hsPctMes(pm, dpm, "2026", "01") !== null, true);
   eq("abril de 2026 tambem", M.hsPctMes(pm, dpm, "2026", "04") !== null, true);
-  eq("o mes que corre nao tem", M.hsPctMes(pm, dpm, "2026", hoje.slice(5, 7)), null);
+  /* ==TESTESEMDATA== ESTA CHAMADA TEM QUE PASSAR O DIA DE HOJE, como a tela passa.
+     Sem o ultimo argumento, este mesmo teste devolveu -4,97% em 28/09/2026 — que e
+     exatamente o "-5,0%" que apareceu na tela do dono. O defeito nao estava no teste:
+     o teste estava reproduzindo o defeito. Ver ==HISTFOLGADIA==. */
+  eq("o mes que corre nao tem", M.hsPctMes(pm, dpm, "2026", hoje.slice(5, 7), hoje), null);
+  eq("e sem passar o dia de hoje ele devolveria a queda falsa",
+     M.hsPctMes(pm, dpm, "2026", hoje.slice(5, 7)) !== null, true);
   // QUAIS meses ficam sem comparacao na base real, e por que cada um.
   // Sao quatro, nao dois: jan e fev de 2024 nao tem com o que comparar porque a base
   // comeca em 17/03/2023 — o ano de 2023 nao tem janeiro nem fevereiro.
@@ -202,7 +208,7 @@ const d2 = (v) => v === null ? "null" : (Math.round(v * 100) / 100).toFixed(2);
   ["2024", "2025", "2026"].forEach(function (a) {
     for (let m = 1; m <= 12; m++) {
       const mm = String(m).padStart(2, "0");
-      if (pm[a + "-" + mm] !== undefined && M.hsPctMes(pm, dpm, a, mm) === null) {
+      if (pm[a + "-" + mm] !== undefined && M.hsPctMes(pm, dpm, a, mm, hoje) === null) {
         vazios.push(a + "-" + mm + ":" + M.hsCasoVazio(pm, dpm, a, mm, hoje));
       }
     }
@@ -246,13 +252,17 @@ const d2 = (v) => v === null ? "null" : (Math.round(v * 100) / 100).toFixed(2);
   const ult = M.hsUltimoDia(vr.DIA), mm = ult.slice(5, 7), ano = ult.slice(0, 4);
   const c = M.hsPctMesEmCurso(vr.DIA, "fat", ano, mm, ult);
   eq("o mes corrente TEM numero agora", c !== null, true);
-  eq("e ele e uma subida", c.pct > 0, true);
   eq("comparou ate o ultimo dia da base", c.dias, Number(ult.slice(8, 10)));
   // o que a tela NAO pode mostrar:
   const pm = M.hsPorMes(vr.DIA, "fat");
   const falso = (pm[ano + "-" + mm] / pm[String(Number(ano) - 1) + "-" + mm] - 1) * 100;
-  eq("a conta ingenua seria uma queda", falso < -20, true);
-  eq("e a certa e uma subida", c.pct > 0, true);
+  /* ==TESTESEMDATA== NAO PRENDER O TESTE A UM NUMERO QUE DEPENDE DO DIA.
+     "falso < -20" quebrou sozinho em 28/09/2026, sem ninguem mexer no codigo: a ilusao
+     vale mais ou menos a fatia do mes que falta, e no dia 28 de um mes de 30 essa fatia
+     e quase nada. O que e verdade em qualquer dia: a conta ingenua e SEMPRE pior que a
+     justa. "c.pct > 0" saiu junto — "a loja esta subindo" e fato do negocio, nao regra
+     do codigo, e um mes de queda de verdade acusaria defeito onde nao ha. */
+  eq("a conta ingenua e sempre pior que a justa", falso < c.pct, true);
 }
 
 // ===========================================================================
@@ -541,8 +551,7 @@ const d2 = (v) => v === null ? "null" : (Math.round(v * 100) / 100).toFixed(2);
   // -35,7% (ilusao de 20 dias contra 30) vira -5,1% (o que de fato aconteceu).
   const semCorte = (a.cup / cru.cup - 1) * 100;
   const comCorte = (a.cup / justo.cup - 1) * 100;
-  eq("sem corte, a queda de cupons passa de 20%", semCorte < -20, true);
-  eq("com corte, ela fica abaixo de 10%", Math.abs(comCorte) < 10, true);
+  eq("sem corte o numero e sempre pior que com corte", semCorte < comCorte, true);
   // NAO MEDIR PELA RAZAO. A primeira versao exigia "reduz em mais de 5 vezes" e quebrou
   // sozinha em 23/09/2026, sem ninguem mexer no codigo: deu 4,96x. O bloco HISTCALC
   // estava byte a byte identico — o que mudou foi o DADO. E natural: a razao e
@@ -552,9 +561,38 @@ const d2 = (v) => v === null ? "null" : (Math.round(v * 100) / 100).toFixed(2);
   // contra um mes inteiro, entao ela vale mais ou menos a fatia de mes que falta —
   // dezenas de pontos, independente de quanto a loja caiu. Medido em 23/09/2026:
   // -27,4% vira -5,5%, uma distancia de 21,9 pontos.
-  eq("o corte tira dezenas de pontos da queda falsa",
-     Math.abs(semCorte) - Math.abs(comCorte) > 15, true);
+  /* ==TESTESEMDATA== Terceira regua tentada neste mesmo bloco. A razao quebrou em 23/09
+     (4,96x) e a distancia fixa de 15 pontos quebrou em 28/09 — as duas pelo mesmo motivo:
+     encolhem junto com a fatia de mes que falta. Esta acompanha a fatia, entao vale no
+     dia 2 e no dia 29. */
+  const faltaFatia = (a.diasNoMes - a.diasAbertos) / a.diasNoMes;
+  eq("e a distancia acompanha a fatia de mes que falta",
+     Math.abs(semCorte - comCorte) >= faltaFatia * 50, true);
   eq("e os dois meses ficam com o mesmo tamanho", a.diasAbertos, justo.diasAbertos);
+}
+
+// ===========================================================================
+// 28/09/2026 — A FOLGA DE 3 DIAS DECLAROU O MES EM CURSO COMO "FECHADO".
+// Setembro tem 30 dias. Quando a base chegou a 28 dias, 28 >= 30-3 deu TRUE e a
+// regra deu o mes por encerrado faltando dois dias de venda. Efeito na tela, os
+// dois ao mesmo tempo: a celula passou a comparar 28 dias com o setembro INTEIRO
+// de 2025 (-5,0%, queda que nao houve) e a linha "projecao: +X%" sumiu, porque o
+// caminho do mes em curso deixou de rodar — enquanto a projecao em REAIS continuava
+// na celula do lado, vinda de outro caminho. As duas se desmentindo na mesma linha.
+// A folga existe para feriado em mes FECHADO, nunca para o mes que ainda corre.
+// ===========================================================================
+{
+  const dpm = { "2026-09": 28, "2025-09": 30 };
+  eq("sem saber o dia de hoje, 28 de 30 passa pela folga", M.hsMesCompleto(dpm, "2026", "09"), true);
+  eq("sabendo que hoje e setembro, o mes NAO esta fechado", M.hsMesCompleto(dpm, "2026", "09", "2026-09-28"), false);
+  eq("nem faltando UM dia so", M.hsMesCompleto({ "2026-09": 29 }, "2026", "09", "2026-09-29"), false);
+  eq("mas agosto, que acabou, continua fechado", M.hsMesCompleto({ "2026-08": 31 }, "2026", "08", "2026-09-28"), true);
+  eq("e o feriado de 1o de janeiro continua perdoado", M.hsMesCompleto({ "2025-01": 30 }, "2025", "01", "2026-09-28"), true);
+
+  // e o efeito na conta que a tela usa:
+  const pm = { "2026-09": 4394180.99, "2025-09": 4627036.39 };
+  eq("a comparacao do mes em curso volta a ser vazia", M.hsPctMes(pm, dpm, "2026", "09", "2026-09-28"), null);
+  eq("sem o dia de hoje ela devolveria a queda falsa", d2(M.hsPctMes(pm, dpm, "2026", "09")), "-5.03");
 }
 
 console.log("\n" + ok + " OK, " + falhou + " falha(s)");
