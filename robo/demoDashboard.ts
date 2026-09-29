@@ -1867,8 +1867,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="ferias"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg></span> Férias</button>
     <button class="nav-item" data-page="pontos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span> Pontos extras<span class="nav-badge" id="pxNavBadge" style="display:none;"></span></button>
     <button class="nav-item" data-page="mapa"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span> Mapa dos pontos</button>
-    <button class="nav-item nav-mo" data-page="galpoes" style="display:none;"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-6 9 6v12"/><path d="M3 21h18"/><path d="M9 21v-6h6v6"/></svg></span> Galpões</button>
-    <button class="nav-item nav-mo" data-page="planta" style="display:none;"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 9v12"/></svg></span> Planta dos galpões</button>
+    <button class="nav-item" data-page="galpoes"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-6 9 6v12"/><path d="M3 21h18"/><path d="M9 21v-6h6v6"/></svg></span> Galpões</button>
+    <button class="nav-item" data-page="planta"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 9v12"/></svg></span> Planta dos galpões</button>
     <button class="nav-item nav-mo" data-page="despesas" style="display:none;"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Despesas</button>
     <button class="nav-item nav-mo" data-page="flv" style="display:none;"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-4.5-2-8-5.6-8-10a8 8 0 0 1 16 0c0 4.4-3.5 8-8 10z"/><path d="M12 21V9"/><path d="M12 12.5c2.2 0 4-1.6 4-3.5"/></svg></span> FLV</button>
     <button class="nav-item" data-page="recibos"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a1 1 0 0 1 1 1v14l-3-2-3 2-3-2-3 2-3-2-3 2V5a1 1 0 0 1 1-1z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="13" y2="13"/></svg></span> Recibos</button>
@@ -10994,11 +10994,23 @@ function glCloudPush(){ var sb=glSB(); if(!sb||!glCloudOK) return;
 }
 function glCloudDel(id){ glPendDel[id]=Date.now()+30000; var sb=glSB(); if(!sb||!glCloudOK) return; sb.from("galpoes").delete().eq("id",id).then(function(r){ if(r&&r.error){ setTimeout(function(){ try{ sb.from("galpoes").delete().eq("id",id).then(function(){},function(){}); }catch(e){} },1500); } },function(){}); }
 function glRealtime(){ var sb=glSB(); if(!sb||glRT) return; try{ var deb=null; function rec(){ clearTimeout(deb); deb=setTimeout(glCloudLoad,700); } glRT=sb.channel("galpoes_sync").on("postgres_changes",{event:"*",schema:"public",table:"galpoes"},rec).subscribe(); }catch(e){} }
+/* ==GLACS-INICIO== Quem pode os galpoes.
+   Ate 29/09/2026 as duas abas eram SO MASTER: nao apareciam nem trancadas para os outros
+   logins, e a caixinha dos Acessos existia mas nao fazia nada. Agora elas seguem o padrao
+   do painel (ver sql/permissoes_padrao.sql): liberou a pagina nos Acessos, funciona.
+   - glPodeGerir(): cadastrar / editar / marcar pago  -> pagina "galpoes"
+   - glPodeVer():   so enxergar os dados             -> pagina "galpoes" OU "planta"
+     (a Planta desenha os mesmos galpoes; sem isso ela abriria vazia)
+   O salario minimo continua so do master: ele muda o aluguel de TODO mundo de uma vez. */
+function glPodeGerir(){ try{ return podePagina("galpoes"); }catch(e){ return false; } }
+function glPodeVer(){ try{ return podePagina("galpoes")||podePagina("planta"); }catch(e){ return false; } }
+function glEhMaster(){ try{ return !!(window.__PERFIL&&window.__PERFIL.is_master); }catch(e){ return false; } }
+/* ==GLACS-FIM== */
 function glCloudLoad(){ var sb=glSB(); if(!sb||glCarregando) return;
   // ATENÇÃO: só apaga o que está guardado aqui se TIVER CERTEZA que o login não é master.
   // Se o perfil ainda não carregou (__PERFIL null), NÃO apaga nada — senão o master perde os próprios dados.
   if(window.__PERFIL==null) return;
-  if(!window.__PERFIL.is_master){ galpoesG=[]; try{ localStorage.removeItem("galpoes_dados"); }catch(e){} return; }
+  if(!glPodeVer()){ galpoesG=[]; try{ localStorage.removeItem("galpoes_dados"); }catch(e){} return; }
   glCarregando=true;
   sb.from("galpoes").select("*").then(function(r){ glCarregando=false; if(r.error){ renderGalpoes(); return; } glCloudOK=true;
     var now=Date.now();
@@ -11228,7 +11240,7 @@ function renderPlanta(){
   var el=document.getElementById("pltTerreno"); if(!el) return;
   // Login ainda carregando: espera e tenta de novo (em vez de já dizer "Área restrita").
   if(window.__PERFIL==null){ el.innerHTML='<div style="padding:26px;text-align:center;color:#8a97a8;font-style:italic;">Carregando…</div>'; var _pc=document.getElementById("pltDetalhe"); if(_pc) _pc.innerHTML=""; var _pk=document.getElementById("pltKpis"); if(_pk) _pk.innerHTML=""; if(!window.__pltRetry){ window.__pltRetry=setTimeout(function(){ window.__pltRetry=null; renderPlanta(); },700); } return; }
-  if(!window.__PERFIL.is_master){ el.innerHTML='<div style="padding:26px;text-align:center;color:#8a97a8;line-height:1.7;">Área restrita — só o <b>login master</b> vê os galpões.<br><span style="font-size:12px;">Seu login não está marcado como master. Vá na aba <b>Acessos</b>, abra o seu usuário e marque <b>“Master (vê tudo)”</b>.</span></div>'; var _pd=document.getElementById("pltDetalhe"); if(_pd) _pd.innerHTML=""; var _pk2=document.getElementById("pltKpis"); if(_pk2) _pk2.innerHTML=""; return; }
+  if(!podePagina("planta")){ el.innerHTML='<div style="padding:26px;text-align:center;color:#8a97a8;line-height:1.7;">Área restrita — seu login não tem a página <b>Planta dos galpões</b>.<br><span style="font-size:12px;">Quem libera é o administrador, na aba <b>Acessos</b>, marcando a caixinha <b>Planta dos galpões</b> no seu usuário.</span></div>'; var _pd=document.getElementById("pltDetalhe"); if(_pd) _pd.innerHTML=""; var _pk2=document.getElementById("pltKpis"); if(_pk2) _pk2.innerHTML=""; return; }
   var h='<div class="plt-br">Rua principal (BR) — calçamento</div>'+
     '<div class="plt-calcada">Calçada</div>'+
     // FRENTE: os 3 virados pra fora, colados entre si e nas paredes + o PORTÃO (linha) ligando o da esquerda ao E
@@ -11315,7 +11327,7 @@ function pltDetalhe(){
   var h='<h3>Galpão '+prdEsc(pltSel)+'</h3><div class="plt-det-st" style="color:'+cor+';">● '+rot+'</div>';
   if(!g){
     h+='<div class="plt-det-vazio" style="padding:18px 4px;">Nenhum inquilino cadastrado neste galpão.<br>Cadastre na aba <b>Galpões</b> usando o Nº <b>'+prdEsc(pltSel)+'</b>.</div>'+
-      '<button type="button" class="plt-det-btn" id="pltIrCadastro">Ir para o cadastro</button>';
+      (glPodeGerir()?'<button type="button" class="plt-det-btn" id="pltIrCadastro">Ir para o cadastro</button>':'');
   } else {
     var doc=g.cnpj?glFmtDoc(g.cnpj):null;
     h+='<div style="margin-top:12px;">'+
@@ -11328,7 +11340,7 @@ function pltDetalhe(){
       '<div class="plt-det-lin"><span>Contrato</span><b>'+(pxFmtData(g.abertura)||"—")+' → '+(pxFmtData(g.vencimento)||"—")+'</b></div>'+
       '<div class="plt-det-lin"><span>Endereço</span><b>'+prdEsc(glEnderecoDe(g.numero))+'</b></div>'+
       '</div>'+
-      '<button type="button" class="plt-det-btn" id="pltIrCadastro">Ver / editar no cadastro</button>';
+      (glPodeGerir()?'<button type="button" class="plt-det-btn" id="pltIrCadastro">Ver / editar no cadastro</button>':'');
   }
   el.innerHTML=h;
   var btn=document.getElementById("pltIrCadastro");
@@ -17251,7 +17263,7 @@ function renderSalBar(){
     '</div>'+
     '<div class="gl-salbar-r">'+
       '<span class="gl-salbar-eq">Frente (BR) '+brl(r.valor)+' &nbsp;·&nbsp; Rua interna '+brl(meia)+'</span>'+
-      '<button type="button" class="btn-s" id="glSalSync" title="Buscar o valor oficial do salário mínimo no Banco Central">Atualizar do Banco Central</button>'+
+      (glEhMaster()?'<button type="button" class="btn-s" id="glSalSync" title="Buscar o valor oficial do salário mínimo no Banco Central">Atualizar do Banco Central</button>':'')+
     '</div>'+
   '</div>';
 }
@@ -17277,6 +17289,7 @@ function renderSalAviso(nova){
 }
 // Checa o Banco Central no máximo 1x por dia.
 function glSalAutoChecar(){
+  if(!glEhMaster()) return;   // quem nao pode trocar o salario nao precisa do aviso (o botao nem existe pra ele)
   var r=glSalGet(), hoje=pxDateKey(new Date());
   if(r.checadoEm===hoje && !r.ignorado) return;
   glSalChecarBC(function(nova){
@@ -17573,8 +17586,8 @@ function renderGalpoes(){
   var tb=document.getElementById("glTabela"); if(!tb) return;
   // Login ainda carregando: mostra "Carregando…" e tenta de novo em vez de já dizer "Área restrita".
   if(window.__PERFIL==null){ tb.innerHTML='<div style="padding:22px 12px;color:#8a97a8;font-style:italic;">Carregando…</div>'; var _gc=document.getElementById("glInad"); if(_gc) _gc.innerHTML=""; if(!window.__glRetry){ window.__glRetry=setTimeout(function(){ window.__glRetry=null; renderGalpoes(); },700); } return; }
-  var master=!!window.__PERFIL.is_master;
-  if(!master){ tb.innerHTML='<div style="padding:26px;text-align:center;color:#8a97a8;line-height:1.7;">Área restrita — só o <b>login master</b> vê os galpões.<br><span style="font-size:12px;">Seu login não está marcado como master. Vá na aba <b>Acessos</b>, abra o seu usuário e marque <b>“Master (vê tudo)”</b>.</span></div>'; var _gi=document.getElementById("glInad"); if(_gi) _gi.innerHTML=""; var _gb=document.getElementById("glSalBar"); if(_gb) _gb.innerHTML=""; var _gf=document.getElementById("glSalFuturo"); if(_gf) _gf.innerHTML=""; var _ga=document.getElementById("glSalAviso"); if(_ga) _ga.innerHTML=""; return; }
+  var master=glPodeGerir();
+  if(!master){ tb.innerHTML='<div style="padding:26px;text-align:center;color:#8a97a8;line-height:1.7;">Área restrita — seu login não tem a página <b>Galpões</b>.<br><span style="font-size:12px;">Quem libera é o administrador, na aba <b>Acessos</b>, marcando a caixinha <b>Galpões</b> no seu usuário.</span></div>'; var _gi=document.getElementById("glInad"); if(_gi) _gi.innerHTML=""; var _gb=document.getElementById("glSalBar"); if(_gb) _gb.innerHTML=""; var _gf=document.getElementById("glSalFuturo"); if(_gf) _gf.innerHTML=""; var _ga=document.getElementById("glSalAviso"); if(_ga) _ga.innerHTML=""; return; }
   renderSalBar();
   renderSalFuturo();
   // O R$ de quem paga em salário mínimo é sempre derivado do mínimo de hoje.
@@ -34228,7 +34241,11 @@ function pedEnviar(){
     {chave:"layout_plano",        tabela:"layout",               modo:"doc", rowId:"plano"},
     {chave:"pix_config",          tabela:"configuracoes",        modo:"doc", rowId:"pix_config", masterOnly:true},
     {chave:"pix_master",          tabela:"configuracoes",        modo:"doc", rowId:"pix_master", masterOnly:true},
-    {chave:"gl_salario",          tabela:"configuracoes",        modo:"doc", rowId:"gl_salario", masterOnly:true},
+    /* O salario minimo e a BASE do aluguel dos galpoes: quem abre a aba precisa LER, senao
+       a tela calcula o aluguel com o valor de fabrica e mostra R$ errado. Mudar, nao: um
+       numero so muda o aluguel de todos os inquilinos. Por isso desce por pagina e sobe so
+       com o master (subirMaster). A tranca de verdade esta no banco, em sql/galpoes_acesso.sql. */
+    {chave:"gl_salario",          tabela:"configuracoes",        modo:"doc", rowId:"gl_salario", pagina:"galpoes", subirMaster:true},
     /* Recibos de domingo. NÃO é masterOnly: quem imprime no domingo é o encarregado, e ele
        precisa BAIXAR o valor que o dono definiu. A trava de EDITAR está na tela (campo
        desabilitado para não-master) — quem manda no dinheiro continua sendo um só. */
@@ -34274,6 +34291,7 @@ function pedEnviar(){
     var s=sb(); if(!s) return fim(null);            // painel sem nuvem (teste local): nada a subir
     var m=porChave[k]; if(!m) return fim(null);
     if(!podeVer(m)) return fim(null); // dado sensível: só quem tem acesso sobe
+    if(m.subirMaster && !ehMaster()) return fim(null); // lê quem tem a página, muda só o master
     var raw=null; try{ raw=window.localStorage.getItem(k); }catch(e){}
     if(raw==null) return fim(null);
     lastPush[k]=raw;
@@ -34508,7 +34526,8 @@ function pedEnviar(){
       return false;
     }
     navs.forEach(function(b){
-      // Abas "só master" (ex: Galpões = patrimônio pessoal do dono) ficam OCULTAS pra qualquer não-master.
+      // Abas "só master" (Despesas, FLV) ficam OCULTAS pra qualquer não-master.
+      // Galpões e Planta saíram daqui em 29/09/2026: viraram permissão por página (==GLACS-*==).
       if(b.classList.contains('nav-mo')){ b.style.display='none'; return; }
       var allow=podeAba(b.dataset.page);
       b.style.display='';
@@ -34571,7 +34590,7 @@ function pedEnviar(){
       }catch(_e){}
       try{ if(window.__temaAplica) window.__temaAplica(); }catch(e){}   // tema escolhido só entra em cena DEPOIS do login
       try{ localStorage.setItem("sr_lib", uid||''); }catch(e){}   // lembra que este login já está liberado -> reload não pisca a tela verde
-      try{ localStorage.setItem("sr_master", (perfil&&perfil.is_master)?"1":"0"); }catch(e){}   // lembra se é master -> reload não pisca as abas só-master (Galpões/Planta)
+      try{ localStorage.setItem("sr_master", (perfil&&perfil.is_master)?"1":"0"); }catch(e){}   // lembra se é master -> reload não pisca as abas só-master (Despesas/FLV)
       try{ if(typeof rvConferir==="function"){ rvConferir(); setInterval(rvConferir, 10*60*1000); } }catch(e){}
       try{ if(typeof manCloudLoad==="function") manCloudLoad(); }catch(e){}
       /* ==MAN2LINK== link #man/<id> (etiqueta QR): guardado ANTES do login, aplicado aqui, já com a permissão conferida */
