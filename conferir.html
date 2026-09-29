@@ -147,6 +147,29 @@ function fmtDoc(d){
   if(n.length===11) return n.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/,"$1.$2.$3-$4");
   return d||"";
 }
+// Contrato de LOCAÇÃO de galpão: mostra o que sai impresso nele (locatário, imóvel, aluguel).
+function camposGalpao(x,d){
+  var doc=String(x.cnpj||"").replace(/\D/g,"");
+  var ehPJ=doc.length===14;
+  var loc=ehPJ ? (x.razao_social||x.locatario) : (x.vendedor||x.locatario);
+  var alu=String(x.aluguel||"1");
+  var aluTxt = alu==="fixo" ? (brl(x.valor_mensal)+" por mês")
+             : (alu==="0.5" ? "meio (1/2) salário mínimo por mês" : "1 (um) salário mínimo por mês");
+  return '<div class="campos">'
+    +lin("Galpão","nº "+esc(x.numero))
+    +lin("Locatário",esc(loc||"—"))
+    +(x.cnpj?lin(ehPJ?"CNPJ":"CPF",esc(fmtDoc(x.cnpj)),"mono"):"")
+    +(!ehPJ&&x.rg?lin("RG",esc(x.rg)):"")
+    +(x.endereco_inq?lin(ehPJ?"Sede do locatário":"Endereço do locatário",esc(x.endereco_inq)):"")
+    +(x.endereco?lin("Imóvel alugado",esc(x.endereco)):"")
+    +lin("Aluguel",aluTxt,"dest")
+    +lin("Pagamento","até o dia "+esc(x.dia_pag)+" de cada mês")
+    +(x.abertura?lin("Início",dataBR(x.abertura)):"")
+    +lin("Assinado por",esc(d.diretor||"—"))
+    +lin("Assinado em",dataBR(d.assinado_em))
+    +lin("Código",esc(d.codigo),"mono")
+    +'</div>';
+}
 function lin(k,v,cls){ return '<div class="lin"><span class="k">'+k+'</span><span class="v'+(cls?" "+cls:"")+'">'+v+'</span></div>'; }
 
 cod.addEventListener("input",function(){
@@ -177,8 +200,11 @@ function conferir(){
       return;
     }
     var x=d.dados||{};
+    // GALPÃO (29/09/2026): o mesmo código, outro contrato — locação de imóvel, não ponto extra.
+    var ehGalpao=(d.tipo==="galpao"||x.tipo==="galpao");
+    var oque=ehGalpao?"deste galpão":"deste ponto extra";
     var nome=(x.razao_social&&String(x.razao_social).trim())?x.razao_social:x.fornecedor;
-    var campos='<div class="campos">'
+    var campos=ehGalpao?camposGalpao(x,d):'<div class="campos">'
       +lin("Ponto extra","nº "+esc(x.numero))
       +lin("Contratante",esc(nome||"—"))
       +(x.cnpj?lin("CNPJ / CPF",esc(fmtDoc(x.cnpj)),"mono"):"")
@@ -197,10 +223,10 @@ function conferir(){
         "Este código foi gerado pelo Supermercado Santa Rita. Abaixo está exatamente <b>o que foi assinado</b> — confira campo por campo com o papel que você tem em mãos. Se algum não bater, o documento foi adulterado.",campos);
     }else if(d.sumiu){
       mostrar("mudou","!","Assinatura autêntica, cadastro removido",
-        "O código é verdadeiro e estes são os dados assinados. O registro deste ponto extra já não existe no sistema da loja — o documento continua válido, mas fale com o Supermercado Santa Rita.",campos);
+        "O código é verdadeiro e estes são os dados assinados. O registro "+oque+" já não existe no sistema — o documento continua válido, mas fale com o Supermercado Santa Rita.",campos);
     }else{
       mostrar("mudou","!","Assinatura autêntica, cadastro alterado depois",
-        "O código é verdadeiro e abaixo está <b>o que foi assinado</b>. O cadastro deste ponto extra mudou depois da assinatura — se o papel na sua mão disser algo diferente do que está aqui, <b>não considere válido</b>.",campos);
+        "O código é verdadeiro e abaixo está <b>o que foi assinado</b>. O cadastro "+oque+" mudou depois da assinatura — se o papel na sua mão disser algo diferente do que está aqui, <b>não considere válido</b>.",campos);
     }
   }).catch(function(){
     btn.disabled=false; btn.textContent="Conferir";
