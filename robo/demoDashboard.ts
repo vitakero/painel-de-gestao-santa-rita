@@ -17530,14 +17530,34 @@ function glContratoDocHtml(g){
     ".assin .carimbo{height:52px;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:5px;font-size:10.5px;line-height:1.35;color:#1a4a2a;text-align:center}"+
     ".assin .carimbo b{font-size:11px;letter-spacing:.02em}.assin .carimbo.vazio{color:transparent}"+
     ".confere{margin-top:18px;font-size:9.5px;color:#555;text-align:center;line-height:1.5}"+
-    ".test{margin-top:52px}.test .t{font-weight:bold;margin-bottom:20px}"+
-    ".test .item{margin-bottom:26px;font-size:13px;line-height:1.9}.test .ln{display:inline-block;border-bottom:1px solid #1a1a1a;width:290px}"+
-    "@page{margin:0}@media print{.docbar{display:none}html,body{background:#fff}.doc-page-wrap{padding:0}.doc-page{box-shadow:none;border-radius:0;margin:0;max-width:none;padding:11mm 17mm 8mm;line-height:1.5}.doc-page p{margin-bottom:8px}.doc-page h1{margin-bottom:12px}.assin{margin-top:30px!important}.assin .row{margin-top:52px!important}.assin .dado{margin-top:4px}.confere{margin-top:20px!important}}";
+    // Testemunhas LADO A LADO (pedido dele, 29/09: economiza folha), na mesma coluna e com o
+    // mesmo vão das assinaturas de LOCADORA e LOCATÁRIA logo acima.
+    ".test{margin-top:52px;page-break-inside:avoid;break-inside:avoid}.test .t{font-weight:bold;margin-bottom:20px}"+
+    ".test .row{display:flex;gap:60px}"+
+    ".test .item{flex:1;min-width:0;font-size:13px;line-height:1.9}.test .ln{display:inline-block;border-bottom:1px solid #1a1a1a;width:calc(100% - 24px)}"+
+    /* MARGEM EM TODA FOLHA (29/09): este contrato tem 2 folhas. Com @page{margin:0} (que evita
+       o navegador imprimir data e endereço na borda) a margem só existia no começo e no fim do
+       texto: a folha 2 começava colada no topo e a cláusula 10 saía partida na borda.
+       Agora a moldura é uma tabela (.pg) cujo cabeçalho e rodapé VAZIOS o navegador repete em
+       CADA folha impressa — é isso que dá a margem de cima e de baixo em todas as folhas.
+       E nenhuma cláusula se parte entre duas folhas. Provado no PDF (pdftotext -bbox). */
+    ".pg{width:100%;border-collapse:collapse}.pg>thead>tr>td,.pg>tfoot>tr>td,.pg>tbody>tr>td{padding:0;vertical-align:top}.pg-sp{height:0}"+
+    "@page{size:A4;margin:0}@media print{.docbar{display:none}html,body{background:#fff}.doc-page-wrap{padding:0}.doc-page{box-shadow:none;border-radius:0;margin:0;max-width:none;padding:0 17mm;line-height:1.5}"+
+    ".pg-top{height:14mm}.pg-bot{height:13mm}"+
+    ".doc-page p,.doc-page .cl{break-inside:avoid;page-break-inside:avoid;orphans:3;widows:3}.doc-page h1{break-after:avoid;page-break-after:avoid}"+
+    ".assin,.test{break-inside:avoid;page-break-inside:avoid}"+
+    // no papel, o vão grande antes das testemunhas jogava elas sozinhas numa 3ª folha
+    ".doc-page .test{margin-top:18px}.doc-page .assin .row{margin-top:40px!important}"+
+    ".doc-page .test .t{margin-bottom:14px}.doc-page .test .item{line-height:1.65}.doc-page .confere{margin-top:12px!important}"+
+    ".doc-page p{margin-bottom:8px}.doc-page h1{margin-bottom:12px}.assin{margin-top:30px!important}.assin .row{margin-top:52px!important}.assin .dado{margin-top:4px}.confere{margin-top:20px!important}}";
   var h="<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Contrato de Locação — "+nomeInq+"</title>"+
     "<link rel='preconnect' href='https://fonts.googleapis.com'><link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' rel='stylesheet'>"+
     "<style>"+css+"</style></head><body>";
   h+=barra.html;
   h+="<div class='doc-page-wrap'><div class='doc-page'>";
+  // moldura que repete a margem em cada folha impressa (ver .pg no CSS acima)
+  h+="<table class='pg'><thead><tr><td><div class='pg-sp pg-top'></div></td></tr></thead>"+
+     "<tfoot><tr><td><div class='pg-sp pg-bot'></div></td></tr></tfoot><tbody><tr><td>";
   h+="<h1>Contrato de Locação de Imóvel para Fins Comerciais</h1>";
   // Qualificação das partes
   var qualInq=ehCnpj
@@ -17588,10 +17608,11 @@ function glContratoDocHtml(g){
     +"<br>Confira a autenticidade em <b>"+pxEsc(PX_CONFERIR_URL.split("//").pop())+"</b> — a página mostra a qual contrato este código pertence."
     +"<br>O código é gerado com chave secreta e deixa de valer se qualquer dado deste contrato for alterado.</p>";
   h+="</div>";
-  h+="<div class='test'><div class='t'>Testemunhas:</div>"+
+  h+="<div class='test'><div class='t'>Testemunhas:</div><div class='row'>"+
      "<div class='item'>1. <span class='ln'></span><br>Nome:<br>RG:</div>"+
      "<div class='item'>2. <span class='ln'></span><br>Nome:<br>RG:</div>"+
-     "</div>";
+     "</div></div>";
+  h+="</td></tr></tbody></table>";   // fecha a moldura .pg
   h+="</div></div></body></html>";
   return h;
 }
