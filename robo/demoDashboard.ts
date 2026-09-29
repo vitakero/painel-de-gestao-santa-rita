@@ -82,6 +82,145 @@ const encHead = encCalc ? "<script>" + encCalc + "</script>" : "";
 const encSecao = encJs
   ? "<style>" + encCss + "</style><div id=\"encRaiz\" class=\"enc\"><div class=\"card\"><h2 style=\"margin:0 0 6px;font-size:20px;color:#0c5a26;\">Planejamento de Encartes</h2><p style=\"margin:0;font-size:14px;color:#6b7787;\">Carregando…</p></div></div>"
   : "<div class=\"card\"><h2 style=\"margin:0 0 6px;font-size:20px;color:#0c5a26;\">Planejamento de Encartes</h2><p style=\"margin:0;font-size:14px;color:#6b7787;line-height:1.6;\">Esta tela está em construção.</p></div>";
+/* ==AVARIAS== AVARIAS · PILOTO (etapa 3,6, 29/09/2026): menu "Avarias", chave "avarias". SÓ O MASTER, SOMENTE LEITURA.
+   A tela mora em scripts/avarias/tela/ (7 arquivos .js + 5 .css, ~320 KB crus). Ela NÃO entra solta no Painel:
+     - TODA pessoa baixa o Painel inteiro a cada abertura (hoje ~11,7 MB), mesmo quem nunca vai abrir Avarias
+       (e no piloto só o master pode). Crua, a tela passaria o Painel do aviso de 12 MB da montagem;
+     - por isso ela vai COMPACTADA (minificada com esbuild quando houver + gzip + base64) num
+       <script type="application/octet-stream" id="avPacote">, que o navegador NÃO executa. O pacote só é
+       aberto (DecompressionStream) quando o MASTER abre a aba Avarias: quem não é master nunca roda nada dela;
+     - o CSS do módulo viaja DENTRO do pacote (como <style> solto o gerador do modo noturno o processaria duas
+       vezes), junto com a versão escura, gerada aqui no build pelo MESMO temaProcessarCss (==AVARIAS-PACOTE==).
+   Os dados NÃO vêm embutidos (o site é público): a tela lê a nuvem ao abrir, com login, e quem decide o acesso é o
+   BANCO (avaria_pode_ver = master no piloto). Esconder o menu (nav-mo) é conforto, não é a tranca.
+   Faltou arquivo (o robô não baixou), o código não compila ou apareceu caminho de gravação? O pacote NÃO entra, a
+   montagem avisa o motivo, a aba diz que Avarias não entrou nesta atualização — e o resto do Painel sai normal. */
+/* ==AVARIAS-CHAVE== LIGA/DESLIGA o piloto no Painel. false = Avarias ADORMECIDA: o Painel sai EXATAMENTE como antes da
+   etapa 3,6 (botão no menu pela permissão de sempre, página "Esta tela está em construção.", sem pacote, sem carregador e
+   sem ler nenhum arquivo da tela). Fica false até o piloto passar na conferência da 1ª carga real e o dono liberar.
+   (29/09/2026: desligada para os Galpões poderem ser publicados antes, sem levar Avarias pela metade.)
+   Para testar o piloto no Mac sem publicar: AV_PILOTO_TESTE=1 npx tsx scripts/demoDashboard.ts */
+const AV_PILOTO_NO_AR: boolean = false || process.env.AV_PILOTO_TESTE === "1";
+const AV_TELA = "scripts/avarias/tela/";
+const AV_ARQS_JS = ["consultas", "base", "painel", "resumo", "pendencias", "produtos", "fornecedores"].map((n) => n + ".js");
+const AV_ARQS_CSS = ["tela", "resumo", "pendencias", "produtos", "fornecedores"].map((n) => n + ".css");
+let avJsFonte = "", avCssFonte = "", avFora = AV_PILOTO_NO_AR ? "" : "piloto desligado (AV_PILOTO_NO_AR = false)";
+if (AV_PILOTO_NO_AR) try {
+  const _js: string[] = [], _css: string[] = [];
+  for (const f of AV_ARQS_JS) _js.push(await readFile(AV_TELA + f, "utf8"));
+  for (const f of AV_ARQS_CSS) _css.push(await readFile(AV_TELA + f, "utf8"));
+  avJsFonte = _js.join("\n;\n"); avCssFonte = _css.join("\n");
+} catch (e: any) { avJsFonte = ""; avCssFonte = ""; avFora = "faltou arquivo da tela (" + String((e && (e.path || e.message)) || e) + ")"; }
+/* TRAVA DE AVARIAS 1 — o código da tela tem de compilar (ele vai compactado: a trava do build não o enxerga). */
+if (avJsFonte) {
+  try { new Function(avJsFonte); } catch (e: any) { avFora = "o código da tela não compila: " + ((e && e.message) || e); avJsFonte = ""; }
+}
+/* TRAVA DE AVARIAS 2 — SOMENTE LEITURA (ordem do dono, 29/09): a tela só pode falar com o banco por
+   from(visão).select(colunas). Qualquer outro caminho (função do servidor, gravar, apagar, arquivo, outra
+   conexão) tira o pacote do Painel. A mesma regra está em scripts/testes/avarias-pacote.test.cjs. */
+function avCaminhoDeGravacao(js: string): string {
+  const proibido = js.match(/\.\s*(?:rpc|insert|update|upsert|delete)\s*\(|\bfunctions\s*\.\s*invoke\b|\.\s*storage\s*\.|\bfetch\s*\(|\bXMLHttpRequest\b|\bsendBeacon\b|\bcreateClient\b|\bWebSocket\b/);
+  if (proibido) return proibido[0];
+  // todo from(...) do cliente da nuvem tem de ser seguido de .select( — Array.from(...) não conta
+  const re = /(\w*)\.\s*from\s*\(([^()]*)\)\s*(\.\s*\w+)?/g; let m: RegExpExecArray | null;
+  while ((m = re.exec(js))) { if (/Array$/.test(m[1])) continue; if (!m[3] || !/^\.\s*select$/.test(m[3])) return m[0]; }
+  return "";
+}
+if (avJsFonte) {
+  const _g = avCaminhoDeGravacao(avJsFonte);
+  if (_g) { avFora = "a tela tem caminho de GRAVAÇÃO (" + _g + ") — o piloto é somente leitura"; avJsFonte = ""; }
+}
+/* A página: só a raiz e o "Carregando…". Quem escreve nela é o carregador (==AVARIAS-CARREGADOR==), mais abaixo. */
+const avSecao = !AV_PILOTO_NO_AR
+  ? "<div class=\"card\"><h2 style=\"margin:0 0 6px;font-size:20px;color:#0c5a26;\">Avarias</h2><p style=\"margin:0;font-size:14px;color:#6b7787;line-height:1.6;\">Esta tela está em construção.</p></div>"
+  : "<div id=\"avRaiz\"><div class=\"card\"><h2 style=\"margin:0 0 6px;font-size:20px;color:#0c5a26;\">Avarias · Piloto</h2><p style=\"margin:0;font-size:14px;color:#6b7787;line-height:1.6;\">Carregando…</p></div></div>";
+/* ==AVARIAS-CARREGADOR== window.avAbrir(): chamado no clique do menu (e, pelo clique, no restaurador da última aba).
+   Pequeno de propósito: é a única parte de Avarias que TODO mundo baixa já aberta. Sai como <script> comum, antes do
+   tema escuro e das travas do build (é compilado e conferido como qualquer script do Painel). String.raw: o texto
+   vai para o HTML exatamente como está escrito aqui (nada de barra dobrada). */
+const avCarregadorJs = String.raw`/* ==AVARIAS-CARREGADOR== Avarias · piloto: abre o pacote compactado SÓ para o master e SÓ ao abrir a aba. */
+(function(){
+  "use strict";
+  var aberto = null, tentativas = 0, espera = null;
+  function raiz(){ return document.getElementById("avRaiz"); }
+  function ativa(){ var pg = document.getElementById("page-avarias"); return !!(pg && pg.classList.contains("ativo")); }
+  function aviso(txt){
+    var r = raiz(); if(!r) return;
+    r.innerHTML = '<div class="card"><h2 style="margin:0 0 6px;font-size:20px;color:#0c5a26;">Avarias · Piloto</h2>'
+      + '<p style="margin:0;font-size:14px;color:#6b7787;line-height:1.6;">' + txt + '</p></div>';
+  }
+  function motivo(e){
+    var m = String((e && e.message) || e);
+    if(m === "sem-pacote") return "Avarias não entrou nesta atualização do Painel. O resto do Painel continua funcionando normalmente.";
+    if(m === "navegador-antigo") return "Este navegador é antigo demais para abrir Avarias. Atualize o navegador (ou use o Chrome) e abra de novo.";
+    return "Não deu para abrir Avarias agora. O resto do Painel continua funcionando. Recarregue a página e tente de novo.";
+  }
+  // o pacote vem no FIM da página: recarregar já nesta aba pode chegar aqui antes dele ser lido pelo navegador
+  function domPronto(){
+    return new Promise(function(ok){
+      if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ ok(); }, { once: true });
+      else ok();
+    });
+  }
+  // base64 -> gzip -> JSON {js, css, cssEscuro}
+  function lerPacote(){
+    return domPronto().then(function(){
+      var el = document.getElementById("avPacote");
+      if(!el) throw new Error("sem-pacote");
+      if(typeof DecompressionStream !== "function" || typeof Response !== "function" || typeof Blob !== "function") throw new Error("navegador-antigo");
+      var bin = atob(String(el.textContent || "").replace(/\s+/g, "")), u = new Uint8Array(bin.length);
+      for(var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+      return new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+    }).then(function(t){ return JSON.parse(t); });
+  }
+  // o CSS claro, o escuro (gerado no build) e o código da tela; a tela tem de deixar window.AV.abrir pronto
+  function injetar(p){
+    if(!p || typeof p.js !== "string" || typeof p.css !== "string") throw new Error("pacote-invalido");
+    var cab = document.head || document.documentElement;
+    var s1 = document.createElement("style"); s1.id = "avCss"; s1.textContent = p.css; cab.appendChild(s1);
+    var s2 = document.createElement("style"); s2.id = "avCssEscuro"; s2.textContent = p.cssEscuro || ""; cab.appendChild(s2);
+    var sc = document.createElement("script"); sc.id = "avCodigo"; sc.text = p.js; (document.body || cab).appendChild(sc);
+    if(!window.AV || typeof window.AV.abrir !== "function") throw new Error("tela-nao-montou");
+    return window.AV;
+  }
+  function relogio(){ return (window.performance && performance.now) ? performance.now() : Date.now(); }
+  // UMA vez só. Falhou antes de injetar (ex.: rede do celular piscou no meio)? A próxima visita tenta de novo.
+  function abrirPacote(){
+    if(!aberto){
+      var t0 = relogio();
+      aberto = lerPacote().then(function(p){ var AV = injetar(p); window.__avPacoteMs = Math.round(relogio() - t0); return AV; });
+      aberto.catch(function(){ if(!document.getElementById("avCodigo")) aberto = null; });
+    }
+    return aberto;
+  }
+  window.avAbrir = function(){
+    if(!raiz()) return;
+    clearTimeout(espera);
+    var p = window.__PERFIL;
+    // recarregar o Painel já nesta aba chega aqui ANTES do login terminar: espera o perfil, sem abrir nada
+    if(!p || !window.__SB){
+      tentativas++;
+      aviso(tentativas <= 40 ? "Carregando…" : "Entre no Painel para ver Avarias.");
+      espera = setTimeout(function(){ if(ativa()) window.avAbrir(); else tentativas = 0; }, tentativas <= 40 ? 500 : 2000);
+      return;
+    }
+    tentativas = 0;
+    // PILOTO: só o master. Sem master o pacote NEM é aberto: nada da tela roda e nada é lido da nuvem.
+    // A tranca de verdade é o banco (avaria_pode_ver); isto só poupa trabalho e explica.
+    if(!p.is_master){ aviso("Avarias está em piloto: só o master acessa."); return; }
+    if(!window.AV) aviso("Carregando…");
+    abrirPacote().then(function(AV){
+      if(!ativa()) return;   // saiu da aba enquanto abria: a próxima visita monta
+      try { AV.abrir(raiz()); } catch(e){ aviso(motivo(e)); if(window.console) console.error("Avarias:", e); }
+    }, function(e){ aviso(motivo(e)); if(window.console) console.error("Avarias:", e); });
+  };
+  // CHEGUEI ATRASADO? O Painel reabre na última aba usada e esse clique pode acontecer antes deste script existir.
+  try {
+    var pg = document.getElementById("page-avarias");
+    if((pg && pg.classList.contains("ativo")) || localStorage.getItem("ui_pagina_atual") === "avarias") window.avAbrir();
+  } catch(e){}
+})();
+`;
 const qrcodeLib = (await readFile("assets/qrcode-generator.js")).toString();
 
 if (!config.BQ_PROJECT_ID) throw new Error("BQ_PROJECT_ID não configurado no .env");
@@ -1879,7 +2018,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="regulamento"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg></span> Regulamento</button>
     <button class="nav-item" data-page="perdas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Perdas/Quebras</button>
     <button class="nav-item" data-page="acougue"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h11a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3z"/><path d="M15 8h4a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4"/><path d="M3 19h13"/></svg></span> Perdas açougue</button>
-    <button class="nav-item" data-page="avarias"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l2-4h16l2 4"/><path d="M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"/><path d="M13 11l-2 3h3l-2 3"/></svg></span> Avarias</button>
+    <!-- ==AVARIAS== piloto 3,6 (29/09/2026), quando a ==AVARIAS-CHAVE== está ligada: SÓ o master vê o botão — o mesmo nav-mo das Despesas e do FLV (applyPerms esconde
+         de quem não é master; o pré-carregamento mostra ao master sem piscar). A tranca de verdade é o banco. -->
+    <button class="nav-item${AV_PILOTO_NO_AR ? " nav-mo" : ""}" data-page="avarias"${AV_PILOTO_NO_AR ? " style=\"display:none;\"" : ""}><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l2-4h16l2 4"/><path d="M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"/><path d="M13 11l-2 3h3l-2 3"/></svg></span> Avarias</button>
     <button class="nav-item" data-page="epi"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span> EPI</button>
     <button class="nav-item" data-page="fardamento"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l4-3 2 2h4l2-2 4 3-2 3-2-1v11H8V9L6 10z"/></svg></span> Fardamento</button>
     <button class="nav-item" data-page="receitas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span> Receitas</button>
@@ -3352,11 +3493,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     </section>
 
     <section id="page-avarias" class="page">
-      <!-- ==AVARIAS== Menu criado em 28/09/2026 a pedido do dono: por enquanto SÓ o lugar no
-           menu, igual ao que foi feito com "Compra × Venda" em 12/09. Ele vai explicar o que
-           a tela faz. Não montar nada aqui sem ele pedir. A permissão sai de graça: a tela
-           Acessos lê o menu e já lista a página (chave "avarias"). -->
-      <div class="card"><h2 style="margin:0 0 6px;font-size:20px;color:#0c5a26;">Avarias</h2><p style="margin:0;font-size:14px;color:#6b7787;line-height:1.6;">Esta tela está em construção.</p></div>
+      <!-- ==AVARIAS== Menu criado em 28/09/2026 a pedido do dono (só o lugar, igual ao "Compra × Venda" em 12/09).
+           Desde a etapa 3,6 (29/09/2026) é o PILOTO: só o master, somente leitura. A tela vem compactada no
+           pacote #avPacote (ver ==AVARIAS== no topo deste arquivo) e só é aberta pelo carregador (window.avAbrir)
+           quando o master abre esta aba. A chave continua "avarias" (a tela Acessos lê o menu). -->
+      ${avSecao}
     </section>
 
     <section id="page-epi" class="page">
@@ -10957,7 +11098,9 @@ const PONTOS_SEED = ${JSON.stringify(pontosSeed)};
 // Cada ponto tem um valor fixo de aluguel de acordo com o seu número (vem da planilha).
 const VALOR_FIXO = (function(){ const m={}; PONTOS_SEED.forEach(function(p){ if(p.valor>0) m[String(p.numero)]=p.valor; }); return m; })();
 function loadPontosG(){
-  try{ const s=localStorage.getItem("pontos_gondola"); if(s) return JSON.parse(s); }catch(e){}
+  // id fora do formato não entra nem pela cópia guardada no navegador: a tela é desenhada com
+  // ela ANTES da nuvem responder, e o id vai dentro de atributos (mesma regra do pxCloudLoad).
+  try{ const s=localStorage.getItem("pontos_gondola"); if(s) return (JSON.parse(s)||[]).filter(function(p){ return p && /^[A-Za-z0-9_-]+$/.test(String(p.id||"")); }); }catch(e){}
   // SEM fallback pra planilha antiga: a fonte da verdade é a nuvem. O fallback
   // ressuscitava fornecedores apagados (a semente voltava e era re-enviada pra nuvem).
   return [];
@@ -10977,7 +11120,9 @@ let galpoesG = glLoad();
 function glSB(){ return window.__SB||null; }
 var glCloudOK=false, glCarregando=false, glRT=null, glPushT=null, glPendDel={};
 function glRowFromG(g){ return {id:g.id,numero:String(g.numero||""),cnpj:g.cnpj||"",razao_social:g.razaoSocial||"",locatario:g.locatario||"",vendedor:g.vendedor||"",rg:g.rg||"",contato:g.contato||"",email:g.email||"",endereco:g.endereco||"",endereco_inq:g.enderecoInq||"",aluguel:g.aluguel||"1",valor:+g.valor||0,pagamento:g.pagamento||"",dia_pag:+g.diaPag||0,abertura:g.abertura||"",vencimento:g.vencimento||"",obs:g.obs||"",manuais:g.manuais||null,comprovantes:g.comprovantes||null,contrato_url:(g.contratoArquivo&&g.contratoArquivo.indexOf("data:")!==0)?g.contratoArquivo:"",contrato_nome:g.contratoNome||"",atualizado_em:new Date().toISOString()}; }
-function glGFromRow(r){ var g={id:r.id,numero:String(r.numero||""),cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",locatario:r.locatario||"",vendedor:r.vendedor||"",rg:r.rg||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",enderecoInq:r.endereco_inq||"",aluguel:r.aluguel||"1",valor:+r.valor||0,pagamento:r.pagamento||"",diaPag:+r.dia_pag||0,abertura:r.abertura||"",vencimento:r.vencimento||"",obs:r.obs||""}; if(r.manuais)g.manuais=r.manuais; if(r.comprovantes)g.comprovantes=r.comprovantes; if(r.contrato_url){ g.contratoArquivo=r.contrato_url; g.contratoNome=r.contrato_nome||""; } return g; }
+function glGFromRow(r){ var g={id:r.id,numero:String(r.numero||""),cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",locatario:r.locatario||"",vendedor:r.vendedor||"",rg:r.rg||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",enderecoInq:r.endereco_inq||"",aluguel:r.aluguel||"1",valor:+r.valor||0,pagamento:r.pagamento||"",diaPag:+r.dia_pag||0,abertura:r.abertura||"",vencimento:r.vencimento||"",obs:r.obs||""}; if(r.manuais)g.manuais=r.manuais; if(r.comprovantes)g.comprovantes=r.comprovantes; if(r.contrato_url){ g.contratoArquivo=r.contrato_url; g.contratoNome=r.contrato_nome||""; } if(r.assinatura)g.assinatura=r.assinatura; return g; }
+/* A coluna "assinatura" NAO vai no glRowFromG de proposito (igual aos pontos): no banco a trava
+   assin_trava recusa escrita direta nela. So as funcoes oficiais assinam/cancelam (==GLASSIN-*==). */
 // Sobe o contrato anexado pro Storage (bucket privado "pontos") antes de salvar — evita guardar base64 gigante no banco.
 function glSubirArquivos(g){
   var jobs=[];
@@ -10992,7 +11137,11 @@ function glCloudPush(){ var sb=glSB(); if(!sb||!glCloudOK) return;
     sb.from("galpoes").upsert(galpoesG.map(glRowFromG)).then(function(){},function(){});
   }).catch(function(){});
 }
-function glCloudDel(id){ glPendDel[id]=Date.now()+30000; var sb=glSB(); if(!sb||!glCloudOK) return; sb.from("galpoes").delete().eq("id",id).then(function(r){ if(r&&r.error){ setTimeout(function(){ try{ sb.from("galpoes").delete().eq("id",id).then(function(){},function(){}); }catch(e){} },1500); } },function(){}); }
+function glCloudDel(id){ glPendDel[id]=Date.now()+30000; var sb=glSB(); if(!sb||!glCloudOK) return; sb.from("galpoes").delete().eq("id",id).then(function(r){
+  // Assinado em OUTRO aparelho e esta tela ainda não sabia: o banco recusa (a trava da
+  // assinatura). Não adianta tentar de novo — traz o galpão de volta e explica.
+  if(r&&r.error&&/contrato_assinado_nao_apaga/.test(String(r.error.message||""))){ delete glPendDel[id]; uiConfirm({titulo:"Este galpão está assinado",msg:"O contrato deste galpão foi assinado (talvez em outro computador), então ele não sai pelo apagar comum.\\n\\nEle voltou para a lista. Para apagar, clique no ✕ de novo: agora vai pedir a senha do master.",ok:"Entendi",cancel:""}); glCloudLoad(); return; }
+  if(r&&r.error){ setTimeout(function(){ try{ sb.from("galpoes").delete().eq("id",id).then(function(){},function(){}); }catch(e){} },1500); } },function(){}); }
 function glRealtime(){ var sb=glSB(); if(!sb||glRT) return; try{ var deb=null; function rec(){ clearTimeout(deb); deb=setTimeout(glCloudLoad,700); } glRT=sb.channel("galpoes_sync").on("postgres_changes",{event:"*",schema:"public",table:"galpoes"},rec).subscribe(); }catch(e){} }
 /* ==GLACS-INICIO== Quem pode os galpoes.
    Ate 29/09/2026 as duas abas eram SO MASTER: nao apareciam nem trancadas para os outros
@@ -11014,7 +11163,9 @@ function glCloudLoad(){ var sb=glSB(); if(!sb||glCarregando) return;
   glCarregando=true;
   sb.from("galpoes").select("*").then(function(r){ glCarregando=false; if(r.error){ renderGalpoes(); return; } glCloudOK=true;
     var now=Date.now();
-    galpoesG=(r.data||[]).map(glGFromRow).filter(function(g){ return !(glPendDel[g.id]&&glPendDel[g.id]>now); });
+    // id fora do formato do painel ("g" + letras e números) não entra: ele vai dentro de
+    // atributos da tela, e só alguém mexendo direto na nuvem criaria um id diferente.
+    galpoesG=(r.data||[]).map(glGFromRow).filter(function(g){ return /^[A-Za-z0-9_-]+$/.test(String(g.id||"")) && !(glPendDel[g.id]&&glPendDel[g.id]>now); });
     try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){}
     renderGalpoes(); try{ renderPlanta(); }catch(e){}
   },function(){ glCarregando=false; });
@@ -17158,11 +17309,16 @@ function glSincValorForm(){
 }
 // Endereço dos galpões: a rua e o bairro são FIXOS (o terreno é todo do dono, mesma rua);
 // só o número muda, e o número é o "Nº do galpão" (ex: 1470 A). Não se digita à mão.
+// ATENÇÃO: a rua, o bairro e o CEP estão escritos TAMBÉM no banco, em assin_snapshot_galpao
+// (sql/galpoes_assinatura.sql) — é de lá que a conferência pública tira o endereço do
+// contrato assinado. Mudou aqui, muda lá.
 var GL_RUA_PADRAO="Av. Doutor Rui Mariz";
 var GL_BAIRRO_PADRAO="Alto da Boa Vista";
+// Pedido do advogado (29/09/2026): onde o contrato diz "Caicó/RN", vem logo depois o CEP.
+var GL_CIDADE_CEP="Caicó/RN, CEP 59300-000";
 function glEnderecoDe(numero){
   var n=String(numero||"").trim();
-  return GL_RUA_PADRAO+(n?(", "+n):"")+" - "+GL_BAIRRO_PADRAO+", Caicó/RN";
+  return GL_RUA_PADRAO+(n?(", "+n):"")+" - "+GL_BAIRRO_PADRAO+", "+GL_CIDADE_CEP;
 }
 // Mantém o campo "Endereço do galpão" (só leitura) sempre montado a partir do Nº do galpão.
 function glSincEndereco(){
@@ -17288,7 +17444,12 @@ function renderSalAviso(nova){
   '</div>';
 }
 // Checa o Banco Central no máximo 1x por dia.
-function glSalAutoChecar(){
+function glSalAutoChecar(__tent){
+  /* Esta função é chamada na CARGA da página (initGalpoes), antes do login terminar.
+     Se ela decidisse "não é master" nesse instante, ninguém — nem o master — teria mais
+     o aviso do reajuste (a revisão de 29/09 pegou isso). Então: login ainda carregando,
+     espera e tenta de novo (até ~1 min); só então olha se é master. */
+  if(window.__PERFIL==null){ var t=(__tent||0)+1; if(t<=40) setTimeout(function(){ glSalAutoChecar(t); },1500); return; }
   if(!glEhMaster()) return;   // quem nao pode trocar o salario nao precisa do aviso (o botao nem existe pra ele)
   var r=glSalGet(), hoje=pxDateKey(new Date());
   if(r.checadoEm===hoje && !r.ignorado) return;
@@ -17309,13 +17470,15 @@ function glSalAutoChecar(){
 }
 // LOCADOR dos galpões: é o dono como PESSOA FÍSICA (não o supermercado).
 // Por isso este contrato NÃO leva a logo da loja — o imóvel é patrimônio pessoal.
+// 29/09/2026, pedido do advogado: RG com o órgão emissor, e o CEP logo depois de todo
+// "Caicó/RN" (endereço, local e data, foro). O RG dos INQUILINOS continua como é digitado.
 var GL_LOCADOR={
   nome:"GILSON JOÃO DOS SANTOS",
-  rg:"351.560",
+  rg:"351.560 SSP/RN",
   cpf:"129.907.284-49",
-  endereco:"Rua André Sales, 531, Paulo VI, Caicó/RN",
-  cidade:"Caicó/RN",
-  comarca:"Caicó/RN"
+  endereco:"Rua André Sales, 531, Paulo VI, "+GL_CIDADE_CEP,
+  cidade:GL_CIDADE_CEP,
+  comarca:GL_CIDADE_CEP
 };
 function glGerarContrato(g){
   if(!g){ alert("Preencha os dados do galpão antes de gerar o contrato."); return; }
@@ -17340,8 +17503,9 @@ function glContratoDocHtml(g){
   var alu=String(g.aluguel||"1");
   var aluTxt;
   if(alu==="fixo"){
-    var v=+g.valor||0;
-    aluTxt="de "+(v?pxEsc(brl(v))+" ("+pxReaisExtenso(v)+")":"[VALOR]")+" mensais";
+    // arredonda como o banco (glValor2) e escreve os centavos por extenso (glReaisExtenso)
+    var v=+glValor2(g.valor);
+    aluTxt="de "+(v?pxEsc(brl(v))+" ("+glReaisExtenso(v)+")":"[VALOR]")+" mensais";
   } else if(alu==="0.5"){
     aluTxt="correspondente a meio (1/2) salário mínimo vigente no país na referida data do pagamento";
   } else {
@@ -17362,6 +17526,10 @@ function glContratoDocHtml(g){
     ".assin{margin-top:44px}.assin .row{display:flex;gap:60px;justify-content:space-between;margin-top:64px}"+
     ".assin .bloco{flex:1;text-align:center}.assin .linha{border-top:1px solid #1a1a1a;padding-top:6px}"+
     ".assin .papel{font-weight:bold;font-size:13px}"+
+    // carimbo da assinatura eletrônica: o MESMO dos pontos extras
+    ".assin .carimbo{height:52px;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:5px;font-size:10.5px;line-height:1.35;color:#1a4a2a;text-align:center}"+
+    ".assin .carimbo b{font-size:11px;letter-spacing:.02em}.assin .carimbo.vazio{color:transparent}"+
+    ".confere{margin-top:18px;font-size:9.5px;color:#555;text-align:center;line-height:1.5}"+
     ".test{margin-top:52px}.test .t{font-weight:bold;margin-bottom:20px}"+
     ".test .item{margin-bottom:26px;font-size:13px;line-height:1.9}.test .ln{display:inline-block;border-bottom:1px solid #1a1a1a;width:290px}"+
     "@page{margin:0}@media print{.docbar{display:none}html,body{background:#fff}.doc-page-wrap{padding:0}.doc-page{box-shadow:none;border-radius:0;margin:0;max-width:none;padding:11mm 17mm 8mm;line-height:1.5}.doc-page p{margin-bottom:8px}.doc-page h1{margin-bottom:12px}.assin{margin-top:30px!important}.assin .row{margin-top:52px!important}.assin .dado{margin-top:4px}.confere{margin-top:20px!important}}";
@@ -17394,7 +17562,7 @@ function glContratoDocHtml(g){
   cl.push("Fica estipulada a multa equivalente a 2 (dois) meses de aluguel, na qual incorrerá a parte que infringir qualquer cláusula deste contrato, com a faculdade para a parte inocente de considerar simultaneamente rescindida a locação, independente de qualquer notificação.");
   cl.push("No caso de morte ou insolvência do(s) fiador(es) a <b>LOCATÁRIA</b> ficará obrigada a dar-lhe(s) substituto(s) idôneo(s), dentro do prazo de 30 (trinta) dias, sob pena de rescisão contratual.");
   cl.push("A tolerância das partes a respeito do descumprimento ou inobservância do disposto no presente instrumento não poderá ser considerada como novação ou alteração das cláusulas contratuais.");
-  cl.push("As partes elegem o foro da Comarca de "+pxEsc(L.comarca)+" para decidir qualquer questão judicial decorrente deste contrato, renunciando a qualquer outro, por mais privilegiado que seja.");
+  cl.push("As partes elegem o foro da Comarca de "+pxEsc(L.comarca)+", para decidir qualquer questão judicial decorrente deste contrato, renunciando a qualquer outro, por mais privilegiado que seja.");
   // A regra do dia de pagamento é subitem da cláusula do aluguel (2.1 no modelo em papel).
   var n=0;
   for(var i=0;i<cl.length;i++){
@@ -17404,10 +17572,22 @@ function glContratoDocHtml(g){
   }
   h+="<p style='margin-top:20px'>E por estarem <b>LOCADORA</b> e <b>LOCATÁRIA</b> de pleno acordo com o disposto neste instrumento particular, assinam-no na presença das duas testemunhas abaixo, em DUAS vias de igual teor e forma, destinando-se uma via para cada uma das partes.</p>";
   h+="<p>Local e data: "+pxEsc(L.cidade)+", "+dataExt+".</p>";
+  // Assinado no painel (==GLASSIN-*==) e o contrato não mudou depois? O carimbo sai sobre a
+  // linha da LOCADORA, com o código que qualquer um confere no site. Se caiu, sai em branco.
+  var _as=glAssinValida(g)?g.assinatura:null;
+  var _carimbo=_as
+    ? ("<div class='carimbo'><b>Assinado eletronicamente</b><br>"+pxEsc(_as.nome||"")
+       +"<br>"+pxEsc(pxAssinDataFmt(_as.em))+" &middot; código "+pxEsc(_as.codigo||"")+"</div>")
+    : "<div class='carimbo vazio'></div>";
   h+="<div class='assin'><div class='row'>"+
-     "<div class='bloco'><div class='linha'><div class='papel'>LOCADORA</div></div></div>"+
-     "<div class='bloco'><div class='linha'><div class='papel'>LOCATÁRIA</div></div></div>"+
-     "</div></div>";
+     "<div class='bloco'>"+_carimbo+"<div class='linha'><div class='papel'>LOCADORA</div></div></div>"+
+     "<div class='bloco'><div class='carimbo vazio'></div><div class='linha'><div class='papel'>LOCATÁRIA</div></div></div>"+
+     "</div>";
+  if(_as) h+="<p class='confere'>Assinatura eletrônica registrada no Painel Santa Rita em "+pxEsc(pxAssinDataFmt(_as.em))
+    +" sob o código <b>"+pxEsc(_as.codigo||"")+"</b>."
+    +"<br>Confira a autenticidade em <b>"+pxEsc(PX_CONFERIR_URL.split("//").pop())+"</b> — a página mostra a qual contrato este código pertence."
+    +"<br>O código é gerado com chave secreta e deixa de valer se qualquer dado deste contrato for alterado.</p>";
+  h+="</div>";
   h+="<div class='test'><div class='t'>Testemunhas:</div>"+
      "<div class='item'>1. <span class='ln'></span><br>Nome:<br>RG:</div>"+
      "<div class='item'>2. <span class='ln'></span><br>Nome:<br>RG:</div>"+
@@ -17546,10 +17726,155 @@ function glContratoHtml(g){
   } else {
     corpo='<button type="button" class="px-arq-anexar" data-glcfile-btn="'+g.id+'">'+clipIc+'Anexar contrato</button>';
   }
-  return '<div class="px-det-item"><b>Contrato</b><button type="button" class="px-gerar-ct" data-glcgerar="'+g.id+'" title="Gerar contrato padrão com os dados deste galpão">'+gerarIc+'Gerar contrato</button></div>'+
-    '<div class="px-det-item"><b>&nbsp;</b><div class="px-arq">'+corpo+
-    '<input type="file" data-glcfile="'+g.id+'" accept="application/pdf,image/*" style="display:none;"></div></div>';
+  // mesmo desenho do ponto extra: Contrato (gerar + anexar) e Assinatura lado a lado
+  return '<div class="px-det-item px-det-ct px-acoes"><b>Contrato</b><div class="px-ct-duo">'+
+      '<button type="button" class="px-gerar-ct" data-glcgerar="'+g.id+'" title="Gerar contrato padrão com os dados deste galpão">'+gerarIc+'Gerar contrato</button>'+
+      '<div class="px-arq">'+corpo+'<input type="file" data-glcfile="'+g.id+'" accept="application/pdf,image/*" style="display:none;"></div>'+
+    '</div></div>'+
+    '<div class="px-det-item px-det-assin px-acoes"><b>Assinatura</b><div class="px-ct-duo">'+glAssinBlocoHtml(g)+'</div></div>';
 }
+/* ==GLASSIN-INICIO== ASSINATURA DO CONTRATO DO GALPÃO (29/09/2026)
+   A MESMA blindagem dos pontos extras: quem gera o código é o BANCO, com a chave secreta
+   que nunca sai de lá (sql/galpoes_assinatura.sql). Aqui só existe a impressão digital,
+   para a tela saber se o contrato mudou depois de assinado.
+   Ordem do processo, igual aos pontos: o locador ASSINA no painel -> imprime -> o inquilino
+   assina no papel -> anexa. Por isso anexar exige a assinatura (glExigeAssinatura). */
+/* TEM QUE SER IDÊNTICA à assin_impressao_galpao do banco: mesma ordem, separador
+   caractere 31, prefixo "g1". Travado por scripts/conferir-galpoes-assinatura.mjs.
+   Só entra o que sai IMPRESSO no contrato. O R$ de quem paga em salário mínimo fica
+   de fora: o contrato diz "1 salário mínimo", e com o R$ dentro todo reajuste do
+   governo derrubaria a assinatura de todos os galpões. */
+function glAssinImpressao(g){
+  g=g||{};
+  var S=String.fromCharCode(31);
+  var lp=function(v){ return String(v==null?"":v).split(S).join(" "); };
+  var alu=String(g.aluguel||"1");
+  var campos=[ lp(g.numero), lp(g.locatario), lp(g.razaoSocial), lp(g.cnpj), lp(g.vendedor),
+               lp(g.rg), lp(g.enderecoInq), lp(alu), lp(alu==="fixo"?glValor2(g.valor):""),
+               lp(+g.diaPag||5), lp(g.abertura) ];
+  return "g1"+S+campos.join(S);
+}
+/* Arredonda DO MESMO JEITO QUE O BANCO: pela escrita decimal, meio centavo pra cima (longe
+   do zero), como o to_char do Postgres faz com numeric. O toFixed do JS arredonda o número
+   binário e erra casos como 1,005 (dá 1,00; o banco dá 1,01) — e aí a tela e o banco nunca
+   concordariam e o galpão jamais seria assinado (revisão de 29/09). */
+function glValor2(v){
+  var n=+v||0, neg=n<0, s=String(Math.abs(n));
+  if(/e/i.test(s)) return n.toFixed(2);
+  var p=s.split("."), fp=(p[1]||"")+"000";
+  var cent=parseInt(p[0],10)*100+parseInt(fp.slice(0,2),10)+(fp.charAt(2)>="5"?1:0);
+  return (neg&&cent?"-":"")+Math.floor(cent/100)+"."+("0"+(cent%100)).slice(-2);
+}
+// Reais POR EXTENSO com os centavos (o pxReaisExtenso dos pontos joga os centavos fora).
+function glReaisExtenso(v){
+  var c=Math.round(+glValor2(v)*100), i=Math.floor(c/100), ct=c%100;
+  var s=i?pxReaisExtenso(i):"";
+  if(ct) s+=(s?" e ":"")+pxNumExtenso(ct)+(ct===1?" centavo":" centavos");
+  return s||pxReaisExtenso(0);
+}
+/* Lacunas que sairiam impressas como "[CPF]", "[VALOR]"... Contrato assim NÃO se assina:
+   seria um cheque em branco com carimbo. MESMA regra da tranca do banco
+   (contrato_incompleto em assinar_contrato_galpao); aqui só para dizer o nome do campo. */
+function glAssinLacunas(g){
+  var doc=String(g.cnpj||"").replace(/\\D/g,""), pj=doc.length===14, falta=[];
+  if(!String((pj?(g.razaoSocial||g.locatario):(g.vendedor||g.locatario))||"").trim()) falta.push(pj?"razão social da empresa":"nome do inquilino");
+  if(doc.length!==11 && doc.length!==14) falta.push("CPF ou CNPJ do inquilino");
+  if(!String(g.enderecoInq||"").trim()) falta.push("endereço do inquilino");
+  if(!String(g.abertura||"").trim()) falta.push("data de abertura do contrato");
+  if(String(g.aluguel||"1")==="fixo" && !(+g.valor>0)) falta.push("valor do aluguel");
+  return falta;
+}
+function glAssinValida(g){ var a=pxAssinatura(g); if(!a) return false; return String(a.impressao||"")===glAssinImpressao(g); }
+function glAssinCaiu(g){ return !!pxAssinatura(g) && !glAssinValida(g); }
+function glAssinBlocoHtml(g){
+  return pxAssinBlocoHtml(g,{ valida:glAssinValida, assinar:"data-glassinar", rem:"data-glassinrem",
+                              semAssin:"Sem isso o contrato sai sem a assinatura do locador." });
+}
+function glAssinErro(e){
+  var m=String((e&&e.message)||e||"");
+  if(/senha_incorreta/.test(m)) return "Senha do master incorreta.";
+  if(/muitas_tentativas/.test(m)) return "Muitas tentativas erradas. Espere 15 minutos e tente de novo.";
+  if(/precisa_estar_logado/.test(m)) return "Sua sessão caiu. Entre no painel de novo.";
+  if(/conta_nao_aprovada/.test(m)) return "Seu login ainda não foi aprovado pelo master.";
+  if(/sem_permissao/.test(m)) return "Seu login não tem acesso à página Galpões.";
+  if(/contrato_mudou/.test(m)) return "Alguém alterou este contrato enquanto você assinava. Atualize a página e confira antes de assinar.";
+  if(/galpao_nao_encontrado/.test(m)) return "Este galpão ainda não chegou na nuvem. Espere alguns segundos e tente de novo.";
+  if(/sem_nome_do_locador/.test(m)) return "Falta o nome do locador.";
+  if(/contrato_assinado_nao_apaga/.test(m)) return "Este contrato está assinado. Para apagar, use o ✕ da linha: ele pede a senha do master.";
+  if(/contrato_incompleto/.test(m)) return "O contrato tem campo em branco (nome, CPF/CNPJ, endereço do inquilino, data de abertura ou valor). Preencha no editar e tente de novo.";
+  if(/contrato_assinado_nao_muda_id/.test(m)) return "Este galpão está assinado e não pode mudar de identificação.";
+  if(/assinar_contrato_galpao|cancelar_assinatura_galpao|apagar_galpao_assinado|function|does not exist|schema/i.test(m))
+    return "A assinatura dos galpões ainda não foi instalada no banco. Rode o arquivo sql/galpoes_assinatura.sql no Supabase.";
+  return "Não consegui concluir agora. "+m;
+}
+// As três funções do banco respondem igual: erro de verdade vem em r.error; senha errada vem
+// em r.data.erro (devolvida, não estourada, para a tentativa ficar contada na trava de 10 erros).
+function glAssinRpc(nome,args,titulo,sucesso){
+  var sb=glSB();
+  if(!sb){ uiConfirm({titulo:"Precisa estar conectado",msg:"Isso exige conexão com a nuvem — é lá que fica a chave da assinatura. Entre no painel e tente de novo.",ok:"Entendi",cancel:""}); return; }
+  sb.rpc(nome,args).then(function(r){
+    if(r&&r.error){ uiConfirm({titulo:titulo,msg:glAssinErro(r.error),ok:"Entendi",cancel:""}); return; }
+    var d=r&&r.data;
+    if(d&&d.erro){ uiConfirm({titulo:titulo,msg:glAssinErro(d.erro),ok:"Entendi",cancel:""}); return; }
+    sucesso(d);
+  },function(){ uiConfirm({titulo:"Sem resposta da nuvem",msg:"Não consegui falar com o banco agora. Tente de novo.",ok:"Entendi",cancel:""}); });
+}
+// Assinar: exige a senha REAL do master, mesmo que o master já esteja logado.
+function glAssinar(id){
+  var g=galpoesG.find(function(x){ return x.id===id; }); if(!g) return;
+  if(!glSB()){ uiConfirm({titulo:"Precisa estar conectado",msg:"Assinar exige conexão com a nuvem — é lá que fica a chave da assinatura. Entre no painel e tente de novo.",ok:"Entendi",cancel:""}); return; }
+  var falta=glAssinLacunas(g);
+  if(falta.length){ uiConfirm({titulo:"Falta preencher antes de assinar",msg:"O contrato sairia com espaço em branco no lugar de:\\n\\n\\u2022 "+falta.join("\\n\\u2022 ")+"\\n\\nClique em editar neste galpão, preencha e salve. Depois assine.",ok:"Entendi",cancel:""}); return; }
+  var nome=String((GL_LOCADOR&&GL_LOCADOR.nome)||"").trim();
+  var quem=String(g.vendedor||g.razaoSocial||g.locatario||"").trim();
+  var motivo="Você está ASSINANDO o contrato de locação do galpão nº "+(g.numero||"")+(quem?(" — "+quem):"")
+    +", como locador ("+nome+"). Digite a senha do master para confirmar.";
+  autorizarMaster(motivo,true,true).then(function(senha){
+    if(!senha||senha===true) return;
+    glAssinRpc("assinar_contrato_galpao",{p_id:id,p_senha:senha,p_nome:nome,p_impressao_esperada:glAssinImpressao(g)},"Não deu para assinar",function(a){
+      if(!a||!a.codigo){ uiConfirm({titulo:"Não deu para assinar",msg:"A nuvem não devolveu o código. Tente de novo.",ok:"Entendi",cancel:""}); return; }
+      g.assinatura=a; glSave(); renderGalpoes(); glReabrir(id);
+    });
+  });
+}
+function glCancelarAssinatura(id){
+  var g=galpoesG.find(function(x){ return x.id===id; }); if(!g) return;
+  autorizarMaster("Cancelar a assinatura do contrato do galpão nº "+(g.numero||"")+". Digite a senha do master.",true,true).then(function(senha){
+    if(!senha||senha===true) return;
+    glAssinRpc("cancelar_assinatura_galpao",{p_id:id,p_senha:senha},"Não deu para cancelar",function(){
+      delete g.assinatura; glSave(); renderGalpoes(); glReabrir(id);
+    });
+  });
+}
+// Galpão assinado só sai com a senha do master — o banco recusa o apagar comum.
+// A prova continua no livro de assinaturas e o código segue conferindo.
+function glApagarAssinado(g){
+  autorizarMaster("Apagar o galpão nº "+(g.numero||"")+", que tem contrato ASSINADO. Digite a senha do master.",true,true).then(function(senha){
+    if(!senha||senha===true) return;
+    glAssinRpc("apagar_galpao_assinado",{p_id:g.id,p_senha:senha},"Não deu para apagar",function(){
+      galpoesG=galpoesG.filter(function(x){ return x.id!==g.id; }); glSave(); renderGalpoes();
+    });
+  });
+}
+// Anexar antes do locador assinar quebraria a ordem do processo (igual pxExigeAssinatura).
+function glExigeAssinatura(g){
+  if(glAssinValida(g)) return true;
+  var caiu=glAssinCaiu(g);
+  uiConfirm({
+    titulo: caiu ? "A assinatura caiu" : "Assine o contrato primeiro",
+    msg: (caiu
+          ? "Este contrato mudou depois de assinado, então a assinatura do locador não vale mais.\\n\\n"
+          : "Este contrato ainda não foi assinado pelo locador.\\n\\n")
+       + "A ordem é:\\n"
+       + "1. o locador assina aqui no painel\\n"
+       + "2. você imprime o contrato já assinado\\n"
+       + "3. o inquilino assina no papel\\n"
+       + "4. você anexa o contrato assinado pelos dois\\n\\n"
+       + "Se anexar agora, o contrato vai estar sem a assinatura do locador.",
+    ok:"Entendi", cancel:"" });
+  return false;
+}
+/* ==GLASSIN-FIM== */
 // Abre o contrato anexado do galpão (arquivo privado → link temporário autorizado).
 function glAbrirContrato(g){
   if(!g||!g.contratoArquivo) return;
@@ -17591,7 +17916,9 @@ function renderGalpoes(){
   renderSalBar();
   renderSalFuturo();
   // O R$ de quem paga em salário mínimo é sempre derivado do mínimo de hoje.
-  if(glAplicaSalario()) glSave();
+  // Só o MASTER recalcula e grava: quem mexe no salário é ele, e um funcionário com o
+  // salário velho guardado no navegador regravaria o aluguel de todo mundo errado.
+  if(glEhMaster() && glAplicaSalario()) glSave();
   // Inadimplentes (reaproveita pxInadimplencia)
   var inad=[]; galpoesG.forEach(function(g){ var x=pxInadimplencia(g); if(x){ x.g=g; inad.push(x); } });
   inad.sort(function(a,b){ return b.dias-a.dias; });
@@ -17619,27 +17946,32 @@ function renderGalpoes(){
   var linhas=lista.map(function(g){
     var d=pxParseData(g.vencimento); var vcls="";
     if(d){ var dias=(d-hoje)/86400000; if(dias<0) vcls="px-venc-vencido"; else if(dias<=15) vcls="px-venc-prox"; }
-    var seta='<button class="px-exp" data-glexp="'+g.id+'" title="Ver dados da empresa"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>';
+    /* TUDO que veio do cadastro passa por pxEsc. Até 29/09 só o master gravava aqui; agora
+       qualquer login com a página Galpões grava (==GLACS-*==), e um nome como
+       <img onerror=...> rodaria código na tela do master. O id também: ele vai dentro de
+       aspas nos atributos. */
+    var gid=pxEsc(g.id);
+    var seta='<button class="px-exp" data-glexp="'+gid+'" title="Ver dados da empresa"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>';
     return '<tr>'+
       '<td class="px-exp-cell">'+seta+'</td>'+
-      '<td>'+(g.numero||"")+'</td>'+
+      '<td>'+pxEsc(g.numero)+'</td>'+
       '<td>'+pxEsc(g.locatario)+'</td>'+
       '<td>'+pxEsc(g.vendedor)+'</td>'+
       '<td>'+(g.valor? brl(+g.valor) : "—")+'</td>'+
       '<td>'+pxEsc(g.pagamento)+'</td>'+
-      '<td>'+pxFmtData(g.abertura)+'</td>'+
-      '<td class="'+vcls+'">'+pxFmtData(g.vencimento)+'</td>'+
+      '<td>'+pxEsc(pxFmtData(g.abertura))+'</td>'+
+      '<td class="'+vcls+'">'+pxEsc(pxFmtData(g.vencimento))+'</td>'+
       '<td>'+pxBadge(g)+'</td>'+
       '<td>'+pxEsc(g.obs)+'</td>'+
-      '<td style="white-space:nowrap"><span class="esc-nome" data-gledit="'+g.id+'">editar</span> &nbsp;<span class="esc-del" data-glrem="'+g.id+'" title="Remover">✕</span></td>'+
+      '<td style="white-space:nowrap"><span class="esc-nome" data-gledit="'+gid+'">editar</span> &nbsp;<span class="esc-del" data-glrem="'+gid+'" title="Remover">✕</span></td>'+
       '</tr>'+
-      '<tr class="px-det" id="gdet-'+g.id+'" style="display:none;"><td colspan="11"><div class="px-det-wrap"><div class="px-det-box">'+
-        pxDetItem(g.cnpj?glFmtDoc(g.cnpj).label:"CNPJ / CPF", g.cnpj ? glFmtDoc(g.cnpj).valor : "—")+
-        pxDetItem("Razão Social", g.razaoSocial||"—")+
+      '<tr class="px-det" id="gdet-'+gid+'" style="display:none;"><td colspan="11"><div class="px-det-wrap"><div class="px-det-box px-det-pontos">'+
+        pxDetItem(g.cnpj?glFmtDoc(g.cnpj).label:"CNPJ / CPF", g.cnpj ? pxEsc(glFmtDoc(g.cnpj).valor) : "—", "px-det-nowrap")+
+        pxDetItem("Razão Social", pxEsc(g.razaoSocial)||"—")+
         pxDetItem("Endereço do galpão", pxEsc(glEnderecoDe(g.numero)))+
-        pxDetItem("Inquilino", g.vendedor||"—")+
-        pxDetItem("Contato", g.contato?pxFmtTel(g.contato):"—")+
-        pxDetItem("E-mail", g.email ? ('<a href="mailto:'+pxEsc(g.email)+'">'+pxEsc(g.email)+'</a>') : "—", "px-det-wide")+
+        pxDetItem("Inquilino", pxEsc(g.vendedor)||"—")+
+        pxDetItem("Contato", g.contato?pxFmtTel(g.contato):"—", "px-det-nowrap")+
+        pxDetItem("E-mail", g.email ? ('<a href="mailto:'+pxEsc(g.email)+'" title="'+pxEsc(g.email)+'">'+pxEsc(g.email)+'</a>') : "—", "px-det-corta")+
         glContratoHtml(g)+
       '</div>'+glAgendaHtml(g)+'</div></td></tr>';
   }).join("");
@@ -17661,7 +17993,7 @@ function renderGalpoes(){
     endereco:glEnderecoDe((document.getElementById("glNum").value||"").trim()),
     enderecoInq:(document.getElementById("glEndInq").value||"").trim(),
     aluguel:(document.getElementById("glAluguel").value||"1"),
-    valor:despParseValor(document.getElementById("glValor").value),
+    valor:+glValor2(despParseValor(document.getElementById("glValor").value)),   // grava em centavos exatos (ver glValor2)
     pagamento:(document.getElementById("glPag").value||""),
     diaPag:parseInt(document.getElementById("glDiaPag").value||"0",10)||0,
     abertura:(document.getElementById("glAbertura").value||""),
@@ -17730,13 +18062,24 @@ function renderGalpoes(){
   if(tb) tb.addEventListener("click",function(e){
     var expb=e.target.closest("[data-glexp]");
     if(expb){ var xid=expb.dataset.glexp; var det=document.getElementById("gdet-"+xid); if(det){ var open=det.style.display==="none"; det.style.display=open?"":"none"; expb.classList.toggle("aberto",open); } return; }
+    // --- ASSINATURA (==GLASSIN-*==) — o × fica DENTRO do quadro: checar antes de tudo ---
+    var asRemG=e.target.closest("[data-glassinrem]");
+    if(asRemG){ glCancelarAssinatura(asRemG.dataset.glassinrem); return; }
+    var asG=e.target.closest("[data-glassinar]");
+    if(asG){ glAssinar(asG.dataset.glassinar); return; }
     // --- CONTRATO (mesmo padrão dos pontos) ---
     var cremG=e.target.closest("[data-glcrem]"); // o × fica DENTRO do card clicável → checar antes do "ver"
     if(cremG){ var gr=galpoesG.find(function(x){ return x.id===cremG.dataset.glcrem; }); if(gr){ uiConfirm({titulo:"Remover contrato",msg:"Remover o arquivo do contrato deste galpão?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; delete gr.contratoArquivo; delete gr.contratoNome; glSave(); renderGalpoes(); glReabrir(gr.id); }); } return; }
     var cviewG=e.target.closest("[data-glcview]");
     if(cviewG){ e.preventDefault(); glAbrirContrato(galpoesG.find(function(x){ return x.id===cviewG.dataset.glcview; })); return; }
     var cbtnG=e.target.closest("[data-glcfile-btn]");
-    if(cbtnG){ var inpG=document.querySelector('[data-glcfile="'+cbtnG.dataset.glcfileBtn+'"]'); if(inpG) inpG.click(); return; }
+    if(cbtnG){
+      // A trava da assinatura vem ANTES de abrir o seletor (igual aos pontos): ninguém procura
+      // o PDF à toa pra ser recusado depois. A mesma trava continua no glProcessaContratoArquivo
+      // para o arrastar-e-soltar.
+      var gAnxB=galpoesG.find(function(x){ return x.id===cbtnG.dataset.glcfileBtn; });
+      if(gAnxB && !glExigeAssinatura(gAnxB)) return;
+      var inpG=document.querySelector('[data-glcfile="'+cbtnG.dataset.glcfileBtn+'"]'); if(inpG){ inpG.value=""; inpG.click(); } return; }
     var cgerG=e.target.closest("[data-glcgerar]");
     if(cgerG){ var gg=galpoesG.find(function(x){ return x.id===cgerG.dataset.glcgerar; }); if(gg) glGerarContrato(gg); return; }
     // --- CALENDÁRIO DE COBRANÇAS ---
@@ -17764,7 +18107,15 @@ function renderGalpoes(){
     var ed=e.target.closest("[data-gledit]");
     if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNum").value=g2.numero||""; document.getElementById("glCnpj").value=g2.cnpj||""; document.getElementById("glRazao").value=g2.razaoSocial||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glVend").value=g2.vendedor||""; document.getElementById("glRg").value=g2.rg||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; try{ glSincEndereco(); }catch(e){} document.getElementById("glEndInq").value=g2.enderecoInq||""; document.getElementById("glAluguel").value=g2.aluguel||"1"; document.getElementById("glValor").value=g2.valor||""; document.getElementById("glPag").value=g2.pagamento||""; document.getElementById("glDiaPag").value=g2.diaPag||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glVenc").value=g2.vencimento||""; document.getElementById("glObs").value=g2.obs||""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; try{ glSetDocTipo(((g2.cnpj||"").replace(/\\D/g,"").length===11)?"cpf":"cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
     var rem=e.target.closest("[data-glrem]");
-    if(rem){ var id=rem.dataset.glrem; var g3=galpoesG.find(function(x){ return x.id===id; }); uiConfirm({titulo:"Remover galpão",msg:"Apagar \\u201c"+((g3&&g3.nome)||"este galpão")+"\\u201d e todo o histórico dele?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; galpoesG=galpoesG.filter(function(x){ return x.id!==id; }); glCloudDel(id); glSave(); renderGalpoes(); }); return; }
+    if(rem){ var id=rem.dataset.glrem; var g3=galpoesG.find(function(x){ return x.id===id; });
+      var _nomeG=g3?("o galpão nº "+(g3.numero||"?")+((g3.vendedor||g3.locatario)?(" — "+(g3.vendedor||g3.locatario)):"")):"este galpão";
+      var _assG=g3?pxAssinatura(g3):null;
+      var _msgG="Apagar "+_nomeG+" e todo o histórico dele?";
+      // assinado: o banco recusa o apagar comum; vai pela função que pede a senha do master
+      if(_assG) _msgG="Este contrato está ASSINADO (código "+(_assG.codigo||"")+").\\n\\nPara apagar vai ser preciso a senha do master. A prova da assinatura continua guardada e o código segue conferindo.\\n\\n"+_msgG;
+      uiConfirm({titulo:"Remover galpão",msg:_msgG,ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return;
+        if(_assG){ glApagarAssinado(g3); return; }
+        galpoesG=galpoesG.filter(function(x){ return x.id!==id; }); glCloudDel(id); glSave(); renderGalpoes(); }); return; }
   });
   // anexar contrato: escolher arquivo (mesma regra dos pontos — até 3 MB)
   if(tb) tb.addEventListener("change",function(e){
@@ -17785,6 +18136,9 @@ function glReabrir(id){
   if(det){ det.style.display="table-row"; if(exp) exp.classList.add("aberto"); }
 }
 function glProcessaContratoArquivo(id,f){
+  // TRAVA ÚNICA: botão e arrastar-e-soltar passam por aqui (ver ==GLASSIN-*==).
+  var _gAnx=galpoesG.find(function(x){ return x.id===id; });
+  if(_gAnx && !glExigeAssinatura(_gAnx)) return;
   if(!f) return;
   if(f.size > 3*1024*1024){ uiConfirm({titulo:"Arquivo muito grande",msg:"O contrato precisa ter no máximo 3 MB. Tente um PDF ou foto menor.",ok:"Entendi",cancel:""}); return; }
   var reader=new FileReader();
@@ -17919,7 +18273,9 @@ function pxCloudLoad(){
     // (Antes havia uma "primeira migração" que re-enviava a planilha embutida quando a
     // nuvem estava vazia — era isso que ressuscitava fornecedores apagados.)
     var _now=Date.now(); for(var _k in pxPendDel){ if(pxPendDel[_k]<_now) delete pxPendDel[_k]; } // limpa travas vencidas
-    pontosG=(r.data||[]).map(pxPFromRow).filter(function(p){ return !pxPendDel[p.id]; }).sort(function(a,b){ return (a.numero||0)-(b.numero||0); }); // não ressuscita o que foi apagado agorinha
+    // id fora do formato do painel ("pg" + números) não entra: ele vai dentro de atributos da
+    // tela, e só alguém mexendo direto na nuvem criaria um id diferente (mesma regra dos galpões).
+    pontosG=(r.data||[]).map(pxPFromRow).filter(function(p){ return /^[A-Za-z0-9_-]+$/.test(String(p.id||"")) && !pxPendDel[p.id]; }).sort(function(a,b){ return (a.numero||0)-(b.numero||0); }); // não ressuscita o que foi apagado agorinha
     pxReapplyPend();
     try{ localStorage.setItem("pontos_gondola",JSON.stringify(pontosG)); }catch(e){}
     try{ if(typeof renderPontosG==="function"){
@@ -18266,7 +18622,7 @@ function pxAgendaHtml(p){
     const key=pxDateKey(d0);       // a data ORIGINAL é o nome da parcela — nunca muda
     const d=pxVencD(p,key);        // a data QUE VALE (remarcada, se o master autorizou)
     const passou = d<hoje ? ' style="color:#9aa6b2;"' : '';
-    const ref=p.id+"|"+key;
+    const ref=pxEsc(p.id+"|"+key);   // só vai dentro de atributos (aspas): escapado aqui, vale pra todos
     const c=comps[key];
     const ehBonifComp = /bonif/i.test(String(p.pagamento||"")); // bonificação anexa a NOTA fiscal manualmente
     const rotComp = ehBonifComp ? "nota fiscal" : "comprovante";
@@ -18276,7 +18632,7 @@ function pxAgendaHtml(p){
       // bonif pode ter VÁRIAS notas (uma por entrega): mostra um link por nota
       var _nk=Object.keys(comps).filter(function(k){ return k===key || k.indexOf(key+"~e")===0; }).sort();
       cell = _nk.length
-        ? _nk.map(function(k,ix){ return '<a href="#" class="px-comp-link" data-compview="'+(p.id+"|"+k)+'" title="Ver nota fiscal">'+icoClip+'<span>nota'+(_nk.length>1?(' '+(ix+1)):'')+'</span></a>'; }).join(' ')
+        ? _nk.map(function(k,ix){ return '<a href="#" class="px-comp-link" data-compview="'+pxEsc(p.id+"|"+k)+'" title="Ver nota fiscal">'+icoClip+'<span>nota'+(_nk.length>1?(' '+(ix+1)):'')+'</span></a>'; }).join(' ')
         : '<span style="color:#c3ccd6;">—</span>';
     } else {
       cell = c
@@ -18323,7 +18679,9 @@ function pxAgendaHtml(p){
            '<span class="px-motivo" title="'+pxEsc(man.motivo||"")+' — marcado por '+pxEsc(man.quem||"")+
              (man.quando?(' em '+pxEsc(new Date(man.quando).toLocaleDateString("pt-BR"))):'')+'">“'+
              pxEsc(man.motivo||"(sem motivo)")+'”</span>'
-         : '<span class="px-aguard" title="'+(pxManManual(man)?("Pago por fora: "+pxManMotivo(man)+" — aguardando a autorizacao do master"):"")+(manBon?("Mercadoria registrada ("+brl((man.pend&&man.pend.valor)||0)+(man.pend&&man.pend.nota?(", nota "+String(man.pend.nota).replace(/[<>"]/g,"")):"")+") — aguardando autorização do administrador. Para autorizar, o arquivo da nota precisa estar anexado na coluna Comprovante."):"Aguardando autorização do administrador")+'">'+icoRelogio+(manBon?'Aguardando ('+brl((man.pend&&man.pend.valor)||0)+')':'Aguardando')+'</span> <button type="button" class="px-aut" data-autorizar="'+ref+'">Autorizar</button> <button type="button" class="px-rec" data-recusar="'+ref+'" title="Recusar">✕</button>')
+         /* o "+" antes do valor NÃO é enfeite: brl() recebendo TEXTO devolve o texto cru
+            ("abc".toLocaleString() é "abc"), e esse valor vem do JSON manuais, gravável por funcionário. */
+         : '<span class="px-aguard" title="'+(pxManManual(man)?("Pago por fora: "+pxManMotivo(man)+" — aguardando a autorizacao do master"):"")+(manBon?("Mercadoria registrada ("+brl(+((man.pend&&man.pend.valor)||0)||0)+(man.pend&&man.pend.nota?(", nota "+String(man.pend.nota).replace(/[<>"]/g,"")):"")+") — aguardando autorização do administrador. Para autorizar, o arquivo da nota precisa estar anexado na coluna Comprovante."):"Aguardando autorização do administrador")+'">'+icoRelogio+(manBon?'Aguardando ('+brl(+((man.pend&&man.pend.valor)||0)||0)+')':'Aguardando')+'</span> <button type="button" class="px-aut" data-autorizar="'+ref+'">Autorizar</button> <button type="button" class="px-rec" data-recusar="'+ref+'" title="Recusar">✕</button>')
       : manSt==="parcial"
       ? '<span class="px-aguard" title="Bonificação parcial: já veio '+brl(+man.tot||0)+' de '+brl(+p.valor||0)+'. '+bonTit+'">'+icoGift+'Parcial · faltam '+brl(bonFalta)+'</span> <button type="button" class="px-pix-btn" data-bonif="'+ref+'" title="Registrar o restante da mercadoria">'+icoGift+'Registrar restante</button>'
       : cob && (cob.status==="pedido"||cob.status==="gerando")
@@ -18555,9 +18913,10 @@ function pixAbrirModal(o){
   var _vq=document.getElementById("pixVerQr"); if(_vq) _vq.textContent="Prefere Pix? Ver QR Code";
   var _cc=document.getElementById("pixCC");
   _cc.value=ehBol ? o.linha : o.codigo; // boleto: a caixa grande mostra a linha digitável
-  document.getElementById("pixSub").innerHTML="Ponto nº "+(o.ponto||"")+(o.forn?" · "+o.forn:"")+"<br>Vencimento "+o.data+" · <b>"+brl(o.valor)+"</b>"
-    +(o.nosso?'<br><span style="font-size:11px;color:#8a97a3;">Registrada no Sicredi · nosso nº '+o.nosso+'</span>':"")
-    +((!ehBol && o.linha)?'<br><span style="font-size:10.5px;color:#8a97a3;word-break:break-all;">Linha digitável: '+o.linha+'</span>':"");
+  // nº e fornecedor vêm do cadastro do ponto (gravável por funcionário); o resto, da cobrança na nuvem
+  document.getElementById("pixSub").innerHTML="Ponto nº "+pxEsc(o.ponto||"")+(o.forn?" · "+pxEsc(o.forn):"")+"<br>Vencimento "+pxEsc(o.data)+" · <b>"+brl(+o.valor||0)+"</b>"
+    +(o.nosso?'<br><span style="font-size:11px;color:#8a97a3;">Registrada no Sicredi · nosso nº '+pxEsc(o.nosso)+'</span>':"")
+    +((!ehBol && o.linha)?'<br><span style="font-size:10.5px;color:#8a97a3;word-break:break-all;">Linha digitável: '+pxEsc(o.linha)+'</span>':"");
   m.classList.add("show");
   // cresce o campo pra mostrar o código inteiro. requestAnimationFrame garante que o layout
   // já foi calculado (medir cedo demais dá largura errada e altura gigante); teto de 340px por segurança.
@@ -18906,7 +19265,7 @@ function bonifAbrir(p,key){
   const falta=Math.max(0,Math.round(((+p.valor||0)-tot)*100)/100);
   bonifCtx={ pid:p.id, key:key };
   const dk=key.split("-");
-  document.getElementById("bnfSub").innerHTML="Ponto nº "+(p.numero||"")+" · "+(p.fornecedor||"")+"<br>Parcela "+dk[2]+"/"+dk[1]+"/"+dk[0]+" · combinado <b>"+brl(+p.valor||0)+"</b>"
+  document.getElementById("bnfSub").innerHTML="Ponto nº "+pxEsc(p.numero||"")+" · "+pxEsc(p.fornecedor)+"<br>Parcela "+pxEsc(dk[2]+"/"+dk[1]+"/"+dk[0])+" · combinado <b>"+brl(+p.valor||0)+"</b>"
     +(tot>0?'<br><span style="font-size:11px;color:#8a6d1a;">Já veio '+brl(tot)+' — faltam '+brl(falta)+'</span>':"");
   document.getElementById("bnfValor").value=falta>0?falta.toFixed(2).replace(".",","):"";
   var _bn=document.getElementById("bnfNota"); _bn.value=""; _bn.classList.remove("campo-erro");
@@ -19286,8 +19645,9 @@ function pxContratoDocHtml(p){
   var pagTxt="O valor será pago através de "+pagBase+", no valor total de "+valTotalFmt+", referente ao período contratado"+vigencia+".";
   var razao=pxEsc(L.razao), cnpjL=pxEsc(L.cnpj), fant=pxEsc(L.fantasia||L.razao), cidade=pxEsc(L.cidade||"Caicó/RN"), enderecoL=pxEsc(L.endereco||"");
   // código do documento (mesma convenção do nº de cobrança da ficha de boleto: CT-<ponto>-<anomês>)
+  // escapado: nº e abertura vêm do cadastro, e a barra do documento põe o código cru na página
   var dParts2=(ini||"").split("-");
-  var codigo="CT-"+String(p.numero||0).padStart(2,"0")+"-"+((dParts2[2]||String(HOJE.getFullYear()).slice(2))+(dParts2[1]||("0"+(HOJE.getMonth()+1)).slice(-2)));
+  var codigo=pxEsc("CT-"+String(p.numero||0).padStart(2,"0")+"-"+((dParts2[2]||String(HOJE.getFullYear()).slice(2))+(dParts2[1]||("0"+(HOJE.getMonth()+1)).slice(-2))));
   var emissaoFmt=pxFmtData(pxDateKey(new Date()));
   var barra=pxDocBarraHtml({ titulo:"Contrato Comercial", codigo:codigo, badge:"Gerado agora", emissao:emissaoFmt, printLabel:"Imprimir / Salvar PDF" });
   var css=barra.css+
@@ -19454,24 +19814,29 @@ function pxAssinDataFmt(iso){
   }catch(e){ return ""; }
 }
 // O quadrado que a funcionária e o master veem: por assinar / assinado / caiu
-function pxAssinBlocoHtml(p){
+/* O mesmo quadro serve aos PONTOS EXTRAS (padrao, sem o 2o argumento) e aos GALPOES
+   (==GLASSIN-*==). So mudam: quem confere a validade e os atributos dos botoes. */
+function pxAssinBlocoHtml(p,o){
+  o=o||{ valida:pxAssinValida, assinar:"data-cassinar", rem:"data-cassinrem",
+         semAssin:"Sem isso o contrato sai sem a assinatura do diretor." };
   var a=pxAssinatura(p);
+  var pid=pxEsc(p.id);   // o id vai dentro de aspas nos atributos dos botões (pontos e galpões)
   var icoOk='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#157a35" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   var icoPena='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/></svg>';
   var icoAt='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7a5a00" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.6 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
-  if(a && pxAssinValida(p)){
+  if(a && o.valida(p)){
     var q=pxEsc(a.nome||"")+" \u00b7 "+pxEsc(pxAssinDataFmt(a.em))+" \u00b7 c\u00f3digo "+pxEsc(a.codigo||"");
     return '<div class="px-assin ok" title="'+q+'">'+icoOk
       +'<span class="px-assin-txt"><b>Assinado \u00b7 '+pxEsc(String(pxAssinDataFmt(a.em)).split(" \u00e0s ").join(" "))+'</b>'
       +'<i class="px-assin-cod">'+pxEsc(a.codigo||"")+'</i></span>'
-      +'<span class="px-assin-x" data-cassinrem="'+p.id+'" title="Cancelar esta assinatura">\u2715</span></div>';
+      +'<span class="px-assin-x" '+o.rem+'="'+pid+'" title="Cancelar esta assinatura">\u2715</span></div>';
   }
   if(a){   // assinou e o contrato mudou depois
     return '<div class="px-assin caiu" title="O contrato mudou depois de assinado. Confira e assine de novo.">'+icoAt
       +'<span class="px-assin-txt"><b>A assinatura caiu</b><i>o contrato mudou depois</i></span></div>'
-      +'<button type="button" class="px-assinar" data-cassinar="'+p.id+'">'+icoPena+'Assinar de novo</button>';
+      +'<button type="button" class="px-assinar" '+o.assinar+'="'+pid+'">'+icoPena+'Assinar de novo</button>';
   }
-  return '<button type="button" class="px-assinar" data-cassinar="'+p.id+'" title="Sem isso o contrato sai sem a assinatura do diretor.">'+icoPena+'Assinar contrato</button>';
+  return '<button type="button" class="px-assinar" '+o.assinar+'="'+pid+'" title="'+pxEsc(o.semAssin)+'">'+icoPena+'Assinar contrato</button>';
 }
 // Assinar: exige a senha REAL do master, mesmo que o master já esteja logado.
 function pxAssinar(id){
@@ -19534,20 +19899,21 @@ function pxContratoHtml(p){
   const docIc='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>';
   const clipIc='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>';
   let corpo;
+  const pid=pxEsc(p.id);   // o id vai dentro de aspas nos atributos
   if(p.contratoArquivo){
     const xIc='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9aa6b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-    corpo='<div class="px-arq-card" data-cview="'+p.id+'" title="'+pxEsc(p.contratoNome||"contrato")+' — clique para ver" style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e3e8ee;border-radius:8px;padding:0 14px;width:100%;max-width:280px;box-sizing:border-box;min-height:46px;cursor:pointer;">'+
+    corpo='<div class="px-arq-card" data-cview="'+pid+'" title="'+pxEsc(p.contratoNome||"contrato")+' — clique para ver" style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e3e8ee;border-radius:8px;padding:0 14px;width:100%;max-width:280px;box-sizing:border-box;min-height:46px;cursor:pointer;">'+
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1b9e4b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>'+
       '<span style="flex:1; min-width:0; text-align:left;color:#2a3340;font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+pxEsc(p.contratoNome||"contrato")+'</span>'+
-      '<span data-crem="'+p.id+'" title="Remover contrato" style="flex-shrink:0;display:inline-flex;padding:3px;cursor:pointer;">'+xIc+'</span>'+
+      '<span data-crem="'+pid+'" title="Remover contrato" style="flex-shrink:0;display:inline-flex;padding:3px;cursor:pointer;">'+xIc+'</span>'+
       '</div>';
   } else {
-    corpo='<button type="button" class="px-arq-anexar" data-cfile-btn="'+p.id+'">'+clipIc+'Anexar contrato</button>';
+    corpo='<button type="button" class="px-arq-anexar" data-cfile-btn="'+pid+'">'+clipIc+'Anexar contrato</button>';
   }
   var gerarIc='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>';
   return '<div class="px-det-item px-det-ct px-acoes"><b>Contrato</b><div class="px-ct-duo">'+
-      '<button type="button" class="px-gerar-ct" data-cgerar="'+p.id+'" title="Gerar contrato padrão com os dados deste ponto">'+gerarIc+'Gerar contrato</button>'+
-      '<div class="px-arq">'+corpo+'<input type="file" data-cfile="'+p.id+'" accept="application/pdf,image/*" style="display:none;"></div>'+
+      '<button type="button" class="px-gerar-ct" data-cgerar="'+pid+'" title="Gerar contrato padrão com os dados deste ponto">'+gerarIc+'Gerar contrato</button>'+
+      '<div class="px-arq">'+corpo+'<input type="file" data-cfile="'+pid+'" accept="application/pdf,image/*" style="display:none;"></div>'+
     '</div></div>'+
     '<div class="px-det-item px-det-assin px-acoes"><b>Assinatura</b><div class="px-ct-duo">'+pxAssinBlocoHtml(p)+'</div></div>';
 }
@@ -19567,7 +19933,7 @@ function renderPontosG(){
   document.getElementById("pxInadimplentes").innerHTML = inad.length ? (
     '<div class="px-inad"><div class="px-inad-top"><span class="px-inad-tit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Inadimplentes ('+inad.length+')</span><span class="px-inad-tot">Total em atraso: '+brl(totDevido)+'</span></div>'+
     '<table class="px-inad-tb"><thead><tr><th>Fornecedor</th><th>Parcelas atrasadas</th><th>Valor devido</th><th>Atraso</th></tr></thead><tbody>'+
-    inad.map(function(x){ return '<tr><td>'+(x.p.fornecedor||"—")+'</td><td>'+x.n+'</td><td>'+brl(x.valor)+'</td><td>'+x.dias+' dia'+(x.dias===1?'':'s')+' <span class="px-inad-desde">(desde '+x.desde.toLocaleDateString("pt-BR")+')</span></td></tr>'; }).join('')+
+    inad.map(function(x){ return '<tr><td>'+(pxEsc(x.p.fornecedor)||"—")+'</td><td>'+x.n+'</td><td>'+brl(x.valor)+'</td><td>'+x.dias+' dia'+(x.dias===1?'':'s')+' <span class="px-inad-desde">(desde '+x.desde.toLocaleDateString("pt-BR")+')</span></td></tr>'; }).join('')+
     '</tbody></table></div>'
   ) : '';
   pxAtualizaBadge();
@@ -19585,25 +19951,30 @@ function renderPontosG(){
   const linhas=lista.map(p=>{
     const d=pxParseData(p.vencimento); let vcls="";
     if(d){ const dias=(d-hoje)/86400000; if(dias<0) vcls="px-venc-vencido"; else if(dias<=15) vcls="px-venc-prox"; }
-    const seta='<button class="px-exp" data-exp="'+p.id+'" title="Ver dados da empresa"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>';
+    /* TUDO que veio do cadastro passa por pxEsc (o mesmo conserto dos galpões, 29/09/2026).
+       Quem tem a página Pontos extras grava direto na tabela pontos_extras, e um nome como
+       <img onerror=...> rodaria código na tela do master. A data também: pxFmtData devolve
+       o texto cru quando não é data. E o CNPJ: pxFmtCnpj devolve cru quando não tem 14 números. */
+    const pid=pxEsc(p.id);
+    const seta='<button class="px-exp" data-exp="'+pid+'" title="Ver dados da empresa"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>';
     return '<tr>'+
       '<td class="px-exp-cell">'+seta+'</td>'+
-      '<td>'+(p.numero||"")+'</td>'+
-      '<td>'+(p.fornecedor||"")+'</td>'+
-      '<td>'+(p.vendedor||"")+'</td>'+
+      '<td>'+pxEsc(p.numero||"")+'</td>'+
+      '<td>'+pxEsc(p.fornecedor)+'</td>'+
+      '<td>'+pxEsc(p.vendedor)+'</td>'+
       '<td>'+(p.valor? brl(+p.valor) : "—")+'</td>'+
-      '<td>'+(p.pagamento||"")+'</td>'+
-      '<td>'+pxFmtData(p.abertura)+'</td>'+
-      '<td class="'+vcls+'">'+pxFmtData(p.vencimento)+'</td>'+
+      '<td>'+pxEsc(p.pagamento)+'</td>'+
+      '<td>'+pxEsc(pxFmtData(p.abertura))+'</td>'+
+      '<td class="'+vcls+'">'+pxEsc(pxFmtData(p.vencimento))+'</td>'+
       '<td>'+pxBadge(p)+'</td>'+
-      '<td>'+(p.obs||"")+'</td>'+
-      '<td style="white-space:nowrap"><span class="esc-nome" data-edit="'+p.id+'">editar</span> &nbsp;<span class="esc-del" data-del="'+p.id+'" title="Remover">✕</span></td>'+
+      '<td>'+pxEsc(p.obs)+'</td>'+
+      '<td style="white-space:nowrap"><span class="esc-nome" data-edit="'+pid+'">editar</span> &nbsp;<span class="esc-del" data-del="'+pid+'" title="Remover">✕</span></td>'+
       '</tr>'+
-      '<tr class="px-det" id="det-'+p.id+'" style="display:none;"><td colspan="11"><div class="px-det-wrap"><div class="px-det-box px-det-pontos">'+
-        pxDetItem("CNPJ", p.cnpj ? pxFmtCnpj(p.cnpj) : "—", "px-det-nowrap")+
-        pxDetItem("Razão Social", p.razaoSocial||"—")+
+      '<tr class="px-det" id="det-'+pid+'" style="display:none;"><td colspan="11"><div class="px-det-wrap"><div class="px-det-box px-det-pontos">'+
+        pxDetItem("CNPJ", p.cnpj ? pxEsc(pxFmtCnpj(p.cnpj)) : "—", "px-det-nowrap")+
+        pxDetItem("Razão Social", pxEsc(p.razaoSocial)||"—")+
         pxDetItem("Endereço", p.endereco?pxEsc(p.endereco):"—")+
-        pxDetItem("Vendedor", p.vendedor||"—")+
+        pxDetItem("Vendedor", pxEsc(p.vendedor)||"—")+
         pxDetItem("Contato", p.contato?pxFmtTel(p.contato):"—", "px-det-nowrap")+
         pxDetItem("E-mail", p.email ? ('<a href="mailto:'+pxEsc(p.email)+'" title="'+pxEsc(p.email)+'">'+pxEsc(p.email)+'</a>') : "—", "px-det-corta")+
         pxContratoHtml(p)+
@@ -20464,7 +20835,8 @@ function mapaTipHtml(num){
     h+='<div class="t-nome">'+pxEsc(p.fornecedor)+'</div>';
     h+='<div class="t-badges"><span class="mdp-pill '+st+'">'+mapaRotulo(st)+'</span>'+(flag?'<span class="mdp-pill '+flag+'">'+mapaRotulo(flag)+'</span>':'')+'</div>';
     h+='<div class="t-lin"><span>Valor</span><b>'+(p.valor?brl(+p.valor)+'/mês':'—')+'</b></div>';
-    h+='<div class="t-lin"><span>Vigência</span><b>'+(pxFmtData(p.abertura)||'?')+' – '+(pxFmtData(p.vencimento)||'?')+'</b></div>';
+    // pxFmtData devolve cru o que não é data: passa por pxEsc como o resto do cadastro
+    h+='<div class="t-lin"><span>Vigência</span><b>'+(pxEsc(pxFmtData(p.abertura))||'?')+' – '+(pxEsc(pxFmtData(p.vencimento))||'?')+'</b></div>';
     if(p.vendedor) h+='<div class="t-lin"><span>Vendedor</span><b>'+pxEsc(p.vendedor)+'</b></div>';
   }
   return h;
@@ -20533,7 +20905,7 @@ function mapaDetalhe(num){
     const resta = dias<0
       ? 'Contrato vencido há '+Math.abs(dias)+' dia'+(Math.abs(dias)===1?'':'s')+' — renove ou encerre.'
       : 'Faltam '+dias+' dia'+(dias===1?'':'s')+' para o fim do contrato.';
-    vig='<div class="mdp-vig"><div class="datas"><span>'+(pxFmtData(p.abertura)||'—')+'</span><span>'+(pxFmtData(p.vencimento)||'—')+'</span></div>'+
+    vig='<div class="mdp-vig"><div class="datas"><span>'+(pxEsc(pxFmtData(p.abertura))||'—')+'</span><span>'+(pxEsc(pxFmtData(p.vencimento))||'—')+'</span></div>'+
       '<div class="bar"><i style="width:'+pct+'%;'+(dias<0?'background:#e05d0e;':'')+'"></i></div>'+
       '<div class="resta"'+(dias<0?' style="color:#b1470e;font-weight:600;"':'')+'>'+resta+'</div></div>';
   }
@@ -31458,6 +31830,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="calendario"){ calAno=HOJE.getFullYear(); calMes=HOJE.getMonth(); setView("ano"); try{ calCarregarNuvem(false); }catch(e){} }
     if(btn.dataset.page==="encartes" && window.encAbrir) window.encAbrir(); // ==ENC== lê a nuvem só ao abrir
     if(btn.dataset.page==="projecao" && window.cxvAbrir) window.cxvAbrir(); // ==CXV== lê a nuvem só ao abrir
+    if(btn.dataset.page==="avarias" && window.avAbrir) window.avAbrir(); // ==AVARIAS== piloto: abre o pacote só ao abrir, e só para o master
     if(btn.dataset.page==="agenda"){ renderAgenda(); agCloudLoad(); }
     if(btn.dataset.page==="organograma"){ renderOrg(); orgCenterView(); }
     if(btn.dataset.page==="fluxograma") renderFlux();
@@ -35028,6 +35401,15 @@ if (encJs) {
     ? comCentral.slice(0, _k) + "<scr" + "ipt>" + encJs + "</scr" + "ipt>\n" + comCentral.slice(_k)
     : comCentral + "<scr" + "ipt>" + encJs + "</scr" + "ipt>";
 }
+// ==AVARIAS-CARREGADOR== o carregador do piloto, também antes do ÚLTIMO </body> e ANTES do tema escuro e das
+// travas (é compilado e conferido como os outros). Com a chave ligada entra SEMPRE, mesmo sem o pacote: é ele que
+// explica na aba. Com a chave desligada (==AVARIAS-CHAVE==) não entra: a página é o "em construção" de sempre.
+if (AV_PILOTO_NO_AR) {
+  const _a = comCentral.lastIndexOf("</body>");
+  comCentral = _a >= 0
+    ? comCentral.slice(0, _a) + "<scr" + "ipt>" + avCarregadorJs + "</scr" + "ipt>\n" + comCentral.slice(_a)
+    : comCentral + "<scr" + "ipt>" + avCarregadorJs + "</scr" + "ipt>";
+}
 // ===== SPRINT UI 1.0 — TEMA ESCURO PREMIUM (gerado no build) =====
 // A folha escura NÃO é mantida à mão: cada regra de cor do tema claro ganha uma
 // versão "html.tema-escuro" mapeada pra paleta premium. O claro fica intocado e
@@ -35295,7 +35677,50 @@ const comTema = injetarTemaEscuro(comCentral);
   console.log("   trava do build: nenhuma função inexistente sendo chamada.");
 }
 
-await writeFile("output/index.html", comTema);
+/* ==AVARIAS-PACOTE== o PACOTE do piloto: {js, css, cssEscuro} -> JSON -> gzip -> base64, num
+   <script type="application/octet-stream" id="avPacote"> antes do ÚLTIMO </body>, DEPOIS do tema escuro e das
+   travas — é dado, não é código que o navegador rode (a trava 1 tentaria compilar o base64). Quem confere o código
+   do pacote são as TRAVAS DE AVARIAS lá no topo (compila + nenhum caminho de gravação), aqui (o minificado também
+   compila e o pacote volta igual) e scripts/testes/avarias-pacote.test.cjs.
+   O CSS escuro sai do MESMO gerador do Painel (temaProcessarCss + temaInlineDark), aqui no fim porque as paletas
+   PAL_* são const e só existem depois de declaradas. */
+let comPacote = comTema;
+let avRelato = "";
+if (avJsFonte) {
+  try {
+    let avJs = avJsFonte, avMin = false;
+    try {
+      const { createRequire } = await import("node:module");
+      const _req = createRequire(import.meta.url);
+      avJs = _req("esbuild").transformSync(avJsFonte, { loader: "js", minify: true, legalComments: "none", charset: "utf8" }).code;
+      new Function(avJs);   // o minificado também tem de compilar
+      avMin = true;
+    } catch (e) { avJs = avJsFonte; avMin = false; }   // sem esbuild (o robô pode não ter): vai sem minificar
+    const avCssEscuro = "@media screen{" + temaProcessarCss(avCssFonte) + temaInlineDark(avJsFonte) + "}";
+    const avJson = JSON.stringify({ js: avJs, css: avCssFonte, cssEscuro: avCssEscuro, montado_em: new Date().toISOString(), minificado: avMin });
+    const { gzipSync, gunzipSync } = await import("node:zlib");
+    const avB64 = gzipSync(Buffer.from(avJson, "utf8"), { level: 9 }).toString("base64");
+    if (gunzipSync(Buffer.from(avB64, "base64")).toString("utf8") !== avJson) throw new Error("o pacote não voltou igual depois de compactado");
+    const avTag = "<scr" + "ipt type=\"application/octet-stream\" id=\"avPacote\">" + avB64 + "</scr" + "ipt>\n";
+    const _p = comTema.lastIndexOf("</body>");
+    comPacote = _p >= 0 ? comTema.slice(0, _p) + avTag + comTema.slice(_p) : comTema + avTag;
+    const kb = (x: number) => (x / 1024).toFixed(1) + " KB";
+    avRelato = "   avarias (piloto): pacote " + kb(avTag.length) + " no Painel — código " + kb(Buffer.byteLength(avJsFonte)) +
+      (avMin ? " → minificado " + kb(Buffer.byteLength(avJs)) : " (sem esbuild: NÃO minificado)") +
+      ", CSS " + kb(Buffer.byteLength(avCssFonte)) + " + escuro " + kb(Buffer.byteLength(avCssEscuro)) + ", tudo em gzip+base64.";
+  } catch (e: any) {
+    comPacote = comTema;
+    avFora = "o pacote não pôde ser montado: " + ((e && e.message) || e);
+  }
+}
+if (!AV_PILOTO_NO_AR) {
+  console.log("   avarias: piloto DESLIGADO (==AVARIAS-CHAVE==) — a aba mostra \"em construção\", como antes da etapa 3,6.");
+} else if (!avJsFonte || comPacote === comTema) {
+  console.log("   !!! AVARIAS NÃO ENTROU nesta montagem: " + (avFora || "motivo desconhecido") + ".");
+  console.log("       A aba Avarias vai dizer ao master que ela não entrou nesta atualização; o resto do Painel sai normal.");
+} else console.log(avRelato);
+
+await writeFile("output/index.html", comPacote);
 /* VIGIA DE TAMANHO DO PAINEL.
    O painel e UM arquivo so: o codigo da tela e o retrato do VR viajam juntos, e TODA
    pessoa baixa o arquivo inteiro toda vez que abre — mesmo pra ver so a Escala.
@@ -35304,7 +35729,7 @@ await writeFile("output/index.html", comTema);
    Quando passar dos limites abaixo, a conversa deixa de ser "cabe?" e vira "esta na
    hora de tirar os resumos de dentro do arquivo e servir do Supabase sob demanda".
    Isto NAO derruba o build de proposito: e um aviso, nao uma trava. */
-const MB_PAINEL = comTema.length / 1048576;
+const MB_PAINEL = comPacote.length / 1048576;   // ==AVARIAS== conta o pacote junto (é o arquivo que vai ao ar)
 if (MB_PAINEL >= 15) {
   console.log("   !!! PAINEL COM " + MB_PAINEL.toFixed(1) + " MB — PASSOU DE 15. Em conexao de celular isto ja incomoda.");
   console.log("       HORA DE CONVERSAR COM O VICTOR sobre servir os resumos do Supabase sob demanda,");
