@@ -18318,11 +18318,19 @@ function pixCobPaga(p,key){ var c=pixCobDe(p,key); return !!(c && c.status==="pa
 function pixCobLoad(){
   var sb=pxSB(); if(!sb) return;
   if(!pxPodeVer()) return; // mesma regra dos pontos (financeiro)
+  // Cada carga ganha um número. Resposta de uma carga MAIS VELHA que a última já aplicada é
+  // jogada fora: senão, uma lista lida antes do pagamento, chegando atrasada pela rede,
+  // desfazia o ✓ Pago na tela (revisão de 30/09).
+  var meuPedido=++pixCobSeq;
   sb.from("pix_cobrancas").select("*").order("id",{ascending:false}).limit(1000).then(function(res){
     if(res.error || !res.data) return;
+    if(meuPedido<pixCobAplicada) return;
+    pixCobAplicada=meuPedido;
     var m={};
     res.data.forEach(function(r){ var k=pixCobKey(r.ponto_id,r.parcela_key); if(!m[k] || r.id>m[k].id) m[k]=r; });
     pixCobs=m;
+    pixCobsLeveSig=pixSigLeve(res.data);   // o retrato "pequeno" desta lista (ver ==PIXRITMO-*==)
+    pixUltimaChecagem=Date.now();          // a lista inteira acabou de chegar: vale como conferência
     try{ pixModalChecaPago(); }catch(e){} // se o modal do QR está aberto e a cobrança virou "pago", mostra a confirmação verde
     // assinatura do que a tela mostra (id+status+tem QR); se nada mudou, NÃO re-renderiza
     // (deixa o polling de 8s barato e sem "piscar" a tela à toa)
@@ -18339,12 +18347,58 @@ function pixCobLoad(){
     }catch(e){}
   },function(){});
   if(!pixCobsRT){
-    try{ pixCobsRT=sb.channel("pix_cobrancas_sync").on("postgres_changes",{event:"*",schema:"public",table:"pix_cobrancas"},function(){ clearTimeout(pixCobT); pixCobT=setTimeout(pixCobLoad,600); }).subscribe(); }catch(e){}
+    // Quando o aviso instantâneo conecta — e sobretudo quando RECONECTA depois de o Wi-Fi piscar
+    // ou o computador acordar —, confere na hora: o que mudou durante a queda não é repetido
+    // pelo banco, e sem isto só apareceria na conferência calma, até 2 min depois.
+    try{ pixCobsRT=sb.channel("pix_cobrancas_sync").on("postgres_changes",{event:"*",schema:"public",table:"pix_cobrancas"},function(){ clearTimeout(pixCobT); pixCobT=setTimeout(pixCobLoad,600); }).subscribe(function(st){ if(st==="SUBSCRIBED"){ try{ pixCobChecar(); }catch(e2){} } }); }catch(e){}
   }
-  // REDE DE SEGURANÇA: mesmo se o realtime não conectar, confere a cada 8s enquanto
-  // o master está com a aba aberta — garante que 💠/⏳/✓Pago/Gerar Pix mudem sozinhos.
-  if(!pixPollTimer){ pixPollTimer=setInterval(function(){ try{ if(document.visibilityState!=="hidden" && pxPodeVer()) pixCobLoad(); }catch(e){} }, 8000); }
+  // REDE DE SEGURANÇA: mesmo se o realtime não conectar, 💠/⏳/✓Pago/Gerar Pix mudam
+  // sozinhos. O ritmo dela mora em ==PIXRITMO-*== (rápido só quando alguém está esperando).
+  if(!pixPollTimer){ pixPollTimer=setInterval(pixRitmo, PIX_TIQUE); }
 }
+/* ==PIXRITMO-INICIO== A REDE DE SEGURANÇA DO PIX, SEM GASTAR O SUPABASE (30/09/2026)
+   Até aqui ela baixava a lista INTEIRA de cobranças (20 KB, com os QR) a cada 8 segundos, em
+   qualquer tela, o dia todo: ~9 MB por hora por tela aberta. Era o maior gasto do Supabase
+   (tráfego a 89% e registros 6x acima em 29/09). E era só seguro: o "pago" chega pelo aviso
+   instantâneo do banco (o canal pix_cobrancas_sync, lá em cima), que continua igual.
+   Agora:
+   1. PERGUNTA PEQUENA: só número e situação de cada cobrança (0,8 KB). A lista inteira só
+      vem quando essa resposta muda. Basta a situação: o robô (pixWorker) grava o QR junto
+      com o "gerado", e toda mudança que a tela mostra passa por uma troca de situação.
+   2. RÁPIDO SÓ QUANDO ALGUÉM ESPERA: a cada 8 s com a janela do QR aberta, ou enquanto o
+      robô trabalha numa cobrança (pedido, gerando, cancelar). No resto, a cada 2 minutos.
+   O relógio local bate a cada 4 s, mas só fala com o banco quando chegou a hora.
+   Travado por scripts/testes/pix-ritmo.test.cjs (roda estas funções de verdade). */
+var PIX_TIQUE=4000, PIX_RAPIDO=8000, PIX_CALMO=120000;
+var pixCobsLeveSig="", pixUltimaChecagem=0, pixCobSeq=0, pixCobAplicada=0;
+function pixSigLeve(linhas){ return (linhas||[]).map(function(r){ return r.id+":"+r.status; }).join(","); }
+function pixPrecisaPressa(){
+  var mm=document.getElementById("pixModal");
+  if(mm && mm.classList.contains("show") && pixModalKey) return true;   // QR na tela, esperando pagar
+  for(var k in pixCobs){ var st=pixCobs[k] && pixCobs[k].status; if(st==="pedido"||st==="gerando"||st==="cancelar") return true; }   // robô trabalhando
+  return false;
+}
+function pixCobChecar(){
+  var sb=pxSB(); if(!sb || !pxPodeVer()) return;
+  sb.from("pix_cobrancas").select("id,status").order("id",{ascending:false}).limit(1000).then(function(res){
+    if(res.error || !res.data) return;
+    if(pixSigLeve(res.data)!==pixCobsLeveSig) pixCobLoad();   // mudou algo: aí sim baixa a lista inteira
+  },function(){});
+}
+function pixRitmo(){
+  try{
+    if(document.visibilityState==="hidden" || !pxPodeVer()) return;
+    var espera=pixPrecisaPressa()?PIX_RAPIDO:PIX_CALMO;
+    // FOLGA DE MEIO TIQUE: o relógio do navegador não bate exato (7.999 ms em vez de 8.000), e
+    // sem folga a conferência "rápida" pulava um tique e virava de 12 s (revisão de 30/09).
+    // Diferença NEGATIVA = o relógio do computador foi acertado pra trás: vale como "já passou".
+    var passou=Date.now()-pixUltimaChecagem;
+    if(passou>=0 && passou<espera-PIX_TIQUE/2) return;
+    pixUltimaChecagem=Date.now();
+    pixCobChecar();
+  }catch(e){}
+}
+/* ==PIXRITMO-FIM== */
 function savePontosG(){ try{ localStorage.setItem("pontos_gondola", JSON.stringify(pontosG)); }catch(e){} clearTimeout(pxPushT); pxPushT=setTimeout(pxCloudPush,800); }
 let pxEditId = null;
 
@@ -35718,7 +35772,9 @@ if (avJsFonte) {
       avMin = true;
     } catch (e) { avJs = avJsFonte; avMin = false; }   // sem esbuild (o robô pode não ter): vai sem minificar
     const avCssEscuro = "@media screen{" + temaProcessarCss(avCssFonte) + temaInlineDark(avJsFonte) + "}";
-    const avJson = JSON.stringify({ js: avJs, css: avCssFonte, cssEscuro: avCssEscuro, montado_em: new Date().toISOString(), minificado: avMin });
+    // SEM hora da montagem dentro do pacote: o robô só publica quando o Painel MUDA (publicar.cjs compara o conteúdo), e uma
+    // hora aqui faria cada montagem parecer nova — um envio ao site a cada rodada, gastando o limite diário de publicações.
+    const avJson = JSON.stringify({ js: avJs, css: avCssFonte, cssEscuro: avCssEscuro, minificado: avMin });
     const { gzipSync, gunzipSync } = await import("node:zlib");
     const avB64 = gzipSync(Buffer.from(avJson, "utf8"), { level: 9 }).toString("base64");
     if (gunzipSync(Buffer.from(avB64, "base64")).toString("utf8") !== avJson) throw new Error("o pacote não voltou igual depois de compactado");
