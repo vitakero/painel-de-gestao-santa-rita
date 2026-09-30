@@ -17657,15 +17657,18 @@ function glContratoDocHtml(g){
      "<div class='bloco'>"+_carimbo+"<div class='linha'><div class='papel'>LOCADORA</div></div></div>"+
      "<div class='bloco'><div class='carimbo vazio'></div><div class='linha'><div class='papel'>LOCATÁRIA</div></div></div>"+
      "</div>";
-  if(_as) h+="<p class='confere'>Assinatura eletrônica registrada no Painel Santa Rita em "+pxEsc(pxAssinDataFmt(_as.em))
+  // o parágrafo de conferência vai DEPOIS das testemunhas (pedido dele, 30/09): as assinaturas
+  // ficam juntas, e a explicação de como conferir o código fica no fim da folha
+  var confereHtml = _as ? ("<p class='confere'>Assinatura eletrônica registrada no Painel Santa Rita em "+pxEsc(pxAssinDataFmt(_as.em))
     +" sob o código <b>"+pxEsc(_as.codigo||"")+"</b>."
     +"<br>Confira a autenticidade em <b>"+pxEsc(PX_CONFERIR_URL.split("//").pop())+"</b> — a página mostra a qual contrato este código pertence."
-    +"<br>O código é gerado com chave secreta e deixa de valer se qualquer dado deste contrato for alterado.</p>";
+    +"<br>O código é gerado com chave secreta e deixa de valer se qualquer dado deste contrato for alterado.</p>") : "";
   h+="</div>";
   h+="<div class='test'><div class='t'>Testemunhas:</div><div class='row'>"+
      "<div class='item'>1. <span class='ln'></span><br>Nome:<br>RG:</div>"+
      "<div class='item'>2. <span class='ln'></span><br>Nome:<br>RG:</div>"+
      "</div></div>";
+  h+=confereHtml;
   h+="</td></tr></tbody></table>";   // fecha a moldura .pg
   h+="</div></div></body></html>";
   return h;
