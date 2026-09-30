@@ -16130,6 +16130,10 @@ function rcbAutDecidir(id, autorizar){
         if(res && res.error){
           uiConfirm({titulo:"Não consegui autorizar",
             msg:"A senha do master não confere, ou o pedido já foi decidido.",ok:"OK",cancel:""});
+        } else if(res && res.data==="senha_incorreta"){
+          /* Senha errada agora é RESPOSTA do banco, não erro: assim a tentativa fica anotada e
+             a trava de erros (5 em 15 minutos desde 29/09/2026) conta. */
+          uiConfirm({titulo:"Não consegui autorizar",msg:"A senha do master não confere.",ok:"OK",cancel:""});
         }
         rcbAutCarregar();
       }, function(){
@@ -17893,7 +17897,7 @@ function glAssinErro(e){
   return "Não consegui concluir agora. "+m;
 }
 // As três funções do banco respondem igual: erro de verdade vem em r.error; senha errada vem
-// em r.data.erro (devolvida, não estourada, para a tentativa ficar contada na trava de 10 erros).
+// em r.data.erro (devolvida, não estourada, para a tentativa ficar contada na trava de erros).
 function glAssinRpc(nome,args,titulo,sucesso){
   var sb=glSB();
   if(!sb){ uiConfirm({titulo:"Precisa estar conectado",msg:"Isso exige conexão com a nuvem — é lá que fica a chave da assinatura. Entre no painel e tente de novo.",ok:"Entendi",cancel:""}); return; }
@@ -20120,6 +20124,8 @@ function pxAssinar(id){
     // quem assina é o BANCO: só lá existe a chave secreta que gera o código
     sb.rpc("assinar_contrato_ponto",{p_id:id,p_senha:senha,p_nome:nome,p_impressao_esperada:pxAssinImpressao(p)}).then(function(r){
       if(r&&r.error){ uiConfirm({titulo:"Não deu para assinar",msg:pxAssinErro(r.error),ok:"Entendi",cancel:""}); return; }
+      // senha errada volta como resposta {erro:"senha_incorreta"} (a tentativa fica anotada no banco)
+      if(r&&r.data&&r.data.erro){ uiConfirm({titulo:"Não deu para assinar",msg:pxAssinErro({message:r.data.erro}),ok:"Entendi",cancel:""}); return; }
       var a=r&&r.data; if(!a||!a.codigo){ uiConfirm({titulo:"Não deu para assinar",msg:"A nuvem não devolveu o código. Tente de novo.",ok:"Entendi",cancel:""}); return; }
       var pAt=pontosG.find(function(x){ return x.id===id; })||p;   // a nuvem pode ter recarregado a lista enquanto a senha era digitada
       /* ==PXCONTRATO== o botão Assinar só aparece SEM assinatura válida (nunca assinou, cancelou ou
@@ -20153,6 +20159,49 @@ function pxAssinErro(e){
     return "A blindagem da assinatura ainda n\u00e3o foi instalada no banco. Rode o arquivo sql/assinatura_blindada.sql no Supabase.";
   return "N\u00e3o consegui assinar agora. "+m;
 }
+/* ==PAGSENHA-INICIO== PAGAMENTO POR FORA: QUEM GRAVA É O BANCO (28/09/2026)
+   Autorizar pagamento por fora, autorizar bonificação e desfazer pagamento passam por funções
+   do banco que conferem a senha do master de novo e fazem a mudança. Antes a tela gravava
+   "autorizado" direto na tabela — e um login com a página Pontos extras conseguia fazer isso
+   sem senha nenhuma, pulando a tela. Agora o banco desfaz qualquer gravação assim sozinho
+   (sql 2_pontos_pagamento_com_senha.sql). O banco devolve só o que mudou (nulo = apagar). */
+function pxPagAplicar(p,r){
+  ["manuais","comprovantes"].forEach(function(c){
+    var m=r&&r[c]; if(!m||typeof m!=="object") return;
+    p[c]=p[c]||{};
+    Object.keys(m).forEach(function(k){ if(m[k]===null) delete p[c][k]; else p[c][k]=m[k]; });
+  });
+}
+// a MESMA regra de "paga" da tela, sem o boleto (é a que o banco usa na trava)
+function pxPagoSemBanco(p,key){ return pxQuitado({id:"",manuais:p.manuais,comprovantes:p.comprovantes},key); }
+function pxPagErro(r){
+  var e=(r&&r.error)?String(r.error.message||""):String((r&&r.data&&r.data.erro)||"");
+  if(e==="senha_incorreta") return "Senha do master incorreta.";
+  if(e==="bloqueado") return "Muitas tentativas erradas. Espere 15 minutos e tente de novo.";
+  if(e==="sem_permissao") return "Seu login não tem acesso à página Pontos extras.";
+  if(e==="precisa_estar_logado") return "Sua sessão caiu. Entre no painel de novo.";
+  if(e==="falta_comprovante") return "Falta o comprovante desta parcela.";
+  if(e==="nada_para_autorizar"||e==="nada_para_desfazer"||e==="nao_encontrado"||e==="parcela_invalida")
+    return "Esta parcela mudou em outra tela. A lista foi atualizada — confira e tente de novo.";
+  if(e.indexOf("pontos_autorizar")>=0||e.indexOf("pontos_desfazer")>=0||e.indexOf("does not exist")>=0||e.indexOf("schema cache")>=0)
+    return "Falta instalar no banco a trava do pagamento por fora. Peça para rodar o arquivo 2_pontos_pagamento_com_senha.sql no Supabase.";
+  return "Não consegui gravar agora. "+e;
+}
+// chama a função do banco: deu certo -> aplica o que mudou; não deu -> avisa e relê da nuvem
+function pxPagRpc(fn,args,pid){
+  var sb=pxSB();
+  if(!sb){ uiConfirm({titulo:"Precisa estar conectado",msg:"Isto é gravado no banco. Entre no painel e tente de novo.",ok:"Entendi",cancel:""}); return; }
+  sb.rpc(fn,args).then(function(r){
+    if(r&&!r.error&&r.data&&r.data.ok){
+      var pA=pontosG.find(function(x){ return x.id===pid; });
+      if(pA){ pxPagAplicar(pA,r.data); savePontosG(); renderPontosG(); pxReabrir(pA.id); }
+      return;
+    }
+    uiConfirm({titulo:"Não foi gravado",msg:pxPagErro(r),ok:"Entendi",cancel:""});
+    try{ pxCloudLoad(); }catch(e2){}
+  },function(){ uiConfirm({titulo:"Sem resposta da nuvem",msg:"Não consegui falar com o banco agora. Tente de novo.",ok:"Entendi",cancel:""}); });
+}
+/* ==PAGSENHA-FIM== */
 // cancelar também passa pelo banco (a coluna não aceita escrita direta)
 // Contrato assinado só sai com a senha do master — o banco recusa DELETE direto.
 function pxApagarAssinado(p){
@@ -20161,6 +20210,7 @@ function pxApagarAssinado(p){
     if(!senha||senha===true) return;
     sb.rpc("apagar_ponto_assinado",{p_id:p.id,p_senha:senha}).then(function(r){
       if(r&&r.error){ uiConfirm({titulo:"Não deu para apagar",msg:pxAssinErro(r.error),ok:"Entendi",cancel:""}); return; }
+      if(r&&r.data===false){ uiConfirm({titulo:"Não deu para apagar",msg:"Senha do master incorreta.",ok:"Entendi",cancel:""}); return; } // senha errada é resposta, não erro
       lixAdd("Ponto extra","Nº "+(p.numero||"?")+" · "+(p.fornecedor||"sem fornecedor"),"ponto",p);
       pontosG=pontosG.filter(function(x){ return x.id!==p.id; });
       savePontosG(); if(pxEditId===p.id) pxLimparForm(); renderPontosG();
@@ -20174,6 +20224,7 @@ function pxCancelarAssinatura(id){
     if(!senha||senha===true) return;
     sb.rpc("cancelar_assinatura_ponto",{p_id:id,p_senha:senha}).then(function(r){
       if(r&&r.error){ uiConfirm({titulo:"Não deu para cancelar",msg:pxAssinErro(r.error),ok:"Entendi",cancel:""}); return; }
+      if(r&&r.data===false){ uiConfirm({titulo:"Não deu para cancelar",msg:"Senha do master incorreta.",ok:"Entendi",cancel:""}); return; } // senha errada é resposta, não erro
       delete p.assinatura; savePontosG(); renderPontosG();
     },function(){});
   });
@@ -20516,7 +20567,12 @@ function autorizarMaster(motivo,sempre,devolverSenha){
       if(!sb){ falha("Não consegui conferir agora. Tente de novo."); return; }
       ok.disabled=true; ok.textContent="Conferindo…"; erro.style.display="none";
       sb.rpc("senha_master_ok",{senha:senha}).then(function(r){
-        if(r && r.error){ falha("Não consegui conferir agora. Tente de novo."); return; }
+        // A trava do banco (5 erros em 15 minutos = descansa 15) chega aqui como ERRO. Sem esta
+        // leitura a pessoa via "Não consegui conferir agora" e ficava tentando, achando que era a internet.
+        if(r && r.error){ var em=String((r.error&&r.error.message)||"");
+          falha(/muitas_tentativas/.test(em) ? "Muitas tentativas erradas. Espere 15 minutos e tente de novo."
+              : /conta_nao_aprovada/.test(em) ? "Seu login ainda não foi liberado pelo administrador."
+              : "Não consegui conferir agora. Tente de novo."); return; }
         if(r && r.data===true){ fechar(devolverSenha?senha:true); }
         else { falha("Senha do master incorreta."); }
       }, function(){ falha("Não consegui conferir agora. Tente de novo."); });
@@ -20815,15 +20871,13 @@ async function pixTravaClick(){
               +"\\n\\nConfira o comprovante antes de autorizar — depois ele não pode mais ser apagado.",
           ok:"Autorizar", cancel:"Agora não"}).then(function(vai){
         if(!vai) return;
-        autorizarMaster("Autorizar este pagamento, feito por fora do banco. Digite a senha do master para confirmar.",true).then(function(ok){
-          if(!ok) return;
+        autorizarMaster("Autorizar este pagamento, feito por fora do banco. Digite a senha do master para confirmar.",true,true).then(function(senha){
+          if(!senha||senha===true) return;
           const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return;
-          const mA=(pA.manuais||{})[kk]; if(!pxManManual(mA) || mA.st!=="pendente"){ renderPontosG(); return; }
           if(!pxExigeContrato(pA,"marcar")) return;   // ==PXCONTRATO== confere de novo na hora de gravar
-          pA.manuais[kk]=Object.assign({}, mA, {st:"autorizado",
-            autorizado_por:(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"",
-            autorizado_em:new Date().toISOString()});
-          savePontosG(); renderPontosG(); pxReabrir(pA.id);
+          /* QUEM GRAVA É O BANCO (==PAGSENHA==): confere a senha de novo, exige o comprovante e
+             grava quem autorizou e quando. A tela não escreve mais "autorizado". */
+          pxPagRpc("pontos_autorizar_pagamento",{p_id:pr[0],p_parcela:kk,p_senha:senha},pr[0]);
         });
         });
         return;
@@ -20833,19 +20887,15 @@ async function pixTravaClick(){
         if(!((p.comprovantes||{})[kk])){ uiConfirm({titulo:"Falta o arquivo da nota",msg:"Para autorizar a bonificação, anexe primeiro o ARQUIVO da nota fiscal (PDF) no botão Anexar, na coluna Comprovante desta parcela.",ok:"Entendi",cancel:""}); return; }
         // o realtime pode trocar pontosG durante os diálogos — sempre rebuscar pelo id na hora de mexer
         const pega=function(){ const pF=pontosG.find(function(x){ return x.id===pr[0]; }); const mF=pF&&(pF.manuais||{})[kk]; return (pF&&pxManBonif(mF)&&mF.st==="pendente"&&mF.pend)?{p:pF,man:mF}:null; };
+        var senhaB=""; // a senha digitada volta ao banco, que confere de novo e grava (==PAGSENHA==)
         const fecha=function(quitado){
           const fr=pega(); if(!fr){ uiConfirm({titulo:"Nada para autorizar",msg:"Este registro mudou ou já foi tratado em outra tela. A lista foi atualizada.",ok:"Ok",cancel:""}); renderPontosG(); return; }
-          const nt=Math.round(((+fr.man.tot||0)+(+fr.man.pend.valor||0))*100)/100;
-          fr.man.hist=fr.man.hist||[];
-          var _n=fr.man.hist.length+1; // sequência desta entrega (1ª, 2ª, ...)
-          fr.man.hist.push(Object.assign({},fr.man.pend,{autPor:(window.__EMAIL||""),autEm:new Date().toISOString(),notaKey:kk+"~e"+_n}));
-          // guarda a nota DESTA entrega numa chave própria (preserva todas) e libera a chave da parcela pra próxima nota
-          if(fr.p.comprovantes && fr.p.comprovantes[kk]){ fr.p.comprovantes[kk+"~e"+_n]=fr.p.comprovantes[kk]; delete fr.p.comprovantes[kk]; }
-          fr.man.pend=null; fr.man.tot=nt;
-          fr.man.st=(quitado || nt>=((+fr.p.valor||0)-0.005))?"autorizado":"parcial";
-          savePontosG(); renderPontosG(); pxReabrir(fr.p.id);
+          /* O BANCO faz o que esta função fazia: a entrega entra no histórico, a nota vai para a
+             chave própria da entrega (parcela~eN), soma o que veio e decide Pago ou Parcial.
+             quitado = o master aceitou como quitado mesmo vindo menos. */
+          pxPagRpc("pontos_autorizar_bonificacao",{p_id:fr.p.id,p_parcela:kk,p_senha:senhaB,p_quitar:!!quitado},fr.p.id);
         };
-        autorizarMaster("Autorizar esta bonificação. Digite a senha do master para confirmar.",true).then(function(ok){ if(!ok) return;
+        autorizarMaster("Autorizar esta bonificação. Digite a senha do master para confirmar.",true,true).then(function(senha){ if(!senha||senha===true) return; senhaB=senha;
           const fr0=pega(); if(!fr0){ uiConfirm({titulo:"Nada para autorizar",msg:"Este registro mudou ou já foi tratado em outra tela. A lista foi atualizada.",ok:"Ok",cancel:""}); renderPontosG(); return; }
           if(!pxExigeContrato(fr0.p,"marcar")) return;   // ==PXCONTRATO== confere de novo na hora de gravar
           const novoTot=Math.round(((+fr0.man.tot||0)+(+fr0.man.pend.valor||0))*100)/100;
@@ -20861,32 +20911,36 @@ async function pixTravaClick(){
         });
         return;
       }
-      autorizarMaster("Autorizar este pagamento, feito por fora do banco. Digite a senha do master para confirmar.",true).then(function(ok){ if(!ok) return; const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return;
+      autorizarMaster("Autorizar este pagamento, feito por fora do banco. Digite a senha do master para confirmar.",true,true).then(function(senha){ if(!senha||senha===true) return;
+        const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return;
         if(!pxExigeContrato(pA,"marcar")) return;   // ==PXCONTRATO== confere de novo na hora de gravar
-        pA.manuais=pA.manuais||{};
-        /* NAO APAGAR O MOTIVO. Ate 28/08/2026 esta linha era manuais[kk]="autorizado", o que
-           trocava o registro inteiro por uma palavra — e o porque do pagamento sumia junto. */
-        var mAnt=pA.manuais[kk];
-        pA.manuais[kk] = pxManManual(mAnt)
-          ? Object.assign({}, mAnt, {st:"autorizado", autorizado_em:new Date().toISOString()})
-          : "autorizado";
-        savePontosG(); renderPontosG(); pxReabrir(pA.id); });
+        /* Formato antigo (a palavra "pendente", de antes de 28/08/2026): o banco confere a senha
+           e grava "autorizado" (==PAGSENHA==). O pago-por-fora com motivo nunca chega aqui —
+           ele sai no bloco de cima, e o banco mantém o motivo. */
+        pxPagRpc("pontos_autorizar_pagamento",{p_id:pr[0],p_parcela:kk,p_senha:senha},pr[0]); });
     } return; }
     const rec=e.target.closest("[data-recusar]");
     if(rec){ const pr=rec.dataset.recusar.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p&&p.manuais){
       const kk=pr[1]; const manR=p.manuais[kk]; const ehBonR=pxManBonif(manR);
-      uiConfirm({titulo:ehBonR?"Recusar bonificação":"Recusar pagamento",msg:ehBonR?"Remover este registro de mercadoria pendente? (o que já foi autorizado antes não é mexido)":"Remover esta marcação de pagamento pendente?",ok:"Recusar",cancel:"Cancelar"}).then(function(sim){ if(!sim) return;
+      uiConfirm({titulo:ehBonR?"Recusar bonificação":"Recusar pagamento",msg:ehBonR?"Remover este registro de mercadoria pendente? (o que já foi autorizado antes não é mexido)":"Remover esta marcação de pagamento pendente? O comprovante anexado sai junto.",ok:"Recusar",cancel:"Cancelar"}).then(function(sim){ if(!sim) return;
         const pR=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pR||!pR.manuais) return; // rebusca: o realtime pode ter trocado pontosG
         const mR=pR.manuais[kk];
         if(pxManBonif(mR) && (+mR.tot||0)>0){ mR.pend=null; mR.st="parcial"; if(pR.comprovantes) delete pR.comprovantes[kk]; } // tira só a nota do rascunho recusado; as entregas já autorizadas (kk~eN) ficam
-        else { const eraBon=pxManBonif(mR); delete pR.manuais[kk]; if(eraBon && pR.comprovantes){ Object.keys(pR.comprovantes).forEach(function(k){ if(k===kk || k.indexOf(kk+"~e")===0) delete pR.comprovantes[k]; }); } } // tira todas as notas junto, senão a parcela fica "Quitado" órfã
+        else { const eraBon=pxManBonif(mR); delete pR.manuais[kk]; if(eraBon && pR.comprovantes){ Object.keys(pR.comprovantes).forEach(function(k){ if(k===kk || k.indexOf(kk+"~e")===0) delete pR.comprovantes[k]; }); }
+          /* PAGO POR FORA RECUSADO: o comprovante sai junto. Até 28/09/2026 ele ficava, e comprovante
+             sozinho conta como pago (pxQuitado) — RECUSAR fazia a parcela aparecer "Quitado". */
+          else if(pxManManual(mR) && pR.comprovantes){ delete pR.comprovantes[kk]; } } // bonificação: tira todas as notas junto, senão a parcela fica "Quitado" órfã
         savePontosG(); renderPontosG(); pxReabrir(pR.id);
       });
     } return; }
     const desf=e.target.closest("[data-desfazerpago]");
     if(desf){ const pr=desf.dataset.desfazerpago.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p&&p.manuais){
       const kk=pr[1]; const ehBonD=pxManBonif(p.manuais[kk]);
-      autorizarMaster("Desfazer este "+(ehBonD?"registro de bonificação":"pagamento")+". Digite a senha do master para confirmar.",true).then(function(ok){ if(!ok) return; const pD=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pD||!pD.manuais) return; delete pD.manuais[kk]; if(ehBonD && pD.comprovantes){ Object.keys(pD.comprovantes).forEach(function(k){ if(k===kk || k.indexOf(kk+"~e")===0) delete pD.comprovantes[k]; }); } savePontosG(); renderPontosG(); pxReabrir(pD.id); }); // bonif: remove TODAS as notas junto, senão fica "Quitado" órfão
+      autorizarMaster("Desfazer este "+(ehBonD?"registro de bonificação":"pagamento")+". Digite a senha do master para confirmar.",true,true).then(function(senha){ if(!senha||senha===true) return;
+        /* O BANCO confere a senha e tira a marcação E o comprovante (na bonificação, todas as notas
+           das entregas). Até 28/09/2026 o pago por fora deixava o comprovante, e a parcela
+           continuava "Quitado" depois de desfeita (==PAGSENHA==). */
+        pxPagRpc("pontos_desfazer_pagamento",{p_id:pr[0],p_parcela:kk,p_senha:senha},pr[0]); });
     } return; }
     const cpbtn=e.target.closest("[data-compfile-btn]");
     if(cpbtn){ const inp=document.querySelector('[data-compfile="'+cpbtn.dataset.compfileBtn+'"]'); if(inp) inp.click(); return; }
@@ -20900,6 +20954,13 @@ async function pixTravaClick(){
       const mC=p&&(p.manuais||{})[pr[1]];
       if(pxManManual(mC) && mC.st==="autorizado"){
         uiConfirm({titulo:"Não dá para remover",msg:"Este comprovante é a prova de um pagamento que não passou pelo banco e já foi autorizado. Para trocá-lo, desfaça o pagamento primeiro e marque de novo.",ok:"Entendi",cancel:""});
+        return;
+      }
+      /* TIRAR O COMPROVANTE DE UMA PARCELA PAGA É DESFAZER O PAGAMENTO: comprovante sozinho conta
+         como pago (pxQuitado). O banco não deixa sem a senha do master (==PAGSENHA==). */
+      if(p&&p.comprovantes&&p.comprovantes[pr[1]]&&pxPagoSemBanco(p,pr[1])){
+        autorizarMaster("Tirar o comprovante faz esta parcela voltar a ficar em aberto. Digite a senha do master para confirmar.",true,true).then(function(senha){ if(!senha||senha===true) return;
+          pxPagRpc("pontos_desfazer_pagamento",{p_id:p.id,p_parcela:pr[1],p_senha:senha},p.id); });
         return;
       }
       if(p&&p.comprovantes&&p.comprovantes[pr[1]]){ uiConfirm({ titulo:"Remover comprovante", msg:"Remover o comprovante desta parcela?", ok:"Remover", cancel:"Cancelar" }).then(function(sim){ if(!sim) return; delete p.comprovantes[pr[1]]; savePontosG(); renderPontosG(); pxReabrir(p.id); }); } return; }

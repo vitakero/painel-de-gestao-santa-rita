@@ -69,10 +69,14 @@ console.log("\n4) as travas que seguram o dinheiro");
 eq("   anexo NÃO quita sozinho (pula a autorização)",
    /if\(pxManManual\(man\) && man\.st!=="autorizado"\) return pixCobPaga\(p,key\);/.test(HTML), true);
 eq("   autorizar exige a senha master",
-   /autorizarMaster\("Autorizar este pagamento, feito por fora do banco\. Digite a senha do master para confirmar\.",true\)/.test(HTML), true); // senha REAL, conferida no banco, e pedida até do master (pedido dele, 03/09/2026)
+   /autorizarMaster\("Autorizar este pagamento, feito por fora do banco\. Digite a senha do master para confirmar\.",true,true\)/.test(HTML), true); // senha REAL, conferida no banco, e pedida até do master (pedido dele, 03/09/2026)
 eq("   e exige o comprovante anexado", /Para autorizar, o comprovante do pagamento precisa estar anexado/.test(HTML), true);
-eq("   só autoriza o que está pendente", /if\(!pxManManual\(mA\) \|\| mA\.st!=="pendente"\)/.test(HTML), true);
-eq("   guarda QUEM autorizou", /autorizado_por:\(window\.__PERFIL&&window\.__PERFIL\.nome\)/.test(HTML), true);
+// Desde 28/09/2026 QUEM GRAVA É O BANCO (pontos_autorizar_pagamento): ele confere a senha de novo,
+// só autoriza o que está pendente, exige o comprovante e guarda quem autorizou. Essas regras são
+// provadas RODANDO no Postgres temporário (.previa/seguranca-senha-master/codigo/seguranca-senha-banco.test.cjs).
+eq("   quem grava a autorização é o banco", /pxPagRpc\("pontos_autorizar_pagamento",\{p_id:pr\[0\],p_parcela:kk,p_senha:senha\},pr\[0\]\)/.test(HTML), true);
+eq("   a tela não grava mais 'autorizado' sozinha", /manuais\[kk\]=Object\.assign\(\{\}, mA, \{st:"autorizado"/.test(HTML), false);
+eq("   e mostra QUEM autorizou", /man\.autorizado_por\?\(', autorizado por '\+pxEsc\(man\.autorizado_por\)\)/.test(HTML), true);
 eq("   a prova de pagamento autorizado não se apaga", /Não dá para remover/.test(HTML), true);
 
 console.log("\n5) o motivo é VISÍVEL — não escondido no passar-o-mouse");

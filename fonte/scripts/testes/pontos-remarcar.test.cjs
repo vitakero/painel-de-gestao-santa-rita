@@ -116,9 +116,11 @@ eq("   e mostra o motivo ANTES de autorizar", /Autorizar a data nova\?/.test(HTM
 eq("   recusar também é ato de master", /autorizarMaster\("Recusar a data nova desta parcela\. Digite a senha do master para confirmar\.",true\)/.test(HTML), true);
 // PEDIDO DELE (03/09/2026): a senha é pedida MESMO PRA ELE, master — como nas outras ações
 // protegidas. O sempre=true é o que faz o autorizarMaster não passar direto pro master.
+// Desde 28/09/2026 os pagamentos por fora pedem a senha DE VOLTA (terceiro true): o banco confere
+// de novo e é ele quem grava — ver .previa/seguranca-senha-master (a trava de pagamento).
 eq("   e a senha é pedida até do próprio master (sempre=true)",
-   (HTML.match(/autorizarMaster\("(Autorizar|Recusar)[^"]*",true\)/g) || []).length, 5); // data nova, recusar, marcar pago (2 caminhos), bonificação
-eq("   inclusive pra desfazer um pagamento", /autorizarMaster\("Desfazer este "\+\(ehBonD\?"registro de bonificação":"pagamento"\)\+"\. Digite a senha do master para confirmar\.",true\)/.test(HTML), true);
+   (HTML.match(/autorizarMaster\("(Autorizar|Recusar)[^"]*",true(,true)?\)/g) || []).length, 5); // data nova, recusar, marcar pago (2 caminhos), bonificação
+eq("   inclusive pra desfazer um pagamento", /autorizarMaster\("Desfazer este "\+\(ehBonD\?"registro de bonificação":"pagamento"\)\+"\. Digite a senha do master para confirmar\.",true(,true)?\)/.test(HTML), true);
 eq("   e nenhuma autorização dos pontos passa direto pro master",
    (HTML.match(/autorizarMaster\("(Autorizar|Recusar)[^"]*"\)/g) || []).length, 0);
 eq("   nenhum caminho dos pontos usa mais a senha de navegador",
