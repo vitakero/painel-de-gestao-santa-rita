@@ -18035,8 +18035,14 @@ function renderGalpoes(){
         glContratoHtml(g)+
       '</div>'+glAgendaHtml(g)+'</div></td></tr>';
   }).join("");
+  /* O REDESENHO NÃO FECHA O QUE ESTAVA ABERTO (30/09, queixa dele: "quando aperto pago ou o X a
+     tela recolhe"). Todo salvar redesenha a lista — na hora do clique e de novo quando a nuvem
+     confirma (glCloudLoad) — e a linha do galpão aberta se fechava. Guarda quais estavam abertas
+     e reabre as mesmas (os pontos extras fazem igual no pixCobLoad). */
+  var abertosG=[].filter.call(tb.querySelectorAll("tr.px-det"),function(tr){ return tr.style.display!=="none"; }).map(function(tr){ return tr.id.slice(5); });
   tb.innerHTML='<table><thead><tr><th style="width:34px;"></th><th>Nº</th><th>Empresa</th><th>Inquilino</th><th>Valor</th><th>Pagamento</th><th>Abertura</th><th>Vencimento</th><th>Status</th><th>Observação</th><th></th></tr></thead><tbody>'+
     (linhas || '<tr><td colspan="11" class="vazio">Nenhum galpão.</td></tr>')+'</tbody></table>';
+  abertosG.forEach(function(id){ try{ glReabrir(id); }catch(e){} });
 }
 (function initGalpoes(){
   var salvar=document.getElementById("glSalvar"); if(!salvar) return;
@@ -18594,6 +18600,15 @@ function pxPagoMes(p){
   // Comprovante numa data que saiu do calendário (edição com "Mudar mesmo assim") não conta mais:
   // é o mesmo aviso que a própria edição já dá.
   function pagaK(k){ return pxQuitado(p,k); }
+  /* ==GLSTATUS== GALPÃO (30/09, queixa dele: "marquei como pago mas lá em cima ainda mostra em
+     aberto"): o galpão olha a PRÓXIMA mensalidade — a primeira que vence deste mês em diante.
+     No mês da abertura não há mensalidade (a 1ª é o dia 5 seguinte), e pago adiantado não
+     aparecia. Paga = "PAGO"; não paga = "EM ABERTO"; vencida sem pagar continua "ATRASADO"
+     (pxAtrasado vem antes). Os pontos extras seguem olhando o mês de hoje, como sempre. */
+  if("diaPag" in p){
+    const prox=pxAgenda(p).map(function(d){ return pxDateKey(d); }).filter(function(k){ return k.slice(0,7)>=ym; })[0];
+    return !!prox && pagaK(prox);
+  }
   const doMes=pxAgenda(p).map(function(d){ return pxDateKey(d); })
     .filter(function(k){ return k.indexOf(ym)===0 || pxVenc(p,k).indexOf(ym)===0; });
   return doMes.length>0 && doMes.every(pagaK);
