@@ -28,7 +28,7 @@ const depois = () => new Promise(r => setImmediate(r));
 // tela de mentira: elementos por id (a janela do marcar pago) e avisos anotados
 function mundo(opc) {
   opc = opc || {};
-  const avisos = [], estado = { salvou: 0, els: {} };
+  const avisos = [], estado = { salvou: 0, els: {}, updates: [] };
   const el = id => estado.els[id] || (estado.els[id] = { id, value: "", innerHTML: "", textContent: "", dataset: {}, style: {},
     classList: { _c: new Set(), add(c) { this._c.add(c); }, remove(c) { this._c.delete(c); }, contains(c) { return this._c.has(c); } },
     addEventListener() {}, focus() {}, click() {} });
@@ -40,10 +40,12 @@ function mundo(opc) {
     "function brl(v){ return 'R$ '+(+v||0).toFixed(2); } function pxFmtData(k){ return k; }\n" +
     "function autorizarMaster(){ return Promise.resolve('senha-de-mentira'); }\n" +
     // a nuvem assina a impressão que o painel mandou; se pedido, troca a lista no meio (como a recarga)
-    "function pxSB(){ return { rpc: function(n, a){ if(opc.recarrega) pontosG=JSON.parse(JSON.stringify(pontosG)); return { then: function(ok){ ok({ data: { em:'2026-10-01T10:00:00Z', codigo:'NOVO-0001', impressao:a.p_impressao_esperada } }); } }; } }; }\n" +
+    "function pxSB(){ return { rpc: function(n, a){ if(opc.recarrega) pontosG=JSON.parse(JSON.stringify(pontosG)); return { then: function(ok){ ok({ data: { em:'2026-10-01T10:00:00Z', codigo:'NOVO-0001', impressao:a.p_impressao_esperada } }); } }; },\n" +
+    "  from: function(tab){ return { update: function(campos){ return { eq: function(c, v){ var q={ eq: function(){ return q; }, then: function(ok, falha){ estado.updates.push({ tab: tab, campos: campos, id: v }); if(opc.updateFalha) ok({ error: { message: 'sem permissão' } }); else ok({ error: null }); } }; return q; } }; } }; } }; }\n" +
+    "var pixCobs={}; function pixCobKey(a,b){ return a+'|'+b; } function pxRemarcPend(){ return false; } function pxVenc(p,k){ return k; } function pxDateKey(){ return '2026-09-30'; } function pixCobLoad(){}\n" +
     ["pxAssinatura", "pxAssinImpressao", "pxAssinValida", "pxAssinCaiu", "pxContratoAnexado", "pxExigeAssinatura", "pxExigeContrato",
-     "mpgAbrir", "mpgConfirmar", "pxAssinar"].map(pega).join("\n") +
-    "\nreturn { pxExigeContrato, mpgAbrir, mpgConfirmar, pxAssinar, pxAssinImpressao, pxAssinValida, get lista(){ return pontosG; }, set lista(v){ pontosG=v; }," +
+     "mpgAbrir", "mpgConfirmar", "pxAssinar", "pixCobRetry"].map(pega).join("\n") +
+    "\nreturn { pxExigeContrato, mpgAbrir, mpgConfirmar, pxAssinar, pixCobRetry, pxAssinImpressao, pxAssinValida, get lista(){ return pontosG; }, set lista(v){ pontosG=v; }, cobs(v){ pixCobs=v; }," +
     " arquivo(a){ mpgArquivo=a; } };")(
     documento, o => { avisos.push(o); return Promise.resolve(false); }, { __PERFIL: { nome: "Victor", is_master: true }, __EMAIL: "t" }, estado, opc, () => 0);
   return { f, avisos, estado, el };
@@ -131,6 +133,54 @@ function ponto(f, extra) {
     const p = ponto(f); delete p.assinatura; f.lista = [p];   // primeira assinatura, nada anexado
     f.pxAssinar("p7"); await depois(); await depois();
     vale("primeira assinatura (sem anexo): assina e não mostra aviso", !!f.lista[0].assinatura && avisos.length === 0, avisos.length + " aviso(s)");
+  }
+
+  console.log("\n  ==== ACHADOS DA REVISÃO (conserto) ====");
+  {
+    const { f, estado } = mundo();
+    const p = ponto(f, { contratoArquivo: "https://x/contrato-500.pdf", contratoNome: "contrato-500.pdf" }); f.lista = [p];
+    p.valor = 800; f.pxAssinar("p7"); await depois(); await depois();
+    const u = estado.updates.find(x => x.tab === "pontos_extras");
+    vale("assinar de novo grava NA HORA a retirada do contrato velho na nuvem", !!u && u.id === "p7" && u.campos.contrato_url === "" && u.campos.contrato_nome === "", u ? JSON.stringify(u.campos) : "nada gravado");
+  }
+  {
+    const { f, avisos } = mundo({ updateFalha: true });
+    const p = ponto(f, { contratoArquivo: "https://x/contrato-500.pdf" }); f.lista = [p];
+    p.valor = 800; f.pxAssinar("p7"); await depois(); await depois();
+    vale("se essa gravação falhar, AVISA", avisos.some(a => a.titulo === "O contrato antigo não saiu da nuvem"), avisos.map(a => a.titulo).join(" / "));
+  }
+  {
+    const { f, estado } = mundo();
+    const p = ponto(f); delete p.assinatura; f.lista = [p];
+    f.pxAssinar("p7"); await depois(); await depois();
+    vale("primeira assinatura (sem anexo) não grava nada a mais", estado.updates.length === 0, estado.updates.length + " gravação(ões)");
+  }
+  {
+    const { f, avisos } = mundo();
+    const p = ponto(f); f.lista = [p];
+    f.pxExigeContrato(p, "autorizar");
+    vale("Autorizar sem contrato: o aviso fala de AUTORIZAR (não de marcar)", avisos[0] && /autorize o pagamento/.test(avisos[0].msg) && !/marque como paga/.test(avisos[0].msg), avisos[0] && avisos[0].msg.split("\n").pop());
+    delete p.assinatura; f.pxExigeContrato(p, "autorizar");
+    vale("e sem assinatura: 'o pagamento não pode ser autorizado'", avisos[1] && /pagamento não pode ser autorizado/.test(avisos[1].msg), avisos[1] && avisos[1].titulo);
+  }
+  for (const comContrato of [false, true]) {
+    const { f, avisos, estado } = mundo();
+    const p = ponto(f, comContrato ? { contratoArquivo: "https://x/c.pdf" } : {}); f.lista = [p];
+    f.cobs({ "p7|2026-10-01": { id: 99, status: "erro", documento: "12345678000199" } });
+    f.pixCobRetry("p7", "2026-10-01");
+    const u = estado.updates.find(x => x.tab === "pix_cobrancas");
+    if (comContrato) vale("'Tentar de novo' COM contrato: pede de novo ao banco", !!u && u.campos.status === "pedido", u ? "pedido enviado" : "não pediu");
+    else vale("'Tentar de novo' SEM contrato: NÃO pede ao banco e avisa", !u && avisos[0] && avisos[0].titulo === "Anexe o contrato assinado", u ? "pediu (defeito)" : (avisos[0] && avisos[0].titulo));
+  }
+  for (const sobe of [false, true]) {
+    const avisos = [];
+    const g = new Function("uiConfirm", "window", "sobe",
+      "function pxUploadDataUrl(){ return Promise.resolve(sobe ? 'https://nuvem/p7_contrato.pdf' : ''); }\n" +
+      pega("pxSubirArquivos") + "\nreturn { pxSubirArquivos };")(o => { avisos.push(o); return Promise.resolve(false); }, {}, sobe);
+    const p = { id: "p7", contratoArquivo: "data:application/pdf;base64,QUFB" };
+    await g.pxSubirArquivos(p);
+    if (sobe) vale("contrato subiu: guarda o endereço, sem aviso", p.contratoArquivo === "https://nuvem/p7_contrato.pdf" && avisos.length === 0, p.contratoArquivo);
+    else vale("contrato NÃO subiu: avisa", avisos.length === 1 && avisos[0].titulo === "O contrato não subiu", avisos.map(a => a.titulo).join(" / ") || "nenhum aviso");
   }
 
   console.log("\n  " + ok + " ok, " + falhou + " falha(s).\n");
