@@ -1,0 +1,59 @@
+/* ==AV-RESUMO-CSS== AVARIAS · Resumo: só o que é do Resumo (o comum está em tela.css). Cores sempre em #hex:
+   o modo noturno é gerado destas regras. Nos gráficos, faixa e grade usam uma cor média com transparência,
+   para não virarem blocos ou traços brancos no escuro. */
+.av-resumo .av-graf .av-g-faixa{fill:#6b7787;fill-opacity:.16;}
+.av-resumo .av-graf .av-g-eixo{stroke:#8a97a8;stroke-opacity:.3;}
+.av-resumo .av-graf .av-g-parcial{fill-opacity:.45;}
+.av-resumo .av-graf .av-resumo-alvo{fill:#1a2233;fill-opacity:0;cursor:pointer;}
+.av-resumo .av-graf .av-resumo-alvo:hover{fill-opacity:.06;}
+/* legenda: um SVG pequeno com a mesma classe da barra (passa pela mesma conversão do modo noturno) */
+.av-leg svg.av-resumo-li{display:inline-block;width:14px;height:10px;flex:0 0 auto;overflow:visible;}
+.av-leg svg.av-resumo-li .av-g-lin{stroke-width:2.5;}
+/* valor e selo "inclui estimado" juntos */
+.av-resumo-vv{display:inline-flex;align-items:baseline;gap:5px;flex-wrap:wrap;justify-content:flex-end;white-space:nowrap;}
+.av-k-l li.av-resumo-exp{display:block;font-size:11.5px;line-height:1.45;}
+.av-k-l li.av-resumo-exp span:first-child{color:#6b7787;}
+.av-lk.av-resumo-lk{font-size:11.5px;padding:0;min-height:0;display:inline;}
+/* "Como foi informado o acerto das saídas?" */
+.av-resumo-formas .av-sub{margin-bottom:8px;}
+.av-resumo-fl{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:8px;}
+.av-resumo-fl li{display:flex;flex-direction:column;gap:1px;background:#f8fafc;border:1px solid #e3e8ef;border-radius:9px;padding:7px 10px;min-width:0;}
+.av-resumo-fl li span{font-size:12px;color:#4a5568;font-weight:600;}
+.av-resumo-fl li b{font-size:14px;color:#1a2233;font-variant-numeric:tabular-nums;}
+.av-resumo-fl li i{font-style:normal;font-size:11.5px;color:#6b7787;}
+.av-resumo-fl li.av-resumo-fl-ni{background:#ffffff;border-style:dashed;border-color:#c3ccd6;}
+/* "O que tratar agora": a base de cada número e o aviso de loja inteira */
+.av-resumo .av-tratar .av-t-b{display:block;font-size:11px;font-weight:500;color:#6b7787;white-space:normal;}
+.av-resumo .av-tratar .av-t-o .av-comp{margin-top:1px;}
+.av-chip.av-resumo-loja{background:#f3f6f9;color:#5b6675;border:1px solid #dbe2ea;font-weight:600;margin-left:4px;}
+/* abaixo dos gráficos */
+.av-resumo-custo{margin:6px 0 0;font-size:12px;color:#4a5568;line-height:1.5;}
+.av-resumo-ajl{display:flex;flex-wrap:wrap;align-items:center;gap:5px 6px;margin-top:8px;}
+.av-resumo-ajl-t{flex:1 1 100%;font-size:12px;color:#4a5568;}
+.av-bt.av-resumo-ajbt{min-height:32px;min-width:44px;padding:4px 9px;font-size:12px;font-weight:600;border-radius:7px;border-color:#e3e8ef;background:#ffffff;color:#4a5568;box-shadow:inset 3px 0 0 #e0b44c;}
+.av-bt.av-resumo-ajbt:hover{background:#fff8e6;}
+.av-bt.av-resumo-ajbt b{color:#1a2233;}
+.av-bt.av-resumo-ajbt b{font-variant-numeric:tabular-nums;}
+.av-resumo-med{margin:0 0 2px;}
+.av-resumo-tot{margin:0 0 6px;font-size:12px;color:#4a5568;}
+.av-resumo-fx b{white-space:normal;}
+/* gavetas do Resumo */
+.av-resumo-ind{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px;}
+.av-resumo-ind .av-bt b{font-variant-numeric:tabular-nums;margin-left:4px;}
+.av-chip.av-resumo-decl{background:#e8efff;color:#1d4ed8;}
+.av-card.av-resumo-neg{background:#fbfaf6;border:1px dashed #cbbf9c;box-shadow:none;}
+@media (max-width:760px){
+  .av-resumo-fl{grid-template-columns:minmax(0,1fr);gap:6px;}
+  .av-resumo-fl li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1px 10px;align-items:baseline;}
+  .av-resumo-fl li i{grid-column:1 / -1;}
+  .av-resumo-ind .av-bt{flex:1 1 calc(50% - 6px);}
+  .av-resumo-ajl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}
+  .av-resumo-ajl-t{grid-column:1 / -1;}
+  .av-resumo-vv{justify-content:flex-end;}
+}
+.av-lk.av-resumo-nf{white-space:nowrap;}
+.av-resumo-niv{display:inline-block;}
+@media (max-width:760px){ .av-resumo-niv{text-align:right;} }
+
+/* a base do valor escrita ao lado do nível (decisão do dono: dois "Comprovado" de bases diferentes nunca com o mesmo nome) */
+.av .av-resumo-base{font-size:11px;color:#6b7787;white-space:nowrap;}

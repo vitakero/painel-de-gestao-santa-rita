@@ -44,7 +44,7 @@ function imprimirLote(tam) {
   execFileSync("node", [path.join(RAIZ, "scripts", "previa-lote.cjs")],
     { cwd: RAIZ, env: Object.assign({}, process.env, { TAMANHO: tam }), stdio: "ignore" });
   const pdf = path.join(TMP, "lote-" + tam + ".pdf");
-  execFileSync(CHROME, ["--headless=new", "--disable-gpu", "--no-sandbox", "--virtual-time-budget=30000",
+  execFileSync(CHROME, ["--headless=new", "--use-mock-keychain", "--password-store=basic", "--disable-gpu", "--no-sandbox", "--virtual-time-budget=30000",
     "--print-to-pdf-no-header", "--print-to-pdf=" + pdf,
     "file://" + path.join(RAIZ, ".previa", "lote.html")], { stdio: "ignore" });
   const xml = execFileSync("pdftotext", ["-bbox", pdf, "-"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });

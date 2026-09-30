@@ -21,7 +21,7 @@ const esp = ms => new Promise(r => setTimeout(r, ms));
 
 (async () => {
   const porta = 9100 + Math.floor(Math.random() * 300);
-  const ch = spawn(CHROME, ["--headless=new", "--disable-gpu", "--hide-scrollbars", "--remote-debugging-port=" + porta,
+  const ch = spawn(CHROME, ["--headless=new", "--use-mock-keychain", "--password-store=basic", "--disable-gpu", "--hide-scrollbars", "--remote-debugging-port=" + porta,
     "--user-data-dir=" + path.join(TMP, "perfil"), "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1",
     "--allow-file-access-from-files", "about:blank"], { stdio: "ignore" });
   let alvo = null;

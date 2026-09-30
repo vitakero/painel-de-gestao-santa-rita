@@ -92,7 +92,7 @@ const env = Object.fromEntries(fs.readFileSync(path.join(RAIZ, ".env"), "utf8")
   fs.writeFileSync(MOLDURA, '<!doctype html><meta charset="utf-8"><title>Rotina no celular</title>'
     + '<style>html,body{margin:0;background:#fff}iframe{width:390px;height:' + alto + 'px;border:0;display:block}</style>'
     + '<iframe src="' + path.basename(SAIDA_HTML) + '"></iframe>');
-  execFileSync(CHROME, ["--headless=new", "--disable-gpu", "--hide-scrollbars",
+  execFileSync(CHROME, ["--headless=new", "--use-mock-keychain", "--password-store=basic", "--disable-gpu", "--hide-scrollbars",
     "--force-device-scale-factor=2", "--window-size=390," + alto,
     "--virtual-time-budget=8000", "--screenshot=" + SAIDA_PNG, "file://" + MOLDURA],
     { stdio: "pipe" });

@@ -1,0 +1,233 @@
+/* ==AV-CSS== AVARIAS — aparência da tela. Tudo começa por ".av" (o Painel tem dezenas de milhares de linhas de estilo).
+   Cores escritas por extenso (#hex), nunca var(--x): o modo noturno do Painel é GERADO no build a partir destas cores.
+   Celular: a partir de 760 px (o mesmo corte do menu do Painel) tudo empilha. As tabelas viram cartões já em 1024 px
+   (no tablet elas rolavam de lado dentro do cartão). */
+.av{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#1a2233;font-size:13.5px;line-height:1.45;}
+.av *{box-sizing:border-box;}
+.av button,.av select,.av input{font-family:inherit;}
+.av h2,.av h3,.av h4{margin:0;color:#1a2233;text-wrap:balance;}
+.av [hidden]{display:none !important;}
+.av-topo{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:6px;}
+.av-topo h2{font-size:20px;color:#0c5a26;margin-bottom:2px;}
+.av-topo p{margin:0;font-size:13px;color:#6b7787;}
+.av-dado{margin-left:auto;font-size:11.5px;color:#4a5568;background:#eef1f5;border-radius:999px;padding:5px 11px;white-space:nowrap;cursor:help;}
+.av-dado.av-velho{background:#fdecea;color:#b42318;font-weight:700;}
+/* piloto (etapa 3,6): o selo discreto ao lado do título */
+.av-piloto{display:inline-block;vertical-align:3px;margin-left:6px;font-size:11px;font-weight:700;letter-spacing:.2px;line-height:1.5;padding:1px 8px;border-radius:999px;background:#eef1f5;color:#4a5568;border:1px solid #d5dce6;white-space:nowrap;}
+/* busca por número de nota (só leitura): no fim da barra de filtros, em todas as áreas */
+.av-nbusca{margin-left:auto;}
+.av-nbusca-l{display:flex;gap:6px;align-items:center;}
+.av-nbusca-campo{border:1px solid #d5dce6;background:#ffffff;color:#1a2233;border-radius:9px;padding:7px 10px;font-size:13.5px;min-height:38px;width:9.5em;min-width:0;}
+.av-nbusca-res{flex:1 1 100%;margin:-4px 0 0;font-size:12.5px;color:#4a5568;text-align:right;}
+.av-nbusca-res:empty{display:none;}
+.av-abas{display:flex;gap:2px;border-bottom:1px solid #e3e8ef;margin:8px 0 12px;overflow-x:auto;scrollbar-width:none;}
+.av-abas button{border:0;background:none;padding:10px 14px;font-size:14px;font-weight:600;color:#4a5667;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;min-height:42px;}
+.av-abas button:hover{color:#0c5a26;}
+.av-abas button.av-on{color:#0c5a26;border-bottom-color:#157a35;}
+.av-filtros{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;margin:0 0 14px;}
+.av-f{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.av-f span{font-size:11px;font-weight:600;color:#6b7787;text-transform:uppercase;letter-spacing:.4px;}
+.av-f select{border:1px solid #d5dce6;background:#ffffff;color:#1a2233;border-radius:9px;padding:7px 10px;font-size:13.5px;min-height:38px;max-width:100%;}
+.av-f-nota{flex:1 1 260px;margin:0;font-size:12px;color:#6b7787;align-self:center;}
+.av :focus-visible{outline:2px solid #157a35;outline-offset:2px;}
+.av-card{background:#ffffff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);padding:16px 18px;margin-bottom:14px;min-width:0;}
+.av-card>h3{font-size:15px;margin-bottom:3px;}
+.av-card.av-msg h2{font-size:20px;color:#0c5a26;margin-bottom:6px;}
+.av-card.av-msg p{margin:0;font-size:14px;color:#4a5568;line-height:1.6;}
+.av-carr p{margin:0;color:#6b7787;}
+.av-sub{margin:0 0 10px;font-size:12.5px;color:#6b7787;line-height:1.5;max-width:78ch;}
+.av-apagado{color:#8a97a8;font-size:12px;}
+.avr-vazio{margin:6px 0;color:#6b7787;font-size:13px;}
+.av-v{font-size:24px;font-weight:700;color:#1a2233;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.av-comp{display:block;font-size:12px;color:#4a5568;line-height:1.5;margin-top:2px;}
+.av-est{color:#8a5a00;border-bottom:1px dotted #c79a2e;}
+.av-semc{color:#b42318;}
+.av-num{font-variant-numeric:tabular-nums;white-space:nowrap;}
+.av-bt{background:#eef2f7;color:#33404f;border:1px solid #dbe2ea;border-radius:9px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer;min-height:36px;}
+.av-bt:hover{background:#e3e9f1;}
+.av-lk{background:none;border:0;color:#157a35;font-weight:700;font-size:13px;cursor:pointer;padding:4px 0;text-align:left;}
+.av-lk:hover{text-decoration:underline;}
+.av-chip{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;background:#eef1f5;color:#4a5568;white-space:nowrap;vertical-align:1px;}
+.av-chip-est{background:#fff4d6;color:#8a5a00;}
+.av-chip-conf{background:#fdecea;color:#b42318;}
+.av-chip-sint{background:#f3e8ff;color:#6b21a8;}
+.av-pill{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap;}
+.av-n-comp{background:#eaf7ee;color:#157a35;}
+.av-n-decl{background:#e8efff;color:#1d4ed8;}
+.av-n-aberto{background:#fff4d6;color:#8a5a00;}
+.av-n-nid{background:#eef1f5;color:#5b6675;}
+.av-n-assum{background:#f1ecf8;color:#5b3f8f;}
+.av-n-sem{background:#f3f6f9;color:#6b7787;}
+.av-n-parte{box-shadow:inset 0 0 0 1px #c3ccd6;}
+.av-aviso{border-radius:9px;padding:9px 12px;font-size:12.5px;line-height:1.5;margin:0 0 12px;}
+.av-aviso-fixo{background:#e8efff;color:#1e3a8a;border:1px solid #bcd0f7;font-weight:600;}
+.av-aviso-am{background:#fff4d6;color:#5c4500;border:1px solid #e6c46a;}
+.av-aviso-vm{background:#fdecea;color:#8a1c12;border:1px solid #f0b8b3;}
+.av-aviso-cz{background:#f3f6f9;color:#4a5568;border:1px solid #e3e8ef;}
+.av-aviso b{font-weight:700;}
+/* cartões do Resumo */
+.av-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px;}
+.av-k{background:#ffffff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0;}
+.av-k-q{font-size:12.5px;font-weight:700;color:#33404f;}
+.av-k-s{font-size:12px;color:#6b7787;line-height:1.45;}
+.av-k-l{list-style:none;margin:6px 0 0;padding:6px 0 0;border-top:1px solid #eef1f5;display:flex;flex-direction:column;gap:3px;}
+.av-k-l li{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;align-items:baseline;}
+/* só o rótulo da linha (filho direto); a pílula do nível dentro dele mantém a cor própria */
+.av-k-l li > span:first-child:not(.av-pill){color:#4a5568;min-width:0;}
+.av-k-l li b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.av-k-l li.av-sub-n{padding-left:12px;}
+.av-k-l li.av-sub-n > span:first-child:not(.av-pill){color:#6b7787;}
+.av-k-nota{font-size:11.5px;color:#6b7787;margin-top:4px;line-height:1.45;}
+.av-k-ctx{font-size:12px;color:#33404f;background:#f3f6f9;border-radius:7px;padding:5px 8px;margin-top:4px;line-height:1.45;}
+/* faixas de idade (barra pequena por faixa) */
+.av-fx{display:grid;grid-template-columns:auto 1fr auto;gap:3px 8px;align-items:center;margin-top:6px;font-size:12px;}
+.av-fx span{color:#4a5568;white-space:nowrap;}
+.av-fx i{display:block;height:8px;border-radius:4px;background:#86c99d;min-width:2px;}
+.av-fx b{font-weight:600;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
+/* "O que tratar agora" */
+.av-tratar{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;}
+.av-tratar li{display:grid;grid-template-columns:minmax(0,1fr) auto 118px;gap:4px 18px;align-items:center;padding:10px 0;border-top:1px solid #eef1f5;}
+.av-tratar li:first-child{border-top:0;}
+.av-tratar .av-t-o{font-size:13.5px;color:#1a2233;}
+.av-tratar .av-t-d{display:block;font-size:12px;color:#6b7787;margin-top:1px;}
+.av-tratar .av-t-n{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap;text-align:right;}
+.av-tratar .av-lk{justify-self:end;white-space:nowrap;}
+/* caixas fora do total (outra cor, nunca somadas) */
+.av-fora-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px;}
+.av-fora{background:#f6f4ee;border:1px dashed #cbbf9c;border-radius:12px;padding:14px 16px;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px;}
+.av-fora h3{font-size:14px;color:#5c4a1f;margin-bottom:2px;}
+.av-fora .av-rot{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#7a6630;background:#ece5d1;border-radius:5px;padding:2px 6px;margin-bottom:6px;}
+.av-fora .av-v{font-size:20px;}
+/* gráficos (desenhados à mão em SVG; cada um responde uma pergunta).
+   Modo noturno: o gerador do tema trata "fill"/"stroke" como cor de TEXTO (clareia os tons médios e deixa os claros
+   como estão). Por isso: (1) grade e faixa usam uma cor média com transparência — ficam apagadas no claro e no escuro,
+   e a linha "Parado" é o único traço claro no escuro; (2) as cores das séries têm saturação alta, para continuarem
+   distintas depois de clareadas (conferido pelo validador de paleta: claro e escuro separam, inclusive para daltônicos);
+   (3) o quadradinho da legenda é pintado pela propriedade "color" (background:currentColor), a MESMA conversão das barras. */
+.av-graf-g{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:12px;margin-bottom:0;}
+.av-graf{width:100%;height:auto;display:block;overflow:visible;}
+.av-graf text{font-size:10.5px;fill:#6b7787;font-family:inherit;}
+.av-graf .av-g-eixo{stroke:#8a97a8;stroke-opacity:.3;stroke-width:1;}
+.av-graf .av-g-ent{fill:#34a35a;}
+.av-graf .av-g-sai{fill:#1668e0;}
+.av-graf .av-g-aj{fill:#eda100;cursor:pointer;}
+.av-graf .av-g-aj:hover{fill:#c98500;}
+.av-graf .av-g-lin{fill:none;stroke:#1a2233;stroke-width:2;}
+.av-graf .av-g-pt{fill:#1a2233;}
+.av-graf .av-g-faixa{fill:#6b7787;fill-opacity:.16;}
+.av-graf .av-g-m1{fill:#1baf7a;} .av-graf .av-g-m2{fill:#eb6834;} .av-graf .av-g-m3{fill:#4a3aa7;} .av-graf .av-g-m8{fill:#eda100;} .av-graf .av-g-m12{fill:#1668e0;}
+.av-graf .av-g-parcial{fill-opacity:.45;stroke:#157a35;stroke-width:1;stroke-dasharray:3 2;}
+.av-leg{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:11.5px;color:#4a5568;margin:4px 0 8px;}
+.av-leg span{display:inline-flex;align-items:center;gap:5px;}
+.av-leg i{display:inline-block;width:12px;height:9px;border-radius:2px;}
+.av-leg i.av-l-lin{height:2px;width:14px;color:#1a2233;background:currentColor;}
+.av-l-ent{color:#34a35a;background:currentColor;} .av-l-sai{color:#1668e0;background:currentColor;} .av-l-aj{color:#eda100;background:currentColor;}
+.av-l-faixa{color:#6b7787;background:currentColor;opacity:.16;}
+.av-l-m1{color:#1baf7a;background:currentColor;} .av-l-m2{color:#eb6834;background:currentColor;} .av-l-m3{color:#4a3aa7;background:currentColor;}
+.av-l-m8{color:#eda100;background:currentColor;} .av-l-m12{color:#1668e0;background:currentColor;}
+.av-id{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;margin-top:6px;}
+.av-id-ok{color:#157a35;font-weight:700;}
+.av-id-mal{color:#b42318;font-weight:700;}
+/* tabelas */
+.av-tw{overflow-x:auto;}
+.av-tab{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;}
+.av-tab th{font-size:10.5px;font-weight:600;color:#6b7787;text-transform:uppercase;letter-spacing:.3px;text-align:right;padding:6px 8px;border-bottom:1px solid #e3e8ef;white-space:nowrap;vertical-align:bottom;line-height:1.3;}
+.av-tab td{padding:8px 8px;text-align:right;border-bottom:1px solid #eef1f5;font-size:13px;vertical-align:top;}
+.av-tab .l{text-align:left;}
+.av-tab .c{text-align:center;}
+.av-tab td.l{white-space:normal;}
+.av-tab td .av-comp{font-size:11.5px;}
+.av-tab tfoot td{border-top:2px solid #d5dce6;border-bottom:0;background:#f8fafc;font-weight:700;}
+.av-tab tr[data-av-abre]{cursor:pointer;}
+.av-tab tr[data-av-abre]:hover td{background:#f8fafc;}
+.av-tab tr.av-aviso-lin td{background:#fffaf0;}
+.av-tab tr.av-aviso-lin:hover td{background:#fff4e0;}
+.av-tab th.av-ord{cursor:pointer;}
+.av-tab th.av-ord:hover{color:#0c5a26;}
+.av-tab th.av-ord-on{color:#0c5a26;}
+.av-nome{font-weight:600;color:#1a2233;}
+.av-nome-s{display:block;font-size:11.5px;color:#6b7787;font-weight:400;}
+.av-mais{display:flex;justify-content:center;margin-top:10px;}
+/* sub-abas das filas */
+.av-filas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px;}
+.av-fila-bt{background:#ffffff;border:1px solid #e3e8ef;border-radius:12px;padding:12px 14px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:0;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.av-fila-bt:hover{border-color:#b9c4d0;}
+.av-fila-bt.av-on{border-color:#157a35;box-shadow:inset 0 0 0 1px #157a35;}
+.av-fila-bt .av-fila-l{font-size:11px;font-weight:700;color:#6b7787;text-transform:uppercase;letter-spacing:.4px;}
+.av-fila-bt .av-fila-t{font-size:14px;font-weight:700;color:#1a2233;}
+.av-fila-bt .av-fila-n{font-size:12.5px;color:#4a5568;font-variant-numeric:tabular-nums;}
+.av-nsoma{font-size:12px;color:#6b7787;margin:-4px 0 12px;}
+.av-barras{display:flex;height:10px;border-radius:5px;overflow:hidden;background:#eef1f5;min-width:90px;}
+.av-barras i{display:block;height:100%;}
+.av-b-comp{background:#34a35a;} .av-b-decl{background:#5b82e0;} .av-b-assum{background:#8d78b8;} .av-b-nid{background:#9fb0c4;} .av-b-aberto{background:#e0b44c;}
+.av-resumo-f{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;color:#4a5568;margin-bottom:10px;}
+.av-resumo-f b{color:#1a2233;font-variant-numeric:tabular-nums;}
+.av-busca{border:1px solid #d5dce6;border-radius:9px;padding:7px 10px;font-size:13.5px;min-height:38px;min-width:220px;background:#ffffff;color:#1a2233;}
+.av-linha-f{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-bottom:10px;}
+.av-linha-f label{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#33404f;}
+.av-linha-f select{border:1px solid #d5dce6;border-radius:9px;padding:6px 9px;font-size:13px;min-height:36px;background:#ffffff;color:#1a2233;}
+/* gaveta (ficha do produto e detalhe da nota) */
+.av-fundo{position:fixed;inset:0;background:rgba(15,23,42,.38);z-index:9000;display:flex;justify-content:flex-end;}
+.avr-gav{background:#f4f6f9;width:min(640px,100%);height:100%;overflow-y:auto;box-shadow:-8px 0 24px rgba(0,0,0,.18);display:flex;flex-direction:column;}
+.avr-gav-topo{position:sticky;top:0;z-index:1;background:#ffffff;border-bottom:1px solid #e3e8ef;padding:14px 18px;display:flex;gap:12px;align-items:flex-start;justify-content:space-between;}
+.avr-gav-topo h3{font-size:16px;}
+.avr-gav-topo .av-sub{margin:2px 0 0;}
+.avr-gav-corpo{padding:14px 16px 40px;}
+.avr-gav-corpo .av-card{padding:14px 16px;}
+.av-dl{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:5px 14px;margin:0;font-size:13px;}
+.av-dl dt{color:#6b7787;}
+.av-dl dd{margin:0;color:#1a2233;font-variant-numeric:tabular-nums;}
+.av-texto-vr{background:#f8fafc;border:1px solid #e3e8ef;border-radius:8px;padding:8px 10px;font-size:12.5px;color:#33404f;white-space:pre-wrap;word-break:break-word;margin:4px 0 0;}
+.av-conf-l{margin:6px 0 0;padding-left:18px;color:#8a1c12;font-size:12.5px;}
+.av-analise{background:#f5f2fb;border:1px dashed #b9a7dc;border-radius:12px;padding:14px 16px;margin-bottom:14px;}
+.av-analise h3{color:#4c2f86;font-size:14.5px;}
+.av-analise .av-rot{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#4c2f86;background:#e8def7;border-radius:5px;padding:2px 6px;margin-bottom:6px;}
+.av-quem{font-size:11.5px;color:#6b7787;}
+html.av-com-gaveta,html.av-com-gaveta body{overflow:hidden;}
+/* tabelas viram cartões (com o rótulo de cada campo) até 1024 px: no tablet elas rolavam de lado dentro do cartão
+   e escondiam colunas (a fila A tinha 891 px de conteúdo numa caixa de 676). O resto do layout só empilha em 760 px. */
+@media (max-width:1024px){
+  .av-tab thead{display:none;}
+  .av-tab,.av-tab tbody,.av-tab tr,.av-tab td{display:block;width:100%;}
+  .av-tab tr{border:1px solid #e3e8ef;border-radius:10px;padding:8px 10px;margin-bottom:8px;background:#ffffff;}
+  .av-tab tr.av-aviso-lin{background:#fffaf0;}
+  /* "0 solid #cor" (e não só "0"): o modo noturno gera a regra escura só de declaração com cor; sem ela, a linha
+     escura da tabela (regra do modo noturno, mais forte) voltava a riscar cada campo do cartão */
+  .av-tab td{border:0 solid #eef1f5;padding:3px 0;text-align:right;display:flex;justify-content:space-between;gap:12px;align-items:baseline;}
+  .av-tab td:before{content:attr(data-rot);color:#6b7787;font-size:11.5px;font-weight:600;text-align:left;flex:0 0 auto;max-width:48%;}
+  .av-tab td.av-cel-principal{display:block;text-align:left;font-size:14px;padding-bottom:4px;}
+  .av-tab td.av-cel-principal:before{display:none;}
+  .av-tab td>*{min-width:0;}
+  .av-tab tfoot{display:block;width:100%;}
+  .av-tab tfoot tr{background:#f8fafc;}
+  .av-tab tfoot td{border-top:0 solid #d5dce6;}
+  .av-tab tfoot td:empty{display:none;}
+}
+/* celular: tudo empilha */
+@media (max-width:760px){
+  .av-topo h2{font-size:18px;}
+  .av-dado{margin-left:0;white-space:normal;}
+  .av-abas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;overflow:visible;}
+  .av-abas button{padding:10px 6px;font-size:13.5px;text-align:center;white-space:normal;}
+  .av-filtros{gap:8px;}
+  .av-f{flex:1 1 100%;}
+  .av-f select{width:100%;}
+  .av-kpis{grid-template-columns:minmax(0,1fr);gap:10px;}
+  .av-fora-g,.av-graf-g{grid-template-columns:minmax(0,1fr);}
+  .av-filas{grid-template-columns:minmax(0,1fr);gap:8px;}
+  .av-fila-bt{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:2px 10px;padding:10px 12px;}
+  .av-card{padding:14px 12px;}
+  .av-tratar li{grid-template-columns:minmax(0,1fr) auto;}
+  .av-tratar .av-t-o{grid-column:1 / -1;}
+  .av-tratar .av-t-n{text-align:left;}
+  .av-busca{min-width:0;width:100%;}
+  .av-nbusca{margin-left:0;}
+  .av-nbusca-campo{flex:1 1 auto;width:auto;}
+  .av-nbusca-res{text-align:left;margin:0;}
+  /* botão de texto: alvo de toque de 36 px, como o .av-bt (o conteúdo do botão fica centrado na altura) */
+  .av-lk{min-height:36px;min-width:36px;padding:6px 0;}
+  .avr-gav{width:100%;}
+  .av-dl{grid-template-columns:minmax(0,1fr);gap:1px;}
+  .av-dl dd{margin-bottom:6px;}
+}
+@media (prefers-reduced-motion:no-preference){ .av-abas button,.av-fila-bt,.av-tab tr{transition:background-color .15s,border-color .15s,color .15s;} }

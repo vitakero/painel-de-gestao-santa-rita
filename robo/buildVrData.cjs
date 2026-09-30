@@ -1303,4 +1303,13 @@ async function timed(c,nome,sql,params){
     const enc=path.join(__dirname,"vr-sync-encartes.cjs");
     if(fs.existsSync(enc)) require("child_process").spawnSync(process.execPath,[enc],{stdio:"inherit",timeout:4*60*1000});   // o script se encerra sozinho aos 200 s
   }catch(e){ console.log("Encartes: nao rodou ("+e.message+") - painel segue normal."); }
+
+  // ==AVR== AVARIAS · PILOTO (29/09/2026, etapa 3,6): VR SO LEITURA -> calculo aprovado das etapas 1 e 2 -> nuvem ->
+  // retrato que o Painel le (so master). Chamado daqui pelo mesmo motivo do Compra × Venda e dos Encartes (o robo.bat da
+  // loja pode nao se atualizar; este arquivo chega toda rodada). O proprio script tem janela (06h-21h), trava de 20 min,
+  // vigia de 200 s e nunca sai com erro; mesmo assim qualquer falha e engolida aqui: a leitura de vendas ja terminou.
+  try{
+    const avr=path.join(__dirname,"vr-sync-avarias.cjs");
+    if(fs.existsSync(avr)) require("child_process").spawnSync(process.execPath,[avr],{stdio:"inherit",timeout:4*60*1000});   // o script se encerra sozinho aos 200 s
+  }catch(e){ console.log("Avarias: nao rodou ("+e.message+") - painel segue normal."); }
 })().catch(e=>{ console.log("ERRO: "+e.message); process.exit(1); });

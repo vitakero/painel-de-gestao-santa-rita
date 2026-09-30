@@ -1,0 +1,73 @@
+/* ==AV-PRODUTOS-CSS== AVARIAS · Produtos e setores + ficha do produto. Todo seletor começa por .av-produtos- ou .av .
+   Cores sempre em #hex (o modo noturno é gerado destas regras); nada de cor inline nem fill/stroke no SVG. */
+.av-produtos-qual{padding:12px 16px;}
+.av-produtos-qual>h3{font-size:14px;margin-bottom:6px;}
+.av-produtos-qual-l{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px 14px;margin:0 0 4px;}
+.av-produtos-qual-l>div{min-width:0;background:#f6f8fb;border-radius:8px;padding:7px 10px;}
+.av-produtos-qual-l dt{font-size:11px;font-weight:600;color:#6b7787;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;}
+.av-produtos-qual-l dd{margin:0;font-size:13.5px;font-weight:600;color:#1a2233;font-variant-numeric:tabular-nums;}
+.av-produtos-filtro{margin:0 0 8px;font-size:13px;color:#33404f;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;}
+.av-produtos-sobe{color:#8a5a00;font-weight:700;}
+.av-produtos-desce{color:#157a35;font-weight:700;}
+.av-produtos-ev{display:inline-flex;align-items:center;gap:10px;justify-content:flex-start;}
+.av-produtos-ev-t{display:inline-flex;flex-direction:column;min-width:78px;}
+.av-produtos-sp{display:block;flex:0 0 auto;overflow:visible;}
+/* a barrinha do mês parcial e a de valor zero são a MESMA cor da série com transparência: no escuro nunca ficam mais claras que as normais */
+.av-produtos-sp .av-produtos-sp-b{fill:#86c99d;}
+.av-produtos-sp .av-produtos-sp-zero{fill:#86c99d;fill-opacity:.3;}
+.av-produtos-sp .av-produtos-sp-parcial{fill:#86c99d;fill-opacity:.4;stroke:#157a35;stroke-width:.8;stroke-dasharray:2 1.5;}
+.av .av-tab th .av-produtos-cab{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer;text-align:inherit;white-space:nowrap;}
+.av .av-tab th .av-produtos-cab:hover{color:#0c5a26;text-decoration:underline;}
+.av-produtos-seta{font-size:9px;margin-left:4px;vertical-align:1px;}
+.av-produtos-oculto{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+.av-produtos-busca-l{position:relative;flex:1 1 260px;max-width:420px;}
+.av-produtos-busca-l .av-busca{width:100%;}
+.av .av-linha-f .av-produtos-ordem{display:none;}
+.av-produtos-cx{display:inline-block;max-width:100%;}
+.av-produtos-novo{color:#6b7787;font-weight:400;}
+.av-produtos-pe{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:10px;}
+.av-produtos-dl{margin-bottom:10px;}
+.av-produtos-dl dd b{font-weight:700;}
+.av-produtos-v{font-size:20px;}
+.av-produtos-h4{font-size:13px;color:#33404f;margin:12px 0 2px;}
+.av-produtos-med{margin:0 0 6px;}
+.av-produtos-vv{background:#eef1f5;color:#5b6675;white-space:normal;}
+.av .av-tab tr.av-produtos-vv-lin td{color:#6b7787;background:#fafbfc;}
+.av-produtos-mov td{font-size:12.5px;padding:7px 6px;}
+.av-produtos-mov th{padding:6px 6px;}
+.av-produtos-mov th.av-produtos-quem{white-space:normal;min-width:74px;}
+.av-produtos-mov td.av-produtos-data .av-nome{white-space:nowrap;}
+.av-produtos-rel{margin:6px 0;font-size:13.5px;color:#1a2233;line-height:1.5;}
+.av-produtos-rel .av-nome-s{margin-top:1px;}
+.av-produtos-rel-l{margin:4px 0 8px;padding-left:18px;font-size:12.5px;color:#33404f;}
+.av-produtos-chip-rel{background:#e8def7;color:#4c2f86;}
+.av-produtos-chip-ant{background:#fff4d6;color:#8a5a00;}
+.av .av-tab tr.av-produtos-anterior td{background:#fffaf0;}
+.av-produtos-compras{background:#ffffff;border-radius:8px;}
+.av-produtos-neg{color:#b42318;font-size:18px;}
+.av-produtos-conf{color:#8a5a00;}
+.av-produtos-chip-ok{background:#e3f4e8;color:#157a35;}
+.av .av-tab tr.av-produtos-anulado td{color:#6b7787;background:#fafbfc;}
+.av .av-tab tr.av-produtos-anulado td .av-nome,.av .av-tab tr.av-produtos-anulado td .av-num{text-decoration:line-through;}
+.av-produtos-ac td{font-size:12.5px;}
+.av-produtos-ac-conf{display:block;margin-top:4px;}
+.av .av-tab .av-lk.av-produtos-nf{white-space:nowrap;}
+@media (max-width:1100px){
+  .av-produtos-qual-l{grid-template-columns:repeat(3,minmax(0,1fr));}
+}
+/* até 1024 px as tabelas viram cartões (tela.css): os títulos das colunas somem, então a ordem vai para a lista "Ordenar por" */
+@media (max-width:1024px){
+  .av .av-linha-f .av-produtos-ordem{display:flex;flex:0 1 auto;}
+  .av-produtos-ordem select{flex:1 1 auto;min-width:0;}
+  .av-produtos-cx{text-align:right;}
+  .av-produtos-ev{justify-content:flex-end;}
+  .av-produtos-ev-t{align-items:flex-end;min-width:0;}
+  .av .av-tab tr.av-produtos-vv-lin{background:#fafbfc;}
+  .av .av-tab tr.av-produtos-anterior{background:#fffaf0;}
+  .av .av-tab tr.av-produtos-anulado{background:#fafbfc;}
+}
+@media (max-width:760px){
+  .av-produtos-qual-l{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px;}
+  .av-produtos-busca-l{max-width:none;flex:1 1 100%;}
+  .av .av-linha-f .av-produtos-ordem{flex:1 1 100%;}
+}

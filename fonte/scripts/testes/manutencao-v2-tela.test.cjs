@@ -22,7 +22,7 @@ function vale(nome, cond, det) { console.log((cond ? "  OK   " : "  FALHA") + " 
 
 (async () => {
   const porta = 9500 + Math.floor(Math.random() * 400);
-  const ch = CHROME_PROC = spawn(CHROME, ["--headless=new", "--disable-gpu", "--hide-scrollbars", "--remote-debugging-port=" + porta, "--user-data-dir=" + path.join(TMP, "perfil"),
+  const ch = CHROME_PROC = spawn(CHROME, ["--headless=new", "--use-mock-keychain", "--password-store=basic", "--disable-gpu", "--hide-scrollbars", "--remote-debugging-port=" + porta, "--user-data-dir=" + path.join(TMP, "perfil"),
     "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1", "--allow-file-access-from-files", "about:blank"], { stdio: "ignore" });
   let alvo = null;
   for (let i = 0; i < 80 && !alvo; i++) { await esp(250); try { alvo = (await (await fetch("http://127.0.0.1:" + porta + "/json")).json()).find(t => t.type === "page"); } catch (e) {} }

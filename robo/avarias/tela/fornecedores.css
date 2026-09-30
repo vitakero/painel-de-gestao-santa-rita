@@ -1,0 +1,101 @@
+/* ==AV-FORNECEDORES-CSS== AVARIAS · Fornecedores. Todo seletor começa por ".av"; cores sempre em #hex (o modo noturno
+   do Painel é gerado destas regras). Celular (≤ 760 px): as tabelas viram cartões pelo tela.css; nada rola de lado. */
+.av .av-fornecedores-conta{margin:0 0 6px;font-size:12px;color:#6b7787;}
+.av .av-fornecedores-tab th{white-space:normal;min-width:96px;}
+.av .av-fornecedores-tab th.l{min-width:200px;}
+.av .av-fornecedores-base{display:block;margin-top:2px;font-size:10px;font-weight:400;letter-spacing:0;text-transform:none;color:#8a97a8;}
+.av .av-fornecedores-tab td{white-space:nowrap;}
+.av .av-fornecedores-tab td.l{white-space:normal;}
+.av .av-fornecedores-cel{display:block;}
+.av .av-fornecedores-formas{white-space:normal;max-width:170px;margin-left:auto;}
+.av .av-fornecedores-nada{color:#b3bdc9;}
+.av .av-fornecedores-abre{padding:0;font-size:13px;line-height:1.35;}
+.av .av-fornecedores-sem td{background:#f8f6f0;}
+.av .av-tab tr.av-fornecedores-sem:hover td{background:#f1ede2;}
+.av .av-fornecedores-analise .av-fornecedores-sem td{background:#ece6f7;}
+.av .av-fornecedores-analise .av-tab tr.av-fornecedores-sem:hover td{background:#e4dbf3;}
+.av .av-fornecedores-analise .av-tab tr[data-av-rel]{cursor:pointer;}
+.av .av-fornecedores-analise .av-tab tr[data-av-rel]:hover td{background:#efe9f8;}
+.av .av-fornecedores-analise .av-tab tfoot td{background:#eee8f8;}
+.av .av-fornecedores-analise .av-fornecedores-busca{background:#ffffff;}
+.av .av-fornecedores-rel th{white-space:normal;min-width:90px;}
+.av .av-fornecedores-rel th.l{min-width:220px;}
+.av .av-fornecedores-rel td{white-space:nowrap;}
+.av .av-fornecedores-rel td.l{white-space:normal;}
+.av .av-fornecedores-noper td{background:#f2f9f4;}
+.av .av-fornecedores-chip-per{background:#eaf7ee;color:#157a35;}
+.av .av-fornecedores-comp{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin:12px 0 0;font-size:13px;color:#33404f;}
+.av .av-fornecedores-comp b{font-variant-numeric:tabular-nums;color:#1a2233;}
+.av .av-fornecedores-g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start;}
+.av .av-fornecedores-g2 > .av-card{margin-bottom:14px;}
+.av .av-fornecedores-fx{font-size:12px;color:#4a5568;}
+.av .av-fornecedores-tempo th{white-space:normal;}
+.av .av-fornecedores-ler{margin-top:12px;font-size:12.5px;color:#4a5568;}
+.av .av-fornecedores-ler summary{cursor:pointer;font-weight:700;color:#157a35;padding:4px 0;min-height:32px;}
+.av .av-fornecedores-ler .av-dl{margin-top:8px;}
+.av .av-fornecedores-ler dd{color:#33404f;}
+@media (max-width:760px){
+  .av .av-fornecedores-g2{grid-template-columns:minmax(0,1fr);gap:0;}
+  .av .av-fornecedores-tab th,.av .av-fornecedores-rel th{min-width:0;}
+  .av .av-fornecedores-tab td,.av .av-fornecedores-rel td{white-space:normal;}
+  .av .av-tab td:has(> .av-fornecedores-nada){display:none;}
+  .av .av-fornecedores-t tfoot{display:block;width:100%;}
+  .av .av-fornecedores-t tfoot tr{background:#f8fafc;border:2px solid #d5dce6;}
+  .av .av-fornecedores-t tfoot td{border-top:0;background:transparent;}
+  .av .av-fornecedores-analise .av-fornecedores-t tfoot tr{background:#eee8f8;border-color:#cdbfe6;}
+  .av .av-fornecedores-cel{text-align:right;}
+  .av .av-fornecedores-fx{text-align:right;}
+  .av .av-fornecedores-formas{max-width:none;}
+  .av .av-fornecedores-sem td,.av .av-fornecedores-analise .av-fornecedores-sem td,.av .av-fornecedores-noper td{background:transparent;}
+  .av .av-tab tr.av-fornecedores-sem{background:#f8f6f0;}
+  .av .av-fornecedores-analise .av-tab tr.av-fornecedores-sem{background:#ece6f7;}
+  .av .av-tab tr.av-fornecedores-noper{background:#f2f9f4;}
+}
+.av .av-fornecedores-v{font-size:13.5px;font-weight:600;}
+.av .av-fornecedores-busca{min-width:320px;}
+.av .av-fornecedores-fx span{display:inline-block;white-space:nowrap;margin-right:8px;}
+@media (max-width:760px){ .av .av-fornecedores-busca{min-width:0;} .av .av-fornecedores-fx span{margin:0 0 0 8px;} }
+.av .av-fornecedores-analise .av-lk{color:#5b3f8f;}
+/* detalhe (gaveta, 640 px): cabeçalhos quebram linha para nada rolar de lado */
+.av .avr-gav .av-fornecedores-t th{white-space:normal;padding:6px 6px;}
+.av .avr-gav .av-fornecedores-t td{padding:7px 6px;}
+.av .av-fornecedores-meses td{white-space:nowrap;}
+.av .av-fornecedores-meses td.l{white-space:normal;}
+.av .av-fornecedores-meses .av-fornecedores-chip-per{display:table;margin-top:2px;}
+.av .av-fornecedores-rel-gav{background:#f5f2fb;border:1px dashed #b9a7dc;box-shadow:none;}
+.av .av-fornecedores-rel-gav h3{color:#4c2f86;}
+.av .av-fornecedores-rel-gav .av-lk{color:#5b3f8f;}
+/* base de valor e de data no cabeçalho (duas linhas miúdas); aviso de outra evidência na célula dos títulos em aberto */
+.av .av-fornecedores-tab th .av-fornecedores-base + .av-fornecedores-base{margin-top:0;}
+.av .av-fornecedores-aviso{display:block;margin-top:2px;font-size:11px;font-weight:600;color:#b42318;white-space:normal;max-width:170px;margin-left:auto;}
+.av .av-fornecedores-basefrase{margin:8px 0 10px;font-size:12px;color:#4a5568;line-height:1.45;}
+.av .av-fornecedores-ler-p{margin:8px 0 6px;color:#33404f;}
+.av .av-fornecedores-parte{margin:0 0 10px;font-size:12px;color:#4a5568;line-height:1.45;}
+/* títulos em aberto (detalhe): o aviso aprovado e o documento em conferência, com os documentos pelo nome de gente */
+.av .av-fornecedores-evid{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin-top:5px;font-size:12px;color:#8a1c12;}
+.av .av-fornecedores-evid .av-nome-s{flex:1 1 100%;color:#4a5568;}
+.av .av-fornecedores-doc{display:block;}
+.av .av-fornecedores-chip-conf{background:#fff4d6;color:#8a5a00;}
+/* caixa fora das colunas: o declarado nas saídas sem nota (pelo custo da entrada) */
+.av .av-fornecedores-fora{margin-top:12px;align-items:stretch;}
+.av .av-fornecedores-fora .av-sub{margin:0;}
+.av .av-fornecedores-fora-v{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:2px 0 0;}
+.av .av-fornecedores-fora-b{font-size:12.5px;color:#5c4a1f;}
+.av .av-fornecedores-fora-f{margin:4px 0 0;font-size:12.5px;color:#33404f;}
+.av .av-fornecedores-fora .av-k-nota{margin-top:6px;}
+.av .av-fornecedores-acnota{margin-top:8px;}
+/* acertos informados no Painel (coluna e detalhe) */
+.av .av-fornecedores-tab th.av-fornecedores-col-ac{min-width:150px;}
+.av .av-fornecedores-ac td{white-space:normal;}
+@media (max-width:760px){
+  .av .av-fornecedores-aviso{max-width:none;}
+  .av .av-fornecedores-fora-v{flex-direction:column;gap:2px;}
+}
+.av .av-fornecedores-fora .av-rot{align-self:flex-start;}
+.av .av-fornecedores-tab th{min-width:112px;}
+.av .av-fornecedores-tempo td{white-space:nowrap;}
+.av .av-fornecedores-tempo td.l{white-space:normal;}
+.av .av-fornecedores-verbas td:last-child{white-space:nowrap;}
+.av .avr-gav .av-fornecedores-tit td{white-space:nowrap;}
+.av .avr-gav .av-fornecedores-tit td.l{white-space:normal;min-width:200px;}
+@media (max-width:1024px){ .av .avr-gav .av-fornecedores-tit td,.av .avr-gav .av-fornecedores-tit td.l{white-space:normal;min-width:0;} }

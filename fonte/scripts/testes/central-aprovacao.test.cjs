@@ -125,7 +125,7 @@ if (!fs.existsSync(CHROME)) {
   const LARGURAS = [1440, 1100, 820, 520];
   LARGURAS.forEach(function (L) {
     const dom = cp.execSync(
-      JSON.stringify(CHROME) + " --headless=new --disable-gpu --window-size=" + L +
+      JSON.stringify(CHROME) + " --headless=new --use-mock-keychain --password-store=basic --disable-gpu --window-size=" + L +
       ",900 --virtual-time-budget=3000 --dump-dom " + JSON.stringify(arq) + " 2>/dev/null",
       { maxBuffer: 64 * 1024 * 1024, encoding: "utf8", shell: "/bin/bash" });
 

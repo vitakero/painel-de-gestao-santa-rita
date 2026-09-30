@@ -99,8 +99,9 @@ const encSecao = encJs
    etapa 3,6 (botão no menu pela permissão de sempre, página "Esta tela está em construção.", sem pacote, sem carregador e
    sem ler nenhum arquivo da tela). Fica false até o piloto passar na conferência da 1ª carga real e o dono liberar.
    (29/09/2026: desligada para os Galpões poderem ser publicados antes, sem levar Avarias pela metade.)
+   (30/09/2026: LIGADA — 1ª carga reconciliada 77/77, tranca provada na nuvem, o dono mandou publicar.)
    Para testar o piloto no Mac sem publicar: AV_PILOTO_TESTE=1 npx tsx scripts/demoDashboard.ts */
-const AV_PILOTO_NO_AR: boolean = false || process.env.AV_PILOTO_TESTE === "1";
+const AV_PILOTO_NO_AR: boolean = true || process.env.AV_PILOTO_TESTE === "1";
 const AV_TELA = "scripts/avarias/tela/";
 const AV_ARQS_JS = ["consultas", "base", "painel", "resumo", "pendencias", "produtos", "fornecedores"].map((n) => n + ".js");
 const AV_ARQS_CSS = ["tela", "resumo", "pendencias", "produtos", "fornecedores"].map((n) => n + ".css");
@@ -19041,21 +19042,25 @@ function pxExigeAssinatura(p, acao){
        + "4. você anexa o contrato assinado pelos dois\\n\\n"
        + (acao==="anexar"
           ? "Se anexar agora, o contrato vai estar sem a assinatura do diretor."
+          : acao==="marcar"
+          ? "Sem isso a parcela não pode ser marcada como paga."
           : "Sem isso a cobrança não é liberada."),
     ok:"Entendi", cancel:"" });
   return false;
 }
-function pxExigeContrato(p){
+/* ==PXCONTRATO== (pedido dele, 30/09/2026): "Marcar pago" e "Autorizar" também exigem o contrato
+   assinado E anexado (antes só o Gerar Pix/boleto e a bonificação exigiam). acao="marcar" só troca o texto. */
+function pxExigeContrato(p, acao){
   var anexado=pxContratoAnexado(p);
   var assinado=(typeof pxAssinValida==="function") && pxAssinValida(p);
   if(anexado && assinado) return true;
-  if(!assinado) return pxExigeAssinatura(p,"cobrar");
+  if(!assinado) return pxExigeAssinatura(p, acao==="marcar" ? "marcar" : "cobrar");
   uiConfirm({
     titulo:"Anexe o contrato assinado",
     msg:"O contrato já está assinado pelo diretor. Falta:\\n\\n"
       + "\\u2022 imprimir e colher a assinatura do fornecedor\\n"
       + "\\u2022 anexar no botão \\u201cAnexar contrato\\u201d\\n\\n"
-      + "Depois volte aqui e gere a cobrança.",
+      + (acao==="marcar" ? "Depois volte aqui e marque como paga." : "Depois volte aqui e gere a cobrança."),
     ok:"Entendi", cancel:"" });
   return false;
 }
@@ -19306,6 +19311,7 @@ function mpgProcessaArquivo(f){
 }
 function mpgAbrir(p,key){
   if(!window.__PERFIL){ uiConfirm({titulo:"Entre no painel",msg:"Faça login para marcar o pagamento.",ok:"Entendi",cancel:""}); return; }
+  if(!pxExigeContrato(p,"marcar")) return;   // ==PXCONTRATO== sem contrato assinado e anexado, não marca pago
   var m=document.getElementById("mpgModal");
   if(!m){
     m=document.createElement("div"); m.id="mpgModal"; m.className="modal-bg";
@@ -19352,6 +19358,8 @@ function mpgConfirmar(){
   if(!mpgArquivo){ document.getElementById("mpgArqBtn").classList.add("campo-erro"); if(prev) prev.textContent="Anexe o comprovante do pagamento."; return; }
   var p=pontosG.find(function(x){ return x.id===mpgCtx.pid; });
   if(!p){ document.getElementById("mpgModal").classList.remove("show"); return; }
+  // ==PXCONTRATO== o contrato pode ter sido tirado (em outro computador) com esta janela aberta
+  if(!pxContratoAnexado(p) || !pxAssinValida(p)){ document.getElementById("mpgModal").classList.remove("show"); pxExigeContrato(p,"marcar"); return; }
   var kk=mpgCtx.key;
   p.manuais=p.manuais||{};
   p.manuais[kk]={ t:"manual", st:"pendente", motivo:mot.slice(0,140),
@@ -20113,7 +20121,22 @@ function pxAssinar(id){
     sb.rpc("assinar_contrato_ponto",{p_id:id,p_senha:senha,p_nome:nome,p_impressao_esperada:pxAssinImpressao(p)}).then(function(r){
       if(r&&r.error){ uiConfirm({titulo:"Não deu para assinar",msg:pxAssinErro(r.error),ok:"Entendi",cancel:""}); return; }
       var a=r&&r.data; if(!a||!a.codigo){ uiConfirm({titulo:"Não deu para assinar",msg:"A nuvem não devolveu o código. Tente de novo.",ok:"Entendi",cancel:""}); return; }
-      p.assinatura=a; savePontosG(); renderPontosG();
+      var pAt=pontosG.find(function(x){ return x.id===id; })||p;   // a nuvem pode ter recarregado a lista enquanto a senha era digitada
+      /* ==PXCONTRATO== o botão Assinar só aparece SEM assinatura válida (nunca assinou, cancelou ou
+         a assinatura caiu porque o contrato mudou). Então um contrato que já estava anexado é de
+         ANTES desta assinatura — o fornecedor assinou a versão velha. Ele deixa de valer, e a
+         cobrança só volta a andar com o contrato novo, assinado pelo fornecedor, anexado. */
+      var tinhaAnexo=!!pAt.contratoArquivo;
+      pAt.assinatura=a;
+      if(tinhaAnexo){ delete pAt.contratoArquivo; delete pAt.contratoNome; }
+      savePontosG(); renderPontosG(); pxReabrir(id);
+      if(tinhaAnexo) uiConfirm({titulo:"Anexe o contrato novo",
+        msg:"Assinado. O contrato que estava anexado era da versão anterior e deixou de valer.\\n\\n"
+          + "\\u2022 imprima o contrato novo (já com esta assinatura)\\n"
+          + "\\u2022 colha a assinatura do fornecedor\\n"
+          + "\\u2022 anexe no botão \\u201cAnexar contrato\\u201d\\n\\n"
+          + "Até lá, a parcela não pode ser cobrada nem marcada como paga.",
+        ok:"Entendi", cancel:""});
     },function(){ uiConfirm({titulo:"Sem resposta da nuvem",msg:"Não consegui falar com o banco agora. Tente de novo.",ok:"Entendi",cancel:""}); });
   });
 }
@@ -20774,6 +20797,7 @@ async function pixTravaClick(){
     const aut=e.target.closest("[data-autorizar]");
     if(aut){ const pr=aut.dataset.autorizar.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p){
       const kk=pr[1]; const manA=(p.manuais||{})[kk];
+      if(!pxExigeContrato(p,"marcar")) return;   // ==PXCONTRATO== autorizar é o que faz virar paga: exige o contrato
       if(pxManManual(manA)){
         /* SEM O COMPROVANTE NAO AUTORIZA — mesma regra da bonificacao. Se alguem removeu o
            anexo depois de marcar, a autorizacao para aqui: o que sustenta este pagamento e o
@@ -20795,6 +20819,7 @@ async function pixTravaClick(){
           if(!ok) return;
           const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return;
           const mA=(pA.manuais||{})[kk]; if(!pxManManual(mA) || mA.st!=="pendente"){ renderPontosG(); return; }
+          if(!pxExigeContrato(pA,"marcar")) return;   // ==PXCONTRATO== confere de novo na hora de gravar
           pA.manuais[kk]=Object.assign({}, mA, {st:"autorizado",
             autorizado_por:(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"",
             autorizado_em:new Date().toISOString()});
@@ -20822,6 +20847,7 @@ async function pixTravaClick(){
         };
         autorizarMaster("Autorizar esta bonificação. Digite a senha do master para confirmar.",true).then(function(ok){ if(!ok) return;
           const fr0=pega(); if(!fr0){ uiConfirm({titulo:"Nada para autorizar",msg:"Este registro mudou ou já foi tratado em outra tela. A lista foi atualizada.",ok:"Ok",cancel:""}); renderPontosG(); return; }
+          if(!pxExigeContrato(fr0.p,"marcar")) return;   // ==PXCONTRATO== confere de novo na hora de gravar
           const novoTot=Math.round(((+fr0.man.tot||0)+(+fr0.man.pend.valor||0))*100)/100;
           const falta=Math.round(((+fr0.p.valor||0)-novoTot)*100)/100;
           if(falta>0.005){
@@ -20835,7 +20861,9 @@ async function pixTravaClick(){
         });
         return;
       }
-      autorizarMaster("Autorizar este pagamento, feito por fora do banco. Digite a senha do master para confirmar.",true).then(function(ok){ if(!ok) return; const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return; pA.manuais=pA.manuais||{};
+      autorizarMaster("Autorizar este pagamento, feito por fora do banco. Digite a senha do master para confirmar.",true).then(function(ok){ if(!ok) return; const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return;
+        if(!pxExigeContrato(pA,"marcar")) return;   // ==PXCONTRATO== confere de novo na hora de gravar
+        pA.manuais=pA.manuais||{};
         /* NAO APAGAR O MOTIVO. Ate 28/08/2026 esta linha era manuais[kk]="autorizado", o que
            trocava o registro inteiro por uma palavra — e o porque do pagamento sumia junto. */
         var mAnt=pA.manuais[kk];

@@ -1,0 +1,94 @@
+/* ==AV-PENDENCIAS-CSS== AVARIAS · Pendências e detalhe da nota. Todo seletor começa por .av; cores sempre em #hex
+   (o modo noturno do Painel é gerado destas regras). Celular: a partir de 760 px tudo empilha. */
+.av .av-pend-nsoma{margin:-2px 0 12px;max-width:none;}
+.av .av-pend-c{display:block;min-width:0;}
+.av .av-pend-comp{flex:1 1 100%;}
+.av .av-pend-comp .av-comp{margin-top:0;}
+.av .av-pend-filtrado{margin:0 0 6px;}
+.av .av-pend-nada{margin:0 0 12px;padding:8px 12px;border-radius:9px;background:#f3f6f9;border:1px solid #e3e8ef;font-size:12.5px;color:#4a5568;}
+/* faixas e níveis em uma linha que quebra */
+.av .av-pend-fx{display:flex;flex-wrap:wrap;gap:6px 8px;margin:0 0 12px;font-size:12px;color:#4a5568;}
+.av .av-pend-fx>span{display:inline-flex;align-items:center;gap:5px;background:#f3f6f9;border:1px solid #e3e8ef;border-radius:8px;padding:4px 9px;white-space:nowrap;}
+.av .av-pend-fx i{font-style:normal;color:#6b7787;}
+.av .av-pend-fx b{color:#1a2233;font-variant-numeric:tabular-nums;}
+.av .av-pend-fx>span.av-pend-fx-t{background:none;border:0;padding:4px 2px 4px 0;font-weight:600;color:#6b7787;}
+/* fila B: aviso de outra evidência dentro da célula do fornecedor */
+.av .av-pend-avis{display:block;margin-top:5px;font-size:12px;color:#5c4500;line-height:1.45;}
+.av .av-pend-avis b{font-weight:700;}
+.av .av-pend-avis .av-pill{margin-right:4px;}
+/* fila B: selo do boleto ou documento em conferência (à parte do aviso aprovado) */
+.av .av-pend-selo{display:block;margin-top:5px;line-height:1.45;}
+.av .av-pend-selo .av-chip{white-space:normal;}
+/* acertos: quem registrou e a conferência de cada um */
+.av .av-pend-sit{display:block;margin-top:1px;font-size:11.5px;color:#6b7787;line-height:1.4;}
+.av .av-pend-aguarda{font-weight:700;color:#8a5a00;}
+/* fila C: conflito */
+.av .av-chip.av-pend-chipq{white-space:normal;line-height:1.4;display:inline;box-decoration-break:clone;-webkit-box-decoration-break:clone;}
+.av .av-pend-emconf{display:inline-block;font-size:11px;font-weight:700;color:#b42318;white-space:nowrap;}
+.av .av-pend-tab-c td[data-rot="Conflito"]{max-width:260px;}
+.av .av-pend-tab-a td[data-rot="Acertos neste ciclo"],.av .av-pend-tab-a td[data-rot="Produto"]{min-width:150px;}
+.av .av-pend-tab-b td[data-rot="Fornecedor"]{min-width:200px;}
+/* vínculos acerto × saída (topo da fila A) */
+.av .av-pend-vinc{border:1px solid #e6c46a;background:#fffaf0;border-radius:10px;padding:10px 12px;margin:0 0 14px;}
+.av .av-pend-vinc h4{font-size:13.5px;margin:0 0 4px;color:#5c4500;}
+.av .av-pend-vinc .av-pend-h4b{margin-top:12px;}
+.av .av-pend-vinc .av-tab td{background:transparent;}
+.av .av-pend-cond{margin:0;padding-left:16px;font-size:12.5px;color:#8a1c12;text-align:left;}
+.av .av-pend-cond li{margin:0 0 2px;}
+.av .av-chip.av-pend-pista{background:#e8efff;color:#1d4ed8;margin-top:4px;white-space:normal;}
+/* pares acerto × saída dentro do detalhe da nota: o produto vai na coluna do acerto */
+.av .av-pend-acq{display:block;margin-top:3px;}
+.av .av-pend-tab-vn th{white-space:normal;}
+.av .av-pend-tab-vn td[data-rot="O acerto"]{min-width:210px;}
+.av .av-pend-tab-vn td[data-rot="A saída desta nota"]{min-width:130px;}
+/* caixa do saldo negativo: fora de todo total, outra cor */
+.av .av-pend-neg{background:#fbf4f3;border:1px dashed #e0a39c;border-radius:12px;padding:14px 16px;margin:4px 0 14px;min-width:0;}
+.av .av-pend-neg h3{font-size:14.5px;color:#8a1c12;margin:0 0 4px;}
+.av .av-pend-neg .av-rot{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#8a1c12;background:#f6dcd8;border-radius:5px;padding:2px 6px;margin-bottom:6px;}
+.av .av-pend-neg-n{margin:0 0 2px;font-size:13.5px;color:#1a2233;}
+.av .av-pend-neg-v{margin:0 0 4px;font-size:12.5px;color:#4a5568;}
+.av .av-pend-neg .av-bt{margin-top:8px;}
+.av .av-pend-neg .av-tw{margin-top:10px;}
+.av .av-pend-neg .av-tab td{background:transparent;}
+/* detalhe da nota */
+.av .av-pend-lido{margin:8px 0 0;font-size:12.5px;color:#33404f;line-height:1.5;}
+.av .av-pend-div{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:2px;}
+.av .av-pend-div li{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:5px 0;border-top:1px solid #eef1f5;font-size:13px;}
+.av .av-pend-div li:first-child{border-top:0;}
+.av .av-pend-div li>span{min-width:0;}
+.av .av-pend-div li>b{font-variant-numeric:tabular-nums;white-space:nowrap;}
+.av .av-pend-div li.av-pend-zero{color:#8a97a8;}
+.av .av-pend-div li.av-pend-tot{border-top:2px solid #d5dce6;font-weight:700;}
+.av .av-pend-dif{color:#8a5a00;font-weight:600;}
+.av .av-pend-fonte{border-top:1px solid #eef1f5;padding-top:10px;margin-top:10px;}
+.av .av-pend-fonte h4{font-size:13px;margin:0 0 6px;}
+.av .av-pend-prova{background:#f8fafc;border:1px solid #e3e8ef;border-radius:9px;padding:8px 10px;margin:0 0 8px;min-width:0;}
+.av .av-pend-prova p{margin:0 0 3px;font-size:12.5px;overflow-wrap:anywhere;}
+.av .av-pend-prova .av-texto-vr{background:#ffffff;}
+.av .av-pend-naoserve{opacity:.8;border-style:dashed;}
+.av .avr-gav-corpo .av-aviso{margin:10px 0 0;}
+.av .avr-gav-corpo .av-dl dd .av-nome-s{margin-top:1px;}
+@media (min-width:761px){
+  .av .av-pend-tab-b td[data-rot="Nota"],.av .av-pend-tab-b td[data-rot="Faixa"],.av .av-pend-tab-b td[data-rot="Dias vencido"]{white-space:nowrap;}
+  .av .av-pend-tab-a td[data-rot="Saldo sem zerar desde"]{min-width:118px;}
+}
+@media (max-width:760px){
+  .av .av-pend-fx{flex-direction:column;align-items:flex-start;gap:3px;}
+  .av .av-pend-fx>span{white-space:normal;background:none;border:0;padding:0;}
+  .av .av-pend-fx>span.av-pend-fx-t{padding:0;}
+  .av .av-filas .av-fila-bt .av-fila-l{flex:1 1 100%;}
+  .av .av-pend-tab-c td[data-rot="Conflito"]{max-width:none;}
+  .av .av-pend-tab-a td,.av .av-pend-tab-b td,.av .av-pend-tab-c td{min-width:0;}
+  .av .av-tab td>.av-pend-c{flex:1 1 auto;text-align:right;}
+  .av .av-tab td.av-cel-principal>.av-pend-c{text-align:left;}
+  .av .av-pend-cond{text-align:left;}
+  .av .av-pend-vinc{padding:10px;}
+  .av .av-pend-tab-v td{display:block;text-align:left;}
+  .av .av-pend-tab-v td:not(.av-cel-principal):before{display:block;max-width:none;margin-bottom:1px;}
+  .av .av-tab.av-pend-tab-v td>.av-pend-c{text-align:left;}
+  .av .av-pend-neg{padding:12px;}
+  .av [data-av-bloco^="fila-"] .av-linha-f label{max-width:100%;min-width:0;}
+  .av [data-av-bloco^="fila-"] .av-linha-f select{min-width:0;max-width:100%;flex:1 1 auto;}
+}
+.av .av-pend-painel{margin:4px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:1.5;}
+.av .av-pend-avis-det{color:#6b7787;font-weight:400;}

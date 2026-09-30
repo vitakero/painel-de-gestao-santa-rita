@@ -61,7 +61,7 @@ async function conferir() {
   const esp = ms => new Promise(r => setTimeout(r, ms));
   const tmp = fs.mkdtempSync(path.join(require("os").tmpdir(), "previa-man2-"));
   const porta = 9700 + Math.floor(Math.random() * 200);
-  const ch = spawn(CHROME, ["--headless=new", "--disable-gpu", "--remote-debugging-port=" + porta, "--user-data-dir=" + tmp,
+  const ch = spawn(CHROME, ["--headless=new", "--use-mock-keychain", "--password-store=basic", "--disable-gpu", "--remote-debugging-port=" + porta, "--user-data-dir=" + tmp,
     "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1", "--allow-file-access-from-files", "about:blank"], { stdio: "ignore" });
   let alvo = null;
   for (let i = 0; i < 80 && !alvo; i++) { await esp(250); try { alvo = (await (await fetch("http://127.0.0.1:" + porta + "/json")).json()).find(t => t.type === "page"); } catch (e) {} }

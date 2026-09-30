@@ -19,12 +19,23 @@ const HIST = path.join(RAIZ, "output", "vigia-supabase.json");
 
 // Limite do plano free. Se um dia mudar de plano, mexer aqui.
 const LIMITE_MB = 500;
-const AVISA_EM = 350;   // 70% — a partir daqui vale conversar
-const GRITA_EM = 425;   // 85% — a partir daqui vale agir
+// Os limites abaixo são em DADOS (o que este script mede), não no número do painel do
+// Supabase. Referência de 29/09/2026: 164 MB de dados aqui = 248 MB no painel (x1,5).
+// Então 500 MB no painel ~ 330 MB aqui.
+const AVISA_EM = 230;   // ~70% do plano no painel — a partir daqui vale conversar
+const GRITA_EM = 280;   // ~85% do plano no painel — a partir daqui vale agir
 
-const TABELAS = ["compra_entradas","estoque_produtos","vendasetor_mes","vendasetor_apelido",
-  "central_agendamentos","pedidos","perdas","entregas_registros","receitas","manutencoes",
-  "pontos_extras","escala","banco_horas","perfis","flv_fechamentos","pix_cobrancas"];
+// A lista NÃO é mais fixa: até 29/09 eram 16 nomes escritos à mão, e os módulos novos
+// (Frente de Caixa, registro do robô, Encartes...) cresceram sem o vigia ver — o banco foi
+// de 103 para 248 MB no painel do Supabase e aqui aparecia "20 MB, tranquilo".
+// Agora pergunta à nuvem quais tabelas existem. Visões (que só leem outras tabelas)
+// ficam de fora: não têm chave primária, e contá-las somaria o mesmo dado duas vezes.
+async function listaTabelas() {
+  const spec = await (await fetch(BASE + "/rest/v1/", { headers: H })).json();
+  const defs = spec.definitions || {};
+  return Object.keys(defs).filter((t) =>
+    Object.values(defs[t].properties || {}).some((c) => /<pk\/>/.test(c.description || ""))).sort();
+}
 
 const H = { apikey: KEY, Authorization: "Bearer " + KEY };
 
@@ -44,6 +55,8 @@ async function mede(t) {
   if (!BASE || !KEY) { console.log("ERRO: SUPABASE_URL ou SUPABASE_SERVICE_KEY faltando no .env"); process.exit(1); }
   const agora = { quando: new Date().toISOString(), tabelas: {} };
   let totalMb = 0;
+  const TABELAS = await listaTabelas();
+  if (!TABELAS.length) { console.log("ERRO: a nuvem não devolveu a lista de tabelas"); process.exit(1); }
   for (const t of TABELAS) {
     const m = await mede(t);
     if (!m) continue;
@@ -56,8 +69,8 @@ async function mede(t) {
 
   console.log("VIGIA DO SUPABASE — " + new Date().toLocaleString("pt-BR"));
   console.log("\n  dados nas tabelas: " + agora.totalMb.toFixed(1) + " MB");
-  console.log("  (o painel do Supabase mostra mais que isso: soma os índices, que costumam");
-  console.log("   dobrar o número. Use a proporção, não o valor absoluto.)");
+  console.log("  (o painel do Supabase mostra mais que isso: soma os índices. Em 29/09 eram");
+  console.log("   164 MB aqui = 248 MB lá, cerca de 1,5 vez. Use a proporção.)");
 
   if (antes) {
     const dias = Math.max(1, Math.round((new Date(agora.quando) - new Date(antes.quando)) / 86400000));
@@ -84,7 +97,7 @@ async function mede(t) {
   console.log("\n  VEREDITO:");
   if (agora.totalMb >= GRITA_EM) console.log("    APERTADO. Falar com o Victor sobre limpar ou subir de plano.");
   else if (agora.totalMb >= AVISA_EM) console.log("    Passou de " + AVISA_EM + " MB. Ainda cabe, mas vale planejar.");
-  else console.log("    Tranquilo. Longe do limite de " + LIMITE_MB + " MB.");
+  else console.log("    Tranquilo. Longe do limite de " + LIMITE_MB + " MB (no painel do Supabase).");
 
   console.log("\n  O EGRESS (tráfego do mês) eu não consigo ler — só aparece no painel do");
   console.log("  Supabase. Peça o print pro Victor se quiser conferir esse.");
@@ -92,4 +105,7 @@ async function mede(t) {
   hist.push(agora);
   if (hist.length > 60) hist = hist.slice(-60);   // guarda ~1 ano de medições semanais
   try { fs.mkdirSync(path.dirname(HIST), { recursive: true }); fs.writeFileSync(HIST, JSON.stringify(hist, null, 1)); } catch (e) {}
+  // sem isto o programa termina a conta mas fica parado, com conexões abertas, e a
+  // tarefa semanal nunca chega ao fim
+  process.exit(0);
 })().catch((e) => { console.log("ERRO: " + e.message); process.exit(1); });

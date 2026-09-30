@@ -40,7 +40,7 @@ function imprimir(tam, qtd, extra) {
   execFileSync("node", [path.join(RAIZ, "scripts", "previa-impressao.cjs")],
     { cwd: RAIZ, env: Object.assign({}, process.env, { TAMANHO: tam, QTD: String(qtd), PATCH: "", NOME: "ARROZ" }, extra || {}), stdio: "ignore" });
   const pdf = path.join(TMP, tam + "-" + Object.keys(extra || {}).join("") + ".pdf");
-  execFileSync(CHROME, ["--headless=new", "--disable-gpu", "--no-sandbox", "--virtual-time-budget=25000",
+  execFileSync(CHROME, ["--headless=new", "--use-mock-keychain", "--password-store=basic", "--disable-gpu", "--no-sandbox", "--virtual-time-budget=25000",
     "--print-to-pdf-no-header", "--print-to-pdf=" + pdf,
     "file://" + path.join(RAIZ, ".previa", "impressao.html")], { stdio: "ignore" });
   const xml = execFileSync("pdftotext", ["-bbox", pdf, "-"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });

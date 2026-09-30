@@ -57,6 +57,35 @@ const FILES = [
   ["scripts/encartes/tela.css", "robo/encartes/tela.css"],
   ["scripts/encartes/painel.js", "robo/encartes/painel.js"],
   ["scripts/vr-sync-encartes.cjs", "robo/vr-sync-encartes.cjs"],
+  // AVARIAS · PILOTO (29/09/2026, etapa 3,6): o cálculo APROVADO, a extração só leitura e o envio (robô) e a tela
+  // (lida pelo demoDashboard.ts no build). TODO arquivo de scripts/avarias/ entra aqui E no puxar-codigo.cjs: o teste
+  // .previa/avarias/codigo/testes/piloto-robo.test.cjs cobra (arquivo faltando na loja = robô chamando o que não existe).
+  ["scripts/avarias/calculo.cjs", "robo/avarias/calculo.cjs"],
+  ["scripts/avarias/consolidar.cjs", "robo/avarias/consolidar.cjs"],
+  ["scripts/avarias/documentos.cjs", "robo/avarias/documentos.cjs"],
+  ["scripts/avarias/etapa1.cjs", "robo/avarias/etapa1.cjs"],
+  ["scripts/avarias/evidencias.cjs", "robo/avarias/evidencias.cjs"],
+  ["scripts/avarias/ler-documento.cjs", "robo/avarias/ler-documento.cjs"],
+  ["scripts/avarias/montar-copias.cjs", "robo/avarias/montar-copias.cjs"],
+  ["scripts/avarias/vr.cjs", "robo/avarias/vr.cjs"],
+  ["scripts/avarias/extrair-vr.cjs", "robo/avarias/extrair-vr.cjs"],
+  ["scripts/avarias/apoio-copias.cjs", "robo/avarias/apoio-copias.cjs"],
+  ["scripts/avarias/colunas.cjs", "robo/avarias/colunas.cjs"],
+  ["scripts/avarias/enviar-nuvem.cjs", "robo/avarias/enviar-nuvem.cjs"],
+  ["scripts/avarias/sincronizar.cjs", "robo/avarias/sincronizar.cjs"],
+  ["scripts/avarias/tela/consultas.js", "robo/avarias/tela/consultas.js"],
+  ["scripts/avarias/tela/base.js", "robo/avarias/tela/base.js"],
+  ["scripts/avarias/tela/painel.js", "robo/avarias/tela/painel.js"],
+  ["scripts/avarias/tela/resumo.js", "robo/avarias/tela/resumo.js"],
+  ["scripts/avarias/tela/pendencias.js", "robo/avarias/tela/pendencias.js"],
+  ["scripts/avarias/tela/produtos.js", "robo/avarias/tela/produtos.js"],
+  ["scripts/avarias/tela/fornecedores.js", "robo/avarias/tela/fornecedores.js"],
+  ["scripts/avarias/tela/tela.css", "robo/avarias/tela/tela.css"],
+  ["scripts/avarias/tela/resumo.css", "robo/avarias/tela/resumo.css"],
+  ["scripts/avarias/tela/pendencias.css", "robo/avarias/tela/pendencias.css"],
+  ["scripts/avarias/tela/produtos.css", "robo/avarias/tela/produtos.css"],
+  ["scripts/avarias/tela/fornecedores.css", "robo/avarias/tela/fornecedores.css"],
+  ["scripts/vr-sync-avarias.cjs", "robo/vr-sync-avarias.cjs"],
   ["scripts/trocar-bat.cjs", "robo/trocar-bat.cjs"],   // troca o .bat depois que a rodada termina
   ["scripts/notas.bat", "robo/notas.bat"],
   ["robo-loja/pix.bat", "robo/pix.bat"],
@@ -94,6 +123,7 @@ const PASTAS = [
   ["scripts/central", ""],         // a Central Operacional (tela isolada + tipos)
   ["scripts/compras-x-venda", ""], // Compra × Venda: a oficina inteira (fotos, prévia) — a parte que roda já vai em robo/
   ["scripts/encartes", ""],        // Planejamento de Encartes: a parte que roda também vai em robo/
+  ["scripts/avarias", ""],         // Avarias (piloto): rede de segurança — o que roda já vai em robo/ (lista de cima)
   ["src/config", ""],              // a configuração da loja
   [".", ".cjs"],                   // os vigias que moram na raiz
 ];
