@@ -11122,6 +11122,14 @@ function glLoad(){ try{ var s=localStorage.getItem("galpoes_dados"); if(s) retur
 let galpoesG = glLoad();
 function glSB(){ return window.__SB||null; }
 var glCloudOK=false, glCarregando=false, glRT=null, glPushT=null, glPendDel={};
+/* ==GLFILA== MUDANÇA LOCAL ESPERANDO ENVIO NÃO É ATROPELADA PELA NUVEM (30/09, queixa dele:
+   "coloco pra remover o comprovante mas não remove"). O desfazer do "Pago" salvou, a nuvem avisou
+   a tela, e a RECARGA desse aviso chegou antes do envio da remoção do comprovante (que espera
+   700 ms): a cópia da nuvem, ainda com o comprovante, apagou a remoção — e o envio seguinte mandou
+   de volta o comprovante. Agora, enquanto houver mudança local não enviada, a recarga ESPERA e só
+   acontece depois que o envio termina. */
+var glPushando=false, glCargaAdiada=false, glSaveSeq=0;
+function glFimDoEnvio(){ glPushando=false; if(glCargaAdiada){ glCargaAdiada=false; setTimeout(glCloudLoad,300); } }
 function glRowFromG(g){ return {id:g.id,numero:String(g.numero||""),cnpj:g.cnpj||"",razao_social:g.razaoSocial||"",locatario:g.locatario||"",vendedor:g.vendedor||"",rg:g.rg||"",contato:g.contato||"",email:g.email||"",endereco:g.endereco||"",endereco_inq:g.enderecoInq||"",aluguel:g.aluguel||"1",valor:+g.valor||0,pagamento:g.pagamento||"",dia_pag:+g.diaPag||0,abertura:g.abertura||"",vencimento:g.vencimento||"",saida:g.saida||null,obs:g.obs||"",manuais:g.manuais||null,comprovantes:glCompsParaNuvem(g.comprovantes),contrato_url:(g.contratoArquivo&&g.contratoArquivo.indexOf("data:")!==0)?g.contratoArquivo:"",contrato_nome:g.contratoNome||"",atualizado_em:new Date().toISOString()}; }
 /* ==GLCOMP== comprovante que ainda não subiu (arquivo "data:...") NÃO vai pra nuvem: nem pesa o banco
    com o arquivo inteiro dentro da linha, nem faz os outros computadores verem "pago" sem o arquivo. */
@@ -11141,8 +11149,9 @@ function glSubirArquivos(g){
   })); } }); }
   return Promise.all(jobs);
 }
-function glSave(){ try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){} clearTimeout(glPushT); glPushT=setTimeout(glCloudPush,700); }
-function glCloudPush(){ var sb=glSB(); if(!sb||!glCloudOK) return;
+function glSave(){ try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){} glPushando=true; glSaveSeq++; clearTimeout(glPushT); glPushT=setTimeout(glCloudPush,700); }
+function glCloudPush(){ var sb=glSB(); if(!sb||!glCloudOK){ glFimDoEnvio(); return; }
+  var meuEnvio=glSaveSeq;   // se outro salvar chegar enquanto este corre, é ele quem libera a recarga
   Promise.all(galpoesG.map(glSubirArquivos)).then(function(){
     try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){}
     // Recusa da nuvem NÃO pode ser calada: "salvou" na tela e sumir na recarga é o pior erro
@@ -11153,8 +11162,10 @@ function glCloudPush(){ var sb=glSB(); if(!sb||!glCloudOK) return;
         uiConfirm({titulo:"A nuvem não salvou os galpões", msg:(/saida/i.test(m)
           ? "Falta instalar no banco o campo da saída do inquilino. Rode o arquivo sql/galpoes_saida.sql no Supabase e salve de novo."
           : "O que você mudou ficou só neste computador. Confira a internet e salve de novo.\\n\\n("+m.slice(0,160)+")"), ok:"Entendi", cancel:""}); }
-    },function(){});
-  }).catch(function(){});
+      // só libera a recarga se NÃO chegou outra mudança local enquanto este envio corria
+      if(meuEnvio===glSaveSeq) glFimDoEnvio();
+    },function(){ if(meuEnvio===glSaveSeq) glFimDoEnvio(); });
+  }).catch(function(){ if(meuEnvio===glSaveSeq) glFimDoEnvio(); });
 }
 function glCloudDel(id){ glPendDel[id]=Date.now()+30000; var sb=glSB(); if(!sb||!glCloudOK) return; sb.from("galpoes").delete().eq("id",id).then(function(r){
   // Assinado em OUTRO aparelho e esta tela ainda não sabia: o banco recusa (a trava da
@@ -11179,8 +11190,13 @@ function glCloudLoad(){ var sb=glSB(); if(!sb||glCarregando) return;
   // Se o perfil ainda não carregou (__PERFIL null), NÃO apaga nada — senão o master perde os próprios dados.
   if(window.__PERFIL==null) return;
   if(!glPodeVer()){ galpoesG=[]; try{ localStorage.removeItem("galpoes_dados"); }catch(e){} return; }
+  // ==GLFILA== há mudança local ainda não enviada: recarregar agora a apagaria. Espera o envio.
+  if(glPushando){ glCargaAdiada=true; return; }
   glCarregando=true;
   sb.from("galpoes").select("*").then(function(r){ glCarregando=false; if(r.error){ renderGalpoes(); return; } glCloudOK=true;
+    // ==GLFILA== a leitura saiu ANTES de uma mudança local que ainda não foi enviada: esta cópia
+    // já está velha. Joga fora e lê de novo depois do envio.
+    if(glPushando){ glCargaAdiada=true; return; }
     var now=Date.now();
     // id fora do formato do painel ("g" + letras e números) não entra: ele vai dentro de
     // atributos da tela, e só alguém mexendo direto na nuvem criaria um id diferente.
