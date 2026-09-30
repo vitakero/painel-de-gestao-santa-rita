@@ -42,5 +42,26 @@ vale("comprovante que já subiu vai pra nuvem", !!c[K], Object.keys(c).join(",")
 vale("comprovante que ainda NÃO subiu (arquivo inteiro na memória) não vai", !c["2026-11-05"], "fica só neste computador até subir");
 vale("sem comprovantes: vazio", f.glCompsParaNuvem(null) === null, "null");
 
+console.log("\n  ==== A ETIQUETA DE CIMA (==GLSTATUS==): olha a PRÓXIMA mensalidade ====");
+{
+  // a mesma regra do painel, com o dia de hoje escolhido aqui
+  // pxVenc (remarcação dos pontos) entra simplificado: sem remarcação, a data que vale é a própria
+  const monta = hoje => new Function("HOJE", "var pixCobs={};\nfunction pxVenc(p,k){ return k; }\n" + ["pixCobKey", "pixCobDe", "pixCobPaga", "pxManBonif", "pxManManual", "pxManSt", "pxQuitado",
+    "pxParseData", "pxDateKey", "pxAgenda", "pxAnoMesAtual", "pxPagoMes"].map(pega).join("\n") + "\nreturn { pxPagoMes };")(hoje);
+  const G = (extra) => Object.assign({ diaPag: 5, abertura: "2026-09-29", manuais: {}, comprovantes: {} }, extra);
+  const pagoOut = { manuais: { "2026-10-05": "autorizado" }, comprovantes: { "2026-10-05": { arquivo: "https://x/c.pdf" } } };
+  let st = monta(new Date(2026, 8, 30));
+  vale("30/09, outubro pago adiantado: PAGO (antes mostrava Em aberto)", st.pxPagoMes(G(pagoOut)) === true, "pago");
+  vale("30/09, outubro NÃO pago: em aberto", st.pxPagoMes(G()) === false, "em aberto");
+  vale("30/09, outubro com comprovante mas sem marcar: em aberto", st.pxPagoMes(G({ comprovantes: pagoOut.comprovantes })) === false, "em aberto");
+  st = monta(new Date(2026, 9, 20));
+  vale("20/10, outubro pago: PAGO", st.pxPagoMes(G(pagoOut)) === true, "pago");
+  st = monta(new Date(2026, 10, 2));
+  vale("02/11, novembro ainda não pago: em aberto (a próxima é a de novembro)", st.pxPagoMes(G(pagoOut)) === false, "em aberto");
+  // ponto extra continua olhando o mês de hoje (sem mensalidade no mês = não pago)
+  st = monta(new Date(2026, 8, 30));
+  vale("ponto extra NÃO muda: sem mensalidade no mês de hoje, não conta como pago", st.pxPagoMes({ abertura: "2026-10-05", vencimento: "2027-10-05", manuais: { "2026-10-05": "autorizado" } }) === false, "em aberto");
+}
+
 console.log("\n  " + ok + " ok, " + falhou + " falha(s).\n");
 process.exit(falhou ? 1 : 0);
