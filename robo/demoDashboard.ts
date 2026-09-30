@@ -18407,7 +18407,12 @@ function pxUploadDataUrl(nome,dataUrl){
 }
 function pxSubirArquivos(p){
   var jobs=[];
-  if(p.contratoArquivo && p.contratoArquivo.indexOf("data:")===0){ jobs.push(pxUploadDataUrl(p.id+"_contrato",p.contratoArquivo).then(function(u){ if(u) p.contratoArquivo=u; })); }
+  if(p.contratoArquivo && p.contratoArquivo.indexOf("data:")===0){ jobs.push(pxUploadDataUrl(p.id+"_contrato",p.contratoArquivo).then(function(u){
+    if(u){ p.contratoArquivo=u; return; }
+    // ==PXCONTRATO== o contrato NÃO subiu: a nuvem recebe o ponto sem ele e, na recarga, ele some
+    // daqui também — e sem contrato a cobrança trava. Avisa uma vez; tenta de novo no próximo salvar.
+    if(!window.__pxAvisouCt){ window.__pxAvisouCt=1; uiConfirm({titulo:"O contrato não subiu",msg:"O arquivo do contrato não chegou na nuvem (internet ou permissão). Ao recarregar a página ele some, e a cobrança continua travada.\\n\\nConfira a internet e anexe o contrato de novo.",ok:"Entendi",cancel:""}); }
+  })); }
   if(p.comprovantes){ Object.keys(p.comprovantes).forEach(function(m){ var c=p.comprovantes[m]; if(c&&c.arquivo&&c.arquivo.indexOf("data:")===0){ jobs.push(pxUploadDataUrl(p.id+"_comp_"+m,c.arquivo).then(function(u){ if(u) c.arquivo=u; })); } }); }
   return Promise.all(jobs);
 }
@@ -19048,6 +19053,8 @@ function pxExigeAssinatura(p, acao){
           ? "Se anexar agora, o contrato vai estar sem a assinatura do diretor."
           : acao==="marcar"
           ? "Sem isso a parcela não pode ser marcada como paga."
+          : acao==="autorizar"
+          ? "Sem isso o pagamento não pode ser autorizado."
           : "Sem isso a cobrança não é liberada."),
     ok:"Entendi", cancel:"" });
   return false;
@@ -19058,13 +19065,13 @@ function pxExigeContrato(p, acao){
   var anexado=pxContratoAnexado(p);
   var assinado=(typeof pxAssinValida==="function") && pxAssinValida(p);
   if(anexado && assinado) return true;
-  if(!assinado) return pxExigeAssinatura(p, acao==="marcar" ? "marcar" : "cobrar");
+  if(!assinado) return pxExigeAssinatura(p, (acao==="marcar"||acao==="autorizar") ? acao : "cobrar");
   uiConfirm({
     titulo:"Anexe o contrato assinado",
     msg:"O contrato já está assinado pelo diretor. Falta:\\n\\n"
       + "\\u2022 imprimir e colher a assinatura do fornecedor\\n"
       + "\\u2022 anexar no botão \\u201cAnexar contrato\\u201d\\n\\n"
-      + (acao==="marcar" ? "Depois volte aqui e marque como paga." : "Depois volte aqui e gere a cobrança."),
+      + (acao==="marcar" ? "Depois volte aqui e marque como paga." : acao==="autorizar" ? "Depois volte aqui e autorize o pagamento." : "Depois volte aqui e gere a cobrança."),
     ok:"Entendi", cancel:"" });
   return false;
 }
@@ -19114,6 +19121,7 @@ function pixCobRetry(pid,key){
   const sb=pxSB(); const c=pixCobs[pixCobKey(pid,key)];
   if(!sb||!c||!c.id) return;
   const p=pontosG.find(function(x){ return x.id===pid; });
+  if(!p || !pxExigeContrato(p)) return;   // ==PXCONTRATO== pedir de novo ao banco também exige o contrato (igual ao Gerar)
   // pedido de remarcação aguardando: a mesma trava do pxGerarPix (senão o boleto renasce com a data velha)
   if(p && pxRemarcPend(p,key)){ uiConfirm({ titulo:"Há um pedido de remarcação aguardando", msg:"Esta parcela tem um pedido de mudança de data esperando o master. Autorize ou recuse o pedido (na coluna Data da cobrança) antes de pedir o boleto de novo — senão ele sai com a data antiga.", ok:"Entendi", cancel:"" }); return; }
   const doc=String((p&&p.cnpj)||c.documento||"").replace(/\\D/g,"");
@@ -20134,7 +20142,13 @@ function pxAssinar(id){
          cobrança só volta a andar com o contrato novo, assinado pelo fornecedor, anexado. */
       var tinhaAnexo=!!pAt.contratoArquivo;
       pAt.assinatura=a;
-      if(tinhaAnexo){ delete pAt.contratoArquivo; delete pAt.contratoNome; }
+      if(tinhaAnexo){ delete pAt.contratoArquivo; delete pAt.contratoNome;
+        /* grava a retirada JÁ, só nestas duas colunas: a própria assinatura muda a linha na nuvem e
+           a tela recarrega em 700 ms; esperar o envio geral (800 ms) deixava a recarga trazer o
+           contrato velho de volta. O aviso desta gravação ainda provoca outra recarga, já sem ele. */
+        var _avCt=function(){ uiConfirm({titulo:"O contrato antigo não saiu da nuvem",msg:"Não consegui tirar o contrato antigo na nuvem (internet ou permissão). Nos outros computadores ele ainda aparece anexado.\\n\\nConfira a internet e tire o contrato no \\u2715 do quadro do contrato.",ok:"Entendi",cancel:""}); };
+        try{ sb.from("pontos_extras").update({contrato_url:"",contrato_nome:""}).eq("id",id).then(function(r2){ if(r2&&r2.error) _avCt(); },_avCt); }catch(e){ _avCt(); }
+      }
       savePontosG(); renderPontosG(); pxReabrir(id);
       if(tinhaAnexo) uiConfirm({titulo:"Anexe o contrato novo",
         msg:"Assinado. O contrato que estava anexado era da versão anterior e deixou de valer.\\n\\n"
@@ -20853,7 +20867,7 @@ async function pixTravaClick(){
     const aut=e.target.closest("[data-autorizar]");
     if(aut){ const pr=aut.dataset.autorizar.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(p){
       const kk=pr[1]; const manA=(p.manuais||{})[kk];
-      if(!pxExigeContrato(p,"marcar")) return;   // ==PXCONTRATO== autorizar é o que faz virar paga: exige o contrato
+      if(!pxExigeContrato(p,"autorizar")) return;   // ==PXCONTRATO== autorizar é o que faz virar paga: exige o contrato
       if(pxManManual(manA)){
         /* SEM O COMPROVANTE NAO AUTORIZA — mesma regra da bonificacao. Se alguem removeu o
            anexo depois de marcar, a autorizacao para aqui: o que sustenta este pagamento e o
@@ -20874,7 +20888,7 @@ async function pixTravaClick(){
         autorizarMaster("Autorizar este pagamento, feito por fora do banco. Digite a senha do master para confirmar.",true,true).then(function(senha){
           if(!senha||senha===true) return;
           const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return;
-          if(!pxExigeContrato(pA,"marcar")) return;   // ==PXCONTRATO== confere de novo na hora de gravar
+          if(!pxExigeContrato(pA,"autorizar")) return;   // ==PXCONTRATO== confere de novo na hora de gravar
           /* QUEM GRAVA É O BANCO (==PAGSENHA==): confere a senha de novo, exige o comprovante e
              grava quem autorizou e quando. A tela não escreve mais "autorizado". */
           pxPagRpc("pontos_autorizar_pagamento",{p_id:pr[0],p_parcela:kk,p_senha:senha},pr[0]);
@@ -20890,6 +20904,7 @@ async function pixTravaClick(){
         var senhaB=""; // a senha digitada volta ao banco, que confere de novo e grava (==PAGSENHA==)
         const fecha=function(quitado){
           const fr=pega(); if(!fr){ uiConfirm({titulo:"Nada para autorizar",msg:"Este registro mudou ou já foi tratado em outra tela. A lista foi atualizada.",ok:"Ok",cancel:""}); renderPontosG(); return; }
+          if(!pxExigeContrato(fr.p,"autorizar")) return;   // ==PXCONTRATO== o contrato pode ter saído com as janelas de "veio menos" abertas
           /* O BANCO faz o que esta função fazia: a entrega entra no histórico, a nota vai para a
              chave própria da entrega (parcela~eN), soma o que veio e decide Pago ou Parcial.
              quitado = o master aceitou como quitado mesmo vindo menos. */
@@ -20897,7 +20912,7 @@ async function pixTravaClick(){
         };
         autorizarMaster("Autorizar esta bonificação. Digite a senha do master para confirmar.",true,true).then(function(senha){ if(!senha||senha===true) return; senhaB=senha;
           const fr0=pega(); if(!fr0){ uiConfirm({titulo:"Nada para autorizar",msg:"Este registro mudou ou já foi tratado em outra tela. A lista foi atualizada.",ok:"Ok",cancel:""}); renderPontosG(); return; }
-          if(!pxExigeContrato(fr0.p,"marcar")) return;   // ==PXCONTRATO== confere de novo na hora de gravar
+          if(!pxExigeContrato(fr0.p,"autorizar")) return;   // ==PXCONTRATO== confere de novo na hora de gravar
           const novoTot=Math.round(((+fr0.man.tot||0)+(+fr0.man.pend.valor||0))*100)/100;
           const falta=Math.round(((+fr0.p.valor||0)-novoTot)*100)/100;
           if(falta>0.005){
@@ -20913,7 +20928,7 @@ async function pixTravaClick(){
       }
       autorizarMaster("Autorizar este pagamento, feito por fora do banco. Digite a senha do master para confirmar.",true,true).then(function(senha){ if(!senha||senha===true) return;
         const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return;
-        if(!pxExigeContrato(pA,"marcar")) return;   // ==PXCONTRATO== confere de novo na hora de gravar
+        if(!pxExigeContrato(pA,"autorizar")) return;   // ==PXCONTRATO== confere de novo na hora de gravar
         /* Formato antigo (a palavra "pendente", de antes de 28/08/2026): o banco confere a senha
            e grava "autorizado" (==PAGSENHA==). O pago-por-fora com motivo nunca chega aqui —
            ele sai no bloco de cima, e o banco mantém o motivo. */
