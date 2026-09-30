@@ -11140,7 +11140,12 @@ function glGFromRow(r){ var g={id:r.id,numero:String(r.numero||""),cnpj:r.cnpj||
 // Sobe o contrato anexado pro Storage (bucket privado "pontos") antes de salvar — evita guardar base64 gigante no banco.
 function glSubirArquivos(g){
   var jobs=[];
-  if(g.contratoArquivo && g.contratoArquivo.indexOf("data:")===0){ jobs.push(pxUploadDataUrl("galpao_"+g.id+"_contrato",g.contratoArquivo).then(function(u){ if(u) g.contratoArquivo=u; })); }
+  if(g.contratoArquivo && g.contratoArquivo.indexOf("data:")===0){ jobs.push(pxUploadDataUrl("galpao_"+g.id+"_contrato",g.contratoArquivo).then(function(u){
+    if(u){ g.contratoArquivo=u; return; }
+    // ==GLCONTRATO== o contrato NÃO subiu: a nuvem recebe o galpão sem ele e, na recarga, ele some
+    // daqui também — e sem contrato a cobrança trava. Avisa uma vez; tenta de novo no próximo salvar.
+    if(!window.__glAvisouCt){ window.__glAvisouCt=1; uiConfirm({titulo:"O contrato não subiu",msg:"O arquivo do contrato não chegou na nuvem (internet ou permissão). Ao recarregar a página ele some, e a cobrança continua travada.\\n\\nConfira a internet e anexe o contrato de novo.",ok:"Entendi",cancel:""}); }
+  })); }
   if(g.comprovantes){ Object.keys(g.comprovantes).forEach(function(m){ var c=g.comprovantes[m]; if(c&&c.arquivo&&c.arquivo.indexOf("data:")===0){ jobs.push(pxUploadDataUrl("galpao_"+g.id+"_comp_"+m,c.arquivo).then(function(u){
     if(u){ c.arquivo=u; return; }
     // ==GLCOMP== o comprovante NÃO subiu: ele fica só neste computador e a nuvem não recebe o
@@ -17303,6 +17308,7 @@ function glAgendaHtml(g){
   var hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
   var comps=g.comprovantes||{};
   var ehBoleto=/bolet/i.test(String(g.pagamento||""));
+  var ctOk=glContratoPronto(g);   // ==GLCONTRATO== sem contrato assinado e anexado, os botões explicam em vez de agir
   var icoClip='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>';
   var icoBarras='<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px;margin-right:5px;"><rect x="2" y="4" width="2.4" height="16" rx="0.6"></rect><rect x="6" y="4" width="1.4" height="16" rx="0.6"></rect><rect x="9" y="4" width="3" height="16" rx="0.6"></rect><rect x="13.6" y="4" width="1.4" height="16" rx="0.6"></rect><rect x="16.5" y="4" width="1.1" height="16" rx="0.55"></rect><rect x="19.2" y="4" width="2.8" height="16" rx="0.6"></rect></svg>';
   var icoQr='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><line x1="14" y1="14.5" x2="14" y2="18"></line><line x1="17.5" y1="14" x2="17.5" y2="17.5"></line><line x1="21" y1="17.5" x2="21" y2="21"></line><line x1="14" y1="21" x2="17.5" y2="21"></line></svg>';
@@ -17313,12 +17319,12 @@ function glAgendaHtml(g){
     var quit=pxQuitado(g,key);
     var cobCell = quit
       ? '<span class="px-quitado" title="Mensalidade recebida"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>Pago</span> <button type="button" class="px-rec" data-gldesfazer="'+ref+'" title="Desfazer pagamento">✕</button>'
-      : '<button type="button" class="px-pix-btn" data-glcob="'+ref+'">'+(ehBoleto?icoBarras:icoQr)+(ehBoleto?'Gerar boleto':'Gerar Pix')+'</button>';
+      : '<button type="button" class="px-pix-btn" data-glcob="'+ref+'"'+(ctOk?'':' title="Anexe primeiro o contrato assinado"')+'>'+(ehBoleto?icoBarras:icoQr)+(ehBoleto?'Gerar boleto':'Gerar Pix')+'</button>';
     // ==GLCOMP== cobrança manual: sem comprovante, a coluna oferece ANEXAR (é o anexo que marca como paga)
     var compCell = c
       ? '<a href="#" class="px-comp-link" data-glcompview="'+ref+'" title="Ver comprovante">'+icoClip+'<span>comprovante</span></a> <button type="button" class="px-comp-x" data-glcomprem="'+ref+'" title="Remover comprovante">✕</button>'
       : (quit ? '<span style="color:#c3ccd6;">—</span>'
-              : '<button type="button" class="gl-comp-anexar" data-glcompanexar="'+ref+'" title="Anexe o comprovante do pagamento: é ele que marca a mensalidade como paga">'+icoClip+'<span>Anexar</span></button>');
+              : '<button type="button" class="gl-comp-anexar" data-glcompanexar="'+ref+'" title="'+(ctOk?'Anexe o comprovante do pagamento: é ele que marca a mensalidade como paga':'Anexe primeiro o contrato assinado')+'">'+icoClip+'<span>Anexar</span></button>');
     return '<tr'+passou+'><td>'+(i+1)+'</td><td>'+pxDataChip(d)+'</td><td>'+brl(g.valor||0)+'</td><td class="px-pix-cell">'+cobCell+'</td><td class="px-comp-cell">'+compCell+'</td></tr>';
   }).join("");
   // prazo indeterminado (==GLSAIDA==): o título diz até onde a lista vai e que ela anda sozinha
@@ -17911,7 +17917,22 @@ function glAssinar(id){
     if(!senha||senha===true) return;
     glAssinRpc("assinar_contrato_galpao",{p_id:id,p_senha:senha,p_nome:nome,p_impressao_esperada:glAssinImpressao(g)},"Não deu para assinar",function(a){
       if(!a||!a.codigo){ uiConfirm({titulo:"Não deu para assinar",msg:"A nuvem não devolveu o código. Tente de novo.",ok:"Entendi",cancel:""}); return; }
-      g.assinatura=a; glSave(); renderGalpoes(); glReabrir(id);
+      var gAt=galpoesG.find(function(x){ return x.id===id; })||g;   // a nuvem pode ter recarregado a lista enquanto a senha era digitada
+      /* ==GLCONTRATO== o botão Assinar só aparece SEM assinatura válida (nunca assinou, cancelou ou a
+         assinatura caiu). Então um contrato que já estava anexado é de ANTES desta assinatura: o
+         papel do inquilino traz o código velho (ou os dados velhos). Ele deixa de valer, e a
+         cobrança só volta a andar com o contrato novo, assinado pelo inquilino, anexado. */
+      var tinhaAnexo=!!gAt.contratoArquivo;
+      gAt.assinatura=a;
+      if(tinhaAnexo){ delete gAt.contratoArquivo; delete gAt.contratoNome; }
+      glSave(); renderGalpoes(); glReabrir(id);
+      if(tinhaAnexo) uiConfirm({titulo:"Anexe o contrato novo",
+        msg:"Assinado. O contrato que estava anexado era da versão anterior e deixou de valer.\\n\\n"
+          + "\\u2022 imprima o contrato novo (já com esta assinatura)\\n"
+          + "\\u2022 colha a assinatura do inquilino\\n"
+          + "\\u2022 anexe no botão \\u201cAnexar contrato\\u201d\\n\\n"
+          + "Até lá, a mensalidade não pode ser cobrada nem marcada como paga.",
+        ok:"Entendi", cancel:""});
     });
   });
 }
@@ -17935,7 +17956,7 @@ function glApagarAssinado(g){
   });
 }
 // Anexar antes do locador assinar quebraria a ordem do processo (igual pxExigeAssinatura).
-function glExigeAssinatura(g){
+function glExigeAssinatura(g, acao){
   if(glAssinValida(g)) return true;
   var caiu=glAssinCaiu(g);
   uiConfirm({
@@ -17948,7 +17969,27 @@ function glExigeAssinatura(g){
        + "2. você imprime o contrato já assinado\\n"
        + "3. o inquilino assina no papel\\n"
        + "4. você anexa o contrato assinado pelos dois\\n\\n"
-       + "Se anexar agora, o contrato vai estar sem a assinatura do locador.",
+       + (acao==="cobrar"
+          ? "Sem isso a mensalidade não pode ser cobrada nem marcada como paga."
+          : "Se anexar agora, o contrato vai estar sem a assinatura do locador."),
+    ok:"Entendi", cancel:"" });
+  return false;
+}
+/* ==GLCONTRATO== COBRAR EXIGE O CONTRATO (pedido dele, 30/09/2026): sem o contrato ASSINADO pelo
+   locador E ANEXADO (já com a assinatura do inquilino), a mensalidade não anda — nem "Gerar Pix",
+   nem anexar comprovante, nem marcar como paga. A mesma regra dos pontos extras (pxExigeContrato).
+   Desfazer o pago e remover o comprovante continuam livres: são pra corrigir erro. */
+function glContratoPronto(g){ return !!(g && g.contratoArquivo) && glAssinValida(g); }
+function glExigeContrato(g){
+  if(!g) return false;
+  if(!glAssinValida(g)) return glExigeAssinatura(g,"cobrar");
+  if(g.contratoArquivo) return true;
+  uiConfirm({
+    titulo:"Anexe o contrato assinado",
+    msg:"O contrato já está assinado pelo locador. Falta:\\n\\n"
+      + "\\u2022 imprimir e colher a assinatura do inquilino\\n"
+      + "\\u2022 anexar no botão \\u201cAnexar contrato\\u201d\\n\\n"
+      + "Sem o contrato anexado, a mensalidade não pode ser cobrada, nem receber comprovante, nem ser marcada como paga.",
     ok:"Entendi", cancel:"" });
   return false;
 }
@@ -18156,7 +18197,7 @@ function renderGalpoes(){
     if(asG){ glAssinar(asG.dataset.glassinar); return; }
     // --- CONTRATO (mesmo padrão dos pontos) ---
     var cremG=e.target.closest("[data-glcrem]"); // o × fica DENTRO do card clicável → checar antes do "ver"
-    if(cremG){ var gr=galpoesG.find(function(x){ return x.id===cremG.dataset.glcrem; }); if(gr){ uiConfirm({titulo:"Remover contrato",msg:"Remover o arquivo do contrato deste galpão?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; delete gr.contratoArquivo; delete gr.contratoNome; glSave(); renderGalpoes(); glReabrir(gr.id); }); } return; }
+    if(cremG){ var gr=galpoesG.find(function(x){ return x.id===cremG.dataset.glcrem; }); if(gr){ uiConfirm({titulo:"Remover contrato",msg:"Remover o arquivo do contrato deste galpão?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; var gAt=galpoesG.find(function(x){ return x.id===gr.id; }); if(!gAt) return; delete gAt.contratoArquivo; delete gAt.contratoNome; glSave(); renderGalpoes(); glReabrir(gAt.id); }); } return; }
     var cviewG=e.target.closest("[data-glcview]");
     if(cviewG){ e.preventDefault(); glAbrirContrato(galpoesG.find(function(x){ return x.id===cviewG.dataset.glcview; })); return; }
     var cbtnG=e.target.closest("[data-glcfile-btn]");
@@ -18173,6 +18214,7 @@ function renderGalpoes(){
     var cobG=e.target.closest("[data-glcob]");
     if(cobG){
       var pr=cobG.dataset.glcob.split("|"); var gc=galpoesG.find(function(x){ return x.id===pr[0]; }); if(!gc) return;
+      if(!glExigeContrato(gc)) return;   // ==GLCONTRATO== sem contrato assinado e anexado, nada de cobrança
       var ehBol=/bolet/i.test(String(gc.pagamento||""));
       /* ==GLCOMP== DOIS PASSOS (pedido dele, 30/09): 1) anexar o comprovante na coluna Comprovante;
          2) aqui, "Marcar como paga" — que só é oferecido com o comprovante JÁ anexado. */
@@ -18183,7 +18225,11 @@ function renderGalpoes(){
           msg:introCob+"O comprovante desta mensalidade já está anexado. Confira e marque como paga.",
           ok:"Marcar como paga", cancel:"Agora não"}).then(function(sim){
             if(!sim) return;
-            gc.manuais=gc.manuais||{}; gc.manuais[pr[1]]="autorizado"; glSave(); renderGalpoes(); glReabrir(gc.id);
+            // a nuvem pode ter recarregado a lista com a janela aberta: confere e grava no galpão ATUAL
+            var gAt=galpoesG.find(function(x){ return x.id===pr[0]; }); if(!gAt) return;
+            if(!glExigeContrato(gAt)) return;   // ==GLCONTRATO== confere de novo na hora de gravar
+            if(!(gAt.comprovantes||{})[pr[1]]){ uiConfirm({titulo:"O comprovante não está mais anexado",msg:"O comprovante desta mensalidade foi removido (talvez em outro computador). Anexe de novo antes de marcar como paga.",ok:"Entendi",cancel:""}); return; }
+            gAt.manuais=gAt.manuais||{}; gAt.manuais[pr[1]]="autorizado"; glSave(); renderGalpoes(); glReabrir(gAt.id);
           });
       } else {
         uiConfirm({titulo:(ehBol?"Gerar boleto":"Gerar Pix")+" — banco ainda não conectado",
@@ -18196,7 +18242,7 @@ function renderGalpoes(){
       return;
     }
     var desfG=e.target.closest("[data-gldesfazer]");
-    if(desfG){ var pd=desfG.dataset.gldesfazer.split("|"); var gd=galpoesG.find(function(x){ return x.id===pd[0]; }); if(gd){ uiConfirm({titulo:"Desfazer pagamento",msg:"A mensalidade volta a ficar em aberto. O comprovante continua anexado.",ok:"Desfazer",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; if(gd.manuais) delete gd.manuais[pd[1]]; glSave(); renderGalpoes(); glReabrir(gd.id); }); } return; }
+    if(desfG){ var pd=desfG.dataset.gldesfazer.split("|"); var gd=galpoesG.find(function(x){ return x.id===pd[0]; }); if(gd){ uiConfirm({titulo:"Desfazer pagamento",msg:"A mensalidade volta a ficar em aberto. O comprovante continua anexado.",ok:"Desfazer",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; var gAt=galpoesG.find(function(x){ return x.id===pd[0]; }); if(!gAt) return; if(gAt.manuais) delete gAt.manuais[pd[1]]; glSave(); renderGalpoes(); glReabrir(gAt.id); }); } return; }
     // --- COMPROVANTES (um por mensalidade) — ==GLCOMP== ---
     // Enquanto a cobrança for manual: 1) ANEXAR o comprovante aqui; 2) "Gerar Pix" -> "Marcar como paga".
     // Tirar o comprovante volta a mensalidade pra em aberto. Quando o banco for ligado, ele confirma sozinho.
@@ -18205,7 +18251,7 @@ function renderGalpoes(){
     var compViewG=e.target.closest("[data-glcompview]");
     if(compViewG){ e.preventDefault(); var pv=compViewG.dataset.glcompview.split("|"); var gv=galpoesG.find(function(x){ return x.id===pv[0]; }); var cv=gv&&(gv.comprovantes||{})[pv[1]]; if(cv&&cv.arquivo){ srSignedUrl("pontos", cv.arquivo, function(u){ if(u) window.open(u,"_blank"); }); } return; }
     var compRemG=e.target.closest("[data-glcomprem]");
-    if(compRemG){ var prm=compRemG.dataset.glcomprem.split("|"); var grm=galpoesG.find(function(x){ return x.id===prm[0]; }); if(grm){ uiConfirm({titulo:"Remover comprovante",msg:"Apagar o comprovante desta mensalidade? Sem ele, a mensalidade volta a ficar em aberto.",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; if(grm.comprovantes) delete grm.comprovantes[prm[1]]; if(grm.manuais) delete grm.manuais[prm[1]]; glSave(); renderGalpoes(); glReabrir(grm.id); }); } return; }
+    if(compRemG){ var prm=compRemG.dataset.glcomprem.split("|"); var grm=galpoesG.find(function(x){ return x.id===prm[0]; }); if(grm){ uiConfirm({titulo:"Remover comprovante",msg:"Apagar o comprovante desta mensalidade? Sem ele, a mensalidade volta a ficar em aberto.",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; var gAt=galpoesG.find(function(x){ return x.id===prm[0]; }); if(!gAt) return; if(gAt.comprovantes) delete gAt.comprovantes[prm[1]]; if(gAt.manuais) delete gAt.manuais[prm[1]]; glSave(); renderGalpoes(); glReabrir(gAt.id); }); } return; }
     var ed=e.target.closest("[data-gledit]");
     if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNum").value=g2.numero||""; document.getElementById("glCnpj").value=g2.cnpj||""; document.getElementById("glRazao").value=g2.razaoSocial||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glVend").value=g2.vendedor||""; document.getElementById("glRg").value=g2.rg||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; try{ glSincEndereco(); }catch(e){} document.getElementById("glEndInq").value=g2.enderecoInq||""; document.getElementById("glAluguel").value=g2.aluguel||"1"; document.getElementById("glValor").value=g2.valor||""; document.getElementById("glPag").value=g2.pagamento||""; document.getElementById("glDiaPag").value=g2.diaPag||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glSaida").value=g2.saida||""; var _scE=document.getElementById("glSaidaCampo"); if(_scE) _scE.style.display="";   /* a saída só aparece no EDITAR (galpão novo não tem saída) */ document.getElementById("glObs").value=g2.obs||""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; try{ glSetDocTipo(((g2.cnpj||"").replace(/\\D/g,"").length===11)?"cpf":"cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
     var rem=e.target.closest("[data-glrem]");
@@ -18255,6 +18301,8 @@ function glProcessaContratoArquivo(id,f){
    (pxQuitado do galpão exige os dois: comprovante E a marcação). O arquivo vai pro depósito
    privado pelo mesmo caminho dos contratos (glSubirArquivos -> "galpao_<id>_comp_<data>"). */
 function glPedirComprovante(id,key){
+  // ==GLCONTRATO== TRAVA ÚNICA do anexar comprovante: vale pro botão da coluna e pra janela do Gerar Pix
+  if(!glExigeContrato(galpoesG.find(function(x){ return x.id===id; }))) return;
   var inp=document.getElementById("glCompArq");
   if(!inp){ inp=document.createElement("input"); inp.type="file"; inp.id="glCompArq"; inp.accept="application/pdf,image/*"; inp.style.display="none"; document.body.appendChild(inp);
     inp.addEventListener("change",function(){
@@ -18264,6 +18312,7 @@ function glPedirComprovante(id,key){
       var reader=new FileReader();
       reader.onload=function(){
         var g=galpoesG.find(function(x){ return x.id===alvo[0]; }); if(!g) return;
+        if(!glExigeContrato(g)) return;   // ==GLCONTRATO== o contrato pode ter sido removido enquanto escolhia o arquivo
         g.comprovantes=g.comprovantes||{};
         // SÓ ANEXA. Marcar como paga é o passo seguinte, no "Gerar Pix" (pedido dele, 30/09).
         g.comprovantes[alvo[1]]={ arquivo:reader.result, nome:f.name, em:new Date().toISOString(), por:String(window.__EMAIL||"") };
