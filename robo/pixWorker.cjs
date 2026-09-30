@@ -41,14 +41,21 @@ async function pixToken(){ const r=await fetch(PIX_BASE+"/auth/openapi/token",{m
   let pixTok=null, pixTokAt=0;
   const pegaTok=async()=>{ if(!pixTok || Date.now()-pixTokAt>240000){ pixTok=await pixToken(); pixTokAt=Date.now(); } return pixTok; };
 
+  // UMA PERGUNTA POR RODADA (era uma para cada fila: 3 a cada ~9 s, o dia inteiro, mesmo sem
+  // nada pra fazer = ~1.300 pedidos/hora no Supabase, a conta de "registros" que estourou 6x).
+  // A resposta traz as tres filas de uma vez e aqui ela e separada. O QUE a rodada faz com cada
+  // cobranca nao mudou: mesmas filas, mesmos limites (25 cancelamentos, 25 pedidos por ordem de
+  // id), mesma ordem (presas -> cancelamentos -> pedidos). Provado lado a lado com a versao
+  // antiga (scripts/testes/pix-robo-fila.test.cjs). 30/09/2026.
+  const fila=await pixSbGet("pix_cobrancas?status=in.(gerando,cancelar,pedido)&select=*&order=id&limit=1000");
   // 0) recuperacao: linha presa em "gerando" = rodada anterior caiu no meio.
-  const presas=await pixSbGet("pix_cobrancas?status=eq.gerando&select=id,seu_numero");
+  const presas=fila.filter(x=>x.status==="gerando");
   for(const pr of presas){
     try{ await pixSbPatch("id=eq."+pr.id+"&status=eq.gerando",{status:"erro",erro_msg:"A rodada anterior caiu no meio da geracao. Confira no Sicredi se o boleto (seu numero "+(pr.seu_numero||"?")+") ja existe antes de clicar em Tentar de novo."}); }catch(e){}
   }
 
   // 0.5) cancelamentos pedidos no painel -> baixa no Sicredi
-  const cancels=await pixSbGet("pix_cobrancas?status=eq.cancelar&select=id,nosso_numero&limit=25");
+  const cancels=fila.filter(x=>x.status==="cancelar").slice(0,25);
   for(const cc of cancels){
     try{
       if(!cc.nosso_numero){ await pixSbPatch("id=eq."+cc.id,{status:"cancelado"}); continue; }
@@ -66,7 +73,7 @@ async function pixToken(){ const r=await fetch(PIX_BASE+"/auth/openapi/token",{m
   }
 
   // 1) pedidos do painel -> criar boleto hibrido (QR Pix) no Sicredi
-  const pedidos=await pixSbGet("pix_cobrancas?status=eq.pedido&select=*&order=id&limit=25");
+  const pedidos=fila.filter(x=>x.status==="pedido").slice(0,25);
   for(const pd of pedidos){
     const seuNum=String(pd.id).padStart(10,"0").slice(-10);
     try{
