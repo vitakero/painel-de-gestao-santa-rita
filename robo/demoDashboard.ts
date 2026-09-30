@@ -2726,7 +2726,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           </div>
           <div class="campo"><label for="glDiaPag">Pagar até o dia</label><input type="number" id="glDiaPag" min="1" max="28" placeholder="5" style="width:100px;"></div>
           <div class="campo"><label for="glAbertura">Abertura do contrato</label><input type="date" id="glAbertura"></div>
-          <div class="campo"><label for="glVenc">Vencimento do contrato</label><input type="date" id="glVenc"></div>
+          <div class="campo"><label for="glSaida">Saída do inquilino (só se ele sair)</label><input type="date" id="glSaida" title="Deixe em branco enquanto ele estiver alugando. O contrato é por prazo indeterminado: as cobranças param nesta data."></div>
           <div class="campo" style="flex:1;min-width:180px;"><label for="glObs">Observação</label><input type="text" id="glObs" placeholder="ex: Mensalmente todo dia 20"></div>
           <button class="btn-p" id="glSalvar" style="margin-top:18px;">Adicionar</button>
           <button class="btn-s" id="glCancelar" style="display:none;margin-top:18px;">Cancelar</button>
@@ -2749,9 +2749,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
             <option value="Boleto">Boleto</option>
           </select>
           <select id="glFiltroVenc" class="px-filtro">
-            <option value="">Todos os vencimentos</option>
-            <option value="vencidos">Vencidos</option>
-            <option value="avencer">A vencer</option>
+            <option value="">Todos os inquilinos</option>
+            <option value="avencer">Ainda alugando</option>
+            <option value="vencidos">Já saíram</option>
           </select>
           <span class="periodo-info" id="glInfo" style="margin-left:auto;"></span>
         </div>
@@ -11119,8 +11119,8 @@ function glLoad(){ try{ var s=localStorage.getItem("galpoes_dados"); if(s) retur
 let galpoesG = glLoad();
 function glSB(){ return window.__SB||null; }
 var glCloudOK=false, glCarregando=false, glRT=null, glPushT=null, glPendDel={};
-function glRowFromG(g){ return {id:g.id,numero:String(g.numero||""),cnpj:g.cnpj||"",razao_social:g.razaoSocial||"",locatario:g.locatario||"",vendedor:g.vendedor||"",rg:g.rg||"",contato:g.contato||"",email:g.email||"",endereco:g.endereco||"",endereco_inq:g.enderecoInq||"",aluguel:g.aluguel||"1",valor:+g.valor||0,pagamento:g.pagamento||"",dia_pag:+g.diaPag||0,abertura:g.abertura||"",vencimento:g.vencimento||"",obs:g.obs||"",manuais:g.manuais||null,comprovantes:g.comprovantes||null,contrato_url:(g.contratoArquivo&&g.contratoArquivo.indexOf("data:")!==0)?g.contratoArquivo:"",contrato_nome:g.contratoNome||"",atualizado_em:new Date().toISOString()}; }
-function glGFromRow(r){ var g={id:r.id,numero:String(r.numero||""),cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",locatario:r.locatario||"",vendedor:r.vendedor||"",rg:r.rg||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",enderecoInq:r.endereco_inq||"",aluguel:r.aluguel||"1",valor:+r.valor||0,pagamento:r.pagamento||"",diaPag:+r.dia_pag||0,abertura:r.abertura||"",vencimento:r.vencimento||"",obs:r.obs||""}; if(r.manuais)g.manuais=r.manuais; if(r.comprovantes)g.comprovantes=r.comprovantes; if(r.contrato_url){ g.contratoArquivo=r.contrato_url; g.contratoNome=r.contrato_nome||""; } if(r.assinatura)g.assinatura=r.assinatura; return g; }
+function glRowFromG(g){ return {id:g.id,numero:String(g.numero||""),cnpj:g.cnpj||"",razao_social:g.razaoSocial||"",locatario:g.locatario||"",vendedor:g.vendedor||"",rg:g.rg||"",contato:g.contato||"",email:g.email||"",endereco:g.endereco||"",endereco_inq:g.enderecoInq||"",aluguel:g.aluguel||"1",valor:+g.valor||0,pagamento:g.pagamento||"",dia_pag:+g.diaPag||0,abertura:g.abertura||"",vencimento:g.vencimento||"",saida:g.saida||null,obs:g.obs||"",manuais:g.manuais||null,comprovantes:g.comprovantes||null,contrato_url:(g.contratoArquivo&&g.contratoArquivo.indexOf("data:")!==0)?g.contratoArquivo:"",contrato_nome:g.contratoNome||"",atualizado_em:new Date().toISOString()}; }
+function glGFromRow(r){ var g={id:r.id,numero:String(r.numero||""),cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",locatario:r.locatario||"",vendedor:r.vendedor||"",rg:r.rg||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",enderecoInq:r.endereco_inq||"",aluguel:r.aluguel||"1",valor:+r.valor||0,pagamento:r.pagamento||"",diaPag:+r.dia_pag||0,abertura:r.abertura||"",vencimento:r.vencimento||"",saida:r.saida||"",obs:r.obs||""}; if(r.manuais)g.manuais=r.manuais; if(r.comprovantes)g.comprovantes=r.comprovantes; if(r.contrato_url){ g.contratoArquivo=r.contrato_url; g.contratoNome=r.contrato_nome||""; } if(r.assinatura)g.assinatura=r.assinatura; return g; }
 /* A coluna "assinatura" NAO vai no glRowFromG de proposito (igual aos pontos): no banco a trava
    assin_trava recusa escrita direta nela. So as funcoes oficiais assinam/cancelam (==GLASSIN-*==). */
 // Sobe o contrato anexado pro Storage (bucket privado "pontos") antes de salvar — evita guardar base64 gigante no banco.
@@ -11134,7 +11134,15 @@ function glSave(){ try{ localStorage.setItem("galpoes_dados",JSON.stringify(galp
 function glCloudPush(){ var sb=glSB(); if(!sb||!glCloudOK) return;
   Promise.all(galpoesG.map(glSubirArquivos)).then(function(){
     try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){}
-    sb.from("galpoes").upsert(galpoesG.map(glRowFromG)).then(function(){},function(){});
+    // Recusa da nuvem NÃO pode ser calada: "salvou" na tela e sumir na recarga é o pior erro
+    // (a coluna "saida" é nova, de 30/09 — se o SQL não tiver rodado, o salvamento INTEIRO falha).
+    sb.from("galpoes").upsert(galpoesG.map(glRowFromG)).then(function(r){
+      if(r && r.error && !window.__glAvisouErro){ window.__glAvisouErro=1;
+        var m=String(r.error.message||"");
+        uiConfirm({titulo:"A nuvem não salvou os galpões", msg:(/saida/i.test(m)
+          ? "Falta instalar no banco o campo da saída do inquilino. Rode o arquivo sql/galpoes_saida.sql no Supabase e salve de novo."
+          : "O que você mudou ficou só neste computador. Confira a internet e salve de novo.\\n\\n("+m.slice(0,160)+")"), ok:"Entendi", cancel:""}); }
+    },function(){});
   }).catch(function(){});
 }
 function glCloudDel(id){ glPendDel[id]=Date.now()+30000; var sb=glSB(); if(!sb||!glCloudOK) return; sb.from("galpoes").delete().eq("id",id).then(function(r){
@@ -11306,7 +11314,7 @@ function despRender(){
 }
 // Chave da parcela do MÊS ATUAL (pra marcar pago). Usa o mesmo calendário dos pontos.
 function glKeyMesAtual(g){ var ym=pxAnoMesAtual(); var ag=pxAgenda(g); for(var i=0;i<ag.length;i++){ var k=pxDateKey(ag[i]); if(k.indexOf(ym)===0) return k; } return ag.length?pxDateKey(ag[ag.length-1]):""; }
-function glLimparForm(){ ["glNum","glCnpj","glRazao","glLoc","glVend","glRg","glTel","glEmail","glEnd","glEndInq","glValor","glDiaPag","glAbertura","glVenc","glObs"].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=""; }); var pg=document.getElementById("glPag"); if(pg) pg.value=""; var al=document.getElementById("glAluguel"); if(al) al.value="1"; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; var t=document.getElementById("glFormTitulo"); if(t) t.textContent="Adicionar galpão"; var s=document.getElementById("glSalvar"); if(s){ s.textContent="Adicionar"; delete s.dataset.edit; } var c=document.getElementById("glCancelar"); if(c) c.style.display="none"; try{ glSetDocTipo("cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} try{ glSincEndereco(); }catch(e){} }
+function glLimparForm(){ ["glNum","glCnpj","glRazao","glLoc","glVend","glRg","glTel","glEmail","glEnd","glEndInq","glValor","glDiaPag","glAbertura","glSaida","glObs"].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=""; }); var pg=document.getElementById("glPag"); if(pg) pg.value=""; var al=document.getElementById("glAluguel"); if(al) al.value="1"; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; var t=document.getElementById("glFormTitulo"); if(t) t.textContent="Adicionar galpão"; var s=document.getElementById("glSalvar"); if(s){ s.textContent="Adicionar"; delete s.dataset.edit; } var c=document.getElementById("glCancelar"); if(c) c.style.display="none"; try{ glSetDocTipo("cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} try{ glSincEndereco(); }catch(e){} }
 // Busca de CNPJ do locatário (reaproveita os normalizadores dos pontos).
 function glPreencherCnpj(d,msg){
   var fantasia=d.nome_fantasia||"", razao=d.razao_social||"", nome=fantasia||razao;
@@ -11372,12 +11380,16 @@ var PLT_FUNDO2=["1470 M"];                  // o do fundo
 var pltSel=null;
 // Acha o galpão cadastrado pelo "Nº do galpão" (ex: "102 A") que bate com o código da planta.
 function pltGalpaoDe(cod){
-  var alvo=String(cod||"").trim().toLowerCase();
-  for(var i=0;i<galpoesG.length;i++){ if(String(galpoesG[i].numero||"").trim().toLowerCase()===alvo) return galpoesG[i]; }
-  return null;
+  // "1470 I" na planta casa com "1470I" no cadastro: ESPAÇO NÃO CONTA (até 30/09 não casava, e a
+  // planta mostrava como livres galpões alugados). Havendo mais de um cadastro no mesmo galpão,
+  // vale o do inquilino que NÃO saiu (==GLSAIDA==); só sobra o antigo se ninguém mais estiver lá.
+  var norm=function(s){ return String(s||"").replace(/\\s+/g,"").toLowerCase(); };
+  var alvo=norm(cod), antigo=null;
+  for(var i=0;i<galpoesG.length;i++){ var g=galpoesG[i]; if(norm(g.numero)!==alvo) continue; if(!glSaiu(g)) return g; if(!antigo) antigo=g; }
+  return antigo;
 }
 function pltStatusDe(cod){
-  var g=pltGalpaoDe(cod); if(!g) return "livre";
+  var g=pltGalpaoDe(cod); if(!g || glSaiu(g)) return "livre";   // o inquilino saiu: o galpão está livre
   var st=pxStatusMes(g);
   return st==="PAGO"?"pago":(st==="ATRASADO"?"atrasado":"aberto");
 }
@@ -11430,12 +11442,15 @@ function pltKpis(ocup, tot){
   var receita=0, recebido=0, ativos=0, venc30=0, vencidos=0, pendVal=0, pendN=0;
   galpoesG.forEach(function(g){
     if(!(g.vendedor||g.locatario||"").trim()) return;
-    receita+=(+g.valor||0);
-    if(pxPagoMes(g)) recebido+=(+g.valor||0);
-    var dias=mapaDiasContrato(g);
-    if(dias===null) ativos++;
-    else if(dias<0) vencidos++;
-    else { ativos++; if(dias<=30) venc30++; }
+    // prazo indeterminado (==GLSAIDA==): ativo = inquilino que não saiu. Quem saiu não entra na
+    // receita do mês, mas o que ele ficou devendo continua nas pendências logo abaixo.
+    var dias=glDiasSaida(g), saiu=(dias!==null && dias<=0);
+    if(saiu) vencidos++;
+    else {
+      receita+=(+g.valor||0);
+      if(pxPagoMes(g)) recebido+=(+g.valor||0);
+      ativos++; if(dias!==null && dias<=30) venc30++;
+    }
     var x=pxInadimplencia(g);
     if(x){ pendN++; pendVal+=x.valor; }
   });
@@ -11454,7 +11469,8 @@ function pltKpis(ocup, tot){
       '<div class="mpk-sub">recebido este mês: <b>'+brl(recebido)+'</b></div></div>'+
     '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Contratos ativos</span><span class="mpk-ico b">'+icDoc+'</span></div>'+
       '<div class="mpk-v">'+ativos+'</div>'+
-      '<div class="mpk-sub">'+(venc30?'<span class="warn">'+venc30+' vencendo em 30 dias</span>':'nenhum vencendo em 30 dias')+(vencidos?' · <span class="bad">'+vencidos+' vencido'+(vencidos===1?'':'s')+'</span>':'')+'</div></div>'+
+      // prazo indeterminado (==GLSAIDA==): não existe "vencendo"; o que importa é quem vai SAIR
+      '<div class="mpk-sub">'+(venc30?'<span class="warn">'+venc30+' saindo em até 30 dias</span>':'prazo indeterminado')+(vencidos?' · <span class="bad">'+vencidos+' já sa'+(vencidos===1?'iu':'íram')+'</span>':'')+'</div></div>'+
     '<div class="mpk"><div class="mpk-top"><span class="mpk-lbl">Pendências financeiras</span><span class="mpk-ico '+(pendN?'r':'g')+'">'+(pendN?icAlerta:icCheck)+'</span></div>'+
       '<div class="mpk-v"'+(pendN?' style="color:#b03222"':'')+'>'+brl(pendVal)+'</div>'+
       '<div class="mpk-sub">'+(pendN?'<span class="bad">'+pendN+' inquilino'+(pendN===1?'':'s')+' em atraso</span>':'<span class="ok">Tudo em dia</span>')+'</div></div>';
@@ -11488,7 +11504,7 @@ function pltDetalhe(){
       '<div class="plt-det-lin"><span>Contato</span><b>'+(g.contato?pxFmtTel(g.contato):"—")+'</b></div>'+
       '<div class="plt-det-lin"><span>Aluguel</span><b>'+(g.valor?brl(+g.valor):"—")+'</b></div>'+
       '<div class="plt-det-lin"><span>Pagamento</span><b>'+(prdEsc(g.pagamento)||"—")+'</b></div>'+
-      '<div class="plt-det-lin"><span>Contrato</span><b>'+(pxFmtData(g.abertura)||"—")+' → '+(pxFmtData(g.vencimento)||"—")+'</b></div>'+
+      '<div class="plt-det-lin"><span>Contrato</span><b>desde '+prdEsc(pxFmtData(g.abertura)||"—")+' · '+prdEsc(glPrazoTxt(g))+'</b></div>'+
       '<div class="plt-det-lin"><span>Endereço</span><b>'+prdEsc(glEnderecoDe(g.numero))+'</b></div>'+
       '</div>'+
       (glPodeGerir()?'<button type="button" class="plt-det-btn" id="pltIrCadastro">Ver / editar no cadastro</button>':'');
@@ -17250,9 +17266,13 @@ function clImprimir(){
 // CALENDÁRIO DE COBRANÇAS do galpão — mesmo formato dos pontos extras (uma linha por mensalidade).
 // A cobrança automática (boleto/Pix) entra quando a conta PESSOA FÍSICA for ligada ao banco;
 // até lá o botão explica isso e deixa marcar o recebimento na mão.
+/* ==GLSAIDA== helpers: contrato por prazo indeterminado. "saida" vazia = ainda alugando. */
+function glDiasSaida(g){ var s=pxParseData(g&&g.saida); if(!s) return null; var h=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate()); return Math.floor((s-h)/86400000); }
+function glSaiu(g){ var d=glDiasSaida(g); return d!==null && d<=0; }
+function glPrazoTxt(g){ return (g&&g.saida) ? ("Saída "+pxFmtData(g.saida)) : "Indeterminado"; }
 function glAgendaHtml(g){
   var ag=pxAgenda(g);
-  if(!ag.length) return '<div class="px-agenda-vazia">Informe a abertura e o vencimento do contrato para ver o calendário de cobranças.</div>';
+  if(!ag.length) return '<div class="px-agenda-vazia">'+(g.abertura?'Nenhuma cobrança no período (a saída do inquilino é antes do primeiro vencimento).':'Informe a abertura do contrato para ver o calendário de cobranças.')+'</div>';
   var hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
   var comps=g.comprovantes||{};
   var ehBoleto=/bolet/i.test(String(g.pagamento||""));
@@ -17272,7 +17292,12 @@ function glAgendaHtml(g){
       : '<span style="color:#c3ccd6;">—</span>'; // igual aos pontos: quando o banco estiver ligado, ele confirma sozinho
     return '<tr'+passou+'><td>'+(i+1)+'</td><td>'+pxDataChip(d)+'</td><td>'+brl(g.valor||0)+'</td><td class="px-pix-cell">'+cobCell+'</td><td class="px-comp-cell">'+compCell+'</td></tr>';
   }).join("");
-  return '<div class="px-agenda"><div class="px-agenda-tit">Calendário de cobranças — '+ag.length+' parcela(s), todo dia '+ag[0].getDate()+'</div>'+
+  // prazo indeterminado (==GLSAIDA==): o título diz até onde a lista vai e que ela anda sozinha
+  var MESC=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"], ult=ag[ag.length-1];
+  var titAg = g.saida
+    ? (ag.length+' parcela(s), todo dia '+(+g.diaPag||5)+', até a saída em '+pxEsc(pxFmtData(g.saida)))
+    : ('todo dia '+(+g.diaPag||5)+' · prazo indeterminado (mostrando até '+MESC[ult.getMonth()]+'/'+ult.getFullYear()+'; os meses seguintes aparecem sozinhos)');
+  return '<div class="px-agenda"><div class="px-agenda-tit">Calendário de cobranças — '+titAg+'</div>'+
     '<table class="px-agenda-tb"><thead><tr><th>#</th><th>Data da cobrança</th><th>Valor</th><th>Cobrança</th><th>Comprovante</th></tr></thead><tbody>'+linhas+'</tbody></table></div>';
 }
 // ===== SALÁRIO MÍNIMO — é a base do aluguel dos galpões =====
@@ -17962,11 +17987,12 @@ function renderGalpoes(){
   if(busca) lista=lista.filter(function(g){ return (g.locatario||"").toLowerCase().indexOf(busca)>=0 || (g.vendedor||"").toLowerCase().indexOf(busca)>=0 || String(g.numero||"").toLowerCase().indexOf(busca)>=0; });
   if(fstatus) lista=lista.filter(function(g){ return pxStatusMes(g)===fstatus; });
   if(fpag) lista=lista.filter(function(g){ return (g.pagamento||"")===fpag; });
-  if(fvenc) lista=lista.filter(function(g){ var d=pxParseData(g.vencimento); if(!d) return false; var dias=(d-hoje)/86400000; return fvenc==="vencidos"?dias<=0:dias>0; });
+  // prazo indeterminado (==GLSAIDA==): o filtro separa quem ainda aluga de quem já saiu
+  if(fvenc) lista=lista.filter(function(g){ return fvenc==="vencidos" ? glSaiu(g) : !glSaiu(g); });
   var info=document.getElementById("glInfo"); if(info) info.textContent=lista.length+" galpão(ões)";
   var linhas=lista.map(function(g){
-    var d=pxParseData(g.vencimento); var vcls="";
-    if(d){ var dias=(d-hoje)/86400000; if(dias<0) vcls="px-venc-vencido"; else if(dias<=15) vcls="px-venc-prox"; }
+    var dias=glDiasSaida(g), vcls="";
+    if(dias!==null){ if(dias<=0) vcls="px-venc-vencido"; else if(dias<=15) vcls="px-venc-prox"; }
     /* TUDO que veio do cadastro passa por pxEsc. Até 29/09 só o master gravava aqui; agora
        qualquer login com a página Galpões grava (==GLACS-*==), e um nome como
        <img onerror=...> rodaria código na tela do master. O id também: ele vai dentro de
@@ -17981,7 +18007,7 @@ function renderGalpoes(){
       '<td>'+(g.valor? brl(+g.valor) : "—")+'</td>'+
       '<td>'+pxEsc(g.pagamento)+'</td>'+
       '<td>'+pxEsc(pxFmtData(g.abertura))+'</td>'+
-      '<td class="'+vcls+'">'+pxEsc(pxFmtData(g.vencimento))+'</td>'+
+      '<td class="'+vcls+'">'+pxEsc(glPrazoTxt(g))+'</td>'+
       '<td>'+pxBadge(g)+'</td>'+
       '<td>'+pxEsc(g.obs)+'</td>'+
       '<td style="white-space:nowrap"><span class="esc-nome" data-gledit="'+gid+'">editar</span> &nbsp;<span class="esc-del" data-glrem="'+gid+'" title="Remover">✕</span></td>'+
@@ -18018,12 +18044,14 @@ function renderGalpoes(){
     pagamento:(document.getElementById("glPag").value||""),
     diaPag:parseInt(document.getElementById("glDiaPag").value||"0",10)||0,
     abertura:(document.getElementById("glAbertura").value||""),
-    vencimento:(document.getElementById("glVenc").value||""),
+    // prazo indeterminado (==GLSAIDA==): no lugar do vencimento, a SAÍDA do inquilino (vazia = alugando)
+    saida:(document.getElementById("glSaida").value||""),
     obs:(document.getElementById("glObs").value||"").trim()
   }; }
   salvar.onclick=function(){
     var d=coleta();
     if(!d.numero && !d.locatario){ uiConfirm({titulo:"Falta identificar o galpão",msg:"Coloque o Nº do galpão (o mesmo da planta) e/ou o nome do locatário.",ok:"OK",cancel:""}); return; }
+    if(d.saida && d.abertura && d.saida<d.abertura){ uiConfirm({titulo:"Saída antes da abertura",msg:"A data de saída do inquilino está antes da abertura do contrato. Confira as duas datas.",ok:"OK",cancel:""}); return; }
     var editId=salvar.dataset.edit;
     if(editId){ var g=galpoesG.find(function(x){ return x.id===editId; }); if(g){ Object.assign(g,d); } }
     else { galpoesG.push(Object.assign({id:"g"+Date.now().toString(36)+Math.round(Math.random()*1e5).toString(36),manuais:{}},d)); }
@@ -18126,7 +18154,7 @@ function renderGalpoes(){
     var compRemG=e.target.closest("[data-glcomprem]");
     if(compRemG){ var prm=compRemG.dataset.glcomprem.split("|"); var grm=galpoesG.find(function(x){ return x.id===prm[0]; }); if(grm){ uiConfirm({titulo:"Remover comprovante",msg:"Apagar o comprovante desta mensalidade?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; if(grm.comprovantes) delete grm.comprovantes[prm[1]]; glSave(); renderGalpoes(); glReabrir(grm.id); }); } return; }
     var ed=e.target.closest("[data-gledit]");
-    if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNum").value=g2.numero||""; document.getElementById("glCnpj").value=g2.cnpj||""; document.getElementById("glRazao").value=g2.razaoSocial||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glVend").value=g2.vendedor||""; document.getElementById("glRg").value=g2.rg||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; try{ glSincEndereco(); }catch(e){} document.getElementById("glEndInq").value=g2.enderecoInq||""; document.getElementById("glAluguel").value=g2.aluguel||"1"; document.getElementById("glValor").value=g2.valor||""; document.getElementById("glPag").value=g2.pagamento||""; document.getElementById("glDiaPag").value=g2.diaPag||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glVenc").value=g2.vencimento||""; document.getElementById("glObs").value=g2.obs||""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; try{ glSetDocTipo(((g2.cnpj||"").replace(/\\D/g,"").length===11)?"cpf":"cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
+    if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNum").value=g2.numero||""; document.getElementById("glCnpj").value=g2.cnpj||""; document.getElementById("glRazao").value=g2.razaoSocial||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glVend").value=g2.vendedor||""; document.getElementById("glRg").value=g2.rg||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; try{ glSincEndereco(); }catch(e){} document.getElementById("glEndInq").value=g2.enderecoInq||""; document.getElementById("glAluguel").value=g2.aluguel||"1"; document.getElementById("glValor").value=g2.valor||""; document.getElementById("glPag").value=g2.pagamento||""; document.getElementById("glDiaPag").value=g2.diaPag||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glSaida").value=g2.saida||""; document.getElementById("glObs").value=g2.obs||""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; try{ glSetDocTipo(((g2.cnpj||"").replace(/\\D/g,"").length===11)?"cpf":"cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
     var rem=e.target.closest("[data-glrem]");
     if(rem){ var id=rem.dataset.glrem; var g3=galpoesG.find(function(x){ return x.id===id; });
       var _nomeG=g3?("o galpão nº "+(g3.numero||"?")+((g3.vendedor||g3.locatario)?(" — "+(g3.vendedor||g3.locatario)):"")):"este galpão";
@@ -18633,16 +18661,32 @@ function pxDataChip(d){
     '<span class="px-data-sem">'+dias[d.getDay()]+'</span></span></span>';
 }
 // Gera as datas de cobrança: todo dia da assinatura, da assinatura até o vencimento do contrato.
+/* ==GLDIA== GALPÕES (30/09/2026, pedido dele): a cobrança vence no DIA DE PAGAMENTO do contrato
+   (campo "Pagar até o dia", diaPag — hoje 5 em todos), não no dia da abertura. O contrato
+   continua com a data de abertura como início. A 1ª parcela é o 1º dia 5 a partir da abertura
+   (abertura 29/09 -> 05/10). Só o objeto do galpão tem diaPag: os pontos extras não mudam.
+   ==GLSAIDA== E O GALPÃO NÃO TEM FIM (30/09/2026): o contrato é por PRAZO INDETERMINADO, então
+   o galpão não usa mais o "vencimento do contrato". O calendário anda sozinho: mostra o que já
+   passou e os próximos 12 meses. Quando o inquilino SAI (campo "saida"), as cobranças param —
+   entra toda parcela com vencimento ATÉ o dia da saída, inclusive. */
 function pxAgenda(p){
-  const ini=pxParseData(p.abertura), fim=pxParseData(p.vencimento);
+  const galpao=("diaPag" in p);
+  const ini=pxParseData(p.abertura);
+  let fim, fimEntra=false;
+  if(galpao){
+    const s=pxParseData(p.saida);
+    if(s){ fim=s; fimEntra=true; }
+    else fim=new Date(HOJE.getFullYear(), HOJE.getMonth()+13, 1);   // este mês + os próximos 12
+  } else fim=pxParseData(p.vencimento);
   if(!ini || !fim || fim<ini) return [];
-  const dia=ini.getDate();
+  // campo vazio no galpão = dia 5, a MESMA regra do contrato impresso (glContratoDocHtml: +g.diaPag||5)
+  const dia=galpao ? ((+p.diaPag>=1 && +p.diaPag<=31) ? Math.floor(+p.diaPag) : 5) : ini.getDate();
   const datas=[];
   let y=ini.getFullYear(), m=ini.getMonth();
   for(let i=0;i<360;i++){
     const ultimo=new Date(y,m+1,0).getDate();
     const d=new Date(y,m,Math.min(dia,ultimo));
-    if(d>=fim) break;
+    if(fimEntra ? d>fim : d>=fim) break;
     if(d>=ini) datas.push(d);
     m++; if(m>11){ m=0; y++; }
   }
