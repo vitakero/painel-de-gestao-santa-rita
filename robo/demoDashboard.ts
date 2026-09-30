@@ -18149,19 +18149,32 @@ function renderGalpoes(){
     if(cobG){
       var pr=cobG.dataset.glcob.split("|"); var gc=galpoesG.find(function(x){ return x.id===pr[0]; }); if(!gc) return;
       var ehBol=/bolet/i.test(String(gc.pagamento||""));
-      uiConfirm({titulo:(ehBol?"Gerar boleto":"Gerar Pix")+" — banco ainda não conectado",
-        msg:"A cobrança automática dos galpões vai sair da sua conta PESSOA FÍSICA, que ainda não está ligada ao banco (aguardando a resposta do Sicredi).\\n\\nAssim que o convênio for liberado, este botão passa a gerar o "+(ehBol?"boleto":"Pix")+" de verdade, igual acontece nos pontos extras.\\n\\nJá recebeu esta mensalidade? Anexe o comprovante do pagamento: sem comprovante ela não fica como paga.",
-        ok:"Anexar comprovante", cancel:"Agora não"}).then(function(sim){
-          if(!sim) return;
-          glPedirComprovante(gc.id, pr[1]);   // ==GLCOMP==: quem marca como paga é o comprovante
-        });
+      /* ==GLCOMP== DOIS PASSOS (pedido dele, 30/09): 1) anexar o comprovante na coluna Comprovante;
+         2) aqui, "Marcar como paga" — que só é oferecido com o comprovante JÁ anexado. */
+      var temComp=!!((gc.comprovantes||{})[pr[1]]);
+      var introCob="A cobrança automática dos galpões vai sair da sua conta PESSOA FÍSICA, que ainda não está ligada ao banco (aguardando a resposta do Sicredi).\\n\\nAssim que o convênio for liberado, este botão passa a gerar o "+(ehBol?"boleto":"Pix")+" de verdade, igual acontece nos pontos extras.\\n\\n";
+      if(temComp){
+        uiConfirm({titulo:(ehBol?"Gerar boleto":"Gerar Pix")+" — banco ainda não conectado",
+          msg:introCob+"O comprovante desta mensalidade já está anexado. Confira e marque como paga.",
+          ok:"Marcar como paga", cancel:"Agora não"}).then(function(sim){
+            if(!sim) return;
+            gc.manuais=gc.manuais||{}; gc.manuais[pr[1]]="autorizado"; glSave(); renderGalpoes(); glReabrir(gc.id);
+          });
+      } else {
+        uiConfirm({titulo:(ehBol?"Gerar boleto":"Gerar Pix")+" — banco ainda não conectado",
+          msg:introCob+"Já recebeu esta mensalidade? Primeiro anexe o comprovante do pagamento. Depois volte aqui para marcar como paga.",
+          ok:"Anexar comprovante", cancel:"Agora não"}).then(function(sim){
+            if(!sim) return;
+            glPedirComprovante(gc.id, pr[1]);   // só anexa: marcar como paga é o passo seguinte
+          });
+      }
       return;
     }
     var desfG=e.target.closest("[data-gldesfazer]");
-    if(desfG){ var pd=desfG.dataset.gldesfazer.split("|"); var gd=galpoesG.find(function(x){ return x.id===pd[0]; }); if(gd){ uiConfirm({titulo:"Desfazer pagamento",msg:"A mensalidade volta a ficar em aberto, e o comprovante anexado nela é apagado.",ok:"Desfazer",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; if(gd.manuais) delete gd.manuais[pd[1]]; if(gd.comprovantes) delete gd.comprovantes[pd[1]]; glSave(); renderGalpoes(); glReabrir(gd.id); }); } return; }
+    if(desfG){ var pd=desfG.dataset.gldesfazer.split("|"); var gd=galpoesG.find(function(x){ return x.id===pd[0]; }); if(gd){ uiConfirm({titulo:"Desfazer pagamento",msg:"A mensalidade volta a ficar em aberto. O comprovante continua anexado.",ok:"Desfazer",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; if(gd.manuais) delete gd.manuais[pd[1]]; glSave(); renderGalpoes(); glReabrir(gd.id); }); } return; }
     // --- COMPROVANTES (um por mensalidade) — ==GLCOMP== ---
-    // Enquanto a cobrança for manual, ANEXAR o comprovante é o que marca a mensalidade como paga
-    // (e tirar o comprovante volta ela pra em aberto). Quando o banco for ligado, ele confirma sozinho.
+    // Enquanto a cobrança for manual: 1) ANEXAR o comprovante aqui; 2) "Gerar Pix" -> "Marcar como paga".
+    // Tirar o comprovante volta a mensalidade pra em aberto. Quando o banco for ligado, ele confirma sozinho.
     var compAnxG=e.target.closest("[data-glcompanexar]");
     if(compAnxG){ var pa=compAnxG.dataset.glcompanexar.split("|"); glPedirComprovante(pa[0], pa[1]); return; }
     var compViewG=e.target.closest("[data-glcompview]");
@@ -18212,10 +18225,10 @@ function glProcessaContratoArquivo(id,f){
   };
   reader.readAsDataURL(f);
 }
-/* ==GLCOMP== COMPROVANTE DA MENSALIDADE (cobrança manual). Abre a escolha do arquivo e, com ele
-   anexado, marca a parcela como paga — as duas coisas juntas, sempre: sem comprovante não há
-   "pago" (pxQuitado do galpão exige os dois). O arquivo vai pro depósito privado pelo mesmo
-   caminho dos contratos (glSubirArquivos -> "galpao_<id>_comp_<data>"). */
+/* ==GLCOMP== COMPROVANTE DA MENSALIDADE (cobrança manual). Abre a escolha do arquivo e SÓ ANEXA.
+   Marcar como paga é o 2º passo, no "Gerar Pix", e só é oferecido com o comprovante já anexado
+   (pxQuitado do galpão exige os dois: comprovante E a marcação). O arquivo vai pro depósito
+   privado pelo mesmo caminho dos contratos (glSubirArquivos -> "galpao_<id>_comp_<data>"). */
 function glPedirComprovante(id,key){
   var inp=document.getElementById("glCompArq");
   if(!inp){ inp=document.createElement("input"); inp.type="file"; inp.id="glCompArq"; inp.accept="application/pdf,image/*"; inp.style.display="none"; document.body.appendChild(inp);
@@ -18226,9 +18239,9 @@ function glPedirComprovante(id,key){
       var reader=new FileReader();
       reader.onload=function(){
         var g=galpoesG.find(function(x){ return x.id===alvo[0]; }); if(!g) return;
-        g.comprovantes=g.comprovantes||{}; g.manuais=g.manuais||{};
+        g.comprovantes=g.comprovantes||{};
+        // SÓ ANEXA. Marcar como paga é o passo seguinte, no "Gerar Pix" (pedido dele, 30/09).
         g.comprovantes[alvo[1]]={ arquivo:reader.result, nome:f.name, em:new Date().toISOString(), por:String(window.__EMAIL||"") };
-        g.manuais[alvo[1]]="autorizado";
         glSave(); renderGalpoes(); glReabrir(g.id);
       };
       reader.readAsDataURL(f);
