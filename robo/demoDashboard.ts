@@ -1039,6 +1039,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .px-comp-link:hover { text-decoration:underline; }
   .px-comp-x { margin-left:8px; padding:0 5px; background:none; border:0; color:#c0392b; font-size:13px; font-weight:700; cursor:pointer; border-radius:4px; }
   .px-comp-x:hover { background:#fbeae8; }
+  /* galpões (==GLCOMP==): anexar o comprovante é o que marca a mensalidade como paga */
+  .gl-comp-anexar { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border:1px dashed #b9c4cf; border-radius:7px; background:#fff; color:#157a35; font:inherit; font-size:12px; font-weight:600; cursor:pointer; }
+  .gl-comp-anexar:hover { border-color:#157a35; background:#f2faf5; }
   .pix-cfg-sum { cursor:pointer; font-weight:700; color:#1a2233; font-size:14px; display:flex; align-items:center; gap:8px; list-style:none; }
   .pix-cfg-sum::-webkit-details-marker { display:none; }
   .pix-cfg-sum .ico { font-size:15px; }
@@ -11119,7 +11122,10 @@ function glLoad(){ try{ var s=localStorage.getItem("galpoes_dados"); if(s) retur
 let galpoesG = glLoad();
 function glSB(){ return window.__SB||null; }
 var glCloudOK=false, glCarregando=false, glRT=null, glPushT=null, glPendDel={};
-function glRowFromG(g){ return {id:g.id,numero:String(g.numero||""),cnpj:g.cnpj||"",razao_social:g.razaoSocial||"",locatario:g.locatario||"",vendedor:g.vendedor||"",rg:g.rg||"",contato:g.contato||"",email:g.email||"",endereco:g.endereco||"",endereco_inq:g.enderecoInq||"",aluguel:g.aluguel||"1",valor:+g.valor||0,pagamento:g.pagamento||"",dia_pag:+g.diaPag||0,abertura:g.abertura||"",vencimento:g.vencimento||"",saida:g.saida||null,obs:g.obs||"",manuais:g.manuais||null,comprovantes:g.comprovantes||null,contrato_url:(g.contratoArquivo&&g.contratoArquivo.indexOf("data:")!==0)?g.contratoArquivo:"",contrato_nome:g.contratoNome||"",atualizado_em:new Date().toISOString()}; }
+function glRowFromG(g){ return {id:g.id,numero:String(g.numero||""),cnpj:g.cnpj||"",razao_social:g.razaoSocial||"",locatario:g.locatario||"",vendedor:g.vendedor||"",rg:g.rg||"",contato:g.contato||"",email:g.email||"",endereco:g.endereco||"",endereco_inq:g.enderecoInq||"",aluguel:g.aluguel||"1",valor:+g.valor||0,pagamento:g.pagamento||"",dia_pag:+g.diaPag||0,abertura:g.abertura||"",vencimento:g.vencimento||"",saida:g.saida||null,obs:g.obs||"",manuais:g.manuais||null,comprovantes:glCompsParaNuvem(g.comprovantes),contrato_url:(g.contratoArquivo&&g.contratoArquivo.indexOf("data:")!==0)?g.contratoArquivo:"",contrato_nome:g.contratoNome||"",atualizado_em:new Date().toISOString()}; }
+/* ==GLCOMP== comprovante que ainda não subiu (arquivo "data:...") NÃO vai pra nuvem: nem pesa o banco
+   com o arquivo inteiro dentro da linha, nem faz os outros computadores verem "pago" sem o arquivo. */
+function glCompsParaNuvem(c){ if(!c) return null; var o={}; Object.keys(c).forEach(function(k){ var x=c[k]; if(x && !(typeof x.arquivo==="string" && x.arquivo.indexOf("data:")===0)) o[k]=x; }); return o; }
 function glGFromRow(r){ var g={id:r.id,numero:String(r.numero||""),cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",locatario:r.locatario||"",vendedor:r.vendedor||"",rg:r.rg||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",enderecoInq:r.endereco_inq||"",aluguel:r.aluguel||"1",valor:+r.valor||0,pagamento:r.pagamento||"",diaPag:+r.dia_pag||0,abertura:r.abertura||"",vencimento:r.vencimento||"",saida:r.saida||"",obs:r.obs||""}; if(r.manuais)g.manuais=r.manuais; if(r.comprovantes)g.comprovantes=r.comprovantes; if(r.contrato_url){ g.contratoArquivo=r.contrato_url; g.contratoNome=r.contrato_nome||""; } if(r.assinatura)g.assinatura=r.assinatura; return g; }
 /* A coluna "assinatura" NAO vai no glRowFromG de proposito (igual aos pontos): no banco a trava
    assin_trava recusa escrita direta nela. So as funcoes oficiais assinam/cancelam (==GLASSIN-*==). */
@@ -11127,7 +11133,12 @@ function glGFromRow(r){ var g={id:r.id,numero:String(r.numero||""),cnpj:r.cnpj||
 function glSubirArquivos(g){
   var jobs=[];
   if(g.contratoArquivo && g.contratoArquivo.indexOf("data:")===0){ jobs.push(pxUploadDataUrl("galpao_"+g.id+"_contrato",g.contratoArquivo).then(function(u){ if(u) g.contratoArquivo=u; })); }
-  if(g.comprovantes){ Object.keys(g.comprovantes).forEach(function(m){ var c=g.comprovantes[m]; if(c&&c.arquivo&&c.arquivo.indexOf("data:")===0){ jobs.push(pxUploadDataUrl("galpao_"+g.id+"_comp_"+m,c.arquivo).then(function(u){ if(u) c.arquivo=u; })); } }); }
+  if(g.comprovantes){ Object.keys(g.comprovantes).forEach(function(m){ var c=g.comprovantes[m]; if(c&&c.arquivo&&c.arquivo.indexOf("data:")===0){ jobs.push(pxUploadDataUrl("galpao_"+g.id+"_comp_"+m,c.arquivo).then(function(u){
+    if(u){ c.arquivo=u; return; }
+    // ==GLCOMP== o comprovante NÃO subiu: ele fica só neste computador e a nuvem não recebe o
+    // "pago" (glRowFromG não manda comprovante pendente). Avisa uma vez; tenta de novo no próximo salvar.
+    if(!window.__glAvisouComp){ window.__glAvisouComp=1; uiConfirm({titulo:"O comprovante não subiu",msg:"O arquivo do comprovante não chegou na nuvem (internet ou permissão). Nos outros computadores esta mensalidade ainda aparece em aberto.\\n\\nConfira a internet e tente anexar de novo.",ok:"Entendi",cancel:""}); }
+  })); } }); }
   return Promise.all(jobs);
 }
 function glSave(){ try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e){} clearTimeout(glPushT); glPushT=setTimeout(glCloudPush,700); }
@@ -17287,9 +17298,11 @@ function glAgendaHtml(g){
     var cobCell = quit
       ? '<span class="px-quitado" title="Mensalidade recebida"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>Pago</span> <button type="button" class="px-rec" data-gldesfazer="'+ref+'" title="Desfazer pagamento">✕</button>'
       : '<button type="button" class="px-pix-btn" data-glcob="'+ref+'">'+(ehBoleto?icoBarras:icoQr)+(ehBoleto?'Gerar boleto':'Gerar Pix')+'</button>';
+    // ==GLCOMP== cobrança manual: sem comprovante, a coluna oferece ANEXAR (é o anexo que marca como paga)
     var compCell = c
       ? '<a href="#" class="px-comp-link" data-glcompview="'+ref+'" title="Ver comprovante">'+icoClip+'<span>comprovante</span></a> <button type="button" class="px-comp-x" data-glcomprem="'+ref+'" title="Remover comprovante">✕</button>'
-      : '<span style="color:#c3ccd6;">—</span>'; // igual aos pontos: quando o banco estiver ligado, ele confirma sozinho
+      : (quit ? '<span style="color:#c3ccd6;">—</span>'
+              : '<button type="button" class="gl-comp-anexar" data-glcompanexar="'+ref+'" title="Anexe o comprovante do pagamento: é ele que marca a mensalidade como paga">'+icoClip+'<span>Anexar</span></button>');
     return '<tr'+passou+'><td>'+(i+1)+'</td><td>'+pxDataChip(d)+'</td><td>'+brl(g.valor||0)+'</td><td class="px-pix-cell">'+cobCell+'</td><td class="px-comp-cell">'+compCell+'</td></tr>';
   }).join("");
   // prazo indeterminado (==GLSAIDA==): o título diz até onde a lista vai e que ela anda sozinha
@@ -18137,22 +18150,24 @@ function renderGalpoes(){
       var pr=cobG.dataset.glcob.split("|"); var gc=galpoesG.find(function(x){ return x.id===pr[0]; }); if(!gc) return;
       var ehBol=/bolet/i.test(String(gc.pagamento||""));
       uiConfirm({titulo:(ehBol?"Gerar boleto":"Gerar Pix")+" — banco ainda não conectado",
-        msg:"A cobrança automática dos galpões vai sair da sua conta PESSOA FÍSICA, que ainda não está ligada ao banco (aguardando a resposta do Sicredi).\\n\\nAssim que o convênio for liberado, este botão passa a gerar o "+(ehBol?"boleto":"Pix")+" de verdade, igual acontece nos pontos extras.\\n\\nJá recebeu esta mensalidade? Posso marcar como paga.",
-        ok:"Marcar como paga", cancel:"Agora não"}).then(function(sim){
+        msg:"A cobrança automática dos galpões vai sair da sua conta PESSOA FÍSICA, que ainda não está ligada ao banco (aguardando a resposta do Sicredi).\\n\\nAssim que o convênio for liberado, este botão passa a gerar o "+(ehBol?"boleto":"Pix")+" de verdade, igual acontece nos pontos extras.\\n\\nJá recebeu esta mensalidade? Anexe o comprovante do pagamento: sem comprovante ela não fica como paga.",
+        ok:"Anexar comprovante", cancel:"Agora não"}).then(function(sim){
           if(!sim) return;
-          gc.manuais=gc.manuais||{}; gc.manuais[pr[1]]="autorizado"; glSave(); renderGalpoes(); glReabrir(gc.id);
+          glPedirComprovante(gc.id, pr[1]);   // ==GLCOMP==: quem marca como paga é o comprovante
         });
       return;
     }
     var desfG=e.target.closest("[data-gldesfazer]");
-    if(desfG){ var pd=desfG.dataset.gldesfazer.split("|"); var gd=galpoesG.find(function(x){ return x.id===pd[0]; }); if(gd){ uiConfirm({titulo:"Desfazer pagamento",msg:"Marcar esta mensalidade como NÃO paga de novo?",ok:"Desfazer",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; if(gd.manuais) delete gd.manuais[pd[1]]; glSave(); renderGalpoes(); glReabrir(gd.id); }); } return; }
-    // --- COMPROVANTES (um por mensalidade) ---
-    // Não há botão de anexar: igual aos pontos extras, quem confirma o pagamento é o banco.
-    // Ver/remover ficam para os comprovantes que já foram anexados antes dessa regra.
+    if(desfG){ var pd=desfG.dataset.gldesfazer.split("|"); var gd=galpoesG.find(function(x){ return x.id===pd[0]; }); if(gd){ uiConfirm({titulo:"Desfazer pagamento",msg:"A mensalidade volta a ficar em aberto, e o comprovante anexado nela é apagado.",ok:"Desfazer",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; if(gd.manuais) delete gd.manuais[pd[1]]; if(gd.comprovantes) delete gd.comprovantes[pd[1]]; glSave(); renderGalpoes(); glReabrir(gd.id); }); } return; }
+    // --- COMPROVANTES (um por mensalidade) — ==GLCOMP== ---
+    // Enquanto a cobrança for manual, ANEXAR o comprovante é o que marca a mensalidade como paga
+    // (e tirar o comprovante volta ela pra em aberto). Quando o banco for ligado, ele confirma sozinho.
+    var compAnxG=e.target.closest("[data-glcompanexar]");
+    if(compAnxG){ var pa=compAnxG.dataset.glcompanexar.split("|"); glPedirComprovante(pa[0], pa[1]); return; }
     var compViewG=e.target.closest("[data-glcompview]");
     if(compViewG){ e.preventDefault(); var pv=compViewG.dataset.glcompview.split("|"); var gv=galpoesG.find(function(x){ return x.id===pv[0]; }); var cv=gv&&(gv.comprovantes||{})[pv[1]]; if(cv&&cv.arquivo){ srSignedUrl("pontos", cv.arquivo, function(u){ if(u) window.open(u,"_blank"); }); } return; }
     var compRemG=e.target.closest("[data-glcomprem]");
-    if(compRemG){ var prm=compRemG.dataset.glcomprem.split("|"); var grm=galpoesG.find(function(x){ return x.id===prm[0]; }); if(grm){ uiConfirm({titulo:"Remover comprovante",msg:"Apagar o comprovante desta mensalidade?",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; if(grm.comprovantes) delete grm.comprovantes[prm[1]]; glSave(); renderGalpoes(); glReabrir(grm.id); }); } return; }
+    if(compRemG){ var prm=compRemG.dataset.glcomprem.split("|"); var grm=galpoesG.find(function(x){ return x.id===prm[0]; }); if(grm){ uiConfirm({titulo:"Remover comprovante",msg:"Apagar o comprovante desta mensalidade? Sem ele, a mensalidade volta a ficar em aberto.",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; if(grm.comprovantes) delete grm.comprovantes[prm[1]]; if(grm.manuais) delete grm.manuais[prm[1]]; glSave(); renderGalpoes(); glReabrir(grm.id); }); } return; }
     var ed=e.target.closest("[data-gledit]");
     if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNum").value=g2.numero||""; document.getElementById("glCnpj").value=g2.cnpj||""; document.getElementById("glRazao").value=g2.razaoSocial||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glVend").value=g2.vendedor||""; document.getElementById("glRg").value=g2.rg||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; try{ glSincEndereco(); }catch(e){} document.getElementById("glEndInq").value=g2.enderecoInq||""; document.getElementById("glAluguel").value=g2.aluguel||"1"; document.getElementById("glValor").value=g2.valor||""; document.getElementById("glPag").value=g2.pagamento||""; document.getElementById("glDiaPag").value=g2.diaPag||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glSaida").value=g2.saida||""; var _scE=document.getElementById("glSaidaCampo"); if(_scE) _scE.style.display="";   /* a saída só aparece no EDITAR (galpão novo não tem saída) */ document.getElementById("glObs").value=g2.obs||""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; try{ glSetDocTipo(((g2.cnpj||"").replace(/\\D/g,"").length===11)?"cpf":"cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
     var rem=e.target.closest("[data-glrem]");
@@ -18196,6 +18211,31 @@ function glProcessaContratoArquivo(id,f){
     if(g){ g.contratoArquivo=reader.result; g.contratoNome=f.name; glSave(); renderGalpoes(); glReabrir(id); }
   };
   reader.readAsDataURL(f);
+}
+/* ==GLCOMP== COMPROVANTE DA MENSALIDADE (cobrança manual). Abre a escolha do arquivo e, com ele
+   anexado, marca a parcela como paga — as duas coisas juntas, sempre: sem comprovante não há
+   "pago" (pxQuitado do galpão exige os dois). O arquivo vai pro depósito privado pelo mesmo
+   caminho dos contratos (glSubirArquivos -> "galpao_<id>_comp_<data>"). */
+function glPedirComprovante(id,key){
+  var inp=document.getElementById("glCompArq");
+  if(!inp){ inp=document.createElement("input"); inp.type="file"; inp.id="glCompArq"; inp.accept="application/pdf,image/*"; inp.style.display="none"; document.body.appendChild(inp);
+    inp.addEventListener("change",function(){
+      var f=inp.files&&inp.files[0], alvo=(inp.dataset.alvo||"").split("|"); inp.value="";
+      if(!f || alvo.length<2) return;
+      if(f.size > 3*1024*1024){ uiConfirm({titulo:"Arquivo muito grande",msg:"O comprovante precisa ter no máximo 3 MB. Tente um PDF ou foto menor.",ok:"Entendi",cancel:""}); return; }
+      var reader=new FileReader();
+      reader.onload=function(){
+        var g=galpoesG.find(function(x){ return x.id===alvo[0]; }); if(!g) return;
+        g.comprovantes=g.comprovantes||{}; g.manuais=g.manuais||{};
+        g.comprovantes[alvo[1]]={ arquivo:reader.result, nome:f.name, em:new Date().toISOString(), por:String(window.__EMAIL||"") };
+        g.manuais[alvo[1]]="autorizado";
+        glSave(); renderGalpoes(); glReabrir(g.id);
+      };
+      reader.readAsDataURL(f);
+    });
+  }
+  inp.dataset.alvo=id+"|"+key;
+  inp.click();
 }
 
 /* --- Arquivos PRIVADOS (Storage): gera link temporário autorizado (só quem tem login abre) --- */
@@ -18496,6 +18536,11 @@ function bonifCampos(man){
 function pxQuitado(p,key){
   const comps=p.comprovantes||{};
   const man=(p.manuais||{})[key];
+  /* ==GLCOMP== GALPÃO (30/09/2026, pedido dele): enquanto a cobrança for MANUAL (o banco da conta
+     pessoa física ainda não está ligado), a mensalidade só fica PAGA com o COMPROVANTE anexado.
+     "Marcar como paga" sem comprovante não vale — foi exatamente o que ele não quis: "marquei como
+     pago sendo que não sei se foi pago mesmo". Só o galpão tem diaPag: os pontos extras não mudam. */
+  if("diaPag" in p) return (pxManSt(man)==="autorizado" && !!comps[key]) || pixCobPaga(p,key);
   // bonificação em andamento: o anexo da nota é só PROVA, não quita — quem quita é a autorização do master
   if(pxManBonif(man) && man.st!=="autorizado") return pixCobPaga(p,key);
   /* PAGAMENTO MANUAL AGUARDANDO: idem, e por pouco isto nao virou um buraco. A linha de baixo
