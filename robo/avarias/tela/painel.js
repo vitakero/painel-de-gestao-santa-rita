@@ -4,7 +4,8 @@
    por consulta — inteira, em pedaços "p0000", "p0001"… (páginas com ordem fixa e o total conferido) — ou, sob demanda,
    pela chave. Não há gravação, nem chamada de função. Cada pedaço traz as linhas em listas na ordem de "colunas": aqui
    elas viram objetos e as áreas recebem o MESMO formato de antes. O que foi lido fica guardado por 5 minutos.
-   Quem decide o acesso é o BANCO (piloto: só o master recebe linhas); a tela só escolhe a mensagem. */
+   Quem decide o acesso é o BANCO (recebe linhas quem tem ficha aprovada e a chave de Avarias que o master liberou em Acessos,
+   e o master); a tela só escolhe a mensagem. */
 (function () {
   "use strict";
   var AV = window.AV;
@@ -107,18 +108,25 @@
   ];
   // o que cada filtro faz em cada área (a tela diz quando um filtro NÃO se aplica)
   var FILTROS = { resumo: ["periodo", "setor", "motivo"], pendencias: ["setor"], produtos: ["periodo", "setor", "motivo"], fornecedores: ["periodo"] };
-  var SELO = '<span class="av-piloto" title="Piloto: só o master vê, somente leitura. Os números estão em validação.">Piloto · em validação</span>';
+  var SELO = '<span class="av-piloto" title="Piloto: somente leitura; os números estão em validação.">Piloto · em validação</span>';
 
   function mensagem(titulo, txt) {
     raiz.innerHTML = '<div class="av"><div class="av-card av-msg"><h2>' + titulo + " " + SELO + "</h2><p>" + txt + "</p></div></div>";
   }
   var SEM_DADOS = "O robô da loja ainda não mandou a primeira cópia do VR para Avarias. Assim que ele mandar, os números aparecem aqui.";
-  // Zero pedaços do retrato = o banco não deixou ler (no piloto, só o master com ficha aprovada recebe linhas) ou o robô
-  // ainda não publicou o primeiro retrato. O perfil (window.__PERFIL) só escolhe qual das duas frases: nenhum número aparece.
+  // as MESMAS frases do carregador do Painel (==AVARIAS-CARREGADOR==), que barra antes quem não tem a chave
+  var SEM_ACESSO = "Você não tem acesso às Avarias. Peça ao master para liberar na tela Acessos.";
+  var FICHA_BLOQUEADA = "A sua ficha está bloqueada. Peça ao master para liberar na tela Acessos.";
+  // Zero pedaços do retrato = o banco não deixou ler (recebe linhas quem tem ficha aprovada e a chave de Avarias, e o master
+  // com ficha aprovada) ou o robô ainda não publicou o primeiro retrato. O perfil (window.__PERFIL) só escolhe a frase:
+  // master aprovado = os dados ainda não chegaram; qualquer outro = sem acesso. Nenhum número aparece.
   function semAcesso() {
     var p = window.__PERFIL || null;
-    if (p && p.is_master && p.aprovado !== false) return mensagem("Os dados do VR ainda não chegaram", SEM_DADOS);
-    mensagem("Avarias", "Avarias está em piloto: só o master acessa." + (p && p.is_master ? " A sua ficha de master está bloqueada: confira na tela Acessos." : ""));
+    // o banco exige ficha APROVADA até do master (aprovado em branco não vale): só então "os dados ainda não chegaram"
+    if (p && p.is_master && p.aprovado === true) return mensagem("Os dados do VR ainda não chegaram", SEM_DADOS);
+    if (p && p.is_master) return mensagem("Avarias", p.aprovado === false ? "A sua ficha de master está bloqueada: confira na tela Acessos."
+      : "A sua ficha de master ainda não está aprovada: confira na tela Acessos.");
+    mensagem("Avarias", p && p.aprovado === false ? FICHA_BLOQUEADA : SEM_ACESSO);
   }
   // opc.silencioso = retrato novo percebido com a tela aberta: não pisca "Carregando…" e, se a releitura falhar, a tela
   // fica como estava (a idade dos dados continua avisando) e a próxima volta do relógio tenta de novo.
@@ -130,6 +138,10 @@
     delete cache["sync|{}"];                             // a sincronização é lida AO VIVO a cada abertura (decisão D1)
     var y = window.scrollY || 0;
     AV.lerVarias(["sync", "produtos", "motivos"]).then(function (d) {
+      // a sincronização ao vivo só volta vazia para quem o banco não deixa ler (quem pode recebe sempre as fontes):
+      // o acesso pode ter sido tirado com a tela aberta, então o que estava guardado não vale mais
+      // (a ficha aberta fica fora de #avRaiz: fecha junto, e o que estava na memória é esquecido)
+      if (!d.sync.length) { cache = {}; AV.fecharGaveta(true); AV.produtos = {}; AV.retrato = null; sync = null; return semAcesso(); }
       // a versão e a hora da tela vêm de uma consulta do RETRATO ("produtos", que sempre tem o pedaço p0000 num retrato
       // publicado), nunca da linha ao vivo da sincronização. Sem pedaço = o banco não deixou ler ou ainda não há retrato.
       if (!d.produtos.retrato) return semAcesso();
@@ -248,9 +260,9 @@
     AV.ler("sync").then(function (L) {
       lendoSync = false;
       if (!raiz || !raiz.isConnected || !raiz.querySelector(".av-topo")) return;
-      // zero linhas: o banco parou de entregar (no piloto, só o master com ficha aprovada recebe) — a tela se refaz e mostra
+      // zero linhas: o banco parou de entregar (o master tirou a chave ou bloqueou a ficha) — a tela se refaz e mostra
       // a mensagem de quem não tem acesso, sem nenhum número
-      if (!L.length) { recarregado = null; return AV.abrir(raiz, { silencioso: true }); }
+      if (!L.length) { recarregado = null; cache = {}; return AV.abrir(raiz, { silencioso: true }); }
       sync = fontesDaSync(L);
       if (aVista()) trocarHora();
       notarVersao(L.retrato, { silencioso: true });   // a linha ao vivo traz a versão PUBLICADA agora: outra = retrato novo

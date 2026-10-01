@@ -5,8 +5,11 @@
 //   2. o pacote abre (base64 -> gzip -> JSON), o código compila e monta window.AV.abrir; entraram TODOS os arquivos da tela;
 //   3. o CSS escuro existe e sai do MESMO gerador do Painel; o CSS do módulo não está solto no Painel;
 //   4. SOMENTE LEITURA: nenhum caminho de gravação (rpc/insert/update/upsert/delete, nem outro canal) no código do módulo;
-//   5. o menu Avarias só aparece para o master (o mesmo nav-mo de Despesas/FLV), sem mudar nenhuma outra permissão;
-//   6. a página Avarias não abre nada sem master (o carregador RODA aqui, com um navegador de mentira);
+//   5. o menu Avarias é o botão de sempre (30/09/2026, ordem do dono): cadeado para quem não tem a página "avarias",
+//      aberto para quem o master liberou em Acessos e para o master; só Despesas e FLV continuam só do master;
+//   6. a página Avarias só abre para quem pode — a MESMA regra do banco (ficha aprovada + chave de Avarias; o master
+//      passa); quem não pode recebe a frase de sem acesso e o pacote nem é lido (o carregador RODA aqui, com um
+//      navegador de mentira);
 //   7. o index.html não passou do limite do aviso da montagem (12 MB contados em letras);
 //   8. a tela não usa classe nem id que o Painel já usa em outro lugar (senão um pisa no outro).
 // Rodar depois do build:   npx tsx scripts/demoDashboard.ts && node scripts/testes/avarias-pacote.test.cjs
@@ -189,13 +192,16 @@ eq("o carregador também não grava nem chama o banco", (CARREGADOR.match(GRAVAR
   }
 }
 
-console.log("\n== 5. Menu: o botão Avarias só aparece para o master (nav-mo), sem mexer nas outras permissões ==");
+console.log("\n== 5. Menu: o botão Avarias é o de sempre (cadeado para quem não tem a página), sem mexer nas outras permissões ==");
 const BOTOES = [...HTML.matchAll(/<button class="(nav-item[^"]*)" data-page="([^"]+)"( style="([^"]*)")?/g)].map((m) => ({ pagina: m[2], classes: m[1].split(/\s+/), estilo: m[4] || "" }));
 {
   const av = BOTOES.find((b) => b.pagina === "avarias");
   vale("o botão Avarias existe (a tela Acessos continua listando a chave \"avarias\")", !!av);
-  vale("…com a classe nav-mo e escondido de saída (display:none), igual a Despesas e FLV", !!av && av.classes.indexOf("nav-mo") >= 0 && /display:\s*none/.test(av.estilo));
-  eq("as abas só-master são exatamente Despesas, FLV e Avarias (nenhuma outra mudou)", BOTOES.filter((b) => b.classes.indexOf("nav-mo") >= 0).map((b) => b.pagina).sort(), ["avarias", "despesas", "flv"]);
+  eq("…e é o botão de sempre: <button class=\"nav-item\" data-page=\"avarias\"> (sem nav-mo, sem display:none)",
+    HTML.match(/<button class="[^"]*" data-page="avarias"[^>]*>/g) || [], ['<button class="nav-item" data-page="avarias">']);
+  const ordem = BOTOES.map((b) => b.pagina), iAv = ordem.indexOf("avarias");
+  eq("…no mesmo lugar do menu: entre \"Perdas açougue\" e \"EPI\"", [ordem[iAv - 1], ordem[iAv + 1]], ["acougue", "epi"]);
+  eq("as abas só-master voltaram a ser exatamente Despesas e FLV (nenhuma outra mudou)", BOTOES.filter((b) => b.classes.indexOf("nav-mo") >= 0).map((b) => b.pagina).sort(), ["despesas", "flv"]);
   vale("o pré-carregamento do master mostra as abas só-master sem piscar (mecanismo de sempre)", HTML.indexOf('_nm.textContent=".nav-item.nav-mo{display:flex!important}"') >= 0);
 }
 // roda o applyPerms DE VERDADE (tirado do Painel gerado) com um menu de mentira igual ao real
@@ -216,19 +222,35 @@ function rodarPermissoes(perfil, paginaAtiva) {
 {
   const TODAS = BOTOES.map((b) => b.pagina);
   const m = rodarPermissoes({ is_master: true, paginas: [] }, "vendas");
-  eq("master: o botão Avarias aparece", m.de("avarias").style.display, "");
+  eq("master: o botão Avarias aparece destravado", [m.de("avarias").style.display, m.de("avarias").travado], ["", false]);
   eq("master: nenhum botão travado ou escondido", m.botoes.filter((b) => b.style.display === "none" || b.travado).map((b) => b.dataset.page), []);
+  const s = rodarPermissoes({ is_master: false, aprovado: true, paginas: ["vendas", "escala"] }, "vendas");
+  eq("funcionário SEM \"avarias\": o botão aparece no menu COM o cadeado (nav-locked)", [s.de("avarias").style.display, s.de("avarias").travado], ["", true]);
   const t = rodarPermissoes({ is_master: false, aprovado: true, paginas: TODAS }, "vendas");
-  eq("funcionário com TODAS as chaves (até \"avarias\"): o botão Avarias fica escondido", t.de("avarias").style.display, "none");
-  eq("…e todo o resto aparece destravado, como antes (só as 3 abas só-master somem)", t.botoes.filter((b) => b.style.display === "none" || b.travado).map((b) => b.dataset.page).sort(), ["avarias", "despesas", "flv"]);
+  eq("funcionário COM \"avarias\" (liberado em Acessos): o botão aparece destravado", [t.de("avarias").style.display, t.de("avarias").travado], ["", false]);
+  eq("…e todo o resto aparece destravado, como antes (só as 2 abas só-master somem: Despesas e FLV)", t.botoes.filter((b) => b.style.display === "none" || b.travado).map((b) => b.dataset.page).sort(), ["despesas", "flv"]);
   const v = rodarPermissoes({ is_master: false, aprovado: true, paginas: ["vendas", "avarias"] }, "avarias");
-  eq("funcionário parado na aba Avarias com a chave: o botão continua escondido", v.de("avarias").style.display, "none");
+  eq("funcionário parado na aba Avarias com a chave: continua nela (nenhum clique para outra aba), botão destravado", [v.cliques, v.de("avarias").travado], [[], false]);
   const e = rodarPermissoes({ is_master: false, aprovado: true, paginas: ["escala"] }, "avarias");
   eq("funcionário sem a chave que reabre na aba Avarias é levado para a primeira aba liberada", e.cliques, ["escala"]);
-  eq("…e a regra das outras abas não mudou (Regulamento aberto a todos; Vendas travada sem a chave)", [e.de("regulamento").travado, e.de("vendas").travado, e.de("escala").travado], [false, true, false]);
+  eq("…e a regra das outras abas não mudou (Regulamento aberto a todos; Vendas travada sem a chave; Avarias no cadeado)", [e.de("regulamento").travado, e.de("vendas").travado, e.de("escala").travado, e.de("avarias").travado], [false, true, false, true]);
+  // ==AVACS== as outras duas chaves de Avarias (etapa 2) abrem a MESMA aba: a mesma regra do banco (avaria_pode_ver) e do
+  // carregador (podeVer). Sem isto, quem o banco deixa ler via o botão com cadeado e era jogado para outra aba ao recarregar.
+  const r = rodarPermissoes({ is_master: false, aprovado: true, paginas: ["avarias_registrar"] }, "vendas");
+  eq("funcionário só com \"avarias_registrar\": o botão Avarias aparece destravado (a mesma regra do banco)", [r.de("avarias").style.display, r.de("avarias").travado], ["", false]);
+  const c = rodarPermissoes({ is_master: false, aprovado: true, paginas: ["avarias_conferir"] }, "vendas");
+  eq("funcionário só com \"avarias_conferir\": o botão Avarias aparece destravado (a mesma regra do banco)", [c.de("avarias").style.display, c.de("avarias").travado], ["", false]);
+  const cr = rodarPermissoes({ is_master: false, aprovado: true, paginas: ["avarias_conferir"] }, "avarias");
+  eq("…quem só tem \"avarias_conferir\" e reabre na aba Avarias continua nela (nenhum clique para outra aba)", cr.cliques, []);
+  eq("…e essas chaves não destravam nenhuma outra aba (Vendas e Escala continuam no cadeado; só o Regulamento, aberto a todos)",
+    r.botoes.filter((b) => !b.travado && b.style.display !== "none").map((b) => b.dataset.page).sort(), ["avarias", "regulamento"]);
+  const nada = rodarPermissoes({ is_master: false, aprovado: true, paginas: [] }, "vendas");
+  eq("funcionário sem nenhuma página: o botão Avarias fica com o cadeado", [nada.de("avarias").style.display, nada.de("avarias").travado], ["", true]);
+  const parecida = rodarPermissoes({ is_master: false, aprovado: true, paginas: ["avarias_x", "avarias_registrar_x"] }, "vendas");
+  eq("…e chave só parecida (\"avarias_x\", \"avarias_registrar_x\") não destrava: o botão Avarias fica com o cadeado", parecida.de("avarias").travado, true);
 }
 
-console.log("\n== 6. A página Avarias não abre nada sem master (o carregador RODA num navegador de mentira) ==");
+console.log("\n== 6. A página Avarias só abre para quem pode (o carregador RODA num navegador de mentira) ==");
 // navegador de mentira: só o que o carregador e a tela encostam; conta cada leitura do pacote e cada coisa criada
 function navegador(opc) {
   const reg = { leuPacote: 0, criados: [], sb: [], timers: 0, abrir: [], erros: [] };
@@ -264,7 +286,31 @@ function navegador(opc) {
 }
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 async function ate(cond, ms = 5000) { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (cond()) return true; await espera(20); } return false; }
-const MSG_PILOTO = "Avarias está em piloto: só o master acessa.";
+const MSG_SEM_ACESSO = "Você não tem acesso às Avarias. Peça ao master para liberar na tela Acessos.";
+const MSG_FICHA = "A sua ficha está bloqueada. Peça ao master para liberar na tela Acessos.";
+vale("o carregador e a tela usam as MESMAS frases de sem acesso e de ficha bloqueada",
+  [CARREGADOR, fs.readFileSync(path.join(TELA, "painel.js"), "utf8")].every((t) => t.indexOf(MSG_SEM_ACESSO) >= 0 && t.indexOf(MSG_FICHA) >= 0));
+eq("a frase antiga do piloto (\"só o master acessa\") sumiu do Painel e da tela", [HTML.indexOf("só o master acessa"), P.js.indexOf("só o master acessa")], [-1, -1]);
+// não abre: a frase certa na raiz, o pacote nem lido, nada criado, nada pedido à nuvem
+async function naoAbre(nome, perfil, frase) {
+  const n = navegador({ perfil });
+  n.abrir(); await espera(60);
+  vale(nome + ": \"" + frase + "\"", n.raiz.innerHTML.indexOf(frase) >= 0, n.raiz.innerHTML);
+  eq(nome + ": o pacote nem foi lido, nenhum <script>/<style> criado, window.AV não existe e nada foi pedido à nuvem",
+    [n.reg.leuPacote, n.reg.criados.length, typeof n.ctx.AV, n.reg.sb.length], [0, 0, "undefined", 0]);
+}
+// abre: o pacote é lido uma vez, a tela é chamada com a raiz e só LÊ a nuvem
+async function abre(nome, perfil) {
+  const n = navegador({ perfil });
+  n.abrir();
+  const abriu = await ate(() => n.reg.abrir.length > 0);
+  vale(nome + ": o pacote abre e a tela é chamada com a raiz (AV.abrir(#avRaiz))", abriu && n.reg.abrir[0] === n.raiz, n.reg.erros);
+  eq(nome + ": o pacote foi lido UMA vez e injetou 2 <style> e 1 <script>", [n.reg.leuPacote, n.reg.criados.slice().sort()], [1, ["script", "style", "style"]]);
+  await ate(() => n.raiz.innerHTML.indexOf("Carregando") < 0 && n.raiz.innerHTML.length > 0, 3000);
+  vale(nome + ": a tela leu a nuvem (from/select…) e NUNCA pediu gravação",
+    n.reg.sb.indexOf("from") >= 0 && n.reg.sb.indexOf("select") >= 0 && !n.reg.sb.some((k) => /^(rpc|insert|update|upsert|delete|storage|functions)$/.test(k)), n.reg.sb.slice(0, 12));
+  return n;
+}
 
 (async () => {
   {
@@ -272,13 +318,38 @@ const MSG_PILOTO = "Avarias está em piloto: só o master acessa.";
     vale("sem login ainda: mostra \"Carregando…\" e espera o perfil", n.raiz.innerHTML.indexOf("Carregando…") >= 0 && n.reg.timers === 1);
     eq("sem login ainda: o pacote não foi lido e nada foi criado", [n.reg.leuPacote, n.reg.criados.length, typeof n.ctx.AV], [0, 0, "undefined"]);
   }
+  // quem NÃO pode: sem a chave (com outras páginas), sem página nenhuma, e ficha bloqueada (mesmo com as 3 chaves)
+  await naoAbre("funcionário SEM a página \"avarias\"", { is_master: false, aprovado: true, paginas: ["vendas", "escala", "acougue", "epi"] }, MSG_SEM_ACESSO);
+  await naoAbre("funcionário sem página nenhuma (paginas vazio)", { is_master: false, aprovado: true, paginas: null }, MSG_SEM_ACESSO);
+  await naoAbre("ficha BLOQUEADA com as 3 chaves de Avarias", { is_master: false, aprovado: false, paginas: ["avarias", "avarias_registrar", "avarias_conferir"] }, MSG_FICHA);
+  // quem PODE: a chave "avarias" que o master marca em Acessos (a tela inteira, igual ao master); as outras 2 chaves, como no banco;
+  // e as páginas em texto JSON (como a nuvem pode devolver), lidas do mesmo jeito que o Painel lê
   {
-    const n = navegador({ perfil: { is_master: false, aprovado: true, paginas: ["avarias", "avarias_registrar", "avarias_conferir"] } });
-    n.abrir(); await espera(60);
-    vale("NÃO master (mesmo com as 3 chaves de Avarias): \"" + MSG_PILOTO + "\"", n.raiz.innerHTML.indexOf(MSG_PILOTO) >= 0, n.raiz.innerHTML);
-    eq("NÃO master: o pacote nem foi lido", n.reg.leuPacote, 0);
-    eq("NÃO master: nenhum <script>/<style> criado e window.AV não existe", [n.reg.criados.length, typeof n.ctx.AV], [0, "undefined"]);
-    eq("NÃO master: nada foi pedido à nuvem", n.reg.sb, []);
+    const n = await abre("funcionário COM a página \"avarias\"", { is_master: false, aprovado: true, paginas: ["vendas", "avarias"] });
+    // a nuvem de mentira devolve ZERO linhas: é o que o banco faz com quem ele não deixa ler — a tela diz a mesma frase
+    vale("funcionário COM a página, mas o banco devolveu zero linhas: a tela diz \"" + MSG_SEM_ACESSO + "\" (a tranca é o banco), sem número",
+      n.raiz.innerHTML.indexOf(MSG_SEM_ACESSO) >= 0 && !/R\$|\d/.test(n.raiz.innerHTML.replace(/<[^>]*>/g, "")), n.raiz.innerHTML.slice(0, 300));
+  }
+  await abre("funcionário só com \"avarias_registrar\" (a regra do banco)", { is_master: false, aprovado: true, paginas: ["avarias_registrar"] });
+  await abre("funcionário só com \"avarias_conferir\" (a regra do banco)", { is_master: false, aprovado: true, paginas: ["avarias_conferir"] });
+  await abre("páginas em texto JSON com \"avarias\"", { is_master: false, aprovado: true, paginas: '["escala","avarias"]' });
+  await naoAbre("páginas em texto JSON sem \"avarias\"", { is_master: false, aprovado: true, paginas: '["escala","avarias_x"]' }, MSG_SEM_ACESSO);
+  {
+    // master com a nuvem vazia: "os dados ainda não chegaram" (como antes); master com a ficha bloqueada ou ainda não
+    // aprovada: a frase dele
+    const n = await abre("master (ficha aprovada)", { is_master: true, aprovado: true, paginas: [] });
+    vale("master com o banco devolvendo zero linhas: \"Os dados do VR ainda não chegaram\"", n.raiz.innerHTML.indexOf("Os dados do VR ainda não chegaram") >= 0, n.raiz.innerHTML.slice(0, 300));
+    const b = await abre("master com a ficha BLOQUEADA (o banco devolve zero)", { is_master: true, aprovado: false, paginas: [] });
+    vale("master com a ficha bloqueada: \"A sua ficha de master está bloqueada: confira na tela Acessos.\"", b.raiz.innerHTML.indexOf("A sua ficha de master está bloqueada: confira na tela Acessos.") >= 0, b.raiz.innerHTML.slice(0, 300));
+    // master com a ficha ainda NÃO aprovada (aprovado em branco: nulo, ou o campo nem veio). O carregador deixa o master
+    // passar, mas o banco exige ficha aprovada até do master e devolve zero: a frase é a dele, nunca "os dados do VR ainda
+    // não chegaram" (só do master APROVADO) nem a de bloqueada
+    for (const [caso, perfil] of [["aprovado nulo", { is_master: true, aprovado: null, paginas: [] }], ["sem o campo aprovado", { is_master: true, paginas: [] }]]) {
+      const a = await abre("master com " + caso + " (o banco devolve zero)", perfil);
+      const t = a.raiz.innerHTML;
+      vale("master com " + caso + ": \"A sua ficha de master ainda não está aprovada: confira na tela Acessos.\" (nunca \"os dados ainda não chegaram\" nem \"bloqueada\")",
+        t.indexOf("A sua ficha de master ainda não está aprovada: confira na tela Acessos.") >= 0 && !/ainda não chegaram|bloqueada/.test(t), t.slice(0, 300));
+    }
   }
   {
     const n = navegador({ perfil: { is_master: true, aprovado: true, paginas: [] } });   // a aba já estava aberta: abre sozinho

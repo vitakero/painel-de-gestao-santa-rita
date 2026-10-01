@@ -82,17 +82,21 @@ const encHead = encCalc ? "<script>" + encCalc + "</script>" : "";
 const encSecao = encJs
   ? "<style>" + encCss + "</style><div id=\"encRaiz\" class=\"enc\"><div class=\"card\"><h2 style=\"margin:0 0 6px;font-size:20px;color:#0c5a26;\">Planejamento de Encartes</h2><p style=\"margin:0;font-size:14px;color:#6b7787;\">Carregando…</p></div></div>"
   : "<div class=\"card\"><h2 style=\"margin:0 0 6px;font-size:20px;color:#0c5a26;\">Planejamento de Encartes</h2><p style=\"margin:0;font-size:14px;color:#6b7787;line-height:1.6;\">Esta tela está em construção.</p></div>";
-/* ==AVARIAS== AVARIAS · PILOTO (etapa 3,6, 29/09/2026): menu "Avarias", chave "avarias". SÓ O MASTER, SOMENTE LEITURA.
+/* ==AVARIAS== AVARIAS · PILOTO (etapa 3,6, 29/09/2026): menu "Avarias", chave "avarias". SOMENTE LEITURA.
+   QUEM VÊ (30/09/2026, ordem do dono: "deixar aparecendo para os outros funcionários, só que no cadeado; só consegue
+   ver se eu liberar no Acessos" + "pode fazer, tudo"): o master e quem ele liberar na tela Acessos — e quem é liberado
+   vê a tela INTEIRA, igual ao master. Para os outros o botão fica no menu com o cadeado, como qualquer página.
    A tela mora em scripts/avarias/tela/ (7 arquivos .js + 5 .css, ~320 KB crus). Ela NÃO entra solta no Painel:
      - TODA pessoa baixa o Painel inteiro a cada abertura (hoje ~11,7 MB), mesmo quem nunca vai abrir Avarias
-       (e no piloto só o master pode). Crua, a tela passaria o Painel do aviso de 12 MB da montagem;
+       (e só quem foi liberado pode). Crua, a tela passaria o Painel do aviso de 12 MB da montagem;
      - por isso ela vai COMPACTADA (minificada com esbuild quando houver + gzip + base64) num
        <script type="application/octet-stream" id="avPacote">, que o navegador NÃO executa. O pacote só é
-       aberto (DecompressionStream) quando o MASTER abre a aba Avarias: quem não é master nunca roda nada dela;
+       aberto (DecompressionStream) quando QUEM PODE abre a aba Avarias: quem não pode nunca roda nada dela;
      - o CSS do módulo viaja DENTRO do pacote (como <style> solto o gerador do modo noturno o processaria duas
        vezes), junto com a versão escura, gerada aqui no build pelo MESMO temaProcessarCss (==AVARIAS-PACOTE==).
    Os dados NÃO vêm embutidos (o site é público): a tela lê a nuvem ao abrir, com login, e quem decide o acesso é o
-   BANCO (avaria_pode_ver = master no piloto). Esconder o menu (nav-mo) é conforto, não é a tranca.
+   BANCO (avaria_pode_ver = ficha aprovada da casa E a chave "avarias" — ou "avarias_registrar"/"avarias_conferir";
+   o master passa). O cadeado do menu e a conferência do carregador são conforto, não são a tranca.
    Faltou arquivo (o robô não baixou), o código não compila ou apareceu caminho de gravação? O pacote NÃO entra, a
    montagem avisa o motivo, a aba diz que Avarias não entrou nesta atualização — e o resto do Painel sai normal. */
 /* ==AVARIAS-CHAVE== LIGA/DESLIGA o piloto no Painel. false = Avarias ADORMECIDA: o Painel sai EXATAMENTE como antes da
@@ -139,10 +143,22 @@ const avSecao = !AV_PILOTO_NO_AR
    Pequeno de propósito: é a única parte de Avarias que TODO mundo baixa já aberta. Sai como <script> comum, antes do
    tema escuro e das travas do build (é compilado e conferido como qualquer script do Painel). String.raw: o texto
    vai para o HTML exatamente como está escrito aqui (nada de barra dobrada). */
-const avCarregadorJs = String.raw`/* ==AVARIAS-CARREGADOR== Avarias · piloto: abre o pacote compactado SÓ para o master e SÓ ao abrir a aba. */
+const avCarregadorJs = String.raw`/* ==AVARIAS-CARREGADOR== Avarias · piloto: abre o pacote compactado SÓ para quem pode (o master ou quem ele liberou em Acessos) e SÓ ao abrir a aba. */
 (function(){
   "use strict";
   var aberto = null, tentativas = 0, espera = null;
+  var SEM_ACESSO = "Você não tem acesso às Avarias. Peça ao master para liberar na tela Acessos.";
+  var FICHA_BLOQUEADA = "A sua ficha está bloqueada. Peça ao master para liberar na tela Acessos.";
+  // a MESMA regra do banco (avaria_pode_ver): ficha aprovada E a chave "avarias" (ou "avarias_registrar"/"avarias_conferir");
+  // o master passa. As páginas lidas como o Painel lê (man2PapelDoPerfil): lista, ou texto JSON vindo da nuvem.
+  function podeVer(p){
+    if(p.is_master) return true;
+    if(p.aprovado === false) return false;
+    var pg = p.paginas;
+    if(typeof pg === "string"){ try{ pg = JSON.parse(pg); }catch(e){ pg = []; } }
+    if(!Array.isArray(pg)) pg = [];
+    return pg.indexOf("avarias") >= 0 || pg.indexOf("avarias_registrar") >= 0 || pg.indexOf("avarias_conferir") >= 0;
+  }
   function raiz(){ return document.getElementById("avRaiz"); }
   function ativa(){ var pg = document.getElementById("page-avarias"); return !!(pg && pg.classList.contains("ativo")); }
   function aviso(txt){
@@ -206,9 +222,9 @@ const avCarregadorJs = String.raw`/* ==AVARIAS-CARREGADOR== Avarias · piloto: a
       return;
     }
     tentativas = 0;
-    // PILOTO: só o master. Sem master o pacote NEM é aberto: nada da tela roda e nada é lido da nuvem.
-    // A tranca de verdade é o banco (avaria_pode_ver); isto só poupa trabalho e explica.
-    if(!p.is_master){ aviso("Avarias está em piloto: só o master acessa."); return; }
+    // QUEM PODE: o master e quem ele liberou em Acessos (30/09/2026). Quem não pode: o pacote NEM é aberto, nada da tela
+    // roda e nada é lido da nuvem. A tranca de verdade é o banco (avaria_pode_ver); isto só poupa trabalho e explica.
+    if(!podeVer(p)){ aviso(p.aprovado === false ? FICHA_BLOQUEADA : SEM_ACESSO); return; }
     if(!window.AV) aviso("Carregando…");
     abrirPacote().then(function(AV){
       if(!ativa()) return;   // saiu da aba enquanto abria: a próxima visita monta
@@ -2022,9 +2038,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <button class="nav-item" data-page="regulamento"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg></span> Regulamento</button>
     <button class="nav-item" data-page="perdas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Perdas/Quebras</button>
     <button class="nav-item" data-page="acougue"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h11a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3z"/><path d="M15 8h4a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4"/><path d="M3 19h13"/></svg></span> Perdas açougue</button>
-    <!-- ==AVARIAS== piloto 3,6 (29/09/2026), quando a ==AVARIAS-CHAVE== está ligada: SÓ o master vê o botão — o mesmo nav-mo das Despesas e do FLV (applyPerms esconde
-         de quem não é master; o pré-carregamento mostra ao master sem piscar). A tranca de verdade é o banco. -->
-    <button class="nav-item${AV_PILOTO_NO_AR ? " nav-mo" : ""}" data-page="avarias"${AV_PILOTO_NO_AR ? " style=\"display:none;\"" : ""}><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l2-4h16l2 4"/><path d="M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"/><path d="M13 11l-2 3h3l-2 3"/></svg></span> Avarias</button>
+    <!-- ==AVARIAS== botão de SEMPRE, com a ==AVARIAS-CHAVE== ligada ou não (30/09/2026, ordem do dono): todo funcionário vê "Avarias" no menu;
+         quem não tem a página "avarias" vê com o cadeado (nav-locked, applyPerms) e o clique diz "Página bloqueada"; quem o master liberou em
+         Acessos abre. Do piloto (29/09) até 30/09 foi nav-mo (só o master via). A tranca de verdade é o banco (avaria_pode_ver). -->
+    <button class="nav-item" data-page="avarias"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l2-4h16l2 4"/><path d="M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"/><path d="M13 11l-2 3h3l-2 3"/></svg></span> Avarias</button>
     <button class="nav-item" data-page="epi"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span> EPI</button>
     <button class="nav-item" data-page="fardamento"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l4-3 2 2h4l2-2 4 3-2 3-2-1v11H8V9L6 10z"/></svg></span> Fardamento</button>
     <button class="nav-item" data-page="receitas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span> Receitas</button>
@@ -3498,9 +3515,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 
     <section id="page-avarias" class="page">
       <!-- ==AVARIAS== Menu criado em 28/09/2026 a pedido do dono (só o lugar, igual ao "Compra × Venda" em 12/09).
-           Desde a etapa 3,6 (29/09/2026) é o PILOTO: só o master, somente leitura. A tela vem compactada no
-           pacote #avPacote (ver ==AVARIAS== no topo deste arquivo) e só é aberta pelo carregador (window.avAbrir)
-           quando o master abre esta aba. A chave continua "avarias" (a tela Acessos lê o menu). -->
+           Desde a etapa 3,6 (29/09/2026) é o PILOTO, somente leitura; desde 30/09 vê quem o master liberar em
+           Acessos (e o master). A tela vem compactada no pacote #avPacote (ver ==AVARIAS== no topo deste arquivo) e
+           só é aberta pelo carregador (window.avAbrir) quando quem pode abre esta aba. A chave continua "avarias"
+           (a tela Acessos lê o menu). -->
       ${avSecao}
     </section>
 
@@ -32194,7 +32212,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="calendario"){ calAno=HOJE.getFullYear(); calMes=HOJE.getMonth(); setView("ano"); try{ calCarregarNuvem(false); }catch(e){} }
     if(btn.dataset.page==="encartes" && window.encAbrir) window.encAbrir(); // ==ENC== lê a nuvem só ao abrir
     if(btn.dataset.page==="projecao" && window.cxvAbrir) window.cxvAbrir(); // ==CXV== lê a nuvem só ao abrir
-    if(btn.dataset.page==="avarias" && window.avAbrir) window.avAbrir(); // ==AVARIAS== piloto: abre o pacote só ao abrir, e só para o master
+    if(btn.dataset.page==="avarias" && window.avAbrir) window.avAbrir(); // ==AVARIAS== piloto: abre o pacote só ao abrir, e só para quem pode
     if(btn.dataset.page==="agenda"){ renderAgenda(); agCloudLoad(); }
     if(btn.dataset.page==="organograma"){ renderOrg(); orgCenterView(); }
     if(btn.dataset.page==="fluxograma") renderFlux();
@@ -35258,6 +35276,7 @@ function pedEnviar(){
       if(p==="entregas" && ok.indexOf("entregas_lancar")>=0) return true;   // versão enxuta abre a MESMA aba
       if(p==="manutencoes" && ok.indexOf("manutencoes_gestor")>=0) return true;   // ==MAN2ACS== gestor da Manutenção abre a MESMA aba
       if(p==="encartes" && ok.indexOf("encartes_comprador")>=0) return true;   // ==ENCACS== comprador abre a MESMA aba
+      if(p==="avarias" && (ok.indexOf("avarias_registrar")>=0 || ok.indexOf("avarias_conferir")>=0)) return true;   // ==AVACS== as chaves da etapa 2 abrem a MESMA aba (a mesma regra do banco)
       // estas vivem DENTRO de Receitas e não têm item de menu próprio
       if(["insumos","custosop","material","rateio"].indexOf(p)>=0 && ok.indexOf("receitas")>=0) return true;
       return false;
@@ -36083,7 +36102,7 @@ if (!AV_PILOTO_NO_AR) {
   console.log("   avarias: piloto DESLIGADO (==AVARIAS-CHAVE==) — a aba mostra \"em construção\", como antes da etapa 3,6.");
 } else if (!avJsFonte || comPacote === comTema) {
   console.log("   !!! AVARIAS NÃO ENTROU nesta montagem: " + (avFora || "motivo desconhecido") + ".");
-  console.log("       A aba Avarias vai dizer ao master que ela não entrou nesta atualização; o resto do Painel sai normal.");
+  console.log("       A aba Avarias vai dizer a quem abrir que ela não entrou nesta atualização; o resto do Painel sai normal.");
 } else console.log(avRelato);
 
 await writeFile("output/index.html", comPacote);
