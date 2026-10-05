@@ -2943,6 +2943,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .gnd-face{background:linear-gradient(180deg,#ffffff,#eaeff5);border:1px solid #dfe6ee;border-radius:2px;box-shadow:inset -1px 0 0 rgba(20,40,70,.04);}
         .gnd.ilha .gnd-corpo{height:30px;border-bottom:1px solid #d5dde6;border-radius:0 0 9px 9px;}
         .gnd.ilha-h{flex-direction:row;align-items:stretch;height:70px;}
+        .mpl-rodape .gnd.ilha-h{flex:1 1 0;min-width:0;}
         .gnd-corpo-h{flex:1;position:relative;border:1px solid #d5dde6;border-left:0;border-radius:0 9px 9px 0;background:linear-gradient(180deg,#fafcfe,#eef2f7);box-shadow:inset 0 1px 2px rgba(20,40,70,.06);min-width:0;}
         .gnd-spine-h{position:absolute;top:50%;left:6px;right:6px;height:3px;transform:translateY(-1.5px);background:linear-gradient(90deg,#c6d0db,#aeb9c7);border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.55);}
         .gnd-cap.esq{flex:0 0 40px;height:auto;align-self:stretch;border-radius:9px 3px 3px 9px;}
@@ -21156,11 +21157,13 @@ function renderMapa(){
   html+=mapaFileiraHtml(MAPA_GRUPOS[1]);
   html+='<div class="mpl-corr">Fundo da loja</div>';
   html+='<div class="mpl-rodape">'+
-    '<div class="mpl-slot"></div><div class="mpl-gap"></div>'+
-    '<div class="mpl-slot"></div><div class="mpl-gap"></div>'+
-    '<div class="mpl-slot"></div><div class="mpl-gap"></div>'+
-    '<div class="mpl-slot"></div><div class="mpl-gap"></div>'+
-    '<div class="gnd ilha-h">'+mapaCap(21,"esq")+'<div class="gnd-corpo-h dois"><span class="gnd-spine-h"></span></div>'+mapaCap(22,"dir")+'</div></div>';
+    /* AS DUAS ILHAS DO FUNDO. Ele disse em 05/10/2026, com o mapa na tela: "o 22 fica no lado
+       esquerdo, do mesmo jeito que o 21 está do lado direito". Então são duas ilhas iguais, uma
+       em cada canto do fundo, com os três vãos livres no meio. */
+    '<div class="gnd ilha-h">'+mapaCap(22,"esq")+'<div class="gnd-corpo-h"><span class="gnd-spine-h"></span></div></div>'+
+    '<div class="mpl-gap"></div><div class="mpl-slot"></div><div class="mpl-gap"></div>'+
+    '<div class="mpl-slot"></div><div class="mpl-gap"></div><div class="mpl-slot"></div><div class="mpl-gap"></div>'+
+    '<div class="gnd ilha-h">'+mapaCap(21,"esq")+'<div class="gnd-corpo-h"><span class="gnd-spine-h"></span></div></div></div>';
   wrap.innerHTML=html;
   const nums={};
   pontosG.forEach(p=>{ const n=+p.numero; if(n>=1&&n<=PX_MAX_PONTOS&&(p.fornecedor||"").trim()) nums[n]=1; });
