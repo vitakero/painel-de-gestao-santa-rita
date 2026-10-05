@@ -2949,6 +2949,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .gnd-cap.esq{flex:0 0 40px;height:auto;align-self:stretch;border-radius:9px 3px 3px 9px;}
         .gnd-cap.dir{flex:0 0 40px;height:auto;align-self:stretch;border-radius:3px 9px 9px 3px;}
         .gnd-corpo-h.dois{border-right:0;border-radius:0;}
+        .gnd-corpo-h.aoinverso{border-left:1px solid #d5dde6;border-right:0;border-radius:9px 0 0 9px;}
         .gnd-cap{position:relative;border:1px solid transparent;cursor:pointer;font-family:inherit;font-weight:700;font-size:13.5px;height:35px;display:flex;align-items:center;justify-content:center;gap:6px;transition:transform .13s ease,box-shadow .13s ease;font-variant-numeric:tabular-nums;padding:0;}
         .gnd-cap.topo{border-radius:9px 9px 3px 3px;}
         .gnd-cap.base{border-radius:3px 3px 9px 9px;}
@@ -21160,7 +21161,7 @@ function renderMapa(){
     /* AS DUAS ILHAS DO FUNDO. Ele disse em 05/10/2026, com o mapa na tela: "o 22 fica no lado
        esquerdo, do mesmo jeito que o 21 está do lado direito". Então são duas ilhas iguais, uma
        em cada canto do fundo, com os três vãos livres no meio. */
-    '<div class="gnd ilha-h">'+mapaCap(22,"esq")+'<div class="gnd-corpo-h"><span class="gnd-spine-h"></span></div></div>'+
+    '<div class="gnd ilha-h"><div class="gnd-corpo-h aoinverso"><span class="gnd-spine-h"></span></div>'+mapaCap(22,"dir")+'</div>'+
     '<div class="mpl-gap"></div><div class="mpl-slot"></div><div class="mpl-gap"></div>'+
     '<div class="mpl-slot"></div><div class="mpl-gap"></div><div class="mpl-slot"></div><div class="mpl-gap"></div>'+
     '<div class="gnd ilha-h">'+mapaCap(21,"esq")+'<div class="gnd-corpo-h"><span class="gnd-spine-h"></span></div></div></div>';
