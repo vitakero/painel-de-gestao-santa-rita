@@ -2946,6 +2946,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         .gnd-corpo-h{flex:1;position:relative;border:1px solid #d5dde6;border-left:0;border-radius:0 9px 9px 0;background:linear-gradient(180deg,#fafcfe,#eef2f7);box-shadow:inset 0 1px 2px rgba(20,40,70,.06);min-width:0;}
         .gnd-spine-h{position:absolute;top:50%;left:6px;right:6px;height:3px;transform:translateY(-1.5px);background:linear-gradient(90deg,#c6d0db,#aeb9c7);border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.55);}
         .gnd-cap.esq{flex:0 0 40px;height:auto;align-self:stretch;border-radius:9px 3px 3px 9px;}
+        .gnd-cap.dir{flex:0 0 40px;height:auto;align-self:stretch;border-radius:3px 9px 9px 3px;}
+        .gnd-corpo-h.dois{border-right:0;border-radius:0;}
         .gnd-cap{position:relative;border:1px solid transparent;cursor:pointer;font-family:inherit;font-weight:700;font-size:13.5px;height:35px;display:flex;align-items:center;justify-content:center;gap:6px;transition:transform .13s ease,box-shadow .13s ease;font-variant-numeric:tabular-nums;padding:0;}
         .gnd-cap.topo{border-radius:9px 9px 3px 3px;}
         .gnd-cap.base{border-radius:3px 3px 9px 9px;}
@@ -18585,6 +18587,10 @@ function pixRitmo(){
 function savePontosG(){ try{ localStorage.setItem("pontos_gondola", JSON.stringify(pontosG)); }catch(e){} clearTimeout(pxPushT); pxPushT=setTimeout(pxCloudPush,800); }
 let pxEditId = null;
 
+// QUANTOS PONTOS A LOJA TEM. Era 21 cravado em quatro lugares (cadastro, mapa, contador e
+// KPIs); quando ele abriu o ponto 22, em 05/10/2026, o cadastro recusava o número e os outros
+// três mentiriam calados. Agora é um número só: para abrir o 23, muda aqui e põe no mapa.
+const PX_MAX_PONTOS = 22;
 // Layout do mapa (planta da loja) — usado já no primeiro render dos pontos.
 const MAPA_GRUPOS = [
   { topo:[1,2,3,4,5],     base:[6,7,8,9,10] },
@@ -20722,7 +20728,7 @@ async function pixTravaClick(){
     // Limite de pontos: só de 1 a 21 (são 21 espaços físicos na loja)
     if(dados.numero!==""){
       const n=parseInt(dados.numero,10);
-      if(isNaN(n) || n<1 || n>21){ alert("O número do ponto deve ser entre 1 e 21 (a loja tem 21 pontos)."); return; }
+      if(isNaN(n) || n<1 || n>PX_MAX_PONTOS){ alert("O número do ponto deve ser entre 1 e "+PX_MAX_PONTOS+" (a loja tem "+PX_MAX_PONTOS+" pontos)."); return; }
     }
     // Ponto já ocupado? Pergunta se quer substituir o fornecedor que está nele.
     const ocupado = dados.numero!=="" ? pontosG.find(x=>String(x.numero)===String(dados.numero) && x.id!==pxEditId) : null;
@@ -21154,13 +21160,13 @@ function renderMapa(){
     '<div class="mpl-slot"></div><div class="mpl-gap"></div>'+
     '<div class="mpl-slot"></div><div class="mpl-gap"></div>'+
     '<div class="mpl-slot"></div><div class="mpl-gap"></div>'+
-    '<div class="gnd ilha-h">'+mapaCap(21,"esq")+'<div class="gnd-corpo-h"><span class="gnd-spine-h"></span></div></div></div>';
+    '<div class="gnd ilha-h">'+mapaCap(21,"esq")+'<div class="gnd-corpo-h dois"><span class="gnd-spine-h"></span></div>'+mapaCap(22,"dir")+'</div></div>';
   wrap.innerHTML=html;
   const nums={};
-  pontosG.forEach(p=>{ const n=+p.numero; if(n>=1&&n<=21&&(p.fornecedor||"").trim()) nums[n]=1; });
+  pontosG.forEach(p=>{ const n=+p.numero; if(n>=1&&n<=PX_MAX_PONTOS&&(p.fornecedor||"").trim()) nums[n]=1; });
   const ocup=Object.keys(nums).length;
   const info=document.getElementById("mapaInfo");
-  if(info) info.textContent=ocup+" de 21 pontos ocupados";
+  if(info) info.textContent=ocup+" de "+PX_MAX_PONTOS+" pontos ocupados";
   mapaKpis(ocup);
   const aviso=document.getElementById("mapaAviso");
   if(aviso) aviso.innerHTML = pontosG.length ? "" :
@@ -21169,7 +21175,7 @@ function renderMapa(){
 function mapaKpis(ocup){
   const el=document.getElementById("mapaKpis");
   if(!el) return;
-  const TOT=21;
+  const TOT=PX_MAX_PONTOS;
   const livres=TOT-ocup;
   const taxa=Math.round(ocup/TOT*100);
   let receita=0, recebido=0, ativos=0, venc30=0, vencidos=0, pendVal=0, pendN=0;
