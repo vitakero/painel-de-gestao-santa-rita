@@ -82,7 +82,8 @@ console.log("\n-- OCORRÊNCIAS DAS CAMPANHAS --");
 {
   const ps = E.ocorrencias(regra("promocao-semanal"), "2026-11-01", "2026-11-30");
   eq("PS: toda segunda (a de 26/10 ainda está no ar em 01–02/11)", inicios(ps), "2026-10-26,2026-11-02,2026-11-09,2026-11-16,2026-11-23,2026-11-30");
-  eq("PS: segunda → segunda (8 dias)", ps.map((o) => o.fim).join(","), "2026-11-02,2026-11-09,2026-11-16,2026-11-23,2026-11-30,2026-12-07");
+  eq("PS: segunda → domingo (7 dias; sai na segunda seguinte 00h)", ps.map((o) => o.fim).join(","), "2026-11-01,2026-11-08,2026-11-15,2026-11-22,2026-11-29,2026-12-06");
+  eq("PS: duas semanas seguidas não se encostam (nenhum dia com duas PS)", ps.every((o, i) => i === 0 || ps[i - 1].fim < o.inicio), true);
   eq("PS: inicio_regra = início", ps.every((o) => o.inicio_regra === o.inicio), true);
   eq("PS: todas começam na segunda", ps.every((o) => E.diaSemana(o.inicio) === 1), true);
   const ps30 = E.ocorrencias(regra("promocao-semanal"), "2030-01-01", "2030-12-31");
@@ -212,7 +213,7 @@ console.log("\n-- MUDANÇA DE ANO --");
 {
   const PS = modelo("promocao-semanal");
   const jan = E.ocorrencias(regra("promocao-semanal"), "2027-01-01", "2027-01-03");
-  eq("a PS de 28/12/2026 aparece quando se olha janeiro/2027", JSON.stringify(jan.map((o) => [o.inicio_regra, o.fim])), JSON.stringify([["2026-12-28", "2027-01-04"]]));
+  eq("a PS de 28/12/2026 aparece quando se olha janeiro/2027", JSON.stringify(jan.map((o) => [o.inicio_regra, o.fim])), JSON.stringify([["2026-12-28", "2027-01-03"]]));
   eq("PS 28/12/2026 → 04/01/2027: prazos", E.prazosEdicao(PS, "2026-12-28", "2027-01-04"),
     { comecar: "2026-11-30", definir: "2026-12-11", aprovar: "2026-12-14", grupos: {} });
   eq("PS 11/01/2027: definir cai no Natal (fechada) → 24 → 23 → 22/12", E.calcularPrazos("2027-01-11", PS.prazos),

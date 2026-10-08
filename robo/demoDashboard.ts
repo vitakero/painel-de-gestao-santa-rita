@@ -8560,14 +8560,21 @@ function calItem(o,extra){
   for(var k in extra) x[k]=extra[k];
   return x;
 }
-// A Promoção Semanal ocupa todos os dias do ano: no calendário ela aparece só na SEGUNDA em que começa,
-// e o Final de semana de ofertas na sexta daquela semana. Senão ela cobriria todas as outras campanhas.
+// ==CALPSDIAS== A Promoção Semanal vale de segunda a domingo: no Mês a etiqueta aparece em TODOS os dias
+// da semana (pedido do dono, 08/10/2026), empilhada com as outras campanhas do dia; o Final de semana de
+// ofertas entra também na sexta daquela semana. No Ano ela continua sem pintar (marca ps): senão o ano
+// inteiro ficaria de uma cor só.
 function campanhasDoDia(a,m,d,dow){
   var iso=fmtKey(a,m,d), lista=calOcorrenciasAno(a)[iso]||[], out=[], fds=calFds(), E=calEnc();
+  // Trava: com a regra antiga de 8 dias (nuvem ainda não corrigida, ou a cópia guardada no navegador) a semana
+  // que termina na segunda encostava na que começa nela: duas etiquetas, a de cima abrindo o encarte da semana
+  // passada. A que COMEÇA no dia fica; a que termina nele sai.
+  var psComeca=lista.some(function(x){ return x.id==="promocao-semanal" && x.primeiroDia; });
   lista.forEach(function(o){
     if(o.id==="promocao-semanal"){
-      if(o.primeiroDia) out.push(calItem(o,{ps:true}));
-      else if(fds && E && iso===E.addDias(o.inicio,fds.ini)) out.push(calItem(o,{nome:fds.nome, fds:true}));
+      if(!o.primeiroDia && psComeca) return;
+      out.push(calItem(o,{ps:true}));
+      if(fds && E && iso===E.addDias(o.inicio,fds.ini)) out.push(calItem(o,{nome:fds.nome, fds:true}));
       return;
     }
     out.push(calItem(o,{}));
