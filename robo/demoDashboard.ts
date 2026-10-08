@@ -8519,6 +8519,10 @@ let calModo="campanhas"; // "campanhas" ou "operacao"
 var CAL_REGRAS = (window.ENC && window.ENC.REGRAS_PADRAO) ? window.ENC.REGRAS_PADRAO.slice() : [];
 var CAL_MODELOS = (window.ENC && window.ENC.MODELOS_PADRAO) ? window.ENC.MODELOS_PADRAO.slice() : [];
 var CAL_EDICOES = [];      // resumo das edições reais do Encartes (etiquetas com contagem e a Operação)
+// ==CALCACHE== A última lista de campanhas que veio da nuvem fica guardada neste navegador: ao recarregar,
+// o Calendário já nasce com ela (sem esperar o login), e a nuvem confirma logo depois. Sem cópia
+// guardada (ou com erro de leitura), fica a lista padrão do código, como antes.
+try{ var _calCache=JSON.parse(localStorage.getItem("cal_regras_nuvem")||"null"); if(Array.isArray(_calCache) && _calCache.length) CAL_REGRAS=_calCache; }catch(e){}
 var _calOcCache = {}, _calCoinCache = {}, _calOpCache = null, _calOpChave = "";
 var _calNuvemEm = 0, _calNuvemLendo = false;
 function calInvalidar(){ _calOcCache = {}; _calCoinCache = {}; _calOpCache = null; }
@@ -8898,7 +8902,7 @@ function calCarregarNuvem(forcar){
     cli.from("encarte_modelos").select("id,campanha_id,tipo,nome,prazos,dias_antes_no_ar,estrutura,versao,ativo").eq("ativo",true).limit(100)
   ]).then(function(rs){
     _calNuvemLendo=false; _calNuvemEm=Date.now();
-    if(!rs[0].error && rs[0].data && rs[0].data.length){ CAL_REGRAS=rs[0].data; }
+    if(!rs[0].error && rs[0].data && rs[0].data.length){ CAL_REGRAS=rs[0].data; try{ localStorage.setItem("cal_regras_nuvem", JSON.stringify(CAL_REGRAS)); }catch(e){} }
     if(!rs[1].error && rs[1].data && rs[1].data.length){ CAL_MODELOS=rs[1].data; }
     calInvalidar(); montarLegendas(); renderCal(); ccRenderLista();
     var E=calEnc();
