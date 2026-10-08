@@ -8879,9 +8879,17 @@ setView(calView);
 
 // Lê as regras (calendario_regras), os modelos e o resumo das edições quando o Calendário abre.
 // Enxuto: colunas nomeadas, teto, guarda de 5 minutos. Sem login ou sem tabela: fica com a cópia padrão.
+var _calNuvemTent = 0;
 function calCarregarNuvem(forcar){
   var cli=window.__SB;
-  if(!cli || !window.__PERFIL) return;
+  // ==CALESPERA== Recarregar a página com o Calendário aberto chama isto ANTES do login terminar.
+  // Antes desistia calado e o Calendário ficava com a lista de reserva do código (ex.: a Sexta da
+  // Carne pausada, embora ativa na nuvem). Agora tenta de novo até o login chegar (~30 s).
+  if(!cli || !window.__PERFIL){
+    if(_calNuvemTent++ < 40) setTimeout(function(){ calCarregarNuvem(forcar); }, 750);
+    return;
+  }
+  _calNuvemTent = 0;
   if(_calNuvemLendo) return;
   if(!forcar && Date.now()-_calNuvemEm < 5*60e3) return;
   _calNuvemLendo=true;
