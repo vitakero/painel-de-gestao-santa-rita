@@ -1218,6 +1218,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .cal-cell.atenuado { opacity:.32; }
   .mini-cell.destacado { outline:2px solid #0c5a26; outline-offset:-2px; box-shadow:0 0 0 2px rgba(13,59,102,.22); }
   .mini-cell.atenuado { opacity:.3; }
+  .cal-dica { position:fixed; z-index:9999; display:none; background:#fff; border:1px solid #dfe5ec; border-radius:10px; box-shadow:0 8px 24px rgba(16,24,40,.16); padding:9px 11px; min-width:170px; max-width:260px; font-size:12.5px; color:#33404f; pointer-events:none; }
+  .cal-dica .cal-dica-dia { font-weight:700; color:#0c5a26; margin-bottom:5px; }
+  .cal-dica .cal-dica-item { display:flex; align-items:center; gap:7px; padding:2px 0; line-height:1.3; }
+  .cal-dica .cal-dica-item .qd { width:11px; height:11px; border-radius:3px; flex:none; }
+  .cal-dica .cal-dica-fech { color:#c0392b; font-weight:700; padding:2px 0; }
+  .cal-dica .cal-dica-vazio { color:#8a97a8; font-style:italic; }
   /* ---- Escala de trabalho ---- */
   .esc-top { display:flex; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
   .esc-print-cab { display:none; }
@@ -8799,7 +8805,8 @@ function renderAno(){
       const cls="mini-cell"+(c.fora?" fora":"")+(fds?" fds":"")+(ehHoje?" hoje":"")+(motivo?" fechado":"")+(pinta?" tem-camp":"")+(match?" destacado":"")+(dim?" atenuado":"");
       const ttl=motivo ? 'Fechado · '+motivo : (camps.length ? camps.map(x=>x.camp?(x.nome+": "+x.camp+(x.alvo?(" ("+x.alvo.slice(8,10)+"/"+x.alvo.slice(5,7)+")"):"")):x.nome).join(", ") : "");
       const sty=pinta ? ' style="background:'+corCampanha(pintaveis[0].nome)+'"' : '';
-      return '<div class="'+cls+'"'+sty+(ttl?' title="'+pxEsc(ttl)+'"':'')+'>'+c.dia+'</div>';
+      // ==CALDICA== a data no quadradinho: passar o mouse mostra o quadrinho com as promoções (o aria-label fica para leitor de tela)
+      return '<div class="'+cls+'"'+sty+(!c.fora?' data-d="'+fmtKey(calAno,m,c.dia)+'"':'')+(ttl?' aria-label="'+pxEsc(c.dia+': '+ttl)+'"':'')+'>'+c.dia+'</div>';
     }).join('');
     html+='<div class="mini" data-mes="'+m+'"><h3>'+MESES[m]+'</h3><div class="mini-grid">'+cabec+dias+'</div></div>';
   }
@@ -8810,10 +8817,41 @@ function renderAno(){
   cont.querySelectorAll(".mini").forEach(el=>el.addEventListener("click",()=>{ calMes=+el.dataset.mes; setView("mes"); }));
 }
 
+// ==CALDICA== Passar o mouse num dia do Ano mostra NA HORA as promoções daquele dia, com a cor de cada uma
+// (pedido do dono, 08/10/2026: "para não precisar clicar no mês"). Some ao sair do Ano, clicar ou rolar.
+var _calDica=null;
+function calDicaEl(){ if(!_calDica){ _calDica=document.createElement("div"); _calDica.className="cal-dica"; _calDica.setAttribute("role","tooltip"); document.body.appendChild(_calDica); } return _calDica; }
+function calDicaEsconder(){ if(_calDica) _calDica.style.display="none"; }
+function calDicaMostrar(cel){
+  var iso=cel.getAttribute("data-d"); if(!iso) return calDicaEsconder();
+  var a=+iso.slice(0,4), m=+iso.slice(5,7)-1, d=+iso.slice(8,10), dt=new Date(a,m,d);
+  var DSL=["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
+  var motivo=feriadosFechado(a).get(iso), camps=itensDoDia(a,m,d,dt.getDay());
+  var h='<div class="cal-dica-dia">'+DSL[dt.getDay()]+', '+iso.slice(8,10)+'/'+iso.slice(5,7)+'</div>';
+  if(motivo) h+='<div class="cal-dica-fech">Loja fechada · '+pxEsc(motivo)+'</div>';
+  if(camps.length) h+=camps.map(function(x){
+    var t=x.camp ? (x.nome+': '+x.camp+(x.alvo?(' → '+x.alvo.slice(8,10)+'/'+x.alvo.slice(5,7)):'')) : x.nome;
+    return '<div class="cal-dica-item"><span class="qd" style="background:'+corCampanha(x.nome)+'"></span>'+pxEsc(t)+'</div>';
+  }).join('');
+  else if(!motivo) h+='<div class="cal-dica-vazio">Nenhuma promoção</div>';
+  var el=calDicaEl(); el.innerHTML=h; el.style.display="block";
+  var r=cel.getBoundingClientRect(), w=el.offsetWidth, hh=el.offsetHeight;
+  var x=Math.min(Math.max(8, r.left+r.width/2-w/2), window.innerWidth-w-8), y=r.bottom+6;
+  if(y+hh>window.innerHeight-8) y=Math.max(8, r.top-hh-6);
+  el.style.left=x+"px"; el.style.top=y+"px";
+}
+(function(){
+  var cont=document.getElementById("calAnoView"); if(!cont) return;
+  cont.addEventListener("mouseover",function(e){ var c=e.target.closest(".mini-cell[data-d]"); if(c) calDicaMostrar(c); else calDicaEsconder(); });
+  cont.addEventListener("mouseleave",calDicaEsconder);
+  cont.addEventListener("click",calDicaEsconder);
+  window.addEventListener("scroll",calDicaEsconder,true);
+})();
+
 function renderCal(){ if(calView==="mes") renderMes(); else renderAno(); }
 
 function setView(v){
-  calView=v;
+  calView=v; calDicaEsconder();
   document.getElementById("viewMes").classList.toggle("ativo", v==="mes");
   document.getElementById("viewAno").classList.toggle("ativo", v==="ano");
   document.getElementById("calMesView").style.display = v==="mes" ? "" : "none";
