@@ -243,17 +243,18 @@ console.log("\n-- EDIÇÕES A CRIAR E FUTURAS (hoje = 26/09/2026) --");
   const H = "2026-09-26";
   const cria = E.edicoesParaCriar(E.REGRAS_PADRAO, E.MODELOS_PADRAO, H, []);
   const chaves = cria.map((e) => e.campanha_id + "@" + e.inicio).sort().join(",");
-  eq("9 edições já deviam existir (5 PS, 2 Terçou, 1 SB, 1 HE)", chaves,
+  eq("12 edições já deviam existir (5 PS, 2 Terçou, 1 SB, 1 HE, 3 Quarta Saudável)", chaves,
     ["hora-da-economia@2026-10-29", "promocao-semanal@2026-09-21", "promocao-semanal@2026-09-28", "promocao-semanal@2026-10-05",
-      "promocao-semanal@2026-10-12", "promocao-semanal@2026-10-19", "sabado-bombastico@2026-10-10", "tercou@2026-09-29", "tercou@2026-10-06"].join(","));
+      "promocao-semanal@2026-10-12", "promocao-semanal@2026-10-19",
+      "quarta-saudavel@2026-09-30", "quarta-saudavel@2026-10-07", "quarta-saudavel@2026-10-14", "sabado-bombastico@2026-10-10", "tercou@2026-09-29", "tercou@2026-10-06"].join(","));
   eq("toda edição a criar tem começar ≤ hoje e fim ≥ hoje", cria.every((e) => e.prazos.comecar <= H && e.fim >= H), true);
   const t29 = cria.find((e) => e.campanha_id === "tercou" && e.inicio === "2026-09-29");
   eq("o que vai para encarte_criar_edicao", Object.keys(t29).slice(0, 9).join(","), "campanha_id,modelo_id,modelo_versao,titulo,inicio_regra,inicio,fim,prazos,nome");
   eq("  prazos com os grupos de prazo próprio", Object.keys(t29.prazos.grupos).join(","), "hortifruti");
   eq("  título", t29.titulo, "Terçou das Frutas e Verduras · 29/09/2026");
   const existentes = cria.filter((e) => e.campanha_id === "promocao-semanal").map((e) => ({ campanha_id: e.campanha_id, inicio_regra: e.inicio_regra }));
-  eq("as que já existem não voltam (idempotente)", E.edicoesParaCriar(E.REGRAS_PADRAO, E.MODELOS_PADRAO, H, existentes).length, 4);
-  eq("com diasPassados 7 (seção 11) entram as que acabaram há até 7 dias", E.edicoesParaCriar(E.REGRAS_PADRAO, E.MODELOS_PADRAO, H, [], { diasPassados: 7 }).length, 12);
+  eq("as que já existem não voltam (idempotente)", E.edicoesParaCriar(E.REGRAS_PADRAO, E.MODELOS_PADRAO, H, existentes).length, 7);
+  eq("com diasPassados 7 (seção 11) entram as que acabaram há até 7 dias", E.edicoesParaCriar(E.REGRAS_PADRAO, E.MODELOS_PADRAO, H, [], { diasPassados: 7 }).length, 16);
   const semModelo = E.MODELOS_PADRAO.map((m) => m.id === "sabado-bombastico" ? Object.assign({}, m, { ativo: false }) : m);
   eq("modelo inativo não cria edição", E.edicoesParaCriar(E.REGRAS_PADRAO, semModelo, H, []).some((e) => e.campanha_id === "sabado-bombastico"), false);
   const pausada = E.REGRAS_PADRAO.map((r) => r.id === "tercou" ? Object.assign({}, r, { situacao: "pausada" }) : r);
@@ -588,7 +589,7 @@ console.log("\n-- FRESCOR DOS DADOS DO VR (D9) --");
 console.log("\n-- SEEDS (seções 8 e 9) --");
 {
   const R = E.REGRAS_PADRAO;
-  eq("22 regras: 5 campanhas + 17 datas", [R.length, R.filter((r) => r.tipo === "campanha").length, R.filter((r) => r.tipo === "data").length].join("|"), "22|5|17");
+  eq("23 regras: 6 campanhas + 17 datas", [R.length, R.filter((r) => r.tipo === "campanha").length, R.filter((r) => r.tipo === "data").length].join("|"), "23|6|17");
   eq("ids únicos", new Set(R.map((r) => r.id)).size, R.length);
   eq("só a Sexta da Carne nasce pausada", R.filter((r) => r.situacao === "pausada").map((r) => r.id).join(","), "sexta-da-carne");
   eq("cores das campanhas", ["promocao-semanal", "tercou", "sabado-bombastico", "hora-da-economia", "sexta-da-carne"].map((i) => regra(i).cor).join(","),
@@ -598,9 +599,9 @@ console.log("\n-- SEEDS (seções 8 e 9) --");
   eq("toda data tem categoria; campanha não", R.every((r) => (r.tipo === "data") === (r.categoria === "media" || r.categoria === "grande")), true);
   const M = E.MODELOS_PADRAO;
   const ed = M.filter((m) => m.tipo === "edicao"), te = M.filter((m) => m.tipo === "tema");
-  eq("4 modelos de edição + 15 temas", [ed.length, te.length].join("|"), "4|15");
+  eq("5 modelos de edição + 15 temas", [ed.length, te.length].join("|"), "5|15");
   eq("prazos aprovados", ed.map((m) => m.id + ":" + [m.prazos.comecar, m.prazos.definir, m.prazos.aprovar].join("/")).join(" "),
-    "promocao-semanal:28/17/14 tercou:14/8/7 sabado-bombastico:42/28/21 hora-da-economia:35/21/14");
+    "promocao-semanal:28/17/14 tercou:14/8/7 sabado-bombastico:42/28/21 hora-da-economia:35/21/14 quarta-saudavel:21/10/7");
   const nv = (m) => m.estrutura.grupos.map((g) => g.vagas.length).join(",");
   eq("SB: Capa 5, Mercearia 8, Limpeza 5, Perfumaria 8, Bebidas 4, Frios 4, Açougue 3", nv(modelo("sabado-bombastico")), "5,8,5,8,4,4,3");
   eq("HE: Capa 4, Mercearia 6, Limpeza 4, Higiene 4, Bebidas 3, Frios 3", nv(modelo("hora-da-economia")), "4,6,4,4,3,3");
@@ -670,7 +671,7 @@ else {
   const tr = tuplasDoInsert(SQL, "insert into public.calendario_regras (id, nome, tipo, categoria, regra, setor, cor, situacao, ordem, observacao) values");
   const campos = ["id", "nome", "tipo", "categoria", "regra", "setor", "cor", "situacao", "ordem", "observacao"];
   const doSql = (tr || []).map((t) => { const o = {}; campos.forEach((c, i) => { o[c] = c === "regra" ? JSON.parse(t[i]) : t[i]; }); return o; });
-  eq("o SQL tem as 22 regras (e o leitor achou todas)", doSql.length, 22);
+  eq("o SQL tem as 23 regras (e o leitor achou todas)", doSql.length, 23);
   eq("mesmas regras, na mesma ordem", E.REGRAS_PADRAO.map((r) => r.id).join(","), doSql.map((r) => r.id).join(","));
   const difR = [];
   doSql.forEach((q) => {
@@ -683,7 +684,7 @@ else {
   const tm = tuplasDoInsert(SQL, "insert into public.encarte_modelos (id, campanha_id, tipo, nome, prazos, estrutura, dicas) values");
   const cm = ["id", "campanha_id", "tipo", "nome", "prazos", "estrutura", "dicas"];
   const mSql = (tm || []).map((t) => { const o = {}; cm.forEach((c, i) => { o[c] = c === "prazos" || c === "estrutura" ? JSON.parse(t[i]) : t[i]; }); return o; });
-  eq("o SQL tem os 19 modelos (e o leitor achou todos)", mSql.length, 19);
+  eq("o SQL tem os 20 modelos (e o leitor achou todos)", mSql.length, 20);
   eq("mesmos modelos, na mesma ordem", E.MODELOS_PADRAO.map((m) => m.id).join(","), mSql.map((m) => m.id).join(","));
   const difM = [];
   mSql.forEach((q) => {

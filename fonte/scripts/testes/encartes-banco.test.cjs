@@ -278,10 +278,10 @@ try {
   vale("0.8 2ª rodada: conferência diz OK em tudo", inst2.linhas.length === 14 && inst2.linhas.every((l) => /\|OK( - .*)?$/.test(l)),
     inst2.linhas.filter((l) => !/\|OK( - .*)?$/.test(l)).join(" ; ") || "todos OK");
   const depois2 = JSON.parse(contagens()), antesJ = JSON.parse(antes2);
-  eq("0.9 2ª rodada não duplicou campanhas (22) nem modelos (19)", [depois2.regras, depois2.modelos], [22, 19]);
+  eq("0.9 2ª rodada não duplicou campanhas (23) nem modelos (20)", [depois2.regras, depois2.modelos], [23, 20]);
   eq("0.10 regras de leitura (13) e gatilhos do livro (8) iguais depois da 2ª rodada", [depois2.politicas, depois2.gatilhos], [13, 8]);
   eq("0.11 data de implantação NÃO foi empurrada pela 2ª rodada", depois2.implantado_em, antesJ.implantado_em);
-  eq("0.12 histórico dos modelos: 19 versões iniciais + 1 do Natal (sem repetir as iniciais)", depois2.hist_modelos, 20);
+  eq("0.12 histórico dos modelos: 20 versões iniciais + 1 do Natal (sem repetir as iniciais)", depois2.hist_modelos, 21);
   eq("0.13 2ª rodada não desfez a pausa do Dia das Mães", suV("select situacao from public.calendario_regras where id = 'dia-das-maes'"), "pausada");
   eq("0.14 2ª rodada não desfez o modelo de Natal (versão 2)", suV("select versao from public.encarte_modelos where id = 'tema-natal'"), "2");
   eq("0.15 Sexta da Carne nasce pausada; Promoção Semanal ativa",
@@ -497,9 +497,9 @@ try {
   recusa("3.7 forasteiro não busca produto", jc(U.forasteiro, `select public.encarte_buscar_produtos('cafe')`), "sem_permissao", "42501");
   // a "Operação" do Calendário mostra os prazos reais: quem só tem a página Calendário lê
   // também modelos, edições e grupos (o lado de NÃO ler vagas, propostas etc. vai na 15.5)
-  eq("3.8 quem tem só a página Calendário lê as 22 campanhas e também as edições, os grupos e os modelos",
+  eq("3.8 quem tem só a página Calendário lê as 23 campanhas e também as edições, os grupos e os modelos",
     [conta(U.calendario, "calendario_regras"), conta(U.calendario, "encarte_edicoes") === suV("select count(*) from public.encarte_edicoes"),
-      Number(conta(U.calendario, "encarte_grupos")) > 0, conta(U.calendario, "encarte_modelos")].join(","), "22,true,true,19");
+      Number(conta(U.calendario, "encarte_grupos")) > 0, conta(U.calendario, "encarte_modelos")].join(","), "23,true,true,20");
   recusa("3.9 ... e não cria edição", criarReal(U.calendario, eA), "sem_permissao", "42501");
   eq("3.10 conta com aprovado=false (com as páginas) não vê nada",
     ["encarte_edicoes", "encarte_vagas", "calendario_regras"].map((t) => conta(U.bloqueado, t)).join(","), "0,0,0");
@@ -531,7 +531,7 @@ try {
     com(U.master, `update public.encarte_edicoes set versao = 99 where id = '${A}'`));
   eq("4.9b 'sou comprador?' responde certo para cada papel (a tela usa para mostrar os botões)",
     [U.comprador, U.comprador2, U.master, U.leitura, U.bloqueado].map((u) => val(u, "select public.encarte_sou_comprador()::text")).join(","), "true,true,true,false,false");
-  eq("4.9a o MASTER também lê (passa na página por ser master)", [Number(conta(U.master, "encarte_edicoes")) > 0, Number(conta(U.master, "calendario_regras"))], [true, 22]);
+  eq("4.9a o MASTER também lê (passa na página por ser master)", [Number(conta(U.master, "encarte_edicoes")) > 0, Number(conta(U.master, "calendario_regras"))], [true, 23]);
   const busca = jc(U.leitura, `select public.encarte_buscar_produtos('cafe pilao')`);
   vale("4.9 leitura busca produto", busca.ok === true && busca.produtos.length === 1 && busca.produtos[0].produto_id === 1001, JSON.stringify(busca).slice(0, 150));
 
