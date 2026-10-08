@@ -8784,9 +8784,11 @@ function renderAno(){
       const fds=(c.dow===0||c.dow===6);
       const motivo=!c.fora ? fech.get(fmtKey(calAno,m,c.dia)) : null;
       const camps=!c.fora ? itensDoDia(calAno,m,c.dia,c.dow) : [];
-      // A Promoção Semanal e o Final de semana não pintam o quadradinho: ocupariam o ano inteiro.
-      // Campanha de toda semana (Terçou) pinta só o 1º dia, como antes: senão o ano fica todo colorido.
-      const pintaveis=camps.filter(x=>!x.ps && !x.fds && !(x.semanal && !x.primeiroDia));
+      // A cor do quadradinho é a da outra campanha do dia (o Final de semana não pinta; campanha de toda semana
+      // pinta só o 1º dia). ==CALPSANO== Dia sem outra campanha fica com a cor da Promoção Semanal (escolha do
+      // dono, 08/10/2026, opção B): ela vale de segunda a domingo, então o ano mostra que toda semana tem.
+      let pintaveis=camps.filter(x=>!x.ps && !x.fds && !(x.semanal && !x.primeiroDia));
+      if(!pintaveis.length){ const psDia=camps.filter(x=>x.ps)[0]; if(psDia) pintaveis=[psDia]; }
       const pinta=pintaveis.length && !ehHoje && !motivo;
       const match=ehMatch(ehHoje,motivo,camps);
       const dim=destaque && !match && !c.fora;
