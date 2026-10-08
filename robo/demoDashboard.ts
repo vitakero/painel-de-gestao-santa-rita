@@ -1185,6 +1185,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .cal-toggle .seg { border:0; background:#fff; padding:8px 16px; font-size:13px; cursor:pointer; color:#33404f; font-weight:600; }
   .cal-toggle .seg.ativo { background:#157a35; color:#fff; }
   .cal-ano { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+  /* ==CALANOCEL== no celular 1 mês por linha e em tela média 2 (3 por linha deixava cada dia com ~6px) — 08/10/2026 */
+  @media (max-width:640px){ .cal-ano { grid-template-columns:1fr; gap:12px; } }
+  @media (min-width:641px) and (max-width:1000px){ .cal-ano { grid-template-columns:repeat(2,1fr); } }
   .mini { border:1px solid #e6ebf1; border-radius:10px; padding:12px; cursor:pointer; }
   .mini:hover { box-shadow:0 2px 8px rgba(0,0,0,.08); }
   .mini h3 { margin:0 0 8px; font-size:13px; color:#0c5a26; text-align:center; }
