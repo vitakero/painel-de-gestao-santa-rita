@@ -175,7 +175,8 @@
   var REGRAS_PADRAO = [
     C("promocao-semanal", "Promoção Semanal", { tipo: "semanal", dia_semana: 1, duracao_dias: 8 }, "Geral", "#0c8599", 1, "ativa",
       "Segunda a segunda. Uma edição por semana (levas da semana entram na mesma edição)."),
-    C("tercou", "Terçou das Frutas e Verduras", { tipo: "semanal", dia_semana: 2, duracao_dias: 2 }, "Hortifruti", "#1b9e4b", 2),
+    C("tercou", "Terçou das Frutas e Verduras", { tipo: "semanal", dia_semana: 2, duracao_dias: 1 }, "Hortifruti", "#1b9e4b", 2, "ativa",
+      "Só a terça: entra terça 00h e sai quarta 00h (palavras do dono, 02/10/2026)."),
     C("sabado-bombastico", "Sábado Bombástico", { tipo: "mensal_nth", n: 2, dia_semana: 6, duracao_dias: 2 }, "Geral", "#f1c40f", 3, "ativa",
       "2º sábado do mês, prorrogado no domingo."),
     C("hora-da-economia", "Hora da Economia", { tipo: "mensal_ultimo", dia_semana: 4, duracao_dias: 1 }, "Geral", "#0a6cff", 4, "ativa",

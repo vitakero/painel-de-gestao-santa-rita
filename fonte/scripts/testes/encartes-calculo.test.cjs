@@ -89,7 +89,7 @@ console.log("\n-- OCORRÊNCIAS DAS CAMPANHAS --");
   eq("PS 2030: 53 edições tocam o ano (a de 30/12/2029 entra em 01/01)", ps30.length, 53);
   const t = E.ocorrencias(regra("tercou"), "2026-10-01", "2026-10-31");
   eq("Terçou: toda terça de outubro/2026", inicios(t), "2026-10-06,2026-10-13,2026-10-20,2026-10-27");
-  eq("Terçou: terça → quarta", t[1].fim, "2026-10-14");
+  eq("Terçou: só a terça (entra terça 00h, sai quarta 00h)", t[1].fim, "2026-10-13");
   const sb = E.ocorrencias(regra("sabado-bombastico"), "2026-01-01", "2030-12-31");
   eq("SB: 60 edições em 5 anos", sb.length, 60);
   eq("SB 2026 (2º sábado)", inicios(sb.filter((o) => o.inicio < "2027")),
@@ -489,7 +489,8 @@ console.log("\n-- COINCIDÊNCIAS (D7·7) --");
   eq("2029: HE 29/11 × Black Friday 23/11 não coincidem mais (a BF errada caía em 30/11)",
     E.coincidencias(E.ocorrenciasCampanhas(E.REGRAS_PADRAO, "2029-11-01", "2029-11-30")).some((x) => par(x) === "black-friday×hora-da-economia"), false);
   const natal26 = E.coincidencias(E.ocorrenciasCampanhas(E.REGRAS_PADRAO, "2026-12-20", "2026-12-24"));
-  eq("Terçou 22–23/12 × Véspera de Natal 24/12 (data GRANDE): continua valendo", natal26.some((x) => par(x) === "natal×tercou" && x.dias === 1), true);
+  eq("Quarta Saudável 23/12 × Véspera de Natal 24/12 (data GRANDE): continua valendo", natal26.some((x) => par(x) === "natal×quarta-saudavel" && x.dias === 1), true);
+  eq("Terçou 22/12 (só a terça) fica a 2 dias do Natal: não é coincidência", natal26.some((x) => par(x) === "natal×tercou"), false);
   // campanha criada no Calendário SEM modelo de edição (id 'usr-…')
   const feirao = { id: "usr-feirao", nome: "Feirão", tipo: "campanha", situacao: "ativa", regra: { tipo: "anual_fixa", mes: 11, dia: 27, duracao_dias: 1 } };
   const regrasF = E.REGRAS_PADRAO.concat([feirao]);
