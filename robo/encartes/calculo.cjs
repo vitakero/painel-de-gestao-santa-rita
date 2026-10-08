@@ -300,6 +300,20 @@
       G("hortifruti", "Hortifrúti", [v("fruta-da-estacao", "Fruta da estação", "produto"), v("folhagens", "Folhas", "produto"),
         v("legumes", "Legumes", "produto")], { flv: true, prazos: { comecar: 4, definir: 1, aprovar: 1 } })
     ]),
+    M("sexta-da-carne", "Sexta da Carne", { comecar: 14, definir: 7, aprovar: 5 }, [
+      G("capa", "Capa", [v("costela-bovina", "Costela bovina", "corte"), v("carne-moida", "Carne moída", "corte"),
+        v("contrafile", "Contrafilé", "corte"), v("linguica", "Linguiça", "marca")]),
+      G("bovino-traseiro", "Bovino · traseiro", [v("alcatra", "Alcatra", "corte"), v("contrafile", "Contrafilé", "corte"),
+        v("patinho", "Patinho", "corte"), v("coxao-mole", "Coxão mole", "corte"), v("coxao-duro", "Coxão duro", "corte"),
+        v("lagarto", "Lagarto", "corte")]),
+      G("bovino-dianteiro", "Bovino · dianteiro", [v("acem", "Acém", "corte"), v("paleta", "Paleta", "corte"),
+        v("musculo", "Músculo", "corte"), v("peito", "Peito", "corte"), v("cupim", "Cupim", "corte"),
+        v("fraldinha", "Fraldinha", "corte")]),
+      G("churrasco", "Churrasco", [v("linguica-churrasco", "Linguiça para churrasco", "marca"), v("carvao", "Carvão", "marca"),
+        v("pao-de-alho", "Pão de alho", "marca"), v("sal-grosso", "Sal grosso", "marca")]),
+      G("suinos-aves", "Suínos e aves", [v("frango", "Frango", "corte"), v("coxa-sobrecoxa", "Coxa e sobrecoxa", "corte"),
+        v("carne-suina", "Carne suína", "corte"), v("bisteca-suina", "Bisteca suína", "corte")])
+    ]),
     T("tema-carnaval", "carnaval", "Carnaval", "Cerveja, destilados, energéticos, água e gelo."),
     T("tema-pascoa", "pascoa", "Páscoa", "Chocolates, vinhos, peixes, sardinha/atum, coco. Ovo de Páscoa não é obrigatório."),
     T("tema-black-friday", "black-friday", "Black Friday", "Grupo na Promoção Semanal da semana, com período próprio."),

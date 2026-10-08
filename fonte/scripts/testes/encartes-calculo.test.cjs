@@ -261,7 +261,8 @@ console.log("\n-- EDIÇÕES A CRIAR E FUTURAS (hoje = 26/09/2026) --");
   eq("campanha pausada não cria edição", E.edicoesParaCriar(pausada, E.MODELOS_PADRAO, H, []).some((e) => e.campanha_id === "tercou"), false);
   eq("data (tipo 'data') nunca cria edição sozinha", E.edicoesParaCriar(E.REGRAS_PADRAO, E.MODELOS_PADRAO, "2026-11-20", []).some((e) => e.campanha_id === "black-friday"), false);
   const sc = E.REGRAS_PADRAO.map((r) => r.id === "sexta-da-carne" ? Object.assign({}, r, { situacao: "ativa" }) : r);
-  eq("Sexta da Carne reativada sem modelo continua sem edição", E.edicoesParaCriar(sc, E.MODELOS_PADRAO, H, []).some((e) => e.campanha_id === "sexta-da-carne"), false);
+  eq("Sexta da Carne reativada (com modelo desde 08/10/2026) gera edição", E.edicoesParaCriar(sc, E.MODELOS_PADRAO, H, []).some((e) => e.campanha_id === "sexta-da-carne"), true);
+  eq("... e pausada, mesmo com modelo, não gera", E.edicoesParaCriar(E.REGRAS_PADRAO, E.MODELOS_PADRAO, H, []).some((e) => e.campanha_id === "sexta-da-carne"), false);
 
   const fut = E.edicoesFuturas(E.REGRAS_PADRAO, E.MODELOS_PADRAO, H, 70);
   eq("futuras: todas com começar depois de hoje e até 70 dias", fut.every((e) => e.prazos.comecar > H && e.prazos.comecar <= "2026-12-05"), true);
@@ -600,9 +601,9 @@ console.log("\n-- SEEDS (seções 8 e 9) --");
   eq("toda data tem categoria; campanha não", R.every((r) => (r.tipo === "data") === (r.categoria === "media" || r.categoria === "grande")), true);
   const M = E.MODELOS_PADRAO;
   const ed = M.filter((m) => m.tipo === "edicao"), te = M.filter((m) => m.tipo === "tema");
-  eq("5 modelos de edição + 15 temas", [ed.length, te.length].join("|"), "5|15");
+  eq("6 modelos de edição + 15 temas", [ed.length, te.length].join("|"), "6|15");
   eq("prazos aprovados", ed.map((m) => m.id + ":" + [m.prazos.comecar, m.prazos.definir, m.prazos.aprovar].join("/")).join(" "),
-    "promocao-semanal:28/17/14 tercou:14/8/7 sabado-bombastico:42/28/21 hora-da-economia:35/21/14 quarta-saudavel:21/10/7");
+    "promocao-semanal:28/17/14 tercou:14/8/7 sabado-bombastico:42/28/21 hora-da-economia:35/21/14 quarta-saudavel:21/10/7 sexta-da-carne:14/7/5");
   const nv = (m) => m.estrutura.grupos.map((g) => g.vagas.length).join(",");
   eq("SB: Capa 5, Mercearia 8, Limpeza 5, Perfumaria 8, Bebidas 4, Frios 4, Açougue 3", nv(modelo("sabado-bombastico")), "5,8,5,8,4,4,3");
   eq("HE: Capa 4, Mercearia 6, Limpeza 4, Higiene 4, Bebidas 3, Frios 3", nv(modelo("hora-da-economia")), "4,6,4,4,3,3");
@@ -685,7 +686,7 @@ else {
   const tm = tuplasDoInsert(SQL, "insert into public.encarte_modelos (id, campanha_id, tipo, nome, prazos, estrutura, dicas) values");
   const cm = ["id", "campanha_id", "tipo", "nome", "prazos", "estrutura", "dicas"];
   const mSql = (tm || []).map((t) => { const o = {}; cm.forEach((c, i) => { o[c] = c === "prazos" || c === "estrutura" ? JSON.parse(t[i]) : t[i]; }); return o; });
-  eq("o SQL tem os 20 modelos (e o leitor achou todos)", mSql.length, 20);
+  eq("o SQL tem os 21 modelos (e o leitor achou todos)", mSql.length, 21);
   eq("mesmos modelos, na mesma ordem", E.MODELOS_PADRAO.map((m) => m.id).join(","), mSql.map((m) => m.id).join(","));
   const difM = [];
   mSql.forEach((q) => {
