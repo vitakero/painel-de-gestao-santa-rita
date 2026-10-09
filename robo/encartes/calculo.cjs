@@ -187,25 +187,25 @@
       "Toda quarta-feira, só o dia. Produtos de saudabilidade (integrais, zero, sem lactose/glúten, bebidas e lanches leves)."),
     Dt("volta-as-aulas", "Volta às Aulas", { tipo: "datas", lista: [] }, "media", "Mercearia", "#A4D400", 10,
       "Período configurável por ano (o pico é em fevereiro). Lista vazia até o dono configurar."),
-    Dt("carnaval", "Carnaval", { tipo: "pascoa", deslocamento_dias: -48, duracao_dias: 2 }, "grande", "Geral", "#86198F", 11),
-    Dt("dia-da-mulher", "Dia da Mulher", fixa(3, 8), "media", "Perfumaria", "#9D174D", 12),
-    Dt("dia-do-consumidor", "Dia do Consumidor", fixa(3, 15), "media", "Geral", "#0E7490", 13),
-    Dt("pascoa", "Páscoa", { tipo: "pascoa", deslocamento_dias: 0, duracao_dias: 1 }, "grande", "Mercearia", "#57340F", 14),
-    Dt("tiradentes", "Tiradentes", fixa(4, 21), "media", "Geral", "#57534E", 15),
-    Dt("dia-das-maes", "Dia das Mães", { tipo: "anual_nth", mes: 5, n: 2, dia_semana: 0, duracao_dias: 1 }, "media", "Perfumaria", "#DB2777", 16),
-    Dt("dia-dos-namorados", "Dia dos Namorados", fixa(6, 12), "media", "Perfumaria", "#F43F5E", 17),
-    Dt("sao-joao", "São João", fixa(6, 24), "media", "Mercearia", "#A16207", 18),
-    Dt("sao-pedro", "São Pedro", fixa(6, 29), "media", "Mercearia", "#115E59", 19),
-    Dt("dia-dos-pais", "Dia dos Pais", { tipo: "anual_nth", mes: 8, n: 2, dia_semana: 0, duracao_dias: 1 }, "media", "Geral", "#172554", 20),
-    Dt("aniversario-santa-rita", "Aniversário Santa Rita", fixa(9, 16), "grande", "Geral", "#047857", 21),
-    Dt("dia-das-criancas", "Dia das Crianças", fixa(10, 12), "media", "Bomboniere", "#0284C7", 22),
-    Dt("halloween", "Halloween", fixa(10, 31), "media", "Bomboniere", "#4D7C0F", 23),
+    Dt("carnaval", "Carnaval", { tipo: "pascoa", deslocamento_dias: -48, duracao_dias: 2 }, "grande", "Geral", "#ABF910", 11),
+    Dt("dia-da-mulher", "Dia da Mulher", fixa(3, 8), "media", "Perfumaria", "#FC9C9C", 12),
+    Dt("dia-do-consumidor", "Dia do Consumidor", fixa(3, 15), "media", "Geral", "#9CA8FC", 13),
+    Dt("pascoa", "Páscoa", { tipo: "pascoa", deslocamento_dias: 0, duracao_dias: 1 }, "grande", "Mercearia", "#774103", 14),
+    Dt("tiradentes", "Tiradentes", fixa(4, 21), "media", "Geral", "#707703", 15),
+    Dt("dia-das-maes", "Dia das Mães", { tipo: "anual_nth", mes: 5, n: 2, dia_semana: 0, duracao_dias: 1 }, "media", "Perfumaria", "#F274FB", 16),
+    Dt("dia-dos-namorados", "Dia dos Namorados", fixa(6, 12), "media", "Perfumaria", "#ED991D", 17),
+    Dt("sao-joao", "São João", fixa(6, 24), "media", "Mercearia", "#C0A07C", 18),
+    Dt("sao-pedro", "São Pedro", fixa(6, 29), "media", "Mercearia", "#024A50", 19),
+    Dt("dia-dos-pais", "Dia dos Pais", { tipo: "anual_nth", mes: 8, n: 2, dia_semana: 0, duracao_dias: 1 }, "media", "Geral", "#197663", 20),
+    Dt("aniversario-santa-rita", "Aniversário Santa Rita", fixa(9, 16), "grande", "Geral", "#42FABD", 21),
+    Dt("dia-das-criancas", "Dia das Crianças", fixa(10, 12), "media", "Bomboniere", "#42D5FA", 22),
+    Dt("halloween", "Halloween", fixa(10, 31), "media", "Bomboniere", "#770360", 23),
     // Black Friday = o dia SEGUINTE à 4ª quinta de novembro (a "última sexta" erra: em 2029
     // daria 30/11, e a real é 23/11).
     Dt("black-friday", "Black Friday", { tipo: "anual_nth", mes: 11, n: 4, dia_semana: 4, deslocamento_dias: 1, duracao_dias: 1 },
-      "grande", "Geral", "#0A0A0A", 24),
-    Dt("natal", "Véspera de Natal", fixa(12, 24), "grande", "Mercearia", "#14532D", 25),
-    Dt("reveillon", "Réveillon", fixa(12, 31), "grande", "Geral", "#64748B", 26)
+      "grande", "Geral", "#111111", 24),
+    Dt("natal", "Véspera de Natal", fixa(12, 24), "grande", "Mercearia", "#0A470A", 25),
+    Dt("reveillon", "Réveillon", fixa(12, 31), "grande", "Geral", "#6B6B6B", 26)
   ];
 
   /* ======================= MODELOS (seed da seção 9 — modelo inicial ajustável) =======================

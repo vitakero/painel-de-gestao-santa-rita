@@ -8720,11 +8720,12 @@ function calCoincidenciasAno(ano){
 // Cor de cada campanha: vem da regra (tabela). As etapas da Operação têm cor própria.
 // ==CALCORES== O Final de semana de ofertas é um grupo da Promoção Semanal (não tem cadastro próprio): a cor fica aqui.
 var CAL_COR_FDS="#0088C2"; // ciano (dono, 09/10/2026: cores primárias nas 7 promoções fixas)
-// ==CALCORES== Letra da etiqueta: branca (escolha do dono), menos em cor clara demais para ler (o amarelo do Sábado Bombástico).
+// ==CALCORES== Letra da etiqueta: branca (escolha do dono), menos em cor clara demais para ler (o amarelo do Sábado Bombástico,
+// e das datas claras: Carnaval, Dia da Mulher, Dia do Consumidor...). Regra: se a letra branca contrasta menos de 2,5, vai preta.
 function calTextoCor(cor){
   var m=/^#?([0-9a-f]{6})$/i.exec(String(cor||"")); if(!m) return "#fff";
   var v=[0,2,4].map(function(i){ var c=parseInt(m[1].slice(i,i+2),16)/255; return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4); });
-  return (0.2126*v[0]+0.7152*v[1]+0.0722*v[2])>0.45 ? "#1a2233" : "#fff";
+  return (1.05/(0.2126*v[0]+0.7152*v[1]+0.0722*v[2]+0.05))<2.5 ? "#1a2233" : "#fff";
 }
 function corCampanha(nome){
   if(OP_STEP_COR[nome]) return OP_STEP_COR[nome];
@@ -8875,7 +8876,10 @@ function calDicaMostrar(cel){
 // etiquetas de cada dia. Sempre com a legenda das cores. Abre numa janela própria (como as outras
 // impressões do Painel) com o botão Imprimir; a folha é montada pelos MESMOS dados da tela.
 function calPintaDoDia(camps){
-  // cor do quadradinho no Ano: outra campanha do dia > Final de semana de ofertas > Promoção Semanal
+  // cor do quadradinho no Ano: data comemorativa > outra campanha do dia > Final de semana de ofertas > Promoção Semanal
+  // ==CALDATAS== a data vem primeiro (dono, 09/10/2026: datas só por cor, cada uma com a sua; sem isso o Dia das
+  // Mães, que cai no domingo, ficava escondido atrás do Final de semana de ofertas).
+  var d=camps.filter(function(x){ return x.tipo==="data"; }); if(d.length) return d[0];
   var p=camps.filter(function(x){ return !x.ps && !x.fds && !(x.semanal && !x.primeiroDia); });
   if(!p.length) p=camps.filter(function(x){ return x.fds; });
   if(!p.length){ var ps=camps.filter(function(x){ return x.ps; })[0]; if(ps) p=[ps]; }
