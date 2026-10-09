@@ -1188,13 +1188,13 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   /* ==CALANOCEL== no celular 1 mês por linha e em tela média 2 (3 por linha deixava cada dia com ~6px) — 08/10/2026 */
   @media (max-width:640px){ .cal-ano { grid-template-columns:1fr; gap:12px; } }
   @media (min-width:641px) and (max-width:1000px){ .cal-ano { grid-template-columns:repeat(2,1fr); } }
-  .mini { border:1px solid #e6ebf1; border-radius:10px; padding:12px; cursor:pointer; }
+  .mini { border:1px solid #e6ebf1; border-radius:10px; padding:12px 14px; cursor:pointer; }
   .mini:hover { box-shadow:0 2px 8px rgba(0,0,0,.08); }
   .mini h3 { margin:0 0 8px; font-size:13px; color:#0c5a26; text-align:center; }
-  /* ==CALANOJUNTO== dias juntinhos (até 34px cada, encolhem em tela estreita) e o mês centralizado no cartão — pedido do dono, 08/10/2026 */
-  .mini-grid { display:grid; grid-template-columns:repeat(7,minmax(0,34px)); gap:3px; justify-content:center; }
-  .mini-grid .mh { font-size:9px; color:#8a97a8; text-align:center; font-weight:700; }
-  .mini-cell { font-size:11px; text-align:center; height:24px; display:flex; align-items:center; justify-content:center; border-radius:5px; color:#33404f; }
+  /* ==CALANOJUNTO== dias juntinhos que ocupam o cartão inteiro, com número maior (opção A do dono, 08/10/2026: sem sobra branca dos lados) */
+  .mini-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; }
+  .mini-grid .mh { font-size:10px; color:#8a97a8; text-align:center; font-weight:700; }
+  .mini-cell { font-size:13.5px; text-align:center; height:32px; display:flex; align-items:center; justify-content:center; border-radius:6px; color:#33404f; }
   .mini-cell.fora { color:#cdd6e0; }
   .mini-cell.fds { color:#c0392b; }
   .mini-cell.hoje { background:#157a35; color:#fff; font-weight:700; }
