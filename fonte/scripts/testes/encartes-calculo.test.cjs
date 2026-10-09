@@ -132,7 +132,7 @@ console.log("\n-- OCORRÊNCIAS DAS CAMPANHAS --");
   eq("pausar a PS tira a PS", E.ocorrenciasCampanhas(pausPS, "2026-11-01", "2026-11-30").filter((o) => o.id === "promocao-semanal").length, 0);
   const nov = E.ocorrenciasCampanhas(E.REGRAS_PADRAO, "2026-11-26", "2026-11-27");
   const hen = nov.find((o) => o.id === "hora-da-economia"), bfn = nov.find((o) => o.id === "black-friday");
-  eq("ocorrência traz nome, tipo, categoria, cor e setor", [hen.nome, hen.tipo, hen.categoria, hen.cor, hen.setor].join("|"), "Hora da Economia|campanha||#9A3412|Geral");
+  eq("ocorrência traz nome, tipo, categoria, cor e setor", [hen.nome, hen.tipo, hen.categoria, hen.cor, hen.setor].join("|"), "Hora da Economia|campanha||#FF6A00|Geral");
   eq("data grande marcada", [bfn.tipo, bfn.categoria].join("|"), "data|grande");
   eq("PS marcada como contínua (cobre o ano inteiro)", nov.find((o) => o.id === "promocao-semanal").continua, true);
   eq("lista em ordem de início", nov.every((o, i) => i === 0 || nov[i - 1].inicio <= o.inicio), true);
@@ -596,7 +596,7 @@ console.log("\n-- SEEDS (seções 8 e 9) --");
   eq("ids únicos", new Set(R.map((r) => r.id)).size, R.length);
   eq("só a Sexta da Carne nasce pausada", R.filter((r) => r.situacao === "pausada").map((r) => r.id).join(","), "sexta-da-carne");
   eq("cores das campanhas", ["promocao-semanal", "tercou", "sabado-bombastico", "hora-da-economia", "sexta-da-carne"].map((i) => regra(i).cor).join(","),
-    "#2563EB,#16A34A,#D97706,#9A3412,#DC2626");
+    "#0047FF,#00A443,#FFD000,#FF6A00,#E60000");
   eq("datas grandes", R.filter((r) => r.categoria === "grande").map((r) => r.id).join(","), "carnaval,pascoa,aniversario-santa-rita,black-friday,natal,reveillon");
   eq("São João é data média", regra("sao-joao").categoria, "media");
   eq("toda data tem categoria; campanha não", R.every((r) => (r.tipo === "data") === (r.categoria === "media" || r.categoria === "grande")), true);

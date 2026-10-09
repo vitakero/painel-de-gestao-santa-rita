@@ -173,17 +173,17 @@
   }
   function fixa(mes, dia) { return { tipo: "anual_fixa", mes: mes, dia: dia, duracao_dias: 1 }; }
   var REGRAS_PADRAO = [
-    C("promocao-semanal", "Promoção Semanal", { tipo: "semanal", dia_semana: 1, duracao_dias: 7 }, "Geral", "#2563EB", 1, "ativa",
+    C("promocao-semanal", "Promoção Semanal", { tipo: "semanal", dia_semana: 1, duracao_dias: 7 }, "Geral", "#0047FF", 1, "ativa",
       "Segunda a domingo (entra segunda 00h, sai na segunda seguinte 00h). Uma edição por semana (levas da semana entram na mesma edição)."),
-    C("tercou", "Terçou das Frutas e Verduras", { tipo: "semanal", dia_semana: 2, duracao_dias: 1 }, "Hortifruti", "#16A34A", 2, "ativa",
+    C("tercou", "Terçou das Frutas e Verduras", { tipo: "semanal", dia_semana: 2, duracao_dias: 1 }, "Hortifruti", "#00A443", 2, "ativa",
       "Só a terça: entra terça 00h e sai quarta 00h (palavras do dono, 02/10/2026)."),
-    C("sabado-bombastico", "Sábado Bombástico", { tipo: "mensal_nth", n: 2, dia_semana: 6, duracao_dias: 2 }, "Geral", "#D97706", 3, "ativa",
+    C("sabado-bombastico", "Sábado Bombástico", { tipo: "mensal_nth", n: 2, dia_semana: 6, duracao_dias: 2 }, "Geral", "#FFD000", 3, "ativa",
       "2º sábado do mês, prorrogado no domingo."),
-    C("hora-da-economia", "Hora da Economia", { tipo: "mensal_ultimo", dia_semana: 4, duracao_dias: 1 }, "Geral", "#9A3412", 4, "ativa",
+    C("hora-da-economia", "Hora da Economia", { tipo: "mensal_ultimo", dia_semana: 4, duracao_dias: 1 }, "Geral", "#FF6A00", 4, "ativa",
       "Última quinta do mês."),
-    C("sexta-da-carne", "Sexta da Carne", { tipo: "semanal", dia_semana: 5, duracao_dias: 1 }, "Açougue", "#DC2626", 5, "pausada",
+    C("sexta-da-carne", "Sexta da Carne", { tipo: "semanal", dia_semana: 5, duracao_dias: 1 }, "Açougue", "#E60000", 5, "pausada",
       "Pausada (decisão 7·3): não aparece nem gera edição, tarefa ou alerta. Cadastro preservado; reativável."),
-    C("quarta-saudavel", "Quarta Saudável", { tipo: "semanal", dia_semana: 3, duracao_dias: 1 }, "Saudabilidade", "#9333EA", 6, "ativa",
+    C("quarta-saudavel", "Quarta Saudável", { tipo: "semanal", dia_semana: 3, duracao_dias: 1 }, "Saudabilidade", "#E0007A", 6, "ativa",
       "Toda quarta-feira, só o dia. Produtos de saudabilidade (integrais, zero, sem lactose/glúten, bebidas e lanches leves)."),
     Dt("volta-as-aulas", "Volta às Aulas", { tipo: "datas", lista: [] }, "media", "Mercearia", "#A4D400", 10,
       "Período configurável por ano (o pico é em fevereiro). Lista vazia até o dono configurar."),

@@ -1219,6 +1219,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .cal-cell.destacado { outline:3px solid #0c5a26; outline-offset:-3px; box-shadow:0 0 0 4px rgba(13,59,102,.18); z-index:1; }
   .cal-cell.atenuado { opacity:.32; }
   .mini-cell.destacado { outline:2px solid #0c5a26; outline-offset:-2px; box-shadow:0 0 0 2px rgba(13,59,102,.22); }
+  /* ==CALCORES== hoje + destacado: o contorno do Hoje continua por fora (sem isto o destaque apagava o contorno) */
+  .mini-cell.hoje.destacado { box-shadow:0 0 0 2px #fff, 0 0 0 4px #111; }
   .mini-cell.atenuado { opacity:.3; }
   .cal-dica { position:fixed; z-index:9999; display:none; background:#fff; border:1px solid #dfe5ec; border-radius:10px; box-shadow:0 8px 24px rgba(16,24,40,.16); padding:9px 11px; min-width:170px; max-width:260px; font-size:12.5px; color:#33404f; pointer-events:none; }
   .cal-dica .cal-dica-dia { font-weight:700; color:#0c5a26; margin-bottom:5px; }
@@ -8717,7 +8719,13 @@ function calCoincidenciasAno(ano){
 
 // Cor de cada campanha: vem da regra (tabela). As etapas da Operação têm cor própria.
 // ==CALCORES== O Final de semana de ofertas é um grupo da Promoção Semanal (não tem cadastro próprio): a cor fica aqui.
-var CAL_COR_FDS="#4338CA";
+var CAL_COR_FDS="#0088C2"; // ciano (dono, 09/10/2026: cores primárias nas 7 promoções fixas)
+// ==CALCORES== Letra da etiqueta: branca (escolha do dono), menos em cor clara demais para ler (o amarelo do Sábado Bombástico).
+function calTextoCor(cor){
+  var m=/^#?([0-9a-f]{6})$/i.exec(String(cor||"")); if(!m) return "#fff";
+  var v=[0,2,4].map(function(i){ var c=parseInt(m[1].slice(i,i+2),16)/255; return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4); });
+  return (0.2126*v[0]+0.7152*v[1]+0.0722*v[2])>0.45 ? "#1a2233" : "#fff";
+}
 function corCampanha(nome){
   if(OP_STEP_COR[nome]) return OP_STEP_COR[nome];
   for(var i=0;i<CAL_REGRAS.length;i++){ if(CAL_REGRAS[i].nome===nome) return CAL_REGRAS[i].cor||"#566379"; }
@@ -8786,13 +8794,13 @@ function renderMes(){
     const chips=camps.map(cp=>{
       if(cp.camp){
         var alvoTxt=cp.alvo ? (' → '+cp.alvo.slice(8,10)+'/'+cp.alvo.slice(5,7)) : '';
-        return '<span class="camp" style="background:'+corCampanha(cp.nome)+'" title="'+pxEsc(cp.nome+' · '+cp.camp+(cp.alvo?(' · no ar em '+cp.alvo.split("-").reverse().join("/")):''))+'">'+pxEsc(cp.nome+': '+cp.camp+alvoTxt)+'</span>';
+        return '<span class="camp" style="background:'+corCampanha(cp.nome)+';color:'+calTextoCor(corCampanha(cp.nome))+'" title="'+pxEsc(cp.nome+' · '+cp.camp+(cp.alvo?(' · no ar em '+cp.alvo.split("-").reverse().join("/")):''))+'">'+pxEsc(cp.nome+': '+cp.camp+alvoTxt)+'</span>';
       }
       var ed=(cp.tipo==="campanha" && !cp.fds) ? calEdicaoDe(cp.id, cp.inicio_regra||cp.inicio) : null;
       var cont=calContagemTxt(ed);
       var txt=cp.nome+(cont?(' · '+cont):'');
       var ttl=cp.nome+(cp.setor?(' · '+cp.setor):'')+(cp.tipo==="data"?' · oportunidade (sem ação decidida não gera trabalho)':'')+(ed?(' · '+cont+' vagas definidas — clique para abrir no Encartes'):'');
-      return '<span class="camp'+(ed?' camp-ed':'')+'"'+(ed?(' data-ed="'+ed.edicao_id+'"'):'')+' style="background:'+corCampanha(cp.nome)+(ed?';cursor:pointer':'')+'" title="'+pxEsc(ttl)+'">'+pxEsc(txt)+'</span>';
+      return '<span class="camp'+(ed?' camp-ed':'')+'"'+(ed?(' data-ed="'+ed.edicao_id+'"'):'')+' style="background:'+corCampanha(cp.nome)+';color:'+calTextoCor(corCampanha(cp.nome))+(ed?';cursor:pointer':'')+'" title="'+pxEsc(ttl)+'">'+pxEsc(txt)+'</span>';
     }).join('');
     return '<div class="'+cls+'"><span class="dia">'+c.dia+'</span>'+tag+aviso+chips+'</div>';
   }).join('');
@@ -8818,7 +8826,7 @@ function renderAno(){
       const dim=destaque && !match && !c.fora;
       const cls="mini-cell"+(c.fora?" fora":"")+(fds?" fds":"")+(ehHoje?" hoje":"")+(motivo?" fechado":"")+(pinta?" tem-camp":"")+(match?" destacado":"")+(dim?" atenuado":"");
       const ttl=motivo ? 'Fechado · '+motivo : (camps.length ? camps.map(x=>x.camp?(x.nome+": "+x.camp+(x.alvo?(" ("+x.alvo.slice(8,10)+"/"+x.alvo.slice(5,7)+")"):"")):x.nome).join(", ") : "");
-      const sty=pinta ? ' style="background:'+corCampanha(pintaveis[0].nome)+'"' : '';
+      const sty=pinta ? ' style="background:'+corCampanha(pintaveis[0].nome)+';color:'+calTextoCor(corCampanha(pintaveis[0].nome))+'"' : '';
       // ==CALDICA== a data no quadradinho: passar o mouse mostra o quadrinho com as promoções (o aria-label fica para leitor de tela)
       return '<div class="'+cls+'"'+sty+(!c.fora?' data-d="'+fmtKey(calAno,m,c.dia)+'"':'')+(ttl?' aria-label="'+pxEsc(c.dia+': '+ttl)+'"':'')+'>'+c.dia+'</div>';
     }).join('');
@@ -8887,7 +8895,7 @@ function calImpressaoHtml(){
         var motivo=fech.get(fmtKey(ano,m,c.dia)), camps=itensDoDia(ano,m,c.dia,c.dow);
         camps.forEach(anota);
         var p=motivo?null:calPintaDoDia(camps);
-        return '<div class="d'+((c.dow===0||c.dow===6)?' fds':'')+(motivo?' fechado':'')+(p?' cor':'')+'"'+(p?' style="background:'+corCampanha(p.nome)+'"':'')+'>'+c.dia+'</div>';
+        return '<div class="d'+((c.dow===0||c.dow===6)?' fds':'')+(motivo?' fechado':'')+(p?' cor':'')+'"'+(p?' style="background:'+corCampanha(p.nome)+';color:'+calTextoCor(corCampanha(p.nome))+'"':'')+'>'+c.dia+'</div>';
       }).join('');
       corpo+='<div class="mes"><h3>'+MESES[m]+'</h3><div class="g">'+DSC.map(function(x){ return '<div class="h">'+x+'</div>'; }).join('')+dias+'</div></div>';
     }
@@ -8900,7 +8908,7 @@ function calImpressaoHtml(){
       camps.forEach(anota);
       return '<div class="c'+((c.dow===0||c.dow===6)?' fds':'')+(motivo?' fechado':'')+'"><span class="n">'+c.dia+'</span>'+
         (motivo?'<span class="fe">Fechado · '+pxEsc(motivo)+'</span>':'')+
-        camps.map(function(x){ return '<span class="et" style="background:'+corCampanha(x.nome)+'">'+pxEsc(txtItem(x))+'</span>'; }).join('')+'</div>';
+        camps.map(function(x){ return '<span class="et" style="background:'+corCampanha(x.nome)+';color:'+calTextoCor(corCampanha(x.nome))+'">'+pxEsc(txtItem(x))+'</span>'; }).join('')+'</div>';
     }).join('');
     // mês de 6 semanas: dias mais baixos, senão passa de uma folha
     var semanas=Math.ceil(celulasDoMes(ano,m2).length/7);
