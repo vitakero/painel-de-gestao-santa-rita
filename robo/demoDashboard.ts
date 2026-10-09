@@ -1182,7 +1182,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .ag-jan.cc-jan { max-width:780px; }   /* duas classes: vence o max-width:540px da janela da Agenda, que vem depois no CSS */
   /* o corpo rola, e rolar em Y corta em X junto: 8px de folga para o anel do foco (desenhado 4px
      FORA do campo) — a margem negativa devolve o espaço sem mover nada de lugar */
-  .cc-corpo { overflow-y:auto; min-height:0; margin:0 -8px; padding:0 8px 16px; }
+  .cc-corpo { overflow-y:auto; overscroll-behavior:contain; min-height:0; margin:0 -8px; padding:0 8px 16px; }
+  /* janela aberta: a rolagem fica nela — chegar ao fim da lista não passa a rolar o calendário de trás
+     (dono, 09/10/2026). O fundo da página é travado ao abrir (ccAbre) e solto ao fechar (ccFecha). */
+  #ccJanBg { overscroll-behavior:contain; }
   @media (max-width:760px){
     /* celular: ‹ título › sozinhos na 1ª linha (o título cede; o min-width dele é do computador) */
     #page-calendario .cal-top > #calTitulo { flex:1 1 calc(100% - 104px); min-width:0 !important; font-size:17px !important; }
@@ -9181,10 +9184,12 @@ function ccRenderLista(){
   function ccAbre(){
     if(!ccAberta()) quemAbriu=document.activeElement;
     ccRenderLista(); jbg.classList.add("abre");
+    try{ document.body.style.overflow="hidden"; }catch(e){}   // a página de trás não rola com a janela aberta
     setTimeout(function(){ var n=document.getElementById("ccNome"); if(n && n.offsetParent) n.focus(); else { var x=document.getElementById("ccJanX"); if(x) x.focus(); } },40);
   }
   function ccFecha(){
     jbg.classList.remove("abre");
+    try{ document.body.style.overflow=""; }catch(e){}
     try{ if(quemAbriu && quemAbriu.focus && document.contains(quemAbriu)) quemAbriu.focus(); }catch(e){}
     quemAbriu=null;
   }

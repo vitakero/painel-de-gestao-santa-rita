@@ -8,7 +8,8 @@
 //   3. o corpo da janela, que rola, deixa folga para o anel do foco (desenhado 4px FORA do campo —
 //      rolar em Y corta em X junto; já cortou 3 vezes na Agenda);
 //   4. o Esc com a confirmação do "pausar" aberta fecha só a confirmação (ouvido na captura);
-//   5. no celular os três botões ficam numa linha só e o título cede espaço.
+//   5. no celular os três botões ficam numa linha só e o título cede espaço;
+//   6. com a janela aberta, a página de trás não rola junto.
 //
 //   node scripts/testes/calendario-promocoes.test.cjs
 const fs = require("fs"), path = require("path");
@@ -72,6 +73,14 @@ const cel = (src.match(/==CALPROMOS==[\s\S]*?@media \(max-width:760px\)\{([\s\S]
 confere("celular: os 3 botões numa linha", /\.cal-acoes\s*\{[^}]*flex-wrap:nowrap/.test(cel));
 confere("celular: o texto do Imprimir some", /\.cal-imp-tx\s*\{\s*display:none/.test(cel));
 confere("celular: o título vence o min-width escrito na própria tag", /#calTitulo\s*\{[^}]*min-width:0 !important/.test(cel));
+
+// 6) janela aberta: a página de trás não rola (dono, 09/10: rolava a lista e o calendário ia junto)
+confere("o corpo da janela segura a rolagem no fim da lista", /overscroll-behavior:\s*contain/.test(corpo));
+confere("o fundo escuro também segura", /#ccJanBg\s*\{\s*overscroll-behavior:\s*contain/.test(src));
+const fAbre = (js.match(/function ccAbre\(\)\{([\s\S]*?)\n  \}/) || [])[1] || "";
+const fFecha = (js.match(/function ccFecha\(\)\{([\s\S]*?)\n  \}/) || [])[1] || "";
+confere("abrir trava a página de trás", /document\.body\.style\.overflow="hidden"/.test(fAbre));
+confere("fechar solta a página de trás", /document\.body\.style\.overflow=""/.test(fFecha));
 
 // quem não é master só vê a lista: o botão muda de nome
 confere("quem não é master vê \"Ver promoções\"", /ccRenderLista[\s\S]*?"Adicionar promoção":"Ver promoções"/.test(src));
