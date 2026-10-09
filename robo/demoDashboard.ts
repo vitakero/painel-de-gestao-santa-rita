@@ -1170,6 +1170,28 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .vazio { color:#8a97a8; font-style:italic; font-size:13px; }
   footer { text-align:center; font-size:12px; color:#8a97a8; padding:10px; }
   .cal-top { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+  /* ==CALPROMOS== "Adicionar promoção" mora em cima, ao lado do Imprimir (pedido do dono, 09/10/2026:
+     o quadro do pé da página virou janela). Quando a barra não cabe, os 3 botões da direita descem
+     JUNTOS para a linha de baixo, alinhados à direita: nada é espremido nem cortado. */
+  @media (min-width:761px){
+    #page-calendario .cal-top { flex-wrap:wrap; row-gap:10px; }
+    #page-calendario .cal-top > * { flex-shrink:0; white-space:nowrap; }
+  }
+  .cal-acoes { margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+  .cal-acoes .btn-s { display:inline-flex; align-items:center; gap:7px; }
+  .ag-jan.cc-jan { max-width:780px; }   /* duas classes: vence o max-width:540px da janela da Agenda, que vem depois no CSS */
+  /* o corpo rola, e rolar em Y corta em X junto: 8px de folga para o anel do foco (desenhado 4px
+     FORA do campo) — a margem negativa devolve o espaço sem mover nada de lugar */
+  .cc-corpo { overflow-y:auto; min-height:0; margin:0 -8px; padding:0 8px 16px; }
+  @media (max-width:760px){
+    /* celular: ‹ título › sozinhos na 1ª linha (o título cede; o min-width dele é do computador) */
+    #page-calendario .cal-top > #calTitulo { flex:1 1 calc(100% - 104px); min-width:0 !important; font-size:17px !important; }
+    .cal-acoes { margin-left:0; width:100%; flex-wrap:nowrap; }
+    .cal-acoes .btn-s { min-height:42px; }
+    #calPromos { flex:1 1 auto; justify-content:center; }
+    .cal-imp-tx { display:none; }   /* no celular o Imprimir fica só com o desenho */
+    #calImprimir { padding-left:13px; padding-right:13px; }
+  }
   .cal-nav { width:34px; height:34px; border:1px solid #cdd6e0; background:#fff; border-radius:8px; font-size:20px; line-height:1; cursor:pointer; color:#33404f; }
   .cal-nav:hover { background:#eef2f7; }
   .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
@@ -2582,8 +2604,11 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
             <button class="seg ativo" id="modoCamp">Campanhas</button>
             <button class="seg" id="modoOper">Operação</button>
           </div>
-          <button class="btn-s" id="calImprimir" style="margin-left:auto;display:inline-flex;align-items:center;gap:7px;" title="Imprimir o que está na tela (Ano ou Mês), com a legenda das cores"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>Imprimir</button>
-          <button class="btn-s" id="calHoje">Hoje</button>
+          <div class="cal-acoes">
+            <button class="btn-s" id="calPromos" type="button" aria-haspopup="dialog" title="Adicionar, ver ou pausar promoções e datas do calendário"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Adicionar promoção</button>
+            <button class="btn-s" id="calImprimir" aria-label="Imprimir" title="Imprimir o que está na tela (Ano ou Mês), com a legenda das cores"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg><span class="cal-imp-tx">Imprimir</span></button>
+            <button class="btn-s" id="calHoje">Hoje</button>
+          </div>
         </div>
         <div id="calMesView">
           <div class="cal-grid cal-head">
@@ -2600,9 +2625,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div class="cal-legenda" id="calLegDatas" style="margin-top:8px;border-top:1px solid #eef1f4;padding-top:10px;"></div>
         <div class="cal-legenda" id="calLegUser" style="margin-top:8px;border-top:1px solid #eef1f4;padding-top:10px;display:none;"></div>
       </div>
-      <div class="card">
-        <details id="ccBox">
-          <summary style="cursor:pointer;font-weight:700;color:#0c5a26;font-size:15px;">Campanhas e datas do calendário</summary>
+      <!-- ==CALPROMOS== a janela do "Adicionar promoção" (antes era o quadro fechado no pé da página) -->
+      <div class="ag-jan-bg" id="ccJanBg">
+        <div class="ag-jan cc-jan" role="dialog" aria-modal="true" aria-labelledby="ccJanTit">
+          <button class="ag-jan-x" id="ccJanX" type="button" title="Fechar" aria-label="Fechar a janela">&times;</button>
+          <h3 class="ag-jan-tit" id="ccJanTit">Promoções e datas do calendário</h3>
+          <div class="cc-corpo">
           <p style="margin:10px 0 6px;color:#6b7787;font-size:13px;line-height:1.5;">Cada campanha segue uma regra e vale para todos os anos. Pausar não apaga: some do calendário e deixa de gerar trabalho. Data comemorativa é oportunidade: só vira trabalho quando alguém decide uma ação, no Encartes. Só o master cria, pausa ou reativa.</p>
           <div class="filtros" id="ccForm" style="box-shadow:none;padding:0;flex-wrap:wrap;align-items:flex-start;">
             <div class="campo" style="flex:1;min-width:180px;"><label for="ccNome">Nome da campanha</label><input type="text" id="ccNome" placeholder="ex: Quarta do Hortifruti"></div>
@@ -2626,7 +2654,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
             <span id="ccMsg" style="flex-basis:100%;font-size:12.5px;color:#c0392b;margin-top:6px;display:none;"></span>
           </div>
           <div id="ccLista" style="margin-top:12px;"></div>
-        </details>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -9102,6 +9131,9 @@ function ccRenderLista(){
   var box=document.getElementById("ccLista"); if(!box) return;
   var m=calEhMaster();
   var form=document.getElementById("ccForm"); if(form) form.style.display=m?"":"none";
+  // ==CALPROMOS== quem não é master só vê a lista (não cria): o botão de cima diz isso, sem o "+"
+  var bt=document.getElementById("calPromos");
+  if(bt){ var tx=bt.lastChild; if(tx && tx.nodeType===3) tx.textContent=m?"Adicionar promoção":"Ver promoções"; var ic=bt.querySelector("svg"); if(ic) ic.style.display=m?"":"none"; }
   var lista=CAL_REGRAS.slice().sort(function(a,b){ return (a.tipo===b.tipo?0:(a.tipo==="campanha"?-1:1)) || ((a.ordem||0)-(b.ordem||0)); });
   box.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:13px;">'+
     lista.map(function(r){
@@ -9141,6 +9173,36 @@ function ccRenderLista(){
       calCarregarNuvem(true);
     }, function(e){ erro("Sem conexão agora. Tente de novo."); });
   });
+  /* ==CALPROMOS== abrir e fechar a janela: o botão de cima abre; o ×, o Esc e o clique no fundo
+     escuro fecham. O Esc é ouvido na CAPTURA: se a confirmação do "pausar" estiver aberta, o Esc é
+     dela (fecha só a confirmação) — ouvindo depois, a confirmação já teria sumido e a janela ia junto. */
+  var jbg=document.getElementById("ccJanBg"), quemAbriu=null;
+  function ccAberta(){ return !!(jbg && jbg.classList.contains("abre")); }
+  function ccAbre(){
+    if(!ccAberta()) quemAbriu=document.activeElement;
+    ccRenderLista(); jbg.classList.add("abre");
+    setTimeout(function(){ var n=document.getElementById("ccNome"); if(n && n.offsetParent) n.focus(); else { var x=document.getElementById("ccJanX"); if(x) x.focus(); } },40);
+  }
+  function ccFecha(){
+    jbg.classList.remove("abre");
+    try{ if(quemAbriu && quemAbriu.focus && document.contains(quemAbriu)) quemAbriu.focus(); }catch(e){}
+    quemAbriu=null;
+  }
+  document.getElementById("calPromos").addEventListener("click",ccAbre);
+  document.getElementById("ccJanX").addEventListener("click",ccFecha);
+  jbg.addEventListener("mousedown",function(e){ if(e.target===jbg) ccFecha(); });
+  document.addEventListener("keydown",function(e){
+    if(!ccAberta()) return;
+    var conf=document.getElementById("uiModal"); if(conf && conf.classList.contains("show")) return;
+    if(e.key==="Escape"){ ccFecha(); return; }
+    // enquanto a janela está aberta, o Tab não sai dela (como na Agenda)
+    if(e.key!=="Tab") return;
+    var vis=[].filter.call(jbg.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled])'),function(el){ return el.offsetParent!==null; });
+    if(!vis.length) return;
+    var pri=vis[0], ult=vis[vis.length-1];
+    if(e.shiftKey && document.activeElement===pri){ e.preventDefault(); ult.focus(); }
+    else if(!e.shiftKey && document.activeElement===ult){ e.preventDefault(); pri.focus(); }
+  }, true);
   document.getElementById("ccLista").addEventListener("click",function(e){
     var d=e.target.closest("[data-ccsit]"); if(!d) return;
     if(!calEhMaster() || !window.__SB) return;
