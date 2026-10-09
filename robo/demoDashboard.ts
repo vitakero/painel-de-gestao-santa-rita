@@ -1179,8 +1179,9 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .cal-cell.fora { background:#f6f8fb; }
   .cal-cell.fora .dia { color:#b7c0cd; }
   .cal-cell.fds .dia { color:#c0392b; }
-  .cal-cell.hoje { border:2px solid #157a35; }
-  .cal-cell.hoje .dia { background:#157a35; color:#fff; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+  /* ==CALCORES== Hoje = contorno preto: a cor da promoção do dia continua aparecendo (dono, 09/10/2026) */
+  .cal-cell.hoje { border:2px solid #111; }
+  .cal-cell.hoje .dia { background:#111; color:#fff; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
   .cal-toggle { display:flex; border:1px solid #cdd6e0; border-radius:8px; overflow:hidden; }
   .cal-toggle .seg { border:0; background:#fff; padding:8px 16px; font-size:13px; cursor:pointer; color:#33404f; font-weight:600; }
   .cal-toggle .seg.ativo { background:#157a35; color:#fff; }
@@ -1198,7 +1199,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .mini-cell { font-size:12.5px; text-align:center; height:28px; display:flex; align-items:center; justify-content:center; border-radius:6px; color:#33404f; }
   .mini-cell.fora { color:#cdd6e0; }
   .mini-cell.fds { color:#c0392b; }
-  .mini-cell.hoje { background:#157a35; color:#fff; font-weight:700; }
+  .mini-cell.hoje { font-weight:700; box-shadow:0 0 0 2px #fff, 0 0 0 4px #111; position:relative; z-index:1; }
   .cal-cell.fechado { background:#fdecec; border-color:#f3c6c6; }
   .cal-cell.fechado .fechado-tag { font-size:10px; font-weight:700; color:#c0392b; text-transform:uppercase; letter-spacing:.3px; line-height:1.2; }
   .mini-cell.fechado { background:#fdecec; color:#c0392b; font-weight:700; }
@@ -1848,6 +1849,12 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     html.tema-escuro body{ background:#0F1115; }
     html.tema-escuro header{ background:#161A21; }
     html.tema-escuro .card{ box-shadow:0 1px 2px rgba(0,0,0,.4); }
+    /* ==CALCORES== o "Hoje" do Calendário é um contorno preto no claro; no escuro ele sumiria no fundo: vira contorno claro.
+       Cores em rgb() de propósito: o gerador da folha escura só converte "#hex" e escurecia o contorno de volta. */
+    html.tema-escuro .cal-cell.hoje{ border-color:rgb(229,231,235) !important; }
+    html.tema-escuro .cal-cell.hoje .dia{ background:rgb(229,231,235) !important; color:rgb(15,17,21) !important; }
+    html.tema-escuro .mini-cell.hoje{ box-shadow:0 0 0 2px rgb(15,17,21), 0 0 0 4px rgb(229,231,235) !important; }
+    html.tema-escuro .leg-item[data-camp="__hoje__"] .qd{ background:transparent !important; box-shadow:inset 0 0 0 2px rgb(229,231,235) !important; }
     /* Campos: sem background declarado no claro, o navegador usava o cinza padrão dele no escuro */
     html.tema-escuro input:not([type=checkbox]):not([type=radio]):not([type=range]),
     html.tema-escuro select, html.tema-escuro textarea{ background:#12161c; color:#f3f4f6; }
@@ -2585,7 +2592,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
         <div id="calAnoView" style="display:none;"></div>
         <div class="cal-legenda">
           <span class="leg-item" data-camp="__fechado__"><span class="qd" style="background:#fdecec;border:1px solid #f3c6c6;"></span> Loja fechada (feriado)</span>
-          <span class="leg-item" data-camp="__hoje__"><span class="qd" style="background:#157a35;"></span> Hoje</span>
+          <span class="leg-item" data-camp="__hoje__"><span class="qd" style="background:#fff;box-shadow:inset 0 0 0 2px #111;"></span> Hoje</span>
         </div>
         <div class="cal-legenda" id="calLegSetores" style="margin-top:8px;border-top:1px solid #eef1f4;padding-top:10px;"></div>
         <div class="cal-legenda" id="calLegDatas" style="margin-top:8px;border-top:1px solid #eef1f4;padding-top:10px;"></div>
@@ -8564,7 +8571,7 @@ function calFds(){
   try{
     var m=CAL_MODELOS.filter(function(x){ return x.id==="promocao-semanal"; })[0];
     var g=m && m.estrutura && (m.estrutura.grupos||[]).filter(function(x){ return x.periodo && x.ativo_padrao!==false; })[0];
-    return g ? {ini:+g.periodo.ini_offset, nome:g.identidade||g.nome} : null;
+    return g ? {ini:+g.periodo.ini_offset, fim:(g.periodo.fim_offset!=null ? +g.periodo.fim_offset : +g.periodo.ini_offset), nome:g.identidade||g.nome} : null;
   }catch(e){ return null; }
 }
 function calItem(o,extra){
@@ -8586,7 +8593,8 @@ function campanhasDoDia(a,m,d,dow){
     if(o.id==="promocao-semanal"){
       if(!o.primeiroDia && psComeca) return;
       out.push(calItem(o,{ps:true}));
-      if(fds && E && iso===E.addDias(o.inicio,fds.ini)) out.push(calItem(o,{nome:fds.nome, fds:true}));
+      // ==CALCORES== o Final de semana de ofertas aparece nos dias dele (sexta a domingo), não só na sexta
+      if(fds && E && iso>=E.addDias(o.inicio,fds.ini) && iso<=E.addDias(o.inicio,fds.fim)) out.push(calItem(o,{nome:fds.nome, fds:true, primeiroDia:iso===E.addDias(o.inicio,fds.ini)}));
       return;
     }
     out.push(calItem(o,{}));
@@ -8708,10 +8716,12 @@ function calCoincidenciasAno(ano){
 }
 
 // Cor de cada campanha: vem da regra (tabela). As etapas da Operação têm cor própria.
+// ==CALCORES== O Final de semana de ofertas é um grupo da Promoção Semanal (não tem cadastro próprio): a cor fica aqui.
+var CAL_COR_FDS="#4338CA";
 function corCampanha(nome){
   if(OP_STEP_COR[nome]) return OP_STEP_COR[nome];
   for(var i=0;i<CAL_REGRAS.length;i++){ if(CAL_REGRAS[i].nome===nome) return CAL_REGRAS[i].cor||"#566379"; }
-  var fds=calFds(); if(fds && nome===fds.nome){ for(var j=0;j<CAL_REGRAS.length;j++){ if(CAL_REGRAS[j].id==="promocao-semanal") return CAL_REGRAS[j].cor||"#0c8599"; } }
+  var fds=calFds(); if(fds && nome===fds.nome) return CAL_COR_FDS; // ==CALCORES== cor própria (antes usava a da Promoção Semanal)
   return "#566379";
 }
 const corSetor=(s)=> "#566379";
@@ -8749,7 +8759,10 @@ function montarLegendas(){
   function temData(r){ var g=r.regra; if(typeof g==="string"){ try{ g=JSON.parse(g); }catch(e){ g=null; } } return !(g && g.tipo==="datas" && !(g.lista && g.lista.length)); }
   var datas=ativas.filter(function(r){ return r.tipo!=="campanha" && String(r.id).indexOf("usr-")!==0 && temData(r); });
   var minhas=ativas.filter(function(r){ return String(r.id).indexOf("usr-")===0; });
-  if(box){ box.style.display=""; box.innerHTML=montar(campanhas); }
+  // ==CALCORES== o Final de semana de ofertas entra na legenda logo depois da Promoção Semanal
+  var fdsLeg=calFds(), listaLeg=[];
+  campanhas.forEach(function(r){ listaLeg.push(r); if(r.id==="promocao-semanal" && fdsLeg && r.situacao!=="pausada") listaLeg.push({nome:fdsLeg.nome}); });
+  if(box){ box.style.display=""; box.innerHTML=montar(listaLeg); }
   if(box2){ if(datas.length){ box2.style.display=""; box2.innerHTML=montar(datas); } else { box2.style.display="none"; } }
   if(box3){ if(minhas.length){ box3.style.display=""; box3.innerHTML=montar(minhas); } else { box3.style.display="none"; box3.innerHTML=""; } }
 }
@@ -8800,7 +8813,7 @@ function renderAno(){
       // pinta só o 1º dia). ==CALPSANO== Dia sem outra campanha fica com a cor da Promoção Semanal (escolha do
       // dono, 08/10/2026, opção B): ela vale de segunda a domingo, então o ano mostra que toda semana tem.
       const corDia=calPintaDoDia(camps), pintaveis=corDia?[corDia]:[];
-      const pinta=pintaveis.length && !ehHoje && !motivo;
+      const pinta=pintaveis.length && !motivo;
       const match=ehMatch(ehHoje,motivo,camps);
       const dim=destaque && !match && !c.fora;
       const cls="mini-cell"+(c.fora?" fora":"")+(fds?" fds":"")+(ehHoje?" hoje":"")+(motivo?" fechado":"")+(pinta?" tem-camp":"")+(match?" destacado":"")+(dim?" atenuado":"");
@@ -8854,7 +8867,9 @@ function calDicaMostrar(cel){
 // etiquetas de cada dia. Sempre com a legenda das cores. Abre numa janela própria (como as outras
 // impressões do Painel) com o botão Imprimir; a folha é montada pelos MESMOS dados da tela.
 function calPintaDoDia(camps){
+  // cor do quadradinho no Ano: outra campanha do dia > Final de semana de ofertas > Promoção Semanal
   var p=camps.filter(function(x){ return !x.ps && !x.fds && !(x.semanal && !x.primeiroDia); });
+  if(!p.length) p=camps.filter(function(x){ return x.fds; });
   if(!p.length){ var ps=camps.filter(function(x){ return x.ps; })[0]; if(ps) p=[ps]; }
   return p[0]||null;
 }
