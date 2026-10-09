@@ -2573,7 +2573,8 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
             <button class="seg ativo" id="modoCamp">Campanhas</button>
             <button class="seg" id="modoOper">Operação</button>
           </div>
-          <button class="btn-s" id="calHoje" style="margin-left:auto;">Hoje</button>
+          <button class="btn-s" id="calImprimir" style="margin-left:auto;" title="Imprimir o que está na tela (Ano ou Mês), com a legenda das cores">Imprimir</button>
+          <button class="btn-s" id="calHoje">Hoje</button>
         </div>
         <div id="calMesView">
           <div class="cal-grid cal-head">
@@ -8798,8 +8799,7 @@ function renderAno(){
       // A cor do quadradinho é a da outra campanha do dia (o Final de semana não pinta; campanha de toda semana
       // pinta só o 1º dia). ==CALPSANO== Dia sem outra campanha fica com a cor da Promoção Semanal (escolha do
       // dono, 08/10/2026, opção B): ela vale de segunda a domingo, então o ano mostra que toda semana tem.
-      let pintaveis=camps.filter(x=>!x.ps && !x.fds && !(x.semanal && !x.primeiroDia));
-      if(!pintaveis.length){ const psDia=camps.filter(x=>x.ps)[0]; if(psDia) pintaveis=[psDia]; }
+      const corDia=calPintaDoDia(camps), pintaveis=corDia?[corDia]:[];
       const pinta=pintaveis.length && !ehHoje && !motivo;
       const match=ehMatch(ehHoje,motivo,camps);
       const dim=destaque && !match && !c.fora;
@@ -8849,6 +8849,94 @@ function calDicaMostrar(cel){
   window.addEventListener("scroll",calDicaEsconder,true);
 })();
 
+// ==CALIMPRIMIR== Imprimir o Calendário (pedido do dono, 08/10/2026: entregar ao pessoal de compras).
+// Imprime o que está na tela: no Ano, os 12 meses numa folha A4 deitada; no Mês, o mês aberto com as
+// etiquetas de cada dia. Sempre com a legenda das cores. Abre numa janela própria (como as outras
+// impressões do Painel) com o botão Imprimir; a folha é montada pelos MESMOS dados da tela.
+function calPintaDoDia(camps){
+  var p=camps.filter(function(x){ return !x.ps && !x.fds && !(x.semanal && !x.primeiroDia); });
+  if(!p.length){ var ps=camps.filter(function(x){ return x.ps; })[0]; if(ps) p=[ps]; }
+  return p[0]||null;
+}
+function calImpressaoHtml(){
+  var ano=calAno, ehAno=(calView!=="mes"), oper=(calModo==="operacao"), fech=feriadosFechado(ano);
+  var DSC=["D","S","T","Q","Q","S","S"], DSM=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+  var vistos={}, legenda=[];
+  function anota(x){ var n=x.nome; if(!vistos[n]){ vistos[n]=1; legenda.push(n); } }
+  function txtItem(x){ return x.camp ? (x.nome+': '+x.camp+(x.alvo?(' → '+x.alvo.slice(8,10)+'/'+x.alvo.slice(5,7)):'')) : x.nome; }
+  var corpo="";
+  if(ehAno){
+    for(var m=0;m<12;m++){
+      var dias=celulasDoMes(ano,m).map(function(c){
+        if(c.fora) return '<div class="d fora">'+c.dia+'</div>';
+        var motivo=fech.get(fmtKey(ano,m,c.dia)), camps=itensDoDia(ano,m,c.dia,c.dow);
+        camps.forEach(anota);
+        var p=motivo?null:calPintaDoDia(camps);
+        return '<div class="d'+((c.dow===0||c.dow===6)?' fds':'')+(motivo?' fechado':'')+(p?' cor':'')+'"'+(p?' style="background:'+corCampanha(p.nome)+'"':'')+'>'+c.dia+'</div>';
+      }).join('');
+      corpo+='<div class="mes"><h3>'+MESES[m]+'</h3><div class="g">'+DSC.map(function(x){ return '<div class="h">'+x+'</div>'; }).join('')+dias+'</div></div>';
+    }
+    corpo='<div class="ano">'+corpo+'</div>';
+  } else {
+    var m2=calMes;
+    var cel=celulasDoMes(ano,m2).map(function(c){
+      if(c.fora) return '<div class="c fora"><span class="n">'+c.dia+'</span></div>';
+      var motivo=fech.get(fmtKey(ano,m2,c.dia)), camps=itensDoDia(ano,m2,c.dia,c.dow);
+      camps.forEach(anota);
+      return '<div class="c'+((c.dow===0||c.dow===6)?' fds':'')+(motivo?' fechado':'')+'"><span class="n">'+c.dia+'</span>'+
+        (motivo?'<span class="fe">Fechado · '+pxEsc(motivo)+'</span>':'')+
+        camps.map(function(x){ return '<span class="et" style="background:'+corCampanha(x.nome)+'">'+pxEsc(txtItem(x))+'</span>'; }).join('')+'</div>';
+    }).join('');
+    // mês de 6 semanas: dias mais baixos, senão passa de uma folha
+    var semanas=Math.ceil(celulasDoMes(ano,m2).length/7);
+    corpo='<div class="mesg" style="--alt:'+(semanas>=6?'23.5mm':'28.5mm')+'">'+DSM.map(function(x){ return '<div class="h">'+x+'</div>'; }).join('')+cel+'</div>';
+  }
+  var periodo=ehAno ? String(ano) : (MESES[calMes]+' de '+ano);
+  var tituloDoc=(oper?'Calendário de operação':'Calendário de promoções');
+  var leg='<div class="leg">'+legenda.map(function(n){ return '<span><i style="background:'+corCampanha(n)+'"></i>'+pxEsc(n)+'</span>'; }).join('')+
+    '<span><i class="ifech"></i>Loja fechada</span></div>';
+  var hoje=new Date(), emissao=String(hoje.getDate()).padStart(2,"0")+"/"+String(hoje.getMonth()+1).padStart(2,"0")+"/"+hoje.getFullYear();
+  var barra=pxDocBarraHtml({ titulo:tituloDoc, codigo:periodo, badge:(oper?'Operação':'Campanhas'), emissao:emissao, printLabel:"Imprimir" });
+  var css=barra.css+
+    "*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}"+
+    "html,body{margin:0;background:#f4f5f6;color:#1a2230}"+
+    ".folha{width:297mm;min-height:210mm;margin:18px auto;background:#fff;padding:9mm 10mm;box-shadow:0 2px 12px rgba(0,0,0,.08)}"+
+    ".cab{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #157a35;padding-bottom:3mm;margin-bottom:4mm}"+
+    ".cab h1{font-size:19px;margin:0;color:#0c5a26}.cab .s{font-size:11px;color:#6b7787}"+
+    ".ano{display:grid;grid-template-columns:repeat(4,1fr);gap:5mm 7mm}"+
+    ".mes h3{margin:0 0 1.5mm;font-size:13.5px;color:#0c5a26;text-align:center}"+
+    ".g{display:grid;grid-template-columns:repeat(7,1fr);gap:1mm}"+
+    ".g .h{font-size:8px;color:#8a97a8;text-align:center;font-weight:700}"+
+    ".g .d{height:6.6mm;display:flex;align-items:center;justify-content:center;font-size:11px;border-radius:1.2mm;color:#33404f}"+
+    ".g .d.fora{color:transparent}.g .d.fds{color:#c0392b}"+
+    ".g .d.cor{color:#fff;font-weight:700}.g .d.fechado{background:#fdecec;color:#c0392b;font-weight:700;outline:1px solid #f3c6c6;outline-offset:-1px}"+
+    ".mesg{display:grid;grid-template-columns:repeat(7,1fr);gap:1.2mm}"+
+    ".mesg .h{font-size:10px;font-weight:700;color:#6b7787;text-align:center;text-transform:uppercase}"+
+    ".mesg .c{min-height:var(--alt,28.5mm);border:1px solid #dfe5ec;border-radius:2mm;padding:1.2mm 1.4mm;display:flex;flex-direction:column;gap:.8mm;overflow:hidden}"+
+    ".mesg .c.fora{background:#f6f8fb}.mesg .c.fora .n{color:#c3cbd6}.mesg .c.fds .n{color:#c0392b}"+
+    ".mesg .c.fechado{background:#fdecec;border-color:#f3c6c6}"+
+    ".mesg .n{font-size:11px;font-weight:700}.mesg .fe{font-size:8px;font-weight:700;color:#c0392b;text-transform:uppercase}"+
+    ".mesg .et{display:block;font-size:9px;line-height:1.2;color:#fff;font-weight:600;border-radius:1mm;padding:.5mm 1mm}"+
+    ".leg{display:flex;flex-wrap:wrap;gap:1.5mm 5mm;margin-top:4mm;font-size:10px;color:#33404f}"+
+    ".leg span{display:inline-flex;align-items:center;gap:1.5mm}.leg i{width:3mm;height:3mm;border-radius:.8mm;display:inline-block}"+
+    ".leg i.ifech{background:#fdecec;outline:1px solid #f3c6c6;outline-offset:-1px}"+
+    "@page{size:A4 landscape;margin:0}"+
+    "@media print{.docbar{display:none}html,body{background:#fff}.folha{margin:0;box-shadow:none;width:auto;min-height:0;page-break-after:avoid}}";
+  return "<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>"+tituloDoc+" "+periodo+"</title>"+
+    "<link rel='preconnect' href='https://fonts.googleapis.com'><link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap' rel='stylesheet'>"+
+    "<style>"+css+"</style></head><body>"+barra.html+
+    "<div class='folha'><div class='cab'><h1>"+tituloDoc+" · "+periodo+"</h1><span class='s'>Painel Santa Rita · impresso em "+emissao+"</span></div>"+
+    corpo+leg+"</div>"+
+    // trava: se o conteúdo passar de uma folha A4 deitada (ex.: muitas etiquetas na Operação), a folha encolhe para caber
+    "<script>(function(){function fit(){var f=document.querySelector('.folha');if(!f)return;f.style.zoom=1;var alvo=210*96/25.4-4,h=f.scrollHeight;if(h>alvo)f.style.zoom=(alvo/h).toFixed(3);}"+
+    "window.addEventListener('load',fit);window.addEventListener('beforeprint',fit);fit();})();<\\/script></body></html>";
+}
+function calImprimir(){
+  var w=window.open("","_blank");
+  if(!w){ uiConfirm({titulo:"Pop-up bloqueado",msg:"Libere os pop-ups deste site no navegador para imprimir.",ok:"OK",cancel:""}); return; }
+  w.document.open(); w.document.write(calImpressaoHtml()); w.document.close();
+}
+
 function renderCal(){ if(calView==="mes") renderMes(); else renderAno(); }
 
 function setView(v){
@@ -8880,6 +8968,7 @@ document.getElementById("calNext").addEventListener("click",()=>{
   renderCal();
 });
 document.getElementById("calHoje").addEventListener("click",()=>{ calAno=HOJE.getFullYear(); calMes=HOJE.getMonth(); setView("mes"); });
+document.getElementById("calImprimir").addEventListener("click",calImprimir); // ==CALIMPRIMIR==
 // Etiqueta de campanha com edição: abre a edição no Encartes.
 function calAbrirEncarte(edId){
   var b=document.querySelector('.nav-item[data-page="encartes"]'); if(!b) return;
