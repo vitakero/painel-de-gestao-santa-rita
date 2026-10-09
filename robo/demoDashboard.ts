@@ -1184,18 +1184,18 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .cal-toggle { display:flex; border:1px solid #cdd6e0; border-radius:8px; overflow:hidden; }
   .cal-toggle .seg { border:0; background:#fff; padding:8px 16px; font-size:13px; cursor:pointer; color:#33404f; font-weight:600; }
   .cal-toggle .seg.ativo { background:#157a35; color:#fff; }
-  /* ==CALANOB== cartão de cada mês do tamanho dos dias (até 330px) e o ano centralizado: "Meio 2", entre a A e a B (dono, 08/10/2026) */
-  .cal-ano { display:grid; grid-template-columns:repeat(3,minmax(0,330px)); justify-content:center; gap:20px 24px; }
+  /* ==CALANOB== cartão de cada mês do tamanho dos dias (até 320px) e o ano centralizado: "Meio 1", entre a A e a B (dono, 08/10/2026) */
+  .cal-ano { display:grid; grid-template-columns:repeat(3,minmax(0,320px)); justify-content:center; gap:20px 24px; }
   /* ==CALANOCEL== no celular 1 mês por linha e em tela média 2 (3 por linha deixava cada dia com ~6px) — 08/10/2026 */
-  @media (max-width:640px){ .cal-ano { grid-template-columns:minmax(0,330px); gap:12px; } }
-  @media (min-width:641px) and (max-width:1000px){ .cal-ano { grid-template-columns:repeat(2,minmax(0,330px)); } }
+  @media (max-width:640px){ .cal-ano { grid-template-columns:minmax(0,320px); gap:12px; } }
+  @media (min-width:641px) and (max-width:1000px){ .cal-ano { grid-template-columns:repeat(2,minmax(0,320px)); } }
   .mini { border:1px solid #e6ebf1; border-radius:10px; padding:12px; cursor:pointer; }
   .mini:hover { box-shadow:0 2px 8px rgba(0,0,0,.08); }
   .mini h3 { margin:0 0 8px; font-size:13px; color:#0c5a26; text-align:center; }
-  /* ==CALANOJUNTO== dias juntinhos (até 40px cada, encolhem em tela estreita) e o mês centralizado no cartão — pedido do dono, 08/10/2026 */
-  .mini-grid { display:grid; grid-template-columns:repeat(7,minmax(0,40px)); gap:4px; justify-content:center; }
+  /* ==CALANOJUNTO== dias juntinhos (até 38px cada, encolhem em tela estreita) e o mês centralizado no cartão — pedido do dono, 08/10/2026 */
+  .mini-grid { display:grid; grid-template-columns:repeat(7,minmax(0,38px)); gap:4px; justify-content:center; }
   .mini-grid .mh { font-size:10px; color:#8a97a8; text-align:center; font-weight:700; }
-  .mini-cell { font-size:13px; text-align:center; height:30px; display:flex; align-items:center; justify-content:center; border-radius:6px; color:#33404f; }
+  .mini-cell { font-size:12.5px; text-align:center; height:28px; display:flex; align-items:center; justify-content:center; border-radius:6px; color:#33404f; }
   .mini-cell.fora { color:#cdd6e0; }
   .mini-cell.fds { color:#c0392b; }
   .mini-cell.hoje { background:#157a35; color:#fff; font-weight:700; }
