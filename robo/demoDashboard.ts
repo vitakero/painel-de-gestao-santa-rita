@@ -1189,7 +1189,14 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .cc-form .campo { display:flex; flex-direction:column; gap:5px; }
   .cc-form label { font-size:11px; color:#6b7787; text-transform:uppercase; letter-spacing:.4px; }
   .cc-form input[type=text], .cc-form input[type=date] { padding:9px 11px; border:1px solid #cdd6e0; border-radius:8px; font-size:14px; }
-  .cc-form button { padding:9px 16px; border:0; border-radius:8px; font-size:14px; cursor:pointer; font-weight:600; }
+  .cc-form .btn-p { padding:9px 16px; border:0; border-radius:8px; font-size:14px; cursor:pointer; font-weight:600; }
+  .cc-tipo { flex:0 1 200px; }
+  .cc-tipo select { width:100%; padding:9px 11px; border:1px solid #cdd6e0; border-radius:8px; font-size:14px; background:#fff; }
+  /* ==CALTIPO== a etiqueta do tipo na lista (no lugar de "campanha" e "data") */
+  .cc-et { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11.5px; font-weight:600; white-space:nowrap; }
+  .cc-et-encarte { background:#fdebe4; color:#8a3a1d; }
+  .cc-et-interna { background:#e1f5ee; color:#085041; }
+  .cc-et-data { background:#e9effa; color:#25467a; }
   .cc-linha { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
   .cc-linha .campo { margin:0; }
   .cc-nome { flex:1 1 260px; }
@@ -2656,6 +2663,14 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <div class="cc-form" id="ccForm">
             <div class="cc-linha">
               <div class="campo cc-nome"><label for="ccNome">Nome da promoção</label><input type="text" id="ccNome" maxlength="60" placeholder="ex: Feirão do Açougue"></div>
+              <!-- ==CALTIPO== o que é (dono, 10/10/2026): campanha interna do supermercado ou data comemorativa.
+                   As duas ficam só no Calendário; a "Promoção com encarte" entra aqui na parte 2. -->
+              <div class="campo cc-tipo"><label for="ccTipo">Tipo</label>
+                <select id="ccTipo">
+                  <option value="interna" selected>Campanha interna</option>
+                  <option value="comemorativa">Data comemorativa</option>
+                </select>
+              </div>
               <div class="campo"><label for="ccCor">Cor</label><input type="color" id="ccCor" value="#157a35" style="width:54px;height:40px;padding:2px;cursor:pointer;"></div>
             </div>
             <div class="cc-linha">
@@ -9246,6 +9261,20 @@ function ccResumoTexto(iniIso, fimIso, tipo){
            : (ccOpcoesRepetir(iniIso).filter(function(o){ return o.v===tipo; })[0]||{t:""}).t;
   return "<b>"+pxEsc(quando)+"</b>"+(tipo==="nao" ? (dur>1?" ("+dur+" dias)":"") : ", "+pxEsc(dias))+".";
 }
+// ==CALTIPO== o tipo de cada linha da lista: "campanha" no banco = promoção com encarte; "data" = campanha interna
+// (criada pelo Adicionar como interna, ou a "Personalizada" de antes) ou data comemorativa. Marca gravada no setor.
+var CC_SETOR_INTERNA="Campanha interna", CC_SETOR_COMEMORATIVA="Data comemorativa";
+function ccTipoDe(r){
+  if(r && r.tipo==="campanha") return "encarte";
+  var st=String((r && r.setor)||"");
+  return (st===CC_SETOR_INTERNA || st==="Personalizada") ? "interna" : "comemorativa";
+}
+function ccEtiquetaTipo(r){
+  var t=ccTipoDe(r);
+  if(t==="encarte") return '<span class="cc-et cc-et-encarte">Promoção com encarte</span>';
+  if(t==="interna") return '<span class="cc-et cc-et-interna">Campanha interna</span>';
+  return '<span class="cc-et cc-et-data">Data comemorativa</span>';
+}
 function calDescRegra(r){
   var g=r.regra||{}, dn=["domingo","segunda","terça","quarta","quinta","sexta","sábado"], ms=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
   var durTx=(+g.duracao_dias>1) ? " · "+g.duracao_dias+" dias" : "";
@@ -9256,7 +9285,13 @@ function calDescRegra(r){
   if(g.tipo==="mensal_nth") return ccOrdinal(g.n,g.dia_semana)+" do mês"+durTx;
   if(g.tipo==="mensal_ultimo") return cap(ccUltimo(g.dia_semana))+" do mês"+durTx;
   if(g.tipo==="anual_fixa") return g.dia+" de "+ms[g.mes-1]+durTx;
-  if(g.tipo==="anual_nth") return ccOrdinal(g.n,g.dia_semana)+" de "+ms[g.mes-1]+durTx;
+  if(g.tipo==="anual_nth"){
+    var base=ccOrdinal(g.n,g.dia_semana)+" de "+ms[g.mes-1], desl=+g.deslocamento_dias||0;
+    // ==CALTIPO== a Black Friday é a SEXTA depois da 4ª quinta de novembro (antes saía só "4ª quinta de novembro")
+    if(desl>0 && desl<7) return cap(dn[(g.dia_semana+desl)%7])+" depois "+(ccFem(g.dia_semana)?"da ":"do ")+base+durTx;
+    if(desl) return base+" "+(desl>0?"+":"")+desl+" dias"+durTx;
+    return base+durTx;
+  }
   if(g.tipo==="anual_ultimo") return cap(ccUltimo(g.dia_semana))+" de "+ms[g.mes-1]+durTx;
   if(g.tipo==="pascoa") return g.deslocamento_dias===0 ? "Domingo de Páscoa" : ("Páscoa "+(g.deslocamento_dias>0?"+":"")+g.deslocamento_dias+" dias");
   if(g.tipo==="datas") return (g.lista&&g.lista.length) ? g.lista.map(function(x){ var a=x.inicio.split("-").reverse().join("/"); return (x.fim && x.fim!==x.inicio) ? a+" a "+x.fim.split("-").reverse().join("/") : a; }).join(", ") : "Data a configurar por ano";
@@ -9269,12 +9304,14 @@ function ccRenderLista(){
   // ==CALPROMOS== quem não é master só vê a lista (não cria): o botão de cima diz isso, sem o "+"
   var bt=document.getElementById("calPromos");
   if(bt){ var tx=bt.lastChild; if(tx && tx.nodeType===3) tx.textContent=m?"Adicionar promoção":"Ver promoções"; var ic=bt.querySelector("svg"); if(ic) ic.style.display=m?"":"none"; }
-  var lista=CAL_REGRAS.slice().sort(function(a,b){ return (a.tipo===b.tipo?0:(a.tipo==="campanha"?-1:1)) || ((a.ordem||0)-(b.ordem||0)); });
+  // ==CALTIPO== em grupos: promoções com encarte, campanhas internas, datas comemorativas
+  var grupoDe=function(r){ var t=ccTipoDe(r); return t==="encarte"?0:(t==="interna"?1:2); };
+  var lista=CAL_REGRAS.slice().sort(function(a,b){ return (grupoDe(a)-grupoDe(b)) || ((a.ordem||0)-(b.ordem||0)) || String(a.nome).localeCompare(String(b.nome)); });
   box.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:13px;">'+
     lista.map(function(r){
       var pausada=r.situacao==="pausada";
       var acao=m ? '<span data-ccsit="'+pxEsc(r.id)+'" data-para="'+(pausada?"ativa":"pausada")+'" style="color:'+(pausada?'#157a35':'#c0392b')+';cursor:pointer;font-weight:700;">'+(pausada?'reativar':'pausar')+'</span>' : '';
-      return '<tr style="border-bottom:1px solid #eef2f6;'+(pausada?'opacity:.55;':'')+'"><td style="padding:6px 4px;"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:'+pxEsc(r.cor||"#566379")+';vertical-align:middle;margin-right:7px;"></span>'+pxEsc(r.nome)+'</td><td style="padding:6px 4px;color:#6b7787;">'+pxEsc(calDescRegra(r))+'</td><td style="padding:6px 4px;color:#6b7787;">'+(r.tipo==="campanha"?"campanha":"data")+(pausada?" · PAUSADA":"")+'</td><td style="padding:6px 4px;text-align:right;">'+acao+'</td></tr>';
+      return '<tr style="border-bottom:1px solid #eef2f6;'+(pausada?'opacity:.55;':'')+'"><td style="padding:6px 4px;"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:'+pxEsc(r.cor||"#566379")+';vertical-align:middle;margin-right:7px;"></span>'+pxEsc(r.nome)+'</td><td style="padding:6px 4px;color:#6b7787;">'+pxEsc(calDescRegra(r))+'</td><td style="padding:6px 4px;color:#6b7787;">'+ccEtiquetaTipo(r)+(pausada?" · PAUSADA":"")+'</td><td style="padding:6px 4px;text-align:right;">'+acao+'</td></tr>';
     }).join('')+'</table>';
 }
 (function(){
@@ -9303,8 +9340,18 @@ function ccRenderLista(){
     rep.innerHTML=ops.map(function(o){ return '<option value="'+o.v+'">'+pxEsc(o.t)+'</option>'; }).join("");
     rep.value=ops.some(function(o){ return o.v===antes; }) ? antes : "nao";
     if(ok && /^\\d{4}-\\d{2}-\\d{2}$/.test(fim.value)) durAntes=Math.max(1, ccDiasEntre(ini.value, fim.value)+1);
-    resumo.innerHTML=ok ? ccResumoTexto(ini.value, fim.value, rep.value) : "Escolha o dia em que a promoção começa.";
+    var rotTipo=(window.__ccTipoAtual && window.__ccTipoAtual()==="comemorativa") ? "Data comemorativa" : "Campanha interna";
+    resumo.innerHTML=ok ? (rotTipo+" · só no Calendário, sem encarte. "+ccResumoTexto(ini.value, fim.value, rep.value)) : "Escolha o dia em que a promoção começa.";
   }
+  // ==CALTIPO== Campanha interna (padrão) ou Data comemorativa: muda o exemplo do nome e o que vai para o banco
+  var tipoSel=document.getElementById("ccTipo"), tipoAtual="interna";
+  function marcaTipo(t){
+    tipoAtual=(t==="comemorativa") ? "comemorativa" : "interna";
+    document.getElementById("ccNome").placeholder = tipoAtual==="interna" ? "ex: Feirão do Açougue" : "ex: Dia do Nordestino";
+    ccAtualiza();
+  }
+  tipoSel.addEventListener("change",function(){ marcaTipo(tipoSel.value); });
+  window.__ccTipoAtual=function(){ return tipoAtual; };
   ini.addEventListener("change",aoMudarIni); ini.addEventListener("input",aoMudarIni);
   fim.addEventListener("change",aoMudarFim);
   rep.addEventListener("change",ccAtualiza);
@@ -9320,7 +9367,8 @@ function ccRenderLista(){
     var r=ccRegraDoForm(ini.value, fim.value, rep.value);
     if(r.erro) return erro(r.erro);
     // p_id vazio: o banco dá o identificador ("usr-..."). Nasce ATIVA.
-    window.__SB.rpc("calendario_salvar_regra",{p_id:null, p:{nome:nome, tipo:"data", categoria:"media", regra:r.regra, cor:cor, setor:"Personalizada"}}).then(function(res){
+    var setor=(tipoAtual==="comemorativa") ? CC_SETOR_COMEMORATIVA : CC_SETOR_INTERNA;   // ==CALTIPO==
+    window.__SB.rpc("calendario_salvar_regra",{p_id:null, p:{nome:nome, tipo:"data", categoria:"media", regra:r.regra, cor:cor, setor:setor}}).then(function(res){
       if(res.error) return erro("O banco recusou: "+String(res.error.message||res.error).slice(0,160));
       document.getElementById("ccNome").value=""; msg.style.display="none";
       calCarregarNuvem(true);

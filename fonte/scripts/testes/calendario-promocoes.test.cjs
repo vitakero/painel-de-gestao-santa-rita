@@ -41,7 +41,7 @@ confere("o texto do Imprimir pode sumir no celular (span próprio + aria-label)"
 const jan = pag.slice(pag.indexOf('id="ccJanBg"'));
 confere("a janela existe dentro da página", pag.includes('<div class="ag-jan-bg" id="ccJanBg">'));
 confere("a janela é um diálogo com título", /role="dialog" aria-modal="true" aria-labelledby="ccJanTit"/.test(jan) && jan.includes('id="ccJanTit"'));
-for (const id of ["ccJanX", "ccForm", "ccNome", "ccCor", "ccIni", "ccFim", "ccRep", "ccResumo", "ccAdd", "ccMsg", "ccLista"])
+for (const id of ["ccJanX", "ccForm", "ccNome", "ccTipo", "ccCor", "ccIni", "ccFim", "ccRep", "ccResumo", "ccAdd", "ccMsg", "ccLista"])
   confere("a janela tem #" + id, jan.includes('id="' + id + '"'));
 confere("o quadro velho do pé da página sumiu", !src.includes('<details id="ccBox">'));
 confere("nenhum id da janela ficou repetido", ["ccJanBg", "calPromos", "ccLista", "ccForm"].every((id) => src.split('id="' + id + '"').length === 2));
@@ -93,7 +93,20 @@ confere("fechar solta a página de trás", /document\.body\.style\.overflow=""/.
   const trecho = src.slice(a0, a1).replace(/\\\\/g, "\\");
   const ctx = { pxEsc: (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])) };
   vm.createContext(ctx);
-  vm.runInContext(trecho + "; this.op=ccOpcoesRepetir; this.rg=ccRegraDoForm; this.rs=ccResumoTexto; this.desc=calDescRegra;", ctx);
+  vm.runInContext(trecho + "; this.op=ccOpcoesRepetir; this.rg=ccRegraDoForm; this.rs=ccResumoTexto; this.desc=calDescRegra; this.tipo=ccTipoDe; this.et=ccEtiquetaTipo;", ctx);
+  // ==CALTIPO== o Tipo (dono, 10/10/2026): lista com setinha, "Campanha interna" já escolhida; etiqueta na lista
+  confere("o Tipo é uma lista com setinha, com Campanha interna já escolhida",
+    /<select id="ccTipo">\s*<option value="interna" selected>Campanha interna<\/option>\s*<option value="comemorativa">Data comemorativa<\/option>/.test(src));
+  confere("o tipo gravado vai no setor (Campanha interna / Data comemorativa)", /var setor=\(tipoAtual==="comemorativa"\) \? CC_SETOR_COMEMORATIVA : CC_SETOR_INTERNA;/.test(src) && /setor:setor\}/.test(src));
+  confere("tipo: campanha = Promoção com encarte", ctx.tipo({ tipo: "campanha", setor: "Geral" }) === "encarte");
+  confere("tipo: data com setor Campanha interna = interna", ctx.tipo({ tipo: "data", setor: "Campanha interna" }) === "interna");
+  confere("tipo: data Personalizada (de antes) = interna", ctx.tipo({ tipo: "data", setor: "Personalizada" }) === "interna");
+  confere("tipo: data comemorativa de fábrica = comemorativa", ctx.tipo({ tipo: "data", setor: "Perfumaria" }) === "comemorativa");
+  confere("etiqueta da lista com o nome claro", /Promoção com encarte/.test(ctx.et({ tipo: "campanha" })) && /Campanha interna/.test(ctx.et({ tipo: "data", setor: "Campanha interna" })) && /Data comemorativa/.test(ctx.et({ tipo: "data", setor: "Mercearia" })));
+  confere("Black Friday: sexta depois da 4ª quinta de novembro",
+    ctx.desc({ regra: { tipo: "anual_nth", mes: 11, n: 4, dia_semana: 4, deslocamento_dias: 1, duracao_dias: 1 } }) === "Sexta depois da 4ª quinta de novembro",
+    ctx.desc({ regra: { tipo: "anual_nth", mes: 11, n: 4, dia_semana: 4, deslocamento_dias: 1, duracao_dias: 1 } }));
+  confere("Dia das Mães continua 2º domingo de maio", ctx.desc({ regra: { tipo: "anual_nth", mes: 5, n: 2, dia_semana: 0, duracao_dias: 1 } }) === "2º domingo de maio");
   const ops = (iso) => ctx.op(iso).map((o) => o.v + "=" + o.t).join(" | ");
   // sexta 16/10/2026 = 3ª sexta, não é a última do mês
   confere("Repetir de uma sexta (16/10/2026)", ops("2026-10-16") ===
