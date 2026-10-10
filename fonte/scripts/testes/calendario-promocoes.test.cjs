@@ -41,7 +41,7 @@ confere("o texto do Imprimir pode sumir no celular (span próprio + aria-label)"
 const jan = pag.slice(pag.indexOf('id="ccJanBg"'));
 confere("a janela existe dentro da página", pag.includes('<div class="ag-jan-bg" id="ccJanBg">'));
 confere("a janela é um diálogo com título", /role="dialog" aria-modal="true" aria-labelledby="ccJanTit"/.test(jan) && jan.includes('id="ccJanTit"'));
-for (const id of ["ccJanX", "ccForm", "ccNome", "ccCor", "ccTipo", "ccData", "ccAnual", "ccDow", "ccAdd", "ccMsg", "ccLista"])
+for (const id of ["ccJanX", "ccForm", "ccNome", "ccCor", "ccIni", "ccFim", "ccRep", "ccResumo", "ccAdd", "ccMsg", "ccLista"])
   confere("a janela tem #" + id, jan.includes('id="' + id + '"'));
 confere("o quadro velho do pé da página sumiu", !src.includes('<details id="ccBox">'));
 confere("nenhum id da janela ficou repetido", ["ccJanBg", "calPromos", "ccLista", "ccForm"].every((id) => src.split('id="' + id + '"').length === 2));
@@ -81,6 +81,54 @@ const fAbre = (js.match(/function ccAbre\(\)\{([\s\S]*?)\n  \}/) || [])[1] || ""
 const fFecha = (js.match(/function ccFecha\(\)\{([\s\S]*?)\n  \}/) || [])[1] || "";
 confere("abrir trava a página de trás", /document\.body\.style\.overflow="hidden"/.test(fAbre));
 confere("fechar solta a página de trás", /document\.body\.style\.overflow=""/.test(fFecha));
+
+// 7) ==CALFORM== o formulário no estilo do Google Agenda (dono, 10/10/2026): RODA as funções de verdade.
+//    Recorta das marcas "peças puras do formulário" até "function calDescRegra" e o calDescRegra inteiro;
+//    desfaz o escape do arquivo (dentro do modelo do painel "\\d" vira "\d") e roda com vm.
+{
+  const vm = require("vm");
+  const a0 = src.indexOf("/* ==CALFORM== peças puras do formulário");
+  const a1 = src.indexOf("function ccRenderLista(){");
+  confere("acha as peças puras do formulário", a0 > 0 && a1 > a0);
+  const trecho = src.slice(a0, a1).replace(/\\\\/g, "\\");
+  const ctx = { pxEsc: (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])) };
+  vm.createContext(ctx);
+  vm.runInContext(trecho + "; this.op=ccOpcoesRepetir; this.rg=ccRegraDoForm; this.rs=ccResumoTexto; this.desc=calDescRegra;", ctx);
+  const ops = (iso) => ctx.op(iso).map((o) => o.v + "=" + o.t).join(" | ");
+  // sexta 16/10/2026 = 3ª sexta, não é a última do mês
+  confere("Repetir de uma sexta (16/10/2026)", ops("2026-10-16") ===
+    "nao=Não se repete | semana=Toda semana na sexta-feira | mes_n=Todo mês na 3ª sexta | ano_dia=Todo ano em 16 de outubro | ano_n=Todo ano na 3ª sexta de outubro",
+    ops("2026-10-16"));
+  // sexta 30/10/2026 = 5ª e última: sem "5ª sexta" (nem todo mês tem), com "última"
+  confere("Repetir da última sexta (30/10/2026)", ops("2026-10-30") ===
+    "nao=Não se repete | semana=Toda semana na sexta-feira | mes_ult=Todo mês na última sexta | ano_dia=Todo ano em 30 de outubro | ano_ult=Todo ano na última sexta de outubro",
+    ops("2026-10-30"));
+  // sábado é masculino: "no 2º sábado"
+  confere("Repetir de um sábado (10/10/2026): no 2º sábado", /mes_n=Todo mês no 2º sábado/.test(ops("2026-10-10")) && /semana=Toda semana no sábado/.test(ops("2026-10-10")), ops("2026-10-10"));
+  const J = (x) => JSON.stringify(x);
+  confere("sexta a domingo, toda semana → semanal sexta 3 dias", J(ctx.rg("2026-10-16", "2026-10-18", "semana")) === J({ regra: { tipo: "semanal", dia_semana: 5, duracao_dias: 3 } }), J(ctx.rg("2026-10-16", "2026-10-18", "semana")));
+  confere("só segunda, toda semana → semanal segunda 1 dia", J(ctx.rg("2026-10-12", "2026-10-12", "semana")) === J({ regra: { tipo: "semanal", dia_semana: 1, duracao_dias: 1 } }));
+  confere("não se repete → lista com o período", J(ctx.rg("2026-12-20", "2026-12-23", "nao")) === J({ regra: { tipo: "datas", lista: [{ inicio: "2026-12-20", fim: "2026-12-23" }] } }));
+  confere("todo ano no 2º domingo de maio", J(ctx.rg("2027-05-09", "2027-05-09", "ano_n")) === J({ regra: { tipo: "anual_nth", mes: 5, n: 2, dia_semana: 0, duracao_dias: 1 } }));
+  confere("todo mês na última quinta", J(ctx.rg("2026-10-29", "2026-10-29", "mes_ult")) === J({ regra: { tipo: "mensal_ultimo", dia_semana: 4, duracao_dias: 1 } }));
+  confere("todo ano em 12 de junho, 3 dias", J(ctx.rg("2027-06-12", "2027-06-14", "ano_dia")) === J({ regra: { tipo: "anual_fixa", mes: 6, dia: 12, duracao_dias: 3 } }));
+  confere("toda semana com 9 dias é recusada (uma semana encostaria na outra)", !!ctx.rg("2026-10-16", "2026-10-24", "semana").erro);
+  confere("todo mês com 30 dias é recusado", !!ctx.rg("2026-10-01", "2026-10-30", "mes_n").erro);
+  confere("mais de 60 dias é recusado (o banco aceita até 60)", !!ctx.rg("2026-01-01", "2026-03-15", "nao").erro);
+  confere("sem data de começo pede a data", /começa/.test(ctx.rg("", "", "nao").erro || ""));
+  confere("resumo diz de que dia a que dia", /Toda semana na sexta-feira<\/b>, de sexta a domingo \(3 dias\)\./.test(ctx.rs("2026-10-16", "2026-10-18", "semana")), ctx.rs("2026-10-16", "2026-10-18", "semana"));
+  // o texto da lista com o gênero certo e a duração
+  confere("lista: 2º sábado do mês · 2 dias", ctx.desc({ regra: { tipo: "mensal_nth", n: 2, dia_semana: 6, duracao_dias: 2 } }) === "2º sábado do mês · 2 dias", ctx.desc({ regra: { tipo: "mensal_nth", n: 2, dia_semana: 6, duracao_dias: 2 } }));
+  confere("lista: Última quinta do mês", ctx.desc({ regra: { tipo: "mensal_ultimo", dia_semana: 4, duracao_dias: 1 } }) === "Última quinta do mês");
+  confere("lista: Sexta a domingo", ctx.desc({ regra: { tipo: "semanal", dia_semana: 5, duracao_dias: 3 } }) === "Sexta a domingo");
+  confere("lista: período só uma vez", ctx.desc({ regra: { tipo: "datas", lista: [{ inicio: "2026-12-20", fim: "2026-12-23" }] } }) === "20/12/2026 a 23/12/2026");
+  // as regras que o formulário grava, o motor do Calendário entende (as datas saem certas)
+  const ENC = require(path.join(RAIZ, "scripts", "encartes", "calculo.cjs"));
+  const oc = ENC.ocorrencias(ctx.rg("2026-10-16", "2026-10-18", "semana").regra, "2026-10-12", "2026-10-25").map((o) => o.inicio + ">" + o.fim).join(" ");
+  confere("o motor entende a regra gravada (sextas 16 e 23/10, 3 dias)", oc === "2026-10-16>2026-10-18 2026-10-23>2026-10-25", oc);
+  const oa = ENC.ocorrencias(ctx.rg("2027-05-09", "2027-05-09", "ano_n").regra, "2028-01-01", "2028-12-31").map((o) => o.inicio).join(" ");
+  confere("o motor entende o 2º domingo de maio (2028 = 14/05)", oa === "2028-05-14", oa);
+}
 
 // quem não é master só vê a lista: o botão muda de nome
 confere("quem não é master vê \"Ver promoções\"", /ccRenderLista[\s\S]*?"Adicionar promoção":"Ver promoções"/.test(src));

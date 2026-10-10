@@ -1183,6 +1183,22 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   /* o corpo rola, e rolar em Y corta em X junto: 8px de folga para o anel do foco (desenhado 4px
      FORA do campo) — a margem negativa devolve o espaço sem mover nada de lugar */
   .cc-corpo { overflow-y:auto; overscroll-behavior:contain; min-height:0; margin:0 -8px; padding:0 8px 16px; }
+  /* ==CALFORM== o formulário em linhas: nome e cor; começa, termina e repetir; o resumo em frase; o botão */
+  .cc-form { display:flex; flex-direction:column; gap:12px; margin-top:6px; }
+  /* os campos com o mesmo desenho dos filtros do Painel (rótulo em cima, pequeno e em maiúsculas) */
+  .cc-form .campo { display:flex; flex-direction:column; gap:5px; }
+  .cc-form label { font-size:11px; color:#6b7787; text-transform:uppercase; letter-spacing:.4px; }
+  .cc-form input[type=text], .cc-form input[type=date] { padding:9px 11px; border:1px solid #cdd6e0; border-radius:8px; font-size:14px; }
+  .cc-form button { padding:9px 16px; border:0; border-radius:8px; font-size:14px; cursor:pointer; font-weight:600; }
+  .cc-linha { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
+  .cc-linha .campo { margin:0; }
+  .cc-nome { flex:1 1 260px; }
+  .cc-rep { flex:1 1 240px; }
+  .cc-rep select { width:100%; padding:9px 11px; border:1px solid #cdd6e0; border-radius:8px; font-size:14px; background:#fff; }
+  .cc-resumo { font-size:13.5px; color:#33404f; background:#f3f6f9; border-radius:8px; padding:9px 12px; line-height:1.45; }
+  .cc-resumo b { color:#0c5a26; }
+  .cc-acao { align-items:center; }
+  @media (max-width:760px){ .cc-linha .campo { flex:1 1 100%; } .cc-linha .campo input[type=date] { width:100%; } }
   /* janela aberta: a rolagem fica nela — chegar ao fim da lista não passa a rolar o calendário de trás
      (dono, 09/10/2026). O fundo da página é travado ao abrir (ccAbre) e solto ao fechar (ccFecha). */
   #ccJanBg { overscroll-behavior:contain; }
@@ -2635,26 +2651,23 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
           <h3 class="ag-jan-tit" id="ccJanTit">Promoções e datas do calendário</h3>
           <div class="cc-corpo">
           <p style="margin:10px 0 6px;color:#6b7787;font-size:13px;line-height:1.5;">Cada campanha segue uma regra e vale para todos os anos. Pausar não apaga: some do calendário e deixa de gerar trabalho. Data comemorativa é oportunidade: só vira trabalho quando alguém decide uma ação, no Encartes. Só o master cria, pausa ou reativa.</p>
-          <div class="filtros" id="ccForm" style="box-shadow:none;padding:0;flex-wrap:wrap;align-items:flex-start;">
-            <div class="campo" style="flex:1;min-width:180px;"><label for="ccNome">Nome da campanha</label><input type="text" id="ccNome" placeholder="ex: Quarta do Hortifruti"></div>
-            <div class="campo"><label for="ccCor">Cor</label><input type="color" id="ccCor" value="#157a35" style="width:54px;height:40px;padding:2px;cursor:pointer;"></div>
-            <div class="campo"><label for="ccTipo">Quando acontece</label>
-              <select id="ccTipo" style="padding:9px 11px;border:1px solid #cdd6e0;border-radius:8px;font-size:14px;">
-                <option value="data">Numa data específica</option>
-                <option value="semana">Toda semana (dia fixo)</option>
-              </select>
+          <!-- ==CALFORM== o formulário no estilo do Google Agenda (dono, 10/10/2026): começa, termina e "Repetir"
+               com as opções montadas a partir da data escolhida. Antes era um dia só ("Numa data" ou "Toda semana"). -->
+          <div class="cc-form" id="ccForm">
+            <div class="cc-linha">
+              <div class="campo cc-nome"><label for="ccNome">Nome da promoção</label><input type="text" id="ccNome" maxlength="60" placeholder="ex: Feirão do Açougue"></div>
+              <div class="campo"><label for="ccCor">Cor</label><input type="color" id="ccCor" value="#157a35" style="width:54px;height:40px;padding:2px;cursor:pointer;"></div>
             </div>
-            <div class="campo" id="ccDataBox"><label for="ccData">Data</label>
-              <input type="date" id="ccData">
-              <label style="font-size:12px;color:#6b7787;font-weight:400;margin-top:5px;display:flex;align-items:center;gap:5px;"><input type="checkbox" id="ccAnual" style="width:auto;"> repetir todo ano</label>
+            <div class="cc-linha">
+              <div class="campo"><label for="ccIni">Começa</label><input type="date" id="ccIni"></div>
+              <div class="campo"><label for="ccFim">Termina</label><input type="date" id="ccFim"></div>
+              <div class="campo cc-rep"><label for="ccRep">Repetir</label><select id="ccRep"></select></div>
             </div>
-            <div class="campo" id="ccSemanaBox" style="display:none;"><label for="ccDow">Dia da semana</label>
-              <select id="ccDow" style="padding:9px 11px;border:1px solid #cdd6e0;border-radius:8px;font-size:14px;">
-                <option value="0">Domingo</option><option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option>
-              </select>
+            <div class="cc-resumo" id="ccResumo" aria-live="polite"></div>
+            <div class="cc-linha cc-acao">
+              <button class="btn-p" id="ccAdd" type="button">Adicionar</button>
+              <span id="ccMsg" style="font-size:12.5px;color:#c0392b;display:none;"></span>
             </div>
-            <button class="btn-p" id="ccAdd" style="margin-top:18px;">Adicionar</button>
-            <span id="ccMsg" style="flex-basis:100%;font-size:12.5px;color:#c0392b;margin-top:6px;display:none;"></span>
           </div>
           <div id="ccLista" style="margin-top:12px;"></div>
           </div>
@@ -9182,17 +9195,71 @@ function calCarregarNuvem(forcar){
 // Quem cria ou pausa: só o master (a regra mora na nuvem e vale para todos). Pausar NUNCA apaga: a campanha
 // continua cadastrada, some do calendário e deixa de gerar trabalho; reativar traz de volta.
 function calEhMaster(){ return !!(window.__PERFIL && window.__PERFIL.is_master); }
+/* ==CALFORM== peças puras do formulário (o teste calendario-promocoes roda estas funções de verdade) */
+var CC_DN=["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
+var CC_DNL=["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
+var CC_MS=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+function ccDataDe(iso){ var p=String(iso).split("-"); return new Date(+p[0], +p[1]-1, +p[2], 12); }
+function ccIsoDe(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function ccSomaDias(iso, n){ var d=ccDataDe(iso); d.setDate(d.getDate()+n); return ccIsoDe(d); }
+function ccDiasEntre(a, b){ return Math.round((ccDataDe(b)-ccDataDe(a))/86400000); }
+// segunda a sexta são femininas ("a 2ª sexta", "a última quinta"); sábado e domingo, masculinos
+function ccFem(dow){ return dow>=1 && dow<=5; }
+function ccOrdinal(n, dow){ return n+(ccFem(dow)?"ª ":"º ")+CC_DN[dow]; }
+function ccUltimo(dow){ return (ccFem(dow)?"última ":"último ")+CC_DN[dow]; }
+function ccOpcoesRepetir(iniIso){
+  var d=ccDataDe(iniIso), dow=d.getDay(), dia=d.getDate(), mes=d.getMonth(), n=Math.ceil(dia/7);
+  var noMes=new Date(d.getFullYear(), mes+1, 0).getDate(), ehUltimo=(dia+7>noMes), art=ccFem(dow)?"na ":"no ";
+  var o=[{v:"nao", t:"Não se repete"}, {v:"semana", t:"Toda semana "+(ccFem(dow)?"na ":"no ")+CC_DNL[dow]}];
+  if(n<=4) o.push({v:"mes_n", t:"Todo mês "+art+ccOrdinal(n,dow)});
+  if(ehUltimo) o.push({v:"mes_ult", t:"Todo mês "+art+ccUltimo(dow)});
+  o.push({v:"ano_dia", t:"Todo ano em "+dia+" de "+CC_MS[mes]});
+  if(n<=4) o.push({v:"ano_n", t:"Todo ano "+art+ccOrdinal(n,dow)+" de "+CC_MS[mes]});
+  if(ehUltimo) o.push({v:"ano_ult", t:"Todo ano "+art+ccUltimo(dow)+" de "+CC_MS[mes]});
+  return o;
+}
+// devolve {regra} ou {erro}. Teto da duração: toda semana até 7 dias (senão uma semana encosta na outra),
+// todo mês até 28, o resto até 60 (o banco aceita de 1 a 60).
+function ccRegraDoForm(iniIso, fimIso, tipo){
+  var re=/^\\d{4}-\\d{2}-\\d{2}$/;
+  if(!re.test(String(iniIso||""))) return {erro:"Escolha o dia em que a promoção começa."};
+  if(!re.test(String(fimIso||""))) fimIso=iniIso;
+  var dur=ccDiasEntre(iniIso, fimIso)+1;
+  if(dur<1) return {erro:"O dia que termina vem antes do dia que começa."};
+  var d=ccDataDe(iniIso), dow=d.getDay(), dia=d.getDate(), mes=d.getMonth()+1, n=Math.ceil(dia/7);
+  var teto=tipo==="semana" ? 7 : (tipo==="mes_n"||tipo==="mes_ult") ? 28 : 60;
+  if(dur>teto) return {erro: tipo==="semana" ? "Toda semana pode durar até 7 dias." : (teto===28 ? "Todo mês pode durar até 28 dias." : "A promoção pode durar até 60 dias.")};
+  if(tipo==="nao") return {regra:{tipo:"datas", lista:[{inicio:iniIso, fim:fimIso}]}};
+  if(tipo==="semana") return {regra:{tipo:"semanal", dia_semana:dow, duracao_dias:dur}};
+  if(tipo==="mes_n") return {regra:{tipo:"mensal_nth", n:n, dia_semana:dow, duracao_dias:dur}};
+  if(tipo==="mes_ult") return {regra:{tipo:"mensal_ultimo", dia_semana:dow, duracao_dias:dur}};
+  if(tipo==="ano_dia") return {regra:{tipo:"anual_fixa", mes:mes, dia:dia, duracao_dias:dur}};
+  if(tipo==="ano_n") return {regra:{tipo:"anual_nth", mes:mes, n:n, dia_semana:dow, duracao_dias:dur}};
+  if(tipo==="ano_ult") return {regra:{tipo:"anual_ultimo", mes:mes, dia_semana:dow, duracao_dias:dur}};
+  return {erro:"Escolha como a promoção se repete."};
+}
+function ccResumoTexto(iniIso, fimIso, tipo){
+  var r=ccRegraDoForm(iniIso, fimIso, tipo); if(r.erro) return pxEsc(r.erro);
+  var a=ccDataDe(iniIso), dur=r.regra.duracao_dias || (ccDiasEntre(iniIso, fimIso)+1);
+  var dias=dur===1 ? "só o dia" : (dur<=7 ? "de "+CC_DN[a.getDay()]+" a "+CC_DN[(a.getDay()+dur-1)%7]+" ("+dur+" dias)" : dur+" dias");
+  var quando=tipo==="nao" ? "Só uma vez, "+(dur===1 ? "em "+iniIso.split("-").reverse().join("/") : "de "+iniIso.split("-").reverse().join("/")+" a "+fimIso.split("-").reverse().join("/"))
+           : (ccOpcoesRepetir(iniIso).filter(function(o){ return o.v===tipo; })[0]||{t:""}).t;
+  return "<b>"+pxEsc(quando)+"</b>"+(tipo==="nao" ? (dur>1?" ("+dur+" dias)":"") : ", "+pxEsc(dias))+".";
+}
 function calDescRegra(r){
   var g=r.regra||{}, dn=["domingo","segunda","terça","quarta","quinta","sexta","sábado"], ms=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+  var durTx=(+g.duracao_dias>1) ? " · "+g.duracao_dias+" dias" : "";
   // ==CALFDS== semanal de mais de um dia diz de que dia a que dia ("Sexta a domingo", "Segunda a domingo")
   if(g.tipo==="semanal"){ var dur=+g.duracao_dias||1; if(dur>1 && dur<=7){ var d1=dn[g.dia_semana], d2=dn[(g.dia_semana+dur-1)%7]; return d1.charAt(0).toUpperCase()+d1.slice(1)+" a "+d2; } return "Toda "+dn[g.dia_semana]; }
-  if(g.tipo==="mensal_nth") return g.n+"º "+dn[g.dia_semana]+" do mês";
-  if(g.tipo==="mensal_ultimo") return "Última "+dn[g.dia_semana]+" do mês";
-  if(g.tipo==="anual_fixa") return g.dia+" de "+ms[g.mes-1];
-  if(g.tipo==="anual_nth") return g.n+"º "+dn[g.dia_semana]+" de "+ms[g.mes-1];
-  if(g.tipo==="anual_ultimo") return "Última "+dn[g.dia_semana]+" de "+ms[g.mes-1];
+  // ==CALFORM== com o gênero certo ("2º sábado", "2ª sexta", "último domingo") e a duração quando passa de 1 dia
+  var cap=function(t){ return t.charAt(0).toUpperCase()+t.slice(1); };
+  if(g.tipo==="mensal_nth") return ccOrdinal(g.n,g.dia_semana)+" do mês"+durTx;
+  if(g.tipo==="mensal_ultimo") return cap(ccUltimo(g.dia_semana))+" do mês"+durTx;
+  if(g.tipo==="anual_fixa") return g.dia+" de "+ms[g.mes-1]+durTx;
+  if(g.tipo==="anual_nth") return ccOrdinal(g.n,g.dia_semana)+" de "+ms[g.mes-1]+durTx;
+  if(g.tipo==="anual_ultimo") return cap(ccUltimo(g.dia_semana))+" de "+ms[g.mes-1]+durTx;
   if(g.tipo==="pascoa") return g.deslocamento_dias===0 ? "Domingo de Páscoa" : ("Páscoa "+(g.deslocamento_dias>0?"+":"")+g.deslocamento_dias+" dias");
-  if(g.tipo==="datas") return (g.lista&&g.lista.length) ? g.lista.map(function(x){ return x.inicio.split("-").reverse().join("/"); }).join(", ") : "Data a configurar por ano";
+  if(g.tipo==="datas") return (g.lista&&g.lista.length) ? g.lista.map(function(x){ var a=x.inicio.split("-").reverse().join("/"); return (x.fim && x.fim!==x.inicio) ? a+" a "+x.fim.split("-").reverse().join("/") : a; }).join(", ") : "Data a configurar por ano";
   return "";
 }
 function ccRenderLista(){
@@ -9211,32 +9278,50 @@ function ccRenderLista(){
     }).join('')+'</table>';
 }
 (function(){
-  var tipo=document.getElementById("ccTipo"); if(!tipo) return;
-  tipo.addEventListener("change",function(){
-    var dataBox=document.getElementById("ccDataBox"), semBox=document.getElementById("ccSemanaBox");
-    if(tipo.value==="semana"){ dataBox.style.display="none"; semBox.style.display=""; }
-    else { dataBox.style.display=""; semBox.style.display="none"; }
-  });
+  /* ==CALFORM== Começa / Termina / Repetir, como no Google Agenda. As opções do "Repetir" saem da data em que
+     começa (uma sexta dá "Toda semana na sexta-feira"; o 2º sábado dá "Todo mês no 2º sábado"...). A duração é
+     de Começa a Termina. Tudo vira uma regra que o banco já aceita (calendario__validar_regra): datas, semanal,
+     mensal_nth, mensal_ultimo, anual_fixa, anual_nth e anual_ultimo, com duracao_dias de 1 a 60. */
+  var ini=document.getElementById("ccIni"); if(!ini) return;
+  var fim=document.getElementById("ccFim"), rep=document.getElementById("ccRep"), resumo=document.getElementById("ccResumo");
+  function hojeIso(){ var h=new Date(); return h.getFullYear()+"-"+String(h.getMonth()+1).padStart(2,"0")+"-"+String(h.getDate()).padStart(2,"0"); }
+  ini.value=hojeIso(); fim.value=ini.value;
+  var durAntes=1;
+  function aoMudarIni(){
+    if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(ini.value)) return ccAtualiza();
+    // como no Google: mudar o começo leva o fim junto, mantendo a duração
+    fim.value=ccSomaDias(ini.value, durAntes-1);
+    ccAtualiza();
+  }
+  function aoMudarFim(){
+    if(/^\\d{4}-\\d{2}-\\d{2}$/.test(ini.value) && /^\\d{4}-\\d{2}-\\d{2}$/.test(fim.value) && fim.value<ini.value) fim.value=ini.value;
+    ccAtualiza();
+  }
+  function ccAtualiza(){
+    var ok=/^\\d{4}-\\d{2}-\\d{2}$/.test(ini.value), antes=rep.value;
+    var ops=ok ? ccOpcoesRepetir(ini.value) : [{v:"nao", t:"Não se repete"}];
+    rep.innerHTML=ops.map(function(o){ return '<option value="'+o.v+'">'+pxEsc(o.t)+'</option>'; }).join("");
+    rep.value=ops.some(function(o){ return o.v===antes; }) ? antes : "nao";
+    if(ok && /^\\d{4}-\\d{2}-\\d{2}$/.test(fim.value)) durAntes=Math.max(1, ccDiasEntre(ini.value, fim.value)+1);
+    resumo.innerHTML=ok ? ccResumoTexto(ini.value, fim.value, rep.value) : "Escolha o dia em que a promoção começa.";
+  }
+  ini.addEventListener("change",aoMudarIni); ini.addEventListener("input",aoMudarIni);
+  fim.addEventListener("change",aoMudarFim);
+  rep.addEventListener("change",ccAtualiza);
+  ccAtualiza();
   document.getElementById("ccAdd").addEventListener("click",function(){
     var nome=document.getElementById("ccNome").value.trim();
     var cor=document.getElementById("ccCor").value;
-    var t=document.getElementById("ccTipo").value;
     var msg=document.getElementById("ccMsg");
-    function erro(x){ msg.textContent=x; msg.style.color="#c0392b"; msg.style.display="block"; }
-    if(!calEhMaster()) return erro("Só o master cria ou pausa campanhas.");
+    function erro(x){ msg.textContent=x; msg.style.color="#c0392b"; msg.style.display="inline"; }
+    if(!calEhMaster()) return erro("Só o master cria ou pausa promoções.");
     if(!window.__SB) return erro("Entre no painel para criar.");
-    if(!nome) return erro("Digite o nome da campanha.");
-    var regra;
-    if(t==="semana"){ regra={tipo:"semanal", dia_semana:parseInt(document.getElementById("ccDow").value,10), duracao_dias:1}; }
-    else {
-      var data=document.getElementById("ccData").value;
-      if(!data || data.length!==10) return erro("Escolha a data da campanha.");
-      var p=data.split("-");
-      regra=document.getElementById("ccAnual").checked ? {tipo:"anual_fixa", mes:+p[1], dia:+p[2], duracao_dias:1} : {tipo:"datas", lista:[{inicio:data, fim:data}]};
-    }
+    if(!nome) return erro("Digite o nome da promoção.");
+    var r=ccRegraDoForm(ini.value, fim.value, rep.value);
+    if(r.erro) return erro(r.erro);
     // p_id vazio: o banco dá o identificador ("usr-..."). Nasce ATIVA.
-    window.__SB.rpc("calendario_salvar_regra",{p_id:null, p:{nome:nome, tipo:"data", categoria:"media", regra:regra, cor:cor, setor:"Personalizada"}}).then(function(r){
-      if(r.error) return erro("O banco recusou: "+String(r.error.message||r.error).slice(0,160));
+    window.__SB.rpc("calendario_salvar_regra",{p_id:null, p:{nome:nome, tipo:"data", categoria:"media", regra:r.regra, cor:cor, setor:"Personalizada"}}).then(function(res){
+      if(res.error) return erro("O banco recusou: "+String(res.error.message||res.error).slice(0,160));
       document.getElementById("ccNome").value=""; msg.style.display="none";
       calCarregarNuvem(true);
     }, function(e){ erro("Sem conexão agora. Tente de novo."); });
