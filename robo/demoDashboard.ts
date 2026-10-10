@@ -8575,7 +8575,18 @@ var CAL_EDICOES = [];      // resumo das edições reais do Encartes (etiquetas 
 // ==CALCACHE== A última lista de campanhas que veio da nuvem fica guardada neste navegador: ao recarregar,
 // o Calendário já nasce com ela (sem esperar o login), e a nuvem confirma logo depois. Sem cópia
 // guardada (ou com erro de leitura), fica a lista padrão do código, como antes.
-try{ var _calCache=JSON.parse(localStorage.getItem("cal_regras_nuvem")||"null"); if(Array.isArray(_calCache) && _calCache.length) CAL_REGRAS=_calCache; }catch(e){}
+// ==CALFDS== (10/10/2026) REGRAS e MODELOS agora ficam guardados JUNTOS ("cal_nuvem_par"), lidos no MESMO
+// momento da nuvem. Antes só as regras eram guardadas e os modelos vinham do código: na virada do Final de
+// semana para promoção própria, regras de um dia com modelos de outro mostravam o FDS em dobro ou sumido
+// até a nuvem responder (até ~30 s esperando o login). Par quebrado ou pela metade não vale: aí fica a
+// cópia antiga só das regras ("cal_regras_nuvem", que continua sendo gravada), como antes.
+var _calPar=null;
+try{ _calPar=JSON.parse(localStorage.getItem("cal_nuvem_par")||"null"); }catch(e){ _calPar=null; }
+if(_calPar && Array.isArray(_calPar.regras) && _calPar.regras.length && Array.isArray(_calPar.modelos) && _calPar.modelos.length){
+  CAL_REGRAS=_calPar.regras; CAL_MODELOS=_calPar.modelos;
+} else {
+  try{ var _calCache=JSON.parse(localStorage.getItem("cal_regras_nuvem")||"null"); if(Array.isArray(_calCache) && _calCache.length) CAL_REGRAS=_calCache; }catch(e){}
+}
 var _calOcCache = {}, _calCoinCache = {}, _calOpCache = null, _calOpChave = "";
 var _calNuvemEm = 0, _calNuvemLendo = false;
 function calInvalidar(){ _calOcCache = {}; _calCoinCache = {}; _calOpCache = null; }
@@ -8600,13 +8611,32 @@ function calOcorrenciasAno(ano){
   }catch(e){}
   _calOcCache[ano]=mapa; return mapa;
 }
-// Onde começa o grupo "Final de semana de ofertas" dentro da Promoção Semanal (vem do modelo).
+/* ==CALFDS== (10/10/2026, decisão do dono) O "Final de semana de ofertas" deixou de ser o grupo "fim-de-semana"
+   do modelo da Promoção Semanal e virou PROMOÇÃO PRÓPRIA: regra própria em calendario_regras (sexta a domingo)
+   e encarte próprio. O visual do Calendário fica IGUAL (nome, cor, logo depois da PS, Ano pintando os 3 dias)
+   e ele entende os DOIS estados da nuvem, NUNCA os dois ao mesmo tempo:
+   - existe a regra (ativa OU pausada)  -> vale só a regra; o grupo da PS é ignorado (sem etiqueta em dobro);
+   - não existe a regra                 -> vale o grupo de CHAVE "fim-de-semana" do modelo da PS (nuvem antiga);
+   - nem regra nem grupo (transição: cópia guardada sem a linha + modelos já sem o grupo) -> reserva fixa,
+     sexta a domingo da semana da PS. Sem ela o FDS sumia até a nuvem responder.
+   O id é o MESMO do sql/encartes_final_de_semana.sql e do calculo.cjs (cobrado por calendario-fds.test.cjs);
+   a busca também pelo NOME protege de um id batizado diferente numa das peças. */
+var CAL_FDS_ID="final-de-semana", CAL_FDS_NOME="Final de semana de ofertas";
+var CAL_FDS_RESERVA={ini:4, fim:6, nome:CAL_FDS_NOME};
+function calFdsRegra(){
+  for(var i=0;i<CAL_REGRAS.length;i++){ var r=CAL_REGRAS[i]; if(r && (r.id===CAL_FDS_ID || r.nome===CAL_FDS_NOME)) return r; }
+  return null;
+}
+// Sem a regra própria: onde começa o Final de semana dentro da Promoção Semanal (grupo do modelo, ou a reserva).
+// Só o grupo de chave "fim-de-semana": "o primeiro grupo com período" transformava qualquer outro grupo com
+// período próprio (ex.: um festival de segunda e terça) num falso Final de semana ciano em toda semana do ano.
 function calFds(){
+  if(calFdsRegra()) return null;
   try{
     var m=CAL_MODELOS.filter(function(x){ return x.id==="promocao-semanal"; })[0];
-    var g=m && m.estrutura && (m.estrutura.grupos||[]).filter(function(x){ return x.periodo && x.ativo_padrao!==false; })[0];
-    return g ? {ini:+g.periodo.ini_offset, fim:(g.periodo.fim_offset!=null ? +g.periodo.fim_offset : +g.periodo.ini_offset), nome:g.identidade||g.nome} : null;
-  }catch(e){ return null; }
+    var g=m && m.estrutura && (m.estrutura.grupos||[]).filter(function(x){ return x.chave==="fim-de-semana" && x.periodo && x.ativo_padrao!==false; })[0];
+    return g ? {ini:+g.periodo.ini_offset, fim:(g.periodo.fim_offset!=null ? +g.periodo.fim_offset : +g.periodo.ini_offset), nome:g.identidade||g.nome} : CAL_FDS_RESERVA;
+  }catch(e){ return CAL_FDS_RESERVA; }
 }
 function calItem(o,extra){
   var x={nome:o.nome,id:o.id,tipo:o.tipo,categoria:o.categoria,cor:o.cor,setor:o.setor||"",inicio:o.inicio,inicio_regra:o.inicio_regra,primeiroDia:o.primeiroDia,semanal:o.semanal};
@@ -8615,10 +8645,14 @@ function calItem(o,extra){
 }
 // ==CALPSDIAS== A Promoção Semanal vale de segunda a domingo: no Mês a etiqueta aparece em TODOS os dias
 // da semana (pedido do dono, 08/10/2026), empilhada com as outras campanhas do dia; o Final de semana de
-// ofertas entra também na sexta daquela semana. No Ano ela continua sem pintar (marca ps): senão o ano
-// inteiro ficaria de uma cor só.
+// ofertas entra de sexta a domingo, logo depois dela. No Ano ela continua sem pintar sozinha (marca ps):
+// senão o ano inteiro ficaria de uma cor só.
+// ==CALFDS== O Final de semana leva a marca fds nos 3 dias (é o que faz o Ano pintar sexta, sábado e domingo
+// abaixo das outras campanhas e acima da PS). Vindo do grupo da PS, leva também doGrupo (carrega o id e a data
+// da PS: não pode mostrar a contagem nem abrir a edição da PS). Vindo da regra própria, é ENCAIXADO logo depois
+// da PS do dia: pela ordem da lista ele cairia depois da Sexta da Carne (ordem 5 < 7), e a sexta mudaria.
 function campanhasDoDia(a,m,d,dow){
-  var iso=fmtKey(a,m,d), lista=calOcorrenciasAno(a)[iso]||[], out=[], fds=calFds(), E=calEnc();
+  var iso=fmtKey(a,m,d), lista=calOcorrenciasAno(a)[iso]||[], out=[], fds=calFds(), fr=calFdsRegra(), E=calEnc();
   // Trava: com a regra antiga de 8 dias (nuvem ainda não corrigida, ou a cópia guardada no navegador) a semana
   // que termina na segunda encostava na que começa nela: duas etiquetas, a de cima abrindo o encarte da semana
   // passada. A que COMEÇA no dia fica; a que termina nele sai.
@@ -8628,11 +8662,21 @@ function campanhasDoDia(a,m,d,dow){
       if(!o.primeiroDia && psComeca) return;
       out.push(calItem(o,{ps:true}));
       // ==CALCORES== o Final de semana de ofertas aparece nos dias dele (sexta a domingo), não só na sexta
-      if(fds && E && iso>=E.addDias(o.inicio,fds.ini) && iso<=E.addDias(o.inicio,fds.fim)) out.push(calItem(o,{nome:fds.nome, fds:true, primeiroDia:iso===E.addDias(o.inicio,fds.ini)}));
+      // (aqui só quando ainda é grupo da PS ou reserva: com a regra própria, calFds() é nulo)
+      if(fds && E && iso>=E.addDias(o.inicio,fds.ini) && iso<=E.addDias(o.inicio,fds.fim)) out.push(calItem(o,{nome:fds.nome, fds:true, doGrupo:true, primeiroDia:iso===E.addDias(o.inicio,fds.ini)}));
       return;
     }
+    if(fr && o.id===fr.id){ out.push(calItem(o,{fds:true})); return; } // ==CALFDS== a campanha própria
     out.push(calItem(o,{}));
   });
+  // ==CALFDS== encaixe: a campanha própria vai LOGO DEPOIS da Promoção Semanal do dia (onde o grupo ficava).
+  // Sem PS no dia (PS pausada), fica onde a ordem da lista a pôs.
+  var proprio=out.filter(function(x){ return x.fds && !x.doGrupo; });
+  if(proprio.length){
+    var resto=out.filter(function(x){ return !(x.fds && !x.doGrupo); }), ip=-1;
+    resto.forEach(function(x,i){ if(x.ps) ip=i; });
+    if(ip>=0){ resto.splice.apply(resto,[ip+1,0].concat(proprio)); out=resto; }
+  }
   return out;
 }
 // Resumo da edição real (Encartes) daquela ocorrência, se já existir. Casa pela data que a REGRA manda
@@ -8750,7 +8794,9 @@ function calCoincidenciasAno(ano){
 }
 
 // Cor de cada campanha: vem da regra (tabela). As etapas da Operação têm cor própria.
-// ==CALCORES== O Final de semana de ofertas é um grupo da Promoção Semanal (não tem cadastro próprio): a cor fica aqui.
+// ==CALCORES== O Final de semana de ofertas era um grupo da Promoção Semanal (sem cadastro próprio): a cor ficava aqui.
+// ==CALFDS== Desde 10/10/2026 ele tem regra própria e a cor vem dela (mesmo ciano). Esta fica de RESERVA para a
+// nuvem antiga (grupo da PS) e para a transição (reserva fixa do calFds): sem ela o FDS sairia cinza.
 var CAL_COR_FDS="#0088C2"; // ciano (dono, 09/10/2026: cores primárias nas 7 promoções fixas)
 // ==CALCORES== Letra da etiqueta: branca (escolha do dono), menos em cor clara demais para ler (o amarelo do Sábado Bombástico,
 // e das datas claras: Carnaval, Dia da Mulher, Dia do Consumidor...). Regra: se a letra branca contrasta menos de 2,5, vai preta.
@@ -8801,8 +8847,16 @@ function montarLegendas(){
   var datas=ativas.filter(function(r){ return r.tipo!=="campanha" && String(r.id).indexOf("usr-")!==0 && temData(r); });
   var minhas=ativas.filter(function(r){ return String(r.id).indexOf("usr-")===0; });
   // ==CALCORES== o Final de semana de ofertas entra na legenda logo depois da Promoção Semanal
-  var fdsLeg=calFds(), listaLeg=[];
-  campanhas.forEach(function(r){ listaLeg.push(r); if(r.id==="promocao-semanal" && fdsLeg && r.situacao!=="pausada") listaLeg.push({nome:fdsLeg.nome}); });
+  // ==CALFDS== pela regra própria (ativa) ou, sem a regra, pelo nome do grupo da PS / da reserva. Nunca duas
+  // vezes; pausado some (a regra pausada não está em "campanhas" e calFds() é nulo). Pela ordem da lista a
+  // regra própria (ordem 7) cairia no fim, depois da Quarta Saudável. Com a PS pausada, ele vai para o fim.
+  var fdsR=calFdsRegra(), fdsLeg=calFds(), listaLeg=[], fdsNaLista=!!(fdsR && campanhas.indexOf(fdsR)>=0);
+  campanhas.forEach(function(r){
+    if(fdsNaLista && r===fdsR) return;
+    listaLeg.push(r);
+    if(r.id==="promocao-semanal"){ if(fdsNaLista) listaLeg.push(fdsR); else if(fdsLeg) listaLeg.push({nome:fdsLeg.nome}); }
+  });
+  if(fdsNaLista && listaLeg.indexOf(fdsR)<0) listaLeg.push(fdsR);
   if(box){ box.style.display=""; box.innerHTML=montar(listaLeg); }
   if(box2){ if(datas.length){ box2.style.display=""; box2.innerHTML=montar(datas); } else { box2.style.display="none"; } }
   if(box3){ if(minhas.length){ box3.style.display=""; box3.innerHTML=montar(minhas); } else { box3.style.display="none"; box3.innerHTML=""; } }
@@ -8829,7 +8883,9 @@ function renderMes(){
         var alvoTxt=cp.alvo ? (' → '+cp.alvo.slice(8,10)+'/'+cp.alvo.slice(5,7)) : '';
         return '<span class="camp" style="background:'+corCampanha(cp.nome)+';color:'+calTextoCor(corCampanha(cp.nome))+'" title="'+pxEsc(cp.nome+' · '+cp.camp+(cp.alvo?(' · no ar em '+cp.alvo.split("-").reverse().join("/")):''))+'">'+pxEsc(cp.nome+': '+cp.camp+alvoTxt)+'</span>';
       }
-      var ed=(cp.tipo==="campanha" && !cp.fds) ? calEdicaoDe(cp.id, cp.inicio_regra||cp.inicio) : null;
+      // ==CALFDS== a etiqueta derivada do grupo (doGrupo) carrega o id e a data da PS: sem contagem e sem clique.
+      // O Final de semana como campanha própria mostra a contagem dele (x/6) e abre a edição dele.
+      var ed=(cp.tipo==="campanha" && !cp.doGrupo) ? calEdicaoDe(cp.id, cp.inicio_regra||cp.inicio) : null;
       var cont=calContagemTxt(ed);
       var txt=cp.nome+(cont?(' · '+cont):'');
       var ttl=cp.nome+(cp.setor?(' · '+cp.setor):'')+(cp.tipo==="data"?' · oportunidade (sem ação decidida não gera trabalho)':'')+(ed?(' · '+cont+' vagas definidas — clique para abrir no Encartes'):'');
@@ -8850,9 +8906,11 @@ function renderAno(){
       const fds=(c.dow===0||c.dow===6);
       const motivo=!c.fora ? fech.get(fmtKey(calAno,m,c.dia)) : null;
       const camps=!c.fora ? itensDoDia(calAno,m,c.dia,c.dow) : [];
-      // A cor do quadradinho é a da outra campanha do dia (o Final de semana não pinta; campanha de toda semana
-      // pinta só o 1º dia). ==CALPSANO== Dia sem outra campanha fica com a cor da Promoção Semanal (escolha do
-      // dono, 08/10/2026, opção B): ela vale de segunda a domingo, então o ano mostra que toda semana tem.
+      // A cor do quadradinho é a da outra campanha do dia (campanha de toda semana pinta só o 1º dia). Sem outra,
+      // pinta o Final de semana de ofertas (sexta, sábado e domingo: ==CALFDS== desde 10/10/2026 é promoção própria,
+      // e a marca fds dos 3 dias vem de campanhasDoDia). ==CALPSANO== Dia sem nenhuma das duas fica com a cor da
+      // Promoção Semanal (escolha do dono, 08/10/2026, opção B): ela vale de segunda a domingo, então o ano mostra
+      // que toda semana tem.
       const corDia=calPintaDoDia(camps), pintaveis=corDia?[corDia]:[];
       const pinta=pintaveis.length && !motivo;
       const match=ehMatch(ehHoje,motivo,camps);
@@ -8911,6 +8969,8 @@ function calPintaDoDia(camps){
   // cor do quadradinho no Ano: data comemorativa > outra campanha do dia > Final de semana de ofertas > Promoção Semanal
   // ==CALDATAS== a data vem primeiro (dono, 09/10/2026: datas só por cor, cada uma com a sua; sem isso o Dia das
   // Mães, que cai no domingo, ficava escondido atrás do Final de semana de ofertas).
+  // ==CALFDS== "x.fds" vale para o FDS do grupo da PS E para a promoção própria (marcada nos 3 dias em campanhasDoDia):
+  // sem a marca, sábado e domingo seriam "campanha semanal fora do 1º dia" e o dia ficaria com o azul da PS.
   var d=camps.filter(function(x){ return x.tipo==="data"; }); if(d.length) return d[0];
   var p=camps.filter(function(x){ return !x.ps && !x.fds && !(x.semanal && !x.primeiroDia); });
   if(!p.length) p=camps.filter(function(x){ return x.fds; });
@@ -9102,8 +9162,12 @@ function calCarregarNuvem(forcar){
     cli.from("encarte_modelos").select("id,campanha_id,tipo,nome,prazos,dias_antes_no_ar,estrutura,versao,ativo").eq("ativo",true).limit(100)
   ]).then(function(rs){
     _calNuvemLendo=false; _calNuvemEm=Date.now();
-    if(!rs[0].error && rs[0].data && rs[0].data.length){ CAL_REGRAS=rs[0].data; try{ localStorage.setItem("cal_regras_nuvem", JSON.stringify(CAL_REGRAS)); }catch(e){} }
-    if(!rs[1].error && rs[1].data && rs[1].data.length){ CAL_MODELOS=rs[1].data; }
+    var okR=!rs[0].error && rs[0].data && rs[0].data.length, okM=!rs[1].error && rs[1].data && rs[1].data.length;
+    if(okR){ CAL_REGRAS=rs[0].data; try{ localStorage.setItem("cal_regras_nuvem", JSON.stringify(CAL_REGRAS)); }catch(e){} }
+    if(okM){ CAL_MODELOS=rs[1].data; }
+    // ==CALCACHE== ==CALFDS== o par só é guardado quando as DUAS leituras vieram agora (mesmo momento da nuvem);
+    // se uma falhou, fica o par anterior, inteiro.
+    if(okR && okM){ try{ localStorage.setItem("cal_nuvem_par", JSON.stringify({em:Date.now(), regras:CAL_REGRAS, modelos:CAL_MODELOS})); }catch(e){} }
     calInvalidar(); montarLegendas(); renderCal(); ccRenderLista();
     var E=calEnc();
     if(window.encResumoCalendario && E){
@@ -9120,7 +9184,8 @@ function calCarregarNuvem(forcar){
 function calEhMaster(){ return !!(window.__PERFIL && window.__PERFIL.is_master); }
 function calDescRegra(r){
   var g=r.regra||{}, dn=["domingo","segunda","terça","quarta","quinta","sexta","sábado"], ms=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
-  if(g.tipo==="semanal") return "Toda "+dn[g.dia_semana];
+  // ==CALFDS== semanal de mais de um dia diz de que dia a que dia ("Sexta a domingo", "Segunda a domingo")
+  if(g.tipo==="semanal"){ var dur=+g.duracao_dias||1; if(dur>1 && dur<=7){ var d1=dn[g.dia_semana], d2=dn[(g.dia_semana+dur-1)%7]; return d1.charAt(0).toUpperCase()+d1.slice(1)+" a "+d2; } return "Toda "+dn[g.dia_semana]; }
   if(g.tipo==="mensal_nth") return g.n+"º "+dn[g.dia_semana]+" do mês";
   if(g.tipo==="mensal_ultimo") return "Última "+dn[g.dia_semana]+" do mês";
   if(g.tipo==="anual_fixa") return g.dia+" de "+ms[g.mes-1];

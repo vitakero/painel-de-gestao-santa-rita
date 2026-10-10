@@ -185,6 +185,12 @@
       "Pausada (decisão 7·3): não aparece nem gera edição, tarefa ou alerta. Cadastro preservado; reativável."),
     C("quarta-saudavel", "Quarta Saudável", { tipo: "semanal", dia_semana: 3, duracao_dias: 1 }, "Saudabilidade", "#E0007A", 6, "ativa",
       "Toda quarta-feira, só o dia. Produtos de saudabilidade (integrais, zero, sem lactose/glúten, bebidas e lanches leves)."),
+    // ==FDSPROPRIO== Até 10/10/2026 o Final de semana era um GRUPO da Promoção Semanal (período 4..6).
+    // Agora é promoção própria (decisão do dono), com encarte próprio. Nome e cor IGUAIS aos que o
+    // Calendário já mostrava (ele casa cor, legenda e impressão pelo NOME). Ordem 7: logo depois da
+    // Quarta Saudável, sem renumerar as outras; o Calendário encaixa o chip logo depois da PS pelo id.
+    C("final-de-semana", "Final de semana de ofertas", { tipo: "semanal", dia_semana: 5, duracao_dias: 3 }, "Geral", "#0088C2", 7, "ativa",
+      "Sexta a domingo (entra sexta 00h, sai segunda 00h). Promoção própria, com encarte separado da Promoção Semanal desde 10/10/2026 (decisão do dono)."),
     Dt("volta-as-aulas", "Volta às Aulas", { tipo: "datas", lista: [] }, "media", "Mercearia", "#A4D400", 10,
       "Período configurável por ano (o pico é em fevereiro). Lista vazia até o dono configurar."),
     Dt("carnaval", "Carnaval", { tipo: "pascoa", deslocamento_dias: -48, duracao_dias: 2 }, "grande", "Geral", "#ABF910", 11),
@@ -243,10 +249,10 @@
       G("frios-laticinios", "Frios e laticínios", [v("leite", "Leite", "marca"), v("margarina", "Margarina", "marca"), v("queijo", "Queijo", "marca"),
         v("presunto", "Presunto", "marca"), v("iogurte", "Iogurte", "marca")]),
       G("bebidas-conveniencia", "Bebidas e conveniência", [v("refrigerante", "Refrigerante", "marca"), v("agua", "Água", "marca"),
-        v("suco", "Suco", "marca"), v("chocolate", "Chocolate", "marca"), v("sorvete", "Sorvete", "marca")]),
-      G("fim-de-semana", "Fim de semana", [v("frango", "Frango", "corte"), v("linguica", "Linguiça", "marca"), v("carne-suina", "Carne suína", "corte"),
-        v("bebida", "Bebida", "produto"), v("mercearia", "Mercearia", "produto"), v("conveniencia", "Conveniência", "produto")],
-        { identidade: "Final de semana de ofertas", periodo: { ini_offset: 4, fim_offset: 6 } })
+        v("suco", "Suco", "marca"), v("chocolate", "Chocolate", "marca"), v("sorvete", "Sorvete", "marca")])
+      // ==FDSPROPRIO== o grupo "fim-de-semana" (sexta a domingo, período 4..6) saiu daqui em 10/10/2026:
+      // virou o modelo "final-de-semana" lá embaixo. Com ele aqui E o modelo próprio, a mesma semana
+      // teria as 6 vagas duas vezes (na PS e na edição do Final de semana).
     ]),
     M("tercou", "Terçou das Frutas e Verduras", { comecar: 14, definir: 8, aprovar: 7 }, [
       G("hortifruti", "Hortifrúti", [v("batata", "Batata", "tipo"), v("tomate", "Tomate", "tipo"), v("cebola", "Cebola", "tipo"),
@@ -313,6 +319,14 @@
         v("pao-de-alho", "Pão de alho", "marca"), v("sal-grosso", "Sal grosso", "marca")]),
       G("suinos-aves", "Suínos e aves", [v("frango", "Frango", "corte"), v("coxa-sobrecoxa", "Coxa e sobrecoxa", "corte"),
         v("carne-suina", "Carne suína", "corte"), v("bisteca-suina", "Bisteca suína", "corte")])
+    ]),
+    // ==FDSPROPRIO== Final de semana de ofertas, promoção própria desde 10/10/2026: as MESMAS 6 vagas
+    // do antigo grupo da Promoção Semanal, num grupo só. SEM "periodo" (a edição inteira já é sexta a
+    // domingo) e SEM prazos próprios: os prazos 28/17/14 contam da SEXTA, não mais da segunda da PS.
+    M("final-de-semana", "Final de semana de ofertas", { comecar: 28, definir: 17, aprovar: 14 }, [
+      G("ofertas", "Ofertas do fim de semana", [v("frango", "Frango", "corte"), v("linguica", "Linguiça", "marca"),
+        v("carne-suina", "Carne suína", "corte"), v("bebida", "Bebida", "produto"), v("mercearia", "Mercearia", "produto"),
+        v("conveniencia", "Conveniência", "produto")], { identidade: "Final de semana de ofertas" })
     ]),
     T("tema-carnaval", "carnaval", "Carnaval", "Cerveja, destilados, energéticos, água e gelo."),
     T("tema-pascoa", "pascoa", "Páscoa", "Chocolates, vinhos, peixes, sardinha/atum, coco. Ovo de Páscoa não é obrigatório."),
@@ -442,9 +456,11 @@
   }
 
   /* Prazos de uma edição e dos grupos que têm prazo PRÓPRIO (Terçou hortifrúti, Natal).
-     Grupo sem prazo próprio segue a régua da edição, mesmo com período próprio (o Fim de
-     semana acompanha a Promoção Semanal — D7·2). O "começar" da edição é o MAIS CEDO entre
-     ela e esses grupos: a edição entra na fila quando a primeira parte dela começa. */
+     Grupo sem prazo próprio segue a régua da edição, mesmo com período próprio (ex.: uma ação
+     temática de sexta a domingo dentro da PS — D7·2). O "começar" da edição é o MAIS CEDO entre
+     ela e esses grupos: a edição entra na fila quando a primeira parte dela começa.
+     ==FDSPROPRIO== o Final de semana de ofertas era o exemplo daqui até 10/10/2026; hoje é
+     promoção própria e os prazos dele contam da sexta, pelo modelo "final-de-semana". */
   function prazosEdicao(modelo, inicio, fim) {
     var base = calcularPrazos(inicio, objeto(modelo && modelo.prazos) || {}, { flv: false });
     var grupos = {}, comecar = base.comecar;
@@ -573,8 +589,10 @@
      sem_penalidade (edição anterior ao processo): o vermelho vira "Anterior ao processo"
      em âmbar e "Entrou no ar sem aprovação" não acusa.
      contagem.pendentesNoAr (opcional): vagas sem aprovação cujo GRUPO já entrou no ar. Quando
-     vem, "Entrou no ar sem aprovação" usa esse número, e não o total de pendentes: o Fim de
-     semana só entra no ar na sexta, e o banco trata a vaga dele como "antes do ar" até lá. */
+     vem, "Entrou no ar sem aprovação" usa esse número, e não o total de pendentes: um grupo com
+     período próprio (ex.: ação temática que só entra na sexta) fica "antes do ar" no banco até
+     lá. ==FDSPROPRIO== até 10/10/2026 o exemplo era o grupo Fim de semana da PS; hoje ele é
+     promoção própria e entra no ar no início da edição dele. */
   function situacao(ed, contagem, hojeIso) {
     ed = ed || {};
     var pz = objeto(ed.prazos) || {}, hoje = isoDe(hojeIso) || hojeISO(), c = contagem || {};

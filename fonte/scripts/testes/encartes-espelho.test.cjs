@@ -30,8 +30,9 @@
 //
 // RELÓGIO: o "hoje" do banco (encarte_hoje) é trocado SÓ neste Postgres temporário. O
 // preparo do (b) roda em 20/09/2026 (tudo ainda antes do ar: é aí que se aprova) e as
-// mudanças em 06/10/2026 (terça: umas edições já no ar, outras não, e o Fim de semana da
-// PS de 05/10 ainda por vir). O resultado não depende do dia em que o teste roda.
+// mudanças em 06/10/2026 (terça: umas edições já no ar, outras não; na PS de 05/10, uma ação
+// temática de sexta a domingo ainda por vir; e a edição própria do Final de semana de 09/10,
+// também por vir). O resultado não depende do dia em que o teste roda.
 //
 //   node scripts/testes/encartes-espelho.test.cjs
 //
@@ -182,8 +183,8 @@ try {
   fs.writeFileSync(fi, "set check_function_bodies = on;\n\\i " + path.join(RAIZ, "sql", "encartes_v1.sql") + "\n");
   r = rodarArquivo(fi);
   const linhas = r.saida.split("\n").filter((l) => /^\d+\|/.test(l));
-  vale("0.1 sql/encartes_v1.sql instalou inteiro e a conferência dele diz OK nos 14 itens",
-    r.ok && linhas.length === 14 && linhas.every((l) => /\|OK( - .*)?$/.test(l)),
+  vale("0.1 sql/encartes_v1.sql instalou inteiro e a conferência dele diz OK nos 15 itens",
+    r.ok && linhas.length === 15 && linhas.every((l) => /\|OK( - .*)?$/.test(l)),
     r.ok ? (linhas.filter((l) => !/\|OK( - .*)?$/.test(l)).join(" ; ") || "todos OK") : r.erro.split("\n").slice(0, 4).join(" | "));
   // o ajudante SÓ do teste (fora do schema public): chamada que falha vira JSON, não para o lote
   r = rodar(`create schema teste; grant usage on schema teste to authenticated;
@@ -219,7 +220,7 @@ try {
     const CR = ["id", "nome", "tipo", "categoria", "regra", "setor", "cor", "situacao", "ordem", "observacao"];
     const doBanco = REGRAS.map((x) => { const o = {}; CR.forEach((k) => { o[k] = x[k] === undefined ? null : x[k]; }); return o; });
     const doCalc = ENC.REGRAS_PADRAO.map((x) => { const o = {}; CR.forEach((k) => { o[k] = x[k] === undefined ? null : x[k]; }); return o; });
-    eq("a.1 as mesmas 22 campanhas e datas, na mesma ordem (a do Calendário)", doBanco.map((x) => x.id).join(","), doCalc.map((x) => x.id).join(","));
+    eq("a.1 as mesmas " + doBanco.length + " campanhas e datas, na mesma ordem (a do Calendário)", doBanco.map((x) => x.id).join(","), doCalc.map((x) => x.id).join(","));
     const difR = [];
     doBanco.forEach((b) => {
       const c = doCalc.find((x) => x.id === b.id);
@@ -235,7 +236,8 @@ try {
     const CM = ["id", "campanha_id", "tipo", "nome", "prazos", "dias_antes_no_ar", "estrutura", "dicas", "versao", "ativo"];
     const mBanco = MODELOS.map((x) => { const o = {}; CM.forEach((k) => { o[k] = x[k] === undefined ? null : x[k]; }); return o; });
     const mCalc = ENC.MODELOS_PADRAO.map((x) => { const o = {}; CM.forEach((k) => { o[k] = x[k] === undefined ? null : x[k]; }); return o; });
-    eq("a.4 os mesmos 19 modelos (4 de edição + 15 temas)", mBanco.map((x) => x.id).sort().join(","), mCalc.map((x) => x.id).sort().join(","));
+    eq("a.4 os mesmos " + mBanco.length + " modelos (" + mBanco.filter((x) => x.tipo === "edicao").length + " de edição + " + mBanco.filter((x) => x.tipo === "tema").length + " temas)",
+      mBanco.map((x) => x.id).sort().join(","), mCalc.map((x) => x.id).sort().join(","));
     const difM = [];
     mBanco.forEach((b) => {
       const c = mCalc.find((x) => x.id === b.id);
@@ -252,6 +254,12 @@ try {
     const vagasDe = (L, id) => { const m = L.find((x) => x.id === id); return m ? m.estrutura.grupos.map((g) => g.chave + ":" + g.vagas.map((v) => v.chave).join("/")).join(" ") : "?"; };
     eq("a.6 vagas do Sábado Bombástico e da Hora da Economia: as do SQL",
       [vagasDe(mCalc, "sabado-bombastico") === vagasDe(mBanco, "sabado-bombastico"), vagasDe(mCalc, "hora-da-economia") === vagasDe(mBanco, "hora-da-economia")], [true, true]);
+    // ==FDSPROPRIO== o Final de semana virou promoção própria em 10/10/2026: nos DOIS lados, a PS sem o
+    // grupo e o modelo próprio com as 6 vagas (as do antigo grupo), sem período
+    eq("a.7 Final de semana nos dois lados: a PS sem o grupo (7 grupos) e o modelo próprio (1 grupo, 6 vagas, sem período)",
+      [mBanco, mCalc].map((L) => vagasDe(L, "promocao-semanal").split(" ").length + "|" + vagasDe(L, "final-de-semana") + "|" +
+        L.find((x) => x.id === "final-de-semana").estrutura.grupos.filter((g) => g.periodo || g.prazos).length),
+      ["7|ofertas:frango/linguica/carne-suina/bebida/mercearia/conveniencia|0", "7|ofertas:frango/linguica/carne-suina/bebida/mercearia/conveniencia|0"]);
   });
 
   // ======================================================================
@@ -288,7 +296,9 @@ try {
       banco.filter((d) => calc.indexOf(d) < 0).forEach((d) => (x.regra.tipo === "pascoa" ? pascoaSobra : sobram).push(x.id + " " + d));
     });
     const nOc = REGRAS.filter((x) => x.regra.tipo !== "datas").reduce((s, x) => s + (doBanco[x.id] || []).length, 0);
-    eq("d.5 toda ocorrência que o cálculo conta (21 regras, 2026 a 2030) o banco reconhece", faltam.join(" ; ") || "todas", "todas");
+    eq("d.5 toda ocorrência que o cálculo conta (" + REGRAS.filter((x) => x.regra.tipo !== "datas").length + " regras, 2026 a 2030) o banco reconhece", faltam.join(" ; ") || "todas", "todas");
+    eq("d.5a ... inclusive o Final de semana: toda sexta de 2026 a 2030, de sexta a domingo",
+      [(doBanco["final-de-semana"] || []).length > 250, (doBanco["final-de-semana"] || []).every((d) => new Date(d + "T12:00:00Z").getUTCDay() === 5)], [true, true]);
     eq("d.6 ... e o banco não reconhece dia nenhum além delas (fora as de Páscoa, ver abaixo)", sobram.join(" ; ") || "nenhum", "nenhum");
     console.log("  (informação) regras de Páscoa: o banco aceita qualquer DOMINGO de 22/03 a 25/04 (desenho do encarte__bate_com_regra); " +
       "o cálculo conta só a Páscoa do ano. Dias a mais no banco: " + pascoaSobra.length + " (" + pascoaSobra.slice(0, 3).join(", ") + "…). " +
@@ -381,6 +391,13 @@ try {
     vale("c.7 no ÚLTIMO dia em que a tela ainda cria (fim + 7), o banco também aceita todas",
       e2.ok && recusadas2.length === 0, e2.ok ? (recusadas2.length + " recusadas" + (recusadas2.length ? ": " + recusadas2.slice(0, 3).map((o) => chave(o.p.e) + " " + JSON.stringify(o.x)).join(" | ") : "")) : e2.erro.split("\n")[0]);
     eq("c.8 o ensaio foi desfeito (nenhuma edição ficou)", suV("select count(*) from public.encarte_edicoes"), "0");
+    // ==FDSPROPRIO== o Final de semana como promoção própria (10/10/2026): a tela cria uma edição por
+    // sexta, de sexta a domingo, e o banco grava com o título dela
+    const fdsPl = plano.filter((p) => p.e.campanha_id === "final-de-semana");
+    eq("c.9 o Final de semana entra no ensaio: toda sexta de 2026 a 2028, de sexta a domingo, aceita e gravada com o título 'Final de semana de ofertas · DD/MM/AAAA'",
+      [fdsPl.length > 150, fdsPl.every((p) => new Date(p.e.inicio + "T12:00:00Z").getUTCDay() === 5 && p.e.fim === somar(p.e.inicio, 2)),
+        fdsPl.every((p) => gravado[chave(p.e)] && gravado[chave(p.e)].titulo === "Final de semana de ofertas · " + p.e.inicio.split("-").reverse().join("/"))],
+      [true, true, true]);
   });
 
   // ======================================================================
@@ -396,22 +413,38 @@ try {
       if (!o) throw new Error(camp + " não começa em " + ini);
       return { campanha: camp, inicio: o.inicio, fim: o.fim, inicio_regra: o.inicio_regra, prazos: ENC.prazosEdicao(m, o.inicio, o.fim) };
     };
-    // no ar em 06/10: PS 28/09 (inteira), PS 05/10 (menos o Fim de semana, que só entra na sexta 09/10),
-    // HE 24/09 (quinta, já passou). Antes do ar: PS 19/10 e PS 26/10.
+    // no ar em 06/10: PS 28/09 (inteira), PS 05/10 (menos a ação temática de sexta a domingo, que só entra
+    // na sexta 09/10), HE 24/09 (quinta, já passou). Antes do ar: PS 12/10, PS 19/10, PS 26/10 e a edição
+    // própria do Final de semana de 09/10 (sexta a domingo).
+    // ==FDSPROPRIO== até 10/10/2026 o "grupo ainda não no ar dentro de edição no ar" era o Fim de semana da
+    // PS 05/10. Ele virou promoção própria: o mesmo caminho agora é provado por uma ação temática com datas
+    // próprias dentro da PS, e a edição FDS de 09/10 entra como edição antes do ar com a PS no ar. Sem as 36
+    // vagas que a PS perdeu, a PS 12/10 entra para a bateria ter vagas antes do ar que bastem.
     const EDS = [real("promocao-semanal", "2026-09-28"), real("promocao-semanal", "2026-10-05"), real("hora-da-economia", "2026-09-24"),
-      real("promocao-semanal", "2026-10-19"), real("promocao-semanal", "2026-10-26")];
+      real("promocao-semanal", "2026-10-12"), real("promocao-semanal", "2026-10-19"), real("promocao-semanal", "2026-10-26"),
+      real("final-de-semana", "2026-10-09")];
     const criadas = lote(MASTER, EDS.map((e, i) => ({ k: "ed" + i,
       sql: `select public.encarte_criar_edicao(${q(e.campanha)}, ${q(e.inicio_regra)}, ${q(e.inicio)}, ${q(e.fim)}, ${lit(e.prazos)})` })));
-    vale("b.0a master cria as 5 edições (PS 28/09, PS 05/10, HE 24/09, PS 19/10, PS 26/10) em 20/09",
+    vale("b.0a master cria as " + EDS.length + " edições (" + EDS.map((e) => (e.campanha === "promocao-semanal" ? "PS" : e.campanha === "hora-da-economia" ? "HE" : "Final de semana") +
+      " " + e.inicio.slice(8) + "/" + e.inicio.slice(5, 7)).join(", ") + ") em 20/09",
       EDS.every((e, i) => criadas["ed" + i] && criadas["ed" + i].criada === true), JSON.stringify(Object.values(criadas).map((x) => x.criada || x.detalhe)));
-    if (!EDS.every((e, i) => criadas["ed" + i] && criadas["ed" + i].id)) throw new Error("sem as 5 edições do preparo a bateria não roda");
+    if (!EDS.every((e, i) => criadas["ed" + i] && criadas["ed" + i].id)) throw new Error("sem as edições do preparo a bateria não roda");
     const edIds = EDS.map((e, i) => criadas["ed" + i].id);
-    // as vagas, com o início do grupo (o Fim de semana tem período próprio)
+    const edFds = edIds[EDS.findIndex((e) => e.campanha === "final-de-semana")];
+    // a ação temática de sexta a domingo (09 a 11/10) na PS 05/10, com 3 vagas (o modelo do tema não tem vagas)
+    const acao = lote(MASTER, [{ k: "g", sql: `select public.encarte_criar_grupo_tematico('${edIds[1]}', 'tema-black-friday', 'Ação de sexta a domingo', '2026-10-09', '2026-10-11', null)` }]).g;
+    if (!acao || !acao.id) throw new Error("não criei a ação temática na PS 05/10: " + JSON.stringify(acao));
+    const vAcao = lote(MASTER, [["Frango", "corte"], ["Linguiça", "marca"], ["Cerveja", "marca"]].map(([n, oq], i) => ({ k: "v" + i,
+      sql: `select public.encarte_adicionar_vaga('${edIds[1]}', '${acao.id}', ${q(n)}, ${q(oq)})` })));
+    vale("b.0a2 na PS 05/10, uma ação temática de sexta a domingo (09 a 11/10) com 3 vagas",
+      Object.values(vAcao).every((x) => x.ok) && suV(`select inicio || '..' || fim || '|' || (select count(*) from public.encarte_vagas where grupo_id = '${acao.id}') from public.encarte_grupos where id = '${acao.id}'`) === "2026-10-09..2026-10-11|3",
+      JSON.stringify(vAcao));
+    // as vagas, com o início do grupo (a ação temática tem período próprio)
     const VAGAS = suJ(`select jsonb_agg(jsonb_build_object('id', v.id, 'edicao', v.edicao_id, 'grupo', g.chave, 'ini', coalesce(g.inicio, e.inicio))
         order by e.inicio, g.ordem, v.ordem) from public.encarte_vagas v join public.encarte_grupos g on g.id = v.grupo_id
         join public.encarte_edicoes e on e.id = v.edicao_id where v.edicao_id = any(${uuids(edIds)})`);
-    const fdsPs0510 = VAGAS.filter((v) => v.edicao === edIds[1] && v.grupo === "fim-de-semana");
-    const reservadas = new Set(fdsPs0510.slice(0, 3).map((v) => v.id));
+    const acaoPs0510 = VAGAS.filter((v) => v.edicao === edIds[1] && v.grupo === acao.chave);
+    const reservadas = new Set(acaoPs0510.slice(0, 3).map((v) => v.id));
     // distribui em rodízio entre as edições (todas recebem casos: a HE de 1 dia também)
     function rodizio(L) {
       const por = {}, ordem = [];
@@ -422,7 +455,7 @@ try {
     }
     const poolNoAr = rodizio(VAGAS.filter((v) => v.ini <= HOJE_ACAO));
     const poolAntes = rodizio(VAGAS.filter((v) => v.ini > HOJE_ACAO && !reservadas.has(v.id)));
-    const poolGrupo = fdsPs0510.slice(0, 3);
+    const poolGrupo = acaoPs0510.slice(0, 3);
 
     // ---------- a bateria ----------
     const X = null; // campo apagado
@@ -522,7 +555,7 @@ try {
       RUNS.push({ id: i, caso: c, modo: "antes", estado: "aprovada", vaga: pega(poolAntes, "antes") });
       RUNS.push({ id: i, caso: c, modo: "no_ar", estado: "aprovada", vaga: pega(poolNoAr, "no ar") });
     });
-    FDS.forEach((c) => RUNS.push({ id: "fds", caso: c, modo: "grupo", estado: "aprovada", vaga: pega(poolGrupo, "fim de semana") }));
+    FDS.forEach((c) => RUNS.push({ id: "fds", caso: c, modo: "grupo", estado: "aprovada", vaga: pega(poolGrupo, "ação de sexta a domingo") }));
     ["pendente", "aguardando_visto", "em_ajuste"].forEach((st) => EST.forEach((c) => ["antes", "no_ar"].forEach((modo) =>
       RUNS.push({ id: st, caso: c, modo, estado: st, vaga: pega(modo === "antes" ? poolAntes : poolNoAr, modo) }))));
     ["antes", "no_ar"].forEach((modo) => RUNS.push({ id: "vazia", caso: VAZIA, modo, estado: "vazia", vaga: pega(modo === "antes" ? poolAntes : poolNoAr, modo) }));
@@ -658,7 +691,7 @@ try {
       const igual = (u) => u.reabriu === b.reabriu && u.critica === b.critica && u.chaves.join(",") === b.chaves.join(",");
       return { b, c, t, bate: igual(c) && igual(t) && b.respBate && b.estadoSoMudouSeReabriu };
     };
-    const MODO = { antes: "antes do ar", no_ar: "no ar", grupo: "edição no ar, Fim de semana ainda não" };
+    const MODO = { antes: "antes do ar", no_ar: "no ar", grupo: "edição no ar, ação de sexta ainda não" };
     const linha = (x, j) => MODO[x.modo] + ": banco " + desc(j.b) + (j.bate ? " = cálculo" : " × cálculo " + desc(j.c) + (x.caso.acao === "editar" || x.caso.acao === "retirar" ? " / tela " + desc(j.t) : "") +
       (j.b.respBate ? "" : " [resposta da função diz outra coisa: " + JSON.stringify(RESP[x.k]).slice(0, 100) + "]"));
 
@@ -672,8 +705,14 @@ try {
     });
     RUNS.filter((x) => x.modo === "grupo").forEach((x) => {
       const j = julgar(x);
-      vale("b.fds " + x.caso.nome + " — na PS de 05/10 (no ar), vaga do Fim de semana (só entra na sexta 09/10)", j.bate, linha(x, j));
+      vale("b.fds " + x.caso.nome + " — na PS de 05/10 (no ar), vaga da ação temática de sexta a domingo (só entra na sexta 09/10)", j.bate, linha(x, j));
     });
+    // a edição PRÓPRIA do Final de semana de 09/10, antes do ar, com a PS 05/10 já no ar: o banco trata
+    // as vagas dela pelo início DELA (sexta), e o que ele faz bate com o que o cálculo avisa
+    const runsFds = RUNS.filter((x) => x.vaga.edicao === edFds);
+    vale("b.fds2 edição própria do Final de semana (09/10, antes do ar, com a PS 05/10 no ar): " + runsFds.length + " casos, banco = cálculo, todos 'antes do ar'",
+      runsFds.length >= 3 && runsFds.every((x) => x.modo === "antes" && S1.vagas[x.vaga.id].no_ar === false && julgar(x).bate),
+      runsFds.map((x) => x.caso.nome + ": " + linha(x, julgar(x))).slice(0, 4).join(" · "));
     ["pendente", "aguardando_visto", "em_ajuste", "vazia"].forEach((st) => {
       const L = RUNS.filter((x) => x.estado === st), js = L.map(julgar);
       vale("b.est " + (st === "vazia" ? "vaga sem proposta: retirada no ar é crítica, antes do ar só registra" :
@@ -681,7 +720,7 @@ try {
         L.map((x, k) => x.caso.nome + " " + linha(x, js[k])).join(" · "));
     });
     const nPares = RUNS.filter((x) => x.estado === "aprovada").length;
-    vale("b.total " + CASOS.length + " casos × (antes do ar, no ar) + 3 do Fim de semana = " + nPares + " pares antes/depois com a vaga aprovada (pedido: ≥ 60)", CASOS.length >= 60 && nPares >= 120, nPares);
+    vale("b.total " + CASOS.length + " casos × (antes do ar, no ar) + 3 da ação de sexta = " + nPares + " pares antes/depois com a vaga aprovada (pedido: ≥ 60)", CASOS.length >= 60 && nPares >= 120, nPares);
 
     // A aba "Aprovado × atual" da tela (comparar, tirada do tela.js) sobre as vagas que o banco
     // REABRIU ou marcou CRÍTICA: tem de mostrar "Mudou", senão o master vê "Igual ao aprovado"
@@ -709,7 +748,7 @@ try {
       const gPorId = {}; x.grupos.forEach((g) => { gPorId[g.id] = g; });
       return x.ed.titulo + ": tela " + pendentesNoAr(x.vagas, gPorId, x.ed, HOJE_ACAO) + " / banco " + x.banco;
     });
-    vale("b.tela2 K7: 'no ar sem aprovação' da tela = vagas sem aprovação que o banco trata como no ar (as 5 edições, em 06/10)",
+    vale("b.tela2 K7: 'no ar sem aprovação' da tela = vagas sem aprovação que o banco trata como no ar (as " + edIds.length + " edições, em 06/10)",
       L7.every((x) => { const gPorId = {}; x.grupos.forEach((g) => { gPorId[g.id] = g; }); return pendentesNoAr(x.vagas, gPorId, x.ed, HOJE_ACAO) === x.banco; }),
       k7.join(" · "));
 

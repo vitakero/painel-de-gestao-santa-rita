@@ -47,6 +47,9 @@
   function dmy(iso) { return E.fmtData(iso); }
   function periodo(ini, fim) { if (!ini) return ""; return !fim || ini === fim ? dsem(ini) : dsem(ini) + " a " + dsem(fim); }
   function dias1(k) { return k + (k === 1 ? " dia" : " dias"); }
+  // ==FDSPROPRIO== O Final de semana de ofertas (campanha própria desde 10/10/2026) tem modelo de
+  // UM grupo só: sem isto, o Histórico e os Modelos escreviam "1 grupos".
+  function grupos1(k) { k = +k || 0; return k + (k === 1 ? " grupo" : " grupos"); }
   function noAr(ini, fim, hoje) {
     var d = E.diasEntre(hoje, ini);
     if (d === null) return "";
@@ -115,7 +118,8 @@
      edita ou escolhe proposta — inclusive escolher de novo a mesma; descartar NÃO conta). */
   function esperandoComprador(v) { return v.estado === "em_ajuste" && !(objeto(v.devolucao) || {}).mexida_em; }
   /* Vagas sem aprovação cujo GRUPO já entrou no ar (pelo período do grupo, igual ao banco):
-     o Fim de semana só entra na sexta, e até lá a vaga dele está "antes do ar". É o número que
+     uma ação temática que começa na sexta só entra na sexta, e até lá a vaga dela está "antes do ar"
+     (o Final de semana de ofertas era o exemplo até 10/10/2026, quando virou campanha própria). É o número que
      vai para "Entrou no ar sem aprovação" (contagem.pendentesNoAr do cálculo). */
   function pendentesNoAr(vs, gPorId, ed, h) {
     return vs.filter(function (v) { return ativa(v) && (v.estado || "pendente") !== "aprovada" && h >= inicioGrupo(gPorId[v.grupo_id], ed); }).length;
@@ -521,7 +525,7 @@
     // Avisos da edição (só da ativa: a juntada continua na outra edição)
     var semAprov = ativaEd ? escs.filter(function (s) { return s.sit.noArSemAprovacao; }) : [];
     if (semAprov.length) {
-      // conta só as vagas cujo GRUPO já está no ar (o Fim de semana só entra na sexta)
+      // conta só as vagas cujo GRUPO já está no ar (grupo com período próprio só entra no dia dele)
       x += '<div class="enc-aviso enc-vermelho"><span>⛔</span><div><b>Entrou no ar sem aprovação.</b> ' + semAprov.map(function (s) {
         var k = s.contagem.pendentesNoAr;
         return (s.grupo ? esc(s.grupo.nome) + ": " : "") + k + (k === 1 ? " vaga já no ar sem aprovação" : " vagas já no ar sem aprovação");
@@ -681,9 +685,16 @@
     var d = objeto(ev.depois) || {}, a = objeto(ev.antes) || {};
     function prodResumo(x) { var L = objeto(x.produtos_info) || []; return L.length ? L[0].descricao : ""; }
     switch (ev.tipo) {
-      case "edicao_criada": return "Edição aberta pelo modelo (versão " + esc(d.modelo_versao || 1) + "): " + esc(d.grupos || 0) + " grupos, " + esc(d.vagas || 0) + " vagas" + (d.sem_penalidade ? " · anterior ao processo" : "");
+      case "edicao_criada": return "Edição aberta pelo modelo (versão " + esc(d.modelo_versao || 1) + "): " + esc(grupos1(d.grupos)) + ", " + esc(d.vagas || 0) + " vagas" + (d.sem_penalidade ? " · anterior ao processo" : "");
       case "vaga_adicionada": return "Vaga “" + esc(d.nome) + "” incluída só nesta edição" + (d.no_ar ? " (com o encarte no ar)" : "");
       case "vaga_retirada": return "Vaga “" + esc(a.nome || "") + "” retirada";
+      // ==FDSPROPRIO== A migração de 10/10/2026 tira o grupo "Fim de semana" das PS já abertas e grava
+      // um evento por grupo (antes.nome = nome do grupo; depois.vagas_retiradas = quantas vagas saíram).
+      // Sem este caso o Histórico mostrava só "grupo removido", minúsculo e sem dizer qual.
+      case "grupo_removido": {
+        var nr = +d.vagas_retiradas || 0;
+        return "Grupo “" + esc(a.nome || "") + "” removido (" + nr + (nr === 1 ? " vaga retirada)" : " vagas retiradas)");
+      }
       case "critica_no_ar": return "<b>Crítico com o encarte no ar:</b> " + esc(razoesTxt(ev.motivo));
       case "proposta_registrada": return "Registrou proposta de " + esc(d.fornecedor_nome || "") + (prodResumo(d) ? " · " + esc(prodResumo(d)) : "") + (tem(d.custo_negociado) ? " · custo " + esc(brl(d.custo_negociado)) : "") + (tem(d.preco_oferta) ? " · oferta " + esc(brl(d.preco_oferta)) : "");
       case "proposta_editada": {
@@ -1421,7 +1432,7 @@
         '<label><input type="radio" name="enc-coinc" value="juntar"' + (outras.length ? "" : " disabled") + "><span><b>Juntar</b> com outra edição (esta fica “juntada”)" + (outras.length ? "" : " — nenhuma edição aberta perto") + "</span></label></div>" +
         // Mover muda SÓ o início e o fim da edição (o banco não recalcula mais nada): quem move precisa saber.
         '<div data-f="moverbox" hidden><div class="enc-grade-f"><label class="enc-campo"><span>Novo início</span><input type="date" data-f="ini" value="' + esc(ed.inicio) + '"></label><label class="enc-campo"><span>Novo fim</span><input type="date" data-f="fim" value="' + esc(ed.fim) + '"></label></div>' +
-        '<div class="enc-aviso enc-azul" style="margin:10px 0 0"><span>ℹ</span><div>Mover muda só o início e o fim desta edição. Os prazos (Começar, Definir e Aprovar) e os períodos próprios dos grupos (ex.: Fim de semana) continuam os mesmos.</div></div></div>' +
+        '<div class="enc-aviso enc-azul" style="margin:10px 0 0"><span>ℹ</span><div>Mover muda só o início e o fim desta edição. Os prazos (Começar, Definir e Aprovar) e os períodos próprios dos grupos (ex.: uma ação temática só na sexta) continuam os mesmos.</div></div></div>' +
         '<label class="enc-campo" data-f="juntarbox" hidden><span>Juntar em</span><select data-f="alvo">' + outras.map(function (e) { return '<option value="' + esc(e.id) + '">' + esc(nomeCamp(e.campanha_id)) + " · " + esc(E.fmtPeriodo(e.inicio, e.fim, { curta: true })) + "</option>"; }).join("") + "</select></label>" +
         '<label class="enc-campo enc-obrig" style="margin-top:10px"><span>Motivo</span><input data-f="motivo" maxlength="200"></label>',
       aoInput: function () { var a = acao(); var mb = jq('[data-f="moverbox"]'), jb = jq('[data-f="juntarbox"]'); if (mb) mb.hidden = a !== "mover"; if (jb) jb.hidden = a !== "juntar"; },
@@ -1461,7 +1472,7 @@
     var eds = L.filter(function (m) { return m.tipo === "edicao"; }), tms = L.filter(function (m) { return m.tipo === "tema"; });
     function linha(m) {
       return '<button class="enc-lm" data-ea="modelo" data-id="' + esc(m.id) + '">' + bolinha(corCamp(m.campanha_id)) + "<b>" + esc(m.nome) + '</b><span class="enc-apagado">versão ' + esc(m.versao || 1) + '</span><span class="enc-d">' +
-        contarVagasModelo(m) + " vagas · " + ((objeto(m.estrutura) || {}).grupos || []).length + " grupos" + (m.tipo === "edicao" ? " · prazos " + esc(prazosTxt(m.prazos)) : "") + "</span></button>";
+        contarVagasModelo(m) + " vagas · " + grupos1(((objeto(m.estrutura) || {}).grupos || []).length) + (m.tipo === "edicao" ? " · prazos " + esc(prazosTxt(m.prazos)) : "") + "</span></button>";
     }
     return '<div class="enc-volta"><button class="enc-bt-l" data-ea="fila">‹ Encartes</button></div>' +
       (AVISO && AVISO.tela === "modelos" ? '<div class="enc-msg' + (AVISO.tipo ? " enc-" + AVISO.tipo : "") + '">' + esc(AVISO.txt) + "</div>" : "") +
@@ -1486,7 +1497,7 @@
     var x = '<div class="enc-volta"><button class="enc-bt-l" data-ea="modelos">‹ Modelos</button></div>' +
       (MOD.msg ? '<div class="enc-msg' + (MOD.msg.tipo ? " enc-" + MOD.msg.tipo : "") + '" role="status">' + esc(MOD.msg.txt) + "</div>" : "") +
       '<div class="enc-topo"><div><h2>Modelo · ' + esc(MOD.nome) + '</h2><div class="enc-sub">Versão ' + esc(MOD.versao) + (m.atualizado_por_nome ? " · última mudança por " + esc(m.atualizado_por_nome) + " em " + esc(quando(m.atualizado_em)) : "") +
-      " · " + MOD.grupos.length + " grupos, " + total + " vagas por edição</div></div>" +
+      " · " + grupos1(MOD.grupos.length) + ", " + total + " vagas por edição</div></div>" +
       (pode ? '<div class="enc-acoes"><button class="enc-bt" data-ea="m-desfazer"' + (MOD.sujo ? "" : " disabled") + '>Desfazer mudanças</button><button class="enc-bt-p" data-ea="m-salvar"' + (MOD.sujo ? "" : " disabled") + ">Salvar nova versão</button></div>" : "") + "</div>";
     if (m.dicas) x += '<div class="enc-aviso enc-azul"><span>ℹ</span><div>' + esc(m.dicas) + "</div></div>";
     x += '<div class="enc-cartao"><h3>Prazos (dias corridos antes de entrar no ar)</h3><div class="enc-grade-3" style="margin-top:10px">' +
@@ -1502,7 +1513,7 @@
         '<div class="enc-mg-opc"><label class="enc-check"><input type="checkbox" data-mg="ativo_padrao" data-g="' + gi + '"' + (g.ativo_padrao === false ? "" : " checked") + dis + "> Entra em toda edição</label>" +
         '<label class="enc-check"><input type="checkbox" data-mg="flv" data-g="' + gi + '"' + (g.flv ? " checked" : "") + dis + "> Hortifrúti (prazo na manhã do feriado)</label></div>" +
         '<div class="enc-grade-f"><label class="enc-campo"><span>Identidade na arte (opcional)</span><input data-mg="identidade" data-g="' + gi + '" value="' + esc(g.identidade || "") + '" maxlength="60"' + dis + "></label>" +
-        '<div class="enc-campo"><span>Período próprio (dias depois do início da edição)</span><div class="enc-inline">do dia <input data-mg="ini_offset" data-g="' + gi + '" inputmode="numeric" value="' + esc(tem(per.ini_offset) ? per.ini_offset : "") + '"' + dis + '> ao dia <input data-mg="fim_offset" data-g="' + gi + '" inputmode="numeric" value="' + esc(tem(per.fim_offset) ? per.fim_offset : "") + '"' + dis + "></div><small>em branco = o período da edição. Ex.: Fim de semana = 4 a 6 (sexta a domingo)</small></div>" +
+        '<div class="enc-campo"><span>Período próprio (dias depois do início da edição)</span><div class="enc-inline">do dia <input data-mg="ini_offset" data-g="' + gi + '" inputmode="numeric" value="' + esc(tem(per.ini_offset) ? per.ini_offset : "") + '"' + dis + '> ao dia <input data-mg="fim_offset" data-g="' + gi + '" inputmode="numeric" value="' + esc(tem(per.fim_offset) ? per.fim_offset : "") + '"' + dis + "></div><small>em branco = o período da edição. Ex.: 4 a 6 = sexta a domingo numa edição que começa na segunda</small></div>" +
         '<div class="enc-campo" style="grid-column:1/-1"><span>Prazo próprio (dias antes do grupo entrar no ar)</span><div class="enc-inline">começar <input data-mg="pz_comecar" data-g="' + gi + '" inputmode="numeric" value="' + esc(tem(pz.comecar) ? pz.comecar : "") + '"' + dis +
         '> definir <input data-mg="pz_definir" data-g="' + gi + '" inputmode="numeric" value="' + esc(tem(pz.definir) ? pz.definir : "") + '"' + dis + '> aprovar <input data-mg="pz_aprovar" data-g="' + gi + '" inputmode="numeric" value="' + esc(tem(pz.aprovar) ? pz.aprovar : "") + '"' + dis + "></div><small>em branco = segue a régua da edição</small></div></div>" +
         '<table class="enc-mvagas"><thead><tr><th>Vaga</th><th>O que muda</th><th>Quantidade</th><th>Obrigatória</th><th></th></tr></thead><tbody>' +

@@ -91,6 +91,13 @@ console.log("\n-- OCORRÊNCIAS DAS CAMPANHAS --");
   const t = E.ocorrencias(regra("tercou"), "2026-10-01", "2026-10-31");
   eq("Terçou: toda terça de outubro/2026", inicios(t), "2026-10-06,2026-10-13,2026-10-20,2026-10-27");
   eq("Terçou: só a terça (entra terça 00h, sai quarta 00h)", t[1].fim, "2026-10-13");
+  // ==FDSPROPRIO== o Final de semana de ofertas como promoção própria (sexta 00h a segunda 00h)
+  const fdsN = E.ocorrencias(regra("final-de-semana"), "2026-11-01", "2026-11-30");
+  eq("Final de semana: toda sexta, sexta → domingo (a de 30/10 ainda está no ar em 01/11)", fdsN.map((o) => o.inicio + ">" + o.fim).join(","),
+    "2026-10-30>2026-11-01,2026-11-06>2026-11-08,2026-11-13>2026-11-15,2026-11-20>2026-11-22,2026-11-27>2026-11-29");
+  eq("Final de semana: começa na sexta e termina no domingo", fdsN.every((o) => E.diaSemana(o.inicio) === 5 && E.diaSemana(o.fim) === 0), true);
+  eq("Final de semana na virada de 2027 para 2028: 31/12 a 02/01, com o inicio_regra de 2027",
+    E.ocorrencias(regra("final-de-semana"), "2028-01-01", "2028-01-02").map((o) => o.inicio_regra + ">" + o.fim).join(","), "2027-12-31>2028-01-02");
   const sb = E.ocorrencias(regra("sabado-bombastico"), "2026-01-01", "2030-12-31");
   eq("SB: 60 edições em 5 anos", sb.length, 60);
   eq("SB 2026 (2º sábado)", inicios(sb.filter((o) => o.inicio < "2027")),
@@ -135,6 +142,10 @@ console.log("\n-- OCORRÊNCIAS DAS CAMPANHAS --");
   eq("ocorrência traz nome, tipo, categoria, cor e setor", [hen.nome, hen.tipo, hen.categoria, hen.cor, hen.setor].join("|"), "Hora da Economia|campanha||#FF6A00|Geral");
   eq("data grande marcada", [bfn.tipo, bfn.categoria].join("|"), "data|grande");
   eq("PS marcada como contínua (cobre o ano inteiro)", nov.find((o) => o.id === "promocao-semanal").continua, true);
+  const fdsNov = nov.find((o) => o.id === "final-de-semana");
+  eq("Final de semana: NÃO é contínuo, é semanal, nome e cor do Calendário de hoje",
+    fdsNov && [fdsNov.continua, fdsNov.semanal, fdsNov.nome, fdsNov.cor, fdsNov.setor, fdsNov.inicio, fdsNov.fim].join("|"),
+    "false|true|Final de semana de ofertas|#0088C2|Geral|2026-11-27|2026-11-29");
   eq("lista em ordem de início", nov.every((o, i) => i === 0 || nov[i - 1].inicio <= o.inicio), true);
 }
 
@@ -198,15 +209,34 @@ console.log("\n-- PRAZOS APROVADOS (D3) --");
   eq("grupo Natal com prazo próprio 60 dias puxa o começar da edição", pn.comecar, pn.grupos.natal.comecar);
   eq("  e o começar do Natal é 15/10 (60 dias antes de 14/12)", pn.grupos.natal.comecar, "2026-10-15");
   eq("  definir/aprovar da edição continuam os dela", [pn.definir, pn.aprovar].join(","), "2026-11-27,2026-11-30");
-  const inativo = JSON.parse(JSON.stringify(psNatal)); inativo.estrutura.grupos[8].ativo_padrao = false;
+  // (procura o Natal pela CHAVE: com um índice fixo, um grupo a mais ou a menos na PS derruba o arquivo inteiro)
+  const inativo = JSON.parse(JSON.stringify(psNatal)); inativo.estrutura.grupos.find((g) => g.chave === "natal").ativo_padrao = false;
   eq("grupo que não nasce (ativo_padrao false) não mexe no começar", E.prazosEdicao(inativo, "2026-12-14", "2026-12-21").comecar, "2026-11-16");
 
-  const fds = modelo("promocao-semanal").estrutura.grupos.find((g) => g.chave === "fim-de-semana");
-  eq("Fim de semana: período próprio sexta → domingo", E.periodoGrupo(fds, "2026-11-23", "2026-11-30"), { inicio: "2026-11-27", fim: "2026-11-29" });
+  // ==FDSPROPRIO== a PS não tem mais grupo com período próprio (o Fim de semana virou promoção
+  // própria em 10/10/2026). O caminho "grupo com período dentro da edição" continua vivo (temas e
+  // editor de modelos): provado aqui com um grupo de teste de sexta a domingo.
+  const acaoSexta = { chave: "acao-sexta", nome: "Ação de sexta a domingo", ativo_padrao: true, periodo: { ini_offset: 4, fim_offset: 6 }, vagas: [] };
+  eq("grupo com período próprio (4..6) numa edição de segunda: sexta → domingo", E.periodoGrupo(acaoSexta, "2026-11-23", "2026-11-30"), { inicio: "2026-11-27", fim: "2026-11-29" });
   eq("grupo sem período usa o da edição", E.periodoGrupo({ chave: "capa" }, "2026-11-23", "2026-11-30"), { inicio: "2026-11-23", fim: "2026-11-30" });
   eq("grupo gravado na edição (datas próprias) vale o gravado", E.periodoGrupo({ inicio: "2026-12-01", fim: "2026-12-24", periodo: { ini_offset: 4, fim_offset: 6 } }, "2026-11-23", "2026-11-30"),
     { inicio: "2026-12-01", fim: "2026-12-24" });
-  eq("Fim de semana segue a régua da PS (sem prazo próprio)", Object.keys(E.prazosEdicao(modelo("promocao-semanal"), "2026-11-23", "2026-11-30").grupos).length, 0);
+  const psComAcao = JSON.parse(JSON.stringify(modelo("promocao-semanal"))); psComAcao.estrutura.grupos.push(acaoSexta);
+  eq("grupo com período e SEM prazo próprio segue a régua da edição (nenhum prazo de grupo, mesmos prazos da PS)",
+    [Object.keys(E.prazosEdicao(psComAcao, "2026-11-23", "2026-11-30").grupos).length, JSON.stringify(E.prazosEdicao(psComAcao, "2026-11-23", "2026-11-30"))],
+    [0, JSON.stringify(E.prazosEdicao(modelo("promocao-semanal"), "2026-11-23", "2026-11-30"))]);
+  eq("a PS não tem grupo com período próprio nem prazo próprio", modelo("promocao-semanal").estrutura.grupos.filter((g) => g.periodo || g.prazos).map((g) => g.chave).join(",") || "nenhum", "nenhum");
+  eq("PS 23/11/2026: nenhum grupo com prazo próprio", Object.keys(E.prazosEdicao(modelo("promocao-semanal"), "2026-11-23", "2026-11-30").grupos).length, 0);
+
+  // o Final de semana de ofertas como promoção própria: prazos 28/17/14 contados da SEXTA
+  const fds27 = E.prazosEdicao(modelo("final-de-semana"), "2026-11-27", "2026-11-29");
+  eq("Final de semana 27–29/11/2026 (sexta a domingo): começar sex 30/10, definir ter 10/11, aprovar sex 13/11, sem prazo de grupo",
+    fds27, { comecar: "2026-10-30", definir: "2026-11-10", aprovar: "2026-11-13", grupos: {} });
+  eq("  os prazos contam da sexta (dias da semana: sexta, terça, sexta)", [fds27.comecar, fds27.definir, fds27.aprovar].map((d) => E.diaSemana(d)).join(","), "5,2,5");
+  eq("  o grupo único da edição dura a edição inteira (sem período próprio)", E.periodoGrupo(modelo("final-de-semana").estrutura.grupos[0], "2026-11-27", "2026-11-29"),
+    { inicio: "2026-11-27", fim: "2026-11-29" });
+  eq("Final de semana 01–03/01/2027: definir cai em 15/12 e aprovar em 18/12 (dias úteis, nada a antecipar)",
+    E.prazosEdicao(modelo("final-de-semana"), "2027-01-01", "2027-01-03"), { comecar: "2026-12-04", definir: "2026-12-15", aprovar: "2026-12-18", grupos: {} });
 }
 
 console.log("\n-- MUDANÇA DE ANO --");
@@ -244,8 +274,11 @@ console.log("\n-- EDIÇÕES A CRIAR E FUTURAS (hoje = 26/09/2026) --");
   const H = "2026-09-26";
   const cria = E.edicoesParaCriar(E.REGRAS_PADRAO, E.MODELOS_PADRAO, H, []);
   const chaves = cria.map((e) => e.campanha_id + "@" + e.inicio).sort().join(",");
-  eq("12 edições já deviam existir (5 PS, 2 Terçou, 1 SB, 1 HE, 3 Quarta Saudável)", chaves,
-    ["hora-da-economia@2026-10-29", "promocao-semanal@2026-09-21", "promocao-semanal@2026-09-28", "promocao-semanal@2026-10-05",
+  // ==FDSPROPRIO== desde 10/10/2026 o Final de semana tem edição própria: 5 a mais (o começar delas,
+  // 28 dias antes da sexta, já passou em 26/09)
+  eq("17 edições já deviam existir (5 PS, 5 Final de semana, 2 Terçou, 1 SB, 1 HE, 3 Quarta Saudável)", chaves,
+    ["final-de-semana@2026-09-25", "final-de-semana@2026-10-02", "final-de-semana@2026-10-09", "final-de-semana@2026-10-16", "final-de-semana@2026-10-23",
+      "hora-da-economia@2026-10-29", "promocao-semanal@2026-09-21", "promocao-semanal@2026-09-28", "promocao-semanal@2026-10-05",
       "promocao-semanal@2026-10-12", "promocao-semanal@2026-10-19",
       "quarta-saudavel@2026-09-30", "quarta-saudavel@2026-10-07", "quarta-saudavel@2026-10-14", "sabado-bombastico@2026-10-10", "tercou@2026-09-29", "tercou@2026-10-06"].join(","));
   eq("toda edição a criar tem começar ≤ hoje e fim ≥ hoje", cria.every((e) => e.prazos.comecar <= H && e.fim >= H), true);
@@ -254,8 +287,19 @@ console.log("\n-- EDIÇÕES A CRIAR E FUTURAS (hoje = 26/09/2026) --");
   eq("  prazos com os grupos de prazo próprio", Object.keys(t29.prazos.grupos).join(","), "hortifruti");
   eq("  título", t29.titulo, "Terçou das Frutas e Verduras · 29/09/2026");
   const existentes = cria.filter((e) => e.campanha_id === "promocao-semanal").map((e) => ({ campanha_id: e.campanha_id, inicio_regra: e.inicio_regra }));
-  eq("as que já existem não voltam (idempotente)", E.edicoesParaCriar(E.REGRAS_PADRAO, E.MODELOS_PADRAO, H, existentes).length, 7);
-  eq("com diasPassados 7 (seção 11) entram as que acabaram há até 7 dias", E.edicoesParaCriar(E.REGRAS_PADRAO, E.MODELOS_PADRAO, H, [], { diasPassados: 7 }).length, 16);
+  eq("as que já existem não voltam (idempotente)", E.edicoesParaCriar(E.REGRAS_PADRAO, E.MODELOS_PADRAO, H, existentes).length, 12);
+  const d7 = E.edicoesParaCriar(E.REGRAS_PADRAO, E.MODELOS_PADRAO, H, [], { diasPassados: 7 });
+  eq("com diasPassados 7 (seção 11) entram as que acabaram há até 7 dias", d7.length, 22);
+  eq("  ... inclusive o Final de semana de 18–20/09 (fim ≥ hoje − 7)", d7.filter((e) => e.campanha_id === "final-de-semana").map((e) => e.inicio).join(","),
+    "2026-09-18,2026-09-25,2026-10-02,2026-10-09,2026-10-16,2026-10-23");
+  const f23 = cria.find((e) => e.campanha_id === "final-de-semana" && e.inicio === "2026-10-23");
+  eq("Final de semana 23/10: sexta a domingo, título do banco, 1 modelo, prazos da sexta (começar 25/09)",
+    f23 && [f23.inicio, f23.fim, f23.titulo, f23.modelo_id, f23.prazos.comecar, f23.prazos.definir, f23.prazos.aprovar, Object.keys(f23.prazos.grupos).length].join("|"),
+    "2026-10-23|2026-10-25|Final de semana de ofertas · 23/10/2026|final-de-semana|2026-09-25|2026-10-06|2026-10-09|0");
+  // em 10/10/2026 (dia da decisão), com diasPassados 7 como a tela: as 6 que nascem na 1ª abertura
+  eq("em 10/10/2026 a tela criaria 6 edições do Final de semana (02/10 a 06/11)",
+    E.edicoesParaCriar(E.REGRAS_PADRAO, E.MODELOS_PADRAO, "2026-10-10", [], { diasPassados: 7 }).filter((e) => e.campanha_id === "final-de-semana").map((e) => e.inicio).join(","),
+    "2026-10-02,2026-10-09,2026-10-16,2026-10-23,2026-10-30,2026-11-06");
   const semModelo = E.MODELOS_PADRAO.map((m) => m.id === "sabado-bombastico" ? Object.assign({}, m, { ativo: false }) : m);
   eq("modelo inativo não cria edição", E.edicoesParaCriar(E.REGRAS_PADRAO, semModelo, H, []).some((e) => e.campanha_id === "sabado-bombastico"), false);
   const pausada = E.REGRAS_PADRAO.map((r) => r.id === "tercou" ? Object.assign({}, r, { situacao: "pausada" }) : r);
@@ -269,6 +313,8 @@ console.log("\n-- EDIÇÕES A CRIAR E FUTURAS (hoje = 26/09/2026) --");
   eq("futuras: todas com começar depois de hoje e até 70 dias", fut.every((e) => e.prazos.comecar > H && e.prazos.comecar <= "2026-12-05"), true);
   eq("futuras: marcadas como virtuais", fut.every((e) => e.virtual === true), true);
   eq("futuras: a próxima PS é a de 26/10 (começa 28/09)", fut.find((e) => e.campanha_id === "promocao-semanal").inicio, "2026-10-26");
+  eq("futuras: o próximo Final de semana é o de 30/10 (começa 02/10, a sexta 28 dias antes)",
+    [fut.find((e) => e.campanha_id === "final-de-semana").inicio, fut.find((e) => e.campanha_id === "final-de-semana").prazos.comecar].join("|"), "2026-10-30|2026-10-02");
   eq("futuras: a Black Friday não é edição", fut.some((e) => e.campanha_id === "black-friday"), false);
   eq("futuras e a criar não se repetem", fut.filter((f) => cria.some((c) => c.campanha_id === f.campanha_id && c.inicio_regra === f.inicio_regra)).length, 0);
   eq("futuras em ordem de começar", fut.every((e, i) => i === 0 || fut[i - 1].prazos.comecar <= e.prazos.comecar), true);
@@ -289,6 +335,13 @@ console.log("\n-- CONTAGEM DE VAGAS --");
   eq("contagem (retirada fora; proposta descartada não conta)", E.contarVagas(vagas, props),
     { total: 6, definidas: 4, negociando: 1, aNegociar: 1, aprovadas: 1, emAjuste: 1, aguardandoVisto: 1, pendentes: 3 });
   eq("sem nada", E.contarVagas([], []).total, 0);
+  // ==FDSPROPRIO== uma PS aberta ANTES de 10/10/2026 (42 vagas, 6 delas do grupo Fim de semana) depois
+  // da migração: o grupo fica 'removido' e as 6 vagas 'retirada'. A conta olha a VAGA, não o grupo.
+  const psVelha = [];
+  for (let i = 0; i < 36; i++) psVelha.push({ id: "v" + i, grupo: "g" + (i % 7), situacao: "ativa", estado: "pendente" });
+  for (let i = 0; i < 6; i++) psVelha.push({ id: "f" + i, grupo: "fim-de-semana", situacao: "retirada", estado: "pendente", motivo_retirada: "virou promoção própria" });
+  eq("PS antiga depois da migração: as 6 vagas retiradas do grupo removido não contam (36)", E.contarVagas(psVelha, []).total, 36);
+  eq("  ... e esquecer de retirar as vagas (só o grupo removido) continuaria contando 42", E.contarVagas(psVelha.map((x) => Object.assign({}, x, { situacao: "ativa" })), []).total, 42);
 }
 
 console.log("\n-- SITUAÇÃO DA FILA --");
@@ -327,12 +380,14 @@ console.log("\n-- SITUAÇÃO DA FILA --");
   eq("sem penalidade: o vermelho vira 'Anterior ao processo' (âmbar)", [s.k, s.rotulo].join(" | "), "atencao | Anterior ao processo");
   eq("sem penalidade: não acusa 'no ar sem aprovação'", s.noArSemAprovacao, false);
   eq("edição sem vagas não é 'aprovada' nem 'atrasada'", E.situacao(ed, cont(0, 0, 0, 0), "2026-11-10").k, "no_prazo");
-  // PS 05/10/2026 na terça 06/10: 41 aprovadas e 1 pendente do Fim de semana (que só entra no ar na sexta 09/10)
+  // PS 05/10/2026 na terça 06/10: 36 aprovadas e 1 pendente de uma ação temática de sexta a domingo
+  // (grupo com período próprio, que só entra no ar na sexta 09/10). ==FDSPROPRIO== até 10/10/2026 o
+  // exemplo era o grupo Fim de semana; hoje ele é promoção própria, mas o caminho continua o mesmo.
   const ps05 = { prazos: { comecar: "2026-09-07", definir: "2026-09-18", aprovar: "2026-09-21" }, inicio: "2026-10-05", fim: "2026-10-12" };
-  const c42 = { total: 42, definidas: 42, negociando: 0, aprovadas: 41 };
+  const c42 = { total: 37, definidas: 37, negociando: 0, aprovadas: 36 };
   eq("sem pendentesNoAr: continua usando o total de pendentes (compatível)", E.situacao(ps05, c42, "2026-10-06").noArSemAprovacao, true);
-  eq("pendentesNoAr = 0 (a pendente é do Fim de semana, ainda antes do ar): NÃO acusa", E.situacao(ps05, Object.assign({ pendentesNoAr: 0 }, c42), "2026-10-06").noArSemAprovacao, false);
-  eq("pendentesNoAr = 1 (na sexta, o Fim de semana entrou no ar): acusa", E.situacao(ps05, Object.assign({ pendentesNoAr: 1 }, c42), "2026-10-09").noArSemAprovacao, true);
+  eq("pendentesNoAr = 0 (a pendente é da ação de sexta, ainda antes do ar): NÃO acusa", E.situacao(ps05, Object.assign({ pendentesNoAr: 0 }, c42), "2026-10-06").noArSemAprovacao, false);
+  eq("pendentesNoAr = 1 (na sexta, a ação entrou no ar): acusa", E.situacao(ps05, Object.assign({ pendentesNoAr: 1 }, c42), "2026-10-09").noArSemAprovacao, true);
   eq("pendentesNoAr com sem_penalidade: não acusa", E.situacao(Object.assign({ sem_penalidade: true }, ps05), Object.assign({ pendentesNoAr: 3 }, c42), "2026-10-09").noArSemAprovacao, false);
   eq("pendentesNoAr em branco não vira zero (usa o total)", E.situacao(ps05, Object.assign({ pendentesNoAr: "" }, c42), "2026-10-06").noArSemAprovacao, true);
 }
@@ -485,7 +540,18 @@ console.log("\n-- COINCIDÊNCIAS (D7·7) --");
   eq("  texto do aviso", hebf && hebf.texto, "Hora da Economia (26/11) e Black Friday (27/11) ficam a 1 dia uma da outra");
   eq("a Promoção Semanal (contínua) nunca entra", c.some((x) => x.a.id === "promocao-semanal" || x.b.id === "promocao-semanal"), false);
   eq("Terçou (semanal) × HE (outra campanha): NÃO é coincidência (seria aviso todo mês)", c.some((x) => par(x) === "hora-da-economia×tercou"), false);
-  eq("novembro/2026 tem exatamente 1 aviso (HE × Black Friday)", c.map(par).sort().join(","), "black-friday×hora-da-economia");
+  // ==FDSPROPRIO== o Final de semana virou promoção própria (10/10/2026): semanal, faz par com data
+  // GRANDE. O dono ACEITOU esses avisos (sem exceção): a Black Friday cai sempre na sexta dele.
+  eq("novembro/2026 tem exatamente 2 avisos (HE × Black Friday e Black Friday × Final de semana)", c.map(par).sort().join(","),
+    "black-friday×final-de-semana,black-friday×hora-da-economia");
+  const bffds = c.find((x) => par(x) === "black-friday×final-de-semana");
+  eq("  Black Friday 27/11 × Final de semana 27–29/11: mesmo período, com o texto do aviso", bffds && [bffds.dias, bffds.texto].join("|"),
+    "0|Black Friday (27/11) e Final de semana de ofertas (27 a 29/11) caem no mesmo período");
+  eq("  Final de semana × HE (duas campanhas, uma semanal): NÃO é par", c.some((x) => par(x) === "final-de-semana×hora-da-economia"), false);
+  const ano27f = E.coincidencias(E.ocorrenciasCampanhas(E.REGRAS_PADRAO, "2027-01-01", "2027-12-31")).filter((x) => [x.a.id, x.b.id].indexOf("final-de-semana") >= 0);
+  eq("  2027: o Final de semana só faz par com data grande (Carnaval, Páscoa, Aniversário, Black Friday, Natal, Réveillon)",
+    Array.from(new Set(ano27f.map((x) => (x.a.id === "final-de-semana" ? x.b.id : x.a.id)))).sort().join(","),
+    "aniversario-santa-rita,black-friday,carnaval,natal,pascoa,reveillon");
   const ano27 = E.coincidencias(E.ocorrenciasCampanhas(E.REGRAS_PADRAO, "2027-01-01", "2027-12-31"));
   eq("2027 inteiro: nenhum par Terçou × Hora da Economia", ano27.filter((x) => par(x) === "hora-da-economia×tercou").length, 0);
   eq("2029: HE 29/11 × Black Friday 23/11 não coincidem mais (a BF errada caía em 30/11)",
@@ -501,7 +567,8 @@ console.log("\n-- COINCIDÊNCIAS (D7·7) --");
   const comEd = E.MODELOS_PADRAO.filter((m) => m.tipo === "edicao" && m.ativo !== false).map((m) => m.campanha_id);
   const cF = E.coincidencias(ocF, { regras: regrasF, comEdicao: comEd });
   eq("  com comEdicao: campanha sem modelo de edição não gera aviso", cF.some((x) => x.a.id === "usr-feirao" || x.b.id === "usr-feirao"), false);
-  eq("  e a HE × Black Friday (data, fora da lista por ser data) continua", cF.map(par).join(","), "black-friday×hora-da-economia");
+  eq("  e a HE × Black Friday (data, fora da lista por ser data) continua; o Final de semana tem modelo e também entra",
+    cF.map(par).join(","), "black-friday×hora-da-economia,black-friday×final-de-semana");
   const sexta = { id: "usr-sexta", nome: "Sexta do Frango", tipo: "campanha", situacao: "ativa", regra: { tipo: "semanal", dia_semana: 5, duracao_dias: 1 } };
   const regrasS = E.REGRAS_PADRAO.concat([sexta]);
   const cS = E.coincidencias(E.ocorrenciasCampanhas(regrasS, "2026-11-01", "2026-11-30"), { regras: regrasS });
@@ -519,7 +586,8 @@ console.log("\n-- COINCIDÊNCIAS (D7·7) --");
   const cru = E.coincidencias([{ id: "hora-da-economia", nome: "Hora da Economia", inicio: "2026-11-26", fim: "2026-11-26" },
     { id: "black-friday", nome: "Black Friday", inicio: "2026-11-27", fim: "2026-11-27" }]);
   eq("só {id,nome,inicio,fim}: tipo e categoria vêm das regras", cru.length, 1);
-  eq("margem 0: só sobreposição conta", E.coincidencias(nov, { margemDias: 0 }).length, 0);
+  eq("margem 0: só sobreposição conta (sai a HE a 1 dia; fica a Black Friday dentro do Final de semana)",
+    E.coincidencias(nov, { margemDias: 0 }).map(par).join(","), "black-friday×final-de-semana");
   eq("duas datas sem campanha não são coincidência", E.coincidencias([{ id: "natal", inicio: "2026-12-24", fim: "2026-12-24" },
     { id: "reveillon", inicio: "2026-12-25", fim: "2026-12-25" }]).length, 0);
   eq("a mesma campanha consigo mesma não conta", E.coincidencias([{ id: "tercou", inicio: "2026-11-24", fim: "2026-11-25" },
@@ -530,7 +598,7 @@ console.log("\n-- MESMO PRODUTO EM PERÍODOS SOBREPOSTOS --");
 {
   const itens = [
     { produto_id: 101, descricao: "ARROZ TIO JOAO 5KG", inicio: "2026-11-23", fim: "2026-11-30", preco: 21.9, onde: "PS 23/11 · Capa" },
-    { produto_id: 101, descricao: "ARROZ TIO JOAO 5KG", inicio: "2026-11-27", fim: "2026-11-29", preco: 19.9, onde: "PS 23/11 · Fim de semana" },
+    { produto_id: 101, descricao: "ARROZ TIO JOAO 5KG", inicio: "2026-11-27", fim: "2026-11-29", preco: 19.9, onde: "Final de semana 27/11" },
     { produto_id: 202, descricao: "CAFE 250G", inicio: "2026-11-23", fim: "2026-11-30", preco: 9.99, onde: "PS 23/11" },
     { produto_id: 202, descricao: "CAFE 250G", inicio: "2026-12-07", fim: "2026-12-14", preco: 8.99, onde: "PS 07/12" },
     { produto_id: 303, descricao: "OLEO 900ML", inicio: "2026-11-23", fim: "2026-11-30", preco: 6.49, onde: "PS · Capa" },
@@ -542,8 +610,8 @@ console.log("\n-- MESMO PRODUTO EM PERÍODOS SOBREPOSTOS --");
   ];
   const s = E.sobreposicaoProdutos(itens);
   eq("destaca só quem tem período sobreposto E preço/período diferente", s.map((x) => x.produto_id).join(","), "101,404,505");
-  eq("PS × Fim de semana: preço e período diferentes", s[0].diferencas.join(","), "preco,periodo");
-  eq("  traz os dois lugares", s[0].itens.map((x) => x.onde).join(" / "), "PS 23/11 · Capa / PS 23/11 · Fim de semana");
+  eq("PS × Final de semana: preço e período diferentes", s[0].diferencas.join(","), "preco,periodo");
+  eq("  traz os dois lugares", s[0].itens.map((x) => x.onde).join(" / "), "PS 23/11 · Capa / Final de semana 27/11");
   eq("mesmo período, preço diferente", s[1].diferencas.join(","), "preco");
   eq("PS × PS seguinte: a segunda-feira de encontro também conta", s[2].diferencas.join(","), "preco,periodo");
   eq("mesmo produto igual em tudo não é conflito (303 fora)", s.some((x) => x.produto_id === 303), false);
@@ -561,8 +629,11 @@ console.log("\n-- MESMO PRODUTO EM PERÍODOS SOBREPOSTOS --");
     E.sobreposicaoProdutos([psA, Object.assign({}, psB, { campanha_id: "usr-outra" })]).map((x) => x.diferencas.join(",")).join("|"), "periodo");
   eq("  sobreposição de mais de 1 dia, mesmo preço e mesma campanha: destaca (período)",
     E.sobreposicaoProdutos([psA, Object.assign({}, psB, { inicio: "2026-11-29", fim: "2026-12-06" })]).map((x) => x.diferencas.join(",")).join("|"), "periodo");
-  const fdsA = { produto_id: 7, inicio: "2026-11-27", fim: "2026-11-29", preco: 19.9, campanha_id: "promocao-semanal" };
-  eq("  PS × Fim de semana (um contém o outro) com preço diferente: destaca", E.sobreposicaoProdutos([psA, fdsA]).map((x) => x.diferencas.join(",")).join("|"), "preco,periodo");
+  // ==FDSPROPRIO== o Final de semana é edição própria desde 10/10/2026 (campanha "final-de-semana")
+  const fdsA = { produto_id: 7, inicio: "2026-11-27", fim: "2026-11-29", preco: 19.9, campanha_id: "final-de-semana" };
+  eq("  PS × Final de semana (um contém o outro) com preço diferente: destaca", E.sobreposicaoProdutos([psA, fdsA]).map((x) => x.diferencas.join(",")).join("|"), "preco,periodo");
+  eq("  PS × Final de semana com o MESMO preço: destaca só o período (um contém o outro, não é encosto)",
+    E.sobreposicaoProdutos([psA, Object.assign({}, fdsA, { preco: 21.9 })]).map((x) => x.diferencas.join(",")).join("|"), "periodo");
   eq("  1 dia dentro de outro período (não é encosto): destaca", E.sobreposicaoProdutos([psA, { produto_id: 7, inicio: "2026-11-30", fim: "2026-11-30", preco: 21.9, campanha_id: "promocao-semanal" }]).length, 1);
 }
 
@@ -592,19 +663,35 @@ console.log("\n-- FRESCOR DOS DADOS DO VR (D9) --");
 console.log("\n-- SEEDS (seções 8 e 9) --");
 {
   const R = E.REGRAS_PADRAO;
-  eq("23 regras: 6 campanhas + 17 datas", [R.length, R.filter((r) => r.tipo === "campanha").length, R.filter((r) => r.tipo === "data").length].join("|"), "23|6|17");
+  eq("24 regras: 7 campanhas + 17 datas", [R.length, R.filter((r) => r.tipo === "campanha").length, R.filter((r) => r.tipo === "data").length].join("|"), "24|7|17");
   eq("ids únicos", new Set(R.map((r) => r.id)).size, R.length);
   eq("só a Sexta da Carne nasce pausada", R.filter((r) => r.situacao === "pausada").map((r) => r.id).join(","), "sexta-da-carne");
-  eq("cores das campanhas", ["promocao-semanal", "tercou", "sabado-bombastico", "hora-da-economia", "sexta-da-carne"].map((i) => regra(i).cor).join(","),
-    "#0047FF,#00A443,#FFD000,#FF6A00,#E60000");
+  // a cor é a chave visual do Calendário (o ciano do Final de semana era só uma constante na página;
+  // agora vem da regra: se o SQL e o cálculo errarem juntos, só esta lista pega)
+  const CORES = { "promocao-semanal": "#0047FF", "tercou": "#00A443", "sabado-bombastico": "#FFD000", "hora-da-economia": "#FF6A00",
+    "sexta-da-carne": "#E60000", "quarta-saudavel": "#E0007A", "final-de-semana": "#0088C2" };
+  eq("cores das campanhas (todas as 7)", R.filter((r) => r.tipo === "campanha").map((r) => r.id + "=" + r.cor).join(","),
+    Object.keys(CORES).map((i) => i + "=" + CORES[i]).join(","));
+  // ==FDSPROPRIO== a regra do Final de semana de ofertas (promoção própria desde 10/10/2026), campo a campo
+  const fr = regra("final-de-semana");
+  eq("Final de semana: a regra combinada (campanha semanal, sexta, 3 dias, Geral, ciano, ativa, ordem 7, sem categoria)",
+    fr && [fr.nome, fr.tipo, fr.categoria, JSON.stringify(fr.regra), fr.setor, fr.cor, fr.situacao, fr.ordem].join("|"),
+    "Final de semana de ofertas|campanha||" + JSON.stringify({ tipo: "semanal", dia_semana: 5, duracao_dias: 3 }) + "|Geral|#0088C2|ativa|7");
+  eq("  observação", fr && fr.observacao,
+    "Sexta a domingo (entra sexta 00h, sai segunda 00h). Promoção própria, com encarte separado da Promoção Semanal desde 10/10/2026 (decisão do dono).");
+  eq("  logo DEPOIS da Quarta Saudável na lista (a mesma posição do SQL)", R.map((r) => r.id).indexOf("final-de-semana") - R.map((r) => r.id).indexOf("quarta-saudavel"), 1);
+  eq("  o id não começa com 'usr-' (a legenda trataria como promoção criada pelo usuário)", /^usr-/.test(fr.id), false);
+  eq("  nenhuma outra regra na ordem 7 (empate deixa o chip trocando de lugar)", R.filter((r) => r.ordem === 7).map((r) => r.id).join(","), "final-de-semana");
   eq("datas grandes", R.filter((r) => r.categoria === "grande").map((r) => r.id).join(","), "carnaval,pascoa,aniversario-santa-rita,black-friday,natal,reveillon");
   eq("São João é data média", regra("sao-joao").categoria, "media");
   eq("toda data tem categoria; campanha não", R.every((r) => (r.tipo === "data") === (r.categoria === "media" || r.categoria === "grande")), true);
   const M = E.MODELOS_PADRAO;
   const ed = M.filter((m) => m.tipo === "edicao"), te = M.filter((m) => m.tipo === "tema");
-  eq("6 modelos de edição + 15 temas", [ed.length, te.length].join("|"), "6|15");
+  eq("7 modelos de edição + 15 temas", [ed.length, te.length].join("|"), "7|15");
   eq("prazos aprovados", ed.map((m) => m.id + ":" + [m.prazos.comecar, m.prazos.definir, m.prazos.aprovar].join("/")).join(" "),
-    "promocao-semanal:28/17/14 tercou:14/8/7 sabado-bombastico:42/28/21 hora-da-economia:35/21/14 quarta-saudavel:21/10/7 sexta-da-carne:14/7/5");
+    "promocao-semanal:28/17/14 tercou:14/8/7 sabado-bombastico:42/28/21 hora-da-economia:35/21/14 quarta-saudavel:21/10/7 sexta-da-carne:14/7/5 final-de-semana:28/17/14");
+  eq("modelo do Final de semana logo DEPOIS da Sexta da Carne e ANTES dos temas (a mesma posição do SQL)",
+    [M.map((m) => m.id).indexOf("final-de-semana") - M.map((m) => m.id).indexOf("sexta-da-carne"), M[M.map((m) => m.id).indexOf("final-de-semana") + 1].tipo], [1, "tema"]);
   const nv = (m) => m.estrutura.grupos.map((g) => g.vagas.length).join(",");
   eq("SB: Capa 5, Mercearia 8, Limpeza 5, Perfumaria 8, Bebidas 4, Frios 4, Açougue 3", nv(modelo("sabado-bombastico")), "5,8,5,8,4,4,3");
   eq("HE: Capa 4, Mercearia 6, Limpeza 4, Higiene 4, Bebidas 3, Frios 3", nv(modelo("hora-da-economia")), "4,6,4,4,3,3");
@@ -612,8 +699,26 @@ console.log("\n-- SEEDS (seções 8 e 9) --");
   const capa = modelo("promocao-semanal").estrutura.grupos[0];
   eq("PS Capa: carne bovina é OPCIONAL", capa.vagas.filter((v) => !v.obrigatoria).map((v) => v.nome).join(","), "Carne bovina · definir na semana");
   eq("PS sem hortifrúti", modelo("promocao-semanal").estrutura.grupos.some((g) => /horti/i.test(g.nome)), false);
-  const fds = modelo("promocao-semanal").estrutura.grupos.find((g) => g.chave === "fim-de-semana");
-  eq("PS Fim de semana: identidade e período sex→dom", [fds.identidade, fds.periodo.ini_offset, fds.periodo.fim_offset].join("|"), "Final de semana de ofertas|4|6");
+  // ==FDSPROPRIO== a PS perdeu o grupo "fim-de-semana" em 10/10/2026: 7 grupos, 37 vagas (36 obrigatórias
+  // + a Carne bovina opcional)
+  const gPS = modelo("promocao-semanal").estrutura.grupos, vPS = [].concat.apply([], gPS.map((g) => g.vagas));
+  eq("PS: 7 grupos, 37 vagas, 36 obrigatórias", [gPS.length, vPS.length, vPS.filter((x) => x.obrigatoria).length].join("|"), "7|37|36");
+  eq("PS: os grupos, na ordem (sem o Fim de semana)", gPS.map((g) => g.chave).join(","),
+    "capa,acougue,cesta-basica,limpeza,higiene,frios-laticinios,bebidas-conveniencia");
+  eq("PS: nenhum grupo com identidade própria ou período próprio", gPS.filter((g) => g.identidade || g.periodo).length, 0);
+  // o modelo próprio do Final de semana: 1 grupo, 6 vagas (as MESMAS do antigo grupo), identidade, sem período
+  const mF = modelo("final-de-semana"), gF = mF && mF.estrutura.grupos;
+  eq("Final de semana: modelo de edição da campanha de mesmo id, 1 grupo, 6 vagas obrigatórias",
+    mF && [mF.tipo, mF.campanha_id, mF.nome, gF.length, gF[0].vagas.length, gF[0].vagas.every((x) => x.obrigatoria && x.quantidade === 1)].join("|"),
+    "edicao|final-de-semana|Final de semana de ofertas|1|6|true");
+  eq("  o grupo: chave, nome, identidade da arte, entra em toda edição",
+    gF && [gF[0].chave, gF[0].nome, gF[0].identidade, gF[0].ativo_padrao].join("|"), "ofertas|Ofertas do fim de semana|Final de semana de ofertas|true");
+  eq("  SEM período próprio e SEM prazos próprios (a edição inteira é sexta a domingo)",
+    gF && [gF[0].periodo === undefined, gF[0].prazos === undefined, gF[0].flv === undefined, mF.dicas, mF.dias_antes_no_ar].join("|"), "true|true|true||");
+  eq("  as 6 vagas, na ordem, com o que muda (iguais às do antigo grupo da PS)", gF && gF[0].vagas.map((x) => x.chave + ":" + x.nome + ":" + x.o_que_muda).join(","),
+    "frango:Frango:corte,linguica:Linguiça:marca,carne-suina:Carne suína:corte,bebida:Bebida:produto,mercearia:Mercearia:produto,conveniencia:Conveniência:produto");
+  eq("  um só modelo de edição ativo para a campanha (o banco escolhe por id, a tela pela versão)",
+    M.filter((m) => m.tipo === "edicao" && m.ativo !== false && m.campanha_id === "final-de-semana").length, 1);
   const hort = modelo("tercou").estrutura.grupos[0];
   eq("Terçou Hortifrúti: flv, prazos 4/1/1, 7 vagas", [hort.flv, hort.prazos.comecar, hort.prazos.definir, hort.prazos.aprovar, hort.vagas.length].join("|"), "true|4|1|1|7");
   eq("chaves de grupo únicas por modelo e de vaga únicas por grupo", M.every((m) => {
@@ -674,7 +779,7 @@ else {
   const tr = tuplasDoInsert(SQL, "insert into public.calendario_regras (id, nome, tipo, categoria, regra, setor, cor, situacao, ordem, observacao) values");
   const campos = ["id", "nome", "tipo", "categoria", "regra", "setor", "cor", "situacao", "ordem", "observacao"];
   const doSql = (tr || []).map((t) => { const o = {}; campos.forEach((c, i) => { o[c] = c === "regra" ? JSON.parse(t[i]) : t[i]; }); return o; });
-  eq("o SQL tem as 23 regras (e o leitor achou todas)", doSql.length, 23);
+  eq("o SQL tem as 24 regras (e o leitor achou todas)", doSql.length, 24);
   eq("mesmas regras, na mesma ordem", E.REGRAS_PADRAO.map((r) => r.id).join(","), doSql.map((r) => r.id).join(","));
   const difR = [];
   doSql.forEach((q) => {
@@ -687,7 +792,7 @@ else {
   const tm = tuplasDoInsert(SQL, "insert into public.encarte_modelos (id, campanha_id, tipo, nome, prazos, estrutura, dicas) values");
   const cm = ["id", "campanha_id", "tipo", "nome", "prazos", "estrutura", "dicas"];
   const mSql = (tm || []).map((t) => { const o = {}; cm.forEach((c, i) => { o[c] = c === "prazos" || c === "estrutura" ? JSON.parse(t[i]) : t[i]; }); return o; });
-  eq("o SQL tem os 21 modelos (e o leitor achou todos)", mSql.length, 21);
+  eq("o SQL tem os 22 modelos (e o leitor achou todos)", mSql.length, 22);
   eq("mesmos modelos, na mesma ordem", E.MODELOS_PADRAO.map((m) => m.id).join(","), mSql.map((m) => m.id).join(","));
   const difM = [];
   mSql.forEach((q) => {
