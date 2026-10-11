@@ -13862,6 +13862,76 @@ function rvIdadeMin(agoraMs, ultimoISO){
   return min<0 ? 0 : min;      /* relogio do navegador atrasado nao vira "negativo" */
 }
 
+/* ==VIGIAHORARIO-INICIO==
+   O SILENCIO SO CONTA ENQUANTO A LOJA ESTA ABERTA.
+
+   Pedido dele em 11/10/2026, domingo, com a faixa vermelha na tela: o robo tinha parado as
+   13h23 — um minuto depois de a loja fechar, que no domingo e 13h. O computador foi desligado
+   no fim do expediente, como todo dia. Mas o vigia contava minutos de RELOGIO, entao 40 minutos
+   depois acendia "o robo parou de dar sinal", e acenderia assim todo domingo a tarde e toda
+   noite depois das 21h. Alarme que toca quando nao ha nada errado e alarme que se aprende a
+   ignorar — e ai o dia em que ele tocar de verdade ninguem olha.
+
+   Entao o relogio do vigia anda DEVAGAR quando a loja esta fechada, e PARA de andar de vez.
+   Quarenta minutos de silencio continuam sendo quarenta minutos de silencio DELA ABERTA: o robo
+   que morre no sabado a noite nao acende nada aquela noite, e acende as 7h10 da segunda, quando
+   ja perdeu quarenta minutos de expediente. Nada se esconde — so se espera a hora em que o
+   silencio significa alguma coisa. */
+var rvDadoQuando=null;   /* quando o dado do VR foi gravado (ISO) — pra medir a idade pela loja aberta */
+var RV_LOJA=[{ini:7*60,fim:13*60},                                        /* domingo 07:00-13:00 */
+             {ini:390,fim:1260},{ini:390,fim:1260},{ini:390,fim:1260},    /* seg, ter, qua */
+             {ini:390,fim:1260},{ini:390,fim:1260},{ini:390,fim:1260}];   /* qui, sex, sab 06:30-21:00 */
+var RV_FUSO="America/Fortaleza";   /* Caico (RN) — sem horario de verao */
+var rvFmtLoja=null;
+/* que dia da semana e que hora sao na LOJA, nao no aparelho de quem olha (ele viaja) */
+function rvHoraLoja(ms){
+  try{
+    if(!rvFmtLoja) rvFmtLoja=new Intl.DateTimeFormat("en-US",{timeZone:RV_FUSO,weekday:"short",hour:"2-digit",minute:"2-digit",hour12:false});
+    var p=rvFmtLoja.formatToParts(new Date(ms)), o={}, i;
+    for(i=0;i<p.length;i++) o[p[i].type]=p[i].value;
+    var dias={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+    var h=parseInt(o.hour,10); if(h===24) h=0;   /* alguns navegadores dizem 24 pra meia-noite */
+    return { dow:dias[o.weekday], min:h*60+parseInt(o.minute,10) };
+  }catch(e){
+    var d=new Date(ms);  /* sem Intl, o relogio do aparelho ja e melhor que nada */
+    return { dow:d.getDay(), min:d.getHours()*60+d.getMinutes() };
+  }
+}
+function rvAberto(ms){
+  var t=rvHoraLoja(ms), j=RV_LOJA[t.dow];
+  return !!j && t.min>=j.ini && t.min<j.fim;
+}
+/* QUANTOS MINUTOS DE LOJA ABERTA couberam entre um instante e outro.
+   Dia por dia, cortando o pedaco que cabe — e nao de cinco em cinco minutos, como estava na
+   primeira versao: amostrar arredondava 39 minutos para 40 e o alarme acendia um minuto antes
+   da hora. Numa regra que existe pra nao gritar fora de hora, errar a fronteira e o pior lugar
+   pra errar. */
+function rvMinAbertos(deMs, ateMs){
+  if(!(ateMs>deMs)) return 0;
+  var teto=60*86400000;                       /* parado ha dois meses: nao precisa varrer tudo */
+  var ini=(ateMs-deMs>teto) ? (ateMs-teto) : deMs;
+  var extra=(ateMs-deMs>teto) ? 100000 : 0;
+  var n=0, t=ini, guarda=0;
+  while(t<ateMs && guarda++<70){
+    var hl=rvHoraLoja(t);
+    var meiaNoite=Math.floor(t/60000)*60000 - hl.min*60000;   /* 00:00 daquele dia, na loja */
+    var j=RV_LOJA[hl.dow];
+    if(j){
+      var a=Math.max(t, meiaNoite+j.ini*60000);
+      var b=Math.min(ateMs, meiaNoite+j.fim*60000);
+      if(b>a) n+=Math.round((b-a)/60000);
+    }
+    t=meiaNoite+86400000+60000;               /* um minuto dentro do dia seguinte */
+  }
+  return n+extra;
+}
+/* a idade que o vigia usa pra DECIDIR (a que ele MOSTRA continua sendo a do relogio) */
+function rvIdadeAberta(agoraMs, quandoISO){
+  var t=quandoISO?Date.parse(quandoISO):NaN;
+  if(!t || isNaN(t)) return null;
+  return rvMinAbertos(t, agoraMs);
+}
+/* ==VIGIAHORARIO-FIM== */
 /* O ciclo do robo e de ~20 min. 90 minutos sao quatro rodadas perdidas: tarde o
    bastante pra nao dar alarme falso, cedo o bastante pra achar no mesmo dia. */
 var RV_ATRASO=90, RV_PARADO=360;
@@ -13889,8 +13959,9 @@ function rvQuanto(min){
   return "há "+Math.floor(h/24)+" dias";
 }
 
-function rvTexto(min){
-  var n=rvNivel(min);
+function rvTexto(min, minAberto){
+  /* decide pelo tempo de loja ABERTA, mostra o tempo de relogio (e o que ele entende) */
+  var n=rvNivel(typeof minAberto==="number" ? minAberto : min);
   if(n==="ok"||n==="sem") return null;
   var q=rvQuanto(min);
   if(n==="atraso") return { nivel:"atraso", ico:"⚠️",
@@ -13931,6 +14002,9 @@ function rvSincParadas(lista, agoraMs, idadeRobo){
   for(i=0;i<lista.length;i++){
     s=lista[i]; if(!s) continue;
     idade = rvIdadeMin(agoraMs, s.quando);
+    /* a folga de cada tarefa tambem corre so com a loja aberta (mesma regua do batimento) */
+    var idadeAbS = rvIdadeAberta(agoraMs, s.quando);
+    if(idadeAbS !== null && idadeAbS < 1 && !(s.ok === false)) continue;
     /* FALHA CONTADA VALE NA HORA, sem esperar a folga — mesma regra do robo inteiro: quando a
        tarefa conseguiu falar, esperar mais so atrasa a noticia. */
     if(s.ok===false){ fora.push({ id:s.id, nome:s.nome||s.id, idade:idade, contou:true,
@@ -13985,7 +14059,8 @@ function rvSoRobo(t, saude){
      (o .env sumiu inteiro, e a chave foi junto). */
   if(saude && saude.ok){
     var idade=rvIdadeBatimento(Date.now(), saude.quando);
-    if(idade!==null && idade>=RV_SEM_BATIMENTO){
+    var idadeAb=rvIdadeAberta(Date.now(), saude.quando);   /* so conta loja aberta */
+    if(idade!==null && idadeAb!==null && idadeAb>=RV_SEM_BATIMENTO){
       return { nivel:"parado", ico:"🛑",
         titulo:"O robô da loja parou de dar sinal.",
         corpo:"A última vez que ele avisou que estava vivo foi "+rvQuanto(idade)+
@@ -14036,13 +14111,14 @@ function rvRepintar(){
   var fresco = (Date.now()-rvSaudeLido) < 120000;
   rvPintar(rvMinCache, fresco ? rvSaudeCache : null);
 }
-function rvPintar(min, saude, sincs){
+function rvPintar(min, saude, sincs, quandoDado){
   rvMinCache=min;
+  if(quandoDado!==undefined) rvDadoQuando=quandoDado;
   if(saude!==rvSaudeCache || saude){ rvSaudeCache=saude; if(saude) rvSaudeLido=Date.now(); }
   if(sincs!==undefined) rvSincsCache=sincs;
   var el=document.getElementById("rvAviso"); if(!el) return;
   if(!rvEhMaster()){ el.innerHTML=""; return; }
-  var t=rvComRelato(rvTexto(min), saude, rvSincsCache);
+  var t=rvComRelato(rvTexto(min, rvIdadeAberta(Date.now(), rvDadoQuando)), saude, rvSincsCache);
   if(!t){ el.innerHTML=""; return; }
   var cons = t.comando
     ? '<div class="rv-fazer"><b>O que fazer:</b> '+pxEsc(t.comando)+'</div>' : '';
@@ -14066,13 +14142,14 @@ function rvConferir(){
       .then(function(r){
         if(!r||r.error||!r.data||!r.data.length) return;   /* sem acesso: nao inventa alarme */
         var min=rvIdadeMin(Date.now(), r.data[0].atualizado_em);
+        var quandoDado=r.data[0].atualizado_em;
         /* o relato do robô é um extra: se não vier, o aviso sai do mesmo jeito */
         try{
           sb.from("robo_saude").select("ok,motivo,detalhe,comando,quando").eq("id","robo").limit(1)
             .then(function(r2){
-              rvPintar(min, (r2&&!r2.error&&r2.data&&r2.data[0]) ? r2.data[0] : null);
-            }, function(){ rvPintar(min, null); });
-        }catch(e){ rvPintar(min, null); }
+              rvPintar(min, (r2&&!r2.error&&r2.data&&r2.data[0]) ? r2.data[0] : null, undefined, quandoDado);
+            }, function(){ rvPintar(min, null, undefined, quandoDado); });
+        }catch(e){ rvPintar(min, null, undefined, quandoDado); }
       }, function(){});
   }catch(e){}
 }

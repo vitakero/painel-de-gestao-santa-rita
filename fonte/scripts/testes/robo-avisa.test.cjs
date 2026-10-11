@@ -27,11 +27,22 @@ function eq(nome, obtido, esperado) {
 // o miolo do vigia, extraído do painel gerado
 const ini = HTML.indexOf("==ROBOVIGIA-INICIO=="), fim = HTML.indexOf("==ROBOVIGIA-FIM==");
 if (ini < 0 || fim < 0) { console.log("ERRO: não achei o vigia no painel (rode o build antes)."); process.exit(1); }
-const M = new Function(HTML.slice(HTML.indexOf("*/", ini) + 2, HTML.lastIndexOf("/*", fim))
-  + "\nreturn {rvNivel,rvQuanto,rvTexto,rvIdadeBatimento,rvComRelato,RV_SEM_BATIMENTO};")();
+
+// ==RELOGIO FIXO DA BANCADA== (11/10/2026)
+// O vigia passou a contar o silêncio só enquanto a LOJA ESTÁ ABERTA, e ele lê a hora com
+// Date.now() lá dentro. Rodando num domingo à tarde (loja fechada) NADA acenderia, e estas
+// provas viravam falso-verde. Então a bancada congela o relógio numa quarta-feira às 10h,
+// horário de Caicó — expediente cheio, que é onde estas regras valem.
+const AGORA_LOJA = new Date("2026-10-14T10:00:00-03:00").getTime();
+const FALSO = (ms) => "var __AG=" + ms + ";" +
+  "var Date=class extends globalThis.Date{constructor(){if(arguments.length===0)super(__AG);else super(...arguments);}" +
+  "static now(){return __AG;}static parse(s){return globalThis.Date.parse(s);}static UTC(){return globalThis.Date.UTC(...arguments);}};";
+const MIOLO = HTML.slice(HTML.indexOf("*/", ini) + 2, HTML.lastIndexOf("/*", fim));
+const M = new Function(FALSO(AGORA_LOJA) + MIOLO
+  + "\nreturn {rvNivel,rvQuanto,rvTexto,rvIdadeBatimento,rvComRelato,rvAberto,rvIdadeAberta,RV_SEM_BATIMENTO};")();
 
 // atalho: uma data ISO de N minutos atrás, para RODAR a regra em vez de só ler o código dela
-const atras = (min) => new Date(Date.now() - min * 60000).toISOString();
+const atras = (min) => new Date(AGORA_LOJA - min * 60000).toISOString();
 
 console.log("1) o vigia continua medindo certo");
 eq("   90 min ainda é 'ok'", M.rvNivel(89), "ok");
@@ -93,13 +104,14 @@ eq("   troca o título pelo motivo real", /novo\.titulo = String\(saude\.motivo\
 eq("   desenha o que fazer", /class="rv-fazer"/.test(HTML), true);
 eq("   e escapa o texto (veio de fora do painel)", /pxEsc\(t\.comando\)/.test(HTML), true);
 eq("   sucesso do robô não vira aviso", /if\(saude && saude\.ok\)\{/.test(HTML), true);
-eq("   e com batimento novo o aviso não aparece", /if\(idade!==null && idade>=RV_SEM_BATIMENTO\)\{/.test(HTML), true);
+// a régua agora é de LOJA ABERTA (11/10/2026): decide por idadeAb, mostra idade de relógio
+eq("   e com batimento novo o aviso não aparece", /if\(idade!==null && idadeAb!==null && idadeAb>=RV_SEM_BATIMENTO\)\{/.test(HTML), true);
 // O TESTE DE 05/09 ACHOU ISTO: o vigia media só a IDADE do dado. Uma falha que começa agora
 // deixa o dado fresco por mais 90 minutos — o robô se recusava a rodar e a tela dizia que estava
 // tudo bem. Falha contada tem que valer na hora, seja qual for a idade do dado.
 eq("   falha contada aparece mesmo com dado novo", /var base = t \|\| \{ nivel:"parado"/.test(HTML), true);
 eq("   e sempre no nível mais grave", /var novo = \{ nivel:"parado", ico:"🛑"/.test(HTML), true);
-eq("   sem relato, o aviso antigo continua saindo", /rvPintar\(min, null\)/.test(HTML), true);
+eq("   sem relato, o aviso antigo continua saindo", /rvPintar\(min, null, undefined, quandoDado\)/.test(HTML), true);
 
 console.log("\n8) parado deixou de parecer bilhete");
 eq("   faixa vermelha cheia", /\.rv-parado \{ background:#8c2c22/.test(HTML), true);
@@ -188,6 +200,16 @@ eq("   e o título vira o motivo real", contou && contou.titulo, "Falta configur
 const velho = M.rvComRelato(M.rvTexto(34 * 60), { ok: true, quando: atras(34 * 60) });
 eq("   34 horas paradas continuam acendendo", velho && velho.nivel, "parado");
 eq("   e falam em horas, não em 2040 minutos", /há 34 horas/.test(velho && velho.corpo), true);
+
+console.log("\nX) o silêncio da LOJA FECHADA não acende (pedido dele em 11/10/2026)");
+// o caso real: domingo, o robô parou 13h23 — um minuto depois de a loja fechar
+const quando1323 = new Date("2026-10-11T13:23:00-03:00").toISOString();
+const emDomingo = new Function(FALSO(new Date("2026-10-11T14:52:00-03:00").getTime()) + MIOLO + "\nreturn {rvComRelato};")();
+eq("   domingo 14h52, parado desde 13h23: calado", emDomingo.rvComRelato(null, { ok: true, quando: quando1323 }), null);
+const naSegunda = new Function(FALSO(new Date("2026-10-12T07:10:00-03:00").getTime()) + MIOLO + "\nreturn {rvComRelato};")();
+const seg = naSegunda.rvComRelato(null, { ok: true, quando: quando1323 });
+eq("   mas na segunda 7h10 ACENDE", seg && seg.nivel, "parado");
+eq("   e conta o tempo de RELÓGIO, não o de loja", !!(seg && /há \d+ horas/.test(seg.corpo)), true);
 
 console.log("\n" + ok + " ok, " + falhou + " falha(s).");
 process.exit(falhou ? 1 : 0);

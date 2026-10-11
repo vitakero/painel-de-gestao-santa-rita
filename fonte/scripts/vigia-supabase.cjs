@@ -17,13 +17,16 @@ const g = (k) => { const m = env.match(new RegExp("^" + k + "=(.*)$", "m")); ret
 const BASE = g("SUPABASE_URL").replace(/\/+$/, ""), KEY = g("SUPABASE_SERVICE_KEY");
 const HIST = path.join(RAIZ, "output", "vigia-supabase.json");
 
-// Limite do plano free. Se um dia mudar de plano, mexer aqui.
-const LIMITE_MB = 500;
+// Limite do plano. Desde 05/10/2026 é o Pro (8 GB de banco; antes, o gratuito, 500 MB).
+// Se um dia mudar de plano, mexer aqui.
+const LIMITE_MB = 8192;
 // Os limites abaixo são em DADOS (o que este script mede), não no número do painel do
 // Supabase. Referência de 29/09/2026: 164 MB de dados aqui = 248 MB no painel (x1,5).
-// Então 500 MB no painel ~ 330 MB aqui.
-const AVISA_EM = 230;   // ~70% do plano no painel — a partir daqui vale conversar
-const GRITA_EM = 280;   // ~85% do plano no painel — a partir daqui vale agir
+// Então 8 GB no painel ~ 5.400 MB aqui.
+const AVISA_EM = 3800;  // ~70% do plano no painel — a partir daqui vale conversar
+const GRITA_EM = 4600;  // ~85% do plano no painel — a partir daqui vale agir
+// crescimento que merece explicação: 250 MB/mês enche os 8 GB em ~2,5 anos
+const RAPIDO_MB_MES = 250;
 
 // A lista NÃO é mais fixa: até 29/09 eram 16 nomes escritos à mão, e os módulos novos
 // (Frente de Caixa, registro do robô, Encartes...) cresceram sem o vigia ver — o banco foi
@@ -89,7 +92,7 @@ async function mede(t) {
       deltas.slice(0, 6).forEach((x) =>
         console.log("    " + x.t.padEnd(22) + (x.l >= 0 ? "+" : "") + x.l + " linhas   " + (x.d >= 0 ? "+" : "") + x.d.toFixed(2) + " MB"));
     }
-    if (porMes > 40) console.log("\n  >>> CRESCENDO RÁPIDO (mais de 40 MB/mês). Vale entender o que está entrando.");
+    if (porMes > RAPIDO_MB_MES) console.log("\n  >>> CRESCENDO RÁPIDO (mais de " + RAPIDO_MB_MES + " MB/mês). Vale entender o que está entrando.");
   } else {
     console.log("\n  primeira medição — a partir da próxima dá pra comparar.");
   }

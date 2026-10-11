@@ -38,10 +38,21 @@ function eq(nome, obtido, esperado) {
 // em 06/09/2026 de manhã.
 const ini = HTML.indexOf("==ROBOVIGIA-INICIO=="), fim = HTML.indexOf("==ROBOVIGIA-FIM==");
 if (ini < 0 || fim < 0) { console.log("ERRO: não achei o vigia no painel (rode o build antes)."); process.exit(1); }
-const M = new Function(HTML.slice(HTML.indexOf("*/", ini) + 2, HTML.lastIndexOf("/*", fim))
-  + "\nreturn {rvSincParadas,rvTextoSinc,rvComRelato,rvTexto,rvQuanto,rvMaiuscula};")();
 
-const agora = Date.now();
+// ==RELOGIO FIXO DA BANCADA== (11/10/2026)
+// O vigia passou a contar o silêncio só enquanto a LOJA ESTÁ ABERTA, e ele lê a hora com
+// Date.now() lá dentro. Rodando num domingo à tarde (loja fechada) NADA acenderia, e estas
+// provas viravam falso-verde. Então a bancada congela o relógio numa quarta-feira às 10h,
+// horário de Caicó — expediente cheio, que é onde estas regras valem.
+const AGORA_LOJA = new Date("2026-10-14T10:00:00-03:00").getTime();
+const FALSO = (ms) => "var __AG=" + ms + ";" +
+  "var Date=class extends globalThis.Date{constructor(){if(arguments.length===0)super(__AG);else super(...arguments);}" +
+  "static now(){return __AG;}static parse(s){return globalThis.Date.parse(s);}static UTC(){return globalThis.Date.UTC(...arguments);}};";
+const MIOLO = HTML.slice(HTML.indexOf("*/", ini) + 2, HTML.lastIndexOf("/*", fim));
+const M = new Function(FALSO(AGORA_LOJA) + MIOLO
+  + "\nreturn {rvSincParadas,rvTextoSinc,rvComRelato,rvTexto,rvQuanto,rvMaiuscula,rvIdadeAberta};")();
+
+const agora = AGORA_LOJA;
 const atras = (min) => new Date(agora - min * 60000).toISOString();
 const tarefa = (id, min, extra) => Object.assign(
   { id: id, nome: id, quando: min === null ? null : atras(min), ok: true, folga_min: 25 }, extra || {});
@@ -245,6 +256,15 @@ eq("   e descarta retrato velho", /var fresco = \(Date\.now\(\)-rvSaudeLido\) < 
 // A leitura antiga aborta cedo quando vendasetor_dia não responde; se a nova estivesse pendurada
 // nela, morreria junto — justamente no caso em que mais se quer o aviso.
 eq("   a trava antiga continua intacta", /if\(!r\|\|r\.error\|\|!r\.data\|\|!r\.data\.length\) return;/.test(HTML), true);
+
+console.log("\nX) tarefa muda com a LOJA FECHADA não acende (11/10/2026)");
+const fechado = new Date("2026-10-11T14:52:00-03:00").getTime();
+const desde1323 = new Date("2026-10-11T13:23:00-03:00").toISOString();
+const domingo = new Function(FALSO(fechado) + MIOLO + "\nreturn {rvSincParadas};")();
+eq("   calada desde 13h23, às 14h52: nenhuma parada",
+   domingo.rvSincParadas([{ id: "conferencia", nome: "conferência", quando: desde1323, ok: true, folga_min: 25 }], fechado).length, 0);
+eq("   mas falha CONTADA acende mesmo com a loja fechada",
+   domingo.rvSincParadas([{ id: "pedidos", nome: "pedidos", quando: desde1323, ok: false, motivo: "deu erro", folga_min: 25 }], fechado).length, 1);
 
 console.log("\n" + ok + " ok, " + falhou + " falha(s).");
 process.exit(falhou ? 1 : 0);
