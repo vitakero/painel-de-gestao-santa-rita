@@ -112,6 +112,10 @@ const FILES = [
   ["robo/trocar-bat.cjs", "trocar-bat.cjs", "==TROCAR-BAT=="],
   ["robo/notas.bat", "../notas.bat", "NOTAS-BAT"],
   ["robo/robo.bat", "../robo.bat", "ROBO-BAT"],
+  // O ROBO LIGANDO SOZINHO (11/10/2026): o Agendador de Tarefas do Windows chama o
+  // robo-rodada.vbs, e o instalador cria essa tarefa. Os dois moram na RAIZ, como o robo.bat.
+  ["robo/robo-rodada.vbs", "../robo-rodada.vbs", "ROBO-RODADA-VBS"],
+  ["robo/instalar-robo-automatico.bat", "../instalar-robo-automatico.bat", "INSTALAR-ROBO-AUTOMATICO"],
   ["robo/puxar-codigo.cjs", "puxar-codigo.cjs", "Baixa o codigo mais recente do GitHub via API"],
 ];
 

@@ -90,6 +90,10 @@ const FILES = [
   ["scripts/notas.bat", "robo/notas.bat"],
   ["robo-loja/pix.bat", "robo/pix.bat"],
   ["robo-loja/pix-loop.vbs", "robo/pix-loop.vbs"],
+  // O ROBO LIGANDO SOZINHO (11/10/2026). Ao contrario do par do Pix acima, estes dois estao
+  // TAMBEM na lista do puxar-codigo: foi so por isso que o pix-loop nunca se atualizou sozinho.
+  ["robo-loja/robo-rodada.vbs", "robo/robo-rodada.vbs"],
+  ["robo-loja/instalar-robo-automatico.bat", "robo/instalar-robo-automatico.bat"],
   ["robo.bat", "robo/robo.bat"],
 ];
 
