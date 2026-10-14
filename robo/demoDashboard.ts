@@ -32410,7 +32410,33 @@ function renderCartaz(){
 }
 function czClick(e){
   var t;
-  if(t=e.target.closest('[data-cztemadel]')){ e.stopPropagation(); var di=parseInt(t.getAttribute('data-cztemadel'),10); var lt=czTemasGet(); var rem=lt.splice(di,1)[0]; czTemasSave(lt); if(czTema&&rem&&czTema.d===rem.d) czTema=null; renderCartaz(); return; }
+  /* O ✕ DO CABEÇALHO PERGUNTA ANTES (pedido do dono, 14/10/2026: "posso apertar sem querer").
+     Antes apagava no mesmo clique — e a arte enviada mora só no navegador DESTE computador,
+     então não tinha de onde voltar: era reenviar o arquivo. A janela mostra a miniatura, pra
+     ele ver qual está prestes a sair, e apaga pela IMAGEM e não pela posição (entre o clique
+     e a resposta a lista pode ter mudado, e aí a posição apagaria a vizinha). */
+  if(t=e.target.closest('[data-cztemadel]')){
+    e.stopPropagation();
+    var di=parseInt(t.getAttribute('data-cztemadel'),10);
+    var alvo=czTemasGet()[di];
+    if(!alvo) return;
+    uiConfirm({titulo:'Excluir este cabeçalho?',
+      html:'<div style="text-align:center;">'
+          +'<img src="'+alvo.d+'" alt="" style="max-width:100%;border-radius:8px;border:1px solid #e4e9f0;display:block;margin:0 auto 10px;">'
+          +'<b style="display:block;font-size:14px;color:#1d2733;margin-bottom:6px;">'+czEsc(alvo.n||'Cabeçalho')+'</b>'
+          +'<span style="font-size:12.5px;color:#6b7787;line-height:1.5;">Ele sai da lista deste computador. '
+          +'Para usar de novo depois, você precisa enviar a imagem outra vez.</span></div>',
+      ok:'Excluir', cancel:'Cancelar'}).then(function(sim){
+        if(!sim) return;
+        var lt=czTemasGet(), i, fora=null;
+        for(i=0;i<lt.length;i++){ if(lt[i].d===alvo.d){ fora=lt.splice(i,1)[0]; break; } }
+        if(!fora) return;
+        czTemasSave(lt);
+        if(czTema && czTema.d===fora.d) czTema=null;
+        renderCartaz();
+      });
+    return;
+  }
   if(t=e.target.closest('[data-cztema]')){ var ti2=parseInt(t.getAttribute('data-cztema'),10); czTema=(ti2<0)?null:(czTemasTodos()[ti2]||null); renderCartaz(); return; }
   if(t=e.target.closest('[data-czmodel]')){ czModelo=t.getAttribute('data-czmodel'); renderCartaz(); return; }
   if(e.target.closest('[data-czhistlote]')){ czHistImprimirLote(); return; }
