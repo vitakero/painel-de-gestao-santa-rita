@@ -142,6 +142,9 @@ eq("   desenha só o que o banco confirmou", /Object\.keys\(d\.manuais\|\|\{\}\)
 eq("   nenhum caminho grava manuais por fora", /pA\.manuais\[kk\]=\{ t:"retro"/.test(HTML), false);
 eq("   se a função não existe no banco, DIZ qual arquivo rodar", /sql\/pontos_ja_estava_pago\.sql/.test(HTML), true);
 eq("   e conta quais ficaram de fora, e por quê", /Ficaram de fora/.test(HTML), true);
+// Pedido dele em 17/10/2026: deu certo não abre janela (são dezenas de cliques; um "Ok" a cada
+// um ensina a pessoa a clicar sem ler). Só interrompe o que ele não veria sozinho.
+eq("   quando dá tudo certo, não interrompe", /if\(!rec\.length && d\.n\) return;/.test(HTML), true);
 
 console.log("\n" + ok + " OK, " + falhou + " falha(s).");
 process.exitCode = falhou ? 1 : 0;

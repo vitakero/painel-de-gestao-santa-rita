@@ -19259,11 +19259,17 @@ function pxRetroPedir(pid, chaves){
       try{ localStorage.setItem("pontos_gondola",JSON.stringify(pontosG)); }catch(e){}
       renderPontosG(); pxReabrir(pid);
     }
+    /* DEU CERTO NÃO INTERROMPE. Ele vai clicar isto dezenas de vezes, ponto por ponto: um "Pronto"
+       a cada clique é um clique a mais toda vez, e em dez minutos a pessoa clica no Ok sem ler —
+       inclusive no dia em que a janela estiver dizendo outra coisa. A tela já mostra o resultado:
+       a parcela vira "Já estava pago" na hora. (Pedido dele em 17/10/2026, com a janela aberta.)
+       O aviso fica para o que ele NÃO veria sozinho: parcela recusada, ou nenhuma marcada. */
     var rec=Object.keys(d.recusados||{});
+    if(!rec.length && d.n) return;                       // tudo certo: segue a vida, sem janela
     var txt=(d.n||0)+" parcela(s) saíram do atrasado.";
     if(rec.length) txt+="\\n\\nFicaram de fora "+rec.length+": "+rec.map(function(k){
       return pxFmtData(k)+" ("+(PX_RETRO_RECUSAS[d.recusados[k]]||d.recusados[k])+")"; }).join(", ")+".";
-    uiConfirm({titulo:(d.n?"Pronto":"Nenhuma foi marcada"), msg:txt, ok:"Ok", cancel:""});
+    uiConfirm({titulo:(d.n?"Marcadas, menos algumas":"Nenhuma foi marcada"), msg:txt, ok:"Ok", cancel:""});
   }, function(){ pxRetroFalhou("Não consegui falar com a nuvem. Tente de novo."); });
 }
 function pxRetroDesfazer(pid,chave){
