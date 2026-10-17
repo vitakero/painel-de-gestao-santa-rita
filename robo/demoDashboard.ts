@@ -1019,7 +1019,13 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .px-filtro:focus { outline:none; border-color:#2f6fed; box-shadow:0 0 0 3px rgba(47,111,237,.15); }
   .px-agenda { padding:0 20px 16px; margin-top:14px; }
   .px-agenda-vazia { padding:0 20px 16px; color:#6b7787; font-size:13px; font-style:italic; }
-  .px-agenda-tit { font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:#157a35; font-weight:700; margin-bottom:8px; }
+  .px-agenda-tit { font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:#157a35; font-weight:700; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  /* ==PXREGULARIZA== o botao da limpeza do passado. Cor e desenho PROPRIOS, de proposito: ele
+     nao e irmao do "Marcar pago" (aquele exige comprovante e senha do master) e nem do "Gerar
+     boleto". Quando a regularizacao terminar, este bloco sai junto com o resto. */
+  .px-retro { padding:3px 10px; background:#fff; color:#6b4ea8; border:1.5px solid #cfc0ea; border-radius:6px; font-size:11.5px; font-weight:700; cursor:pointer; white-space:nowrap; font-family:inherit; }
+  .px-retro:hover { background:#f6f2fd; border-color:#a98fd6; }
+  .px-retro-lote { text-transform:none; letter-spacing:0; }
   .px-agenda-tb { border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.08); }
   .px-agenda-tb th { background:#157a35; color:#fff; font-size:10px; text-transform:uppercase; letter-spacing:.5px; font-weight:700; padding:7px 16px; text-align:center; }
   .px-agenda-tb td { padding:6px 16px; font-size:13px; color:#2a3340; border-top:1px solid #eef2f6; text-align:center; }
@@ -19160,6 +19166,52 @@ function pxManBonif(man){ return !!(man && typeof man==="object" && man.t==="bon
    devolve false aqui, entao nenhum caminho de bonificacao e afetado. Vai pra nuvem de
    carona na coluna "manuais", que ja existe. */
 function pxManManual(man){ return !!(man && typeof man==="object" && man.t==="manual"); }
+/* ==PXREGULARIZA-INICIO==
+   "JA ESTAVA PAGO" — a limpeza do passado, e so dela.
+
+   Pedido dele em 17/10/2026, com a tela dos pontos na frente: a maioria dos pontos foi
+   cadastrada no painel DEPOIS de ja estar rodando, com a data de abertura la atras. O
+   calendario entao nasce com um monte de parcela vencida que, na vida real, ja tinha sido
+   paga — e o painel grita ATRASADO em quase todo mundo. Enquanto esse vermelho for mentira,
+   ele deixa de significar alguma coisa, e o dia em que for verdade ninguem vai olhar.
+
+   POR QUE NAO USAR O "MARCAR PAGO" QUE JA EXISTE: aquele e para dinheiro que passou por fora
+   do banco AGORA (pede motivo, comprovante e a senha do master, de 28/08/2026). Este aqui e
+   outro assunto: nao ha comprovante nenhum pra anexar, o pagamento aconteceu antes de o ponto
+   existir no painel, e quem sabe disso e quem cuida dos pontos. Misturar os dois afrouxaria a
+   regra do comprovante justamente onde ela foi feita pra apertar.
+
+   ISTO E TEMPORARIO E TEM INTERRUPTOR. Quando ele terminar de regularizar os meses antigos,
+   e so trocar a linha abaixo para false (ou apagar o bloco ate o ==PXREGULARIZA-FIM==): o
+   botao some de todas as telas e sobram as duas cobrancas de sempre, gerar boleto e marcar
+   pago. Foi assim que ele pediu, nestas palavras: "depois a gente exclui essa aplicacao".
+
+   AS TRAVAS QUE FICAM, mesmo estando liberado pra quem tem a pagina: so parcela VENCIDA (o
+   passado e o unico assunto aqui), nunca por cima de boleto de pe no banco (o fornecedor
+   ainda pode pagar), nunca em bonificacao (tem fluxo proprio) e nunca no que ja esta pago.
+   E fica registrado quem marcou e quando — sem comprovante, mas com nome. */
+var PX_REGULARIZAR = true;
+function pxManRetro(man){ return !!(man && typeof man==="object" && man.t==="retro"); }
+/* a parcela pode ser regularizada? (a mesma pergunta vale pro botao da linha e pro de lote) */
+function pxPodeRetro(p,key){
+  if(!PX_REGULARIZAR) return false;
+  if(!p || ("diaPag" in p)) return false;                       // galpao tem regra propria
+  if(/bonif/i.test(String(p.pagamento||""))) return false;       // bonificacao tem fluxo proprio
+  if(pxQuitado(p,key)) return false;                             // ja esta pago
+  var man=(p.manuais||{})[key];
+  if(man && pxManSt(man)==="pendente") return false;             // tem pedido esperando o master
+  var hj=pxDateKey(new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate()));
+  if(pxVenc(p,key) >= hj) return false;                          // so o passado
+  var cob=(typeof pixCobDe==="function")?pixCobDe(p,key):null;
+  if(cob && (cob.status==="gerado"||cob.status==="pedido"||cob.status==="gerando")) return false;
+  return true;
+}
+/* quantas parcelas deste ponto ainda esperam regularizacao */
+function pxRetroPendentes(p){
+  if(!PX_REGULARIZAR) return [];
+  return pxAgenda(p).map(function(d){ return pxDateKey(d); }).filter(function(k){ return pxPodeRetro(p,k); });
+}
+/* ==PXREGULARIZA-FIM== */
 function pxManMotivo(man){
   if(!pxManManual(man)) return "";
   var mot=String(man.motivo||"").replace(/[<>"]/g,"");
@@ -19479,7 +19531,9 @@ function pxAgendaHtml(p){
        Nunca em bonificacao (tem fluxo proprio) nem no que ja esta pago. */
     const btMarcar = ' <button type="button" class="px-aut" data-marcarpago="'+ref+'" title="Recebeu por fora (dinheiro, transferencia, ou mes pago antes do cadastro)? Marque aqui: escreva o motivo e anexe o comprovante. O master autoriza depois.">Marcar pago</button>';
     const pixCell = quit
-      ? '<span class="px-quitado" title="'+(manBon?("Pago com mercadoria. "+bonTit):(pxManManual(man)?("Pago por fora: "+pxManMotivo(man)):"Mensalidade quitada"))+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'+(manSt==="autorizado"?(manBon?"Pago (bonificação)":"Pago (autorizado)"):(pixCobPaga(p,key)?rotuloPago:"Quitado"))+'</span>'+(manSt==="autorizado"?' <button type="button" class="px-rec" data-desfazerpago="'+ref+'" title="Desfazer pagamento (precisa senha master)">✕</button>':((cob&&cob.status==="pago"&&cob.tipo_liquidacao==="TESTE")?' <button type="button" class="px-rec" data-desfazerteste="'+ref+'" title="Desfazer simulação de teste">✕</button>':''))
+      ? '<span class="px-quitado" title="'+(manBon?("Pago com mercadoria. "+bonTit):(pxManManual(man)?("Pago por fora: "+pxManMotivo(man)):(pxManRetro(man)?("Ja estava pago antes de o ponto entrar no painel. Marcado por "+pxEsc(man.quem||"")+(man.quando?(" em "+pxEsc(new Date(man.quando).toLocaleDateString("pt-BR"))):"")+". Sem comprovante, por ser anterior ao cadastro."):"Mensalidade quitada")))+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'+(manSt==="autorizado"?(manBon?"Pago (bonificação)":(pxManRetro(man)?"Já estava pago":"Pago (autorizado)")):(pixCobPaga(p,key)?rotuloPago:"Quitado"))+'</span>'+(manSt==="autorizado"?(pxManRetro(man)
+          ? ' <button type="button" class="px-rec" data-retroundo="'+ref+'" title="Desfazer: a parcela volta a contar como em aberto.">✕</button>'
+          : ' <button type="button" class="px-rec" data-desfazerpago="'+ref+'" title="Desfazer pagamento (precisa senha master)">✕</button>'):((cob&&cob.status==="pago"&&cob.tipo_liquidacao==="TESTE")?' <button type="button" class="px-rec" data-desfazerteste="'+ref+'" title="Desfazer simulação de teste">✕</button>':''))
         +(pxManManual(man)&&manSt==="autorizado"
           ? '<span class="px-motivo" title="'+pxEsc(man.motivo||"")+' — marcado por '+pxEsc(man.quem||"")+
             (man.autorizado_por?(', autorizado por '+pxEsc(man.autorizado_por)):'')+'">“'+
@@ -19514,7 +19568,8 @@ function pxAgendaHtml(p){
       ? '<span class="px-aguard" title="'+String(cob.erro_msg||"O banco recusou a cobrança").slice(0,180).replace(/[<>]/g,"").replace(/"/g,"&quot;")+'">'+icoAlerta+'Erro no banco</span> <button type="button" class="px-aut" data-pixretry="'+ref+'" title="Corrija o cadastro (ex: CNPJ) e peça de novo">Tentar de novo</button>'+btMarcar
       : ehBonif
       ? '<button type="button" class="px-pix-btn" data-bonif="'+ref+'" title="Chegou a mercadoria da bonificação? Registre aqui (precisa autorização do master pra valer)">'+icoGift+'Registrar bonificação</button>'
-      : '<button type="button" class="px-pix-btn" data-pix="'+ref+'">'+(ehBoleto?'Gerar boleto':'Gerar Pix')+'</button>'+btMarcar;
+      : '<button type="button" class="px-pix-btn" data-pix="'+ref+'">'+(ehBoleto?'Gerar boleto':'Gerar Pix')+'</button>'+btMarcar
+        + (pxPodeRetro(p,key) ? ' <button type="button" class="px-retro" data-retro="'+ref+'" title="Esta parcela ja estava paga antes de o ponto entrar no painel? Marque aqui pra ela parar de contar como atrasada. Sem comprovante — fica so o seu nome e a data.">Ja estava pago</button>' : '');
     var bonifCols="";
     if(ehBonifComp){ var bc=bonifCampos(man); bonifCols='<td class="bonif-c">'+(bc.nota||'<span class="bonif-vazio">—</span>')+'</td><td class="bonif-c">'+(bc.desc||'<span class="bonif-vazio">—</span>')+'</td>'; }
     return '<tr'+passou+'><td>'+(i+1)+'</td><td>'+pxDataCelHtml(p,key,d,ref)+'</td><td>'+brl(p.valor||0)+'</td><td class="px-pix-cell">'+pixCell+'</td>'+bonifCols+'<td class="px-comp-cell">'+cell+'</td></tr>';
@@ -19523,7 +19578,15 @@ function pxAgendaHtml(p){
   // cabeçalho diz quantas saíram da regra, senão ele mentiria com cara de verdade.
   const nRem=ag.filter(function(x){ return !!pxRemarcVale(p,pxDateKey(x)); }).length;
   const titRem=nRem?(' · '+nRem+(nRem===1?' remarcada':' remarcadas')):'';
-  return '<div class="px-agenda"><div class="px-agenda-tit">Calendário de cobranças — '+ag.length+' parcela(s), todo dia '+ag[0].getDate()+titRem+'</div>'+
+  /* O BOTAO DE LOTE. Sao 22 pontos, varios com doze parcelas vencidas: marcar uma a uma seriam
+     centenas de cliques, e no meio deles alguem desiste e o vermelho fica mentindo do mesmo
+     jeito. Este resolve o ponto inteiro de uma vez, e so as que PODEM (as travas do
+     pxPodeRetro valem para cada uma, uma por uma). */
+  var retroN=pxRetroPendentes(p).length;
+  var btLote = retroN
+    ? '<button type="button" class="px-retro px-retro-lote" data-retrolote="'+p.id+'" title="Marca de uma vez todas as parcelas vencidas deste ponto que ainda constam em aberto. Nao mexe em parcela paga, nem em boleto de pe no banco, nem em parcela futura.">Já estavam pagas ('+retroN+')</button>'
+    : '';
+  return '<div class="px-agenda"><div class="px-agenda-tit"><span>Calendário de cobranças — '+ag.length+' parcela(s), todo dia '+ag[0].getDate()+titRem+'</span>'+btLote+'</div>'+
     '<table class="px-agenda-tb"><thead><tr><th>#</th><th>Data da cobrança</th><th>Valor</th><th>Cobrança</th>'+(/bonif/i.test(String(p.pagamento||""))?'<th>Nº da nota</th><th>Mercadoria</th><th>Nota fiscal</th>':'<th>Comprovante</th>')+'</tr></thead><tbody>'+linhas+'</tbody></table></div>';
 }
 function pxDataUrlToBlob(durl){
@@ -21333,6 +21396,70 @@ async function pixTravaClick(){
             ok:"Marcar mesmo assim", cancel:"Cancelar"})
         : Promise.resolve(true);
       seguir.then(function(ok){ if(ok) mpgAbrir(p, kk); });
+      return;
+    }
+    /* ==PXREGULARIZA== os cliques da limpeza do passado. Saem junto com o resto quando ela
+       terminar: procure por PXREGULARIZA e apague os blocos. */
+    const rtr=e.target.closest("[data-retro]");
+    if(rtr){
+      const pr=rtr.dataset.retro.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(!p) return;
+      const kk=pr[1];
+      if(!pxPodeRetro(p,kk)){ renderPontosG(); return; }   // a tela pode ter mudado embaixo
+      uiConfirm({titulo:"Esta parcela já estava paga?",
+        msg:"Parcela de "+pxFmtData(pxVenc(p,kk))+" — "+brl(p.valor||0)+", do ponto "+(p.numero||"")+" ("+(p.fornecedor||"")+")."
+            +"\\n\\nMarcando aqui, ela deixa de contar como atrasada. É para pagamento que aconteceu ANTES de o ponto entrar no painel, por isso não pede comprovante."
+            +"\\n\\nFica registrado que foi você quem marcou, com a data.",
+        ok:"Sim, já estava paga", cancel:"Cancelar"}).then(function(sim){
+        if(!sim) return;
+        const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return;
+        if(!pxPodeRetro(pA,kk)){ renderPontosG(); return; }
+        pA.manuais=pA.manuais||{};
+        pA.manuais[kk]={ t:"retro", st:"autorizado",
+          quem:(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"", quando:new Date().toISOString() };
+        savePontosG(); renderPontosG(); pxReabrir(pA.id);
+      });
+      return;
+    }
+    const rtu=e.target.closest("[data-retroundo]");
+    if(rtu){
+      const pr=rtu.dataset.retroundo.split("|"); const p=pontosG.find(x=>x.id===pr[0]); if(!p) return;
+      const kk=pr[1];
+      uiConfirm({titulo:"Desfazer?",
+        msg:"A parcela de "+pxFmtData(pxVenc(p,kk))+" volta a contar como em aberto.",
+        ok:"Desfazer", cancel:"Voltar"}).then(function(sim){
+        if(!sim) return;
+        const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA||!pA.manuais) return;
+        if(!pxManRetro(pA.manuais[kk])) { renderPontosG(); return; }   // so desfaz o que ESTE botao criou
+        delete pA.manuais[kk];
+        savePontosG(); renderPontosG(); pxReabrir(pA.id);
+      });
+      return;
+    }
+    const rtl=e.target.closest("[data-retrolote]");
+    if(rtl){
+      const pid=rtl.dataset.retrolote; const p=pontosG.find(x=>x.id===pid); if(!p) return;
+      const lista=pxRetroPendentes(p);
+      if(!lista.length){ renderPontosG(); return; }
+      /* DIZ QUAIS, E QUANTO. Um "marcar 12 parcelas" sem mostrar quais seria pedir confiança
+         no escuro — e sao R$ 4.800 saindo do atrasado de uma vez. */
+      var totL=Math.round((lista.length*(+p.valor||0))*100)/100;
+      var quaisL=lista.map(function(k){ return pxFmtData(pxVenc(p,k)); }).join(", ");
+      uiConfirm({titulo:"Marcar "+lista.length+" parcela(s) como já pagas?",
+        msg:"Ponto "+(p.numero||"")+" — "+(p.fornecedor||"")+"."
+            +"\\n\\nSão as parcelas vencidas que ainda constam em aberto: "+quaisL+"."
+            +"\\n\\nSomam "+brl(totL)+". Elas deixam de contar como atrasadas."
+            +"\\n\\nNão mexe em parcela já paga, nem em boleto de pé no banco, nem em parcela futura.",
+        ok:"Sim, já estavam pagas", cancel:"Cancelar"}).then(function(sim){
+        if(!sim) return;
+        const pA=pontosG.find(function(x){ return x.id===pid; }); if(!pA) return;
+        pA.manuais=pA.manuais||{};
+        var quem=(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"", agora=new Date().toISOString(), n=0;
+        pxRetroPendentes(pA).forEach(function(k){            // relê: a lista pode ter mudado no diálogo
+          pA.manuais[k]={ t:"retro", st:"autorizado", quem:quem, quando:agora, lote:true }; n++;
+        });
+        savePontosG(); renderPontosG(); pxReabrir(pA.id);
+        uiConfirm({titulo:"Pronto", msg:n+" parcela(s) saíram do atrasado.", ok:"Ok", cancel:""});
+      });
       return;
     }
     const rmc=e.target.closest("[data-remarcar]");
