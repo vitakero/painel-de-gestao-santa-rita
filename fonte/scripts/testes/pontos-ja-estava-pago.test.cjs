@@ -17,6 +17,7 @@
 const fs = require("fs");
 const path = require("path");
 const HTML = fs.readFileSync(path.join(__dirname, "..", "..", "output", "index.html"), "utf8");
+const SQL = fs.readFileSync(path.join(__dirname, "..", "..", "sql", "pontos_ja_estava_pago.sql"), "utf8");
 
 let ok = 0, falhou = 0;
 function eq(nome, obtido, esperado) {
@@ -124,8 +125,23 @@ eq("   o de lote diz QUANTAS são", /Já estavam pagas \('\+retroN\+'\)/.test(HT
 eq("   e o diálogo lista quais, com o total", /Somam "\+brl\(totL\)/.test(HTML), true);
 eq("   depois de marcada, a linha diz 'Já estava pago'", /pxManRetro\(man\)\?"Já estava pago"/.test(HTML), true);
 eq("   o ✕ desfaz sem pedir senha (é do mesmo tamanho do clique que criou)", /data-retroundo="'\+ref\+'"/.test(HTML), true);
-eq("   e o desfazer só mexe no que ESTE botão criou", /if\(!pxManRetro\(pA\.manuais\[kk\]\)\)/.test(HTML), true);
-eq("   o lote relê a lista antes de gravar", /pxRetroPendentes\(pA\)\.forEach/.test(HTML), true);
+// Estas duas garantias moraram na tela até 17/10/2026 e MUDARAM DE LUGAR: agora são do banco,
+// onde ninguém alcança pelo console do navegador. É por isso que se procura no SQL, não no HTML.
+eq("   o desfazer só mexe no que ESTE botão criou (regra no banco)", /'nao_foi_marcada_assim'/.test(SQL), true);
+eq("   e cada parcela do lote é conferida uma a uma, no banco", /foreach k in array p_parcelas loop/.test(SQL), true);
+
+console.log("\n7) QUEM GRAVA É O BANCO (o defeito de 17/10: a trava desfazia em silêncio)");
+// Se um dia alguém "simplificar" isto de volta para gravar em pontosG e deixar o envio levar,
+// o botão volta a mentir na tela: marca, parece pago, e some segundos depois.
+eq("   a linha pede ao banco", /pxRetroPedir\(pr\[0\],\[kk\]\)/.test(HTML), true);
+eq("   o lote também", /pxRetroPedir\(pid, pxRetroPendentes\(pA\)\)/.test(HTML), true);
+eq("   o desfazer também", /pxRetroDesfazer\(pr\[0\],kk\)/.test(HTML), true);
+eq("   chama a função certa", /rpc\("pontos_marcar_ja_pago"/.test(HTML), true);
+eq("   e a de desfazer", /rpc\("pontos_desfazer_ja_pago"/.test(HTML), true);
+eq("   desenha só o que o banco confirmou", /Object\.keys\(d\.manuais\|\|\{\}\)\.forEach/.test(HTML), true);
+eq("   nenhum caminho grava manuais por fora", /pA\.manuais\[kk\]=\{ t:"retro"/.test(HTML), false);
+eq("   se a função não existe no banco, DIZ qual arquivo rodar", /sql\/pontos_ja_estava_pago\.sql/.test(HTML), true);
+eq("   e conta quais ficaram de fora, e por quê", /Ficaram de fora/.test(HTML), true);
 
 console.log("\n" + ok + " OK, " + falhou + " falha(s).");
 process.exitCode = falhou ? 1 : 0;

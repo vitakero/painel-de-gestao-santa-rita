@@ -19211,6 +19211,72 @@ function pxRetroPendentes(p){
   if(!PX_REGULARIZAR) return [];
   return pxAgenda(p).map(function(d){ return pxDateKey(d); }).filter(function(k){ return pxPodeRetro(p,k); });
 }
+/* QUEM GRAVA É O BANCO, não a tela.
+   Na primeira versão (17/10/2026) o clique mexia em pontosG e deixava o envio de sempre levar
+   para a nuvem. Ele clicou, a parcela apareceu paga e voltou sozinha segundos depois — porque
+   o gatilho pontos__trava_pagamento, de 30/09, desfaz EM SILÊNCIO qualquer parcela que vire
+   "paga" sem passar por uma função que autorizou. O envio não dava erro: o banco aceitava e
+   reescrevia por cima. Agora quem decide é a função pontos_marcar_ja_pago (sql/pontos_ja_estava_pago.sql),
+   que repete as mesmas travas do lado de lá — onde ninguém alcança pelo console do navegador —
+   e a tela só desenha o que o banco confirmou. */
+var PX_RETRO_ERROS={
+  precisa_estar_logado:"Entre no painel para fazer isso.",
+  sem_permissao:"Seu acesso não inclui a página Pontos extras.",
+  nao_encontrado:"Este ponto não está mais na nuvem. Atualize a página.",
+  galpao_exige_comprovante:"Nos galpões a mensalidade só fica paga com o comprovante anexado.",
+  bonificacao_tem_fluxo_proprio:"Bonificação tem o caminho dela (registrar mercadoria).",
+  sem_parcelas:"Não havia parcela para marcar.",
+  parcelas_demais:"São parcelas demais de uma vez."
+};
+var PX_RETRO_RECUSAS={
+  ainda_nao_venceu:"ainda não venceu",
+  ja_esta_paga:"já estava paga",
+  tem_pedido_aguardando:"tem um pagamento esperando autorização",
+  boleto_de_pe:"tem boleto de pé no banco",
+  data_invalida:"data inválida"
+};
+function pxRetroFalhou(msg){ uiConfirm({titulo:"Não deu para marcar", msg:msg, ok:"Entendi", cancel:""}); }
+function pxRetroPedir(pid, chaves){
+  var sb=pxSB();
+  if(!sb || !window.__PERFIL){ pxRetroFalhou("Entre no painel para fazer isso."); return; }
+  if(!chaves || !chaves.length){ renderPontosG(); return; }
+  sb.rpc("pontos_marcar_ja_pago",{p_id:pid, p_parcelas:chaves}).then(function(r){
+    if(r && r.error){
+      /* A FUNÇÃO PODE NÃO EXISTIR AINDA: o SQL é colado por ele, à mão, no Supabase. Dizer
+         "não deu" sem dizer o que falta seria repetir o silêncio que causou este conserto. */
+      pxRetroFalhou(/function|does not exist|schema cache/i.test(String(r.error.message||""))
+        ? "O banco ainda não tem a porta deste botão. Peça para rodar o arquivo sql/pontos_ja_estava_pago.sql no Supabase."
+        : ("A nuvem recusou: "+String(r.error.message||"").slice(0,160)));
+      return;
+    }
+    var d=r&&r.data;
+    if(!d || d.ok!==true){ pxRetroFalhou(PX_RETRO_ERROS[(d&&d.erro)||""] || ("Não deu certo ("+((d&&d.erro)||"motivo desconhecido")+").")); return; }
+    /* desenha SÓ o que o banco confirmou */
+    var pA=pontosG.find(function(x){ return x.id===pid; });
+    if(pA){
+      pA.manuais=pA.manuais||{};
+      Object.keys(d.manuais||{}).forEach(function(k){ pA.manuais[k]=d.manuais[k]; });
+      try{ localStorage.setItem("pontos_gondola",JSON.stringify(pontosG)); }catch(e){}
+      renderPontosG(); pxReabrir(pid);
+    }
+    var rec=Object.keys(d.recusados||{});
+    var txt=(d.n||0)+" parcela(s) saíram do atrasado.";
+    if(rec.length) txt+="\\n\\nFicaram de fora "+rec.length+": "+rec.map(function(k){
+      return pxFmtData(k)+" ("+(PX_RETRO_RECUSAS[d.recusados[k]]||d.recusados[k])+")"; }).join(", ")+".";
+    uiConfirm({titulo:(d.n?"Pronto":"Nenhuma foi marcada"), msg:txt, ok:"Ok", cancel:""});
+  }, function(){ pxRetroFalhou("Não consegui falar com a nuvem. Tente de novo."); });
+}
+function pxRetroDesfazer(pid,chave){
+  var sb=pxSB();
+  if(!sb || !window.__PERFIL){ pxRetroFalhou("Entre no painel para fazer isso."); return; }
+  sb.rpc("pontos_desfazer_ja_pago",{p_id:pid, p_parcela:chave}).then(function(r){
+    if(r && r.error){ pxRetroFalhou("A nuvem recusou: "+String(r.error.message||"").slice(0,160)); return; }
+    var d=r&&r.data;
+    if(!d || d.ok!==true){ pxRetroFalhou(PX_RETRO_ERROS[(d&&d.erro)||""] || "Esta parcela não foi marcada por este botão."); return; }
+    var pA=pontosG.find(function(x){ return x.id===pid; });
+    if(pA && pA.manuais){ delete pA.manuais[chave]; try{ localStorage.setItem("pontos_gondola",JSON.stringify(pontosG)); }catch(e){} renderPontosG(); pxReabrir(pid); }
+  }, function(){ pxRetroFalhou("Não consegui falar com a nuvem. Tente de novo."); });
+}
 /* ==PXREGULARIZA-FIM== */
 function pxManMotivo(man){
   if(!pxManManual(man)) return "";
@@ -21411,12 +21477,7 @@ async function pixTravaClick(){
             +"\\n\\nFica registrado que foi você quem marcou, com a data.",
         ok:"Sim, já estava paga", cancel:"Cancelar"}).then(function(sim){
         if(!sim) return;
-        const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA) return;
-        if(!pxPodeRetro(pA,kk)){ renderPontosG(); return; }
-        pA.manuais=pA.manuais||{};
-        pA.manuais[kk]={ t:"retro", st:"autorizado",
-          quem:(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"", quando:new Date().toISOString() };
-        savePontosG(); renderPontosG(); pxReabrir(pA.id);
+        pxRetroPedir(pr[0],[kk]);
       });
       return;
     }
@@ -21428,10 +21489,7 @@ async function pixTravaClick(){
         msg:"A parcela de "+pxFmtData(pxVenc(p,kk))+" volta a contar como em aberto.",
         ok:"Desfazer", cancel:"Voltar"}).then(function(sim){
         if(!sim) return;
-        const pA=pontosG.find(function(x){ return x.id===pr[0]; }); if(!pA||!pA.manuais) return;
-        if(!pxManRetro(pA.manuais[kk])) { renderPontosG(); return; }   // so desfaz o que ESTE botao criou
-        delete pA.manuais[kk];
-        savePontosG(); renderPontosG(); pxReabrir(pA.id);
+        pxRetroDesfazer(pr[0],kk);
       });
       return;
     }
@@ -21452,13 +21510,7 @@ async function pixTravaClick(){
         ok:"Sim, já estavam pagas", cancel:"Cancelar"}).then(function(sim){
         if(!sim) return;
         const pA=pontosG.find(function(x){ return x.id===pid; }); if(!pA) return;
-        pA.manuais=pA.manuais||{};
-        var quem=(window.__PERFIL&&window.__PERFIL.nome)||window.__EMAIL||"", agora=new Date().toISOString(), n=0;
-        pxRetroPendentes(pA).forEach(function(k){            // relê: a lista pode ter mudado no diálogo
-          pA.manuais[k]={ t:"retro", st:"autorizado", quem:quem, quando:agora, lote:true }; n++;
-        });
-        savePontosG(); renderPontosG(); pxReabrir(pA.id);
-        uiConfirm({titulo:"Pronto", msg:n+" parcela(s) saíram do atrasado.", ok:"Ok", cancel:""});
+        pxRetroPedir(pid, pxRetroPendentes(pA));   // relê: a lista pode ter mudado durante o diálogo
       });
       return;
     }
