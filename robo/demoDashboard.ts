@@ -17868,7 +17868,7 @@ function glPrazoTxt(g){ return (g&&g.saida) ? ("Saída "+pxFmtData(g.saida)) : "
    com a chave desligada a tela não mostra os boletos dos galpões (nem o pago por Pix).
    Sem "marcar pago" na mão com a chave ligada (decisão dele, 20/10/2026): quem dá baixa é o banco.
    (glMarcarPagaManual fica guardada, sem botão, caso um dia ele queira de volta.) */
-var GL_PIX_NO_AR=false;
+var GL_PIX_NO_AR=true;   // LIGADA em 20/10/2026: SQL rodado, conta do Gilson no robô da loja (ENTROU), robô novo conferido na loja
 // quem paga: empresa = razão social; pessoa = nome do inquilino (a mesma regra do contrato)
 function glNomePagador(g){ var d=String((g&&g.cnpj)||"").replace(/\\D/g,""); return String((d.length===14?(g.razaoSocial||g.locatario):(g.vendedor||g.locatario))||"").trim(); }
 // o banco não aceita vencimento no passado: mensalidade atrasada vence hoje
