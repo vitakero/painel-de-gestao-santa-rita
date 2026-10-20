@@ -27,27 +27,36 @@ const pergunta = t => { process.stdout.write(t); return new Promise(r => { if (f
 
 (async () => {
   console.log("\n=== Conta do Gilson (galpões) no robô da loja ===\n");
+  const ehCodigo = v => /^[0-9A-Fa-f]{64}$/.test(v);
+  const ehChave = v => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(v);
+  const codigoJa = pega("SICREDI_PF_API_PASSWORD");
   let codigo = "";
   for (;;) {
-    codigo = (await pergunta("Cole o CÓDIGO DE ACESSO do Gilson e aperte Enter:\n> ")).replace(/^chaveMaster>/i, "").replace(/\s+/g, "");
-    if (/^[0-9A-Fa-f]{64}$/.test(codigo)) break;
+    codigo = (await pergunta(ehCodigo(codigoJa)
+      ? "Já tem um CÓDIGO DE ACESSO do Gilson no .env (64 caracteres). Aperte Enter para manter, ou cole outro:\n> "
+      : "Cole o CÓDIGO DE ACESSO do Gilson e aperte Enter:\n> ")).replace(/^chaveMaster>/i, "").replace(/\s+/g, "");
+    if (!codigo && ehCodigo(codigoJa)) { codigo = codigoJa; console.log("  Mantido o código que já estava."); break; }
+    if (ehCodigo(codigo)) break;
     if (!codigo && rl.closed) { console.log("\nNada foi colado. Nada mudou no .env."); process.exit(1); }
     console.log("  Esse código não parece certo (" + codigo.length + " caracteres; o certo tem 64, só letras A-F e números). Tente de novo.\n");
   }
-  let chave = pega("SICREDI_PF_API_KEY_PROD");
-  if (chave) console.log("\nA chave da aplicação dos galpões já está no .env (" + chave.length + " caracteres): vou manter.");
-  else {
-    for (;;) {
-      chave = (await pergunta("\nCole a CHAVE DA APLICAÇÃO \"Cobranca Galpoes Producao\" (Portal do Desenvolvedor > Minhas Apps > token) e aperte Enter:\n> ")).replace(/\s+/g, "");
-      if (chave.length >= 20) break;
-      console.log("  Essa chave parece curta demais. Tente de novo.");
-    }
+  const chaveJa = pega("SICREDI_PF_API_KEY_PROD");
+  let chave = "";
+  for (;;) {
+    chave = (await pergunta("\nCole a CHAVE DA APLICAÇÃO dos galpões (36 caracteres, com tracinhos, tipo 1a2b3c4d-....)"
+      + (ehChave(chaveJa) ? " — já tem uma no .env: aperte Enter para manter" : "") + " e aperte Enter:\n> ")).replace(/\s+/g, "");
+    if (!chave && ehChave(chaveJa)) { chave = chaveJa; console.log("  Mantida a chave que já estava."); break; }
+    if (ehChave(chave)) break;
+    if (ehCodigo(chave)) { console.log("  Isso é o CÓDIGO DE ACESSO, não a chave da aplicação. A chave tem 36 caracteres com tracinhos."); continue; }
+    if (!chave && rl.closed) { console.log("\nNada foi colado. Nada mudou no .env."); process.exit(1); }
+    console.log("  Essa não parece a chave da aplicação (" + chave.length + " caracteres; a certa tem 36, com tracinhos). Tente de novo.");
   }
   rl.close();
 
   // 1) cópia de segurança
+  // a cópia guarda o .env de ANTES da primeira vez (rodar de novo não apaga a cópia original)
   const copia = path.join(process.cwd(), ".env.antes-galpoes");
-  fs.writeFileSync(copia, antes);
+  if (!fs.existsSync(copia)) fs.writeFileSync(copia, antes);
   // 2) troca SÓ as linhas SICREDI_PF_
   const resto = antes.split(/\r?\n/).filter(l => !/^SICREDI_PF_[A-Z_]*=/.test(l));
   while (resto.length && resto[resto.length - 1].trim() === "") resto.pop();
