@@ -178,6 +178,33 @@ certo("o botão existe no menu", HTML.indexOf('data-page="regulamento"') >= 0);
 certo("a página existe", HTML.indexOf('id="page-regulamento"') >= 0);
 certo("abrir a aba desenha o regulamento", /dataset\.page==="regulamento"\)\s*regRender\(\)/.test(HTML));
 
+// ---------------------------------------------------------------------------
+// 4c) A TELA DE ACESSOS TEM QUE CONTAR A MESMA HISTÓRIA
+// Em 20/10/2026 o Victor viu a caixinha "Regulamento" DESMARCADA em todo mundo, enquanto a
+// página abria pra todo mundo. A lista de caixinhas nasce dos botões do menu, então uma aba
+// que não depende de liberação entrava ali como se dependesse. Agora ela aparece marcada e
+// travada — e esta prova compara as DUAS listas rodando a regra de verdade, uma chave por vez.
+// ---------------------------------------------------------------------------
+console.log("\n== 4c. A tela de Acessos não mente sobre quem vê o quê ==");
+const mAb = HTML.match(/var ACS_ABERTAS=\{([^}]*)\}/);
+certo("achei a lista de abas abertas usada na tela", !!mAb);
+const telaDizAbertas = (mAb ? mAb[1].match(/[a-z_]+(?=\s*:)/g) || [] : []).sort();
+// todas as chaves de página que existem no menu
+const chaves = [];
+HTML.replace(/class="nav-item[^"]*" data-page="([a-z_]+)"/g, (_, k) => { chaves.push(k); return _; });
+certo("achei as páginas do menu", chaves.length > 20);
+// quem a REGRA abre para alguém sem nenhuma página liberada
+const regraAbre = chaves.filter((k) => podeAba(k)).sort();
+eq("o que a tela mostra como aberto é o que a regra realmente abre",
+   telaDizAbertas.join(","), regraAbre.join(","));
+// Ela é desenhada MARCADA sempre, não conforme o cadastro — é isso que impede a tela de
+// aparecer desmarcada enquanto a página abre pra todo mundo. Com a cara das outras: sem
+// etiqueta, sem caixinha cinza (pedido dele em 20/10/2026).
+certo("a aba aberta nasce marcada, independente do que está no cadastro",
+      /var on=ACS_ABERTAS\[pg\.key\] \? true : \(p\.paginas\|\|\[\]\)\.indexOf\(pg\.key\)>=0;/.test(HTML));
+certo("e é uma caixinha igual às outras (mesma classe, nada de disabled próprio)",
+      !/acs-pg-aberta/.test(HTML));
+
 console.log("\n== 4b. Consulta não gasta nuvem (esta aba não fala com o Supabase) ==");
 certo("não usa __SB", codigo.indexOf("__SB") < 0);
 certo("não chama rpc", codigo.indexOf(".rpc(") < 0);

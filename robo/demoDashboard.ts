@@ -2825,13 +2825,6 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
             </select>
           </div>
           <div class="campo"><label for="glValor">Valor (R$)</label><input type="text" inputmode="decimal" id="glValor" style="width:120px;"></div>
-          <div class="campo"><label for="glPag">Modo de pagamento</label>
-            <select id="glPag" class="px-filtro" style="width:150px;">
-              <option value="">Selecione...</option>
-              <option value="Boleto">Boleto</option>
-              <option value="Pix">Pix</option>
-            </select>
-          </div>
           <div class="campo"><label for="glDiaPag">Pagar até o dia</label><input type="number" id="glDiaPag" min="1" max="28" placeholder="5" style="width:100px;"></div>
           <div class="campo"><label for="glAbertura">Abertura do contrato</label><input type="date" id="glAbertura"></div>
           <div class="campo" id="glSaidaCampo" style="display:none;"><label for="glSaida">Saída do inquilino (só se ele sair)</label><input type="date" id="glSaida" title="Deixe em branco enquanto ele estiver alugando. O contrato é por prazo indeterminado: as cobranças param nesta data."></div>
@@ -2850,11 +2843,6 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
             <option value="PAGO">Pago</option>
             <option value="ATRASADO">Atrasado</option>
             <option value="NÃO PAGO">Em aberto</option>
-          </select>
-          <select id="glFiltroPagamento" class="px-filtro">
-            <option value="">Todos os pagamentos</option>
-            <option value="Pix">Pix</option>
-            <option value="Boleto">Boleto</option>
           </select>
           <select id="glFiltroVenc" class="px-filtro">
             <option value="">Todos os inquilinos</option>
@@ -11820,7 +11808,7 @@ function despRender(){
 }
 // Chave da parcela do MÊS ATUAL (pra marcar pago). Usa o mesmo calendário dos pontos.
 function glKeyMesAtual(g){ var ym=pxAnoMesAtual(); var ag=pxAgenda(g); for(var i=0;i<ag.length;i++){ var k=pxDateKey(ag[i]); if(k.indexOf(ym)===0) return k; } return ag.length?pxDateKey(ag[ag.length-1]):""; }
-function glLimparForm(){ ["glNum","glCnpj","glRazao","glLoc","glVend","glRg","glTel","glEmail","glEnd","glEndInq","glValor","glDiaPag","glAbertura","glSaida","glObs"].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=""; }); var pg=document.getElementById("glPag"); if(pg) pg.value=""; var al=document.getElementById("glAluguel"); if(al) al.value="1"; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; var t=document.getElementById("glFormTitulo"); if(t) t.textContent="Adicionar galpão"; var s=document.getElementById("glSalvar"); if(s){ s.textContent="Adicionar"; delete s.dataset.edit; } var c=document.getElementById("glCancelar"); if(c) c.style.display="none"; var sc=document.getElementById("glSaidaCampo"); if(sc) sc.style.display="none"; try{ glSetDocTipo("cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} try{ glSincEndereco(); }catch(e){} }
+function glLimparForm(){ ["glNum","glCnpj","glRazao","glLoc","glVend","glRg","glTel","glEmail","glEnd","glEndInq","glValor","glDiaPag","glAbertura","glSaida","glObs"].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=""; }); var al=document.getElementById("glAluguel"); if(al) al.value="1"; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; var t=document.getElementById("glFormTitulo"); if(t) t.textContent="Adicionar galpão"; var s=document.getElementById("glSalvar"); if(s){ s.textContent="Adicionar"; delete s.dataset.edit; } var c=document.getElementById("glCancelar"); if(c) c.style.display="none"; var sc=document.getElementById("glSaidaCampo"); if(sc) sc.style.display="none"; try{ glSetDocTipo("cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} try{ glSincEndereco(); }catch(e){} }
 // Busca de CNPJ do locatário (reaproveita os normalizadores dos pontos).
 function glPreencherCnpj(d,msg){
   var fantasia=d.nome_fantasia||"", razao=d.razao_social||"", nome=fantasia||razao;
@@ -12009,7 +11997,6 @@ function pltDetalhe(){
       (doc?('<div class="plt-det-lin"><span>'+doc.label+'</span><b>'+doc.valor+'</b></div>'):'')+
       '<div class="plt-det-lin"><span>Contato</span><b>'+(g.contato?pxFmtTel(g.contato):"—")+'</b></div>'+
       '<div class="plt-det-lin"><span>Aluguel</span><b>'+(g.valor?brl(+g.valor):"—")+'</b></div>'+
-      '<div class="plt-det-lin"><span>Pagamento</span><b>'+(prdEsc(g.pagamento)||"—")+'</b></div>'+
       '<div class="plt-det-lin"><span>Contrato</span><b>desde '+prdEsc(pxFmtData(g.abertura)||"—")+' · '+prdEsc(glPrazoTxt(g))+'</b></div>'+
       '<div class="plt-det-lin"><span>Endereço</span><b>'+prdEsc(glEnderecoDe(g.numero))+'</b></div>'+
       '</div>'+
@@ -12017,7 +12004,28 @@ function pltDetalhe(){
   }
   el.innerHTML=h;
   var btn=document.getElementById("pltIrCadastro");
-  if(btn) btn.onclick=function(){ var nav=document.querySelector('.nav-item[data-page="galpoes"]'); if(nav){ nav.click(); var b=document.getElementById("glBusca"); if(b){ b.value=pltSel; renderGalpoes(); } } };
+  /* "Ir para o cadastro" (20/10, queixa dele: "escolho o galpão e aperto em ir para o cadastro e não
+     aparece nenhum"): procurava "1470 E" (com espaço) na lista, e nem casava com o "1470E" gravado nem
+     servia para galpão LIVRE, que não tem cadastro. Agora: ocupado -> abre a linha dele na lista;
+     livre -> abre o "Adicionar galpão" já com o número preenchido. */
+  if(btn) btn.onclick=function(){
+    var nav=document.querySelector('.nav-item[data-page="galpoes"]'); if(!nav) return;
+    var gAlvo=pltGalpaoDe(pltSel), cod=String(pltSel||"");
+    nav.click();
+    var b=document.getElementById("glBusca");
+    if(gAlvo){
+      if(b){ b.value=String(gAlvo.numero||""); }
+      renderGalpoes(); glReabrir(gAlvo.id);
+      var lin=document.querySelector('#glTabela [data-glexp="'+gAlvo.id+'"]'); if(lin){ try{ lin.scrollIntoView({behavior:"smooth",block:"center"}); }catch(e){} }
+    } else {
+      if(b){ b.value=""; }
+      glLimparForm(); renderGalpoes();
+      var num=document.getElementById("glNum"); if(num){ num.value=cod.replace(/\\s+/g,""); }
+      try{ glSincEndereco(); }catch(e){}
+      var cn=document.getElementById("glCnpj"); if(cn){ try{ cn.focus({preventScroll:true}); }catch(e){} }
+      var card=document.getElementById("glFormCard"); if(card){ try{ card.scrollIntoView({behavior:"smooth",block:"center"}); }catch(e){} }
+    }
+  };
 }
 (function initPlanta(){
   var el=document.getElementById("pltTerreno"); if(!el) return;
@@ -18051,6 +18059,45 @@ function glSalSet(valor,desde){
   try{ localStorage.setItem("gl_salario",JSON.stringify(r)); }catch(e){}
 }
 // No formulário: se o aluguel é em salário mínimo, o R$ é conta pronta (não se digita).
+/* ==GLALUGUEL== o aluguel por extenso, para as janelas ("meio salário mínimo (R$ 810,50)") */
+function glAluguelTxt(alu,val){
+  var a=String(alu||"1");
+  if(a==="fixo") return brl(+val||0)+" (valor fixo)";
+  return (a==="0.5"?"meio salário mínimo":"1 salário mínimo")+" ("+brl(+val||0)+")";
+}
+/* ==GLALUGUEL== funcionário mudando o aluguel: pede a senha do master e manda para o banco, que
+   confere de novo e grava (em salário mínimo, o valor é calculado lá, pelo salário guardado na nuvem). */
+function glMudarAluguelComSenha(id,alu,val){
+  var g=galpoesG.find(function(x){ return x.id===id; }); if(!g) return;
+  var sb=glSB();
+  if(!sb){ uiConfirm({titulo:"Precisa estar conectado",msg:"Mudar o aluguel confere a senha do master no banco. Entre no painel e tente de novo. O resto do cadastro foi salvo.",ok:"Entendi",cancel:""}); return; }
+  autorizarMaster("Mudar o aluguel do galpão nº "+(g.numero||"")+" de "+glAluguelTxt(g.aluguel,g.valor)+" para "+glAluguelTxt(alu,val)+". Digite a senha do master.",false,true).then(function(senha){
+    if(!senha) return;   // desistiu: o aluguel fica como estava (o resto já foi salvo)
+    sb.rpc("galpao_mudar_aluguel",{p_id:id,p_aluguel:String(alu),p_valor:+val||0,p_senha:(senha===true?null:String(senha))}).then(function(r){
+      var gAt=galpoesG.find(function(x){ return x.id===id; })||g;
+      if(r&&r.error){
+        var m=String(r.error.message||"");
+        uiConfirm({titulo:"O aluguel não mudou",msg:(/galpao_mudar_aluguel|function|schema/i.test(m)?"Falta instalar no banco a proteção do aluguel (sql/galpoes_aluguel_senha.sql).":"Não consegui falar com o banco agora. Tente de novo.")+"\\n\\nO aluguel continua "+glAluguelTxt(gAt.aluguel,gAt.valor)+". O resto do cadastro foi salvo.",ok:"Entendi",cancel:""});
+        return;
+      }
+      var d2=r&&r.data;
+      if(!d2 || !d2.ok){
+        var e=String((d2&&d2.erro)||"");
+        var msg = e==="senha_incorreta" ? "Senha do master incorreta."
+          : e==="bloqueado" ? "Muitas tentativas erradas. Espere 15 minutos e tente de novo."
+          : e==="sem_permissao" ? "Seu login não tem a página Galpões."
+          : e==="valor_invalido" ? "O valor do aluguel não pode ser zero."
+          : ("O banco recusou ("+e+").");
+        uiConfirm({titulo:"O aluguel não mudou",msg:msg+"\\n\\nO aluguel continua "+glAluguelTxt(gAt.aluguel,gAt.valor)+". O resto do cadastro foi salvo.",ok:"Entendi",cancel:""});
+        return;
+      }
+      gAt.aluguel=String(d2.aluguel); gAt.valor=+d2.valor;
+      try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e2){}
+      renderGalpoes(); glReabrir(id);
+      uiConfirm({titulo:"Aluguel alterado",msg:"O aluguel do galpão nº "+(gAt.numero||"")+" agora é "+glAluguelTxt(gAt.aluguel,gAt.valor)+".\\n\\nO contrato mudou: a assinatura dele cai, e a cobrança só volta depois de assinar de novo e anexar o contrato novo.",ok:"OK",cancel:""});
+    },function(){ uiConfirm({titulo:"Sem conexão",msg:"Não consegui falar com o banco agora. O aluguel continua como estava; o resto do cadastro foi salvo.",ok:"Entendi",cancel:""}); });
+  });
+}
 function glSincValorForm(){
   var sel=document.getElementById("glAluguel"), inp=document.getElementById("glValor");
   if(!sel||!inp) return;
@@ -18726,6 +18773,8 @@ function glBuscarCnpj(){
     .finally(function(){ btn.disabled=false; btn.textContent=txt; });
 }
 function renderGalpoes(){
+  // ==GLALUGUEL== quem não é master vê no próprio campo que mudar o aluguel pede a senha do master
+  try{ var _la=document.querySelector('label[for="glAluguel"]'); if(_la) _la.innerHTML='Aluguel no contrato'+(glEhMaster()?'':' <span style="text-transform:none;letter-spacing:0;" title="Mudar o aluguel precisa da senha do master">🔒 senha do master</span>'); }catch(e){}
   var tb=document.getElementById("glTabela"); if(!tb) return;
   // Login ainda carregando: mostra "Carregando…" e tenta de novo em vez de já dizer "Área restrita".
   if(window.__PERFIL==null){ tb.innerHTML='<div style="padding:22px 12px;color:#8a97a8;font-style:italic;">Carregando…</div>'; var _gc=document.getElementById("glInad"); if(_gc) _gc.innerHTML=""; if(!window.__glRetry){ window.__glRetry=setTimeout(function(){ window.__glRetry=null; renderGalpoes(); },700); } return; }
@@ -18752,13 +18801,11 @@ function renderGalpoes(){
   var hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
   var busca=((document.getElementById("glBusca")||{}).value||"").trim().toLowerCase();
   var fstatus=((document.getElementById("glFiltroStatus")||{}).value)||"";
-  var fpag=((document.getElementById("glFiltroPagamento")||{}).value)||"";
   var fvenc=((document.getElementById("glFiltroVenc")||{}).value)||"";
   // ordena por "102 A" de forma natural (102 A < 102 B < 103 A), sem transformar em número puro
   var lista=galpoesG.slice().sort(function(a,b){ return String(a.numero||"").localeCompare(String(b.numero||""),"pt-BR",{numeric:true,sensitivity:"base"}); });
   if(busca) lista=lista.filter(function(g){ return (g.locatario||"").toLowerCase().indexOf(busca)>=0 || (g.vendedor||"").toLowerCase().indexOf(busca)>=0 || String(g.numero||"").toLowerCase().indexOf(busca)>=0; });
   if(fstatus) lista=lista.filter(function(g){ return pxStatusMes(g)===fstatus; });
-  if(fpag) lista=lista.filter(function(g){ return (g.pagamento||"")===fpag; });
   // prazo indeterminado (==GLSAIDA==): o filtro separa quem ainda aluga de quem já saiu
   if(fvenc) lista=lista.filter(function(g){ return fvenc==="vencidos" ? glSaiu(g) : !glSaiu(g); });
   var info=document.getElementById("glInfo"); if(info) info.textContent=lista.length+" galpão(ões)";
@@ -18777,14 +18824,13 @@ function renderGalpoes(){
       '<td>'+pxEsc(g.locatario)+'</td>'+
       '<td>'+pxEsc(g.vendedor)+'</td>'+
       '<td>'+(g.valor? brl(+g.valor) : "—")+'</td>'+
-      '<td>'+pxEsc(g.pagamento)+'</td>'+
       '<td>'+pxEsc(pxFmtData(g.abertura))+'</td>'+
       '<td class="'+vcls+'">'+pxEsc(glPrazoTxt(g))+'</td>'+
       '<td>'+pxBadge(g)+'</td>'+
       '<td>'+pxEsc(g.obs)+'</td>'+
       '<td style="white-space:nowrap"><span class="esc-nome" data-gledit="'+gid+'">editar</span> &nbsp;<span class="esc-del" data-glrem="'+gid+'" title="Remover">✕</span></td>'+
       '</tr>'+
-      '<tr class="px-det" id="gdet-'+gid+'" style="display:none;"><td colspan="11"><div class="px-det-wrap"><div class="px-det-box px-det-pontos">'+
+      '<tr class="px-det" id="gdet-'+gid+'" style="display:none;"><td colspan="10"><div class="px-det-wrap"><div class="px-det-box px-det-pontos">'+
         pxDetItem(g.cnpj?glFmtDoc(g.cnpj).label:"CNPJ / CPF", g.cnpj ? pxEsc(glFmtDoc(g.cnpj).valor) : "—", "px-det-nowrap")+
         pxDetItem("Razão Social", pxEsc(g.razaoSocial)||"—")+
         pxDetItem("Endereço do galpão", pxEsc(glEnderecoDe(g.numero)))+
@@ -18799,8 +18845,8 @@ function renderGalpoes(){
      confirma (glCloudLoad) — e a linha do galpão aberta se fechava. Guarda quais estavam abertas
      e reabre as mesmas (os pontos extras fazem igual no pixCobLoad). */
   var abertosG=[].filter.call(tb.querySelectorAll("tr.px-det"),function(tr){ return tr.style.display!=="none"; }).map(function(tr){ return tr.id.slice(5); });
-  tb.innerHTML='<table><thead><tr><th style="width:34px;"></th><th>Nº</th><th>Empresa</th><th>Inquilino</th><th>Valor</th><th>Pagamento</th><th>Abertura</th><th>Vencimento</th><th>Status</th><th>Observação</th><th></th></tr></thead><tbody>'+
-    (linhas || '<tr><td colspan="11" class="vazio">Nenhum galpão.</td></tr>')+'</tbody></table>';
+  tb.innerHTML='<table><thead><tr><th style="width:34px;"></th><th>Nº</th><th>Empresa</th><th>Inquilino</th><th>Valor</th><th>Abertura</th><th>Vencimento</th><th>Status</th><th>Observação</th><th></th></tr></thead><tbody>'+
+    (linhas || '<tr><td colspan="10" class="vazio">Nenhum galpão.</td></tr>')+'</tbody></table>';
   abertosG.forEach(function(id){ try{ glReabrir(id); }catch(e){} });
 }
 (function initGalpoes(){
@@ -18819,7 +18865,6 @@ function renderGalpoes(){
     enderecoInq:(document.getElementById("glEndInq").value||"").trim(),
     aluguel:(document.getElementById("glAluguel").value||"1"),
     valor:+glValor2(despParseValor(document.getElementById("glValor").value)),   // grava em centavos exatos (ver glValor2)
-    pagamento:(document.getElementById("glPag").value||""),
     diaPag:parseInt(document.getElementById("glDiaPag").value||"0",10)||0,
     abertura:(document.getElementById("glAbertura").value||""),
     // prazo indeterminado (==GLSAIDA==): no lugar do vencimento, a SAÍDA do inquilino (vazia = alugando)
@@ -18831,6 +18876,30 @@ function renderGalpoes(){
     if(!d.numero && !d.locatario){ uiConfirm({titulo:"Falta identificar o galpão",msg:"Coloque o Nº do galpão (o mesmo da planta) e/ou o nome do locatário.",ok:"OK",cancel:""}); return; }
     if(d.saida && d.abertura && d.saida<d.abertura){ uiConfirm({titulo:"Saída antes da abertura",msg:"A data de saída do inquilino está antes da abertura do contrato. Confira as duas datas.",ok:"OK",cancel:""}); return; }
     var editId=salvar.dataset.edit;
+    /* ==GLALUGUEL== (20/10/2026, pedido dele): quem NÃO é master não muda o aluguel (o tipo e o valor)
+       sem a senha do master. O resto do cadastro salva normal; o aluguel muda pela função do banco
+       que confere a senha (galpao_mudar_aluguel). O banco também trava: por fora dela, fica o que estava.
+       O master muda direto, sem senha (decisão dele). */
+    if(!glEhMaster()){
+      var gAnt=editId?galpoesG.find(function(x){ return x.id===editId; }):null;
+      if(gAnt){
+        var aluAnt=String(gAnt.aluguel||"1");
+        var aluMudou=String(d.aluguel)!==aluAnt;
+        var valMudou=(d.aluguel==="fixo") && glValor2(d.valor)!==glValor2(gAnt.valor);   // em salário mínimo o valor é calculado: não conta
+        var novoAlu=d.aluguel, novoVal=d.valor;
+        d.aluguel=aluAnt; d.valor=gAnt.valor;   // grava o resto; o aluguel espera a senha
+        Object.assign(gAnt,d); glSave(); glLimparForm(); renderGalpoes();
+        if(aluMudou||valMudou) glMudarAluguelComSenha(gAnt.id,novoAlu,novoVal);
+        return;
+      }
+      // galpão NOVO cadastrado por funcionário: definir o aluguel também precisa da senha do master
+      autorizarMaster("Cadastrar o galpão nº "+(d.numero||"?")+" com aluguel de "+glAluguelTxt(d.aluguel,d.valor)+". Digite a senha do master.",false).then(function(okM){
+        if(!okM) return;
+        galpoesG.push(Object.assign({id:"g"+Date.now().toString(36)+Math.round(Math.random()*1e5).toString(36),manuais:{}},d));
+        glSave(); glLimparForm(); renderGalpoes();
+      });
+      return;
+    }
     if(editId){ var g=galpoesG.find(function(x){ return x.id===editId; }); if(g){ Object.assign(g,d); } }
     else { galpoesG.push(Object.assign({id:"g"+Date.now().toString(36)+Math.round(Math.random()*1e5).toString(36),manuais:{}},d)); }
     glSave(); glLimparForm(); renderGalpoes();
@@ -18884,7 +18953,7 @@ function renderGalpoes(){
   var cnpjInp=document.getElementById("glCnpj"); if(cnpjInp) cnpjInp.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); glBuscarCnpj(); } });
   var numInp=document.getElementById("glNum"); if(numInp) numInp.addEventListener("input",glSincEndereco);
   try{ glSincEndereco(); }catch(e){} // já mostra o endereço base ao abrir
-  ["glBusca","glFiltroStatus","glFiltroPagamento","glFiltroVenc"].forEach(function(id){ var el=document.getElementById(id); if(el){ el.addEventListener(id==="glBusca"?"input":"change",renderGalpoes); } });
+  ["glBusca","glFiltroStatus","glFiltroVenc"].forEach(function(id){ var el=document.getElementById(id); if(el){ el.addEventListener(id==="glBusca"?"input":"change",renderGalpoes); } });
   var tb=document.getElementById("glTabela");
   if(tb) tb.addEventListener("click",function(e){
     var expb=e.target.closest("[data-glexp]");
@@ -18962,7 +19031,7 @@ function renderGalpoes(){
     var compRemG=e.target.closest("[data-glcomprem]");
     if(compRemG){ var prm=compRemG.dataset.glcomprem.split("|"); var grm=galpoesG.find(function(x){ return x.id===prm[0]; }); if(grm){ uiConfirm({titulo:"Remover comprovante",msg:"Apagar o comprovante desta mensalidade? Sem ele, a mensalidade volta a ficar em aberto.",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; var gAt=galpoesG.find(function(x){ return x.id===prm[0]; }); if(!gAt) return; if(gAt.comprovantes) delete gAt.comprovantes[prm[1]]; if(gAt.manuais) delete gAt.manuais[prm[1]]; glSave(); renderGalpoes(); glReabrir(gAt.id); }); } return; }
     var ed=e.target.closest("[data-gledit]");
-    if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNum").value=g2.numero||""; document.getElementById("glCnpj").value=g2.cnpj||""; document.getElementById("glRazao").value=g2.razaoSocial||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glVend").value=g2.vendedor||""; document.getElementById("glRg").value=g2.rg||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; try{ glSincEndereco(); }catch(e){} document.getElementById("glEndInq").value=g2.enderecoInq||""; document.getElementById("glAluguel").value=g2.aluguel||"1"; document.getElementById("glValor").value=g2.valor||""; document.getElementById("glPag").value=g2.pagamento||""; document.getElementById("glDiaPag").value=g2.diaPag||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glSaida").value=g2.saida||""; var _scE=document.getElementById("glSaidaCampo"); if(_scE) _scE.style.display="";   /* a saída só aparece no EDITAR (galpão novo não tem saída) */ document.getElementById("glObs").value=g2.obs||""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; try{ glSetDocTipo(((g2.cnpj||"").replace(/\\D/g,"").length===11)?"cpf":"cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
+    if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNum").value=g2.numero||""; document.getElementById("glCnpj").value=g2.cnpj||""; document.getElementById("glRazao").value=g2.razaoSocial||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glVend").value=g2.vendedor||""; document.getElementById("glRg").value=g2.rg||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; try{ glSincEndereco(); }catch(e){} document.getElementById("glEndInq").value=g2.enderecoInq||""; document.getElementById("glAluguel").value=g2.aluguel||"1"; document.getElementById("glValor").value=g2.valor||"";  document.getElementById("glDiaPag").value=g2.diaPag||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glSaida").value=g2.saida||""; var _scE=document.getElementById("glSaidaCampo"); if(_scE) _scE.style.display="";   /* a saída só aparece no EDITAR (galpão novo não tem saída) */ document.getElementById("glObs").value=g2.obs||""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; try{ glSetDocTipo(((g2.cnpj||"").replace(/\\D/g,"").length===11)?"cpf":"cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
     var rem=e.target.closest("[data-glrem]");
     if(rem){ var id=rem.dataset.glrem; var g3=galpoesG.find(function(x){ return x.id===id; });
       var _nomeG=g3?("o galpão nº "+(g3.numero||"?")+((g3.vendedor||g3.locatario)?(" — "+(g3.vendedor||g3.locatario)):"")):"este galpão";
@@ -36516,6 +36585,9 @@ function renderAcessos(){
   (function(){ var i=-1; pages.forEach(function(p,k){ if(p.key==="encartes") i=k; });
     if(i>=0 && !pages.some(function(p){ return p.key==="encartes_comprador"; })) pages.splice(i+1,0,{key:"encartes_comprador",label:"Encartes — comprador"}); })();
   // ==ACSLISTA-FIM==
+  // Abas que NÃO dependem de liberação (a regra de verdade mora em podeAba; aqui é só a tela
+  // contando a mesma história). Mudou lá, muda aqui — senão a tela volta a mentir.
+  var ACS_ABERTAS={ regulamento:1 };
   // Acesso reduzido: só a grade de lançamento e o cadastro de entregadores.
   // Não vê ritmo, projeção, ranking, gráficos nem dinheiro.
   (function(){ var i=-1; pages.forEach(function(p,k){ if(p.key==="entregas") i=k; });
@@ -36537,7 +36609,19 @@ function renderAcessos(){
       var liberado=p.is_master||p.aprovado;
       var _onl=!!(OS[String(p.email||'').toLowerCase()]||OS[p.id]);
       var _pg=PM[String(p.email||'').toLowerCase()]||PM[p.id]||'';
-      var pgsHtml=pages.map(function(pg){ var on=(p.paginas||[]).indexOf(pg.key)>=0; return '<label class="acs-pg"><input type="checkbox" class="acs-pgchk" value="'+pg.key+'"'+(on?' checked':'')+(p.is_master?' disabled':'')+'> '+pg.label+'</label>'; }).join('');
+      /* ==ACSABERTA== PÁGINA ABERTA A TODOS NASCE MARCADA.
+         O Regulamento Interno é a única aba que não passa pela liberação por página (ver a
+         exceção ==REGABERTA== em podeAba). A caixinha dele nascia aqui junto com as outras e
+         ficava DESMARCADA em todo mundo, enquanto a página abria pra todo mundo — o Victor viu
+         isso em 20/10/2026 e a tela estava mentindo.
+         Agora ela vem marcada, com a mesma cara das outras (pedido dele: nada de etiqueta nem
+         caixinha cinza, "só quero que fique marcado como os outros estão"). Quem manda continua
+         sendo o podeAba: marcar ou desmarcar aqui não fecha a página pra ninguém, e por isso ela
+         é desenhada marcada SEMPRE, não conforme o cadastro. */
+      var pgsHtml=pages.map(function(pg){
+        var on=ACS_ABERTAS[pg.key] ? true : (p.paginas||[]).indexOf(pg.key)>=0;
+        return '<label class="acs-pg"><input type="checkbox" class="acs-pgchk" value="'+pg.key+'"'+(on?' checked':'')+(p.is_master?' disabled':'')+'> '+pg.label+'</label>';
+      }).join('');
       var acaoAcesso=p.is_master?'':(liberado
         ? '<button class="acs-bloquear" type="button" title="A pessoa volta pra tela de espera">Bloquear acesso</button>'
         : '<button class="acs-liberar" type="button">Liberar acesso</button>');
