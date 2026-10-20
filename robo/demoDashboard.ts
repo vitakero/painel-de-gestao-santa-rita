@@ -12034,7 +12034,11 @@ function pltDetalhe(){
       };
       // um cadastro pela metade no formulário não some calado
       var sv=document.getElementById("glSalvar");
-      var pelaMetade=(sv&&sv.dataset.edit) || ["glCnpj","glLoc","glRg","glTel","glEmail","glEndInq","glObs"].some(function(id){ var el=document.getElementById(id); return el && String(el.value||"").trim()!==""; });
+      var aluEl=document.getElementById("glAluguel"), valEl=document.getElementById("glValor");
+      var pelaMetade=(sv&&sv.dataset.edit)
+        || ["glCnpj","glLoc","glRazao","glVend","glRg","glTel","glEmail","glEndInq","glDiaPag","glAbertura","glSaida","glObs"].some(function(id){ var el=document.getElementById(id); return el && String(el.value||"").trim()!==""; })
+        || (aluEl && aluEl.value!=="1")
+        || (aluEl && aluEl.value==="fixo" && valEl && String(valEl.value||"").trim()!=="");
       if(pelaMetade){
         uiConfirm({titulo:"Formulário pela metade",msg:"Já tem um cadastro sendo preenchido no formulário. Descartar e começar o galpão nº "+cod.replace(/\\s+/g,"")+"?",ok:"Descartar e começar",cancel:"Voltar"}).then(function(sim){ if(sim) abreNovo(); else { var card=document.getElementById("glFormCard"); if(card){ try{ card.scrollIntoView({behavior:"smooth",block:"center"}); }catch(e){} } } });
       } else abreNovo();
@@ -18089,9 +18093,12 @@ function glAluguelErroMsg(e){
     : e==="ja_existe" ? "Este galpão já está cadastrado. Recarregue a página e confira a lista."
     : ("O banco recusou ("+e+").");
 }
-function glMudarAluguelComSenha(id,alu,val){
+function glMudarAluguelComSenha(id,alu,val,assinavaAntes){
   var g=galpoesG.find(function(x){ return x.id===id; }); if(!g) return;
-  var assinava=false; try{ assinava=glAssinValida(g); }catch(eA){}   // só o contrato ASSINADO perde a assinatura
+  // só o contrato ASSINADO perde a assinatura. Quem chama do salvar manda como estava ANTES de gravar
+  // o resto: se outro campo do contrato mudou junto, a assinatura já caiu e glAssinValida diria "não".
+  var assinava=(typeof assinavaAntes==="boolean")?assinavaAntes:false;
+  if(typeof assinavaAntes!=="boolean"){ try{ assinava=glAssinValida(g); }catch(eA){} }
   var sb=glSB();
   if(!sb){ uiConfirm({titulo:"Precisa estar conectado",msg:"Mudar o aluguel confere a senha do master no banco. Entre no painel e tente de novo. O resto do cadastro foi salvo.",ok:"Entendi",cancel:""}); return; }
   autorizarMaster("Mudar o aluguel do galpão nº "+(g.numero||"")+" de "+glAluguelTxt(g.aluguel,g.valor)+" para "+glAluguelTxt(alu,val)+". Digite a senha do master.",false,true).then(function(senha){
@@ -18119,13 +18126,21 @@ function glMudarAluguelComSenha(id,alu,val){
 /* ==GLALUGUEL== galpão NOVO cadastrado por quem não é master: quem grava é o banco
    (galpao_cadastrar_com_senha), depois de conferir a senha do master. Pela tabela, o banco ignora
    galpão novo de funcionário (nem por fora da tela ele entra sem a senha). */
+var glCadastrando=false;   // um cadastro por vez: com o banco lento, o 2º clique em Adicionar gravava outro galpão
 function glCadastrarComSenha(d){
+  if(glCadastrando){ uiConfirm({titulo:"Aguarde",msg:"O galpão anterior ainda está sendo gravado no banco. Espere a resposta antes de cadastrar de novo.",ok:"Entendi",cancel:""}); return; }
   var sb=glSB();
   if(!sb){ uiConfirm({titulo:"Precisa estar conectado",msg:"Cadastrar um galpão confere a senha do master no banco. Entre no painel e tente de novo.",ok:"Entendi",cancel:""}); return; }
   autorizarMaster("Cadastrar o galpão nº "+(d.numero||"?")+" com aluguel de "+glAluguelTxt(d.aluguel,d.valor)+". Digite a senha do master.",false,true).then(function(senha){
     if(!senha) return;   // desistiu: nada é cadastrado e o formulário continua preenchido
+    if(glCadastrando) return;
+    glCadastrando=true;
+    var btn=document.getElementById("glSalvar"), btnTxt=btn?btn.textContent:"";
+    if(btn){ btn.disabled=true; btn.textContent="Gravando…"; }
+    var fim=function(){ glCadastrando=false; if(btn){ btn.disabled=false; if(btn.textContent==="Gravando…") btn.textContent=btnTxt; } };
     var g=Object.assign({id:"g"+Date.now().toString(36)+Math.round(Math.random()*1e5).toString(36),manuais:{}},d);
     sb.rpc("galpao_cadastrar_com_senha",{p_galpao:glRowFromG(g),p_senha:(senha===true?null:String(senha))}).then(function(r){
+      fim();
       if(r&&r.error){
         var m=String(r.error.message||"");
         uiConfirm({titulo:"O galpão não foi cadastrado",msg:(/galpao_cadastrar_com_senha|function|schema/i.test(m)?"Falta instalar no banco a proteção do aluguel (sql/galpoes_aluguel_senha.sql).":"Não consegui falar com o banco agora. Tente de novo."),ok:"Entendi",cancel:""});
@@ -18134,8 +18149,13 @@ function glCadastrarComSenha(d){
       var d2=r&&r.data;
       if(!d2 || !d2.ok){ uiConfirm({titulo:"O galpão não foi cadastrado",msg:glAluguelErroMsg(String((d2&&d2.erro)||"")),ok:"Entendi",cancel:""}); return; }
       g.aluguel=String(d2.aluguel); g.valor=+d2.valor;   // o valor que o banco gravou (salário da nuvem)
-      galpoesG.push(g); glSave(); glLimparForm(); renderGalpoes();
-    },function(){ uiConfirm({titulo:"Sem conexão",msg:"Não consegui falar com o banco agora. O galpão não foi cadastrado; tente de novo.",ok:"Entendi",cancel:""}); });
+      galpoesG.push(g); glSave();
+      // só limpa o formulário se ele ainda é ESTE cadastro (enquanto o banco respondia, a pessoa
+      // pode ter clicado em "editar" de outro galpão — esse não pode sumir)
+      var sv=document.getElementById("glSalvar"), nEl=document.getElementById("glNum");
+      if(sv && !sv.dataset.edit && nEl && String(nEl.value||"").trim()===String(d.numero||"")) glLimparForm();
+      renderGalpoes();
+    },function(){ fim(); uiConfirm({titulo:"Sem conexão",msg:"Não consegui falar com o banco agora. O galpão não foi cadastrado; tente de novo.",ok:"Entendi",cancel:""}); });
   });
 }
 function glSincValorForm(){
@@ -18929,9 +18949,10 @@ function renderGalpoes(){
         var valMudou=(d.aluguel==="fixo") && glValor2(d.valor)!==glValor2(orig.valor);   // em salário mínimo o valor é calculado: não conta
         var novoAlu=d.aluguel, novoVal=d.valor;
         var jaEstaAssim=String(novoAlu)===aluAnt && (novoAlu!=="fixo" || glValor2(novoVal)===glValor2(gAnt.valor));
+        var assinava=false; try{ assinava=glAssinValida(gAnt); }catch(eA){}
         d.aluguel=aluAnt; d.valor=gAnt.valor;   // grava o resto; o aluguel espera a senha
         Object.assign(gAnt,d); glSave(); glLimparForm(); renderGalpoes();
-        if((aluMudou||valMudou) && !jaEstaAssim) glMudarAluguelComSenha(gAnt.id,novoAlu,novoVal);
+        if((aluMudou||valMudou) && !jaEstaAssim) glMudarAluguelComSenha(gAnt.id,novoAlu,novoVal,assinava);
         return;
       }
       // galpão NOVO cadastrado por funcionário: o banco confere a senha do master e grava
