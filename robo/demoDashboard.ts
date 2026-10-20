@@ -18813,8 +18813,6 @@ function glBuscarCnpj(){
     .finally(function(){ btn.disabled=false; btn.textContent=txt; });
 }
 function renderGalpoes(){
-  // ==GLALUGUEL== quem não é master vê no próprio campo que mudar o aluguel pede a senha do master
-  try{ var _la=document.querySelector('label[for="glAluguel"]'); if(_la) _la.innerHTML='Aluguel no contrato'+(glEhMaster()?'':' <span style="text-transform:none;letter-spacing:0;" title="Mudar o aluguel precisa da senha do master">🔒 senha do master</span>'); }catch(e){}
   var tb=document.getElementById("glTabela"); if(!tb) return;
   // Login ainda carregando: mostra "Carregando…" e tenta de novo em vez de já dizer "Área restrita".
   if(window.__PERFIL==null){ tb.innerHTML='<div style="padding:22px 12px;color:#8a97a8;font-style:italic;">Carregando…</div>'; var _gc=document.getElementById("glInad"); if(_gc) _gc.innerHTML=""; if(!window.__glRetry){ window.__glRetry=setTimeout(function(){ window.__glRetry=null; renderGalpoes(); },700); } return; }
