@@ -17857,12 +17857,118 @@ function clImprimir(){
 function glDiasSaida(g){ var s=pxParseData(g&&g.saida); if(!s) return null; var h=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate()); return Math.floor((s-h)/86400000); }
 function glSaiu(g){ var d=glDiasSaida(g); return d!==null && d<=0; }
 function glPrazoTxt(g){ return (g&&g.saida) ? ("Saída "+pxFmtData(g.saida)) : "Indeterminado"; }
+/* ==GLPIX-INICIO== COBRANÇA AUTOMÁTICA DOS GALPÕES (20/10/2026): boleto híbrido com Pix pela conta
+   PESSOA FÍSICA do Gilson (Sicredi, beneficiário 29377). O painel só grava o PEDIDO em pix_cobrancas
+   com conta "pf"; o robô da loja gera o boleto com a credencial DESSA conta (==PIXCONTAS== em
+   scripts/pixWorker.cjs) e dá baixa sozinho quando o inquilino paga (pxQuitado do galpão já lê pixCobPaga).
+   O banco confere tudo de novo (sql/pix_contas_galpoes.sql): galpão com contrato assinado e anexado,
+   pagador = inquilino do cadastro, valor do aluguel, e quem pede tem a página Galpões.
+   CHAVE: com GL_PIX_NO_AR=false a tela fica exatamente como antes ("banco ainda não conectado" + manual).
+   ATENÇÃO: depois de ligada e usada, só volte a false SEM cobrança de galpão viva (pedido/gerado) no banco:
+   com a chave desligada a tela não mostra os boletos dos galpões (nem o pago por Pix).
+   Sem "marcar pago" na mão com a chave ligada (decisão dele, 20/10/2026): quem dá baixa é o banco.
+   (glMarcarPagaManual fica guardada, sem botão, caso um dia ele queira de volta.) */
+var GL_PIX_NO_AR=false;
+// quem paga: empresa = razão social; pessoa = nome do inquilino (a mesma regra do contrato)
+function glNomePagador(g){ var d=String((g&&g.cnpj)||"").replace(/\\D/g,""); return String((d.length===14?(g.razaoSocial||g.locatario):(g.vendedor||g.locatario))||"").trim(); }
+// o banco não aceita vencimento no passado: mensalidade atrasada vence hoje
+function glVencPix(key){ var hj=pxDateKey(new Date()); return key<hj?hj:key; }
+function glGerarCob(g,key){
+  var sb=pxSB();
+  if(!sb || !window.__PERFIL){ uiConfirm({titulo:"Entre no painel",msg:"Faça login para gerar a cobrança.",ok:"Entendi",cancel:""}); return; }
+  var jaTem=pixCobDe(g,key);
+  if(jaTem){ if(jaTem.status==="gerado") glPixVer(g,key); return; }
+  if(!glExigeContrato(g)) return;   // ==GLCONTRATO== (o banco confere de novo)
+  var ehBol=true;   // boleto híbrido: boleto com o QR Pix junto (o inquilino escolhe como pagar)
+  var doc=String(g.cnpj||"").replace(/\\D/g,"");
+  if(doc.length!==11 && doc.length!==14){ uiConfirm({titulo:"Falta o CPF/CNPJ do inquilino",msg:"O boleto registrado no banco precisa do CPF ou CNPJ de quem paga. Clique em editar neste galpão, preencha e salve. Depois clique em "+(ehBol?"Gerar boleto":"Gerar Pix")+" de novo.",ok:"Entendi",cancel:""}); return; }
+  var nome=glNomePagador(g);
+  if(!nome){ uiConfirm({titulo:"Falta o nome do inquilino",msg:"Clique em editar neste galpão, preencha o nome de quem paga e salve.",ok:"Entendi",cancel:""}); return; }
+  var valor=Math.round((+g.valor||0)*100)/100;
+  if(!(valor>0)){ uiConfirm({titulo:"Valor inválido",msg:"O galpão está sem valor de aluguel. Clique em editar e confira o aluguel.",ok:"Entendi",cancel:""}); return; }
+  var venc=glVencPix(key), dt=venc.split("-"), avisos="";
+  if(venc!==key) avisos+="\\n\\nA data da mensalidade ("+pxFmtData(key)+") já passou: o banco só aceita vencimento de hoje em diante.";
+  if((g.comprovantes||{})[key]) avisos+="\\n\\nAtenção: esta mensalidade já tem um comprovante anexado. Se ela já foi paga, não gere o boleto: use \\u201cMarcar paga\\u201d.";
+  try{ var fu=glSalFuturoGet(); if(fu){ var fd=glSalDataBR(fu.desde); if(fd && fd<=new Date(+dt[0],+dt[1]-1,+dt[2])) avisos+="\\n\\nO salário mínimo muda para "+brl(+fu.valor)+" em "+fu.desde+", antes deste vencimento. O boleto sai com o valor de hoje ("+brl(valor)+")."; } }catch(e){}
+  uiConfirm({ titulo:"Gerar boleto",
+    msg:"Gerar o boleto de "+brl(valor)+" para "+nome+" ("+pixFmtDoc(doc)+"), com vencimento em "+dt[2]+"/"+dt[1]+"/"+dt[0]+"?\\n\\nSai pela conta pessoa física do Gilson no Sicredi: boleto com QR Code Pix junto, o inquilino paga do jeito que preferir. Quando ele pagar, a mensalidade fica paga sozinha."+avisos,
+    ok:"Gerar", cancel:"Voltar" }).then(function(sim){
+    if(!sim) return;
+    var gAt=galpoesG.find(function(x){ return x.id===g.id; })||g;   // a nuvem pode ter recarregado a lista com a janela aberta
+    if(!glExigeContrato(gAt)) return;
+    if(pxQuitado(gAt,key)){ uiConfirm({titulo:"Esta mensalidade já está paga",msg:"Enquanto esta janela estava aberta, a mensalidade foi marcada como paga (talvez em outro computador). Nenhum boleto foi gerado.",ok:"Entendi",cancel:""}); return; }
+    // conta "pf" vai explícita: sem o SQL dos galpões a coluna não existe e o banco RECUSA — nunca
+    // cai na conta da loja. Com o SQL, quem decide a conta é o banco (galpão = pf) de qualquer jeito.
+    sb.from("pix_cobrancas").insert({ ponto_id:gAt.id, parcela_key:key, fornecedor:nome, documento:doc, valor:valor, vencimento:venc, status:"pedido", pedido_por:window.__EMAIL||"", conta:"pf" }).then(function(res){
+      if(res.error){
+        var em=String(res.error.message||"");
+        if(res.error.code==="23505" || em.indexOf("duplicate key")>=0){ uiConfirm({titulo:"Já existe cobrança neste mês",msg:"Este galpão já tem uma cobrança registrada neste mês (pedida agorinha, ou com outra data se o dia de pagamento mudou). Veja na lista do calendário e cancele a antiga antes, se for o caso.",ok:"Ok",cancel:""}); pixCobLoad(); return; }
+        if(/conta/i.test(em) && /column|coluna|schema/i.test(em)){ uiConfirm({titulo:"Falta um passo no banco",msg:"A cobrança dos galpões ainda não foi instalada no banco. Rode o arquivo sql/pix_contas_galpoes.sql no Supabase e tente de novo.",ok:"Entendi",cancel:""}); return; }
+        if(res.error.code==="42501" || /row-level security|policy/i.test(em)){ uiConfirm({titulo:"O banco recusou o pedido",msg:"Confira se o contrato está assinado e anexado, se o CPF/CNPJ do cadastro é o do inquilino e se o valor está certo. Se estiver tudo certo, avise o responsável (pode faltar a permissão da página Galpões).",ok:"Entendi",cancel:""}); return; }
+        uiConfirm({titulo:"Não deu para pedir",msg:"Erro ao registrar o pedido: "+em.slice(0,200),ok:"Ok",cancel:""}); return;
+      }
+      pixCobs[pixCobKey(gAt.id,key)]={ id:0, ponto_id:gAt.id, parcela_key:key, status:"pedido", conta:"pf", criado_em:new Date().toISOString() };
+      renderGalpoes(); glReabrir(gAt.id);
+      pixCobLoad();
+    },function(){ uiConfirm({titulo:"Sem conexão",msg:"Não consegui falar com a nuvem. Tente de novo.",ok:"Ok",cancel:""}); });
+  });
+}
+function glPixVer(g,key){
+  var c=pixCobDe(g,key);
+  if(!c || !c.qr_code){ uiConfirm({titulo:"QR Code ainda não está pronto",msg:"A cobrança ainda está sendo registrada no Sicredi. Tente de novo em instantes.",ok:"Ok",cancel:""}); return; }
+  var dv=String(c.vencimento||key).slice(0,10).split("-"), nome=c.fornecedor||glNomePagador(g);
+  pixAbrirModal({ valor:(+c.valor||(+g.valor||0)), codigo:c.qr_code, ponto:g.numero, rotulo:"Galpão nº", forn:nome, data:dv[2]+"/"+dv[1]+"/"+dv[0],
+    nosso:c.nosso_numero||"", linha:c.linha_digitavel||"", modo:"boleto",
+    cnpjPag:(g.cnpj||c.documento||""), razao:nome, contato:(g.contato||""), refkey:pixCobKey(g.id,key), pf:true });
+}
+function glPixRetry(g,key){
+  var sb=pxSB(), c=pixCobs[pixCobKey(g.id,key)];
+  if(!sb || !c || !c.id || c.status!=="erro") return;
+  if(!glExigeContrato(g)) return;
+  var doc=String(g.cnpj||"").replace(/\\D/g,"");
+  if(doc.length!==11 && doc.length!==14){ uiConfirm({titulo:"Falta o CPF/CNPJ do inquilino",msg:"Clique em editar neste galpão, preencha o CPF ou CNPJ e salve. Depois clique em Tentar de novo.",ok:"Entendi",cancel:""}); return; }
+  // pede de novo JÁ com os dados atuais do cadastro (nome/CPF/valor corrigidos contam). A hora do pedido
+  // novo quem grava é o banco (o relógio deste computador pode estar errado).
+  var campos={ status:"pedido", erro_msg:null, documento:doc, fornecedor:glNomePagador(g), valor:Math.round((+g.valor||0)*100)/100, vencimento:glVencPix(key) };
+  var motivo=String(c.erro_msg||"O banco recusou a cobrança.");
+  var conferir=/confira no sicredi|caiu no meio|falha de rede/i.test(motivo);
+  uiConfirm({titulo:"Pedir a cobrança de novo",
+    msg:"O que o banco ou o robô disse:\\n\\n"+motivo+"\\n\\n"+(conferir
+      ? "Antes de pedir de novo, confira no Internet Banking do Gilson (Cobrança) se este boleto já não foi criado. Se já existe, NÃO peça de novo: o inquilino receberia dois boletos."
+      : "Se precisou corrigir algo, edite o galpão antes. O pedido vai com os dados atuais do cadastro."),
+    ok:(conferir?"Já conferi, pedir de novo":"Pedir de novo"), cancel:"Voltar"}).then(function(sim){
+    if(!sim) return;
+    sb.from("pix_cobrancas").update(campos).eq("id",c.id).eq("status","erro").then(function(r){
+      if(r && r.error) uiConfirm({titulo:"Não deu para pedir de novo",msg:"O banco recusou: confira o contrato (assinado e anexado), o CPF/CNPJ e o valor do cadastro.\\n\\n("+String(r.error.message||"").slice(0,160)+")",ok:"Entendi",cancel:""});
+      pixCobLoad();
+    },function(){});
+  });
+}
+// pagamento POR FORA do boleto (dinheiro, transferência): comprovante anexado + "Marcar paga".
+// Com boleto vivo no banco, primeiro cancela — senão o inquilino pode pagar duas vezes.
+function glMarcarPagaManual(g,key){
+  if(!glExigeContrato(g)) return;
+  var cob=pixCobDe(g,key);
+  if(cob && cob.status!=="erro" && cob.status!=="pago"){ uiConfirm({titulo:"Há um boleto no banco",msg:"Esta mensalidade tem uma cobrança registrada no Sicredi. Cancele a cobrança (o \\u2715 ao lado de Ver QR Code) antes de marcar como paga por fora, senão o inquilino ainda consegue pagar o boleto e você recebe duas vezes.",ok:"Entendi",cancel:""}); return; }
+  if(!((g.comprovantes||{})[key])){ uiConfirm({titulo:"Anexe o comprovante primeiro",msg:"Recebeu esta mensalidade por fora do boleto (dinheiro, transferência)? Primeiro anexe o comprovante do pagamento na coluna Comprovante (botão Anexar). Depois volte aqui e marque como pago.",ok:"Entendi",cancel:""}); return; }
+  uiConfirm({titulo:"Marcar como paga",msg:"O comprovante desta mensalidade está anexado. Confira e marque como paga (pagamento por fora do boleto).",ok:"Marcar como paga",cancel:"Agora não"}).then(function(sim){
+    if(!sim) return;
+    var gAt=galpoesG.find(function(x){ return x.id===g.id; }); if(!gAt) return;
+    if(!glExigeContrato(gAt)) return;
+    if(!(gAt.comprovantes||{})[key]){ uiConfirm({titulo:"O comprovante não está mais anexado",msg:"O comprovante desta mensalidade foi removido (talvez em outro computador). Anexe de novo antes de marcar como paga.",ok:"Entendi",cancel:""}); return; }
+    var cobAt=pixCobDe(gAt,key);
+    if(cobAt && cobAt.status!=="erro" && cobAt.status!=="pago"){ uiConfirm({titulo:"Há um boleto no banco",msg:"Enquanto esta janela estava aberta, foi pedido um boleto para esta mensalidade. Cancele a cobrança antes de marcar como paga por fora.",ok:"Entendi",cancel:""}); return; }
+    gAt.manuais=gAt.manuais||{}; gAt.manuais[key]="autorizado"; glSave(); renderGalpoes(); glReabrir(gAt.id);
+  });
+}
+/* ==GLPIX-FIM== */
 function glAgendaHtml(g){
   var ag=pxAgenda(g);
   if(!ag.length) return '<div class="px-agenda-vazia">'+(g.abertura?'Nenhuma cobrança no período (a saída do inquilino é antes do primeiro vencimento).':'Informe a abertura do contrato para ver o calendário de cobranças.')+'</div>';
   var hoje=new Date(HOJE.getFullYear(),HOJE.getMonth(),HOJE.getDate());
   var comps=g.comprovantes||{};
   var ehBoleto=/bolet/i.test(String(g.pagamento||""));
+  if(GL_PIX_NO_AR) ehBoleto=true;   // ==GLPIX== galpão = boleto híbrido (boleto com o QR Pix junto), igual aos pontos extras
   var ctOk=glContratoPronto(g);   // ==GLCONTRATO== sem contrato assinado e anexado, os botões explicam em vez de agir
   var icoClip='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>';
   var icoBarras='<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px;margin-right:5px;"><rect x="2" y="4" width="2.4" height="16" rx="0.6"></rect><rect x="6" y="4" width="1.4" height="16" rx="0.6"></rect><rect x="9" y="4" width="3" height="16" rx="0.6"></rect><rect x="13.6" y="4" width="1.4" height="16" rx="0.6"></rect><rect x="16.5" y="4" width="1.1" height="16" rx="0.55"></rect><rect x="19.2" y="4" width="2.8" height="16" rx="0.6"></rect></svg>';
@@ -17872,9 +17978,32 @@ function glAgendaHtml(g){
     var key=pxDateKey(d), ref=g.id+"|"+key;
     var c=comps[key];
     var quit=pxQuitado(g,key);
-    var cobCell = quit
-      ? '<span class="px-quitado" title="Mensalidade recebida"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>Pago</span> <button type="button" class="px-rec" data-gldesfazer="'+ref+'" title="Desfazer pagamento">✕</button>'
-      : '<button type="button" class="px-pix-btn" data-glcob="'+ref+'"'+(ctOk?'':' title="Anexe primeiro o contrato assinado"')+'>'+(ehBoleto?icoBarras:icoQr)+(ehBoleto?'Gerar boleto':'Gerar Pix')+'</button>';
+    var icoOk='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+    var cob=GL_PIX_NO_AR ? pixCobDe(g,key) : null;   // ==GLPIX== a cobrança de verdade no banco, se houver
+    var cobCell;
+    if(quit && cob && cob.status==="pago"){
+      // pago e conferido no banco: não tem "desfazer" (quem dá baixa é o banco)
+      var tl=String(cob.tipo_liquidacao||"").toUpperCase();
+      cobCell='<span class="px-quitado" title="Pago e conferido no Sicredi'+(cob.pago_em?(' em '+pxEsc(pxFmtData(String(cob.pago_em).slice(0,10)))):'')+'">'+icoOk+((tl==="COMPE"||tl==="REDE")?'Pago via boleto':'Pago via Pix')+'</span>';
+    } else if(quit){
+      cobCell='<span class="px-quitado" title="Mensalidade recebida">'+icoOk+'Pago</span> <button type="button" class="px-rec" data-gldesfazer="'+ref+'" title="Desfazer pagamento">✕</button>'
+        +((cob && cob.status==="gerado")?' <span class="px-aguard" title="Esta mensalidade foi marcada como paga por fora, mas o boleto continua valendo no banco: cancele para o inquilino não pagar duas vezes.">⚠ boleto ainda vivo</span> <button type="button" class="px-rec" data-glpixcancel="'+ref+'" title="Cancelar o boleto no banco">✕ boleto</button>':'');
+    } else if(cob && (cob.status==="pedido"||cob.status==="gerando")){
+      var idadeH=Math.floor((Date.now()-new Date(cob.criado_em||Date.now()).getTime())/3600000);
+      cobCell = idadeH>=1
+        ? '<span class="px-aguard" title="O pedido está esperando há mais de 1 hora. O computador da loja parece estar desligado: ligue-o para a cobrança sair.">⏳ Aguardando há '+idadeH+'h</span>'
+        : '<span class="px-aguard" title="A cobrança está sendo registrada no Sicredi. Fica pronta em instantes.">⏳ '+(ehBoleto?'Gerando boleto…':'Gerando QR Code…')+'</span>';
+    } else if(cob && cob.status==="cancelar"){
+      cobCell='<span class="px-aguard" title="O Sicredi leva de 1 a 3 minutos para liberar o cancelamento. Pode fechar a tela.">⏳ Cancelando…</span>';
+    } else if(cob && cob.status==="gerado"){
+      cobCell='<button type="button" class="px-pix-btn" data-glpixver="'+ref+'" title="Cobrança registrada no Sicredi">'+(ehBoleto?icoBarras:icoQr)+(ehBoleto?'Ver boleto':'Ver QR Code')+'</button> <button type="button" class="px-rec" data-glpixcancel="'+ref+'" title="Cancelar esta cobrança no banco">✕</button>'
+        +(cob.erro_msg?' <span class="px-aguard" title="'+pxEsc(cob.erro_msg)+'">⚠ conferir</span>':'');
+    } else if(cob && cob.status==="erro"){
+      cobCell='<span class="px-aguard" title="'+pxEsc(String(cob.erro_msg||"O banco recusou a cobrança").slice(0,300))+'">⚠ Erro no banco</span> <button type="button" class="px-aut" data-glpixretry="'+ref+'" title="Corrija o cadastro, se for o caso, e peça de novo">Tentar de novo</button>';
+    } else {
+      // com a cobrança automática não existe "marcar pago" na mão (decisão dele, 20/10): quem dá baixa é o banco
+      cobCell='<button type="button" class="px-pix-btn" data-glcob="'+ref+'"'+(ctOk?'':' title="Anexe primeiro o contrato assinado"')+'>'+(GL_PIX_NO_AR?'':(ehBoleto?icoBarras:icoQr))+(ehBoleto?'Gerar boleto':'Gerar Pix')+'</button>';
+    }
     // ==GLCOMP== cobrança manual: sem comprovante, a coluna oferece ANEXAR (é o anexo que marca como paga)
     var compCell = c
       ? '<a href="#" class="px-comp-link" data-glcompview="'+ref+'" title="Ver comprovante">'+icoClip+'<span>comprovante</span></a> <button type="button" class="px-comp-x" data-glcomprem="'+ref+'" title="Remover comprovante">✕</button>'
@@ -17882,6 +18011,21 @@ function glAgendaHtml(g){
               : '<button type="button" class="gl-comp-anexar" data-glcompanexar="'+ref+'" title="'+(ctOk?'Anexe o comprovante do pagamento: é ele que marca a mensalidade como paga':'Anexe primeiro o contrato assinado')+'">'+icoClip+'<span>Anexar</span></button>');
     return '<tr'+passou+'><td>'+(i+1)+'</td><td>'+pxDataChip(d)+'</td><td>'+brl(g.valor||0)+'</td><td class="px-pix-cell">'+cobCell+'</td><td class="px-comp-cell">'+compCell+'</td></tr>';
   }).join("");
+  // ==GLPIX== cobrança deste galpão no banco cuja data saiu do calendário (mudou o dia de pagamento, a
+  // abertura ou a saída): continua valendo no Sicredi, então continua à vista, com Ver e ✕ para cancelar.
+  if(GL_PIX_NO_AR){
+    var naAgenda={}; ag.forEach(function(d){ naAgenda[pxDateKey(d)]=1; });
+    var fora=Object.keys(pixCobs).map(function(k){ return pixCobs[k]; }).filter(function(cf){
+      return cf && cf.ponto_id===g.id && !naAgenda[cf.parcela_key] && cf.status!=="cancelado" && cf.status!=="erro"; })
+      .sort(function(a,b){ return String(a.parcela_key).localeCompare(String(b.parcela_key)); });
+    fora.forEach(function(cf){
+      var reff=g.id+"|"+cf.parcela_key, pk=String(cf.parcela_key).split("-");
+      var cel = cf.status==="pago" ? '<span class="px-quitado" title="Pago e conferido no Sicredi">'+'✓ Pago no banco</span>'
+        : cf.status==="gerado" ? '<button type="button" class="px-pix-btn" data-glpixver="'+reff+'">'+(ehBoleto?'Ver boleto':'Ver QR Code')+'</button> <button type="button" class="px-rec" data-glpixcancel="'+reff+'" title="Cancelar esta cobrança no banco">✕</button>'
+        : '<span class="px-aguard">⏳ '+pxEsc(cf.status)+'</span>';
+      linhas+='<tr style="background:#fffbeb;"><td>—</td><td><span title="Esta data não está mais no calendário (mudou o dia de pagamento, a abertura ou a saída)">'+pxEsc(pk.length===3?(pk[2]+"/"+pk[1]+"/"+pk[0]):cf.parcela_key)+' <small style="color:#b45309;">fora do calendário</small></span></td><td>'+brl(+cf.valor||0)+'</td><td class="px-pix-cell">'+cel+'</td><td class="px-comp-cell"><span style="color:#c3ccd6;">—</span></td></tr>';
+    });
+  }
   // prazo indeterminado (==GLSAIDA==): o título diz até onde a lista vai e que ela anda sozinha
   var MESC=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"], ult=ag[ag.length-1];
   var titAg = g.saida
@@ -18766,10 +18910,20 @@ function renderGalpoes(){
     var cgerG=e.target.closest("[data-glcgerar]");
     if(cgerG){ var gg=galpoesG.find(function(x){ return x.id===cgerG.dataset.glcgerar; }); if(gg) glGerarContrato(gg); return; }
     // --- CALENDÁRIO DE COBRANÇAS ---
+    // ==GLPIX== cobrança no banco: ver o QR/boleto, cancelar, tentar de novo e marcar paga por fora
+    var pxvG=e.target.closest("[data-glpixver]");
+    if(pxvG){ var pv1=pxvG.dataset.glpixver.split("|"); var gv1=galpoesG.find(function(x){ return x.id===pv1[0]; }); if(gv1) glPixVer(gv1,pv1[1]); return; }
+    var pxcG=e.target.closest("[data-glpixcancel]");
+    if(pxcG){ var pc1=pxcG.dataset.glpixcancel.split("|"); pixCobCancel(pc1[0],pc1[1]); return; }
+    var pxrG=e.target.closest("[data-glpixretry]");
+    if(pxrG){ var pr1=pxrG.dataset.glpixretry.split("|"); var gr1=galpoesG.find(function(x){ return x.id===pr1[0]; }); if(gr1) glPixRetry(gr1,pr1[1]); return; }
+    var mpG=e.target.closest("[data-glmarcar]");
+    if(mpG){ var pm1=mpG.dataset.glmarcar.split("|"); var gm1=galpoesG.find(function(x){ return x.id===pm1[0]; }); if(gm1) glMarcarPagaManual(gm1,pm1[1]); return; }
     var cobG=e.target.closest("[data-glcob]");
     if(cobG){
       var pr=cobG.dataset.glcob.split("|"); var gc=galpoesG.find(function(x){ return x.id===pr[0]; }); if(!gc) return;
       if(!glExigeContrato(gc)) return;   // ==GLCONTRATO== sem contrato assinado e anexado, nada de cobrança
+      if(GL_PIX_NO_AR){ glGerarCob(gc, pr[1]); return; }   // ==GLPIX== cobrança de verdade (boleto + Pix) pelo banco
       var ehBol=/bolet/i.test(String(gc.pagamento||""));
       /* ==GLCOMP== DOIS PASSOS (pedido dele, 30/09): 1) anexar o comprovante na coluna Comprovante;
          2) aqui, "Marcar como paga" — que só é oferecido com o comprovante JÁ anexado. */
@@ -19032,7 +19186,8 @@ function pixCobDe(p,key){ var c=pixCobs[pixCobKey(p.id,key)]; return (c && c.sta
 function pixCobPaga(p,key){ var c=pixCobDe(p,key); return !!(c && c.status==="pago"); }
 function pixCobLoad(){
   var sb=pxSB(); if(!sb) return;
-  if(!pxPodeVer()) return; // mesma regra dos pontos (financeiro)
+  // pontos (financeiro) OU, com a cobrança dos galpões ligada, quem vê os galpões (o banco só entrega a cada um a conta da sua página)
+  if(!(pxPodeVer() || (typeof GL_PIX_NO_AR!=="undefined" && GL_PIX_NO_AR && typeof glPodeVer==="function" && glPodeVer()))) return;
   // Cada carga ganha um número. Resposta de uma carga MAIS VELHA que a última já aplicada é
   // jogada fora: senão, uma lista lida antes do pagamento, chegando atrasada pela rede,
   // desfazia o ✓ Pago na tela (revisão de 30/09).
@@ -19049,7 +19204,7 @@ function pixCobLoad(){
     try{ pixModalChecaPago(); }catch(e){} // se o modal do QR está aberto e a cobrança virou "pago", mostra a confirmação verde
     // assinatura do que a tela mostra (id+status+tem QR); se nada mudou, NÃO re-renderiza
     // (deixa o polling de 8s barato e sem "piscar" a tela à toa)
-    var sig=Object.keys(m).sort().map(function(k){ var c=m[k]; return k+"="+c.status+(c.qr_code?"Q":""); }).join("|");
+    var sig=Object.keys(m).sort().map(function(k){ var c=m[k]; return k+"="+c.status+(c.qr_code?"Q":"")+(c.erro_msg?"E"+String(c.erro_msg).length:""); }).join("|");
     if(sig===pixCobsSig) return;
     pixCobsSig=sig;
     try{
@@ -19060,6 +19215,11 @@ function pixCobLoad(){
         abertos.forEach(function(id){ try{ pxReabrir(id); }catch(e2){} });
       }
     }catch(e){}
+    // ==GLPIX== galpões e planta também mostram o que o banco disse (o renderGalpoes guarda as linhas abertas)
+    if(typeof GL_PIX_NO_AR!=="undefined" && GL_PIX_NO_AR){
+      try{ var _pg=document.getElementById("page-galpoes"); if(_pg && _pg.classList.contains("ativo") && typeof renderGalpoes==="function") renderGalpoes(); }catch(e){}
+      try{ var _pp=document.getElementById("page-planta"); if(_pp && _pp.classList.contains("ativo") && typeof renderPlanta==="function") renderPlanta(); }catch(e){}
+    }
   },function(){});
   if(!pixCobsRT){
     // Quando o aviso instantâneo conecta — e sobretudo quando RECONECTA depois de o Wi-Fi piscar
@@ -19094,7 +19254,7 @@ function pixPrecisaPressa(){
   return false;
 }
 function pixCobChecar(){
-  var sb=pxSB(); if(!sb || !pxPodeVer()) return;
+  var sb=pxSB(); if(!sb || !(pxPodeVer() || (typeof GL_PIX_NO_AR!=="undefined" && GL_PIX_NO_AR && typeof glPodeVer==="function" && glPodeVer()))) return;
   sb.from("pix_cobrancas").select("id,status").order("id",{ascending:false}).limit(1000).then(function(res){
     if(res.error || !res.data) return;
     if(pixSigLeve(res.data)!==pixCobsLeveSig) pixCobLoad();   // mudou algo: aí sim baixa a lista inteira
@@ -19102,7 +19262,7 @@ function pixCobChecar(){
 }
 function pixRitmo(){
   try{
-    if(document.visibilityState==="hidden" || !pxPodeVer()) return;
+    if(document.visibilityState==="hidden" || !(pxPodeVer() || (typeof GL_PIX_NO_AR!=="undefined" && GL_PIX_NO_AR && typeof glPodeVer==="function" && glPodeVer()))) return;
     var espera=pixPrecisaPressa()?PIX_RAPIDO:PIX_CALMO;
     // FOLGA DE MEIO TIQUE: o relógio do navegador não bate exato (7.999 ms em vez de 8.000), e
     // sem folga a conferência "rápida" pulava um tique e virava de 12 s (revisão de 30/09).
@@ -19635,7 +19795,7 @@ function pxAgendaHtml(p){
       : cob && cob.status==="cancelar"
       ? '<span class="px-aguard" title="O banco (Sicredi) exige de 1 a 3 minutos para liberar o cancelamento de uma cobrança recém-criada. É normal. Pode fechar a tela — o botão de gerar volta sozinho quando terminar.">'+icoRelogio+'Cancelando…</span>'
       : cob && cob.status==="gerado"
-      ? '<button type="button" class="px-pix-btn" data-pixver="'+ref+'" title="Cobrança registrada no Sicredi — '+(ehBoleto?"ver o boleto":"ver o QR Code")+'">'+(ehBoleto?icoBarras:icoQr)+(ehBoleto?'Ver boleto':'Ver QR Code')+'</button> <button type="button" class="px-rec" data-pixcancel="'+ref+'" title="Cancelar esta cobrança no banco (libera gerar outra)">✕</button>'+btMarcar
+      ? '<button type="button" class="px-pix-btn" data-pixver="'+ref+'" title="Cobrança registrada no Sicredi — '+(ehBoleto?"ver o boleto":"ver o QR Code")+'">'+(ehBoleto?icoBarras:icoQr)+(ehBoleto?'Ver boleto':'Ver QR Code')+'</button> <button type="button" class="px-rec" data-pixcancel="'+ref+'" title="Cancelar esta cobrança no banco (libera gerar outra)">✕</button>'+(cob.erro_msg?' <span class="px-aguard" title="'+pxEsc(cob.erro_msg)+'">⚠ conferir</span>':'')+btMarcar
       : cob && cob.status==="erro"
       ? '<span class="px-aguard" title="'+String(cob.erro_msg||"O banco recusou a cobrança").slice(0,180).replace(/[<>]/g,"").replace(/"/g,"&quot;")+'">'+icoAlerta+'Erro no banco</span> <button type="button" class="px-aut" data-pixretry="'+ref+'" title="Corrija o cadastro (ex: CNPJ) e peça de novo">Tentar de novo</button>'+btMarcar
       : ehBonif
@@ -19874,7 +20034,7 @@ function pixAbrirModal(o){
   var _cc=document.getElementById("pixCC");
   _cc.value=ehBol ? o.linha : o.codigo; // boleto: a caixa grande mostra a linha digitável
   // nº e fornecedor vêm do cadastro do ponto (gravável por funcionário); o resto, da cobrança na nuvem
-  document.getElementById("pixSub").innerHTML="Ponto nº "+pxEsc(o.ponto||"")+(o.forn?" · "+pxEsc(o.forn):"")+"<br>Vencimento "+pxEsc(o.data)+" · <b>"+brl(+o.valor||0)+"</b>"
+  document.getElementById("pixSub").innerHTML=(o.rotulo||"Ponto nº")+" "+pxEsc(o.ponto||"")+(o.forn?" · "+pxEsc(o.forn):"")+"<br>Vencimento "+pxEsc(o.data)+" · <b>"+brl(+o.valor||0)+"</b>"
     +(o.nosso?'<br><span style="font-size:11px;color:#8a97a3;">Registrada no Sicredi · nosso nº '+pxEsc(o.nosso)+'</span>':"")
     +((!ehBol && o.linha)?'<br><span style="font-size:10.5px;color:#8a97a3;word-break:break-all;">Linha digitável: '+pxEsc(o.linha)+'</span>':"");
   m.classList.add("show");
@@ -20315,7 +20475,10 @@ function pixFmtDoc(d){
 function pixBaixarFicha(o,qrDataUrl){
   const S=2, W=760;
   const cfg=pixGetCfg();
-  const benef=(cfg&&cfg.nome)||"Supermercado Santa Rita";
+  // ==GLPIX== galpão: quem recebe é a PESSOA FÍSICA do Gilson (GL_LOCADOR), não a loja (e sem o logotipo da loja)
+  const pf=!!o.pf && typeof GL_LOCADOR!=="undefined";
+  const benef=pf ? GL_LOCADOR.nome : ((cfg&&cfg.nome)||"Supermercado Santa Rita");
+  const docBenef=pf ? ("CPF "+GL_LOCADOR.cpf) : "CNPJ 12.988.127/0001-40";
   const cod=o.codigo||"", col=66, linhas=[];
   for(let i=0;i<cod.length;i+=col) linhas.push(cod.slice(i,i+col));
   const lineH=17;
@@ -20357,10 +20520,10 @@ function pixBaixarFicha(o,qrDataUrl){
     // ===== CABEÇALHO INSTITUCIONAL =====
     let cy=46;
     let tx=L;
-    if(logoImg){ try{ const bw=88,bh=88,bx=L,by=cy-8; const iw=logoImg.naturalWidth||bw,ih=logoImg.naturalHeight||bh; const sc=Math.min(bw/iw,bh/ih),dw=iw*sc,dh=ih*sc; x.drawImage(logoImg,bx+(bw-dw)/2,by+(bh-dh)/2,dw,dh); tx=L+bw+22; }catch(e){} }
-    x.fillStyle=INK; x.font="700 23px "+F; x.fillText("Supermercado Santa Rita",tx,cy+24);
-    x.fillStyle=SEC; x.font="500 12px "+F; x.fillText(ehBol?"Cobrança financeira · Boleto (aceita Pix)":"Cobrança financeira · Pix",tx,cy+45);
-    x.fillStyle=MUT; x.font="400 10.5px "+F; x.fillText("CNPJ 12.988.127/0001-40 · Caicó, RN",tx,cy+63);
+    if(logoImg && !pf){ try{ const bw=88,bh=88,bx=L,by=cy-8; const iw=logoImg.naturalWidth||bw,ih=logoImg.naturalHeight||bh; const sc=Math.min(bw/iw,bh/ih),dw=iw*sc,dh=ih*sc; x.drawImage(logoImg,bx+(bw-dw)/2,by+(bh-dh)/2,dw,dh); tx=L+bw+22; }catch(e){} }
+    x.fillStyle=INK; x.font="700 23px "+F; x.fillText(pf?benef:"Supermercado Santa Rita",tx,cy+24);
+    x.fillStyle=SEC; x.font="500 12px "+F; x.fillText(pf?(ehBol?"Aluguel de galpão · Boleto (aceita Pix)":"Aluguel de galpão · Pix"):(ehBol?"Cobrança financeira · Boleto (aceita Pix)":"Cobrança financeira · Pix"),tx,cy+45);
+    x.fillStyle=MUT; x.font="400 10.5px "+F; x.fillText(docBenef+" · Caicó, RN",tx,cy+63);
     // bloco institucional à direita: status + identificação
     selo("Em aberto","#FFFBEB","#FDE68A","#B45309",R,cy-2,true);
     const infoDir=function(lb,vl,iy2){ x.textAlign="right"; x.fillStyle=MUT; x.font="500 9.5px "+F; var vw; x.font="600 11.5px "+F; vw=x.measureText(vl).width; x.fillStyle=INK; x.fillText(vl,R,iy2); x.fillStyle=MUT; x.font="500 9.5px "+F; x.fillText(lb.toUpperCase()+"  ",R-vw-6,iy2); x.textAlign="left"; };
@@ -20388,8 +20551,8 @@ function pixBaixarFicha(o,qrDataUrl){
     rotulo("Resumo financeiro",L,cy); cy+=24;
     const kv=function(k,v,vc){ x.textAlign="left"; x.fillStyle=SEC; x.font="400 12.5px "+F; x.fillText(k,L+2,cy); x.textAlign="right"; x.fillStyle=vc||INK; x.font="600 12.5px "+F; x.fillText(v,R-2,cy); x.textAlign="left"; };
     kv("Valor original",brl(o.valor)); cy+=10; x.strokeStyle="#F3F4F6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=20;
-    kv("Multa por atraso","Isento",MUT); cy+=10; x.strokeStyle="#F3F4F6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=20;
-    kv("Juros de mora","Isento",MUT); cy+=16;
+    kv("Multa por atraso",pf?"Conforme o contrato":"Isento",MUT); cy+=10; x.strokeStyle="#F3F4F6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=20;
+    kv("Juros de mora",pf?"Conforme o contrato":"Isento",MUT); cy+=16;
     fio(cy); cy+=28;
     x.textAlign="left"; x.fillStyle=INK; x.font="700 14px "+F; x.fillText("Total a pagar",L+2,cy);
     x.textAlign="right"; x.fillStyle=VERDE; x.font="700 20px "+F; x.fillText(brl(o.valor),R-2,cy+2); x.textAlign="left"; cy+=40;
@@ -20456,14 +20619,14 @@ function pixBaixarFicha(o,qrDataUrl){
     };
     const docPag=pixFmtDoc(o.cnpjPag);
     pessoa(L+24,"Pagador",(o.razao||o.forn||"—"),[(docPag?("CPF/CNPJ "+docPag):""),(o.contato?("Contato: "+o.contato):"")]);
-    pessoa(meio+24,"Beneficiário",benef,["CNPJ 12.988.127/0001-40","Banco 748 · Sicredi — Ag. 2207","Caicó, RN"]);
+    pessoa(meio+24,"Beneficiário",benef,[docBenef,"Banco 748 · Sicredi — Ag. 2207","Caicó, RN"]);
     cy+=pbH+30;
     // ===== AVISO =====
     const aH=54;
     x.fillStyle="#FFFBEB"; x.strokeStyle="#FDE68A"; x.lineWidth=1; pixRR(x,L,cy,cw,aH,12); x.fill(); x.stroke();
     x.save(); x.strokeStyle="#D97706"; x.lineWidth=1.5; x.beginPath(); x.arc(L+26,cy+aH/2,7.5,0,6.2832); x.stroke(); x.beginPath(); x.moveTo(L+26,cy+aH/2); x.lineTo(L+26,cy+aH/2-4); x.moveTo(L+26,cy+aH/2); x.lineTo(L+29.5,cy+aH/2); x.stroke(); x.restore();
     x.fillStyle="#92400E"; x.font="600 11.5px "+F; x.textAlign="left"; x.fillText("Pague até o vencimento",L+46,cy+23);
-    x.fillStyle="#B45309"; x.font="400 11px "+F; x.fillText("Efetue o pagamento até a data indicada para evitar o cancelamento do espaço.",L+46,cy+39);
+    x.fillStyle="#B45309"; x.font="400 11px "+F; x.fillText(pf?"Efetue o pagamento até a data indicada. Atraso segue o previsto no contrato de locação.":"Efetue o pagamento até a data indicada para evitar o cancelamento do espaço.",L+46,cy+39);
     cy+=aH+26;
     // ===== SELOS =====
     const selos=["Transação protegida","Beneficiário verificado","Cobrança registrada"];
@@ -20480,7 +20643,7 @@ function pixBaixarFicha(o,qrDataUrl){
     x.fillText("Documento gerado eletronicamente em "+hoje+" às "+hora+" · Canal: Painel Santa Rita",L,cy);
     x.textAlign="right"; x.fillText(ehBol?"Boleto registrado · Sicredi":"Pagamento via Pix · Banco Central do Brasil",R,cy); x.textAlign="left"; cy+=16;
     x.fillStyle="#C4C9D0"; x.font="400 9.5px "+F;
-    x.fillText("Ref.: "+num+"  ·  Ponto nº "+(o.ponto||"")+(o.forn?"  ·  "+o.forn:""),L,cy);
+    x.fillText("Ref.: "+num+"  ·  "+(o.rotulo||"Ponto nº")+" "+(o.ponto||"")+(o.forn?"  ·  "+o.forn:""),L,cy);
     x.textAlign="right"; x.fillText("Documento v2",R,cy); x.textAlign="left";
     cy+=30;
     // corta o canvas na altura exata do conteúdo
@@ -32975,12 +33138,12 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     if(btn.dataset.page==="pedidos"){ renderPedidos(); pedCloudLoad(); pedRealtime(); }
     if(btn.dataset.page==="config") renderConfig();
     if(btn.dataset.page==="pontos"||btn.dataset.page==="mapa"){ pxCloudLoad(); try{ if(typeof pixCobLoad==="function") pixCobLoad(); }catch(e){} }
-    if(btn.dataset.page==="galpoes"){ try{ glCloudLoad(); glRealtime(); renderGalpoes(); }catch(e){} }
+    if(btn.dataset.page==="galpoes"){ try{ glCloudLoad(); glRealtime(); renderGalpoes(); if(GL_PIX_NO_AR) pixCobLoad(); }catch(e){} }
     if(btn.dataset.page==="despesas"){ try{ despRender(); despCloudLoad(); }catch(e){} }
     if(btn.dataset.page==="flv"){ try{ flvRender(); flvCloudLoad(); }catch(e){} }
     if(btn.dataset.page==="vendasetor"){ try{ vsRender(); vsCloudLoad(); }catch(e){} }
     if(btn.dataset.page==="recibos"){ try{ rcbRender(); rcbAutCarregar(); }catch(e){} }
-    if(btn.dataset.page==="planta"){ try{ glCloudLoad(); glRealtime(); renderPlanta(); }catch(e){} }
+    if(btn.dataset.page==="planta"){ try{ glCloudLoad(); glRealtime(); renderPlanta(); if(GL_PIX_NO_AR) pixCobLoad(); }catch(e){} }
     if(btn.dataset.page==="central"){ try{ clCloudLoad(); }catch(e){} }
     if(btn.dataset.page==="fornecedores"){ try{ frnCloudLoad(); }catch(e){} }
     if(btn.dataset.page==="jornada"){ try{ jorCloudLoad(); jorRealtime(); renderJornada(); }catch(e){} }
