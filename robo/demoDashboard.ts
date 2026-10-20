@@ -11808,7 +11808,10 @@ function despRender(){
 }
 // Chave da parcela do MÊS ATUAL (pra marcar pago). Usa o mesmo calendário dos pontos.
 function glKeyMesAtual(g){ var ym=pxAnoMesAtual(); var ag=pxAgenda(g); for(var i=0;i<ag.length;i++){ var k=pxDateKey(ag[i]); if(k.indexOf(ym)===0) return k; } return ag.length?pxDateKey(ag[ag.length-1]):""; }
-function glLimparForm(){ ["glNum","glCnpj","glRazao","glLoc","glVend","glRg","glTel","glEmail","glEnd","glEndInq","glValor","glDiaPag","glAbertura","glSaida","glObs"].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=""; }); var al=document.getElementById("glAluguel"); if(al) al.value="1"; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; var t=document.getElementById("glFormTitulo"); if(t) t.textContent="Adicionar galpão"; var s=document.getElementById("glSalvar"); if(s){ s.textContent="Adicionar"; delete s.dataset.edit; } var c=document.getElementById("glCancelar"); if(c) c.style.display="none"; var sc=document.getElementById("glSaidaCampo"); if(sc) sc.style.display="none"; try{ glSetDocTipo("cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} try{ glSincEndereco(); }catch(e){} }
+/* ==GLALUGUEL== o aluguel como estava quando o "editar" abriu: se o master mudar o aluguel em outro
+   computador enquanto o formulário está aberto, salvar sem mexer no aluguel NÃO é pedido de mudança. */
+var glEditOrig=null;
+function glLimparForm(){ glEditOrig=null; ["glNum","glCnpj","glRazao","glLoc","glVend","glRg","glTel","glEmail","glEnd","glEndInq","glValor","glDiaPag","glAbertura","glSaida","glObs"].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=""; }); var al=document.getElementById("glAluguel"); if(al) al.value="1"; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; var t=document.getElementById("glFormTitulo"); if(t) t.textContent="Adicionar galpão"; var s=document.getElementById("glSalvar"); if(s){ s.textContent="Adicionar"; delete s.dataset.edit; } var c=document.getElementById("glCancelar"); if(c) c.style.display="none"; var sc=document.getElementById("glSaidaCampo"); if(sc) sc.style.display="none"; try{ glSetDocTipo("cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} try{ glSincEndereco(); }catch(e){} }
 // Busca de CNPJ do locatário (reaproveita os normalizadores dos pontos).
 function glPreencherCnpj(d,msg){
   var fantasia=d.nome_fantasia||"", razao=d.razao_social||"", nome=fantasia||razao;
@@ -12013,17 +12016,28 @@ function pltDetalhe(){
     var gAlvo=pltGalpaoDe(pltSel), cod=String(pltSel||"");
     nav.click();
     var b=document.getElementById("glBusca");
+    // filtro de status/inquilino escolhido na lista podia esconder o galpão (= "não aparece nenhum")
+    ["glFiltroStatus","glFiltroVenc"].forEach(function(fid){ var f=document.getElementById(fid); if(f) f.value=""; });
     if(gAlvo){
       if(b){ b.value=String(gAlvo.numero||""); }
       renderGalpoes(); glReabrir(gAlvo.id);
       var lin=document.querySelector('#glTabela [data-glexp="'+gAlvo.id+'"]'); if(lin){ try{ lin.scrollIntoView({behavior:"smooth",block:"center"}); }catch(e){} }
     } else {
       if(b){ b.value=""; }
-      glLimparForm(); renderGalpoes();
-      var num=document.getElementById("glNum"); if(num){ num.value=cod.replace(/\\s+/g,""); }
-      try{ glSincEndereco(); }catch(e){}
-      var cn=document.getElementById("glCnpj"); if(cn){ try{ cn.focus({preventScroll:true}); }catch(e){} }
-      var card=document.getElementById("glFormCard"); if(card){ try{ card.scrollIntoView({behavior:"smooth",block:"center"}); }catch(e){} }
+      renderGalpoes();
+      var abreNovo=function(){
+        glLimparForm(); renderGalpoes();
+        var num=document.getElementById("glNum"); if(num){ num.value=cod.replace(/\\s+/g,""); }
+        try{ glSincEndereco(); }catch(e){}
+        var cn=document.getElementById("glCnpj"); if(cn){ try{ cn.focus({preventScroll:true}); }catch(e){} }
+        var card=document.getElementById("glFormCard"); if(card){ try{ card.scrollIntoView({behavior:"smooth",block:"center"}); }catch(e){} }
+      };
+      // um cadastro pela metade no formulário não some calado
+      var sv=document.getElementById("glSalvar");
+      var pelaMetade=(sv&&sv.dataset.edit) || ["glCnpj","glLoc","glRg","glTel","glEmail","glEndInq","glObs"].some(function(id){ var el=document.getElementById(id); return el && String(el.value||"").trim()!==""; });
+      if(pelaMetade){
+        uiConfirm({titulo:"Formulário pela metade",msg:"Já tem um cadastro sendo preenchido no formulário. Descartar e começar o galpão nº "+cod.replace(/\\s+/g,"")+"?",ok:"Descartar e começar",cancel:"Voltar"}).then(function(sim){ if(sim) abreNovo(); else { var card=document.getElementById("glFormCard"); if(card){ try{ card.scrollIntoView({behavior:"smooth",block:"center"}); }catch(e){} } } });
+      } else abreNovo();
     }
   };
 }
@@ -18067,8 +18081,17 @@ function glAluguelTxt(alu,val){
 }
 /* ==GLALUGUEL== funcionário mudando o aluguel: pede a senha do master e manda para o banco, que
    confere de novo e grava (em salário mínimo, o valor é calculado lá, pelo salário guardado na nuvem). */
+function glAluguelErroMsg(e){
+  return e==="senha_incorreta" ? "Senha do master incorreta."
+    : e==="bloqueado" ? "Muitas tentativas erradas. Espere 15 minutos e tente de novo."
+    : e==="sem_permissao" ? "Seu login não tem a página Galpões."
+    : e==="valor_invalido" ? "O valor do aluguel não pode ser zero."
+    : e==="ja_existe" ? "Este galpão já está cadastrado. Recarregue a página e confira a lista."
+    : ("O banco recusou ("+e+").");
+}
 function glMudarAluguelComSenha(id,alu,val){
   var g=galpoesG.find(function(x){ return x.id===id; }); if(!g) return;
+  var assinava=false; try{ assinava=glAssinValida(g); }catch(eA){}   // só o contrato ASSINADO perde a assinatura
   var sb=glSB();
   if(!sb){ uiConfirm({titulo:"Precisa estar conectado",msg:"Mudar o aluguel confere a senha do master no banco. Entre no painel e tente de novo. O resto do cadastro foi salvo.",ok:"Entendi",cancel:""}); return; }
   autorizarMaster("Mudar o aluguel do galpão nº "+(g.numero||"")+" de "+glAluguelTxt(g.aluguel,g.valor)+" para "+glAluguelTxt(alu,val)+". Digite a senha do master.",false,true).then(function(senha){
@@ -18082,20 +18105,37 @@ function glMudarAluguelComSenha(id,alu,val){
       }
       var d2=r&&r.data;
       if(!d2 || !d2.ok){
-        var e=String((d2&&d2.erro)||"");
-        var msg = e==="senha_incorreta" ? "Senha do master incorreta."
-          : e==="bloqueado" ? "Muitas tentativas erradas. Espere 15 minutos e tente de novo."
-          : e==="sem_permissao" ? "Seu login não tem a página Galpões."
-          : e==="valor_invalido" ? "O valor do aluguel não pode ser zero."
-          : ("O banco recusou ("+e+").");
+        var msg=glAluguelErroMsg(String((d2&&d2.erro)||""));
         uiConfirm({titulo:"O aluguel não mudou",msg:msg+"\\n\\nO aluguel continua "+glAluguelTxt(gAt.aluguel,gAt.valor)+". O resto do cadastro foi salvo.",ok:"Entendi",cancel:""});
         return;
       }
       gAt.aluguel=String(d2.aluguel); gAt.valor=+d2.valor;
       try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e2){}
       renderGalpoes(); glReabrir(id);
-      uiConfirm({titulo:"Aluguel alterado",msg:"O aluguel do galpão nº "+(gAt.numero||"")+" agora é "+glAluguelTxt(gAt.aluguel,gAt.valor)+".\\n\\nO contrato mudou: a assinatura dele cai, e a cobrança só volta depois de assinar de novo e anexar o contrato novo.",ok:"OK",cancel:""});
+      uiConfirm({titulo:"Aluguel alterado",msg:"O aluguel do galpão nº "+(gAt.numero||"")+" agora é "+glAluguelTxt(gAt.aluguel,gAt.valor)+"."+(assinava?"\\n\\nO contrato mudou: a assinatura dele cai, e a cobrança só volta depois de assinar de novo e anexar o contrato novo.":""),ok:"OK",cancel:""});
     },function(){ uiConfirm({titulo:"Sem conexão",msg:"Não consegui falar com o banco agora. O aluguel continua como estava; o resto do cadastro foi salvo.",ok:"Entendi",cancel:""}); });
+  });
+}
+/* ==GLALUGUEL== galpão NOVO cadastrado por quem não é master: quem grava é o banco
+   (galpao_cadastrar_com_senha), depois de conferir a senha do master. Pela tabela, o banco ignora
+   galpão novo de funcionário (nem por fora da tela ele entra sem a senha). */
+function glCadastrarComSenha(d){
+  var sb=glSB();
+  if(!sb){ uiConfirm({titulo:"Precisa estar conectado",msg:"Cadastrar um galpão confere a senha do master no banco. Entre no painel e tente de novo.",ok:"Entendi",cancel:""}); return; }
+  autorizarMaster("Cadastrar o galpão nº "+(d.numero||"?")+" com aluguel de "+glAluguelTxt(d.aluguel,d.valor)+". Digite a senha do master.",false,true).then(function(senha){
+    if(!senha) return;   // desistiu: nada é cadastrado e o formulário continua preenchido
+    var g=Object.assign({id:"g"+Date.now().toString(36)+Math.round(Math.random()*1e5).toString(36),manuais:{}},d);
+    sb.rpc("galpao_cadastrar_com_senha",{p_galpao:glRowFromG(g),p_senha:(senha===true?null:String(senha))}).then(function(r){
+      if(r&&r.error){
+        var m=String(r.error.message||"");
+        uiConfirm({titulo:"O galpão não foi cadastrado",msg:(/galpao_cadastrar_com_senha|function|schema/i.test(m)?"Falta instalar no banco a proteção do aluguel (sql/galpoes_aluguel_senha.sql).":"Não consegui falar com o banco agora. Tente de novo."),ok:"Entendi",cancel:""});
+        return;
+      }
+      var d2=r&&r.data;
+      if(!d2 || !d2.ok){ uiConfirm({titulo:"O galpão não foi cadastrado",msg:glAluguelErroMsg(String((d2&&d2.erro)||"")),ok:"Entendi",cancel:""}); return; }
+      g.aluguel=String(d2.aluguel); g.valor=+d2.valor;   // o valor que o banco gravou (salário da nuvem)
+      galpoesG.push(g); glSave(); glLimparForm(); renderGalpoes();
+    },function(){ uiConfirm({titulo:"Sem conexão",msg:"Não consegui falar com o banco agora. O galpão não foi cadastrado; tente de novo.",ok:"Entendi",cancel:""}); });
   });
 }
 function glSincValorForm(){
@@ -18884,20 +18924,20 @@ function renderGalpoes(){
       var gAnt=editId?galpoesG.find(function(x){ return x.id===editId; }):null;
       if(gAnt){
         var aluAnt=String(gAnt.aluguel||"1");
-        var aluMudou=String(d.aluguel)!==aluAnt;
-        var valMudou=(d.aluguel==="fixo") && glValor2(d.valor)!==glValor2(gAnt.valor);   // em salário mínimo o valor é calculado: não conta
+        // "mudou" = diferente do que estava quando o formulário ABRIU (e não do que está agora:
+        // o master pode ter mudado o aluguel em outro computador nesse meio-tempo)
+        var orig=glEditOrig||{aluguel:aluAnt,valor:gAnt.valor};
+        var aluMudou=String(d.aluguel)!==orig.aluguel;
+        var valMudou=(d.aluguel==="fixo") && glValor2(d.valor)!==glValor2(orig.valor);   // em salário mínimo o valor é calculado: não conta
         var novoAlu=d.aluguel, novoVal=d.valor;
+        var jaEstaAssim=String(novoAlu)===aluAnt && (novoAlu!=="fixo" || glValor2(novoVal)===glValor2(gAnt.valor));
         d.aluguel=aluAnt; d.valor=gAnt.valor;   // grava o resto; o aluguel espera a senha
         Object.assign(gAnt,d); glSave(); glLimparForm(); renderGalpoes();
-        if(aluMudou||valMudou) glMudarAluguelComSenha(gAnt.id,novoAlu,novoVal);
+        if((aluMudou||valMudou) && !jaEstaAssim) glMudarAluguelComSenha(gAnt.id,novoAlu,novoVal);
         return;
       }
-      // galpão NOVO cadastrado por funcionário: definir o aluguel também precisa da senha do master
-      autorizarMaster("Cadastrar o galpão nº "+(d.numero||"?")+" com aluguel de "+glAluguelTxt(d.aluguel,d.valor)+". Digite a senha do master.",false).then(function(okM){
-        if(!okM) return;
-        galpoesG.push(Object.assign({id:"g"+Date.now().toString(36)+Math.round(Math.random()*1e5).toString(36),manuais:{}},d));
-        glSave(); glLimparForm(); renderGalpoes();
-      });
+      // galpão NOVO cadastrado por funcionário: o banco confere a senha do master e grava
+      glCadastrarComSenha(d);
       return;
     }
     if(editId){ var g=galpoesG.find(function(x){ return x.id===editId; }); if(g){ Object.assign(g,d); } }
@@ -19031,7 +19071,7 @@ function renderGalpoes(){
     var compRemG=e.target.closest("[data-glcomprem]");
     if(compRemG){ var prm=compRemG.dataset.glcomprem.split("|"); var grm=galpoesG.find(function(x){ return x.id===prm[0]; }); if(grm){ uiConfirm({titulo:"Remover comprovante",msg:"Apagar o comprovante desta mensalidade? Sem ele, a mensalidade volta a ficar em aberto.",ok:"Remover",cancel:"Cancelar"}).then(function(sim){ if(!sim) return; var gAt=galpoesG.find(function(x){ return x.id===prm[0]; }); if(!gAt) return; if(gAt.comprovantes) delete gAt.comprovantes[prm[1]]; if(gAt.manuais) delete gAt.manuais[prm[1]]; glSave(); renderGalpoes(); glReabrir(gAt.id); }); } return; }
     var ed=e.target.closest("[data-gledit]");
-    if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNum").value=g2.numero||""; document.getElementById("glCnpj").value=g2.cnpj||""; document.getElementById("glRazao").value=g2.razaoSocial||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glVend").value=g2.vendedor||""; document.getElementById("glRg").value=g2.rg||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; try{ glSincEndereco(); }catch(e){} document.getElementById("glEndInq").value=g2.enderecoInq||""; document.getElementById("glAluguel").value=g2.aluguel||"1"; document.getElementById("glValor").value=g2.valor||"";  document.getElementById("glDiaPag").value=g2.diaPag||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glSaida").value=g2.saida||""; var _scE=document.getElementById("glSaidaCampo"); if(_scE) _scE.style.display="";   /* a saída só aparece no EDITAR (galpão novo não tem saída) */ document.getElementById("glObs").value=g2.obs||""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; try{ glSetDocTipo(((g2.cnpj||"").replace(/\\D/g,"").length===11)?"cpf":"cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
+    if(ed){ var g2=galpoesG.find(function(x){ return x.id===ed.dataset.gledit; }); if(g2){ document.getElementById("glNum").value=g2.numero||""; document.getElementById("glCnpj").value=g2.cnpj||""; document.getElementById("glRazao").value=g2.razaoSocial||""; document.getElementById("glLoc").value=g2.locatario||""; document.getElementById("glVend").value=g2.vendedor||""; document.getElementById("glRg").value=g2.rg||""; document.getElementById("glTel").value=g2.contato||""; document.getElementById("glEmail").value=g2.email||""; try{ glSincEndereco(); }catch(e){} document.getElementById("glEndInq").value=g2.enderecoInq||""; document.getElementById("glAluguel").value=g2.aluguel||"1"; document.getElementById("glValor").value=g2.valor||"";  document.getElementById("glDiaPag").value=g2.diaPag||""; document.getElementById("glAbertura").value=g2.abertura||""; document.getElementById("glSaida").value=g2.saida||""; var _scE=document.getElementById("glSaidaCampo"); if(_scE) _scE.style.display="";   /* a saída só aparece no EDITAR (galpão novo não tem saída) */ document.getElementById("glObs").value=g2.obs||""; var cm=document.getElementById("glCnpjMsg"); if(cm) cm.textContent=""; try{ glSetDocTipo(((g2.cnpj||"").replace(/\\D/g,"").length===11)?"cpf":"cnpj"); }catch(e){} try{ glSincValorForm(); }catch(e){} var s=document.getElementById("glSalvar"); s.textContent="Salvar alterações"; s.dataset.edit=g2.id; glEditOrig={aluguel:String(g2.aluguel||"1"),valor:+g2.valor||0}; document.getElementById("glFormTitulo").textContent="Editar galpão"; document.getElementById("glCancelar").style.display=""; var card=document.getElementById("glFormCard"); if(card) card.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
     var rem=e.target.closest("[data-glrem]");
     if(rem){ var id=rem.dataset.glrem; var g3=galpoesG.find(function(x){ return x.id===id; });
       var _nomeG=g3?("o galpão nº "+(g3.numero||"?")+((g3.vendedor||g3.locatario)?(" — "+(g3.vendedor||g3.locatario)):"")):"este galpão";
