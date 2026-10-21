@@ -20803,7 +20803,9 @@ function pixCanvasToPdfBlob(cv){
   for(let i=0;i<bin.length;i++) jpg[i]=bin.charCodeAt(i);
   // ==FICHAA4== página A4 de verdade (595,28 x 841,89 pt) com a ficha encaixada dentro, sem cortar:
   // ocupa a largura toda (menos a margem) e, se for alta demais, encolhe até caber na altura.
-  const pageW=595.28, pageH=841.89, mg=18;
+  // Margem de 15 mm (42 pt): com 6 mm a impressora dele comia o rodapé (toda impressora tem uma
+  // faixa da borda onde não imprime, e em muitas a de baixo passa de 12 mm).
+  const pageW=595.28, pageH=841.89, mg=42;
   const esc=Math.min((pageW-2*mg)/iw,(pageH-2*mg)/ih);
   const dw=iw*esc, dh=ih*esc, dx=(pageW-dw)/2, dy=pageH-mg-dh;   // centralizada, encostada no alto
   const enc=function(s){ const a=new Uint8Array(s.length); for(let j=0;j<s.length;j++) a[j]=s.charCodeAt(j)&0xff; return a; };
