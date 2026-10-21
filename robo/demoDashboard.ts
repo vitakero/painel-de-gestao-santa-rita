@@ -374,20 +374,20 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .tag { display:inline-flex; align-items:center; gap:6px; background:#ffffff22; border:1px solid #ffffff55; padding:3px 11px; border-radius:20px; font-size:11px; font-weight:600; letter-spacing:.3px; vertical-align:middle; }
   .tag .dot { width:7px; height:7px; border-radius:50%; background:#5df08a; animation:pulseDot 1.8s infinite; }
   @keyframes pulseDot { 0%{box-shadow:0 0 0 0 rgba(93,240,138,.6);} 70%{box-shadow:0 0 0 7px rgba(93,240,138,0);} 100%{box-shadow:0 0 0 0 rgba(93,240,138,0);} }
-  .gl-salbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:#fff;border:1px solid #e4e9f0;border-radius:12px;padding:12px 18px;margin-bottom:14px;}
+  .gl-salbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:#fff;border:1px solid #e4e9f0;border-radius:12px;padding:12px 18px;margin-bottom:0;}
   .gl-salbar-l{display:flex;align-items:baseline;gap:9px;}
   .gl-salbar-lbl{font-size:11.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#6b7787;}
   .gl-salbar-v{font-size:17px;font-weight:700;color:#0f172a;}
   .gl-salbar-desde{font-size:12px;color:#6b7787;}
   .gl-salbar-r{display:flex;align-items:center;gap:14px;margin-left:auto;flex-wrap:wrap;}
   .gl-salbar-eq{font-size:12.5px;color:#56606d;}
-  .gl-salavis{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#fff8ec;border:1px solid #f2dcb3;border-radius:12px;padding:14px 18px;margin-bottom:14px;}
+  .gl-salavis{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#fff8ec;border:1px solid #f2dcb3;border-radius:12px;padding:14px 18px;margin-bottom:0;}
   .gl-salavis-ic{flex:0 0 30px;height:30px;display:flex;align-items:center;justify-content:center;background:#f6e3bf;border-radius:8px;font-size:15px;font-weight:700;color:#8a5a12;}
   .gl-salavis-tx{flex:1;min-width:240px;display:flex;flex-direction:column;gap:3px;}
   .gl-salavis-tx b{font-size:13.5px;color:#0f172a;}
   .gl-salavis-tx span{font-size:12.5px;color:#56606d;line-height:1.45;}
   .gl-salavis-bt{display:flex;gap:8px;flex-wrap:wrap;}
-  .gl-salfut{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#eef4fd;border:1px solid #cbdcf3;border-radius:12px;padding:14px 18px;margin-bottom:14px;}
+  .gl-salfut{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#eef4fd;border:1px solid #cbdcf3;border-radius:12px;padding:14px 18px;margin-bottom:0;}
   .gl-salfut-ic{flex:0 0 30px;height:30px;display:flex;align-items:center;justify-content:center;background:#d9e6fa;border-radius:8px;font-size:15px;}
   .gl-salfut-tx{flex:1;min-width:240px;display:flex;flex-direction:column;gap:3px;}
   .gl-salfut-tx b{font-size:13.5px;color:#0f172a;}
@@ -466,6 +466,7 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
      ficam VAZIOS quando não há nada a mostrar, mas na grade cada um ainda somava 22px de vão. Vazio some;
      quando tiver aviso ou atraso, ele volta sozinho. */
   #page-galpoes > div:empty { display:none; }
+  /* e as faixas do salário (.gl-salbar/.gl-salavis/.gl-salfut) não têm margem própria: quem dá o vão é a grade */
   .page.ativo > * { min-width:0; }
   .em-breve { background:#fff; border-radius:12px; padding:60px 40px; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,.07); }
   .em-breve .big { font-size:46px; }
