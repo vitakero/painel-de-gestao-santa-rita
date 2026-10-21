@@ -462,6 +462,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 
   .page { display:none; }
   .page.ativo { display:grid; grid-template-columns:minmax(0,1fr); gap:22px; }
+  /* Galpões (21/10, ele: "esse espaço está muito grande"): os quadros de aviso do salário e de atraso
+     ficam VAZIOS quando não há nada a mostrar, mas na grade cada um ainda somava 22px de vão. Vazio some;
+     quando tiver aviso ou atraso, ele volta sozinho. */
+  #page-galpoes > div:empty { display:none; }
   .page.ativo > * { min-width:0; }
   .em-breve { background:#fff; border-radius:12px; padding:60px 40px; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,.07); }
   .em-breve .big { font-size:46px; }
