@@ -24,12 +24,13 @@ for (const [nome, w, h] of [["boleto de hoje (760 x 1199)", 1520, 2398], ["bolet
   const paginas = (t.match(/\/Type \/Page\b/g) || []).length;
   const cm = (t.match(/q\n([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm/) || []).slice(1).map(Number);
   const [dw, dh, dx, dy] = cm;
-  // 15 mm de folga em volta (42 pt): a faixa da borda que a impressora não imprime (com 6 mm, cortou o rodapé dele)
-  const MG = 42;
-  const dentro = cm.length === 4 && dx >= MG - 0.01 && dy >= MG - 0.01 && dx + dw <= A4[0] - MG + 0.01 && dy + dh <= A4[1] - MG + 0.01;
+  // folga da faixa que a impressora não imprime: 5 mm em cima, 18 mm EMBAIXO (a maior; com 6 mm cortou
+  // o rodapé dele), 7 mm nos lados. No PDF o y conta de baixo pra cima: dy é a folga de baixo.
+  const TOPO = 14, BASE = 50, LADO = 20;
+  const dentro = cm.length === 4 && dx >= LADO - 0.01 && dy >= BASE - 0.01 && dx + dw <= A4[0] - LADO + 0.01 && dy + dh <= A4[1] - TOPO + 0.01;
   const semDeformar = cm.length === 4 && Math.abs(dw / dh - w / h) < 0.005;
   vale(nome + ": página A4 e uma só", mb[0] === A4[0] && mb[1] === A4[1] && paginas === 1, "página " + mb.join(" x ") + " · " + paginas + " pág.");
-  vale(nome + ": a ficha inteira dentro da folha, com 15 mm de folga, sem deformar", dentro && semDeformar, cm.length === 4 ? ("ocupa " + dw.toFixed(0) + " x " + dh.toFixed(0) + " em (" + dx.toFixed(0) + ", " + dy.toFixed(0) + ")") : "sem matriz");
+  vale(nome + ": a ficha inteira dentro da folha (5 mm em cima, 18 mm embaixo), sem deformar", dentro && semDeformar, cm.length === 4 ? ("ocupa " + dw.toFixed(0) + " x " + dh.toFixed(0) + " em (" + dx.toFixed(0) + ", " + dy.toFixed(0) + ")") : "sem matriz");
 }
 console.log("\n  " + ok + " ok, " + falhou + " falha(s).\n");
 process.exit(falhou ? 1 : 0);

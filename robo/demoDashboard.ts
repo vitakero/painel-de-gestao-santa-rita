@@ -17999,6 +17999,9 @@ function glAgendaHtml(g){
   var icoClip='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>';
   var icoBarras='<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px;margin-right:5px;"><rect x="2" y="4" width="2.4" height="16" rx="0.6"></rect><rect x="6" y="4" width="1.4" height="16" rx="0.6"></rect><rect x="9" y="4" width="3" height="16" rx="0.6"></rect><rect x="13.6" y="4" width="1.4" height="16" rx="0.6"></rect><rect x="16.5" y="4" width="1.1" height="16" rx="0.55"></rect><rect x="19.2" y="4" width="2.8" height="16" rx="0.6"></rect></svg>';
   var icoQr='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><line x1="14" y1="14.5" x2="14" y2="18"></line><line x1="17.5" y1="14" x2="17.5" y2="17.5"></line><line x1="21" y1="17.5" x2="21" y2="21"></line><line x1="14" y1="21" x2="17.5" y2="21"></line></svg>';
+  // os mesmos ícones dos pontos extras (pedido dele, 20/10: "o símbolo de carregando como esse do relógio")
+  var icoRelogio='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px;"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7.5 12 12 15 13.5"></polyline></svg>';
+  var icoAlerta='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
   var linhas=ag.map(function(d,i){
     var passou = d<hoje ? ' style="color:#9aa6b2;"' : '';
     var key=pxDateKey(d), ref=g.id+"|"+key;
@@ -18013,19 +18016,19 @@ function glAgendaHtml(g){
       cobCell='<span class="px-quitado" title="Pago e conferido no Sicredi'+(cob.pago_em?(' em '+pxEsc(pxFmtData(String(cob.pago_em).slice(0,10)))):'')+'">'+icoOk+((tl==="COMPE"||tl==="REDE")?'Pago via boleto':'Pago via Pix')+'</span>';
     } else if(quit){
       cobCell='<span class="px-quitado" title="Mensalidade recebida">'+icoOk+'Pago</span> <button type="button" class="px-rec" data-gldesfazer="'+ref+'" title="Desfazer pagamento">✕</button>'
-        +((cob && cob.status==="gerado")?' <span class="px-aguard" title="Esta mensalidade foi marcada como paga por fora, mas o boleto continua valendo no banco: cancele para o inquilino não pagar duas vezes.">⚠ boleto ainda vivo</span> <button type="button" class="px-rec" data-glpixcancel="'+ref+'" title="Cancelar o boleto no banco">✕ boleto</button>':'');
+        +((cob && cob.status==="gerado")?' <span class="px-aguard" title="Esta mensalidade foi marcada como paga por fora, mas o boleto continua valendo no banco: cancele para o inquilino não pagar duas vezes.">'+icoAlerta+'boleto ainda vivo</span> <button type="button" class="px-rec" data-glpixcancel="'+ref+'" title="Cancelar o boleto no banco">✕ boleto</button>':'');
     } else if(cob && (cob.status==="pedido"||cob.status==="gerando")){
       var idadeH=Math.floor((Date.now()-new Date(cob.criado_em||Date.now()).getTime())/3600000);
       cobCell = idadeH>=1
-        ? '<span class="px-aguard" title="O pedido está esperando há mais de 1 hora. O computador da loja parece estar desligado: ligue-o para a cobrança sair.">⏳ Aguardando há '+idadeH+'h</span>'
-        : '<span class="px-aguard" title="A cobrança está sendo registrada no Sicredi. Fica pronta em instantes.">⏳ '+(ehBoleto?'Gerando boleto…':'Gerando QR Code…')+'</span>';
+        ? '<span class="px-aguard" title="O pedido está esperando há mais de 1 hora. O computador da loja parece estar desligado: ligue-o para a cobrança sair.">'+icoRelogio+'Aguardando há '+idadeH+'h</span>'
+        : '<span class="px-aguard" title="A cobrança está sendo registrada no Sicredi. Fica pronta em instantes.">'+icoRelogio+(ehBoleto?'Gerando boleto…':'Gerando QR Code…')+'</span>';
     } else if(cob && cob.status==="cancelar"){
-      cobCell='<span class="px-aguard" title="O Sicredi leva de 1 a 3 minutos para liberar o cancelamento. Pode fechar a tela.">⏳ Cancelando…</span>';
+      cobCell='<span class="px-aguard" title="O Sicredi leva de 1 a 3 minutos para liberar o cancelamento. Pode fechar a tela.">'+icoRelogio+'Cancelando…</span>';
     } else if(cob && cob.status==="gerado"){
       cobCell='<button type="button" class="px-pix-btn" data-glpixver="'+ref+'" title="Cobrança registrada no Sicredi">'+(ehBoleto?icoBarras:icoQr)+(ehBoleto?'Ver boleto':'Ver QR Code')+'</button> <button type="button" class="px-rec" data-glpixcancel="'+ref+'" title="Cancelar esta cobrança no banco">✕</button>'
-        +(cob.erro_msg?' <span class="px-aguard" title="'+pxEsc(cob.erro_msg)+'">⚠ conferir</span>':'');
+        +(cob.erro_msg?' <span class="px-aguard" title="'+pxEsc(cob.erro_msg)+'">'+icoAlerta+'conferir</span>':'');
     } else if(cob && cob.status==="erro"){
-      cobCell='<span class="px-aguard" title="'+pxEsc(String(cob.erro_msg||"O banco recusou a cobrança").slice(0,300))+'">⚠ Erro no banco</span> <button type="button" class="px-aut" data-glpixretry="'+ref+'" title="Corrija o cadastro, se for o caso, e peça de novo">Tentar de novo</button>';
+      cobCell='<span class="px-aguard" title="'+pxEsc(String(cob.erro_msg||"O banco recusou a cobrança").slice(0,300))+'">'+icoAlerta+'Erro no banco</span> <button type="button" class="px-aut" data-glpixretry="'+ref+'" title="Corrija o cadastro, se for o caso, e peça de novo">Tentar de novo</button>';
     } else {
       // com a cobrança automática não existe "marcar pago" na mão (decisão dele, 20/10): quem dá baixa é o banco
       cobCell='<button type="button" class="px-pix-btn" data-glcob="'+ref+'"'+(ctOk?'':' title="Anexe primeiro o contrato assinado"')+'>'+(GL_PIX_NO_AR?'':(ehBoleto?icoBarras:icoQr))+(ehBoleto?'Gerar boleto':'Gerar Pix')+'</button>';
@@ -18048,7 +18051,7 @@ function glAgendaHtml(g){
       var reff=g.id+"|"+cf.parcela_key, pk=String(cf.parcela_key).split("-");
       var cel = cf.status==="pago" ? '<span class="px-quitado" title="Pago e conferido no Sicredi">'+'✓ Pago no banco</span>'
         : cf.status==="gerado" ? '<button type="button" class="px-pix-btn" data-glpixver="'+reff+'">'+(ehBoleto?'Ver boleto':'Ver QR Code')+'</button> <button type="button" class="px-rec" data-glpixcancel="'+reff+'" title="Cancelar esta cobrança no banco">✕</button>'
-        : '<span class="px-aguard">⏳ '+pxEsc(cf.status)+'</span>';
+        : '<span class="px-aguard">'+icoRelogio+pxEsc(cf.status)+'</span>';
       linhas+='<tr style="background:#fffbeb;"><td>—</td><td><span title="Esta data não está mais no calendário (mudou o dia de pagamento, a abertura ou a saída)">'+pxEsc(pk.length===3?(pk[2]+"/"+pk[1]+"/"+pk[0]):cf.parcela_key)+' <small style="color:#b45309;">fora do calendário</small></span></td><td>'+brl(+cf.valor||0)+'</td><td class="px-pix-cell">'+cel+'</td><td class="px-comp-cell"><span style="color:#c3ccd6;">—</span></td></tr>';
     });
   }
@@ -20650,7 +20653,7 @@ function pixBaixarFicha(o,qrDataUrl){
     x.fillStyle=VERDE; x.fillRect(0,0,W,4);
     x.textBaseline="alphabetic"; x.textAlign="left";
     // ===== CABEÇALHO INSTITUCIONAL =====
-    let cy=38;
+    let cy=32;
     let tx=L;
     if(logoImg && !pf){ try{ const bw=76,bh=76,bx=L,by=cy-6; const iw=logoImg.naturalWidth||bw,ih=logoImg.naturalHeight||bh; const sc=Math.min(bw/iw,bh/ih),dw=iw*sc,dh=ih*sc; x.drawImage(logoImg,bx+(bw-dw)/2,by+(bh-dh)/2,dw,dh); tx=L+bw+20; }catch(e){} }
     x.fillStyle=INK; x.font="700 23px "+F; x.fillText(pf?benef:"Supermercado Santa Rita",tx,cy+24);
@@ -20803,11 +20806,12 @@ function pixCanvasToPdfBlob(cv){
   for(let i=0;i<bin.length;i++) jpg[i]=bin.charCodeAt(i);
   // ==FICHAA4== página A4 de verdade (595,28 x 841,89 pt) com a ficha encaixada dentro, sem cortar:
   // ocupa a largura toda (menos a margem) e, se for alta demais, encolhe até caber na altura.
-  // Margem de 15 mm (42 pt): com 6 mm a impressora dele comia o rodapé (toda impressora tem uma
-  // faixa da borda onde não imprime, e em muitas a de baixo passa de 12 mm).
-  const pageW=595.28, pageH=841.89, mg=42;
-  const esc=Math.min((pageW-2*mg)/iw,(pageH-2*mg)/ih);
-  const dw=iw*esc, dh=ih*esc, dx=(pageW-dw)/2, dy=pageH-mg-dh;   // centralizada, encostada no alto
+  // Margens diferentes em cima e embaixo: toda impressora tem uma faixa da borda onde não imprime, e
+  // a de BAIXO é a maior (em muitas passa de 12 mm). Com 6 mm a impressora dele comeu o rodapé; com
+  // 15 mm em volta sobrou espaço em cima. Agora: 5 mm em cima, 18 mm embaixo, 7 mm nos lados.
+  const pageW=595.28, pageH=841.89, mgTopo=14, mgBase=50, mgLado=20;
+  const esc=Math.min((pageW-2*mgLado)/iw,(pageH-mgTopo-mgBase)/ih);
+  const dw=iw*esc, dh=ih*esc, dx=(pageW-dw)/2, dy=pageH-mgTopo-dh;   // centralizada, encostada no alto
   const enc=function(s){ const a=new Uint8Array(s.length); for(let j=0;j<s.length;j++) a[j]=s.charCodeAt(j)&0xff; return a; };
   const parts=[]; let offset=0; const offsets=[];
   const push=function(u){ parts.push(u); offset+=u.length; };
