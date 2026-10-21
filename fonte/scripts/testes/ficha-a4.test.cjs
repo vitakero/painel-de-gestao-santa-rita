@@ -18,7 +18,7 @@ class BlobFalso { constructor(partes) { ultimo = Buffer.concat(partes.map(p => B
 const pixCanvasToPdfBlob = new Function("atob", "Blob", fonte + "\nreturn pixCanvasToPdfBlob;")(s => Buffer.from(s, "base64").toString("binary"), BlobFalso);
 const canvas = (w, h) => ({ width: w, height: h, toDataURL: () => "data:image/jpeg;base64," + Buffer.from("JPEGFALSO").toString("base64") });
 const A4 = [595.28, 841.89], MM = 2.8346;
-for (const [nome, w, h] of [["boleto de hoje (760 x 1048)", 1520, 2096], ["boleto da 1ª versão (760 x 1199)", 1520, 2398], ["boleto antigo, alto (760 x 1527)", 1520, 3054], ["só Pix (760 x 896)", 1520, 1792], ["ficha baixinha (760 x 500)", 1520, 1000], ["ficha altíssima (760 x 3000)", 1520, 6000]]) {
+for (const [nome, w, h] of [["boleto de hoje (760 x 1090)", 1520, 2180], ["boleto da versão anterior (760 x 1048)", 1520, 2096], ["boleto da 1ª versão (760 x 1199)", 1520, 2398], ["boleto antigo, alto (760 x 1527)", 1520, 3054], ["só Pix (760 x 896)", 1520, 1792], ["ficha baixinha (760 x 500)", 1520, 1000], ["ficha altíssima (760 x 3000)", 1520, 6000]]) {
   pixCanvasToPdfBlob(canvas(w, h));
   const t = ultimo.toString("latin1");
   const mb = (t.match(/\/MediaBox \[0 0 ([\d.]+) ([\d.]+)\]/) || []).slice(1).map(Number);
@@ -29,7 +29,9 @@ for (const [nome, w, h] of [["boleto de hoje (760 x 1048)", 1520, 2096], ["bolet
   vale(nome + ": folha A4 exata, uma página só", mb[0] === A4[0] && mb[1] === A4[1] && paginas === 1, "página " + mb.join(" x ") + " · " + paginas + " pág.");
   vale(nome + ": no meio (mesma margem dos lados e mesma em cima e embaixo)", cm.length === 4 && Math.abs(esq - dir) < 0.05 && Math.abs(topo - base) < 0.05,
     cm.length === 4 ? ("lados " + (esq / MM).toFixed(1) + " / " + (dir / MM).toFixed(1) + " mm · cima/baixo " + (topo / MM).toFixed(1) + " / " + (base / MM).toFixed(1) + " mm") : "sem matriz");
-  vale(nome + ": acima da faixa que a impressora não imprime (≥ 7 mm dos lados, ≥ 12,7 mm em cima e embaixo)", cm.length === 4 && esq >= 7 * MM && topo >= 12.7 * MM - 0.01 && base >= 12.7 * MM - 0.01, "ok");
+  vale(nome + ": com margem (≥ 7 mm dos lados, ≥ 9,5 mm em cima e embaixo)", cm.length === 4 && esq >= 7 * MM && topo >= 9.5 * MM && base >= 9.5 * MM, "ok");
+  // a ficha de verdade de hoje tem que OCUPAR a folha: com 14 mm em cima e embaixo ele achou "branco demais"
+  if (/hoje/.test(nome)) vale(nome + ": ocupa a folha (no máximo 12 mm em cima e embaixo)", cm.length === 4 && topo <= 12 * MM && base <= 12 * MM, (topo / MM).toFixed(1) + " mm");
   vale(nome + ": sem deformar", cm.length === 4 && Math.abs(dw / dh - w / h) < 0.005, cm.length === 4 ? ("ocupa " + (dw / MM).toFixed(0) + " x " + (dh / MM).toFixed(0) + " mm") : "sem matriz");
 }
 console.log("\n  " + ok + " ok, " + falhou + " falha(s).\n");

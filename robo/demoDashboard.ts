@@ -20664,7 +20664,7 @@ function pixBaixarFicha(o,qrDataUrl){
     const infoDir=function(lb,vl,iy2){ x.textAlign="right"; x.fillStyle=MUT; x.font="500 9.5px "+F; var vw; x.font="600 11.5px "+F; vw=x.measureText(vl).width; x.fillStyle=INK; x.fillText(vl,R,iy2); x.fillStyle=MUT; x.font="500 9.5px "+F; x.fillText(lb.toUpperCase()+"  ",R-vw-6,iy2); x.textAlign="left"; };
     infoDir("Nº da cobrança",num,cy+41);
     infoDir("Emissão",hoje,cy+57);
-    cy+=70; fio(cy); cy+=18;
+    cy+=72; fio(cy); cy+=22;
     // ===== CARD PRINCIPAL: VALOR =====
     const heroH=98;
     x.save(); x.shadowColor="rgba(17,24,39,0.05)"; x.shadowBlur=18; x.shadowOffsetY=6; x.fillStyle=BG; pixRR(x,L,cy,cw,heroH,16); x.fill(); x.restore();
@@ -20678,19 +20678,19 @@ function pixBaixarFicha(o,qrDataUrl){
     x.fillStyle=INK; x.font="600 12.5px "+F; x.textAlign="right"; x.fillText(o.data||"—",R-30,cy+45);
     rotulo("Forma de pagamento",R-30,cy+63,"right");
     x.fillStyle=INK; x.font="600 12.5px "+F; x.textAlign="right"; x.fillText(ehBol?"Boleto ou Pix":"Pix",R-30,cy+79);
-    x.textAlign="left"; cy+=heroH+18;
+    x.textAlign="left"; cy+=heroH+22;
     // ===== RESUMO FINANCEIRO =====
-    rotulo("Resumo financeiro",L,cy); cy+=17;
+    rotulo("Resumo financeiro",L,cy); cy+=18;
     const kv=function(k,v,vc){ x.textAlign="left"; x.fillStyle=SEC; x.font="400 12px "+F; x.fillText(k,L+2,cy); x.textAlign="right"; x.fillStyle=vc||INK; x.font="600 12px "+F; x.fillText(v,R-2,cy); x.textAlign="left"; };
     kv("Valor original",brl(o.valor)); cy+=7; x.strokeStyle="#F3F4F6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=15;
     kv("Multa por atraso",pf?"Conforme o contrato":"Isento",MUT); cy+=7; x.strokeStyle="#F3F4F6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=15;
     kv("Juros de mora",pf?"Conforme o contrato":"Isento",MUT); cy+=10;
     fio(cy); cy+=20;
     x.textAlign="left"; x.fillStyle=INK; x.font="700 13.5px "+F; x.fillText("Total a pagar",L+2,cy);
-    x.textAlign="right"; x.fillStyle=VERDE; x.font="700 18px "+F; x.fillText(brl(o.valor),R-2,cy+2); x.textAlign="left"; cy+=24;
-    fio(cy); cy+=20;
+    x.textAlign="right"; x.fillStyle=VERDE; x.font="700 18px "+F; x.fillText(brl(o.valor),R-2,cy+2); x.textAlign="left"; cy+=26;
+    fio(cy); cy+=24;
     // ===== FORMAS DE PAGAMENTO (QR + como pagar) =====
-    rotulo(ehBol?"Formas de pagamento":"Pague com Pix",L,cy); cy+=12;
+    rotulo(ehBol?"Formas de pagamento":"Pague com Pix",L,cy); cy+=14;
     const qs=138, qpad=10, qbox=qs+qpad*2, qx=L, qy=cy;
     x.save(); x.shadowColor="rgba(17,24,39,0.05)"; x.shadowBlur=16; x.shadowOffsetY=5; x.fillStyle="#ffffff"; pixRR(x,qx,qy,qbox,qbox,16); x.fill(); x.restore();
     x.strokeStyle=LIN; x.lineWidth=1; pixRR(x,qx,qy,qbox,qbox,16); x.stroke();
@@ -20711,28 +20711,28 @@ function pixBaixarFicha(o,qrDataUrl){
       iy+=24;
     }
     iy+=2; x.fillStyle=MUT; x.font="italic 11px "+F; x.fillText(ehBol?"A linha digitável está logo abaixo.":"Ou use o Pix copia e cola abaixo.",ix,iy);
-    cy=qy+qbox+58;
+    cy=qy+qbox+62;
     // ===== LINHA DIGITÁVEL =====
     if(ehBol){
-      rotulo("Linha digitável do boleto",L,cy); cy+=10;
+      rotulo("Linha digitável do boleto",L,cy); cy+=11;
       x.save(); x.shadowColor="rgba(17,24,39,0.04)"; x.shadowBlur=10; x.shadowOffsetY=3; x.fillStyle="#ffffff"; pixRR(x,L,cy,cw,34,9); x.fill(); x.restore();
       x.strokeStyle=LIN; x.lineWidth=1; pixRR(x,L,cy,cw,34,9); x.stroke();
       x.fillStyle=INK; x.font="600 14px "+FM; x.textAlign="center"; x.fillText(String(o.linha),L+cw/2,cy+22); x.textAlign="left";
-      cy+=34+15;
+      cy+=34+18;
     }
     // ===== CÓDIGO DE BARRAS =====
     if(barras){
-      rotulo("Código de barras",L,cy); cy+=10;
+      rotulo("Código de barras",L,cy); cy+=11;
       pixBarrasITF(x,barras,L,cy,cw,54);
-      cy+=54+15;
+      cy+=54+18;
     }
     // ===== PIX COPIA E COLA =====
-    rotulo("Pix copia e cola",L,cy); cy+=10;
+    rotulo("Pix copia e cola",L,cy); cy+=11;
     x.fillStyle=BG; x.strokeStyle=LIN; x.lineWidth=1; pixRR(x,L,cy,cw,codBoxH,10); x.fill(); x.stroke();
     x.fillStyle="#374151"; x.font="10.5px "+FM;
     let ly=cy+codBoxH/2-((linhas.length-1)*lineH)/2+4; // centraliza o bloco de texto na caixa
     for(let li=0;li<linhas.length;li++){ x.fillText(linhas[li],L+16,ly); ly+=lineH; }
-    cy+=codBoxH+16;
+    cy+=codBoxH+19;
     // ===== PAGADOR E BENEFICIÁRIO =====
     rotulo("Pagador e beneficiário",L,cy); cy+=10;
     const pbH=82, meio=L+cw/2;
@@ -20752,14 +20752,14 @@ function pixBaixarFicha(o,qrDataUrl){
     const docPag=pixFmtDoc(o.cnpjPag);
     pessoa(L+24,"Pagador",(o.razao||o.forn||"—"),[(docPag?("CPF/CNPJ "+docPag):""),(o.contato?("Contato: "+o.contato):"")]);
     pessoa(meio+24,"Beneficiário",benef,[docBenef,"Banco 748 · Sicredi — Ag. 2207","Caicó, RN"]);
-    cy+=pbH+14;
+    cy+=pbH+17;
     // ===== AVISO =====
     const aH=38;
     x.fillStyle="#FFFBEB"; x.strokeStyle="#FDE68A"; x.lineWidth=1; pixRR(x,L,cy,cw,aH,12); x.fill(); x.stroke();
     x.save(); x.strokeStyle="#D97706"; x.lineWidth=1.5; x.beginPath(); x.arc(L+26,cy+aH/2,7.5,0,6.2832); x.stroke(); x.beginPath(); x.moveTo(L+26,cy+aH/2); x.lineTo(L+26,cy+aH/2-4); x.moveTo(L+26,cy+aH/2); x.lineTo(L+29.5,cy+aH/2); x.stroke(); x.restore();
     x.fillStyle="#92400E"; x.font="600 11px "+F; x.textAlign="left"; x.fillText("Pague até o vencimento",L+46,cy+16);
     x.fillStyle="#B45309"; x.font="400 10.5px "+F; x.fillText(pf?"Efetue o pagamento até a data indicada. Atraso segue o previsto no contrato de locação.":"Efetue o pagamento até a data indicada para evitar o cancelamento do espaço.",L+46,cy+30);
-    cy+=aH+17;
+    cy+=aH+19;
     // ===== SELOS =====
     const selos=["Transação protegida","Beneficiário verificado","Cobrança registrada"];
     x.font="500 10px "+F;
@@ -20768,7 +20768,7 @@ function pixBaixarFicha(o,qrDataUrl){
     for(let sm=0;sm<selos.length;sm++){ selosW+=14+x.measureText(selos[sm]).width+(sm<selos.length-1?24:0); }
     let sx=L+(cw-selosW)/2;
     for(let si=0;si<selos.length;si++){ check(sx,cy-1); x.fillStyle=SEC; x.fillText(selos[si],sx+14,cy+3); sx+=14+x.measureText(selos[si]).width+24; }
-    cy+=17;
+    cy+=19;
     // ===== RODAPÉ INSTITUCIONAL =====
     fio(cy); cy+=16;
     x.fillStyle=MUT; x.font="400 9.5px "+F; x.textAlign="left";
@@ -20808,9 +20808,10 @@ function pixCanvasToPdfBlob(cv){
   // Histórico (20/10, cinco queixas dele na impressão): o rodapé cortava e a ficha ficava puxada para a
   // esquerda — a causa era a impressão dele estar no papel CARTA (6 mm mais largo, 18 mm mais baixo que a
   // A4: o Chrome encosta a folha à esquerda e corta o que passa embaixo). Com o papel trocado para A4,
-  // basta a folha ser A4 e a ficha no meio: mesma margem dos lados (≈ 8 mm) e mesma em cima e embaixo
-  // (≈ 14 mm, acima dos 12,7 mm que a impressora mais "gulosa" não imprime embaixo).
-  const pageW=595.28, pageH=841.89, mgLado=22, mgAltura=36;
+  // basta a folha ser A4 e a ficha no meio: mesma margem dos lados (≈ 8 mm) e mesma em cima e embaixo.
+  // Com 14 mm em cima e embaixo ele achou "branco demais": a ficha foi esticada na altura (espaços entre
+  // as partes um pouco maiores, ≈ 760 x 1090, quase a proporção da área útil) e a margem virou ≈ 10 mm.
+  const pageW=595.28, pageH=841.89, mgLado=22, mgAltura=28;
   const esc=Math.min((pageW-2*mgLado)/iw,(pageH-2*mgAltura)/ih);
   const dw=iw*esc, dh=ih*esc, dx=(pageW-dw)/2, dy=(pageH-dh)/2;   // no meio da folha
   const enc=function(s){ const a=new Uint8Array(s.length); for(let j=0;j<s.length;j++) a[j]=s.charCodeAt(j)&0xff; return a; };
