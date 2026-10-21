@@ -20635,19 +20635,8 @@ function pixBaixarFicha(o,qrDataUrl){
     const hora=String(agora.getHours()).padStart(2,"0")+":"+String(agora.getMinutes()).padStart(2,"0");
     const dParts=(o.data||"").split("/");
     const num="COB-"+String(o.ponto||0).padStart(2,"0")+"-"+((dParts[2]||"").slice(2))+(dParts[1]||"");
-    const check=function(px,py,cor){ x.save(); x.strokeStyle=cor||VERDE; x.lineWidth=1.5; x.lineCap="round"; x.lineJoin="round"; x.beginPath(); x.moveTo(px,py); x.lineTo(px+2.8,py+3.1); x.lineTo(px+8,py-3.1); x.stroke(); x.restore(); };
     const rotulo=function(txt,rx,ry,alinha){ x.save(); try{ x.letterSpacing="1.3px"; }catch(e){} x.textAlign=alinha||"left"; x.fillStyle=MUT; x.font="600 9.5px "+F; x.fillText(txt.toUpperCase(),rx,ry); try{ x.letterSpacing="0px"; }catch(e){} x.restore(); x.textAlign="left"; };
     const fio=function(fy){ x.strokeStyle=LIN; x.lineWidth=1; x.beginPath(); x.moveTo(L,fy); x.lineTo(R,fy); x.stroke(); };
-    // selo de status (pílula) — devolve a largura pra alinhar à direita
-    const selo=function(txt,bg2,bd2,fg2,sx2,sy2,soDireita){
-      x.font="700 9.5px "+F; var tw=x.measureText(txt.toUpperCase()).width;
-      var pw=tw+34, ph=22, px2=soDireita?(sx2-pw):sx2;
-      x.fillStyle=bg2; pixRR(x,px2,sy2,pw,ph,11); x.fill();
-      x.strokeStyle=bd2; x.lineWidth=1; pixRR(x,px2,sy2,pw,ph,11); x.stroke();
-      x.fillStyle=fg2; x.beginPath(); x.arc(px2+14,sy2+ph/2,2.6,0,6.2832); x.fill();
-      x.save(); try{ x.letterSpacing="0.8px"; }catch(e){} x.fillText(txt.toUpperCase(),px2+22,sy2+ph/2+3.5); try{ x.letterSpacing="0px"; }catch(e){} x.restore();
-      return pw;
-    };
     // fundo
     x.fillStyle="#ffffff"; x.fillRect(0,0,W,BIG);
     x.fillStyle=VERDE; x.fillRect(0,0,W,4);
@@ -20660,8 +20649,10 @@ function pixBaixarFicha(o,qrDataUrl){
     x.fillStyle=SEC; x.font="500 11.5px "+F; x.fillText(pf?(ehBol?"Aluguel de galpão · Boleto (aceita Pix)":"Aluguel de galpão · Pix"):(ehBol?"Cobrança financeira · Boleto (aceita Pix)":"Cobrança financeira · Pix"),tx,cy+41);
     x.fillStyle=MUT; x.font="400 10px "+F; x.fillText(docBenef+" · Caicó, RN",tx,cy+57);
     // bloco institucional à direita: status + identificação
-    selo("Em aberto","#FFFBEB","#FDE68A","#B45309",R,cy-2,true);
+    // ==FICHASOBRIA== (20/10, ele: "muita cara de IA, essas cores"): a situação vira uma linha de texto
+    // como as outras do cabeçalho, sem pílula colorida com bolinha.
     const infoDir=function(lb,vl,iy2){ x.textAlign="right"; x.fillStyle=MUT; x.font="500 9.5px "+F; var vw; x.font="600 11.5px "+F; vw=x.measureText(vl).width; x.fillStyle=INK; x.fillText(vl,R,iy2); x.fillStyle=MUT; x.font="500 9.5px "+F; x.fillText(lb.toUpperCase()+"  ",R-vw-6,iy2); x.textAlign="left"; };
+    infoDir("Situação","Em aberto",cy+25);
     infoDir("Nº da cobrança",num,cy+41);
     infoDir("Emissão",hoje,cy+57);
     cy+=72; fio(cy); cy+=22;
@@ -20753,22 +20744,16 @@ function pixBaixarFicha(o,qrDataUrl){
     pessoa(L+24,"Pagador",(o.razao||o.forn||"—"),[(docPag?("CPF/CNPJ "+docPag):""),(o.contato?("Contato: "+o.contato):"")]);
     pessoa(meio+24,"Beneficiário",benef,[docBenef,"Banco 748 · Sicredi — Ag. 2207","Caicó, RN"]);
     cy+=pbH+17;
-    // ===== AVISO =====
-    const aH=38;
-    x.fillStyle="#FFFBEB"; x.strokeStyle="#FDE68A"; x.lineWidth=1; pixRR(x,L,cy,cw,aH,12); x.fill(); x.stroke();
-    x.save(); x.strokeStyle="#D97706"; x.lineWidth=1.5; x.beginPath(); x.arc(L+26,cy+aH/2,7.5,0,6.2832); x.stroke(); x.beginPath(); x.moveTo(L+26,cy+aH/2); x.lineTo(L+26,cy+aH/2-4); x.moveTo(L+26,cy+aH/2); x.lineTo(L+29.5,cy+aH/2); x.stroke(); x.restore();
-    x.fillStyle="#92400E"; x.font="600 11px "+F; x.textAlign="left"; x.fillText("Pague até o vencimento",L+46,cy+16);
-    x.fillStyle="#B45309"; x.font="400 10.5px "+F; x.fillText(pf?"Efetue o pagamento até a data indicada. Atraso segue o previsto no contrato de locação.":"Efetue o pagamento até a data indicada para evitar o cancelamento do espaço.",L+46,cy+30);
+    // ===== INSTRUÇÕES ===== (==FICHASOBRIA==: no lugar da caixa amarela com relógio, o quadro sóbrio de
+    // "Instruções" dos boletos de banco: rótulo, borda fina cinza, texto cinza, sem ícone). Os três selos com
+    // ✓ ("Transação protegida"...) SAÍRAM — ele escolheu a versão sem eles; o rodapé já diz "Boleto registrado".
+    rotulo("Instruções",L,cy); cy+=10;
+    const aH=40;
+    x.fillStyle="#ffffff"; x.strokeStyle=LIN; x.lineWidth=1; pixRR(x,L,cy,cw,aH,9); x.fill(); x.stroke();
+    x.textAlign="left"; x.fillStyle="#374151"; x.font="400 10.5px "+F;
+    x.fillText("Pagar até a data de vencimento.",L+16,cy+16);
+    x.fillStyle=SEC; x.fillText(pf?"Após o vencimento, aplicam-se as condições do contrato de locação.":"O não pagamento até o vencimento pode acarretar o cancelamento do espaço.",L+16,cy+30);
     cy+=aH+19;
-    // ===== SELOS =====
-    const selos=["Transação protegida","Beneficiário verificado","Cobrança registrada"];
-    x.font="500 10px "+F;
-    // mede a largura total pra centralizar a fileira de selos na página
-    let selosW=0;
-    for(let sm=0;sm<selos.length;sm++){ selosW+=14+x.measureText(selos[sm]).width+(sm<selos.length-1?24:0); }
-    let sx=L+(cw-selosW)/2;
-    for(let si=0;si<selos.length;si++){ check(sx,cy-1); x.fillStyle=SEC; x.fillText(selos[si],sx+14,cy+3); sx+=14+x.measureText(selos[si]).width+24; }
-    cy+=19;
     // ===== RODAPÉ INSTITUCIONAL =====
     fio(cy); cy+=16;
     x.fillStyle=MUT; x.font="400 9.5px "+F; x.textAlign="left";
