@@ -20607,10 +20607,14 @@ function pixBaixarFicha(o,qrDataUrl){
   const pf=!!o.pf && typeof GL_LOCADOR!=="undefined";
   const benef=pf ? GL_LOCADOR.nome : ((cfg&&cfg.nome)||"Supermercado Santa Rita");
   const docBenef=pf ? ("CPF "+GL_LOCADOR.cpf) : "CNPJ 12.988.127/0001-40";
-  const cod=o.codigo||"", col=66, linhas=[];
+  // ==FICHAA4== (20/10/2026, queixa dele: "quando boto imprimir não cabe em uma folha, corta").
+  // A ficha tinha 760 x 1527 (o dobro da proporção de uma A4) e o PDF saía com a altura da ficha.
+  // Agora: ficha enxuta (espaços menores, sem repetir o selo e o beneficiário no quadro do valor) e
+  // o PDF com página A4 de verdade, a ficha encaixada dentro (pixCanvasToPdfBlob).
+  const cod=o.codigo||"", col=84, linhas=[];
   for(let i=0;i<cod.length;i+=col) linhas.push(cod.slice(i,i+col));
-  const lineH=17;
-  const codBoxH=18+linhas.length*lineH+16;
+  const lineH=15;
+  const codBoxH=12+linhas.length*lineH+10;
   const ehBol=(o.modo==="boleto" && o.linha);
   const barras=ehBol?pixLinhaParaBarras(o.linha):null;
   // paleta premium (fintech): tinta / secundário / apagado / fios / fundos / verde institucional
@@ -20646,9 +20650,9 @@ function pixBaixarFicha(o,qrDataUrl){
     x.fillStyle=VERDE; x.fillRect(0,0,W,4);
     x.textBaseline="alphabetic"; x.textAlign="left";
     // ===== CABEÇALHO INSTITUCIONAL =====
-    let cy=46;
+    let cy=38;
     let tx=L;
-    if(logoImg && !pf){ try{ const bw=88,bh=88,bx=L,by=cy-8; const iw=logoImg.naturalWidth||bw,ih=logoImg.naturalHeight||bh; const sc=Math.min(bw/iw,bh/ih),dw=iw*sc,dh=ih*sc; x.drawImage(logoImg,bx+(bw-dw)/2,by+(bh-dh)/2,dw,dh); tx=L+bw+22; }catch(e){} }
+    if(logoImg && !pf){ try{ const bw=76,bh=76,bx=L,by=cy-6; const iw=logoImg.naturalWidth||bw,ih=logoImg.naturalHeight||bh; const sc=Math.min(bw/iw,bh/ih),dw=iw*sc,dh=ih*sc; x.drawImage(logoImg,bx+(bw-dw)/2,by+(bh-dh)/2,dw,dh); tx=L+bw+20; }catch(e){} }
     x.fillStyle=INK; x.font="700 23px "+F; x.fillText(pf?benef:"Supermercado Santa Rita",tx,cy+24);
     x.fillStyle=SEC; x.font="500 12px "+F; x.fillText(pf?(ehBol?"Aluguel de galpão · Boleto (aceita Pix)":"Aluguel de galpão · Pix"):(ehBol?"Cobrança financeira · Boleto (aceita Pix)":"Cobrança financeira · Pix"),tx,cy+45);
     x.fillStyle=MUT; x.font="400 10.5px "+F; x.fillText(docBenef+" · Caicó, RN",tx,cy+63);
@@ -20657,37 +20661,34 @@ function pixBaixarFicha(o,qrDataUrl){
     const infoDir=function(lb,vl,iy2){ x.textAlign="right"; x.fillStyle=MUT; x.font="500 9.5px "+F; var vw; x.font="600 11.5px "+F; vw=x.measureText(vl).width; x.fillStyle=INK; x.fillText(vl,R,iy2); x.fillStyle=MUT; x.font="500 9.5px "+F; x.fillText(lb.toUpperCase()+"  ",R-vw-6,iy2); x.textAlign="left"; };
     infoDir("Nº da cobrança",num,cy+45);
     infoDir("Emissão",hoje,cy+63);
-    cy+=92; fio(cy); cy+=34;
+    cy+=80; fio(cy); cy+=22;
     // ===== CARD PRINCIPAL: VALOR =====
-    const heroH=148;
+    const heroH=112;
     x.save(); x.shadowColor="rgba(17,24,39,0.05)"; x.shadowBlur=18; x.shadowOffsetY=6; x.fillStyle=BG; pixRR(x,L,cy,cw,heroH,16); x.fill(); x.restore();
     x.strokeStyle=LIN; x.lineWidth=1; pixRR(x,L,cy,cw,heroH,16); x.stroke();
     // filete verde recortado pela moldura do PRÓPRIO card — curvatura igual em cima e embaixo
     x.save(); pixRR(x,L,cy,cw,heroH,16); x.clip(); x.fillStyle=VERDE; x.fillRect(L,cy,4,heroH); x.restore();
-    rotulo("Valor a pagar",L+32,cy+38);
-    x.fillStyle=INK; x.font="700 46px "+F; x.fillText(brl(o.valor),L+30,cy+90);
-    selo("Em aberto","#FFFBEB","#FDE68A","#B45309",L+32,cy+106,false);
+    rotulo("Valor a pagar",L+32,cy+36);
+    x.fillStyle=INK; x.font="700 42px "+F; x.fillText(brl(o.valor),L+30,cy+84);
     x.textAlign="right";
     rotulo("Vencimento",R-30,cy+34,"right");
     x.fillStyle=INK; x.font="600 13px "+F; x.textAlign="right"; x.fillText(o.data||"—",R-30,cy+52);
-    rotulo("Forma de pagamento",R-30,cy+75,"right");
-    x.fillStyle=INK; x.font="600 13px "+F; x.textAlign="right"; x.fillText(ehBol?"Boleto ou Pix":"Pix",R-30,cy+93);
-    rotulo("Beneficiário",R-30,cy+116,"right");
-    x.fillStyle=INK; x.font="600 12.5px "+F; x.textAlign="right"; x.fillText(benef,R-30,cy+134);
-    x.textAlign="left"; cy+=heroH+36;
+    rotulo("Forma de pagamento",R-30,cy+72,"right");
+    x.fillStyle=INK; x.font="600 13px "+F; x.textAlign="right"; x.fillText(ehBol?"Boleto ou Pix":"Pix",R-30,cy+90);
+    x.textAlign="left"; cy+=heroH+22;
     // ===== RESUMO FINANCEIRO =====
-    rotulo("Resumo financeiro",L,cy); cy+=24;
+    rotulo("Resumo financeiro",L,cy); cy+=20;
     const kv=function(k,v,vc){ x.textAlign="left"; x.fillStyle=SEC; x.font="400 12.5px "+F; x.fillText(k,L+2,cy); x.textAlign="right"; x.fillStyle=vc||INK; x.font="600 12.5px "+F; x.fillText(v,R-2,cy); x.textAlign="left"; };
-    kv("Valor original",brl(o.valor)); cy+=10; x.strokeStyle="#F3F4F6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=20;
-    kv("Multa por atraso",pf?"Conforme o contrato":"Isento",MUT); cy+=10; x.strokeStyle="#F3F4F6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=20;
-    kv("Juros de mora",pf?"Conforme o contrato":"Isento",MUT); cy+=16;
-    fio(cy); cy+=28;
+    kv("Valor original",brl(o.valor)); cy+=8; x.strokeStyle="#F3F4F6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=17;
+    kv("Multa por atraso",pf?"Conforme o contrato":"Isento",MUT); cy+=8; x.strokeStyle="#F3F4F6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=17;
+    kv("Juros de mora",pf?"Conforme o contrato":"Isento",MUT); cy+=12;
+    fio(cy); cy+=24;
     x.textAlign="left"; x.fillStyle=INK; x.font="700 14px "+F; x.fillText("Total a pagar",L+2,cy);
-    x.textAlign="right"; x.fillStyle=VERDE; x.font="700 20px "+F; x.fillText(brl(o.valor),R-2,cy+2); x.textAlign="left"; cy+=40;
-    fio(cy); cy+=34;
+    x.textAlign="right"; x.fillStyle=VERDE; x.font="700 20px "+F; x.fillText(brl(o.valor),R-2,cy+2); x.textAlign="left"; cy+=28;
+    fio(cy); cy+=24;
     // ===== FORMAS DE PAGAMENTO (QR + como pagar) =====
-    rotulo(ehBol?"Formas de pagamento":"Pague com Pix",L,cy); cy+=18;
-    const qs=190, qpad=16, qbox=qs+qpad*2, qx=L, qy=cy;
+    rotulo(ehBol?"Formas de pagamento":"Pague com Pix",L,cy); cy+=14;
+    const qs=150, qpad=12, qbox=qs+qpad*2, qx=L, qy=cy;
     x.save(); x.shadowColor="rgba(17,24,39,0.05)"; x.shadowBlur=16; x.shadowOffsetY=5; x.fillStyle="#ffffff"; pixRR(x,qx,qy,qbox,qbox,16); x.fill(); x.restore();
     x.strokeStyle=LIN; x.lineWidth=1; pixRR(x,qx,qy,qbox,qbox,16); x.stroke();
     if(qrImg){ try{ x.imageSmoothingEnabled=false; x.drawImage(qrImg,qx+qpad,qy+qpad,qs,qs); x.imageSmoothingEnabled=true; }catch(e){} }
@@ -20695,8 +20696,8 @@ function pixBaixarFicha(o,qrDataUrl){
     x.save(); x.translate(capX+4.5,capY-3.5); x.rotate(Math.PI/4); x.fillStyle=VERDE; pixRR(x,-4.2,-4.2,8.4,8.4,2.2); x.fill(); x.restore();
     x.textAlign="left"; x.fillStyle=SEC; x.fillText(capTxt,capX+16,capY);
     x.textAlign="center"; x.fillStyle=MUT; x.font="400 10px "+F; x.fillText("Válido até "+(o.data||"—"),qx+qbox/2,capY+17); x.textAlign="left";
-    const ix=qx+qbox+50; let iy=qy+30;
-    x.fillStyle=INK; x.font="700 14px "+F; x.fillText("Como pagar",ix,iy); iy+=30;
+    const ix=qx+qbox+50; let iy=qy+26;
+    x.fillStyle=INK; x.font="700 14px "+F; x.fillText("Como pagar",ix,iy); iy+=28;
     const passos=ehBol
       ? ["Abra o app do seu banco","Pague o boleto com a linha digitável","ou escaneie o QR Code (paga por Pix)"]
       : ["Abra o app do seu banco","Escolha pagar com Pix / QR Code","Aponte a câmera para o código"];
@@ -20704,58 +20705,58 @@ function pixBaixarFicha(o,qrDataUrl){
       x.fillStyle="#F3F4F6"; x.beginPath(); x.arc(ix+9,iy-4,9,0,6.2832); x.fill();
       x.fillStyle="#4B5563"; x.font="600 10px "+F; x.textAlign="center"; x.fillText(String(pi+1),ix+9,iy-0.5); x.textAlign="left";
       x.fillStyle="#374151"; x.font="400 12.5px "+F; x.fillText(passos[pi],ix+28,iy);
-      iy+=28;
+      iy+=26;
     }
-    iy+=4; x.fillStyle=MUT; x.font="italic 11px "+F; x.fillText(ehBol?"A linha digitável está logo abaixo.":"Ou use o Pix copia e cola abaixo.",ix,iy);
-    cy=qy+qbox+62;
+    iy+=2; x.fillStyle=MUT; x.font="italic 11px "+F; x.fillText(ehBol?"A linha digitável está logo abaixo.":"Ou use o Pix copia e cola abaixo.",ix,iy);
+    cy=qy+qbox+66;
     // ===== LINHA DIGITÁVEL =====
     if(ehBol){
-      rotulo("Linha digitável do boleto",L,cy); cy+=16;
-      x.save(); x.shadowColor="rgba(17,24,39,0.04)"; x.shadowBlur=10; x.shadowOffsetY=3; x.fillStyle="#ffffff"; pixRR(x,L,cy,cw,52,12); x.fill(); x.restore();
-      x.strokeStyle=LIN; x.lineWidth=1; pixRR(x,L,cy,cw,52,12); x.stroke();
-      x.fillStyle=INK; x.font="600 15px "+FM; x.textAlign="center"; x.fillText(String(o.linha),L+cw/2,cy+32); x.textAlign="left";
-      cy+=52+26;
+      rotulo("Linha digitável do boleto",L,cy); cy+=12;
+      x.save(); x.shadowColor="rgba(17,24,39,0.04)"; x.shadowBlur=10; x.shadowOffsetY=3; x.fillStyle="#ffffff"; pixRR(x,L,cy,cw,40,10); x.fill(); x.restore();
+      x.strokeStyle=LIN; x.lineWidth=1; pixRR(x,L,cy,cw,40,10); x.stroke();
+      x.fillStyle=INK; x.font="600 15px "+FM; x.textAlign="center"; x.fillText(String(o.linha),L+cw/2,cy+26); x.textAlign="left";
+      cy+=40+18;
     }
     // ===== CÓDIGO DE BARRAS =====
     if(barras){
-      rotulo("Código de barras",L,cy); cy+=16;
-      pixBarrasITF(x,barras,L,cy,cw,72);
-      cy+=72+28;
+      rotulo("Código de barras",L,cy); cy+=12;
+      pixBarrasITF(x,barras,L,cy,cw,60);
+      cy+=60+18;
     }
     // ===== PIX COPIA E COLA =====
-    rotulo("Pix copia e cola",L,cy); cy+=16;
-    x.fillStyle=BG; x.strokeStyle=LIN; x.lineWidth=1; pixRR(x,L,cy,cw,codBoxH,12); x.fill(); x.stroke();
-    x.fillStyle="#374151"; x.font="11.5px "+FM;
+    rotulo("Pix copia e cola",L,cy); cy+=12;
+    x.fillStyle=BG; x.strokeStyle=LIN; x.lineWidth=1; pixRR(x,L,cy,cw,codBoxH,10); x.fill(); x.stroke();
+    x.fillStyle="#374151"; x.font="11px "+FM;
     let ly=cy+codBoxH/2-((linhas.length-1)*lineH)/2+4; // centraliza o bloco de texto na caixa
-    for(let li=0;li<linhas.length;li++){ x.fillText(linhas[li],L+18,ly); ly+=lineH; }
-    cy+=codBoxH+30;
+    for(let li=0;li<linhas.length;li++){ x.fillText(linhas[li],L+16,ly); ly+=lineH; }
+    cy+=codBoxH+20;
     // ===== PAGADOR E BENEFICIÁRIO =====
-    rotulo("Pagador e beneficiário",L,cy); cy+=18;
-    const pbH=104, meio=L+cw/2;
+    rotulo("Pagador e beneficiário",L,cy); cy+=12;
+    const pbH=92, meio=L+cw/2;
     x.fillStyle="#ffffff"; pixRR(x,L,cy,cw,pbH,12); x.fill();
     x.strokeStyle=LIN; x.lineWidth=1; pixRR(x,L,cy,cw,pbH,12); x.stroke();
-    x.beginPath(); x.moveTo(meio,cy+16); x.lineTo(meio,cy+pbH-16); x.stroke();
+    x.beginPath(); x.moveTo(meio,cy+12); x.lineTo(meio,cy+pbH-12); x.stroke();
     const pessoa=function(px2,lb,nome,subs){
       // centraliza o bloco na vertical: mede a altura das linhas e sobra igual em cima e embaixo
       subs=subs.filter(function(s2){ return !!s2; });
-      var inner=10+20+(subs.length?18+(subs.length-1)*16:0);
+      var inner=10+18+(subs.length?16+(subs.length-1)*14:0);
       var yy=cy+(pbH-inner)/2+10;
       rotulo(lb,px2,yy);
-      yy+=20; x.fillStyle=INK; x.font="600 12.5px "+F; x.fillText(nome,px2,yy);
+      yy+=18; x.fillStyle=INK; x.font="600 12.5px "+F; x.fillText(nome,px2,yy);
       x.fillStyle=SEC; x.font="400 11px "+F;
-      for(var si2=0;si2<subs.length;si2++){ yy+=(si2===0?18:16); x.fillText(subs[si2],px2,yy); }
+      for(var si2=0;si2<subs.length;si2++){ yy+=(si2===0?16:14); x.fillText(subs[si2],px2,yy); }
     };
     const docPag=pixFmtDoc(o.cnpjPag);
     pessoa(L+24,"Pagador",(o.razao||o.forn||"—"),[(docPag?("CPF/CNPJ "+docPag):""),(o.contato?("Contato: "+o.contato):"")]);
     pessoa(meio+24,"Beneficiário",benef,[docBenef,"Banco 748 · Sicredi — Ag. 2207","Caicó, RN"]);
-    cy+=pbH+30;
+    cy+=pbH+16;
     // ===== AVISO =====
-    const aH=54;
+    const aH=42;
     x.fillStyle="#FFFBEB"; x.strokeStyle="#FDE68A"; x.lineWidth=1; pixRR(x,L,cy,cw,aH,12); x.fill(); x.stroke();
     x.save(); x.strokeStyle="#D97706"; x.lineWidth=1.5; x.beginPath(); x.arc(L+26,cy+aH/2,7.5,0,6.2832); x.stroke(); x.beginPath(); x.moveTo(L+26,cy+aH/2); x.lineTo(L+26,cy+aH/2-4); x.moveTo(L+26,cy+aH/2); x.lineTo(L+29.5,cy+aH/2); x.stroke(); x.restore();
-    x.fillStyle="#92400E"; x.font="600 11.5px "+F; x.textAlign="left"; x.fillText("Pague até o vencimento",L+46,cy+23);
-    x.fillStyle="#B45309"; x.font="400 11px "+F; x.fillText(pf?"Efetue o pagamento até a data indicada. Atraso segue o previsto no contrato de locação.":"Efetue o pagamento até a data indicada para evitar o cancelamento do espaço.",L+46,cy+39);
-    cy+=aH+26;
+    x.fillStyle="#92400E"; x.font="600 11.5px "+F; x.textAlign="left"; x.fillText("Pague até o vencimento",L+46,cy+18);
+    x.fillStyle="#B45309"; x.font="400 11px "+F; x.fillText(pf?"Efetue o pagamento até a data indicada. Atraso segue o previsto no contrato de locação.":"Efetue o pagamento até a data indicada para evitar o cancelamento do espaço.",L+46,cy+33);
+    cy+=aH+20;
     // ===== SELOS =====
     const selos=["Transação protegida","Beneficiário verificado","Cobrança registrada"];
     x.font="500 10.5px "+F;
@@ -20764,16 +20765,16 @@ function pixBaixarFicha(o,qrDataUrl){
     for(let sm=0;sm<selos.length;sm++){ selosW+=14+x.measureText(selos[sm]).width+(sm<selos.length-1?24:0); }
     let sx=L+(cw-selosW)/2;
     for(let si=0;si<selos.length;si++){ check(sx,cy-1); x.fillStyle=SEC; x.fillText(selos[si],sx+14,cy+3); sx+=14+x.measureText(selos[si]).width+24; }
-    cy+=26;
+    cy+=20;
     // ===== RODAPÉ INSTITUCIONAL =====
-    fio(cy); cy+=22;
+    fio(cy); cy+=18;
     x.fillStyle=MUT; x.font="400 10px "+F; x.textAlign="left";
     x.fillText("Documento gerado eletronicamente em "+hoje+" às "+hora+" · Canal: Painel Santa Rita",L,cy);
-    x.textAlign="right"; x.fillText(ehBol?"Boleto registrado · Sicredi":"Pagamento via Pix · Banco Central do Brasil",R,cy); x.textAlign="left"; cy+=16;
+    x.textAlign="right"; x.fillText(ehBol?"Boleto registrado · Sicredi":"Pagamento via Pix · Banco Central do Brasil",R,cy); x.textAlign="left"; cy+=14;
     x.fillStyle="#C4C9D0"; x.font="400 9.5px "+F;
     x.fillText("Ref.: "+num+"  ·  "+(o.rotulo||"Ponto nº")+" "+(o.ponto||"")+(o.forn?"  ·  "+o.forn:""),L,cy);
-    x.textAlign="right"; x.fillText("Documento v2",R,cy); x.textAlign="left";
-    cy+=30;
+    x.textAlign="right"; x.fillText("Documento v3",R,cy); x.textAlign="left";
+    cy+=20;
     // corta o canvas na altura exata do conteúdo
     const cv=document.createElement("canvas"); cv.width=W*S; cv.height=Math.round(cy*S);
     const g=cv.getContext("2d");
@@ -20794,13 +20795,17 @@ function pixBaixarFicha(o,qrDataUrl){
   qimg.src=qrDataUrl;
 }
 let pixFichaCanvas=null;
-// Monta um PDF (1 página) embutindo a imagem JPEG da ficha — tudo offline, sem biblioteca.
+// Monta um PDF (1 página A4) embutindo a imagem JPEG da ficha — tudo offline, sem biblioteca.
 function pixCanvasToPdfBlob(cv){
   const iw=cv.width, ih=cv.height;
   const bin=atob(cv.toDataURL("image/jpeg",0.92).split(",")[1]);
   const jpg=new Uint8Array(bin.length);
   for(let i=0;i<bin.length;i++) jpg[i]=bin.charCodeAt(i);
-  const pageW=595.28, pageH=pageW*ih/iw;
+  // ==FICHAA4== página A4 de verdade (595,28 x 841,89 pt) com a ficha encaixada dentro, sem cortar:
+  // ocupa a largura toda (menos a margem) e, se for alta demais, encolhe até caber na altura.
+  const pageW=595.28, pageH=841.89, mg=18;
+  const esc=Math.min((pageW-2*mg)/iw,(pageH-2*mg)/ih);
+  const dw=iw*esc, dh=ih*esc, dx=(pageW-dw)/2, dy=pageH-mg-dh;   // centralizada, encostada no alto
   const enc=function(s){ const a=new Uint8Array(s.length); for(let j=0;j<s.length;j++) a[j]=s.charCodeAt(j)&0xff; return a; };
   const parts=[]; let offset=0; const offsets=[];
   const push=function(u){ parts.push(u); offset+=u.length; };
@@ -20813,7 +20818,7 @@ function pixCanvasToPdfBlob(cv){
   push(enc("4 0 obj\\n<< /Type /XObject /Subtype /Image /Width "+iw+" /Height "+ih+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+jpg.length+" >>\\nstream\\n"));
   push(jpg);
   push(enc("\\nendstream\\nendobj\\n"));
-  const content="q\\n"+pageW.toFixed(2)+" 0 0 "+pageH.toFixed(2)+" 0 0 cm\\n/Im0 Do\\nQ\\n";
+  const content="q\\n"+dw.toFixed(2)+" 0 0 "+dh.toFixed(2)+" "+dx.toFixed(2)+" "+dy.toFixed(2)+" cm\\n/Im0 Do\\nQ\\n";
   obj(5,"5 0 obj\\n<< /Length "+content.length+" >>\\nstream\\n"+content+"endstream\\nendobj\\n");
   const xrefStart=offset;
   let xref="xref\\n0 6\\n0000000000 65535 f \\n";
