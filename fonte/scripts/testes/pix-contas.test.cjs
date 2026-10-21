@@ -69,7 +69,7 @@ global.fetch=async function(url, o){
     const benefHdr=h.codigoBeneficiario, benefQs=u.searchParams.get("codigoBeneficiario");
     const ch={chave,coop:h.cooperativa,posto:h.posto,token:String(h.Authorization||"").replace("Bearer ","")};
     if(m==="POST" && pth.endsWith("/boletos")){ const c=JSON.parse(o.body); const nn=(chave==="chave-pf"?"7":"9")+c.seuNumero.slice(-6);
-      mundo.chamadas.push(Object.assign({tipo:"gerar",benef:c.codigoBeneficiario,pagador:c.pagador,valor:c.valor,seu:c.seuNumero},ch));
+      mundo.chamadas.push(Object.assign({tipo:"gerar",benef:c.codigoBeneficiario,pagador:c.pagador,valor:c.valor,seu:c.seuNumero,corpo:c},ch));
       return resp(200,{txid:"tx"+nn,nossoNumero:nn,linhaDigitavel:"L"+nn,codigoBarras:"B"+nn,qrCode:"QR"+nn}); }
     if(m==="PATCH" && pth.endsWith("/baixa")){ mundo.chamadas.push(Object.assign({tipo:"cancelar",benef:benefHdr,nn:pth.split("/").slice(-2)[0]},ch)); return resp(202,{}); }
     if(m==="GET" && pth.endsWith("/boletos")){ const nn=u.searchParams.get("nossoNumero");
@@ -220,6 +220,35 @@ const pago = (data, valor, sit) => ({ situacao: sit || "LIQUIDADO PIX", valorNom
       vale("reserva — " + rot + ": " + (espera ? "roda o mini-robô" : "não roda"), rodou === espera, rodou ? "rodou" : "não rodou");
       fs.rmSync(dir, { recursive: true, force: true });
     }
+  }
+
+  console.log("\n  ==== MULTA E JUROS NO BOLETO (==GLENCARGOS==) ====");
+  {
+    const GALP = { conta: "pf", ponto_id: "gmumq1", documento: "05628483478", fornecedor: "ADRIANO LIMA", valor: 810.5 };
+    const r = rodar({ banco: [
+      cob(1, "pedido", Object.assign({}, GALP, { multa_pct: 2, juros_dia: 0.27 })),          // galpão com a chave ligada
+      cob(2, "pedido", { conta: "loja", multa_pct: 2, juros_dia: 0.17 }),                    // ponto extra com valores forçados
+      cob(3, "pedido", Object.assign({}, GALP, { ponto_id: "g3", multa_pct: null, juros_dia: null })),
+      cob(4, "pedido", Object.assign({}, GALP, { ponto_id: "g4", multa_pct: "", juros_dia: 0 })),
+      cob(5, "pedido", Object.assign({}, GALP, { ponto_id: "g5" })),                         // nuvem ainda sem as colunas
+      cob(6, "pedido", Object.assign({}, GALP, { ponto_id: "g6", multa_pct: 5, juros_dia: 0.27 })),
+      cob(7, "pedido", Object.assign({}, GALP, { ponto_id: "g7", multa_pct: 2, juros_dia: 1 })),
+    ] });
+    const g = id => r.chamadas.find(c => c.tipo === "gerar" && c.seu === String(id).padStart(10, "0"));
+    const k = id => g(id) ? Object.keys(g(id).corpo).sort().join(",") : "não gerou";
+    vale("galpão com a chave ligada: multa 2% (PERCENTUAL) e juros R$ 0,27 por dia (VALOR)", g(1) && g(1).corpo.tipoMulta === "PERCENTUAL" && g(1).corpo.multa === 2 && g(1).corpo.tipoJuros === "VALOR" && g(1).corpo.juros === 0.27 && r.linha(1).status === "gerado", g(1) ? JSON.stringify({ tm: g(1).corpo.tipoMulta, m: g(1).corpo.multa, tj: g(1).corpo.tipoJuros, j: g(1).corpo.juros }) : "não gerou");
+    vale("ponto extra (conta da loja) com valores forçados na linha: boleto SEM multa e SEM juros", g(2) && !("multa" in g(2).corpo) && !("juros" in g(2).corpo) && !("tipoJuros" in g(2).corpo) && !("tipoMulta" in g(2).corpo), k(2));
+    vale("galpão com multa/juros nulos, em branco ou zero: sem encargos (branco não é zero)", g(3) && g(4) && !("multa" in g(3).corpo) && !("juros" in g(3).corpo) && !("multa" in g(4).corpo) && !("juros" in g(4).corpo), k(3) + " | " + k(4));
+    vale("nuvem sem as colunas novas: boleto sai como hoje, sem encargos", g(5) && !("multa" in g(5).corpo), k(5));
+    vale("multa acima de 2%: vira ERRO e nada vai ao banco", r.linha(6).status === "erro" && /acima do contrato/.test(r.linha(6).erro_msg) && !g(6), String(r.linha(6).erro_msg).slice(0, 80));
+    vale("juros acima de 1% ao mês (R$ 1 por dia em R$ 810,50): vira ERRO e nada vai ao banco", r.linha(7).status === "erro" && !g(7), String(r.linha(7).erro_msg).slice(0, 80));
+    const PERMITIDAS = new Set(["tipoCobranca", "codigoBeneficiario", "pagador", "especieDocumento", "seuNumero", "dataVencimento", "valor", "validadeAposVencimento", "tipoMulta", "multa", "tipoJuros", "juros"]);
+    const todas = r.chamadas.filter(c => c.tipo === "gerar").flatMap(c => Object.keys(c.corpo));
+    vale("nenhum boleto leva data de carência (ela tira o QR do Pix) nem campo fora da lista", todas.length > 0 && todas.every(x => PERMITIDAS.has(x)) && !todas.some(x => /^data.*(juros|multa)/i.test(x)), [...new Set(todas)].filter(x => !PERMITIDAS.has(x)).join(",") || "só os permitidos");
+    vale("o registro da rodada diz a multa e os juros do boleto", /multa 2% e juros R\$ 0\.27\/dia/.test(r.saida), (r.saida.match(/GERADO[^\n]*multa[^\n]*/) || ["nada"])[0]);
+    const sql = fs.readFileSync(path.join(__dirname, "..", "..", "sql", "galpoes_encargos_boleto_auto.sql"), "utf8");
+    const robo = fs.readFileSync(ROBO, "utf8");
+    vale("o robô e o SQL usam os MESMOS nomes de coluna (multa_pct, juros_dia)", ["multa_pct", "juros_dia"].every(n => sql.includes("add column if not exists " + n) && robo.includes("row." + n)), "multa_pct, juros_dia");
   }
 
   console.log("\n  " + ok + " ok, " + falhou + " falha(s).\n");

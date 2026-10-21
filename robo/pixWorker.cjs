@@ -71,6 +71,24 @@ function soData(v){ return String(v||"").slice(0,10); }
 function maisDias(data,n){ const d=new Date(data+"T12:00:00Z"); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
 function dataBr(d){ const p=String(d||"").split("-"); return p.length===3 ? p[2]+"/"+p[1]+"/"+p[0] : String(d||""); }
 function reais(v){ return "R$ "+(Math.round(Number(v)*100)/100).toFixed(2).replace(".",","); }
+// ==GLENCARGOS== multa e juros por atraso (21/10/2026, contrato do advogado: multa 2% e juros 1% ao mes
+// pro rata die). SO na conta dos galpoes e SO com o que o BANCO de dados decidiu no pedido (gatilho
+// pix_cobrancas_encargos, pela chave do galpao). Juros em REAIS POR DIA (1% ao mes / 30, para baixo): o
+// Sicredi calcula sozinho no dia do pagamento. NUNCA manda dataInicioJuros/dataInicioMulta: com elas o
+// boleto perde o QR do Pix (manual da API, p. 7). Valor acima do contrato = erro, nada vai ao banco.
+function pixEncargos(row,c){
+  if(!c||c.nome!=="pf") return null;
+  const inf=v=>v!==null&&v!==undefined&&v!==""&&isFinite(Number(v))&&Number(v)>0;   // branco nao e zero
+  const m=row.multa_pct, j=row.juros_dia;
+  if(!inf(m)&&!inf(j)) return null;
+  const tetoJuros=Math.floor(Number(row.valor)*0.01/30*100)/100;
+  if((inf(m)&&Number(m)>2.0001)||(inf(j)&&Number(j)>tetoJuros+0.0001))
+    return {erro:"Multa/juros acima do contrato (multa "+m+"%, juros R$ "+j+" por dia; o teto e 2% e R$ "+tetoJuros.toFixed(2)+" por dia). Nada foi enviado ao banco."};
+  const e={};
+  if(inf(m)){ e.tipoMulta="PERCENTUAL"; e.multa=Math.round(Number(m)*100)/100; }
+  if(inf(j)){ e.tipoJuros="VALOR"; e.juros=Math.round(Number(j)*100)/100; }
+  return e;
+}
 function pixDecideBaixa(j,cob,hoje){
   const sit=String((j&&j.situacao)||"").toUpperCase();
   const dl=j&&j.dadosLiquidacao;
@@ -146,6 +164,8 @@ function pixDecideBaixa(j,cob,hoje){
       const ag=new Date(); const hj=ag.getFullYear()+"-"+String(ag.getMonth()+1).padStart(2,"0")+"-"+String(ag.getDate()).padStart(2,"0");
       let venc=String(pd.vencimento||"").slice(0,10);
       if(!venc || venc<hj) venc=hj;
+      const enc=pixEncargos(pd,c);
+      if(enc&&enc.erro){ await pixSbPatch("id=eq."+pd.id+"&status=eq.pedido",{status:"erro",erro_msg:enc.erro}); continue; }
       await pegaTok(c); // autentica ANTES de reivindicar (falha de login nao trava o pedido)
       const claim=await pixSbPatchRep("id=eq."+pd.id+"&status=eq.pedido",{status:"gerando",seu_numero:seuNum});
       if(!claim.length) continue; // outro worker ja pegou
@@ -153,6 +173,7 @@ function pixDecideBaixa(j,cob,hoje){
         pagador:{ tipoPessoa:(doc.length===14?"PESSOA_JURIDICA":"PESSOA_FISICA"), documento:doc, nome:String(pd.fornecedor||"Pagador").slice(0,40) },
         especieDocumento:"OUTROS", seuNumero:seuNum, dataVencimento:venc,
         valor:Math.round(Number(pd.valor)*100)/100, validadeAposVencimento:60 };
+      if(enc) Object.assign(corpo,enc);   // ==GLENCARGOS== multa e juros (so galpao com a chave ligada)
       const r=await fetch(PIX_BASE+"/cobranca/boleto/v1/boletos",{method:"POST",headers:hdr(c,await pegaTok(c),{"Content-Type":"application/json"}),body:JSON.stringify(corpo),signal:PIX_TIMEOUT()});
       const txt=await r.text();
       if(!r.ok){
@@ -167,7 +188,7 @@ function pixDecideBaixa(j,cob,hoje){
       }
       const b=JSON.parse(txt);
       await pixSbPatch("id=eq."+pd.id,{status:"gerado",txid:b.txid||null,nosso_numero:b.nossoNumero||null,linha_digitavel:b.linhaDigitavel||null,codigo_barras:b.codigoBarras||null,qr_code:b.qrCode||null,seu_numero:seuNum,erro_msg:null,vencimento:venc});
-      console.log("Pix: pedido #"+pd.id+" GERADO ("+c.nome+", nosso numero "+(b.nossoNumero||"?")+", venc "+venc+").");
+      console.log("Pix: pedido #"+pd.id+" GERADO ("+c.nome+", nosso numero "+(b.nossoNumero||"?")+", venc "+venc+(enc?(", multa "+(enc.multa||0)+"% e juros R$ "+(enc.juros||0)+"/dia"):"")+").");
     }catch(e){
       try{ await pixSbPatch("id=eq."+pd.id+"&status=eq.gerando",{status:"erro",erro_msg:"Falha de rede durante a geracao ("+String(e.message).slice(0,120)+"). Confira no Sicredi se o boleto (seu numero "+seuNum+") ja existe antes de Tentar de novo."}); }catch(e2){}
       console.log("Pix: pedido #"+pd.id+" falhou ("+e.message+").");

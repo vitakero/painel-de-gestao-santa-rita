@@ -957,6 +957,13 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .px-det-pontos .px-det-corta a { white-space:nowrap; }
   /* linha de baixo: Contrato nas colunas 1-3, Assinatura ancorada na 4 */
   .px-det-pontos .px-det-ct, .px-det-pontos .px-det-assin { grid-column: span 3; }
+  /* ==GLENCARGOS== a linha da multa e dos juros ocupa a largura toda do detalhe do galpão */
+  .px-det-pontos .gl-det-encargos { grid-column: 1 / -1; }
+  .gl-enc { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .gl-enc-txt { color:#3b4552; font-size:13px; line-height:1.45; }
+  .gl-enc-on { font-weight:700; color:#157a35; }
+  .gl-enc-off { font-weight:700; color:#6b7787; }
+  .gl-enc-obs { color:#9a6b12; }
   @media (max-width:1180px){
     .px-det-box.px-det-pontos { grid-template-columns: 1.4fr 2fr 1.3fr; }
     .px-det-pontos .px-det-ct, .px-det-pontos .px-det-assin { grid-column: span 3; }
@@ -11601,9 +11608,11 @@ function glRowFromG(g){ return {id:g.id,numero:String(g.numero||""),cnpj:g.cnpj|
 /* ==GLCOMP== comprovante que ainda não subiu (arquivo "data:...") NÃO vai pra nuvem: nem pesa o banco
    com o arquivo inteiro dentro da linha, nem faz os outros computadores verem "pago" sem o arquivo. */
 function glCompsParaNuvem(c){ if(!c) return null; var o={}; Object.keys(c).forEach(function(k){ var x=c[k]; if(x && !(typeof x.arquivo==="string" && x.arquivo.indexOf("data:")===0)) o[k]=x; }); return o; }
-function glGFromRow(r){ var g={id:r.id,numero:String(r.numero||""),cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",locatario:r.locatario||"",vendedor:r.vendedor||"",rg:r.rg||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",enderecoInq:r.endereco_inq||"",aluguel:r.aluguel||"1",valor:+r.valor||0,pagamento:r.pagamento||"",diaPag:+r.dia_pag||0,abertura:r.abertura||"",vencimento:r.vencimento||"",saida:r.saida||"",obs:r.obs||""}; if(r.manuais)g.manuais=r.manuais; if(r.comprovantes)g.comprovantes=r.comprovantes; if(r.contrato_url){ g.contratoArquivo=r.contrato_url; g.contratoNome=r.contrato_nome||""; } if(r.assinatura)g.assinatura=r.assinatura; return g; }
+function glGFromRow(r){ var g={id:r.id,numero:String(r.numero||""),cnpj:r.cnpj||"",razaoSocial:r.razao_social||"",locatario:r.locatario||"",vendedor:r.vendedor||"",rg:r.rg||"",contato:r.contato||"",email:r.email||"",endereco:r.endereco||"",enderecoInq:r.endereco_inq||"",aluguel:r.aluguel||"1",valor:+r.valor||0,pagamento:r.pagamento||"",diaPag:+r.dia_pag||0,abertura:r.abertura||"",vencimento:r.vencimento||"",saida:r.saida||"",obs:r.obs||""}; if(r.manuais)g.manuais=r.manuais; if(r.comprovantes)g.comprovantes=r.comprovantes; if(r.contrato_url){ g.contratoArquivo=r.contrato_url; g.contratoNome=r.contrato_nome||""; } if(r.assinatura)g.assinatura=r.assinatura; if(r.encargos===true){ g.encargos=true; g.encargosEm=r.encargos_em||""; } return g; }
 /* A coluna "assinatura" NAO vai no glRowFromG de proposito (igual aos pontos): no banco a trava
-   assin_trava recusa escrita direta nela. So as funcoes oficiais assinam/cancelam (==GLASSIN-*==). */
+   assin_trava recusa escrita direta nela. So as funcoes oficiais assinam/cancelam (==GLASSIN-*==).
+   ==GLENCARGOS== a chave "encargos" (multa e juros no boleto) tambem NAO vai: so a funcao do master
+   (galpao_definir_encargos) muda; no banco a trava galpoes__trava_encargos devolve o valor antigo. */
 // Sobe o contrato anexado pro Storage (bucket privado "pontos") antes de salvar — evita guardar base64 gigante no banco.
 function glSubirArquivos(g){
   var jobs=[];
@@ -17950,7 +17959,8 @@ function glPixVer(g,key){
   var dv=String(c.vencimento||key).slice(0,10).split("-"), nome=c.fornecedor||glNomePagador(g);
   pixAbrirModal({ valor:(+c.valor||(+g.valor||0)), codigo:c.qr_code, ponto:g.numero, rotulo:"Galpão nº", forn:nome, data:dv[2]+"/"+dv[1]+"/"+dv[0],
     nosso:c.nosso_numero||"", linha:c.linha_digitavel||"", modo:"boleto",
-    cnpjPag:(g.cnpj||c.documento||""), razao:nome, contato:(g.contato||""), refkey:pixCobKey(g.id,key), pf:true });
+    cnpjPag:(g.cnpj||c.documento||""), razao:nome, contato:(g.contato||""), refkey:pixCobKey(g.id,key), pf:true,
+    multaPct:(+c.multa_pct||0), jurosDia:(+c.juros_dia||0) });   // ==GLENCARGOS== o que o banco decidiu para ESTE boleto
 }
 function glPixRetry(g,key){
   var sb=pxSB(), c=pixCobs[pixCobKey(g.id,key)];
@@ -18352,8 +18362,21 @@ var GL_LOCADOR={
   cpf:"129.907.284-49",
   endereco:"Rua André Sales, 531, Paulo VI, "+GL_CIDADE_CEP,
   cidade:GL_CIDADE_CEP,
-  comarca:GL_CIDADE_CEP
+  comarca:GL_CIDADE_CEP,
+  cidadeSemCep:"Caicó/RN"   // ==GLENCARGOS== foro e "Local e data" do texto novo (modelo do advogado, 21/10)
 };
+/* ==GLENCARGOS== TEXTO DO CONTRATO POR VERSÃO (21/10/2026). O advogado (Helvan) fixou a 2.1: "multa de 2%,
+   juros de mora de 1% ao mês, pro rata die, pelo período em atraso e mais correção monetária pelo IPCA", e
+   tirou o CEP do foro e do "Local e data". Contrato com assinatura VÁLIDA feita ANTES de 21/10/2026 (00h de
+   Caicó = 03h UTC) continua saindo com o texto que o inquilino assinou — a assinatura eletrônica não guarda
+   o texto das cláusulas, então reimprimir com o texto novo seria um papel diferente do assinado. Os demais
+   (sem assinatura, assinatura caída/cancelada ou assinados depois) saem no texto novo. Esses antigos mudam
+   por ADITIVO, assinado no papel. */
+function glContratoTextoNovo(g){
+  var a=(typeof glAssinValida==="function" && glAssinValida(g))?g.assinatura:null;
+  var t=a&&a.em?Date.parse(a.em):NaN;
+  return !(a && isFinite(t) && t<Date.UTC(2026,9,21,3,0,0));
+}
 function glGerarContrato(g){
   if(!g){ alert("Preencha os dados do galpão antes de gerar o contrato."); return; }
   var w=window.open("","_blank");
@@ -18373,6 +18396,7 @@ function glContratoDocHtml(g){
   var rgInq=pxEsc(g.rg||"");
   var endGalpao=pxEsc(glEnderecoDe(g.numero));
   var dia=(+g.diaPag||5);
+  var textoNovo=glContratoTextoNovo(g);   // ==GLENCARGOS== 2.1 do advogado e foro/local sem CEP
   // Aluguel: o padrão é salário mínimo (frente pra BR = 1, rua interna = meio).
   var alu=String(g.aluguel||"1");
   var aluTxt;
@@ -18441,7 +18465,9 @@ function glContratoDocHtml(g){
   var cl=[];
   cl.push("A <b>LOCADORA</b>, por este instrumento, dá em locação à <b>LOCATÁRIA</b> o imóvel de sua propriedade, livre e desembaraçado de quaisquer ônus reais e em perfeitas condições de higiene e conservação, estabelecido na "+endGalpao+", nesta cidade, por prazo indeterminado, tendo por termo inicial a data de sua assinatura no dia "+dataExt+".");
   cl.push("O aluguel ajustado entre as partes é "+aluTxt+".");
-  cl.push("O pagamento até o dia "+dia+" de cada mês, sob pena de incorrer a <b>LOCATÁRIA</b> em multa de 2% (dois por cento) sobre o valor do aluguel mensal, mais correção monetária e juros de mora pelo período em atraso.");
+  cl.push(textoNovo
+    ? "O pagamento até o dia "+dia+" de cada mês, sob pena de incorrer a <b>LOCATÁRIA</b> em multa de 2% (dois por cento) sobre o valor do aluguel mensal, juros de mora de 1% ao mês, <i>pro rata die</i>, pelo período em atraso e mais correção monetária pelo IPCA."
+    : "O pagamento até o dia "+dia+" de cada mês, sob pena de incorrer a <b>LOCATÁRIA</b> em multa de 2% (dois por cento) sobre o valor do aluguel mensal, mais correção monetária e juros de mora pelo período em atraso.");
   cl.push("A <b>LOCATÁRIA</b> arcará com o pagamento de todos os impostos e taxas, seja de que natureza forem, que incidam ou venham a incidir sobre o imóvel e eventuais multas decorrentes do inadimplemento ou atraso nos respectivos pagamentos e, ainda, por todas as despesas de água, energia elétrica, telefone, gás e outras ligadas ao imóvel.");
   cl.push("Ficarão a cargo da <b>LOCATÁRIA</b> as obras que forem exigidas pelas autoridades municipais e sanitárias relativamente à segurança, conservação e higiene do prédio. A <b>LOCATÁRIA</b> poderá, ainda, realizar benfeitorias e modificações no imóvel, desde que com prévia anuência, por escrito, da <b>LOCADORA</b>, não lhe cabendo, porém, qualquer indenização ou retenção em função das mesmas.");
   cl.push("Como forma de propagação de suas atividades comerciais, é permitido à <b>LOCATÁRIA</b> fixar letreiros ou faixas e instalar luminosos nas áreas externas do imóvel, desde que não o danifiquem.");
@@ -18456,7 +18482,7 @@ function glContratoDocHtml(g){
   cl.push("Fica estipulada a multa equivalente a 2 (dois) meses de aluguel, na qual incorrerá a parte que infringir qualquer cláusula deste contrato, com a faculdade para a parte inocente de considerar simultaneamente rescindida a locação, independente de qualquer notificação.");
   cl.push("No caso de morte ou insolvência do(s) fiador(es) a <b>LOCATÁRIA</b> ficará obrigada a dar-lhe(s) substituto(s) idôneo(s), dentro do prazo de 30 (trinta) dias, sob pena de rescisão contratual.");
   cl.push("A tolerância das partes a respeito do descumprimento ou inobservância do disposto no presente instrumento não poderá ser considerada como novação ou alteração das cláusulas contratuais.");
-  cl.push("As partes elegem o foro da Comarca de "+pxEsc(L.comarca)+", para decidir qualquer questão judicial decorrente deste contrato, renunciando a qualquer outro, por mais privilegiado que seja.");
+  cl.push("As partes elegem o foro da Comarca de "+pxEsc(textoNovo?L.cidadeSemCep:L.comarca)+", para decidir qualquer questão judicial decorrente deste contrato, renunciando a qualquer outro, por mais privilegiado que seja.");
   // A regra do dia de pagamento é subitem da cláusula do aluguel (2.1 no modelo em papel).
   var n=0;
   for(var i=0;i<cl.length;i++){
@@ -18465,7 +18491,7 @@ function glContratoDocHtml(g){
     h+="<p class='cl'><span class='n'>"+num+"</span>&nbsp;&nbsp;"+cl[i]+"</p>";
   }
   h+="<p style='margin-top:20px'>E por estarem <b>LOCADORA</b> e <b>LOCATÁRIA</b> de pleno acordo com o disposto neste instrumento particular, assinam-no na presença das duas testemunhas abaixo, em DUAS vias de igual teor e forma, destinando-se uma via para cada uma das partes.</p>";
-  h+="<p>Local e data: "+pxEsc(L.cidade)+", "+dataExt+".</p>";
+  h+="<p>Local e data: "+pxEsc(textoNovo?L.cidadeSemCep:L.cidade)+", "+dataExt+".</p>";
   // Assinado no painel (==GLASSIN-*==) e o contrato não mudou depois? O carimbo sai sobre a
   // linha da LOCADORA, com o código que qualquer um confere no site. Se caiu, sai em branco.
   var _as=glAssinValida(g)?g.assinatura:null;
@@ -18610,6 +18636,49 @@ function glAvisosReajuste(oldVal, newVal, desdeBR){
   w.document.open(); w.document.write(h); w.document.close();
 }
 // Bloco do CONTRATO do galpão — mesmo padrão dos pontos extras (Gerar contrato + Anexar contrato).
+/* ==GLENCARGOS== MULTA E JUROS NO BOLETO (21/10/2026): chave POR GALPÃO, nasce desligada, só o master muda
+   (decisão dele: liga depois que o inquilino assinar o aditivo). Quem decide a multa e os juros de cada
+   boleto é o banco, pela chave (gatilho pix_cobrancas_encargos): multa 2% e juros de 1% ao mês em reais
+   por dia, que o Sicredi calcula sozinho no dia do pagamento. Vale para os boletos pedidos DEPOIS de ligar. */
+function glJurosDia(g){ return Math.floor((+g.valor||0)*0.01/30*100)/100; }
+function glEncargosHtml(g){
+  var gid=pxEsc(g.id), liga=!!g.encargos, jd=glJurosDia(g);
+  var txt=liga
+    ? '<span class="gl-enc-on">Ligado</span>'+(g.encargosEm?(' desde '+pxEsc(pxFmtData(String(g.encargosEm).slice(0,10)))):'')+
+      ' — os próximos boletos saem com multa de 2% e juros de '+brl(jd)+' por dia de atraso (1% ao mês).'
+    : '<span class="gl-enc-off">Desligado</span> — o boleto sai sem multa e sem juros.'+
+      (glContratoTextoNovo(g)?'':' <span class="gl-enc-obs">Contrato assinado no texto antigo: ligue depois que o inquilino assinar o aditivo.</span>');
+  return '<div class="px-det-item gl-det-encargos px-acoes"><b>Multa e juros no boleto</b><div class="gl-enc">'+
+    '<span class="gl-enc-txt">'+txt+'</span>'+
+    '<button type="button" class="px-aut" data-glencargos="'+gid+'" data-glencligar="'+(liga?"0":"1")+'">'+(liga?"Desligar":"Ligar")+'</button>'+
+    '</div></div>';
+}
+function glDefinirEncargos(id,ligar){
+  var g=galpoesG.find(function(x){ return x.id===id; }); if(!g) return;
+  var sb=glSB();
+  if(!sb){ uiConfirm({titulo:"Precisa estar conectado",msg:"Entre no painel e tente de novo.",ok:"Entendi",cancel:""}); return; }
+  var jd=glJurosDia(g);
+  var msg=ligar
+    ? "Ligar multa e juros no boleto do galpão nº "+(g.numero||"")+"?\\n\\nOs boletos pedidos daqui em diante saem com multa de 2% ("+brl(Math.round((+g.valor||0)*2)/100)+") e juros de "+brl(jd)+" por dia de atraso (1% ao mês). Quem calcula é o banco, no dia do pagamento. Os boletos já gerados não mudam."+
+      (glContratoTextoNovo(g)?"":"\\n\\nAtenção: o contrato deste galpão foi assinado no texto antigo, que não fixa a taxa dos juros. Ligue só depois que o inquilino assinar o aditivo.")
+    : "Desligar multa e juros no boleto do galpão nº "+(g.numero||"")+"?\\n\\nOs boletos pedidos daqui em diante saem sem multa e sem juros. Os já gerados não mudam.";
+  uiConfirm({titulo:ligar?"Ligar multa e juros":"Desligar multa e juros",msg:msg,ok:ligar?"Ligar":"Desligar",cancel:"Voltar"}).then(function(sim){
+    if(!sim) return;
+    sb.rpc("galpao_definir_encargos",{p_id:id,p_ligar:!!ligar}).then(function(r){
+      if(r&&r.error){
+        var m=String(r.error.message||"");
+        uiConfirm({titulo:"Não mudou",msg:(/galpao_definir_encargos|function|schema/i.test(m)?"Falta instalar no banco a multa e os juros (sql/galpoes_encargos_boleto_auto.sql).":"Não consegui falar com o banco agora. Tente de novo."),ok:"Entendi",cancel:""});
+        return;
+      }
+      var d2=r&&r.data;
+      if(!d2||!d2.ok){ uiConfirm({titulo:"Não mudou",msg:(d2&&d2.erro==="so_master")?"Só o master liga ou desliga a multa e os juros.":("O banco recusou ("+String((d2&&d2.erro)||"")+")."),ok:"Entendi",cancel:""}); return; }
+      var gAt=galpoesG.find(function(x){ return x.id===id; })||g;
+      gAt.encargos=!!d2.encargos; gAt.encargosEm=String(d2.em||"");
+      try{ localStorage.setItem("galpoes_dados",JSON.stringify(galpoesG)); }catch(e2){}
+      renderGalpoes(); glReabrir(id);
+    },function(){ uiConfirm({titulo:"Sem conexão",msg:"Não consegui falar com o banco agora. Nada mudou.",ok:"Entendi",cancel:""}); });
+  });
+}
 function glContratoHtml(g){
   var clipIc='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>';
   var gerarIc='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>';
@@ -18904,6 +18973,7 @@ function renderGalpoes(){
         pxDetItem("Contato", g.contato?pxFmtTel(g.contato):"—", "px-det-nowrap")+
         pxDetItem("E-mail", g.email ? ('<a href="mailto:'+pxEsc(g.email)+'" title="'+pxEsc(g.email)+'">'+pxEsc(g.email)+'</a>') : "—", "px-det-corta")+
         glContratoHtml(g)+
+        (glEhMaster()?glEncargosHtml(g):"")+
       '</div>'+glAgendaHtml(g)+'</div></td></tr>';
   }).join("");
   /* O REDESENHO NÃO FECHA O QUE ESTAVA ABERTO (30/09, queixa dele: "quando aperto pago ou o X a
@@ -19043,6 +19113,8 @@ function renderGalpoes(){
       var gAnxB=galpoesG.find(function(x){ return x.id===cbtnG.dataset.glcfileBtn; });
       if(gAnxB && !glExigeAssinatura(gAnxB)) return;
       var inpG=document.querySelector('[data-glcfile="'+cbtnG.dataset.glcfileBtn+'"]'); if(inpG){ inpG.value=""; inpG.click(); } return; }
+    var encG=e.target.closest("[data-glencargos]");   // ==GLENCARGOS==
+    if(encG){ if(glEhMaster()) glDefinirEncargos(encG.dataset.glencargos, encG.dataset.glencligar==="1"); return; }
     var cgerG=e.target.closest("[data-glcgerar]");
     if(cgerG){ var gg=galpoesG.find(function(x){ return x.id===cgerG.dataset.glcgerar; }); if(gg) glGerarContrato(gg); return; }
     // --- CALENDÁRIO DE COBRANÇAS ---
@@ -20679,8 +20751,10 @@ function pixBaixarFicha(o,qrDataUrl){
     rotulo("Resumo financeiro",L,cy); cy+=18;
     const kv=function(k,v,vc){ x.textAlign="left"; x.fillStyle=SEC; x.font="400 12px "+F; x.fillText(k,L+2,cy); x.textAlign="right"; x.fillStyle=vc||INK; x.font="600 12px "+F; x.fillText(v,R-2,cy); x.textAlign="left"; };
     kv("Valor original",brl(o.valor)); cy+=7; x.strokeStyle="#F3F4F6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=15;
-    kv("Multa por atraso",pf?"Conforme o contrato":"Isento",MUT); cy+=7; x.strokeStyle="#F3F4F6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=15;
-    kv("Juros de mora",pf?"Conforme o contrato":"Isento",MUT); cy+=10;
+    // ==GLENCARGOS== com a chave do galpão ligada, o boleto leva a multa e os juros que o banco decidiu
+    const encM=pf?(+o.multaPct||0):0, encJ=pf?(+o.jurosDia||0):0;
+    kv("Multa por atraso",encM>0?(String(encM).replace(".",",")+"% ("+brl(Math.round((+o.valor||0)*encM)/100)+")"):(pf?"Conforme o contrato":"Isento"),encM>0?INK:MUT); cy+=7; x.strokeStyle="#F3F4F6"; x.beginPath(); x.moveTo(L,cy); x.lineTo(R,cy); x.stroke(); cy+=15;
+    kv("Juros de mora",encJ>0?(brl(encJ)+" por dia de atraso"):(pf?"Conforme o contrato":"Isento"),encJ>0?INK:MUT); cy+=10;
     fio(cy); cy+=20;
     x.textAlign="left"; x.fillStyle=INK; x.font="700 13.5px "+F; x.fillText("Total a pagar",L+2,cy);
     x.textAlign="right"; x.fillStyle=VERDE; x.font="700 18px "+F; x.fillText(brl(o.valor),R-2,cy+2); x.textAlign="left"; cy+=26;
@@ -20757,7 +20831,7 @@ function pixBaixarFicha(o,qrDataUrl){
     x.fillStyle="#ffffff"; x.strokeStyle=LIN; x.lineWidth=1; pixRR(x,L,cy,cw,aH,9); x.fill(); x.stroke();
     x.textAlign="left"; x.fillStyle="#374151"; x.font="400 10.5px "+F;
     x.fillText("Pagar até a data de vencimento.",L+16,cy+16);
-    x.fillStyle=SEC; x.fillText(pf?"Após o vencimento, aplicam-se as condições do contrato de locação.":"O não pagamento até o vencimento pode acarretar o cancelamento do espaço.",L+16,cy+30);
+    x.fillStyle=SEC; x.fillText((encM>0||encJ>0)?("Após o vencimento: "+(encM>0?("multa de "+String(encM).replace(".",",")+"%"):"")+((encM>0&&encJ>0)?" e ":"")+(encJ>0?("juros de "+brl(encJ)+" por dia"):"")+", calculados pelo banco no pagamento."):pf?"Após o vencimento, aplicam-se as condições do contrato de locação.":"O não pagamento até o vencimento pode acarretar o cancelamento do espaço.",L+16,cy+30);
     cy+=aH+19;
     // ===== RODAPÉ INSTITUCIONAL =====
     fio(cy); cy+=16;
