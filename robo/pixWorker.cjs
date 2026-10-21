@@ -81,7 +81,8 @@ function pixEncargos(row,c){
   const inf=v=>v!==null&&v!==undefined&&v!==""&&isFinite(Number(v))&&Number(v)>0;   // branco nao e zero
   const m=row.multa_pct, j=row.juros_dia;
   if(!inf(m)&&!inf(j)) return null;
-  const tetoJuros=Math.floor(Number(row.valor)*0.01/30*100)/100;
+  // em CENTAVOS INTEIROS, igual ao banco (numeric): 810*0.01/30*100 no computador da 26,999... e recusaria 0,27
+  const tetoJuros=Math.floor(Math.round(Number(row.valor)*100)/3000)/100;
   if((inf(m)&&Number(m)>2.0001)||(inf(j)&&Number(j)>tetoJuros+0.0001))
     return {erro:"Multa/juros acima do contrato (multa "+m+"%, juros R$ "+j+" por dia; o teto e 2% e R$ "+tetoJuros.toFixed(2)+" por dia). Nada foi enviado ao banco."};
   const e={};

@@ -18640,11 +18640,11 @@ function glAvisosReajuste(oldVal, newVal, desdeBR){
    (decisão dele: liga depois que o inquilino assinar o aditivo). Quem decide a multa e os juros de cada
    boleto é o banco, pela chave (gatilho pix_cobrancas_encargos): multa 2% e juros de 1% ao mês em reais
    por dia, que o Sicredi calcula sozinho no dia do pagamento. Vale para os boletos pedidos DEPOIS de ligar. */
-function glJurosDia(g){ return Math.floor((+g.valor||0)*0.01/30*100)/100; }
+function glJurosDia(g){ return Math.floor(Math.round((+g.valor||0)*100)/3000)/100; }   // centavos inteiros, igual ao banco
 function glEncargosHtml(g){
   var gid=pxEsc(g.id), liga=!!g.encargos, jd=glJurosDia(g);
   var txt=liga
-    ? '<span class="gl-enc-on">Ligado</span>'+(g.encargosEm?(' desde '+pxEsc(pxFmtData(String(g.encargosEm).slice(0,10)))):'')+
+    ? '<span class="gl-enc-on">Ligado</span>'+(isFinite(Date.parse(g.encargosEm))?(' desde '+pxEsc(pxFmtData(pxDateKey(new Date(g.encargosEm))))):'')+
       ' — os próximos boletos saem com multa de 2% e juros de '+brl(jd)+' por dia de atraso (1% ao mês).'
     : '<span class="gl-enc-off">Desligado</span> — o boleto sai sem multa e sem juros.'+
       (glContratoTextoNovo(g)?'':' <span class="gl-enc-obs">Contrato assinado no texto antigo: ligue depois que o inquilino assinar o aditivo.</span>');

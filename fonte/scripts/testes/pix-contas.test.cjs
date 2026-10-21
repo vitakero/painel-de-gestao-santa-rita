@@ -248,6 +248,14 @@ const pago = (data, valor, sit) => ({ situacao: sit || "LIQUIDADO PIX", valorNom
     vale("o registro da rodada diz a multa e os juros do boleto", /multa 2% e juros R\$ 0\.27\/dia/.test(r.saida), (r.saida.match(/GERADO[^\n]*multa[^\n]*/) || ["nada"])[0]);
     const sql = fs.readFileSync(path.join(__dirname, "..", "..", "sql", "galpoes_encargos_boleto_auto.sql"), "utf8");
     const robo = fs.readFileSync(ROBO, "utf8");
+    // os juros que o BANCO grava (numeric exato: floor(centavos/3000)/100) o robô tem que aceitar, em todo valor
+    const fonte = robo.slice(robo.indexOf("function pixEncargos("), robo.indexOf("function pixDecideBaixa("));
+    const pixEncargos = new Function(fonte + "\nreturn pixEncargos;")();
+    let recusados = [];
+    for (let cent = 1; cent <= 2000000; cent++) { const j = Math.floor(cent / 3000) / 100; if (j <= 0) continue;
+      const e = pixEncargos({ valor: cent / 100, multa_pct: 2, juros_dia: j }, { nome: "pf" }); if (!e || e.erro || e.juros !== j) { recusados.push(cent / 100); if (recusados.length > 5) break; } }
+    vale("de R$ 0,01 a R$ 20.000: o robô aceita exatamente os juros que o banco calcula (inclusive R$ 810,00, 1.620,00, 2.370,00)", recusados.length === 0, recusados.length ? "recusou " + recusados.join(", ") : "nenhum recusado");
+    vale("e recusa 1 centavo acima do teto (R$ 0,28 em R$ 810,00)", !!(pixEncargos({ valor: 810, multa_pct: 2, juros_dia: 0.28 }, { nome: "pf" }) || {}).erro, "recusado");
     vale("o robô e o SQL usam os MESMOS nomes de coluna (multa_pct, juros_dia)", ["multa_pct", "juros_dia"].every(n => sql.includes("add column if not exists " + n) && robo.includes("row." + n)), "multa_pct, juros_dia");
   }
 
