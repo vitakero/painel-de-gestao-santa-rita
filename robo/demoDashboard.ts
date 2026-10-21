@@ -20798,19 +20798,21 @@ function pixBaixarFicha(o,qrDataUrl){
   qimg.src=qrDataUrl;
 }
 let pixFichaCanvas=null;
-// Monta um PDF (1 página A4) embutindo a imagem JPEG da ficha — tudo offline, sem biblioteca.
+// Monta um PDF (1 página na largura da A4, ver ==FICHAA4==) embutindo a imagem JPEG da ficha — tudo offline, sem biblioteca.
 function pixCanvasToPdfBlob(cv){
   const iw=cv.width, ih=cv.height;
   const bin=atob(cv.toDataURL("image/jpeg",0.92).split(",")[1]);
   const jpg=new Uint8Array(bin.length);
   for(let i=0;i<bin.length;i++) jpg[i]=bin.charCodeAt(i);
-  // ==FICHAA4== página A4 de verdade (595,28 x 841,89 pt) com a ficha encaixada dentro, sem cortar:
-  // ocupa a largura toda (menos a margem) e, se for alta demais, encolhe até caber na altura.
-  // Margens diferentes em cima e embaixo: toda impressora tem uma faixa da borda onde não imprime, e
-  // a de BAIXO é a maior (em muitas passa de 12 mm). Com 6 mm a impressora dele comeu o rodapé; com
-  // 15 mm em volta sobrou espaço em cima; com 18 mm embaixo ainda cortou a borda na impressora dele.
-  // Agora: 5 mm em cima, 23 mm embaixo, 7 mm nos lados (e a ficha mais baixa, para não encolher).
-  const pageW=595.28, pageH=841.89, mgTopo=14, mgBase=64, mgLado=20;
+  // ==FICHAA4== a folha do PDF tem a LARGURA da A4 (595,28 pt) e é um pouco mais BAIXA (798 pt = 28 cm).
+  // Por quê (20/10, 5ª queixa dele: "está mais para o lado esquerdo"): ao imprimir PDF o Chrome encolhe a
+  // folha para caber na área que a impressora alcança e encosta no canto ESQUERDO. Com a folha A4 inteira,
+  // quem limitava era a ALTURA (a faixa sem impressão embaixo é a maior) e a sobra de largura ia toda para
+  // a direita. Mais baixa que essa área, quem limita é a LARGURA: preenche de lado a lado, centralizada, e
+  // a sobra fica embaixo. Em "tamanho real" a folha começa no alto da A4 e sobram ~22 mm livres embaixo
+  // (com 6 mm a impressora dele comeu o rodapé; com 18 mm ainda cortou a borda).
+  // Dentro da folha: 5 mm em cima, 7 mm nos lados, ~6 mm embaixo.
+  const pageW=595.28, pageH=798, mgTopo=14, mgBase=16, mgLado=20;
   const esc=Math.min((pageW-2*mgLado)/iw,(pageH-mgTopo-mgBase)/ih);
   const dw=iw*esc, dh=ih*esc, dx=(pageW-dw)/2, dy=pageH-mgTopo-dh;   // centralizada, encostada no alto
   const enc=function(s){ const a=new Uint8Array(s.length); for(let j=0;j<s.length;j++) a[j]=s.charCodeAt(j)&0xff; return a; };
