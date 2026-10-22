@@ -964,6 +964,10 @@ const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
   .gl-enc-on { font-weight:700; color:#157a35; }
   .gl-enc-off { font-weight:700; color:#6b7787; }
   .gl-enc-obs { color:#9a6b12; }
+  /* ==GLEMAIL== sinal do e-mail do boleto no calendário do galpão */
+  .gl-email-cell { white-space:nowrap; }
+  .gl-email-ok { display:inline-block; font-size:11.5px; color:#157a35; white-space:nowrap; }
+  .gl-email-nao { display:inline-block; font-size:11.5px; color:#9a6b12; white-space:nowrap; }
   @media (max-width:1180px){
     .px-det-box.px-det-pontos { grid-template-columns: 1.4fr 2fr 1.3fr; }
     .px-det-pontos .px-det-ct, .px-det-pontos .px-det-assin { grid-column: span 3; }
@@ -18053,7 +18057,8 @@ function glAgendaHtml(g){
       ? '<a href="#" class="px-comp-link" data-glcompview="'+ref+'" title="Ver comprovante">'+icoClip+'<span>comprovante</span></a> <button type="button" class="px-comp-x" data-glcomprem="'+ref+'" title="Remover comprovante">✕</button>'
       : (quit ? '<span style="color:#c3ccd6;">—</span>'
               : '<button type="button" class="gl-comp-anexar" data-glcompanexar="'+ref+'" title="'+(ctOk?'Anexe o comprovante do pagamento: é ele que marca a mensalidade como paga':'Anexe primeiro o contrato assinado')+'">'+icoClip+'<span>Anexar</span></button>');
-    return '<tr'+passou+'><td>'+(i+1)+'</td><td>'+pxDataChip(d)+'</td><td>'+brl(g.valor||0)+'</td><td class="px-pix-cell">'+cobCell+'</td><td class="px-comp-cell">'+compCell+'</td></tr>';
+    // ==GLEMAIL== coluna própria (pedido dele, 22/10: "para não ficar desorganizado")
+    return '<tr'+passou+'><td>'+(i+1)+'</td><td>'+pxDataChip(d)+'</td><td>'+brl(g.valor||0)+'</td><td class="px-pix-cell">'+cobCell+'</td>'+(GL_PIX_NO_AR?'<td class="gl-email-cell">'+glEmailSelo(cob)+'</td>':'')+'<td class="px-comp-cell">'+compCell+'</td></tr>';
   }).join("");
   // ==GLPIX== cobrança deste galpão no banco cuja data saiu do calendário (mudou o dia de pagamento, a
   // abertura ou a saída): continua valendo no Sicredi, então continua à vista, com Ver e ✕ para cancelar.
@@ -18067,7 +18072,7 @@ function glAgendaHtml(g){
       var cel = cf.status==="pago" ? '<span class="px-quitado" title="Pago e conferido no Sicredi">'+'✓ Pago no banco</span>'
         : cf.status==="gerado" ? '<button type="button" class="px-pix-btn" data-glpixver="'+reff+'">'+(ehBoleto?'Ver boleto':'Ver QR Code')+'</button> <button type="button" class="px-rec" data-glpixcancel="'+reff+'" title="Cancelar esta cobrança no banco">✕</button>'
         : '<span class="px-aguard">'+icoRelogio+pxEsc(cf.status)+'</span>';
-      linhas+='<tr style="background:#fffbeb;"><td>—</td><td><span title="Esta data não está mais no calendário (mudou o dia de pagamento, a abertura ou a saída)">'+pxEsc(pk.length===3?(pk[2]+"/"+pk[1]+"/"+pk[0]):cf.parcela_key)+' <small style="color:#b45309;">fora do calendário</small></span></td><td>'+brl(+cf.valor||0)+'</td><td class="px-pix-cell">'+cel+'</td><td class="px-comp-cell"><span style="color:#c3ccd6;">—</span></td></tr>';
+      linhas+='<tr style="background:#fffbeb;"><td>—</td><td><span title="Esta data não está mais no calendário (mudou o dia de pagamento, a abertura ou a saída)">'+pxEsc(pk.length===3?(pk[2]+"/"+pk[1]+"/"+pk[0]):cf.parcela_key)+' <small style="color:#b45309;">fora do calendário</small></span></td><td>'+brl(+cf.valor||0)+'</td><td class="px-pix-cell">'+cel+'</td><td class="gl-email-cell">'+glEmailSelo(cf)+'</td><td class="px-comp-cell"><span style="color:#c3ccd6;">—</span></td></tr>';
     });
   }
   // prazo indeterminado (==GLSAIDA==): o título diz até onde a lista vai e que ela anda sozinha
@@ -18076,7 +18081,7 @@ function glAgendaHtml(g){
     ? (ag.length+' parcela(s), todo dia '+(+g.diaPag||5)+', até a saída em '+pxEsc(pxFmtData(g.saida)))
     : ('todo dia '+(+g.diaPag||5)+' · prazo indeterminado (mostrando até '+MESC[ult.getMonth()]+'/'+ult.getFullYear()+'; os meses seguintes aparecem sozinhos)');
   return '<div class="px-agenda"><div class="px-agenda-tit">Calendário de cobranças — '+titAg+'</div>'+
-    '<table class="px-agenda-tb"><thead><tr><th>#</th><th>Data da cobrança</th><th>Valor</th><th>Cobrança</th><th>Comprovante</th></tr></thead><tbody>'+linhas+'</tbody></table></div>';
+    '<table class="px-agenda-tb"><thead><tr><th>#</th><th>Data da cobrança</th><th>Valor</th><th>Cobrança</th>'+(GL_PIX_NO_AR?'<th>E-mail</th>':'')+'<th>Comprovante</th></tr></thead><tbody>'+linhas+'</tbody></table></div>';
 }
 // ===== SALÁRIO MÍNIMO — é a base do aluguel dos galpões =====
 // O contrato não cita R$: diz "correspondente a X salário mínimo vigente". Então quando
@@ -18636,6 +18641,34 @@ function glAvisosReajuste(oldVal, newVal, desdeBR){
   w.document.open(); w.document.write(h); w.document.close();
 }
 // Bloco do CONTRATO do galpão — mesmo padrão dos pontos extras (Gerar contrato + Anexar contrato).
+/* ==GLEMAIL== BOLETO POR E-MAIL (21/10/2026): a função da nuvem aviso-boleto-galpao manda o boleto ao
+   e-mail do cadastro do galpão e anota na cobrança (email_enviado_em / email_para / email_erro). Aqui só
+   mostra, na coluna "E-mail" do calendário: enviado (com a data e para quem) ou por que não foi (ex.: inquilino
+   sem e-mail no cadastro). Sem nada a dizer (sem boleto, boleto de antes do envio automático): traço. */
+function glEmailSelo(cob){
+  var traco='<span style="color:#c3ccd6;">—</span>';
+  if(!cob) return traco;
+  var ic='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px;"><rect x="3" y="5" width="18" height="14" rx="2"></rect><polyline points="3 7 12 13 21 7"></polyline></svg>';
+  if(cob.email_enviado_em){
+    var dt=isFinite(Date.parse(cob.email_enviado_em))?pxFmtData(pxDateKey(new Date(cob.email_enviado_em))):"";
+    return '<span class="gl-email-ok" title="Mandado por e-mail para '+pxEsc(cob.email_para||"")+'">'+ic+'enviado'+(dt?(' '+dt.slice(0,5)):'')+'</span>';
+  }
+  // o motivo guardado no banco pode trazer a resposta do serviço de e-mail (em inglês): na tela, só o motivo em português
+  var er=String(cob.email_erro||"");
+  if(er){
+    var semEmail=/sem e-mail/.test(er), invalido=/inválido no cadastro/.test(er);
+    // ==GLEMAIL== nada sai sem cópia ao financeiro: falta do Gmail (ou recusa dele) tem rótulo próprio, visível no celular
+    var finRecusou=/recusou o e-mail do financeiro/.test(er), finFalta=!finRecusou && /financeiro/.test(er);
+    var dica=semEmail?"O galpão não tem e-mail no cadastro. Preencha o e-mail do inquilino e o boleto vai sozinho em até 10 minutos."
+      :invalido?"O e-mail do cadastro está escrito errado. Deixe um endereço só, completo (ex.: nome@gmail.com); corrigido, o boleto vai sozinho em até 10 minutos."
+      :(er.indexOf("recusado:")===0?("O e-mail para "+(cob.email_para||"o inquilino")+" foi recusado. Confira o e-mail no cadastro do galpão; corrigido, vai sozinho.")
+      :finRecusou?"O serviço de e-mail recusou o Gmail do financeiro (cópia). Confira o endereço gravado na configuração do envio; corrigido, o boleto vai sozinho em até 10 minutos."
+      :finFalta?"Falta o Gmail do financeiro na configuração do envio: nenhum boleto sai sem a cópia para o financeiro. Gravado o endereço, vai sozinho em até 10 minutos."
+      :(/ficha/.test(er)?"A ficha do boleto não montou e o e-mail não saiu. Tenta de novo sozinho a cada 10 minutos.":"Falha passageira no envio. Tenta de novo sozinho a cada 10 minutos."));
+    return '<span class="gl-email-nao" title="'+pxEsc(dica)+'">'+ic+(semEmail?'sem e-mail no cadastro':invalido?'e-mail errado no cadastro':finFalta?'falta o Gmail do financeiro':finRecusou?'Gmail do financeiro recusado':'não saiu')+'</span>';
+  }
+  return traco;
+}
 /* ==GLENCARGOS== MULTA E JUROS NO BOLETO (21/10/2026): chave POR GALPÃO, nasce desligada, só o master muda
    (decisão dele: liga depois que o inquilino assinar o aditivo). Quem decide a multa e os juros de cada
    boleto é o banco, pela chave (gatilho pix_cobrancas_encargos): multa 2% e juros de 1% ao mês em reais
@@ -20809,15 +20842,24 @@ function pixBaixarFicha(o,qrDataUrl){
     x.fillStyle="#ffffff"; pixRR(x,L,cy,cw,pbH,12); x.fill();
     x.strokeStyle=LIN; x.lineWidth=1; pixRR(x,L,cy,cw,pbH,12); x.stroke();
     x.beginPath(); x.moveTo(meio,cy+12); x.lineTo(meio,cy+pbH-12); x.stroke();
+    // ==GLEMAIL== nome comprido (razão social de empresa) não pode invadir a outra coluna: a letra encolhe até
+    // 9 px e, se ainda não couber, o fim vira "…" (achado da revisão de 21/10; antes passava por cima do beneficiário)
+    const largCol=cw/2-48;
+    const caber=function(txt,peso,tam,min){
+      var t=String(txt||""), sz=tam; x.font=peso+" "+sz+"px "+F;
+      while(x.measureText(t).width>largCol && sz>min){ sz-=0.5; x.font=peso+" "+sz+"px "+F; }
+      if(x.measureText(t).width>largCol){ while(t.length>1 && x.measureText(t+"…").width>largCol) t=t.slice(0,-1); t=t+"…"; }
+      return t;
+    };
     const pessoa=function(px2,lb,nome,subs){
       // centraliza o bloco na vertical: mede a altura das linhas e sobra igual em cima e embaixo
       subs=subs.filter(function(s2){ return !!s2; });
       var inner=10+18+(subs.length?16+(subs.length-1)*14:0);
       var yy=cy+(pbH-inner)/2+10;
       rotulo(lb,px2,yy);
-      yy+=18; x.fillStyle=INK; x.font="600 12px "+F; x.fillText(nome,px2,yy);
+      yy+=18; x.fillStyle=INK; x.fillText(caber(nome,"600",12,9),px2,yy);
       x.fillStyle=SEC; x.font="400 10.5px "+F;
-      for(var si2=0;si2<subs.length;si2++){ yy+=(si2===0?16:14); x.fillText(subs[si2],px2,yy); }
+      for(var si2=0;si2<subs.length;si2++){ yy+=(si2===0?16:14); x.fillText(caber(subs[si2],"400",10.5,8.5),px2,yy); }
     };
     const docPag=pixFmtDoc(o.cnpjPag);
     pessoa(L+24,"Pagador",(o.razao||o.forn||"—"),[(docPag?("CPF/CNPJ "+docPag):""),(o.contato?("Contato: "+o.contato):"")]);
