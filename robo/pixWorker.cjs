@@ -28,6 +28,7 @@ const PIX_SANDBOX=(PIX_AMB!=="producao"&&PIX_AMB!=="prod");
 const PIX_BASE="https://api-parceiro.sicredi.com.br"+(PIX_SANDBOX?"/sb":"");
 const PIX_CONC_MS=10*1000; // conciliacao (quem pagou?) a cada ~10s (so consulta status = leitura, sem risco)
 const PIX_TIMEOUT=()=>AbortSignal.timeout(30000);
+const PIX_AVISO_MS=60*1000; // ==PIXAVISO== avisos de pagamento do boleto e conferencias a cada ~1 min (so leitura no banco)
 
 // credencial de cada conta (a da loja continua lendo EXATAMENTE as mesmas variaveis de antes)
 function montaConta(nome,rotulo,pref){
@@ -102,8 +103,116 @@ function pixDecideBaixa(j,cob,hoje){
   const descontos=(Number(dl.desconto)||0)+(Number(dl.abatimento)||0);
   if(!(valor>0)) return { pagar:false, motivo:"Pagamento NAO baixado: o banco informou pagamento sem valor. Confira no Sicredi." };
   if(nominal>0 && valor+descontos<nominal-0.01) return { pagar:false, motivo:"Pagamento NAO baixado: valor pago ("+reais(valor)+") e menor que o do boleto ("+reais(nominal)+"). Confira no Sicredi." };
-  let tipo="PIX"; if(sit.indexOf("REDE")>=0) tipo="REDE"; else if(sit.indexOf("COMPE")>=0) tipo="COMPE";
+  // ==PIXAVISO== (revisão 22/10): "PIX" só quando o banco diz Pix. CHEQUE (caixa do Sicredi) é como o REDE: pode ser
+  // desfeito, então passa pela conferência do dia seguinte. CARTORIO e "LIQUIDADO" sozinho: tipo próprio.
+  let tipo="OUTRO"; if(sit.indexOf("REDE")>=0) tipo="REDE"; else if(sit.indexOf("COMPE")>=0) tipo="COMPE"; else if(sit.indexOf("CHEQUE")>=0) tipo="CHEQUE";
+  else if(sit.indexOf("CARTORIO")>=0) tipo="CARTORIO"; else if(sit.indexOf("PIX")>=0) tipo="PIX";
   return { pagar:true, pagoEm, valor:Math.round(valor*100)/100, tipo };
+}
+
+// ==PIXAVISO== (21/10/2026) pedido dele: "se pagar pelo boleto, o inquilino tem que saber na hora que está em
+// análise, e depois se deu certo ou se deu problema". Tudo aqui só LÊ o banco e anota na cobrança; quem manda os
+// e-mails é a função aviso-boleto-galpao. Três coisas:
+//   a) AVISO DE PAGAMENTO: boleto pago pela linha digitável só fica "liquidado" na compensação (até 1 dia útil),
+//      mas a lista "liquidados por dia" do Sicredi já traz o aviso (tipoLiquidacao "AVISO DE PAGAMENTO COMPE" ou
+//      "... REDE", manual da API 3.9.1, p. 165-166) -> aviso_pagamento_em (e-mail "em compensação").
+//   b) NÃO COMPENSOU: aviso sem liquidação depois de 3 dias úteis -> confere no banco; ainda não liquidado =
+//      pagamento_falhou_em (e-mail "seu pagamento não foi compensado", com cópia ao financeiro).
+//   c) PAGO NOS CANAIS DO SICREDI (REDE): o único que o banco pode estornar no mesmo dia (manual, p. 225). No dia
+//      seguinte confere de novo: ainda liquidado = liquidacao_conferida_em (só então sai o "pagamento confirmado");
+//      não = volta para "gerado", anota o estorno e pagamento_falhou_em.
+// Sem as colunas novas (sql/galpoes_pagamento_compensacao.sql não rodado): pula calado, nada muda.
+function diaLocal(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+// DIAS DE BANCO (revisão 22/10: no Carnaval e na virada do ano o feriado contava como dia útil e saía um "não
+// compensou" falso). Fora: sábado, domingo, feriados nacionais fixos, 31/12 e os da Páscoa (Carnaval seg e ter,
+// quarta de Cinzas, Sexta-feira Santa e Corpus Christi).
+function pascoa(y){ const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mes=Math.floor((h+l-7*m+114)/31),dia=((h+l-7*m+114)%31)+1; return Date.UTC(y,mes-1,dia,12); }
+function semBanco(d){ const w=d.getUTCDay(); if(w===0||w===6) return true;
+  const md=String(d.getUTCMonth()+1).padStart(2,"0")+"-"+String(d.getUTCDate()).padStart(2,"0");
+  if(["01-01","04-21","05-01","09-07","10-12","11-02","11-15","11-20","12-25","12-31"].includes(md)) return true;
+  const dd=Math.round((Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate(),12)-pascoa(d.getUTCFullYear()))/86400000);
+  return dd===-48||dd===-47||dd===-46||dd===-2||dd===60; }
+// dias de banco INTEIROS depois de 'de' até 'ate' (aaaa-mm-dd), contando os dois extremos fora/dentro: (de, ate]
+function diasBancoEntre(de,ate){ let n=0; const d=new Date(de+"T12:00:00Z"), fim=new Date(ate+"T12:00:00Z"); while(d<fim){ d.setUTCDate(d.getUTCDate()+1); if(!semBanco(d)) n++; } return n; }
+const PIX_AVISO_DIAS=5;   // a lista do banco é varrida nos últimos 5 dias: robô desligado por até 4 dias não perde aviso
+// só conta como "não pago" quando o banco diz CLARAMENTE que o boleto está em aberto. Resposta sem situação, ou com
+// uma que não conhecemos, NÃO desfaz pagamento nem dispara "não compensou" (fica para a próxima rodada).
+function pixEmAberto(sit){ return /^(EM CARTEIRA( PIX)?|VENCIDO)$/.test(String(sit||"").toUpperCase().trim()); }
+async function pixConsulta(c,nn){ const r=await fetch(PIX_BASE+"/cobranca/boleto/v1/boletos?codigoBeneficiario="+encodeURIComponent(c.benef)+"&nossoNumero="+encodeURIComponent(nn),{headers:hdr(c,await pegaTok(c)),signal:PIX_TIMEOUT()}); if(r.status===401) c.tok=null; if(!r.ok) throw new Error("consulta HTTP "+r.status); return r.json(); }
+async function pixAvisos(){
+  const agora=new Date(), hoje=diaLocal(agora), ontem=diaLocal(new Date(agora.getTime()-86400000));
+  // a) avisos de pagamento. Olha as cobranças em aberto sem aviso E as que já deram "não compensou"/estorno (o
+  //    inquilino pode pagar de novo o MESMO boleto: um aviso novo, de depois da falha, recomeça a história).
+  let semAviso, falhadas;
+  try{
+    semAviso=await pixSbGet("pix_cobrancas?status=in.(gerado,erro)&nosso_numero=not.is.null&aviso_pagamento_em=is.null&select=id,nosso_numero,conta&limit=1000");
+    falhadas=await pixSbGet("pix_cobrancas?status=in.(gerado,erro)&nosso_numero=not.is.null&pagamento_falhou_em=not.is.null&select=id,nosso_numero,conta,pagamento_falhou_em&limit=1000");
+  }catch(e){ if(String(e.message).indexOf("HTTP 400")>=0){ console.log("Pix: avisos de pagamento - colunas ainda nao existem no banco, pulando."); return; } throw e; }
+  const alvos=new Map(); for(const x of semAviso.concat(falhadas)) alvos.set(x.id, Object.assign({}, alvos.get(x.id)||{}, x));
+  const porConta={};
+  for(const ab of alvos.values()){ const c=contaDe(ab); if(!c||!c.ok) continue; (porConta[c.nome]=porConta[c.nome]||{c,lista:[]}).lista.push(ab); }
+  const dias=[]; for(let k=PIX_AVISO_DIAS-1;k>=0;k--) dias.push(diaLocal(new Date(agora.getTime()-k*86400000)));
+  let novos=0;
+  for(const k of Object.keys(porConta)){
+    // uma conta com login recusado, rede caída ou resposta estranha NÃO derruba a outra (revisão 22/10)
+    try{
+      const c=porConta[k].c, porNN=new Map(porConta[k].lista.map(x=>[String(x.nosso_numero),x]));
+      for(const dia of dias){
+        const dd=dia.split("-").reverse().join("/");
+        for(let pag=0; pag<20 && porNN.size; pag++){
+          const r=await fetch(PIX_BASE+"/cobranca/boleto/v1/boletos/liquidados/dia?codigoBeneficiario="+encodeURIComponent(c.benef)+"&dia="+encodeURIComponent(dd)+(pag?"&pagina="+pag:""),{headers:hdr(c,await pegaTok(c)),signal:PIX_TIMEOUT()});
+          if(!r.ok){ if(r.status===401) c.tok=null; break; }
+          const j=await r.json(), itens=(j&&j.items)||[];
+          for(const it of itens){
+            const tipo=String(it.tipoLiquidacao||"").toUpperCase(), ab=porNN.get(String(it.nossoNumero||""));
+            if(tipo.indexOf("AVISO")<0 || !ab) continue;
+            const dataPag=soData(it.dataPagamento)||dia;
+            // cobrança que já falhou: só um aviso de DEPOIS da falha conta (o antigo é o pagamento que não compensou)
+            if(ab.pagamento_falhou_em && dataPag<soData(ab.pagamento_falhou_em)) continue;
+            const campos={aviso_pagamento_em:new Date().toISOString(),aviso_pagamento_tipo:tipo,aviso_pagamento_valor:(Number(it.valorLiquidado)||Number(it.valor)||null),aviso_pagamento_data:dataPag};
+            if(ab.pagamento_falhou_em){ campos.pagamento_falhou_em=null; campos.pagamento_falhou_motivo=null; }
+            await pixSbPatch("id=eq."+ab.id+"&status=in.(gerado,erro)"+(ab.pagamento_falhou_em?"&pagamento_falhou_em=not.is.null":"&aviso_pagamento_em=is.null"),campos);
+            porNN.delete(String(it.nossoNumero)); novos++;
+            console.log("Pix: cobranca #"+ab.id+" - AVISO DE PAGAMENTO ("+tipo+", "+c.nome+")"+(ab.pagamento_falhou_em?" NOVO depois da falha":"")+" - em compensacao.");
+          }
+          if(!(j && (j.hasNext===true || j.hasNext==="true"))) break;
+        }
+      }
+    }catch(e){ console.log("Pix: avisos de pagamento ("+k+") - "+e.message+" (a outra conta segue)."); }
+  }
+  // b) aviso que não compensou: 2 dias de BANCO inteiros depois do aviso (o boleto compensa no 1º), conferido no banco,
+  //    e só entre 9h e 20h (nada de alarme de madrugada). Aviso com mais de 30 dias sai da lista (não consulta para sempre).
+  const limiteAviso=diaLocal(new Date(agora.getTime()-30*86400000));
+  const comAviso=(agora.getHours()>=9 && agora.getHours()<20) ? await pixSbGet("pix_cobrancas?status=in.(gerado,erro)&aviso_pagamento_em=not.is.null&pagamento_falhou_em=is.null&aviso_pagamento_data=gte."+limiteAviso+"&select=id,nosso_numero,conta,aviso_pagamento_data,aviso_pagamento_em&limit=1000") : [];
+  for(const ca of comAviso){
+    const de=soData(ca.aviso_pagamento_data)||soData(ca.aviso_pagamento_em), c=contaDe(ca);
+    if(!de || diasBancoEntre(de,ontem)<2 || !c || !c.ok) continue;
+    try{
+      const j=await pixConsulta(c,ca.nosso_numero), sit=String((j&&j.situacao)||"").toUpperCase();
+      if(!pixEmAberto(sit)) continue;   // compensou (a conciliação marca pago) ou resposta estranha: não decide nada
+      await pixSbPatch("id=eq."+ca.id+"&status=in.(gerado,erro)&pagamento_falhou_em=is.null",{pagamento_falhou_em:new Date().toISOString(),
+        pagamento_falhou_motivo:"O banco recebeu o aviso do pagamento pelo boleto em "+dataBr(de)+", mas ele nao foi compensado (situacao no banco: "+(sit||"?")+")."});
+      console.log("Pix: cobranca #"+ca.id+" - pagamento NAO compensou.");
+    }catch(e){ console.log("Pix: conferir compensacao #"+ca.id+" erro ("+e.message+")."); }
+  }
+  // c) pago nos canais do Sicredi (REDE) ou com cheque no caixa (CHEQUE): confere de novo no dia seguinte. Só os dos
+  //    últimos 10 dias (os antigos, de antes deste recurso, não são consultados para sempre).
+  const limiteRede=diaLocal(new Date(agora.getTime()-10*86400000));
+  const rede=await pixSbGet("pix_cobrancas?status=eq.pago&tipo_liquidacao=in.(REDE,CHEQUE)&liquidacao_conferida_em=is.null&pago_em=gte."+limiteRede+"&select=id,nosso_numero,conta,pago_em,tipo_liquidacao&limit=1000");
+  for(const pr of rede){
+    const c=contaDe(pr);
+    if(!pr.pago_em || soData(pr.pago_em)>=hoje || !c || !c.ok) continue;   // só a partir do dia seguinte ao pagamento
+    try{
+      const j=await pixConsulta(c,pr.nosso_numero), sit=String((j&&j.situacao)||"").toUpperCase();
+      if(sit.indexOf("LIQUIDADO")>=0){ await pixSbPatch("id=eq."+pr.id+"&status=eq.pago",{liquidacao_conferida_em:new Date().toISOString()}); continue; }
+      if(!pixEmAberto(sit)){ console.log("Pix: conferir REDE #"+pr.id+" - situacao \""+sit+"\" nao reconhecida, nao mexe."); continue; }
+      await pixSbPatch("id=eq."+pr.id+"&status=eq.pago",{status:"gerado",pago_em:null,valor_liquidado:null,tipo_liquidacao:null,
+        erro_msg:"Pagamento ESTORNADO pelo banco (pago "+(pr.tipo_liquidacao==="CHEQUE"?"com cheque":"nos canais do Sicredi")+" em "+dataBr(pr.pago_em)+" e desfeito). A parcela voltou a ficar em aberto.",
+        pagamento_falhou_em:new Date().toISOString(),pagamento_falhou_motivo:"O pagamento feito em "+dataBr(pr.pago_em)+" "+(pr.tipo_liquidacao==="CHEQUE"?"com cheque":"nos canais do Sicredi")+" foi estornado pelo banco."});
+      console.log("Pix: cobranca #"+pr.id+" - pagamento REDE ESTORNADO, voltou para aberto.");
+    }catch(e){ console.log("Pix: conferir REDE #"+pr.id+" erro ("+e.message+")."); }
+  }
+  if(novos) console.log("Pix: "+novos+" aviso(s) de pagamento novo(s).");
 }
 
 (async()=>{
@@ -221,7 +330,7 @@ function pixDecideBaixa(j,cob,hoje){
         if(d.pagar){
           await pixSbPatch("id=eq."+ab.id,{status:"pago",pago_em:d.pagoEm,valor_liquidado:d.valor,tipo_liquidacao:d.tipo,erro_msg:null});
           baixas++; console.log("Pix: cobranca #"+ab.id+" PAGA ("+d.tipo+", "+c.nome+") - baixa automatica.");
-        } else if(d.motivo && d.motivo!==ab.erro_msg){
+        } else if(d.motivo && d.motivo!==ab.erro_msg && !/^Pagamento ESTORNADO/.test(String(ab.erro_msg||""))){
           // nao marca pago; anota o motivo UMA vez (so grava de novo se o motivo mudar)
           await pixSbPatch("id=eq."+ab.id,{erro_msg:d.motivo});
           console.log("Pix: cobranca #"+ab.id+" - "+d.motivo);
@@ -230,6 +339,13 @@ function pixDecideBaixa(j,cob,hoje){
     }
     console.log("Pix: conciliacao ok, "+baixas+" paga(s) nova(s) de "+abertas.length+" em aberto.");
     try{ fs.writeFileSync(concF, String(Date.now())); }catch(e){}
+  }
+  // 3) ==PIXAVISO== avisos de pagamento do boleto, "não compensou" e conferência do pago REDE (a cada ~1 min)
+  const avisoF=path.join(__dirname,"..","output","last-pix-aviso.txt");
+  let ultA=0; try{ ultA=Number(fs.readFileSync(avisoF,"utf8"))||0; }catch(e){}
+  if(Date.now()-ultA >= PIX_AVISO_MS){
+    try{ await pixAvisos(); }catch(e){ console.log("Pix: avisos de pagamento - "+e.message+" (proxima rodada)."); }
+    try{ fs.writeFileSync(avisoF, String(Date.now())); }catch(e){}
   }
   console.log("Pix: rodada expressa ok.");
 })().catch(e=>{ console.log("Pix: erro ("+e.message+") - tenta na proxima."); });

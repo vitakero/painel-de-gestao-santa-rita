@@ -28,6 +28,8 @@ const EST=process.env.MUNDO;
 const mundo=JSON.parse(fs.readFileSync(EST,"utf8"));
 mundo.log=mundo.log||[]; mundo.chamadas=mundo.chamadas||[];
 function salva(){ fs.writeFileSync(EST, JSON.stringify(mundo)); }
+// relógio parado (mundo.agora): "new Date()" e "Date.now()" do robô devolvem essa hora (o fuso vem do TZ do processo)
+if(mundo.agora){ const T=Date.parse(mundo.agora), D0=Date; global.Date=class extends D0{ constructor(...a){ if(a.length) super(...a); else super(T); } static now(){ return T; } }; }
 process.on("exit", salva);
 function resp(status, corpo){ const t=corpo==null?"":(typeof corpo==="string"?corpo:JSON.stringify(corpo));
   return { ok:status>=200&&status<300, status, text:async()=>t, json:async()=>JSON.parse(t||"null") }; }
@@ -39,6 +41,8 @@ function filtra(q){
     if(op==="eq") linhas=linhas.filter(r=>String(r[k])===val);
     else if(op==="in") { const set=val.replace(/^\\(|\\)$/g,"").split(","); linhas=linhas.filter(r=>set.includes(String(r[k]))); }
     else if(op==="not" && val==="is.null") linhas=linhas.filter(r=>r[k]!=null);
+    else if(op==="is" && val==="null") linhas=linhas.filter(r=>r[k]==null);
+    else if(op==="gte") linhas=linhas.filter(r=>r[k]!=null && String(r[k])>=val);
     else throw new Error("filtro nao previsto: "+k+"="+v);
   }
   if(p.get("order")==="id") linhas.sort((a,b)=>a.id-b.id);
@@ -53,6 +57,7 @@ global.fetch=async function(url, o){
     mundo.log.push("SUPABASE "+m);
     // nuvem SEM a coluna "conta" (SQL dos galpoes ainda nao rodado): pedir a coluna volta 400
     if(mundo.semColunaConta && /select=[^&]*conta/.test(decodeURIComponent(q))) return resp(400,{message:"column pix_cobrancas.conta does not exist"});
+    if(mundo.semColunasAviso && /aviso_pagamento|liquidacao_conferida|pagamento_falhou/.test(decodeURIComponent(q))) return resp(400,{message:"column pix_cobrancas.aviso_pagamento_em does not exist"});
     if(m==="GET") return resp(200, filtra(q));
     if(m==="PATCH"){ const campos=JSON.parse(o.body); const alvo=filtra(q.replace(/(^|&)select=[^&]*/,"")); const ids=new Set(alvo.map(r=>r.id));
       mundo.banco.forEach(r=>{ if(ids.has(r.id)) Object.assign(r,campos); });
@@ -72,6 +77,9 @@ global.fetch=async function(url, o){
       mundo.chamadas.push(Object.assign({tipo:"gerar",benef:c.codigoBeneficiario,pagador:c.pagador,valor:c.valor,seu:c.seuNumero,corpo:c},ch));
       return resp(200,{txid:"tx"+nn,nossoNumero:nn,linhaDigitavel:"L"+nn,codigoBarras:"B"+nn,qrCode:"QR"+nn}); }
     if(m==="PATCH" && pth.endsWith("/baixa")){ mundo.chamadas.push(Object.assign({tipo:"cancelar",benef:benefHdr,nn:pth.split("/").slice(-2)[0]},ch)); return resp(202,{}); }
+    if(m==="GET" && pth.endsWith("/boletos/liquidados/dia")){ const dia=u.searchParams.get("dia");
+      mundo.chamadas.push(Object.assign({tipo:"liquidados",benef:benefQs,dia,pagina:u.searchParams.get("pagina")},ch));
+      const l=((mundo.liquidados||{})[chave]||{})[dia]; return resp(200, l || {items:[],hasNext:false}); }
     if(m==="GET" && pth.endsWith("/boletos")){ const nn=u.searchParams.get("nossoNumero");
       mundo.chamadas.push(Object.assign({tipo:"conferir",benef:benefQs,nn},ch));
       const r=(mundo.respostas||{})[nn]; return resp(200, r || {situacao:"EM CARTEIRA PIX"}); }
@@ -96,7 +104,7 @@ function rodar(mundo0, opc) {
   let saida = "";
   const uma = () => { try { fs.rmSync(path.join(dir, "output", "last-pix-start.txt"), { force: true }); fs.rmSync(path.join(dir, "output", "last-pix-concilia.txt"), { force: true });
     saida += execFileSync(process.execPath, ["-r", path.join(dir, "falso.cjs"), path.join(dir, "scripts", "pixWorker.cjs")],
-      { env: Object.assign({}, process.env, { MUNDO: est }), encoding: "utf8", timeout: 30000 }); }
+      { env: Object.assign({}, process.env, { MUNDO: est, TZ: "America/Fortaleza" }), encoding: "utf8", timeout: 30000 }); }
     catch (e) { saida += String(e.stdout || "") + String(e.stderr || ""); } };
   for (let i = 0; i < (opc.rodadas || 1); i++) uma();
   const m = JSON.parse(fs.readFileSync(est, "utf8"));
@@ -257,6 +265,113 @@ const pago = (data, valor, sit) => ({ situacao: sit || "LIQUIDADO PIX", valorNom
     vale("de R$ 0,01 a R$ 20.000: o robô aceita exatamente os juros que o banco calcula (inclusive R$ 810,00, 1.620,00, 2.370,00)", recusados.length === 0, recusados.length ? "recusou " + recusados.join(", ") : "nenhum recusado");
     vale("e recusa 1 centavo acima do teto (R$ 0,28 em R$ 810,00)", !!(pixEncargos({ valor: 810, multa_pct: 2, juros_dia: 0.28 }, { nome: "pf" }) || {}).erro, "recusado");
     vale("o robô e o SQL usam os MESMOS nomes de coluna (multa_pct, juros_dia)", ["multa_pct", "juros_dia"].every(n => sql.includes("add column if not exists " + n) && robo.includes("row." + n)), "multa_pct, juros_dia");
+  }
+
+  console.log("\n  ==== ==PIXAVISO== BOLETO PAGO PELA LINHA DIGITÁVEL: aviso, não compensou e estorno (21/10) ====");
+  {
+    const br = d => d.split("-").reverse().join("/");
+    const AGORA_F = "2026-10-22T14:00:00-03:00", HOJE = "2026-10-22", ONTEM = "2026-10-21";
+    const diaMenos = (n) => { const d = new Date(Date.UTC(2026, 9, 22, 12)); d.setUTCDate(d.getUTCDate() - n); return d.toISOString().slice(0, 10); };
+    const uteisAtras = (n) => n === 5 ? "2026-10-15" : diaMenos(n);
+    const r = rodar({ agora: AGORA_F,
+      banco: [
+        cob(1, "gerado", { conta: "pf", nosso_numero: "7000001" }),                       // pago na linha digitável hoje: aviso
+        cob(2, "gerado", { conta: "pf", nosso_numero: "7000002" }),                       // aparece na lista mas já como COMPE (não é aviso)
+        cob(3, "gerado", { conta: "pf", nosso_numero: "7000003", aviso_pagamento_em: uteisAtras(5) + "T15:00:00Z", aviso_pagamento_data: uteisAtras(5) }),   // não compensou
+        cob(4, "gerado", { conta: "pf", nosso_numero: "7000004", aviso_pagamento_em: diaMenos(1) + "T15:00:00Z", aviso_pagamento_data: diaMenos(1) }),        // ainda dentro do prazo
+        cob(5, "pago", { conta: "pf", nosso_numero: "7000005", tipo_liquidacao: "REDE", pago_em: ONTEM, valor_liquidado: 500 }),   // REDE de ontem que continua liquidado
+        cob(6, "pago", { conta: "pf", nosso_numero: "7000006", tipo_liquidacao: "REDE", pago_em: ONTEM, valor_liquidado: 500 }),   // REDE de ontem ESTORNADO
+        cob(7, "pago", { conta: "pf", nosso_numero: "7000007", tipo_liquidacao: "REDE", pago_em: HOJE, valor_liquidado: 500 }),    // REDE de hoje: espera o dia seguinte
+        cob(8, "pago", { conta: "pf", nosso_numero: "7000008", tipo_liquidacao: "PIX", pago_em: ONTEM, valor_liquidado: 500 }),    // Pix: não precisa conferir
+        cob(9, "gerado", { conta: "loja", nosso_numero: "9000009" }),                     // ponto extra (conta da loja) com aviso
+      ],
+      liquidados: {
+        "chave-pf": { [br(HOJE)]: { items: [ { nossoNumero: "7000001", tipoLiquidacao: "AVISO DE PAGAMENTO COMPE", valorLiquidado: 500, dataPagamento: HOJE }, { nossoNumero: "7000002", tipoLiquidacao: "COMPE", valorLiquidado: 500, dataPagamento: HOJE } ], hasNext: false } },
+        "chave-loja": { [br(HOJE)]: { items: [ { nossoNumero: "9000009", tipoLiquidacao: "AVISO DE PAGAMENTO REDE", valorLiquidado: 500, dataPagamento: HOJE } ], hasNext: false } },
+      },
+      respostas: { "7000003": { situacao: "EM CARTEIRA PIX" }, "7000005": pago(ONTEM, 500, "LIQUIDADO REDE"), "7000006": { situacao: "EM CARTEIRA PIX" } },
+    });
+    const L = r.linha;
+    vale("aviso de pagamento pela linha digitável: anota na hora (em compensação), sem marcar pago", !!L(1).aviso_pagamento_em && L(1).aviso_pagamento_tipo === "AVISO DE PAGAMENTO COMPE" && L(1).aviso_pagamento_valor === 500 && L(1).aviso_pagamento_data === HOJE && L(1).status === "gerado", JSON.stringify({ t: L(1).aviso_pagamento_tipo, s: L(1).status }));
+    vale("item da lista que já é liquidação (COMPE) não vira aviso", !L(2).aviso_pagamento_em, String(L(2).aviso_pagamento_em));
+    vale("a lista é pedida pela conta certa (PF para galpão, loja para ponto) e o ponto também ganha o aviso", r.chamadas.some(c => c.tipo === "liquidados" && c.chave === "chave-pf" && c.benef === "29377") && r.chamadas.some(c => c.tipo === "liquidados" && c.chave === "chave-loja" && c.benef === "57653") && !!L(9).aviso_pagamento_em, r.chamadas.filter(c => c.tipo === "liquidados").map(c => c.chave + " " + c.dia).join(", "));
+    vale("aviso de 15/10 e o banco ainda não liquidou em 22/10: 'não compensou' (pagamento_falhou_em + motivo)", !!L(3).pagamento_falhou_em && /nao foi compensado/.test(L(3).pagamento_falhou_motivo) && L(3).status === "gerado", String(L(3).pagamento_falhou_motivo).slice(0, 70));
+    vale("aviso de ontem: ainda dentro do prazo, não diz que falhou", !L(4).pagamento_falhou_em, "ok");
+    vale("pago REDE ontem e ainda liquidado no banco: conferido (libera o 'pagamento confirmado')", !!L(5).liquidacao_conferida_em && L(5).status === "pago", String(L(5).liquidacao_conferida_em));
+    vale("pago REDE ontem e ESTORNADO: volta para em aberto, sem data/valor de pago, e anota o estorno", L(6).status === "gerado" && L(6).pago_em === null && L(6).valor_liquidado === null && L(6).tipo_liquidacao === null && /ESTORNADO/.test(L(6).erro_msg) && !!L(6).pagamento_falhou_em, L(6).status + " / " + String(L(6).erro_msg).slice(0, 40));
+    vale("pago REDE hoje: espera o dia seguinte para conferir (nem consulta o banco)", !L(7).liquidacao_conferida_em && L(7).status === "pago" && !r.chamadas.some(c => c.tipo === "conferir" && c.nn === "7000007"), "espera");
+    vale("pago por Pix: não precisa da conferência do dia seguinte", !L(8).liquidacao_conferida_em && !r.chamadas.some(c => c.tipo === "conferir" && c.nn === "7000008"), "ok");
+  }
+  {
+    const ONTEM2 = "2026-10-21", atras = "2026-10-15";
+    const r = rodar({ agora: "2026-10-22T14:00:00-03:00", banco: [
+        cob(1, "pago", { conta: "pf", nosso_numero: "7000001", tipo_liquidacao: "REDE", pago_em: ONTEM2, valor_liquidado: 500 }),
+        cob(2, "gerado", { conta: "pf", nosso_numero: "7000002", aviso_pagamento_em: atras + "T15:00:00Z", aviso_pagamento_data: atras }) ],
+      respostas: { "7000001": {}, "7000002": { situacao: "SITUACAO NOVA DO BANCO" } } });
+    vale("banco responde SEM situação: o pago REDE NÃO é desfeito (fica para a próxima rodada)", r.linha(1).status === "pago" && !r.linha(1).pagamento_falhou_em && !r.linha(1).liquidacao_conferida_em, r.linha(1).status);
+    vale("banco responde uma situação desconhecida: NÃO diz 'não compensou'", !r.linha(2).pagamento_falhou_em, String(r.linha(2).pagamento_falhou_em));
+  }
+  console.log("\n  ==== REVISÃO 22/10: feriado, madrugada, conta com problema, 5 dias, repagamento e cheque ====");
+  {
+    // Carnaval 2027: pago (aviso) na sexta 05/02; seg 08, ter 09 e qua 10 (Cinzas) sem banco. Quarta à tarde: NÃO é "não compensou"
+    const r = rodar({ agora: "2027-02-10T14:00:00-03:00", banco: [cob(1, "gerado", { conta: "pf", nosso_numero: "7000001", aviso_pagamento_em: "2027-02-05T18:00:00Z", aviso_pagamento_data: "2027-02-05" })],
+      respostas: { "7000001": { situacao: "VENCIDO" } } });
+    vale("Carnaval: aviso na sexta, banco fechado seg/ter/qua de Cinzas -> não diz 'não compensou'", !r.linha(1).pagamento_falhou_em, String(r.linha(1).pagamento_falhou_em));
+    const r2 = rodar({ agora: "2027-02-15T14:00:00-03:00", banco: [cob(1, "gerado", { conta: "pf", nosso_numero: "7000001", aviso_pagamento_em: "2027-02-05T18:00:00Z", aviso_pagamento_data: "2027-02-05" })],
+      respostas: { "7000001": { situacao: "VENCIDO" } } });
+    vale("passados 2 dias de banco inteiros (qui 11 e sex 12) e ainda em aberto: aí sim 'não compensou'", !!r2.linha(1).pagamento_falhou_em, String(r2.linha(1).pagamento_falhou_em));
+    const r3 = rodar({ agora: "2026-12-31T14:00:00-03:00", banco: [cob(1, "gerado", { conta: "pf", nosso_numero: "7000001", aviso_pagamento_em: "2026-12-29T18:00:00Z", aviso_pagamento_data: "2026-12-29" })],
+      respostas: { "7000001": { situacao: "VENCIDO" } } });
+    vale("virada do ano: aviso em 29/12, só o dia 30 é de banco até 31/12 -> ainda não diz 'não compensou'", !r3.linha(1).pagamento_falhou_em, String(r3.linha(1).pagamento_falhou_em));
+  }
+  {
+    const r = rodar({ agora: "2026-10-22T02:30:00-03:00", banco: [cob(1, "gerado", { conta: "pf", nosso_numero: "7000001", aviso_pagamento_em: "2026-10-15T18:00:00Z", aviso_pagamento_data: "2026-10-15" })],
+      respostas: { "7000001": { situacao: "VENCIDO" } } });
+    vale("de madrugada (02h30) o robô não decide 'não compensou' (espera as 9h)", !r.linha(1).pagamento_falhou_em, String(r.linha(1).pagamento_falhou_em));
+  }
+  {
+    // login da LOJA recusado: os avisos, o "não compensou" e a conferência do REDE dos GALPÕES (conta PF) seguem
+    const r = rodar({ agora: "2026-10-22T14:00:00-03:00", loginRecusado: ["chave-loja"], banco: [
+        cob(9, "gerado", { conta: "loja", nosso_numero: "9000009" }),
+        cob(1, "gerado", { conta: "pf", nosso_numero: "7000001" }),
+        cob(2, "gerado", { conta: "pf", nosso_numero: "7000002", aviso_pagamento_em: "2026-10-15T18:00:00Z", aviso_pagamento_data: "2026-10-15" }),
+        cob(3, "pago", { conta: "pf", nosso_numero: "7000003", tipo_liquidacao: "REDE", pago_em: "2026-10-21", valor_liquidado: 500 }) ],
+      liquidados: { "chave-pf": { "22/10/2026": { items: [{ nossoNumero: "7000001", tipoLiquidacao: "AVISO DE PAGAMENTO COMPE", valorLiquidado: 500, dataPagamento: "2026-10-22" }], hasNext: false } } },
+      respostas: { "7000002": { situacao: "EM CARTEIRA PIX" }, "7000003": pago("2026-10-21", 500, "LIQUIDADO REDE") } });
+    vale("login da loja recusado: o galpão (conta PF) ganha o aviso, o 'não compensou' e a conferência do REDE", !!r.linha(1).aviso_pagamento_em && !!r.linha(2).pagamento_falhou_em && !!r.linha(3).liquidacao_conferida_em, [!!r.linha(1).aviso_pagamento_em, !!r.linha(2).pagamento_falhou_em, !!r.linha(3).liquidacao_conferida_em].join("/"));
+  }
+  {
+    // robô desligado: o aviso de 3 dias atrás ainda é achado (varre os últimos 5 dias)
+    const r = rodar({ agora: "2026-10-22T14:00:00-03:00", banco: [cob(1, "gerado", { conta: "pf", nosso_numero: "7000001" })],
+      liquidados: { "chave-pf": { "19/10/2026": { items: [{ nossoNumero: "7000001", tipoLiquidacao: "AVISO DE PAGAMENTO COMPE", valorLiquidado: 500, dataPagamento: "2026-10-19" }], hasNext: false } } } });
+    vale("robô desligado por dias: o aviso de 3 dias atrás ainda é anotado (a lista começa 4 dias atrás e para quando acha)", r.linha(1).aviso_pagamento_data === "2026-10-19" && (r.chamadas.find(c => c.tipo === "liquidados") || {}).dia === "18/10/2026", r.chamadas.filter(c => c.tipo === "liquidados").map(c => c.dia).join(","));
+  }
+  {
+    // pagou de novo o MESMO boleto depois de um "não compensou": aviso novo recomeça; o aviso antigo não conta
+    const r = rodar({ agora: "2026-10-22T14:00:00-03:00", banco: [
+        cob(1, "gerado", { conta: "pf", nosso_numero: "7000001", aviso_pagamento_em: "2026-10-12T18:00:00Z", aviso_pagamento_data: "2026-10-12", pagamento_falhou_em: "2026-10-16T13:00:00Z", pagamento_falhou_motivo: "nao compensou" }),
+        cob(2, "gerado", { conta: "pf", nosso_numero: "7000002", aviso_pagamento_em: "2026-10-12T18:00:00Z", aviso_pagamento_data: "2026-10-12", pagamento_falhou_em: "2026-10-21T13:00:00Z", pagamento_falhou_motivo: "nao compensou" }) ],
+      liquidados: { "chave-pf": { "22/10/2026": { items: [{ nossoNumero: "7000001", tipoLiquidacao: "AVISO DE PAGAMENTO COMPE", valorLiquidado: 500, dataPagamento: "2026-10-22" }], hasNext: false },
+                                  "18/10/2026": { items: [{ nossoNumero: "7000002", tipoLiquidacao: "AVISO DE PAGAMENTO COMPE", valorLiquidado: 500, dataPagamento: "2026-10-18" }], hasNext: false } } } });
+    vale("pagou de novo depois do 'não compensou': aviso novo anotado e a falha antiga apagada (recomeça)", r.linha(1).aviso_pagamento_data === "2026-10-22" && r.linha(1).pagamento_falhou_em === null, JSON.stringify({ d: r.linha(1).aviso_pagamento_data, f: r.linha(1).pagamento_falhou_em }));
+    vale("aviso de ANTES da falha (o pagamento que não compensou) não recomeça nada", r.linha(2).aviso_pagamento_data === "2026-10-12" && !!r.linha(2).pagamento_falhou_em, r.linha(2).aviso_pagamento_data);
+  }
+  {
+    const r = rodar({ agora: "2026-10-22T14:00:00-03:00", banco: [cob(1, "gerado", { conta: "pf", nosso_numero: "7000001" }), cob(2, "gerado", { conta: "pf", nosso_numero: "7000002" }), cob(3, "gerado", { conta: "pf", nosso_numero: "7000003" })],
+      respostas: { "7000001": pago("2026-10-22", 500, "LIQUIDADO CHEQUE"), "7000002": pago("2026-10-22", 500, "LIQUIDADO"), "7000003": pago("2026-10-22", 500, "LIQUIDADO PIX") } });
+    vale("pago com cheque vira CHEQUE (passa pela conferência do dia seguinte), 'LIQUIDADO' sozinho vira OUTRO e só o Pix é PIX", r.linha(1).tipo_liquidacao === "CHEQUE" && r.linha(2).tipo_liquidacao === "OUTRO" && r.linha(3).tipo_liquidacao === "PIX", [1, 2, 3].map(i => r.linha(i).tipo_liquidacao).join(","));
+    const r2 = rodar({ agora: "2026-10-23T14:00:00-03:00", banco: [cob(1, "pago", { conta: "pf", nosso_numero: "7000001", tipo_liquidacao: "CHEQUE", pago_em: "2026-10-22", valor_liquidado: 500 })],
+      respostas: { "7000001": { situacao: "EM CARTEIRA" } } });
+    vale("cheque devolvido (no dia seguinte o banco diz em aberto): volta para em aberto e anota", r2.linha(1).status === "gerado" && !!r2.linha(1).pagamento_falhou_em && /com cheque/.test(r2.linha(1).pagamento_falhou_motivo), String(r2.linha(1).pagamento_falhou_motivo).slice(0, 60));
+  }
+  {
+    const r = rodar({ semColunasAviso: true, banco: [cob(1, "gerado", { conta: "pf", nosso_numero: "7000001" })], respostas: { "7000001": pago(HOJE, 500, "LIQUIDADO PIX") } });
+    vale("nuvem SEM as colunas novas: o aviso pula calado e a baixa do Pix continua normal", r.linha(1).status === "pago" && /colunas ainda nao existem/.test(r.saida) && /rodada expressa ok/.test(r.saida), r.linha(1).status);
+  }
+  {
+    const robo = fs.readFileSync(ROBO, "utf8"), sqlA = fs.readFileSync(path.join(__dirname, "..", "..", "sql", "galpoes_pagamento_compensacao.sql"), "utf8");
+    const cols = ["aviso_pagamento_em", "aviso_pagamento_tipo", "aviso_pagamento_valor", "aviso_pagamento_data", "liquidacao_conferida_em", "pagamento_falhou_em", "pagamento_falhou_motivo"];
+    vale("o robô e o SQL usam os MESMOS nomes de coluna do aviso", cols.every(n => robo.includes(n) && sqlA.includes("add column if not exists " + n)), cols.filter(n => !(robo.includes(n) && sqlA.includes("add column if not exists " + n))).join(",") || "iguais");
   }
 
   console.log("\n  " + ok + " ok, " + falhou + " falha(s).\n");
