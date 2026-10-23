@@ -18645,6 +18645,9 @@ function glAvisosReajuste(oldVal, newVal, desdeBR){
    e-mail do cadastro do galpão e anota na cobrança (email_enviado_em / email_para / email_erro). Aqui só
    mostra, na coluna "E-mail" do calendário: enviado (com a data e para quem) ou por que não foi (ex.: inquilino
    sem e-mail no cadastro). Sem nada a dizer (sem boleto, boleto de antes do envio automático): traço. */
+// ==GLEMAILOBRIG== cópia da emailValido da função do e-mail (supabase/functions/aviso-boleto-galpao/envio.ts);
+// a crase do original vai como \\x60 porque este código mora dentro de um texto entre crases
+function glEmailValido(e){ e=String(e||"").trim(); return e.length<=254 && /^[A-Za-z0-9!#$%&'*+\\/=?^_\\x60{|}~-]+(\\.[A-Za-z0-9!#$%&'*+\\/=?^_\\x60{|}~-]+)*@([A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\\.)+[A-Za-z]{2,}$/.test(e); }
 function glEmailSelo(cob){
   var traco='<span style="color:#c3ccd6;">—</span>';
   if(!cob) return traco;
@@ -19043,6 +19046,15 @@ function renderGalpoes(){
   salvar.onclick=function(){
     var d=coleta();
     if(!d.numero && !d.locatario){ uiConfirm({titulo:"Falta identificar o galpão",msg:"Coloque o Nº do galpão (o mesmo da planta) e/ou o nome do locatário.",ok:"OK",cancel:""}); return; }
+    /* ==GLEMAILOBRIG== (23/10/2026, pedido dele): o boleto vai sozinho por e-mail todo mês; sem e-mail (ou escrito
+       errado) ele não chega ao inquilino. A regra é a MESMA da função que manda (emailValido, aviso-boleto-galpao):
+       o que passa aqui, a função aceita. */
+    if(!d.email || !glEmailValido(d.email)){
+      uiConfirm({titulo:d.email?"E-mail escrito errado":"Falta o e-mail do inquilino",
+        msg:d.email?"Confira o e-mail de cobrança: um endereço só, completo (ex.: nome@gmail.com).":"Preencha o e-mail de cobrança. É para ele que o boleto vai todo mês.",ok:"OK",cancel:""})
+        .then(function(){ try{ document.getElementById("glEmail").focus(); }catch(e){} });
+      return;
+    }
     if(d.saida && d.abertura && d.saida<d.abertura){ uiConfirm({titulo:"Saída antes da abertura",msg:"A data de saída do inquilino está antes da abertura do contrato. Confira as duas datas.",ok:"OK",cancel:""}); return; }
     var editId=salvar.dataset.edit;
     /* ==GLALUGUEL== (20/10/2026, pedido dele): quem NÃO é master não muda o aluguel (o tipo e o valor)
