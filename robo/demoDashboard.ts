@@ -19457,7 +19457,9 @@ function pixCobLoad(){
     try{ pixModalChecaPago(); }catch(e){} // se o modal do QR está aberto e a cobrança virou "pago", mostra a confirmação verde
     // assinatura do que a tela mostra (id+status+tem QR); se nada mudou, NÃO re-renderiza
     // (deixa o polling de 8s barato e sem "piscar" a tela à toa)
-    var sig=Object.keys(m).sort().map(function(k){ var c=m[k]; return k+"="+c.status+(c.qr_code?"Q":"")+(c.erro_msg?"E"+String(c.erro_msg).length:""); }).join("|");
+    // ==GLEMAILREDESENHA== (23/10/2026): o e-mail do boleto sai sem mudar a situação da cobrança; sem ele aqui a
+    // coluna "E-mail" dos galpões só mostrava "enviado" no próximo redesenho por outro motivo
+    var sig=Object.keys(m).sort().map(function(k){ var c=m[k]; return k+"="+c.status+(c.qr_code?"Q":"")+(c.erro_msg?"E"+String(c.erro_msg).length:"")+(c.email_enviado_em?"M":"")+(c.email_erro?"X"+String(c.email_erro).length:""); }).join("|");
     if(sig===pixCobsSig) return;
     pixCobsSig=sig;
     try{
@@ -33241,6 +33243,27 @@ function czImprimir(){
     var razaoPost = CC.rot ? (fCelH/fCelW) : (plW/plH);
     var largPost = (CC.rot ? (fCelH/fCelW) : (plW/cellW))*100;
 
+    /* ==CZCORTE== CADA PLACA NO MEIO DO SEU PEDAÇO DE PAPEL, DEPOIS DO CORTE (24/10/2026).
+       Ele imprimiu duas A5 numa folha, cortou ao meio e mandou a foto: cada placa ficava com 16 mm
+       de branco na ponta de fora e 2,5 mm do lado do corte — torta depois de cortada. A conta de
+       baixo centra o CONJUNTO na folha (margem de fora + vão de 5 mm no meio); A6 e A7 tinham o
+       mesmo defeito. Aqui a folha é dividida em pedaços iguais (onde a tesoura passa) e cada placa
+       fica no meio do pedaço dela, com 6 mm de branco — a mesma margem que já existia nos lados
+       compridos (a impressora não imprime colado na borda).
+       A5 cresce um pouco (130 -> 136,5 mm); A6 e A7 ficam praticamente do mesmo tamanho.
+       CHAVE: false volta exatamente à conta antiga. */
+    var CZ_CORTE_CENTRADO = true;
+    if(CZ_CORTE_CENTRADO){
+      var _cm = 6;                                         // branco em volta de cada placa (mm)
+      var _pcW = folhaW/CC.cols, _pcH = folhaH/CC.rows;    // o pedaço de papel de cada placa
+      var _pw, _ph;                                        // a placa em pé, antes de girar
+      if(CC.rot){ _pw = _pcH-2*_cm; _ph = _pcW-2*_cm; }
+      else { _ph = Math.min(_pcH-2*_cm, (_pcW-2*_cm)/0.707); _pw = _ph*0.707; }
+      CC = { page:CC.page, pgW:folhaW, pgH:folhaH, cols:CC.cols, rows:CC.rows, rot:CC.rot };
+      gap = 0;                                             // sem vão: a célula É o pedaço
+      razaoPost = _pw/_ph;
+      largPost = _pw/_pcW*100;
+    }
     var ccss=':root{color-scheme:light only;}@page{size:'+CC.page+';margin:0;}*{margin:0;padding:0;box-sizing:border-box;font-family:'+CZ_FAM+';}html{background:#fff;}body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'+CZPCSS
       /* A folha vale 100% da largura que a página oferecer, MAS nunca mais alta que a página.
    Sem esse min() a folha tem folga zero: medi 1122px de folha contra 1123px de página. Se

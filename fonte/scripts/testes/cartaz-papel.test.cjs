@@ -80,8 +80,10 @@ function imprimir(tam, qtd, extra) {
     const dx = Math.abs(p1[0].x1 - p1[1].x1);
     eq("4) as duas na mesma coluna (diferença em X < 1pt)", dx < 1, "true");
     const dy = Math.abs((p1[1].y1 - p1[0].y1));
-    // uma linha de distância: metade útil da folha (265mm/2 = 132,5mm = 375,6pt), com folga
-    eq("5) a de baixo está uma linha abaixo (350..400pt)", dy > 350 && dy < 400, "true");
+    // MEIA FOLHA de distância (297mm/2 = 148,5mm = 420,9pt): desde 24/10/2026 (==CZCORTE==) cada
+    // placa fica no meio do SEU pedaço de papel depois do corte. Antes era a metade da área útil
+    // (265mm/2 = 132,5mm = 375,6pt) e a placa ficava com 16mm de um lado e 3mm do outro, cortada.
+    eq("5) a de baixo está meia folha abaixo (410..432pt): cada uma no meio do seu pedaço", dy > 410 && dy < 432, "true");
     const t0 = (p1[0].x2 - p1[0].x1).toFixed(1), t1 = (p1[1].x2 - p1[1].x1).toFixed(1);
     eq("6) as duas do mesmo tamanho", t0, t1);
   }

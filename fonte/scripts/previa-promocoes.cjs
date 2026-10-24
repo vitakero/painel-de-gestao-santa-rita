@@ -33,6 +33,18 @@ const ESTILO = PAINEL ? "" : fs.readFileSync(path.join(BASE, "codigo", "estilo.c
 
 let h = fs.readFileSync(path.join(RAIZ, "output", "index.html"), "utf8");
 
+/* ==CZCORTE== (24/10): cada placa no meio do seu pedaço de papel depois do corte. Mora em
+   codigo/corte-centrado.js e entra no czImprimir do painel no MESMO lugar onde o integrar-a.py
+   cola na publicação. Se o painel já tiver (publicado), não cola de novo. */
+{
+  const ANC = "    var ccss=':root{color-scheme:light only;}@page{size:'+CC.page+';margin:0;}";
+  const arq = path.join(BASE, "codigo", "corte-centrado.js");
+  if (fs.existsSync(arq) && h.indexOf("==CZCORTE==") < 0) {
+    if (h.split(ANC).length !== 2) { console.log("ERRO: a âncora do ==CZCORTE== mudou no painel"); process.exit(1); }
+    h = h.replace(ANC, () => fs.readFileSync(arq, "utf8") + ANC);
+  }
+}
+
 /* Dois cabeçalhos de mentira, desenhados na hora, para ele ter o que escolher sem depender
    do que está guardado no navegador dele. Proporção 20:7, a mesma que a trava do envio exige. */
 const ARTES = `
